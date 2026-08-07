@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required for softprops/action-gh-release to create the release
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fails the workflow (and blocks the release) if the vendored
+      # source imports a package package.json doesn't correctly declare
+      # in "dependencies" — catches an AI-managed package.json drifting
+      # out of sync with actual code (missing entries, or a runtime dep
+      # left in devDependencies). See build-release.js's own checks.
+      - name: Build core release contents
+        run: node scripts/build-release.js
+
+      - name: Package core zip + checksum
+        run: node scripts/package-release.js
+
+      # Optional artifact — install via `toolcrib init --with-tests`.
+      # Built from the same package.json/version, so requiresToolkitVersion
+      # in toolcrib-tests.config.json always matches this release by
+      # construction, not by manual bookkeeping.
+      - name: Build test-suite release contents
+        run: node scripts/build-tests-release.js
+
+      - name: Package test-suite zip + checksum
+        run: node scripts/package-tests-release.js
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag v$TAG_VERSION does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            toolcrib.zip
+            toolcrib.zip.sha256
+            toolcrib-tests.zip
+            toolcrib-tests.zip.sha256
+          generate_release_notes: true
