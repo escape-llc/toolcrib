@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PendingChanges, normalize } from '../src/lib/patches.js';
+import { PendingChanges, normalize, joinPatchPath } from '../src/lib/patches.js';
 
 describe('normalize', () => {
   it('converts CRLF to LF', () => {
@@ -65,11 +65,49 @@ describe('PendingChanges', () => {
     expect(changes.count()).toBe(2);
   });
 
+  it('normalizes a backslash-containing relPath to forward slashes before building the patch header (last-mile enforcement)', () => {
+    changes.propose('components\\Card\\Card.tsx', '', 'export function Card() {}\n');
+    expect(changes.entries[0].relPath).toBe('components/Card/Card.tsx');
+    expect(changes.entries[0].patch).toContain('b/components/Card/Card.tsx');
+    expect(changes.entries[0].patch).not.toMatch(/[ab]\/[^\n]*\\/);
+  });
+
   it('summarize() marks new files distinctly from modifications', () => {
     changes.propose('a.txt', '', 'new\n');
     changes.propose('b.txt', 'old\n', 'new\n');
     const summary = changes.summarize();
     expect(summary).toContain('+ (new) a.txt');
     expect(summary).toContain('~ b.txt');
+  });
+});
+
+describe('joinPatchPath', () => {
+  // Regression coverage for a real bug found via an end-to-end run on
+  // Windows: git apply rejects backslash-separated patch header paths
+  // outright, and path.join() normalizes to the platform separator
+  // regardless of what separators its inputs already used — so this must
+  // never delegate to path.join() even indirectly. These assertions would
+  // all still pass under win32's path.join() too (it's the *shape* of the
+  // input that matters, not the current OS), which is why it's safe to
+  // assert on literal '/' output even though this test suite runs
+  // cross-platform in CI.
+  it('joins segments with a forward slash', () => {
+    expect(joinPatchPath('toolcrib', 'components/Card/Card.tsx')).toBe('toolcrib/components/Card/Card.tsx');
+  });
+
+  it('strips a leading "./" from a segment', () => {
+    expect(joinPatchPath('./toolcrib', 'index.ts')).toBe('toolcrib/index.ts');
+  });
+
+  it('normalizes backslashes within a segment, as defense in depth against an upstream source that missed this', () => {
+    // Every relPath source in this CLI is already fixed to produce '/'
+    // (see lib/zip.js, scripts/build-release.js) — this is a second line
+    // of defense, not the primary fix, for exactly the class of bug that
+    // shipped undetected until a real end-to-end Windows run caught it.
+    expect(joinPatchPath('toolcrib', 'components\\Card\\Card.tsx')).toBe('toolcrib/components/Card/Card.tsx');
+  });
+
+  it('drops empty/falsy segments rather than producing a doubled or leading slash', () => {
+    expect(joinPatchPath('toolcrib', '')).toBe('toolcrib');
   });
 });

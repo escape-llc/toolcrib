@@ -22,28 +22,29 @@ export interface UIGroupProps {
 }
 
 // Inject focus/hover stacking CSS for UIGroup elements
-const STYLE_ID = 'ai-ui-group-styles';
+const STYLE_ID = 'toolcrib-group-styles';
 function injectUIGroupStyles() {
   if (typeof document === 'undefined') return;
   if (document.getElementById(STYLE_ID)) return;
   const styleEl = document.createElement('style');
   styleEl.id = STYLE_ID;
   styleEl.textContent = `
-    .ai-ui-group > * {
+    .toolcrib-group > * {
       position: relative;
     }
-    .ai-ui-group > *:hover {
+    .toolcrib-group > *:hover {
       z-index: 1;
     }
-    .ai-ui-group > *:focus,
-    .ai-ui-group > *:focus-within,
-    .ai-ui-group > *:active {
+    .toolcrib-group > *:focus,
+    .toolcrib-group > *:focus-within,
+    .toolcrib-group > *:active {
       z-index: 2 !important;
     }
   `;
   document.head.appendChild(styleEl);
 }
 
+/** @manifest Merges adjacent elements into a single visual compound control */
 export const UIGroup: React.FC<UIGroupProps> = ({
   children,
   orientation = 'horizontal',
@@ -62,7 +63,7 @@ export const UIGroup: React.FC<UIGroupProps> = ({
 
   return (
     <div
-      className={`ai-ui-group ${className || ''}`.trim()}
+      className={`toolcrib-group ${className || ''}`.trim()}
       role="group"
       style={{
         display: 'inline-flex',

@@ -105,6 +105,25 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();
   });
 
+  it('exposes a generic default accessible name, and a custom one via ariaLabel', () => {
+    const { rerender } = render(
+      <Modal trigger={<Button>Open Default</Button>}>
+        <Modal.Body>Content</Modal.Body>
+      </Modal>
+    );
+    fireEvent.click(screen.getByText('Open Default'));
+    expect(screen.getByRole('dialog', { name: 'Dialog' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    rerender(
+      <Modal trigger={<Button>Open Custom</Button>} ariaLabel="Delete confirmation">
+        <Modal.Body>Content</Modal.Body>
+      </Modal>
+    );
+    fireEvent.click(screen.getByText('Open Custom'));
+    expect(screen.getByRole('dialog', { name: 'Delete confirmation' })).toBeInTheDocument();
+  });
+
   it('responds to aiBus event dispatches for overlays', () => {
     const popupShownSpy = vi.fn();
     const unsub = aiBus.on('popup:shown', popupShownSpy);

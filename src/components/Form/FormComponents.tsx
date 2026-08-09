@@ -1,6 +1,5 @@
 import React, { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, createContext, useContext } from 'react';
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import * as SwitchPrimitive from '@radix-ui/react-switch';
+import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';

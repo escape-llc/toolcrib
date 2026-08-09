@@ -23,6 +23,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run toolkit test suite
+        run: npm test
+
+      - name: Install CLI dependencies
+        run: npm ci
+        working-directory: cli
+
+      - name: Run CLI test suite
+        run: npm test
+        working-directory: cli
+
+      # Fails the workflow (and blocks the release) if ai-docs/component-manifest.json
+      # doesn't match what scripts/generate-manifest.js derives directly from
+      # component source (JSDoc @manifest tags, prop types, slots, event bus
+      # shape) — the same "don't trust hand-maintained metadata, recompute it"
+      # principle as the peerDependency check below, applied to the manifest.
+      - name: Check component-manifest.json matches source
+        run: node scripts/generate-manifest.js --check
+
       # Fails the workflow (and blocks the release) if the vendored
       # source imports a package package.json doesn't correctly declare
       # in "dependencies" — catches an AI-managed package.json drifting

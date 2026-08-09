@@ -1,11 +1,20 @@
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
-import { PendingChanges } from '../lib/patches.js';
-import { resolveDependencyDecisions, buildProposedPackageJson } from '../lib/deps.js';
+import { PendingChanges, joinPatchPath } from '../lib/patches.js';
+import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
 import { readJsonIfExists, readTextIfExists, proposeGitignore, proposeLockUpdate } from '../lib/project.js';
+import { MANAGED_DOCS, DEFAULT_TARGET_FILE, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
+// The subpath-imports entry that gives consumer code a stable, file-location-
+// independent way to import the toolkit (`import { Card } from '#toolcrib'`),
+// bundler-agnostic per Node's package.json "imports" resolution. Must match
+// TOOLKIT_DIR — see build-release.js's INDEX_FILE for the vendored entry point.
+const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
+
+// docIds always written, plus the situational one --situation selects.
+const SITUATION_TO_DOC_ID = { new: 'new-app', refactor: 'refactor-app' };
 
 export async function initCommand(options) {
   const projectRoot = process.cwd();
@@ -32,7 +41,10 @@ export async function initCommand(options) {
     const proposedContent = release.readFile(relPath);
     const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
     const currentContent = readTextIfExists(targetPath);
-    changes.propose(path.join(TOOLKIT_DIR, relPath), currentContent, proposedContent, relPath);
+    // targetPath above is a real filesystem path (correctly OS-native);
+    // this one becomes a patch header and must stay forward-slash — see
+    // joinPatchPath's docstring.
+    changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), currentContent, proposedContent, relPath);
   }
 
   // 2. package.json — propose only the additions, never touch existing entries.
@@ -46,18 +58,25 @@ export async function initCommand(options) {
   }
 
   const depDecisions = resolveDependencyDecisions(userPkg, release.config.peerDependencies);
-  if (depDecisions.toAdd.length > 0) {
-    const proposedPkg = buildProposedPackageJson(userPkg, depDecisions.toAdd);
+  const pkgWithDeps = depDecisions.toAdd.length > 0
+    ? buildProposedPackageJson(userPkg, depDecisions.toAdd)
+    : userPkg;
+
+  // Combined into one patch against package.json — a second propose() call
+  // for the same relPath would produce two independent diffs both based on
+  // the original file, which can't both apply cleanly (see PendingChanges).
+  const importsResult = mergeImportsField(pkgWithDeps, TOOLKIT_IMPORTS_ENTRY);
+  if (depDecisions.toAdd.length > 0 || importsResult.changed) {
     changes.propose(
       'package.json',
       readTextIfExists(pkgPath),
-      JSON.stringify(proposedPkg, null, 2) + '\n',
+      JSON.stringify(importsResult.pkg, null, 2) + '\n',
       'package.json'
     );
   }
 
   // 3. .gitignore — same propose() mechanism, no special-casing required.
-  const gitignoreChange = proposeGitignore(projectRoot);
+  const gitignoreChange = proposeGitignore(projectRoot, release.version);
   if (gitignoreChange) {
     changes.propose(gitignoreChange.relPath, gitignoreChange.current, gitignoreChange.proposed, '.gitignore');
   }
@@ -65,6 +84,25 @@ export async function initCommand(options) {
   // 4. Version lockfile — the only piece of state persisted between runs.
   const lockChange = proposeLockUpdate(projectRoot, release.version);
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
+
+  // 5. AI instruction file — always propose the "core" managed block. The
+  //    situational docs (new-app / refactor-app) need --situation since the
+  //    CLI can't infer which applies; without it, the outro just tells the
+  //    user which flag to re-run with (or to add the block manually,
+  //    wrapped in the same fence, for `doctor`/`merge` to still track it).
+  const situationDocId = SITUATION_TO_DOC_ID[options.situation];
+  const docIdsToWrite = situationDocId ? ['core', situationDocId] : ['core'];
+
+  const agentsPath = path.join(projectRoot, DEFAULT_TARGET_FILE);
+  const originalAgentsContent = readTextIfExists(agentsPath);
+  let proposedAgentsContent = originalAgentsContent;
+  for (const docId of docIdsToWrite) {
+    const docContent = release.readFile(`ai-docs/${MANAGED_DOCS[docId]}`);
+    proposedAgentsContent = upsertManagedBlock(proposedAgentsContent, docId, release.version, docContent);
+  }
+  if (proposedAgentsContent !== originalAgentsContent) {
+    changes.propose(DEFAULT_TARGET_FILE, originalAgentsContent, proposedAgentsContent, DEFAULT_TARGET_FILE);
+  }
 
   await release.cleanup();
 
@@ -78,12 +116,16 @@ export async function initCommand(options) {
 
   reportConflicts(depDecisions);
 
+  const missingSituation = !situationDocId
+    ? `\n\nThis staged a "core" block in ${DEFAULT_TARGET_FILE}, but not a situational one — re-run with ` +
+      `--situation new (greenfield project) or --situation refactor (adopting into an existing app) to add it, ` +
+      `or add it by hand wrapped in the same <!-- toolcrib:managed:... --> fence so 'toolcrib merge' can still ` +
+      `track it. See ./toolcrib/ai-docs/NEW_APP.md / REFACTOR_APP.md.`
+    : '';
+
   p.outro(
     `Review the patches in ./toolcrib-patches/, then run:\n` +
-      `  toolcrib apply\n\n` +
-      `Once applied, integrate AI context:\n` +
-      `  See ./toolcrib/ai-docs/ for files to merge into AGENTS.md / CLAUDE.md\n` +
-      `  (or ask your AI assistant to do it for you)`
+      `  toolcrib apply${missingSituation}`
   );
 }
 

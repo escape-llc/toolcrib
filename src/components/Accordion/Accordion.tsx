@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 
 /** Data shape for each item in a data-driven `<Accordion>`. */
@@ -36,6 +36,7 @@ export interface AccordionProps {
   style?: React.CSSProperties;
 }
 
+/** @manifest Data-driven collapsible panel group with animations */
 export const Accordion: React.FC<AccordionProps> = ({
   id = `accordion-${Math.random().toString(36).substring(2, 7)}`,
   items,

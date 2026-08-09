@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useContext } from 'react';
-import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 
 /** Data shape for each option in a `<RadioGroup>`. */

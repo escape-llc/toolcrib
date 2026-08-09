@@ -1,18 +1,51 @@
-# AI-UI Toolkit — System Prompt & Developer Guide
+# Toolcrib — Core Reference & System Prompt
 
-`ai-ui` is a React component library designed specifically for AI code generation ("vibe coding"). It provides structural UI components, slot-based composition without prop-drilling, a strongly-typed Event Bus, a Zod 4 form validation engine, and an HSV-based CSS variable theme system.
+`toolcrib` is a React component library designed specifically for AI code generation ("vibe coding"). It provides structural UI components, slot-based composition without prop-drilling, a strongly-typed Event Bus, a Zod 4 form validation engine, and an HSV-based CSS variable theme system.
+
+**Always include this file's content in your system instructions** (Cursor `.cursorrules`, `AGENTS.md`, Claude System Prompt, Custom GPTs) when working in a project that uses `toolcrib`. It is the single source of truth for the toolkit's rules — component reference, event bus, and theme system. In addition to this file, also include exactly one of:
+- **`NEW_APP.md`** — starting a project from scratch with `toolcrib` as the UI layer from day one.
+- **`REFACTOR_APP.md`** — introducing `toolcrib` into a codebase that already has UI, styling, and state management.
+
+> **Import path.** After `toolcrib init` / `toolcrib apply`, the toolkit is vendored into `./toolcrib/` and wired to the `#toolcrib` subpath import via your `package.json`'s `"imports"` field — never `from 'toolcrib'` or a relative path. This is the one specifier that works identically from any file in your project, regardless of location or bundler:
+> ```tsx
+> import { Card, aiBus } from '#toolcrib';
+> ```
 
 > **All units are `rem`** (derived from `--ai-master-font-size` in `px`). Never hardcode `px` values.
 
 ---
 
-## 1. Core Principles
+## 1. Root Setup
+
+Three providers must wrap your app root exactly once — components will throw ("must be used within a ...Provider") or silently no-op without them:
+
+```tsx
+import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ThemeProvider>
+    <ToastProvider>
+      <App />
+      {/* ToastContainer renders the actual toast stack. Omitting it is a
+          common silent failure: aiBus.showToast() / addToast() still update
+          state and emit bus events, but nothing appears on screen. */}
+      <ToastContainer />
+    </ToastProvider>
+  </ThemeProvider>
+);
+```
+
+`ThemeProvider` injects the HSV-derived CSS variables at `:root` on mount — nothing themed will render correctly without it. `ToastProvider` + `ToastContainer` are independent of `ThemeProvider` but must both be present together (the provider holds state; the container renders it).
+
+---
+
+## 2. Core Principles
 
 1. **NO Prop-Drilling.** Use slot subcomponents (e.g. `<Card.Header>`, `<Modal.Actions>`) and React contexts.
 2. **NO Manual `useState` for Overlays.** `<Popup>`, `<SlideOut>`, and `<Modal>` manage open/close state internally or via `aiBus`.
 3. **Cross-Tree Actions via Event Bus.** Trigger overlays, toasts, and form actions from anywhere:
    ```tsx
-   import { aiBus, useAIEvent } from 'ai-ui';
+   import { aiBus, useAIEvent } from '#toolcrib';
    aiBus.openModal('delete-confirm', { itemId: row.id });
    aiBus.showToast('Item deleted', 'success');
    useAIEvent('modal:shown', (e) => { /* auto-cleanup */ });
@@ -29,12 +62,12 @@
 
 ---
 
-## 2. ⛔ Anti-Patterns — DO NOT Generate These
+## 3. ⛔ Anti-Patterns — DO NOT Generate These
 
 | ❌ Don't | ✅ Do Instead |
 |:---|:---|
 | Manually manage overlay open/close with `useState` | Let `<Modal>`, `<SlideOut>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
-| Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from 'ai-ui'` |
+| Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'` |
 | Use `px` units for spacing, borders, radii | Use `rem` values. Only `--ai-master-font-size` is in `px` |
 | Hardcode colour values (hex, rgb) | Use CSS variables: `var(--ai-color-primary)`, `var(--ai-subtheme-error)` |
 | Prop-drill callbacks through component trees | Use `aiBus.emit()` / `useAIEvent()` for cross-tree communication |
@@ -44,7 +77,7 @@
 
 ---
 
-## 3. Component Reference
+## 4. Component Reference
 
 ### Layout Primitives
 
@@ -67,11 +100,13 @@
 
 | Component | Slots | Key Props | Bus Events |
 |:---|:---|:---|:---|
-| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `width` | `modal:shown`, `modal:hidden` |
+| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `width`, `ariaLabel` | `modal:shown`, `modal:hidden` |
 | `<SlideOut>` | children (body content) | `id`, `trigger`, `position`, `title`, `width` | `slideout:shown`, `slideout:hidden` |
 | `<Popup>` | children (popover content) | `id`, `trigger`, `placement` | `popup:shown`, `popup:hidden` |
 | `<Tooltip>` | children (trigger element) | `content`, `side`, `align`, `delayDuration` | `tooltip:shown`, `tooltip:hidden` |
 | `<DropdownMenu>` | data-driven via `items` | `trigger`, `items`, `side`, `align` | `menu:opened`, `menu:closed`, `menu:item_selected` |
+
+`<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 
 ### Data Display
 
@@ -100,6 +135,8 @@
 
 ### Toast Subsystem
 
+Requires `<ToastProvider>` + `<ToastContainer>` at the root (see §1).
+
 ```tsx
 // Simple: one-liner
 aiBus.showToast('Saved successfully', 'success');
@@ -123,7 +160,7 @@ addToast({
 
 ---
 
-## 4. `layout="auto"` — Fill & Corner-Squaring
+## 5. `layout="auto"` — Fill & Corner-Squaring
 
 When a `<Card>` is placed inside a flex container (like a `<Splitter>` panel), set `layout="auto"` to make it fill available space and automatically square its corners adjacent to the splitter handle:
 
@@ -150,9 +187,9 @@ When a `<Card>` is placed inside a flex container (like a `<Splitter>` panel), s
 
 ---
 
-## 5. Z-Index Scale
+## 6. Z-Index Scale
 
-**Always import `Z_INDEX` from `ai-ui`.** Never hardcode z-index values.
+**Always import `Z_INDEX` from `#toolcrib`.** Never hardcode z-index values.
 
 | Tier | Value | Used By |
 |:---|:---:|:---|
@@ -167,9 +204,9 @@ When a `<Card>` is placed inside a flex container (like a `<Splitter>` panel), s
 
 ---
 
-## 6. CSS Variable Theme System (HSV-Derived)
+## 7. CSS Variable Theme System (HSV-Derived)
 
-All colours are controlled by CSS variables injected at `:root`:
+All colours are controlled by CSS variables injected at `:root` by `<ThemeProvider>`:
 
 ### Palette Variables
 - `--ai-color-base` — The base HSV colour
@@ -188,7 +225,7 @@ All colours are controlled by CSS variables injected at `:root`:
 
 ---
 
-## 7. Theme Slices
+## 8. Theme Slices
 
 The theme system is extensible via **slices**. Each slice provides:
 - A state interface
@@ -199,7 +236,7 @@ Built-in slices: `padding`, `margin`, `radius`, `shadow`, `animation`, `dataTabl
 
 Register custom slices:
 ```tsx
-import { globalThemeSliceRegistry, ThemeSlice } from 'ai-ui';
+import { globalThemeSliceRegistry, ThemeSlice } from '#toolcrib';
 
 const MySlice: ThemeSlice<{ size: number }> = {
   id: 'my-slice',
@@ -215,7 +252,7 @@ globalThemeSliceRegistry.register(MySlice);
 
 ---
 
-## 8. Event Bus — Complete Payload Reference
+## 9. Event Bus — Complete Payload Reference
 
 | Event | Payload Type |
 |:---|:---|
@@ -241,3 +278,4 @@ globalThemeSliceRegistry.register(MySlice);
 | `menu:item_selected` | `{ id?: string; itemValue: string }` |
 | `tooltip:shown` | `{ id?: string; content: string }` |
 | `tooltip:hidden` | `{ id?: string }` |
+| `error:boundary` | `{ componentName: string; error: string; stack?: string }` — emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<SlideOut>`) whenever a child throws during render |

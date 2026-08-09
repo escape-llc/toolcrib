@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Z_INDEX } from '../theme/zIndex';
 
-describe('AI-UI Standard Z-Index Scale Architecture', () => {
+describe('Toolcrib Standard Z-Index Scale Architecture', () => {
   it('enforces strict monotonic ordering across component layer tiers', () => {
     expect(Z_INDEX.BASE).toBeLessThan(Z_INDEX.STICKY);
     expect(Z_INDEX.STICKY).toBeLessThan(Z_INDEX.SPLITTER);

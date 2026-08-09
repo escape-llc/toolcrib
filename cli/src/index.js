@@ -17,6 +17,10 @@ program
   .command('init')
   .description('Stage installation of the toolkit into the current project (writes patches, does not apply)')
   .option('--version <version>', 'toolkit version to install', 'latest')
+  .option(
+    '--situation <situation>',
+    'also stage the matching AGENTS.md/CLAUDE.md doc block: "new" (greenfield project) or "refactor" (adopting into an existing app)'
+  )
   .action(async (options) => {
     await initCommand(options).catch(fail);
   });

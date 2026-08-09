@@ -1,44 +1,112 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "name": "ai-ui",
-  "version": "1.0.0",
+  "name": "toolcrib",
+  "version": "0.1.0",
   "description": "AI-consumable component manifest for React UI toolkit. All units are rem unless noted.",
   "themeSystem": {
     "colorSpace": "HSV",
-    "supportedHarmonies": ["monochromatic", "analogous", "split-complementary", "triadic", "tetradic"],
+    "supportedHarmonies": [
+      "monochromatic",
+      "analogous",
+      "split-complementary",
+      "triadic",
+      "tetradic"
+    ],
     "cssVariables": [
+      "--ai-accordion-animation",
+      "--ai-accordion-border",
+      "--ai-accordion-border-radius",
+      "--ai-accordion-header-padding",
+      "--ai-accordion-item-gap",
+      "--ai-active-transform",
+      "--ai-bg-container",
+      "--ai-bg-primary",
+      "--ai-bg-surface",
+      "--ai-border",
+      "--ai-card-header-bg",
+      "--ai-card-header-border",
+      "--ai-card-header-padding",
+      "--ai-card-padding",
+      "--ai-color-accent",
       "--ai-color-base",
       "--ai-color-primary",
       "--ai-color-primary-hover",
       "--ai-color-secondary",
-      "--ai-color-accent",
-      "--ai-bg-primary",
-      "--ai-bg-surface",
-      "--ai-bg-container",
+      "--ai-focus-ring",
+      "--ai-hover-shadow",
+      "--ai-hover-transform",
+      "--ai-layout-border-bottom-left-radius",
+      "--ai-layout-border-bottom-right-radius",
+      "--ai-layout-border-top-left-radius",
+      "--ai-layout-border-top-right-radius",
+      "--ai-margin-gap",
+      "--ai-margin-lg",
+      "--ai-margin-md",
+      "--ai-margin-sm",
+      "--ai-margin-xl",
+      "--ai-margin-xs",
+      "--ai-master-font-size",
+      "--ai-padding-lg",
+      "--ai-padding-md",
+      "--ai-padding-sm",
+      "--ai-padding-xl",
+      "--ai-padding-xs",
+      "--ai-radius-lg",
+      "--ai-radius-md",
+      "--ai-radius-sm",
+      "--ai-radius-xl",
+      "--ai-shadow-lg",
+      "--ai-shadow-md",
+      "--ai-shadow-sm",
+      "--ai-slideout-backdrop-blur",
+      "--ai-slideout-duration",
+      "--ai-slideout-easing",
+      "--ai-slideout-header-border-radius",
+      "--ai-slideout-header-margin",
+      "--ai-slideout-width",
+      "--ai-subtheme-error",
+      "--ai-subtheme-error-bg",
+      "--ai-subtheme-error-border",
+      "--ai-subtheme-error-text",
+      "--ai-subtheme-info",
+      "--ai-subtheme-info-bg",
+      "--ai-subtheme-info-border",
+      "--ai-subtheme-info-text",
+      "--ai-subtheme-success",
+      "--ai-subtheme-success-bg",
+      "--ai-subtheme-success-border",
+      "--ai-subtheme-success-text",
+      "--ai-subtheme-warning",
+      "--ai-subtheme-warning-bg",
+      "--ai-subtheme-warning-border",
+      "--ai-subtheme-warning-text",
+      "--ai-tab-active-bg",
+      "--ai-tab-active-border",
+      "--ai-tab-active-color",
+      "--ai-tab-border-radius",
+      "--ai-tab-font-size",
+      "--ai-tab-inactive-color",
+      "--ai-tab-padding",
+      "--ai-tab-panel-animation",
+      "--ai-table-border",
+      "--ai-table-cell-padding",
+      "--ai-table-header-padding",
+      "--ai-table-row-height",
+      "--ai-table-stripe-bg",
       "--ai-text-primary",
       "--ai-text-secondary",
-      "--ai-border",
-      "--ai-focus-ring",
-      "--ai-subtheme-error",
-      "--ai-subtheme-success",
-      "--ai-subtheme-warning",
-      "--ai-subtheme-info",
-      "--ai-accordion-header-padding",
-      "--ai-accordion-item-gap",
-      "--ai-accordion-animation",
-      "--ai-tab-header-padding",
-      "--ai-tab-indicator-style",
-      "--ai-table-cell-padding",
-      "--ai-table-row-height",
-      "--ai-slideout-width",
-      "--ai-slideout-backdrop-blur",
-      "--ai-slideout-header-margin",
-      "--ai-card-header-padding",
-      "--ai-card-padding",
-      "--ai-margin-gap",
-      "--ai-transition-normal",
+      "--ai-tooltip-bg",
+      "--ai-tooltip-border-radius",
+      "--ai-tooltip-color",
+      "--ai-tooltip-font-size",
+      "--ai-tooltip-padding",
+      "--ai-transition-duration-fast",
       "--ai-transition-duration-normal",
-      "--ai-transition-easing"
+      "--ai-transition-duration-slow",
+      "--ai-transition-easing",
+      "--ai-transition-fast",
+      "--ai-transition-normal",
+      "--ai-transition-slow"
     ]
   },
   "zIndexScale": {
@@ -57,249 +125,772 @@
     "channels": [
       {
         "name": "theme:changed",
-        "payload": "{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string> }"
+        "payload": "{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
       },
-      { "name": "popup:shown", "payload": "{ id: string; targetId?: string; data?: any }" },
-      { "name": "popup:hidden", "payload": "{ id: string }" },
-      { "name": "slideout:shown", "payload": "{ id: string; position?: 'top'|'right'|'bottom'|'left'; data?: any }" },
-      { "name": "slideout:hidden", "payload": "{ id: string }" },
-      { "name": "modal:shown", "payload": "{ id: string; data?: any }" },
-      { "name": "modal:hidden", "payload": "{ id: string }" },
-      { "name": "form:submitted", "payload": "{ formId?: string; values: Record<string, any> }" },
-      { "name": "form:validated", "payload": "{ formId?: string; isValid: boolean }" },
-      { "name": "form:errored", "payload": "{ formId?: string; errors: Record<string, string> }" },
-      { "name": "toast:shown", "payload": "{ id: string; type: ToastType; message: string; priority?: ToastPriority }" },
-      { "name": "toast:dismissed", "payload": "{ id: string; reason?: 'user'|'expired'|'action' }" },
-      { "name": "toast:expired", "payload": "{ id: string; message?: string; type?: string }" },
-      { "name": "toast:action_clicked", "payload": "{ id: string; actionLabel: string }" },
-      { "name": "accordion:opened", "payload": "{ id?: string; itemValue: string }" },
-      { "name": "accordion:closed", "payload": "{ id?: string; itemValue: string }" },
-      { "name": "tab:changed", "payload": "{ activeId: string; previousId?: string }" },
-      { "name": "select:changed", "payload": "{ name?: string; value: string }" },
-      { "name": "slider:changed", "payload": "{ name?: string; value: number }" },
-      { "name": "menu:opened", "payload": "{ id?: string }" },
-      { "name": "menu:closed", "payload": "{ id?: string }" },
-      { "name": "menu:item_selected", "payload": "{ id?: string; itemValue: string }" },
-      { "name": "tooltip:shown", "payload": "{ id?: string; content: string }" },
-      { "name": "tooltip:hidden", "payload": "{ id?: string }" },
-      { "name": "layout:domain:created", "payload": "{ domainId: string; parentId: string; orientation: 'horizontal'|'vertical' }" },
-      { "name": "layout:corners:squared", "payload": "{ domainId: string; slot: 'first'|'second'; orientation: 'horizontal'|'vertical'; squaredCorners: {...} }" }
+      {
+        "name": "element:resized",
+        "payload": "{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
+      },
+      {
+        "name": "element:intersected",
+        "payload": "{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
+      },
+      {
+        "name": "viewport:resized",
+        "payload": "{ width: number; height: number }"
+      },
+      {
+        "name": "popup:shown",
+        "payload": "{ id: string; targetId?: string; data?: any }"
+      },
+      {
+        "name": "popup:hidden",
+        "payload": "{ id: string }"
+      },
+      {
+        "name": "slideout:shown",
+        "payload": "{ id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any }"
+      },
+      {
+        "name": "slideout:hidden",
+        "payload": "{ id: string }"
+      },
+      {
+        "name": "modal:shown",
+        "payload": "{ id: string; data?: any }"
+      },
+      {
+        "name": "modal:hidden",
+        "payload": "{ id: string }"
+      },
+      {
+        "name": "form:submitted",
+        "payload": "{ formId?: string; values: Record<string, any> }"
+      },
+      {
+        "name": "form:validated",
+        "payload": "{ formId?: string; isValid: boolean }"
+      },
+      {
+        "name": "form:errored",
+        "payload": "{ formId?: string; errors: Record<string, string> }"
+      },
+      {
+        "name": "toast:shown",
+        "payload": "{ id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+      },
+      {
+        "name": "toast:added",
+        "payload": "{ id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+      },
+      {
+        "name": "toast:expired",
+        "payload": "{ id: string; message?: string; type?: string }"
+      },
+      {
+        "name": "toast:dismissed",
+        "payload": "{ id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' }"
+      },
+      {
+        "name": "toast:action_clicked",
+        "payload": "{ id: string; actionLabel: string; message?: string }"
+      },
+      {
+        "name": "error:boundary",
+        "payload": "{ componentName: string; error: string; stack?: string }"
+      },
+      {
+        "name": "tooltip:shown",
+        "payload": "{ id?: string; content: string }"
+      },
+      {
+        "name": "tooltip:hidden",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "accordion:opened",
+        "payload": "{ id?: string; itemValue: string }"
+      },
+      {
+        "name": "accordion:closed",
+        "payload": "{ id?: string; itemValue: string }"
+      },
+      {
+        "name": "menu:opened",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "menu:closed",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "menu:item_selected",
+        "payload": "{ id?: string; itemValue: string }"
+      },
+      {
+        "name": "select:changed",
+        "payload": "{ name?: string; value: string }"
+      },
+      {
+        "name": "slider:changed",
+        "payload": "{ name?: string; value: number }"
+      },
+      {
+        "name": "tab:changed",
+        "payload": "{ activeId: string; previousId?: string }"
+      },
+      {
+        "name": "log:cleared",
+        "payload": "{ timestamp: string }"
+      },
+      {
+        "name": "layout:domain:created",
+        "payload": "{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
+      },
+      {
+        "name": "layout:corners:squared",
+        "payload": "{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"
+      }
     ],
     "helperMethods": [
-      { "method": "aiBus.openModal(id, data?)", "emits": "modal:shown" },
-      { "method": "aiBus.closeModal(id)", "emits": "modal:hidden" },
-      { "method": "aiBus.openSlideOut(id, position?, data?)", "emits": "slideout:shown" },
-      { "method": "aiBus.closeSlideOut(id)", "emits": "slideout:hidden" },
-      { "method": "aiBus.showToast(message, type?, priority?)", "emits": "toast:shown", "returns": "string (toast id)" }
+      {
+        "method": "aiBus.openModal(id, data?)",
+        "emits": "modal:shown"
+      },
+      {
+        "method": "aiBus.closeModal(id)",
+        "emits": "modal:hidden"
+      },
+      {
+        "method": "aiBus.openSlideOut(id, position?, data?)",
+        "emits": "slideout:shown"
+      },
+      {
+        "method": "aiBus.closeSlideOut(id)",
+        "emits": "slideout:hidden"
+      },
+      {
+        "method": "aiBus.showToast(message, type?, priority?)",
+        "emits": "toast:shown",
+        "returns": "string (toast id)"
+      }
     ]
   },
   "components": [
     {
-      "name": "Card",
-      "import": "import { Card } from 'ai-ui'",
-      "slots": ["Header", "Content", "Footer", "Actions"],
+      "name": "Accordion",
+      "import": "import { Accordion } from '#toolcrib'",
       "props": {
-        "layout": { "type": "'default' | 'auto'", "default": "'default'", "description": "'auto' enables flex fill + corner squaring" },
-        "squareCorners": { "type": "SquareCornerOption", "default": "undefined", "description": "'auto' defers to layout domain" },
-        "style": { "type": "React.CSSProperties" },
-        "className": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "AccordionItemData[]",
+          "required": true,
+          "description": "Array of items to render as accordion panels."
+        },
+        "type": {
+          "type": "'single' | 'multiple'",
+          "default": "'single'",
+          "description": "`'single'` allows only one panel open at a time. `'multiple'` allows any combination."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Value of the initially expanded panel (for `type='single'`)."
+        },
+        "className": {
+          "type": "string"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
+      },
+      "description": "Data-driven collapsible panel group with animations"
+    },
+    {
+      "name": "Card",
+      "import": "import { Card } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Content",
+        "Footer",
+        "Actions"
+      ],
+      "props": {
+        "layout": {
+          "type": "'default' | 'auto'",
+          "default": "'default'",
+          "description": "Layout mode. `'auto'` enables flex filling (height:100%, flex:1) and activates\nautomatic corner-squaring via layout domain context (e.g. inside a Splitter)."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "default": "undefined (no squaring)",
+          "description": "Override which corners are squared off. `'auto'` defers to layout domain context."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
       },
       "description": "Slot-based container with automatic layout domain corner squaring"
     },
     {
       "name": "CardSimple",
-      "import": "import { CardSimple } from 'ai-ui'",
+      "import": "import { CardSimple } from '#toolcrib'",
       "props": {
-        "title": { "type": "ReactNode", "description": "Header title text" },
-        "subtitle": { "type": "ReactNode", "description": "Secondary text in header" },
-        "footer": { "type": "ReactNode", "description": "Footer content" },
-        "actions": { "type": "ReactNode", "description": "Action buttons in footer" },
-        "layout": { "type": "'default' | 'auto'", "default": "'default'" },
-        "squareCorners": { "type": "SquareCornerOption" }
+        "title": {
+          "type": "ReactNode",
+          "description": "Title text rendered in the header. Omit to skip the header entirely."
+        },
+        "subtitle": {
+          "type": "ReactNode",
+          "description": "Secondary text rendered next to the title in the header."
+        },
+        "footer": {
+          "type": "ReactNode",
+          "description": "Content rendered in the footer area. Omit to skip the footer."
+        },
+        "actions": {
+          "type": "ReactNode",
+          "description": "Action elements (e.g. buttons) rendered in the footer's right side."
+        }
       },
       "description": "Token-saving shorthand for simple cards without slot composition"
     },
     {
-      "name": "Form",
-      "import": "import { Form, FormField, FormError, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider, SubmitButton, Button } from 'ai-ui'",
+      "name": "DataTable",
+      "import": "import { DataTable } from '#toolcrib'",
       "props": {
-        "schema": { "type": "ZodType", "description": "Zod 4 validation schema" },
-        "initialValues": { "type": "Partial<T>", "default": "{}" },
-        "onSubmit": { "type": "(values: T) => void | Promise<void>" },
-        "id": { "type": "string", "description": "Also used as formId in bus payloads" }
+        "data": {
+          "type": "T[]",
+          "required": true,
+          "description": "Array of data records to display."
+        },
+        "columns": {
+          "type": "Column<T>[]",
+          "required": true,
+          "description": "Column definitions controlling header, cell rendering, and sorting."
+        },
+        "pageSize": {
+          "type": "number",
+          "default": "10",
+          "description": "Initial number of rows per page."
+        },
+        "pageSizeOptions": {
+          "type": "number[]",
+          "default": "[5, 10, 25, 50, 100]",
+          "description": "Options shown in the page-size dropdown."
+        },
+        "itemHeight": {
+          "type": "number",
+          "default": "44",
+          "description": "Height of each row in pixels (used for virtualization calculations)."
+        },
+        "containerHeight": {
+          "type": "number | 'auto'",
+          "default": "'auto'",
+          "description": "Container height. `'auto'` fills available space. A number sets a fixed pixel height."
+        },
+        "rowKey": {
+          "type": "(record: T, index: number) => string | number",
+          "description": "Custom row key extractor for React reconciliation. Defaults to array index."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
       },
-      "childComponents": ["FormField", "FormError", "Button", "SubmitButton", "Input", "Select", "Checkbox", "Switch", "Textarea", "RadioGroup", "Slider"],
+      "description": "Virtualized, sortable, paginated data table with sticky headers"
+    },
+    {
+      "name": "DropdownMenu",
+      "import": "import { DropdownMenu } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "required": true,
+          "description": "Trigger element that opens the menu on click."
+        },
+        "items": {
+          "type": "MenuItemData[]",
+          "required": true,
+          "description": "Array of menu items to render."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'bottom'",
+          "description": "Which side of the trigger the menu opens on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'start'",
+          "description": "Alignment along the menu's side axis."
+        }
+      },
+      "description": "Data-driven action menu with separator support"
+    },
+    {
+      "name": "Form",
+      "import": "import { Form, FormField, FormError, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider, SubmitButton, Button } from '#toolcrib'",
+      "props": {
+        "schema": {
+          "type": "ZodType<T>",
+          "description": "Zod schema for validation. Omit for unvalidated forms."
+        },
+        "initialValues": {
+          "type": "Partial<T>",
+          "description": "Initial field values. Fields not listed default to empty string."
+        },
+        "onSubmit": {
+          "type": "(values: T) => void | Promise<void>",
+          "description": "Called with validated values on successful submission."
+        },
+        "id": {
+          "type": "string",
+          "description": "Form element id attribute. Also used as `formId` in event bus payloads."
+        },
+        "className": {
+          "type": "string"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
+      },
+      "childComponents": [
+        "FormField",
+        "FormError",
+        "Button",
+        "SubmitButton",
+        "Input",
+        "Select",
+        "Checkbox",
+        "Switch",
+        "Textarea",
+        "RadioGroup",
+        "Slider"
+      ],
       "description": "Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate"
     },
     {
-      "name": "Splitter",
-      "import": "import { Splitter } from 'ai-ui'",
-      "slots": ["Panel"],
-      "props": {
-        "orientation": { "type": "'vertical' | 'horizontal'", "default": "'vertical'", "description": "vertical = top/bottom panels" },
-        "initialSplit": { "type": "number", "default": "70", "description": "Percentage for first panel (0-100)" },
-        "minSize": { "type": "number", "default": "15", "description": "Minimum panel percentage" }
-      },
-      "constraints": "Requires exactly 2 children",
-      "description": "Resizable two-panel layout with automatic corner-squaring domain"
-    },
-    {
-      "name": "Accordion",
-      "import": "import { Accordion } from 'ai-ui'",
-      "props": {
-        "items": { "type": "AccordionItemData[]", "description": "{ value, title, content, disabled? }[]" },
-        "type": { "type": "'single' | 'multiple'", "default": "'single'" },
-        "defaultValue": { "type": "string" },
-        "id": { "type": "string" }
-      },
-      "description": "Data-driven collapsible panel group with animations"
-    },
-    {
-      "name": "TabStrip",
-      "import": "import { TabStrip } from 'ai-ui'",
-      "slots": ["Tab", "Panel"],
-      "props": {
-        "items": { "type": "TabItem[]", "description": "{ id, label, icon?, disabled? }[]" },
-        "activeId": { "type": "string", "description": "Currently active tab id (controlled)" },
-        "onChange": { "type": "(id: string) => void" }
-      },
-      "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
-    },
-    {
-      "name": "Toolbar",
-      "import": "import { Toolbar } from 'ai-ui'",
-      "slots": ["Left", "Center", "Right"],
-      "props": {
-        "paddingMode": { "type": "PaddingMode" },
-        "cornerRadiusMode": { "type": "CornerRadiusMode" }
-      },
-      "description": "Horizontal action bar with left/center/right slot areas"
-    },
-    {
-      "name": "VStack",
-      "import": "import { VStack } from 'ai-ui'",
-      "props": {
-        "gap": { "type": "'xs'|'sm'|'md'|'lg'|'xl'|'gap'", "default": "'gap'" },
-        "align": { "type": "'start'|'center'|'end'|'stretch'", "default": "'stretch'" },
-        "justify": { "type": "'start'|'center'|'end'|'between'|'around'", "default": "'start'" }
-      },
-      "description": "Vertical flex column layout primitive"
-    },
-    {
-      "name": "HStack",
-      "import": "import { HStack } from 'ai-ui'",
-      "props": {
-        "gap": { "type": "'xs'|'sm'|'md'|'lg'|'xl'|'gap'", "default": "'gap'" },
-        "align": { "type": "'start'|'center'|'end'|'stretch'", "default": "'center'" },
-        "justify": { "type": "'start'|'center'|'end'|'between'|'around'", "default": "'start'" }
-      },
-      "description": "Horizontal flex row layout primitive"
-    },
-    {
       "name": "Grid",
-      "import": "import { Grid } from 'ai-ui'",
+      "import": "import { Grid } from '#toolcrib'",
       "props": {
-        "columns": { "type": "number | 'auto-fit' | 'auto-fill'", "default": "2" },
-        "minColWidth": { "type": "string", "default": "'16rem'" },
-        "gap": { "type": "'xs'|'sm'|'md'|'lg'|'xl'|'gap'", "default": "'gap'" }
+        "columns": {
+          "type": "number | 'auto-fit' | 'auto-fill'",
+          "default": "2",
+          "description": "Number of columns, or `'auto-fit'` / `'auto-fill'` for responsive behaviour.\nWhen using auto modes, `minColWidth` controls the minimum column width."
+        },
+        "minColWidth": {
+          "type": "string",
+          "default": "'16rem'",
+          "description": "Minimum column width for auto-fit/auto-fill modes."
+        },
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between grid cells."
+        },
+        "marginMode": {
+          "type": "MarginMode",
+          "description": "Override margin/gap using the theme margin token scale."
+        },
+        "paddingMode": {
+          "type": "PaddingMode",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
       },
       "description": "CSS Grid responsive multi-column layout"
     },
     {
-      "name": "UIGroup",
-      "import": "import { UIGroup } from 'ai-ui'",
+      "name": "HStack",
+      "import": "import { HStack } from '#toolcrib'",
       "props": {
-        "orientation": { "type": "'horizontal' | 'vertical'", "default": "'horizontal'" },
-        "borderRadius": { "type": "string" }
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between children. Named tokens map to theme spacing scale.\n`'gap'` uses the global `--ai-margin-gap` variable."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch'",
+          "default": "'stretch' (VStack) or 'center' (HStack)",
+          "description": "Cross-axis alignment."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between' | 'around'",
+          "default": "'start'",
+          "description": "Main-axis distribution."
+        },
+        "paddingMode": {
+          "type": "PaddingMode",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "MarginMode",
+          "description": "Override margin using the theme margin token scale (affects gap sizing)."
+        },
+        "cornerRadiusMode": {
+          "type": "CornerRadiusMode",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
       },
-      "description": "Merges adjacent elements into a single visual compound control"
+      "description": "Horizontal flex row layout primitive"
+    },
+    {
+      "name": "Modal",
+      "import": "import { Modal } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Body",
+        "Footer",
+        "Actions",
+        "CloseButton"
+      ],
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier used for event bus targeting (e.g. `aiBus.openModal('my-modal')`). Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that opens the modal on click. Rendered inline; the modal manages open/close state automatically."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the modal opens or closes."
+        },
+        "width": {
+          "type": "string",
+          "default": "'31.25rem' (500px at 16px base)",
+          "description": "Width of the modal dialog panel."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.MODAL (200)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "default": "'Dialog'",
+          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<SlideOut title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
+        }
+      },
+      "description": "Dialog overlay with focus trap, backdrop, and slot composition"
     },
     {
       "name": "Popup",
-      "import": "import { Popup } from 'ai-ui'",
+      "import": "import { Popup } from '#toolcrib'",
       "props": {
-        "trigger": { "type": "ReactElement", "required": true },
-        "placement": { "type": "PopupPlacement", "default": "'bottom-start'" },
-        "id": { "type": "string" },
-        "isOpen": { "type": "boolean" },
-        "onOpenChange": { "type": "(open: boolean) => void" },
-        "zIndex": { "type": "number", "default": "Z_INDEX.DROPDOWN (300)" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "required": true,
+          "description": "Required trigger element. The popup anchors to this element."
+        },
+        "placement": {
+          "type": "PopupPlacement",
+          "default": "'bottom-start'",
+          "description": "Anchoring position relative to the trigger element."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the popup opens or closes."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.DROPDOWN (300)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DROPDOWN tier by default."
+        }
       },
       "description": "Anchored popover with light dismiss and corner-squaring to trigger"
     },
     {
       "name": "SlideOut",
-      "import": "import { SlideOut } from 'ai-ui'",
+      "import": "import { SlideOut } from '#toolcrib'",
       "props": {
-        "trigger": { "type": "ReactElement" },
-        "position": { "type": "'top'|'right'|'bottom'|'left'", "default": "'right'" },
-        "title": { "type": "ReactNode", "default": "'Slide Out Panel'" },
-        "width": { "type": "string", "default": "'var(--ai-slideout-width, 23.75rem)'" },
-        "id": { "type": "string" },
-        "isOpen": { "type": "boolean" },
-        "onOpenChange": { "type": "(open: boolean) => void" },
-        "zIndex": { "type": "number", "default": "Z_INDEX.DRAWER (100)" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that toggles the drawer on click. Rendered inline."
+        },
+        "position": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'right'",
+          "description": "Which viewport edge the drawer slides in from."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the drawer opens or closes."
+        },
+        "title": {
+          "type": "ReactNode",
+          "default": "'Slide Out Panel'",
+          "description": "Title text rendered in the drawer header."
+        },
+        "width": {
+          "type": "string",
+          "default": "'var(--ai-slideout-width, 23.75rem)'",
+          "description": "Width of the drawer panel (for left/right positions)."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.DRAWER (100)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
       },
       "description": "Edge drawer overlay with backdrop blur and slide animation"
     },
     {
-      "name": "Modal",
-      "import": "import { Modal } from 'ai-ui'",
-      "slots": ["Header", "Body", "Footer", "Actions", "CloseButton"],
+      "name": "Splitter",
+      "import": "import { Splitter } from '#toolcrib'",
+      "slots": [
+        "Panel"
+      ],
       "props": {
-        "trigger": { "type": "ReactElement" },
-        "width": { "type": "string", "default": "'31.25rem'" },
-        "id": { "type": "string" },
-        "isOpen": { "type": "boolean" },
-        "onOpenChange": { "type": "(open: boolean) => void" },
-        "zIndex": { "type": "number", "default": "Z_INDEX.MODAL (200)" }
+        "id": {
+          "type": "string",
+          "description": "Unique domain identifier for layout context. Auto-generated if omitted."
+        },
+        "orientation": {
+          "type": "SplitterOrientation",
+          "default": "'vertical'",
+          "description": "Split direction. `'vertical'` = top/bottom panels, `'horizontal'` = left/right panels."
+        },
+        "initialSplit": {
+          "type": "number",
+          "default": "70",
+          "description": "Initial percentage allocated to the first (top/left) panel."
+        },
+        "minSize": {
+          "type": "number",
+          "default": "15",
+          "description": "Minimum percentage size for either panel to prevent collapsing."
+        },
+        "className": {
+          "type": "string"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
       },
-      "description": "Dialog overlay with focus trap, backdrop, and slot composition"
+      "constraints": "Requires exactly 2 children",
+      "description": "Resizable two-panel layout with automatic corner-squaring domain"
+    },
+    {
+      "name": "TabStrip",
+      "import": "import { TabStrip } from '#toolcrib'",
+      "slots": [
+        "Tab",
+        "Panel"
+      ],
+      "props": {
+        "items": {
+          "type": "TabItem[]",
+          "required": true,
+          "description": "Array of tab definitions to render."
+        },
+        "activeId": {
+          "type": "string",
+          "required": true,
+          "description": "The `id` of the currently active tab (controlled)."
+        },
+        "onChange": {
+          "type": "(id: string) => void",
+          "required": true,
+          "description": "Callback fired when the user selects a different tab."
+        },
+        "className": {
+          "type": "string"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
+      },
+      "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
+    },
+    {
+      "name": "ThemeEditor",
+      "import": "import { ThemeEditor } from '#toolcrib'",
+      "props": {
+        "isOpen": {
+          "type": "boolean"
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void"
+        },
+        "trigger": {
+          "type": "ReactElement"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
+      },
+      "description": "Real-time HSV theme editor rendered in a SlideOut panel"
+    },
+    {
+      "name": "Toolbar",
+      "import": "import { Toolbar } from '#toolcrib'",
+      "slots": [
+        "Left",
+        "Center",
+        "Right"
+      ],
+      "props": {
+        "paddingMode": {
+          "type": "PaddingMode",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "MarginMode",
+          "description": "Override margin using the theme margin token scale (unused, reserved)."
+        },
+        "cornerRadiusMode": {
+          "type": "CornerRadiusMode",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
+      },
+      "description": "Horizontal action bar with left/center/right slot areas"
     },
     {
       "name": "Tooltip",
-      "import": "import { Tooltip } from 'ai-ui'",
+      "import": "import { Tooltip } from '#toolcrib'",
       "props": {
-        "content": { "type": "ReactNode", "required": true },
-        "side": { "type": "'top'|'right'|'bottom'|'left'", "default": "'top'" },
-        "align": { "type": "'start'|'center'|'end'", "default": "'center'" },
-        "delayDuration": { "type": "number", "default": "200" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting."
+        },
+        "content": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Text or ReactNode rendered inside the tooltip bubble."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'top'",
+          "description": "Which side of the trigger the tooltip appears on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'center'",
+          "description": "Alignment along the tooltip's side axis."
+        },
+        "delayDuration": {
+          "type": "number",
+          "default": "200",
+          "description": "Delay in milliseconds before the tooltip appears on hover."
+        }
       },
       "description": "Hover/focus tooltip wrapping a child trigger element"
     },
     {
-      "name": "DropdownMenu",
-      "import": "import { DropdownMenu } from 'ai-ui'",
+      "name": "UIGroup",
+      "import": "import { UIGroup } from '#toolcrib'",
       "props": {
-        "trigger": { "type": "ReactElement", "required": true },
-        "items": { "type": "MenuItemData[]", "required": true, "description": "{ value, label, icon?, disabled?, isSeparator?, onClick? }[]" },
-        "side": { "type": "'top'|'right'|'bottom'|'left'", "default": "'bottom'" },
-        "align": { "type": "'start'|'center'|'end'", "default": "'start'" }
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Group layout direction.\n- `'horizontal'` — Children laid out in a row (default).\n- `'vertical'` — Children stacked vertically."
+        },
+        "borderRadius": {
+          "type": "string",
+          "default": "'var(--ai-radius-md, 0.375rem)'",
+          "description": "Override border radius for the outer corners."
+        },
+        "className": {
+          "type": "string"
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        }
       },
-      "description": "Data-driven action menu with separator support"
+      "description": "Merges adjacent elements into a single visual compound control"
     },
     {
-      "name": "DataTable",
-      "import": "import { DataTable } from 'ai-ui'",
+      "name": "VStack",
+      "import": "import { VStack } from '#toolcrib'",
       "props": {
-        "data": { "type": "T[]", "required": true },
-        "columns": { "type": "Column<T>[]", "required": true, "description": "{ key, title, render?, sortable?, width? }[]" },
-        "pageSize": { "type": "number", "default": "10" },
-        "pageSizeOptions": { "type": "number[]", "default": "[5, 10, 25, 50, 100]" },
-        "itemHeight": { "type": "number", "default": "44", "description": "Row height in px for virtualization" },
-        "containerHeight": { "type": "number | 'auto'", "default": "'auto'" }
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between children. Named tokens map to theme spacing scale.\n`'gap'` uses the global `--ai-margin-gap` variable."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch'",
+          "default": "'stretch' (VStack) or 'center' (HStack)",
+          "description": "Cross-axis alignment."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between' | 'around'",
+          "default": "'start'",
+          "description": "Main-axis distribution."
+        },
+        "paddingMode": {
+          "type": "PaddingMode",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "MarginMode",
+          "description": "Override margin using the theme margin token scale (affects gap sizing)."
+        },
+        "cornerRadiusMode": {
+          "type": "CornerRadiusMode",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
       },
-      "description": "Virtualized, sortable, paginated data table with sticky headers"
-    },
-    {
-      "name": "ThemeEditor",
-      "import": "import { ThemeEditor } from 'ai-ui'",
-      "props": {
-        "isOpen": { "type": "boolean" },
-        "onOpenChange": { "type": "(open: boolean) => void" },
-        "trigger": { "type": "ReactElement" }
-      },
-      "description": "Real-time HSV theme editor rendered in a SlideOut panel"
+      "description": "Vertical flex column layout primitive"
     }
   ]
 }

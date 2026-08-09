@@ -111,6 +111,7 @@ export interface CardActionsProps extends HTMLAttributes<HTMLDivElement> {
   style?: React.CSSProperties;
 }
 
+/** @manifest Slot-based container with automatic layout domain corner squaring */
 export const Card: React.FC<CardProps> & {
   Header: React.FC<CardHeaderProps>;
   Content: React.FC<CardContentProps>;

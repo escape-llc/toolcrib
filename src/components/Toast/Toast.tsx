@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import * as ToastPrimitive from '@radix-ui/react-toast';
+import { Toast as ToastPrimitive } from 'radix-ui';
 import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';

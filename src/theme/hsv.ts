@@ -1,5 +1,5 @@
 /**
- * AI-UI HSV Color Engine
+ * Toolcrib HSV Color Engine
  * All color math is strictly performed in the HSV (Hue, Saturation, Value) color space.
  * No RGB calculations are performed anywhere in this engine.
  */

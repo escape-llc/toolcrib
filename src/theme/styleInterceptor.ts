@@ -13,9 +13,9 @@ export interface AIStyleProps {
 }
 
 /**
- * Intercepts component styles for AI-UI:
+ * Intercepts component styles for Toolcrib:
  * 1. Takes over component className & style attributes.
- * 2. Merges standardized AI-UI CSS variables for padding, margin, radius, and subthemes.
+ * 2. Merges standardized Toolcrib CSS variables for padding, margin, radius, and subthemes.
  * 3. Filters out ad-hoc inline padding/margin noise when theme props are explicitly set.
  */
 export function resolveAIStyle(props: AIStyleProps): React.CSSProperties {

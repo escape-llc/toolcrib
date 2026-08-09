@@ -27,6 +27,7 @@ export interface ToolbarSlotProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
+/** @manifest Horizontal action bar with left/center/right slot areas */
 export const Toolbar: React.FC<ToolbarProps> & {
   Left: React.FC<ToolbarSlotProps>;
   Center: React.FC<ToolbarSlotProps>;

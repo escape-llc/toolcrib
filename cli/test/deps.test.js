@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDependencyDecisions, buildProposedPackageJson } from '../src/lib/deps.js';
+import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../src/lib/deps.js';
 
 describe('resolveDependencyDecisions', () => {
   it('classifies a missing dependency as toAdd', () => {
@@ -72,5 +72,43 @@ describe('buildProposedPackageJson', () => {
     const userPkg = { name: 'my-app' };
     const proposed = buildProposedPackageJson(userPkg, [{ name: 'zod', range: '^4.0.0' }]);
     expect(proposed.dependencies).toEqual({ zod: '^4.0.0' });
+  });
+});
+
+describe('mergeImportsField', () => {
+  const ENTRY = { '#toolcrib': './toolcrib/index.ts' };
+
+  it('adds the entry and reports changed when "imports" does not exist yet', () => {
+    const userPkg = { name: 'my-app' };
+    const result = mergeImportsField(userPkg, ENTRY);
+    expect(result.changed).toBe(true);
+    expect(result.pkg.imports).toEqual(ENTRY);
+  });
+
+  it('reports unchanged when the entry is already present with the same value', () => {
+    const userPkg = { name: 'my-app', imports: { '#toolcrib': './toolcrib/index.ts' } };
+    const result = mergeImportsField(userPkg, ENTRY);
+    expect(result.changed).toBe(false);
+    expect(result.pkg).toBe(userPkg); // no-op: same reference, nothing cloned
+  });
+
+  it('preserves unrelated existing "imports" entries', () => {
+    const userPkg = { imports: { '#utils': './src/utils.ts' } };
+    const result = mergeImportsField(userPkg, ENTRY);
+    expect(result.changed).toBe(true);
+    expect(result.pkg.imports).toEqual({ '#utils': './src/utils.ts', '#toolcrib': './toolcrib/index.ts' });
+  });
+
+  it('overwrites a stale value for the same key (e.g. a pre-rename path)', () => {
+    const userPkg = { imports: { '#toolcrib': './ai-ui/index.ts' } };
+    const result = mergeImportsField(userPkg, ENTRY);
+    expect(result.changed).toBe(true);
+    expect(result.pkg.imports).toEqual(ENTRY);
+  });
+
+  it('does not mutate the original package.json object', () => {
+    const userPkg = { imports: { '#utils': './src/utils.ts' } };
+    mergeImportsField(userPkg, ENTRY);
+    expect(userPkg.imports).toEqual({ '#utils': './src/utils.ts' }); // untouched
   });
 });

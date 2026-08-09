@@ -51,18 +51,13 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     const { componentName = 'Unknown' } = this.props;
-    console.error(`[ai-ui] Error in <${componentName}>:`, error, errorInfo);
+    console.error(`[toolcrib] Error in <${componentName}>:`, error, errorInfo);
 
-    // Emit on event bus for observability (if channel exists)
-    try {
-      (aiBus as any).emit('error:boundary', {
-        componentName,
-        error: error.message,
-        stack: error.stack,
-      });
-    } catch {
-      // Bus may not have this channel — that's fine, swallow silently
-    }
+    aiBus.emit('error:boundary', {
+      componentName,
+      error: error.message,
+      stack: error.stack,
+    });
   }
 
   reset = () => {

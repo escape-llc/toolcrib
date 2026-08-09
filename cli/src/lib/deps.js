@@ -53,3 +53,22 @@ export function buildProposedPackageJson(userPkg, toAdd) {
   }
   return proposed;
 }
+
+/**
+ * Merge toolcrib's package.json "imports" subpath entry (e.g. `#toolcrib` ->
+ * `./toolcrib/index.ts`) into a package.json object, leaving any other
+ * "imports" entries the consumer already declared untouched.
+ *
+ * Returns `{ pkg, changed }` — `changed` is false when every entry is
+ * already present with the exact value expected, so callers (init/merge)
+ * can skip proposing a no-op patch.
+ */
+export function mergeImportsField(pkg, entry) {
+  const current = pkg.imports || {};
+  const alreadySet = Object.entries(entry).every(([key, value]) => current[key] === value);
+  if (alreadySet) return { pkg, changed: false };
+
+  const proposed = structuredClone(pkg);
+  proposed.imports = { ...current, ...entry };
+  return { pkg: proposed, changed: true };
+}

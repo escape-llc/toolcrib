@@ -1,6 +1,6 @@
 {
   "name": "toolcrib",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Bootstrap the toolcrib UI toolkit into your project",
   "type": "module",
   "license": "MIT",

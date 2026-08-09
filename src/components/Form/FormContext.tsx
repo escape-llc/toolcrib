@@ -59,6 +59,10 @@ export interface FormProps<T extends Record<string, any> = Record<string, any>> 
   style?: React.CSSProperties;
 }
 
+/**
+ * @manifest Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate
+ * @manifestChildren FormField, FormError, Button, SubmitButton, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider
+ */
 export function Form<T extends Record<string, any> = Record<string, any>>({
   schema,
   initialValues = {},

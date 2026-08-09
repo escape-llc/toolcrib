@@ -1,5 +1,5 @@
 /**
- * AI-UI Strongly-Typed Event Bus
+ * Toolcrib Strongly-Typed Event Bus
  * Facilitates cross-tree action dispatching without prop-drilling or component hierarchy restructuring.
  */
 import { ThemeParameters, GeneratedPalette } from '../theme/harmonies';
@@ -32,6 +32,7 @@ export interface AIEventMap {
   'toast:expired': { id: string; message?: string; type?: string };
   'toast:dismissed': { id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' };
   'toast:action_clicked': { id: string; actionLabel: string; message?: string };
+  'error:boundary': { componentName: string; error: string; stack?: string };
   'tooltip:shown': { id?: string; content: string };
   'tooltip:hidden': { id?: string };
   'accordion:opened': { id?: string; itemValue: string };
@@ -134,6 +135,7 @@ class AIEventBus {
     this.emit('slideout:hidden', { id });
   }
 
+  /** @manifestReturns string (toast id) */
   showToast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium') {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.emit('toast:shown', { id, type, message, priority });

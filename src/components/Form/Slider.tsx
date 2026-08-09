@@ -1,5 +1,5 @@
 import React from 'react';
-import * as SliderPrimitive from '@radix-ui/react-slider';
+import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 
 /**

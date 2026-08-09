@@ -1,5 +1,5 @@
 import React, { ReactNode, useState } from 'react';
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 
@@ -33,6 +33,7 @@ export interface TooltipProps {
   delayDuration?: number;
 }
 
+/** @manifest Hover/focus tooltip wrapping a child trigger element */
 export const Tooltip: React.FC<TooltipProps> = ({
   id,
   content,

@@ -1,5 +1,5 @@
 import React, { ReactNode, useContext } from 'react';
-import * as SelectPrimitive from '@radix-ui/react-select';
+import { Select as SelectPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';

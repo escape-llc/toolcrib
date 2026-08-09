@@ -1,5 +1,5 @@
 import React, { ReactNode, ReactElement } from 'react';
-import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
+import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 
@@ -44,6 +44,7 @@ export interface DropdownMenuProps {
   align?: 'start' | 'center' | 'end';
 }
 
+/** @manifest Data-driven action menu with separator support */
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   id = `menu-${Math.random().toString(36).substring(2, 7)}`,
   trigger,

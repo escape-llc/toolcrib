@@ -19,6 +19,7 @@ export interface ThemeEditorProps {
   style?: React.CSSProperties;
 }
 
+/** @manifest Real-time HSV theme editor rendered in a SlideOut panel */
 export const ThemeEditor: React.FC<ThemeEditorProps> = ({
   isOpen,
   onOpenChange,

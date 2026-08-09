@@ -28,8 +28,8 @@ import { useAIEvent } from './eventBus/useAIEvent';
 const userProfileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Please enter a valid email address'),
-  role: z.enum(['admin', 'editor', 'viewer'], { required_error: 'Role is required' }),
-  contactPref: z.enum(['email', 'sms', 'phone'], { required_error: 'Select a contact preference' }),
+  role: z.enum(['admin', 'editor', 'viewer'], { error: 'Role is required' }),
+  contactPref: z.enum(['email', 'sms', 'phone'], { error: 'Select a contact preference' }),
   notifications: z.boolean(),
   agreeTerms: z.boolean().refine(val => val === true, 'You must accept the terms'),
   bio: z.string().max(200, 'Bio cannot exceed 200 characters').optional(),
@@ -110,7 +110,7 @@ export const App: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ fontSize: '1.5rem' }}>🤖</div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>AI-UI Toolkit</h1>
+            <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
               React UI Component Package Tailored for AI Consumption (Master Font: {parameters.masterFontSize}px)
             </p>
@@ -172,7 +172,7 @@ export const App: React.FC = () => {
                         <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
                         <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
                           <p style={{ marginTop: 0 }}>
-                            By wrapping Radix UI primitives (`@radix-ui/react-*`), <code>AI-UI</code> decouples robust WAI-ARIA accessibility, keyboard navigation, focus trapping, and light-dismiss from design system styling.
+                            By wrapping Radix UI primitives (`radix-ui`), <code>Toolcrib</code> decouples robust WAI-ARIA accessibility, keyboard navigation, focus trapping, and light-dismiss from design system styling.
                           </p>
                           <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
                             <li><strong>Dialog (`Modal`)</strong>: Full focus trap & background lockout.</li>
@@ -188,7 +188,7 @@ export const App: React.FC = () => {
                         <Card.Header>🧩 Why Use Common Layout Idioms & Theme Slices?</Card.Header>
                         <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
                           <p style={{ marginTop: 0 }}>
-                            Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>AI-UI</code> solves this by giving the AI high-level layout idioms:
+                            Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>Toolcrib</code> solves this by giving the AI high-level layout idioms:
                           </p>
                           <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
                             <li><strong><code>&lt;VStack&gt;</code> & <code>&lt;HStack&gt;</code></strong>: Self-spacing vertical & horizontal flex containers.</li>
@@ -204,7 +204,7 @@ export const App: React.FC = () => {
                       <Card.Header>📐 AI Schema & rem Scaling Engine</Card.Header>
                       <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
                         <p style={{ marginTop: 0 }}>
-                          In <code>AI-UI</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
+                          In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
                           Changing the <strong>Master Font Size</strong> slider in the OOTB Theme Designer updates <code>--ai-master-font-size</code> on <code>:root</code>, smoothly scaling the entire UI layout up or down in real time!
                         </p>
                         <pre style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontSize: '0.75rem', overflowX: 'auto', margin: 0 }}>
@@ -598,7 +598,7 @@ export const App: React.FC = () => {
                           <Accordion
                             defaultValue="faq-1"
                             items={[
-                              { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while AI-UI handles slots, HSV theming, and event bus dispatching.' },
+                              { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while Toolcrib handles slots, HSV theming, and event bus dispatching.' },
                               { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
                             ]}
                           />

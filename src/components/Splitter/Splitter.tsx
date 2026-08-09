@@ -50,6 +50,10 @@ export interface SplitterPanelProps {
   className?: string;
 }
 
+/**
+ * @manifest Resizable two-panel layout with automatic corner-squaring domain
+ * @manifestConstraints Requires exactly 2 children
+ */
 export const Splitter: React.FC<SplitterProps> & {
   Panel: React.FC<SplitterPanelProps>;
 } = ({
@@ -68,7 +72,7 @@ export const Splitter: React.FC<SplitterProps> & {
   const childCount = React.Children.count(children);
   if (childCount !== 2) {
     console.error(
-      `[ai-ui] <Splitter> requires exactly 2 children (got ${childCount}). ` +
+      `[toolcrib] <Splitter> requires exactly 2 children (got ${childCount}). ` +
       `Wrap each panel's content in a <Splitter.Panel> or any single element.`
     );
   }

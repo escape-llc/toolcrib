@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react';
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Tabs as TabsPrimitive } from 'radix-ui';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { aiBus } from '../../eventBus/eventBus';
 
@@ -32,6 +32,7 @@ export interface TabStripProps {
   style?: React.CSSProperties;
 }
 
+/** @manifest Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content */
 export const TabStrip: React.FC<TabStripProps> & {
   Tab: React.FC<{ id: string; active?: boolean; onClick?: () => void; children: ReactNode; disabled?: boolean }>;
   Panel: React.FC<TabPanelProps>;

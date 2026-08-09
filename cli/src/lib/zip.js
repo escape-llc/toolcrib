@@ -41,7 +41,15 @@ export async function extractZip(zipBuffer, targetDir) {
   }
 }
 
-/** Recursively list files under a directory, returning paths relative to it. */
+/**
+ * Recursively list files under a directory, returning paths relative to it.
+ * Always forward-slash, regardless of host OS: these relPaths become git
+ * patch header paths downstream (see commands/init.js, merge.js), and git
+ * apply rejects backslash-separated paths outright. path.relative() returns
+ * backslash-separated paths on win32 — confirmed via a real end-to-end run
+ * on Windows that every nested vendored file failed to apply until this
+ * was normalized here, at the source, rather than at each call site.
+ */
 export function listFilesRecursive(dir, base = dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   let results = [];
@@ -50,7 +58,7 @@ export function listFilesRecursive(dir, base = dir) {
     if (entry.isDirectory()) {
       results = results.concat(listFilesRecursive(full, base));
     } else {
-      results.push(path.relative(base, full));
+      results.push(path.relative(base, full).split(path.sep).join('/'));
     }
   }
   return results;

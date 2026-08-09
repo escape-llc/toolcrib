@@ -10,8 +10,8 @@
  *  - src/App.tsx, src/main.tsx, src/index.html, src/index.css, and the
  *    root AGENTS.md are the repo's own dev/demo harness and contributor
  *    instructions — NOT shipped to consumers.
- *  - ai-docs/ already contains real AI-facing docs (AI_GUIDE.md,
- *    SYSTEM_PROMPT.md, component-manifest.json) and ships as-is.
+ *  - ai-docs/ already contains real AI-facing docs (CORE.md, NEW_APP.md,
+ *    REFACTOR_APP.md, component-manifest.json) and ships as-is.
  *  - src/__tests__/ is excluded here entirely — it's packaged separately
  *    by build-tests-release.js as the optional test-suite artifact.
  *
@@ -35,6 +35,11 @@ const SRC = path.join(ROOT, 'src');
 const DIST = path.join(ROOT, 'dist');
 
 const VENDOR_DIRS = ['theme', 'eventBus', 'observer', 'components'];
+// The barrel file — the single import surface consumers actually use
+// (`import { Card } from '#toolcrib'`, wired to ./toolcrib/index.ts via the
+// package.json "imports" field the CLI proposes). Vendoring the directories
+// without this leaves no entry point at all.
+const INDEX_FILE = 'index.ts';
 const AI_DOCS_DIR = path.join(ROOT, 'ai-docs');
 
 // Node builtins and anything else that should never appear as a
@@ -125,7 +130,13 @@ function validateAgainstPackageJson(requiredPackages, rootPkg) {
   }
 }
 
-/** Recursively list files under dir, returning paths relative to base. */
+/**
+ * Recursively list files under dir, returning paths relative to base.
+ * Always forward-slash, regardless of host OS — these relPaths end up in
+ * toolcrib.config.json and, on the CLI side, in git patch header paths,
+ * which reject backslash-separated paths outright (see the matching fix
+ * and comment in cli/src/lib/zip.js).
+ */
 function listFilesRecursive(dir, base = dir) {
   if (!fs.existsSync(dir)) return [];
   let results = [];
@@ -134,7 +145,7 @@ function listFilesRecursive(dir, base = dir) {
     if (entry.isDirectory()) {
       results = results.concat(listFilesRecursive(full, base));
     } else {
-      results.push(path.relative(base, full));
+      results.push(path.relative(base, full).split(path.sep).join('/'));
     }
   }
   return results.sort();
@@ -169,6 +180,12 @@ function main() {
     copyPreservingStructure(files, path.join(SRC, dirName), path.join(DIST, dirName));
   }
 
+  if (!fs.existsSync(path.join(SRC, INDEX_FILE))) {
+    throw new Error(`src/${INDEX_FILE} not found — the barrel entry point must ship with every release.`);
+  }
+  allVendorRelPaths.push(INDEX_FILE);
+  fs.copyFileSync(path.join(SRC, INDEX_FILE), path.join(DIST, INDEX_FILE));
+
   // peerDependencies: derived from what the vendored source actually
   // imports, then validated against package.json — not trusted wholesale.
   // See header note on why (AI-managed package.json can drift).
@@ -189,6 +206,7 @@ function main() {
     generatedAt: new Date().toISOString(),
     peerDependencies,
     files: {
+      root: [INDEX_FILE],
       ...filesByDir,
       aiDocs: aiDocFiles.map((f) => `ai-docs/${f}`),
     },
@@ -196,8 +214,9 @@ function main() {
 
   fs.writeFileSync(path.join(DIST, 'toolcrib.config.json'), JSON.stringify(config, null, 2) + '\n');
 
-  const totalFiles = Object.values(filesByDir).flat().length + aiDocFiles.length;
+  const totalFiles = Object.values(filesByDir).flat().length + aiDocFiles.length + 1;
   console.log(`Built release v${rootPkg.version}: ${totalFiles} file(s) staged in ./dist`);
+  console.log(`  root: 1 (${INDEX_FILE})`);
   for (const [dir, files] of Object.entries(filesByDir)) {
     console.log(`  ${dir}: ${files.length}`);
   }

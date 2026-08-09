@@ -52,6 +52,7 @@ export interface DataTableProps<T = any> {
   style?: React.CSSProperties;
 }
 
+/** @manifest Virtualized, sortable, paginated data table with sticky headers */
 export function DataTable<T extends Record<string, any> = Record<string, any>>({
   data,
   columns,

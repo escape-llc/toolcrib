@@ -29,6 +29,7 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * Grid Layout Idiom: Multi-column responsive grid container consuming Theme Margin/Gap tokens.
+ * @manifest CSS Grid responsive multi-column layout
  */
 export const Grid: React.FC<GridProps> = ({
   children,

@@ -1,10 +1,15 @@
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
-import { PendingChanges, normalize } from '../lib/patches.js';
-import { readLock, readTextIfExists } from '../lib/project.js';
+import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
+import { mergeImportsField } from '../lib/deps.js';
+import { readJsonIfExists, readLock, readTextIfExists } from '../lib/project.js';
+import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
+// See init.js for why this exists — installs predating this entry need it
+// added on `merge` too, not just on a fresh `init`.
+const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
 
 /**
  * Four-way classification per vendored file, comparing:
@@ -23,6 +28,96 @@ function classify(original, local, updated) {
   if (!localModified && upstreamChanged) return 'safe-update';
   if (localModified && !upstreamChanged) return 'keep-local';
   return 'conflict';
+}
+
+/**
+ * Same classify()-based logic as the vendored-files loop below, applied to
+ * managed <!-- toolcrib:managed:... --> blocks inside AGENTS.md/CLAUDE.md
+ * instead of whole files under ./toolcrib/ — this is what makes content the
+ * user merged from ai-docs/ into their own instruction file round-trip
+ * detectable and updatable, the same way everything else already is.
+ *
+ * "original" for a given block is resolved from whatever version the block
+ * itself claims (its `version=` attribute), not necessarily oldRelease —
+ * the block may be older or newer than the currently-installed toolkit
+ * version if it was hand-edited or added out of band.
+ */
+async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, conflicts) {
+  let updatedCount = 0;
+  let keptCount = 0;
+
+  for (const targetFile of KNOWN_TARGET_FILES) {
+    const targetPath = path.join(projectRoot, targetFile);
+    const currentFileContent = readTextIfExists(targetPath);
+    if (!currentFileContent) continue;
+
+    const blocks = listManagedBlocks(currentFileContent);
+    if (blocks.length === 0) continue;
+
+    let proposedFileContent = currentFileContent;
+    let fileChanged = false;
+
+    for (const block of blocks) {
+      const docFile = MANAGED_DOCS[block.docId];
+      if (!docFile || !newRelease.allFiles().includes(`ai-docs/${docFile}`)) continue;
+
+      let originalDocContent;
+      try {
+        if (block.version === oldRelease.version) {
+          originalDocContent = oldRelease.readFile(`ai-docs/${docFile}`);
+        } else {
+          const atVersionRelease = await fetchRelease(block.version);
+          originalDocContent = atVersionRelease.readFile(`ai-docs/${docFile}`);
+          await atVersionRelease.cleanup();
+        }
+      } catch {
+        // The version this block claims no longer resolves to a real
+        // release — can't establish drift without it. `doctor` surfaces
+        // this same situation as an explicit warning; here, just skip it
+        // rather than guess.
+        continue;
+      }
+
+      const updatedDocContent = newRelease.readFile(`ai-docs/${docFile}`);
+      // block.content was already trimEnd()'d at extraction — the raw
+      // release reads above still have their trailing newline, so both
+      // must be trimmed the same way before classify() compares them, or
+      // every block registers as "conflict"/"safe-update" purely from that
+      // trailing newline rather than real content drift. See the matching
+      // fix/comment in doctor.js, where this was originally caught.
+      const status = classify(originalDocContent.trimEnd(), block.content, updatedDocContent.trimEnd());
+
+      switch (status) {
+        case 'unchanged':
+        case 'safe-update':
+          proposedFileContent = upsertManagedBlock(proposedFileContent, block.docId, newRelease.version, updatedDocContent);
+          fileChanged = fileChanged || status === 'safe-update';
+          updatedCount++;
+          break;
+        case 'keep-local':
+          keptCount++;
+          break;
+        case 'conflict':
+          // Not a vendored file under TOOLKIT_DIR, so patchPath can't be
+          // derived from relPath the way vendored-file conflicts below can
+          // — it's set explicitly here instead.
+          conflicts.push({
+            relPath: `${targetFile} (managed block "${block.docId}")`,
+            patchPath: `${targetFile}.managed-${block.docId}`,
+            original: originalDocContent,
+            local: block.content,
+            updated: updatedDocContent,
+          });
+          break;
+      }
+    }
+
+    if (fileChanged) {
+      changes.propose(targetFile, currentFileContent, proposedFileContent, targetFile);
+    }
+  }
+
+  return { updatedCount, keptCount };
 }
 
 export async function mergeCommand(options) {
@@ -67,26 +162,46 @@ export async function mergeCommand(options) {
     switch (status) {
       case 'unchanged':
       case 'safe-update':
-        changes.propose(path.join(TOOLKIT_DIR, relPath), local, updated, relPath);
+        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, updated, relPath);
         updatedCount++;
         break;
       case 'keep-local':
         keptCount++;
         break;
       case 'conflict':
-        conflicts.push({ relPath, original, local, updated });
+        conflicts.push({ relPath, patchPath: joinPatchPath(TOOLKIT_DIR, relPath), original, local, updated });
         break;
     }
   }
 
+  const managedBlockCounts = await mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, conflicts);
+  updatedCount += managedBlockCounts.updatedCount;
+  keptCount += managedBlockCounts.keptCount;
+
   await Promise.all([oldRelease.cleanup(), newRelease.cleanup()]);
+
+  // Installs from before the "imports" subpath entry existed won't have it —
+  // propose adding it here too, not just on a fresh `init`.
+  const pkgPath = path.join(projectRoot, 'package.json');
+  const userPkg = readJsonIfExists(pkgPath);
+  if (userPkg) {
+    const importsResult = mergeImportsField(userPkg, TOOLKIT_IMPORTS_ENTRY);
+    if (importsResult.changed) {
+      changes.propose(
+        'package.json',
+        readTextIfExists(pkgPath),
+        JSON.stringify(importsResult.pkg, null, 2) + '\n',
+        'package.json'
+      );
+    }
+  }
 
   // Conflicts get their own patch showing the *upstream* diff (local vs.
   // untouched), so the human/AI can see exactly what upstream changed
   // without it silently overwriting local customizations.
   for (const conflict of conflicts) {
     changes.propose(
-      path.join(TOOLKIT_DIR, conflict.relPath) + '.upstream-diff',
+      `${conflict.patchPath}.upstream-diff`,
       '',
       buildConflictNote(conflict),
       `${conflict.relPath} (conflict)`

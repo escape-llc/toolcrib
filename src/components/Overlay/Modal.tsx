@@ -1,5 +1,5 @@
 import React, { useState, ReactNode, ReactElement } from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { Dialog as DialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -33,8 +33,19 @@ export interface ModalProps {
    * @default Z_INDEX.MODAL (200)
    */
   zIndex?: number;
+  /**
+   * Accessible name announced by screen readers when the dialog opens.
+   * Always visually hidden — unlike `<SlideOut title>`, which is a visible
+   * `ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s
+   * visible text is decorative only and is not otherwise wired to the
+   * dialog's accessible name, so set this explicitly (typically matching
+   * your `Modal.Header` text) for a meaningful announcement.
+   * @default 'Dialog'
+   */
+  ariaLabel?: string;
 }
 
+/** @manifest Dialog overlay with focus trap, backdrop, and slot composition */
 export const Modal: React.FC<ModalProps> & {
   Header: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
   Body: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
@@ -49,6 +60,7 @@ export const Modal: React.FC<ModalProps> & {
   onOpenChange,
   width = '31.25rem',
   zIndex = Z_INDEX.MODAL,
+  ariaLabel = 'Dialog',
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -120,7 +132,7 @@ export const Modal: React.FC<ModalProps> & {
               animation: 'ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             }}
           >
-            <DialogPrimitive.Title style={{ display: 'none' }}>Modal Dialog</DialogPrimitive.Title>
+            <DialogPrimitive.Title style={{ display: 'none' }}>{ariaLabel}</DialogPrimitive.Title>
             <AIErrorBoundary componentName="Modal">
               {children}
             </AIErrorBoundary>

@@ -1,5 +1,5 @@
 /**
- * AI-UI Standard Z-Index Layering Scale
+ * Toolcrib Standard Z-Index Layering Scale
  *
  * Provides a clean, reasonable, and systematic z-index hierarchy across all toolkit components.
  */
