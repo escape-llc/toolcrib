@@ -56,6 +56,9 @@ export * from './components/Toolbar/Toolbar';
 export * from './components/Layout/Stack';
 export * from './components/Layout/Grid';
 
+// App Frame
+export * from './components/AppShell/AppShell';
+
 // Observer & Adaptive Sizing
 export * from './observer/observerManager';
 export * from './observer/useAdaptiveSize';

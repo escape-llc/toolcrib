@@ -8,6 +8,15 @@ This file is for whoever (human or AI) is working **on** this repo — adding co
 
 It is **not distributed as an npm package**. Consumers run `toolcrib init` (this repo's `cli/`), which vendors `src/theme`, `src/eventBus`, `src/observer`, `src/components/**`, and `ai-docs/` directly into their own project as reviewable patches, then wires a `#toolcrib` subpath import (`package.json`'s `"imports"` field) to it. `src/App.tsx`, `src/main.tsx`, `src/index.html`, `src/index.css`, and this file are this repo's own dev/demo harness and contributor instructions — they are **not** vendored, and never will be just by adding them to a directory that happens to get copied.
 
+## Dev machine is Windows — use PowerShell, not Bash
+
+The primary dev machine for this repo runs Windows, and its `Bash` tool is a minimal git-bash without coreutils — `ls`, `grep`, `rm`, `find`, `head`, `tail`, `sleep`, and even `node`/`npm` are missing or unreliable there, confirmed repeatedly by real failures, not assumption. **Run shell commands (`npm`, `node`, `git`, etc.) via the PowerShell tool, not Bash.** Use the dedicated file tools (Read/Write/Edit/Glob/Grep) instead of either shell for file operations wherever possible — they aren't affected by this at all.
+
+PowerShell-specific gotchas hit in practice:
+- `Start-Process -FilePath "npm"` fails **silently** (no process, no error) — Windows needs the actual executable name, `npm.cmd`, not the bare command a normal shell would resolve via PATHEXT.
+- The console can mangle non-ASCII characters (em dashes, etc.) on read-back even when the file on disk is correct UTF-8 — if a file's content looks corrupted after `Get-Content`, verify with `[System.IO.File]::ReadAllText(path, [System.Text.Encoding]::UTF8)` before assuming the file itself is broken.
+- The working directory does not reliably persist between separate tool calls the way a single interactive shell session would — pass an explicit `cd`/path in each command rather than relying on a previous `cd` still being in effect.
+
 ## Core rules
 
 The actual component/theme/event-bus rules (no prop-drilling, HSV-only color, `rem` units, anti-patterns) live in `ai-docs/CORE.md` — that file is the single source of truth, read by consumers and shipped as-is. Don't duplicate those rules here; if you change one, change it there and keep this file's references in sync.

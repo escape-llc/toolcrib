@@ -135,6 +135,14 @@ class AIEventBus {
     this.emit('slideout:hidden', { id });
   }
 
+  openPopup(id: string, targetId?: string, data?: any) {
+    this.emit('popup:shown', { id, targetId, data });
+  }
+
+  closePopup(id: string) {
+    this.emit('popup:hidden', { id });
+  }
+
   /** @manifestReturns string (toast id) */
   showToast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium') {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;

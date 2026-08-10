@@ -37,4 +37,17 @@ describe('Strongly-Typed EventBus', () => {
       type: 'success',
     }));
   });
+
+  it('provides openPopup/closePopup helpers, matching the openModal/closeModal and openSlideOut/closeSlideOut pattern', () => {
+    const shown = vi.fn();
+    const hidden = vi.fn();
+    aiBus.on('popup:shown', shown);
+    aiBus.on('popup:hidden', hidden);
+
+    aiBus.openPopup('demo-popup', 'trigger-el', { foo: 'bar' });
+    expect(shown).toHaveBeenCalledWith({ id: 'demo-popup', targetId: 'trigger-el', data: { foo: 'bar' } });
+
+    aiBus.closePopup('demo-popup');
+    expect(hidden).toHaveBeenCalledWith({ id: 'demo-popup' });
+  });
 });

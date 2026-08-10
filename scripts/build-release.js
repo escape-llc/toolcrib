@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 /**
- * Builds a release: assembles ./dist with the vendorable toolkit source
- * plus a generated toolcrib.config.json, ready to be zipped and attached
- * to a GitHub Release by the workflow.
+ * Builds a release: assembles ./dist-release with the vendorable toolkit
+ * source plus a generated toolcrib.config.json, ready to be zipped and
+ * attached to a GitHub Release by the workflow.
+ *
+ * Deliberately not "./dist" — that's Vite's own build output directory
+ * (`npm run build`) for the dev/demo harness. Sharing the name meant
+ * running either build could silently clobber the other's output; found
+ * via a real `npm run build` run, not by inspection.
  *
  * Layout assumptions specific to this repo (escape-llc/toolcrib):
  *  - Vendorable source lives in src/theme, src/eventBus, src/observer,
@@ -32,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SRC = path.join(ROOT, 'src');
-const DIST = path.join(ROOT, 'dist');
+const DIST = path.join(ROOT, 'dist-release');
 
 const VENDOR_DIRS = ['theme', 'eventBus', 'observer', 'components'];
 // The barrel file — the single import surface consumers actually use
@@ -215,7 +220,7 @@ function main() {
   fs.writeFileSync(path.join(DIST, 'toolcrib.config.json'), JSON.stringify(config, null, 2) + '\n');
 
   const totalFiles = Object.values(filesByDir).flat().length + aiDocFiles.length + 1;
-  console.log(`Built release v${rootPkg.version}: ${totalFiles} file(s) staged in ./dist`);
+  console.log(`Built release v${rootPkg.version}: ${totalFiles} file(s) staged in ./dist-release`);
   console.log(`  root: 1 (${INDEX_FILE})`);
   for (const [dir, files] of Object.entries(filesByDir)) {
     console.log(`  ${dir}: ${files.length}`);

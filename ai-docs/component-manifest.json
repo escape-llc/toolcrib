@@ -19,6 +19,8 @@
       "--ai-accordion-header-padding",
       "--ai-accordion-item-gap",
       "--ai-active-transform",
+      "--ai-appshell-header-padding",
+      "--ai-appshell-main-padding",
       "--ai-bg-container",
       "--ai-bg-primary",
       "--ai-bg-surface",
@@ -270,6 +272,14 @@
         "emits": "slideout:hidden"
       },
       {
+        "method": "aiBus.openPopup(id, targetId?, data?)",
+        "emits": "popup:shown"
+      },
+      {
+        "method": "aiBus.closePopup(id)",
+        "emits": "popup:hidden"
+      },
+      {
         "method": "aiBus.showToast(message, type?, priority?)",
         "emits": "toast:shown",
         "returns": "string (toast id)"
@@ -307,6 +317,24 @@
         }
       },
       "description": "Data-driven collapsible panel group with animations"
+    },
+    {
+      "name": "AppShell",
+      "import": "import { AppShell } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Main"
+      ],
+      "props": {
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
+      },
+      "constraints": "Intended to be rendered once, at the root of the component tree",
+      "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
     },
     {
       "name": "Card",
@@ -543,6 +571,11 @@
         "cornerRadiusMode": {
           "type": "CornerRadiusMode",
           "description": "Override corner radius using the theme radius token scale."
+        },
+        "wrap": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
         },
         "style": {
           "type": "React.CSSProperties"
@@ -882,6 +915,11 @@
         "cornerRadiusMode": {
           "type": "CornerRadiusMode",
           "description": "Override corner radius using the theme radius token scale."
+        },
+        "wrap": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
         },
         "style": {
           "type": "React.CSSProperties"

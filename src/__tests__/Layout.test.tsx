@@ -29,6 +29,22 @@ describe('Layout Idiom Components (Stack & Grid)', () => {
     expect(screen.getByText('Right Item')).toBeInTheDocument();
   });
 
+  it('applies flexWrap only when wrap is true, on both VStack and HStack', () => {
+    const { container: withWrap } = render(
+      <HStack wrap>
+        <div>A</div>
+      </HStack>
+    );
+    expect((withWrap.firstChild as HTMLElement).style.flexWrap).toBe('wrap');
+
+    const { container: withoutWrap } = render(
+      <VStack>
+        <div>B</div>
+      </VStack>
+    );
+    expect((withoutWrap.firstChild as HTMLElement).style.flexWrap).toBe('');
+  });
+
   it('renders Grid with multi-column layout template', () => {
     render(
       <Grid columns={3}>

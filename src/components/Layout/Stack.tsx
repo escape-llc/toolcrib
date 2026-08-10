@@ -27,6 +27,8 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   marginMode?: MarginMode;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
+  /** Allow children to wrap onto multiple lines instead of overflowing/shrinking. @default false */
+  wrap?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
@@ -58,6 +60,7 @@ export const VStack: React.FC<StackProps> = ({
   paddingMode,
   marginMode,
   cornerRadiusMode,
+  wrap = false,
   style,
   className,
   ...props
@@ -68,6 +71,7 @@ export const VStack: React.FC<StackProps> = ({
     style={{
       display: 'flex',
       flexDirection: 'column',
+      flexWrap: wrap ? 'wrap' : undefined,
       gap: resolveMargin(marginMode, gap),
       alignItems: alignMap[align],
       justifyContent: justifyMap[justify],
@@ -94,6 +98,7 @@ export const HStack: React.FC<StackProps> = ({
   paddingMode,
   marginMode,
   cornerRadiusMode,
+  wrap = false,
   style,
   className,
   ...props
@@ -104,6 +109,7 @@ export const HStack: React.FC<StackProps> = ({
     style={{
       display: 'flex',
       flexDirection: 'row',
+      flexWrap: wrap ? 'wrap' : undefined,
       gap: resolveMargin(marginMode, gap),
       alignItems: alignMap[align],
       justifyContent: justifyMap[justify],

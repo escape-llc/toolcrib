@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useTheme } from './theme/themeContext';
 import { ThemeEditor } from './components/ThemeEditor/ThemeEditor';
 import { Card } from './components/Card/Card';
+import { CardSimple } from './components/Card/CardSimple';
 import { Form } from './components/Form/FormContext';
 import { FormField, FormError, Input, Checkbox, Switch, Textarea, Button, SubmitButton, RadioGroup } from './components/Form/FormComponents';
 import { Popup } from './components/Overlay/Popup';
@@ -21,6 +22,7 @@ import { Slider } from './components/Form/Slider';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { VStack, HStack } from './components/Layout/Stack';
 import { Grid } from './components/Layout/Grid';
+import { AppShell } from './components/AppShell/AppShell';
 import { aiBus } from './eventBus/eventBus';
 import { useAIEvent } from './eventBus/useAIEvent';
 
@@ -68,7 +70,15 @@ export const App: React.FC = () => {
     const logItem = {
       id: Math.random().toString(36).substring(2, 9),
       event: eventName,
-      payload: JSON.stringify(event.detail || event),
+      // Plain JSON.stringify throws on payloads containing a raw DOM node
+      // (e.g. element:resized's `target: HTMLElement`, from useAdaptiveSize)
+      // — a real "Converting circular structure to JSON" crash caught here
+      // via a browser run, not visible from types or unit tests. Render DOM
+      // nodes as a short tag description instead of failing the whole log
+      // entry.
+      payload: JSON.stringify(event.detail || event, (_key, value) =>
+        value instanceof HTMLElement ? `<${value.tagName.toLowerCase()}>` : value
+      ),
       time: timestamp,
     };
     setEventLogs(prev => [logItem, ...prev.slice(0, 49)]);
@@ -104,10 +114,10 @@ export const App: React.FC = () => {
   ];
 
   return (
-    <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--ai-bg-primary)', color: 'var(--ai-text-primary)' }}>
+    <AppShell>
       {/* Top Header Bar */}
-      <header style={{ padding: '0.75rem 1.5rem', background: 'var(--ai-bg-surface)', borderBottom: '0.0625rem solid var(--ai-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <AppShell.Header>
+        <HStack gap="sm" style={{ width: 'auto' }}>
           <div style={{ fontSize: '1.5rem' }}>🤖</div>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
@@ -115,7 +125,7 @@ export const App: React.FC = () => {
               React UI Component Package Tailored for AI Consumption (Master Font: {parameters.masterFontSize}px)
             </p>
           </div>
-        </div>
+        </HStack>
 
         <UIGroup style={{ height: '2.375rem' }}>
           <div
@@ -140,14 +150,21 @@ export const App: React.FC = () => {
             trigger={<Button variant="primary">🎨 OOTB Theme Designer</Button>}
           />
         </UIGroup>
-      </header>
+      </AppShell.Header>
 
       {/* Main Content Area with Resizable Splitter */}
-      <main style={{ flex: '1 1 0px', width: '100%', minHeight: 0, overflow: 'hidden', padding: '1rem' }}>
+      <AppShell.Main>
         <Splitter orientation="vertical" initialSplit={70}>
           {/* Top Panel: Interactive Component Playground */}
+          {/* Direct child of Splitter.Panel stays a plain div, not VStack:
+              Panel's corner-squaring cloneElement() only forwards
+              squareCorners to children it recognizes as toolkit components
+              (e.g. Card, which declares that prop) — VStack doesn't declare
+              it, so the injected prop fell through to the DOM and React
+              warned about an unrecognized attribute. Confirmed via a real
+              browser run, not visible from types or unit tests. */}
           <Splitter.Panel squareCorners="bottom">
-            <div style={{ height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
+            <div style={{ height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--ai-margin-md)', minHeight: 0 }}>
               <TabStrip
                 activeId={activeTab}
                 onChange={id => setActiveTab(id as any)}
@@ -315,12 +332,12 @@ export const App: React.FC = () => {
                           id="demo-popup"
                           trigger={<Button variant="outline">Toggle Popup Menu</Button>}
                         >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <VStack gap="sm">
                             <strong style={{ fontSize: '0.875rem' }}>Account Quick Info</strong>
                             <p style={{ margin: 0, fontSize: '0.875rem' }}>User: john_doe@example.com</p>
                             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Role: Administrator</p>
-                            <Button size="sm" variant="primary" onClick={() => aiBus.emit('popup:hidden', { id: 'demo-popup' })}>Dismiss</Button>
-                          </div>
+                            <Button size="sm" variant="primary" onClick={() => aiBus.closePopup('demo-popup')}>Dismiss</Button>
+                          </VStack>
                         </Popup>
                       </Card.Content>
                     </Card>
@@ -335,7 +352,7 @@ export const App: React.FC = () => {
                           trigger={<Button variant="secondary">Open SlideOut Drawer</Button>}
                         >
                           <p>This drawer is decoupled and easily controlled by AI.</p>
-                          <Button variant="danger" onClick={() => aiBus.emit('slideout:hidden', { id: 'demo-slideout' })}>Close Drawer</Button>
+                          <Button variant="danger" onClick={() => aiBus.closeSlideOut('demo-slideout')}>Close Drawer</Button>
                         </SlideOut>
                       </Card.Content>
                     </Card>
@@ -344,7 +361,7 @@ export const App: React.FC = () => {
                       <Card.Header>Modal Dialog (Focus Trap)</Card.Header>
                       <Card.Content>
                         <p style={{ marginTop: 0 }}>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</p>
-                        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>}>
+                        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} ariaLabel="Confirm Account Action">
                           <Modal.Header>Confirm Account Action</Modal.Header>
                           <Modal.Body>
                             Are you sure you want to perform this action? Keyboard navigation (Tab) is trapped safely inside this dialog.
@@ -382,27 +399,36 @@ export const App: React.FC = () => {
                         <Button subtheme="error" onClick={() => aiBus.showToast('Critical System Failure', 'error', 'urgent')}>
                           Fire Urgent Error Toast
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            addToast({
+                              type: 'error',
+                              message: 'Connection lost',
+                              sticky: true,
+                              actions: [{ label: 'Retry', onClick: () => addToast({ type: 'success', message: 'Reconnected!' }) }],
+                            })
+                          }
+                        >
+                          Fire Sticky Toast w/ Action
+                        </Button>
                       </UIGroup>
 
-                      <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <HStack gap="sm" style={{ marginTop: 'var(--ai-margin-md)', width: 'auto' }}>
                         <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</span>
-                        <select
-                          onChange={e => setAnchor(e.target.value as any)}
-                          style={{
-                            padding: '0.375rem 0.75rem',
-                            borderRadius: 'var(--ai-radius-md, 0.375rem)',
-                            border: '0.0625rem solid var(--ai-border)',
-                            fontSize: '0.875rem',
-                          }}
-                        >
-                          <option value="top-right">Top Right</option>
-                          <option value="top-left">Top Left</option>
-                          <option value="bottom-right">Bottom Right</option>
-                          <option value="bottom-left">Bottom Left</option>
-                          <option value="top-center">Top Center</option>
-                          <option value="bottom-center">Bottom Center</option>
-                        </select>
-                      </div>
+                        <Select
+                          defaultValue="top-right"
+                          onChange={val => setAnchor(val as any)}
+                          options={[
+                            { label: 'Top Right', value: 'top-right' },
+                            { label: 'Top Left', value: 'top-left' },
+                            { label: 'Bottom Right', value: 'bottom-right' },
+                            { label: 'Bottom Left', value: 'bottom-left' },
+                            { label: 'Top Center', value: 'top-center' },
+                            { label: 'Bottom Center', value: 'bottom-center' },
+                          ]}
+                        />
+                      </HStack>
                     </Card.Content>
                   </Card>
                 )}
@@ -505,8 +531,8 @@ export const App: React.FC = () => {
                     {/* Section 1: Button Variants & Subthemes */}
                     <Card>
                       <Card.Header>Button Subsystem (Variants, Sub-Themes & Glyphs)</Card.Header>
-                      <Card.Content style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <Card.Content>
+                        <HStack gap="sm" wrap>
                           <Button variant="primary" icon="🚀" trailingIcon="➔" onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
                           <Button variant="secondary" icon="⚙️" onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
                           <Button variant="outline" icon="⚡" onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
@@ -515,7 +541,26 @@ export const App: React.FC = () => {
                           <Button subtheme="success" icon="✅" onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
                           <Button subtheme="warning" icon="⚠️" onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
                           <Button subtheme="info" icon="ℹ️" onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
-                        </div>
+                        </HStack>
+                      </Card.Content>
+                    </Card>
+
+                    {/* Section 1.5: CardSimple (token-saving shorthand) */}
+                    <Card>
+                      <Card.Header>Token-Saving Card Shorthand (`&lt;CardSimple&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Same visual result as slot-based <code>&lt;Card&gt;</code>, without composing <code>Header</code>/<code>Content</code>/<code>Footer</code> manually — useful when the AI just needs a quick single-purpose card.
+                        </p>
+                        <CardSimple
+                          title="Quick Stats"
+                          subtitle="Updated just now"
+                          footer={<span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Auto-refreshes every 30s</span>}
+                          actions={<Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Refreshed!' })}>Refresh</Button>}
+                        >
+                          <div style={{ fontSize: '2rem', fontWeight: 800 }}>1,204</div>
+                          <div style={{ color: 'var(--ai-text-secondary)', fontSize: '0.875rem' }}>Active Sessions</div>
+                        </CardSimple>
                       </Card.Content>
                     </Card>
 
@@ -541,23 +586,25 @@ export const App: React.FC = () => {
 
                       <Card layout="auto" style={{ height: '18rem' }}>
                         <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
-                        <Card.Content layout="auto" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
-                            <UIGroup>
-                              <Button variant="outline" icon="◀" onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
-                              <Button variant="outline" icon="●" onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
-                              <Button variant="outline" icon="▶" onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
-                            </UIGroup>
-                          </div>
+                        <Card.Content layout="auto">
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
+                              <UIGroup>
+                                <Button variant="outline" icon="◀" onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
+                                <Button variant="outline" icon="●" onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
+                                <Button variant="outline" icon="▶" onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
+                              </UIGroup>
+                            </div>
 
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
-                            <UIGroup style={{ width: '100%' }}>
-                              <Input placeholder="Search records..." style={{ width: '100%' }} />
-                              <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
-                            </UIGroup>
-                          </div>
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
+                              <UIGroup style={{ width: '100%' }}>
+                                <Input placeholder="Search records..." style={{ width: '100%' }} />
+                                <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
+                              </UIGroup>
+                            </div>
+                          </VStack>
                         </Card.Content>
                       </Card>
                     </Grid>
@@ -565,44 +612,46 @@ export const App: React.FC = () => {
                     {/* Section 3: Radix UI Primitives */}
                     <Card>
                       <Card.Header>Radix UI Primitives (Accordion, Dropdown Menu, Tooltip & Slider)</Card.Header>
-                      <Card.Content style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
+                              <DropdownMenu
+                                trigger={<Button variant="outline" icon="⚙️" trailingIcon="▼">User Actions Menu</Button>}
+                                items={[
+                                  { value: 'profile', label: 'View Profile', icon: '👤', onClick: () => addToast({ type: 'info', message: 'View Profile selected', priority: 'medium' }) },
+                                  { value: 'settings', label: 'Account Settings', icon: '⚙️', onClick: () => addToast({ type: 'info', message: 'Settings selected', priority: 'low' }) },
+                                  { isSeparator: true, value: 'sep1', label: '' },
+                                  { value: 'logout', label: 'Log Out', icon: '🚪', onClick: () => addToast({ type: 'warning', message: 'User logged out', priority: 'high' }) },
+                                ]}
+                              />
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
+                              <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
+                                <Button variant="secondary" icon="ℹ️">Hover For Tooltip</Button>
+                              </Tooltip>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
+                              <Slider defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+                            </div>
+                          </VStack>
+
                           <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
-                            <DropdownMenu
-                              trigger={<Button variant="outline" icon="⚙️" trailingIcon="▼">User Actions Menu</Button>}
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Expandable Accordion (`&lt;Accordion&gt;`)</div>
+                            <Accordion
+                              defaultValue="faq-1"
                               items={[
-                                { value: 'profile', label: 'View Profile', icon: '👤', onClick: () => addToast({ type: 'info', message: 'View Profile selected', priority: 'medium' }) },
-                                { value: 'settings', label: 'Account Settings', icon: '⚙️', onClick: () => addToast({ type: 'info', message: 'Settings selected', priority: 'low' }) },
-                                { isSeparator: true, value: 'sep1', label: '' },
-                                { value: 'logout', label: 'Log Out', icon: '🚪', onClick: () => addToast({ type: 'warning', message: 'User logged out', priority: 'high' }) },
+                                { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while Toolcrib handles slots, HSV theming, and event bus dispatching.' },
+                                { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
                               ]}
                             />
                           </div>
-
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
-                            <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
-                              <Button variant="secondary" icon="ℹ️">Hover For Tooltip</Button>
-                            </Tooltip>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
-                            <Slider defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Expandable Accordion (`&lt;Accordion&gt;`)</div>
-                          <Accordion
-                            defaultValue="faq-1"
-                            items={[
-                              { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while Toolcrib handles slots, HSV theming, and event bus dispatching.' },
-                              { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
-                            ]}
-                          />
-                        </div>
+                        </Grid>
                       </Card.Content>
                     </Card>
                   </VStack>
@@ -637,15 +686,15 @@ export const App: React.FC = () => {
                 </Toolbar>
               </Card.Header>
               <Card.Content style={{ padding: '0.5rem 1rem', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: '#111827', color: '#10b981', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
+                <div style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
                   {eventLogs.length === 0 ? (
-                    <div style={{ color: '#6b7280' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
+                    <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
                   ) : (
                     eventLogs.map(log => (
                       <div key={log.id} style={{ marginBottom: '0.2rem' }}>
-                        <span style={{ color: '#6b7280' }}>[{log.time}]</span>{' '}
-                        <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>{log.event}</span>:{' '}
-                        <span style={{ color: '#f3f4f6' }}>{log.payload}</span>
+                        <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
+                        <span style={{ color: 'var(--ai-color-primary)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
+                        <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
                       </div>
                     ))
                   )}
@@ -654,8 +703,8 @@ export const App: React.FC = () => {
             </Card>
           </Splitter.Panel>
         </Splitter>
-      </main>
-    </div>
+      </AppShell.Main>
+    </AppShell>
   );
 };
 

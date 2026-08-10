@@ -1,3 +1,18 @@
 node_modules/
-dist/
 coverage/
+
+# Vite dev/demo build output (npm run build) — a different folder than the
+# release scripts below on purpose, see scripts/build-release.js's header.
+dist/
+
+# Release artifacts (scripts/build-release.js, package-release.js,
+# build-tests-release.js, package-tests-release.js)
+dist-release/
+dist-tests/
+toolcrib.zip
+toolcrib.zip.sha256
+toolcrib-tests.zip
+toolcrib-tests.zip.sha256
+
+# Local scratch data from cli/README.md's integration-test instructions
+cli/integration-test/releases/
