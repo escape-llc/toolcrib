@@ -22,6 +22,7 @@ import { Slider } from './components/Form/Slider';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { VStack, HStack } from './components/Layout/Stack';
 import { Grid } from './components/Layout/Grid';
+import { Content } from './components/Layout/Content';
 import { AppShell } from './components/AppShell/AppShell';
 import { aiBus } from './eventBus/eventBus';
 import { useAIEvent } from './eventBus/useAIEvent';
@@ -160,15 +161,14 @@ export const App: React.FC = () => {
       <AppShell.Main>
         <Splitter orientation="vertical" initialSplit={70}>
           {/* Top Panel: Interactive Component Playground */}
-          {/* Direct child of Splitter.Panel stays a plain div, not VStack:
-              Panel's corner-squaring cloneElement() only forwards
-              squareCorners to children it recognizes as toolkit components
-              (e.g. Card, which declares that prop) — VStack doesn't declare
-              it, so the injected prop fell through to the DOM and React
-              warned about an unrecognized attribute. Confirmed via a real
-              browser run, not visible from types or unit tests. */}
+          {/* <Content> fills the Splitter.Panel and establishes the flex
+              domain; unlike a plain div (or VStack, which doesn't declare
+              squareCorners and would leak it onto the DOM — confirmed via
+              a real browser run), it explicitly declares and consumes
+              squareCorners, so Panel's corner-squaring cloneElement()
+              forwards correctly. */}
           <Splitter.Panel squareCorners="bottom">
-            <div style={{ height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--ai-margin-md)', minHeight: 0 }}>
+            <Content>
               <TabStrip
                 id="main-demo"
                 defaultActiveId="overview"
@@ -184,15 +184,17 @@ export const App: React.FC = () => {
               />
 
               {/*
-                Scrollable Content Container for Active Tab. No `key={activeTab}`
-                trick needed anymore to force the fade-in animation on switch —
-                each <TabStrip.Panel> below mounts/unmounts on its own (it
-                returns null while inactive) and carries its own animation, so
-                a fresh mount already replays it without any help from this
-                wrapper. This div's only job now is providing the scrollable
-                flex region; it has no idea which tab is active, on purpose.
+                <Content.Grow> is the scrollable container for the active
+                tab. No `key={activeTab}` trick needed anymore to force the
+                fade-in animation on switch — each <TabStrip.Panel> below
+                mounts/unmounts on its own (it returns null while inactive)
+                and carries its own animation, so a fresh mount already
+                replays it without any help from this wrapper. This
+                component's only job is providing the scrollable flex
+                region within <Content>'s domain; it has no idea which tab
+                is active, on purpose.
               */}
-              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <Content.Grow style={{ overflowY: 'auto' }}>
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
@@ -668,8 +670,8 @@ export const App: React.FC = () => {
                     </Card>
                   </VStack>
                 </TabStrip.Panel>
-              </div>
-            </div>
+              </Content.Grow>
+            </Content>
           </Splitter.Panel>
 
           {/* Bottom Panel: Live Event Bus Monitor */}

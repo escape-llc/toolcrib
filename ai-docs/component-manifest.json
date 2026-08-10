@@ -389,6 +389,35 @@
       "description": "Token-saving shorthand for simple cards without slot composition"
     },
     {
+      "name": "Content",
+      "import": "import { Content } from '#toolcrib'",
+      "slots": [
+        "Grow"
+      ],
+      "props": {
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'md'",
+          "description": "Gap between children. Named tokens map to theme spacing scale."
+        },
+        "marginMode": {
+          "type": "MarginMode",
+          "description": "Override margin/gap using the theme margin token scale."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Squares off the given corners — accepted (and consumed) so `<Content>`\ncan sit directly inside `<Splitter.Panel squareCorners=\"...\">`, whose\ncorner-squaring only forwards to children it recognizes as components\n(not plain DOM elements). Meaningless unless `style` also gives this\nelement visible chrome (background/border) of its own."
+        },
+        "style": {
+          "type": "React.CSSProperties"
+        },
+        "className": {
+          "type": "string"
+        }
+      },
+      "description": "Fills its container and establishes a flex-column layout domain for its children"
+    },
+    {
       "name": "DataTable",
       "import": "import { DataTable } from '#toolcrib'",
       "props": {
