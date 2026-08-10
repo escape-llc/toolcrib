@@ -59,7 +59,11 @@ export const App: React.FC = () => {
   const { parameters } = useTheme();
   const { addToast, setAnchor } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'form' | 'overlays' | 'toasts' | 'datatable' | 'layout' | 'showcase'>('overview');
+  // No `activeTab` useState here anymore: <TabStrip id="main-demo"> manages
+  // its own active-tab state and broadcasts it on `aiBus`; each
+  // <TabStrip.Panel groupId="main-demo" value="..."> below listens for that
+  // independently. Control and content don't share a DOM ancestor, a
+  // prop, or state — see src/components/TabStrip/TabStrip.tsx.
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
   const [isThemeEditorOpen, setIsThemeEditorOpen] = useState(false);
 
@@ -166,8 +170,8 @@ export const App: React.FC = () => {
           <Splitter.Panel squareCorners="bottom">
             <div style={{ height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--ai-margin-md)', minHeight: 0 }}>
               <TabStrip
-                activeId={activeTab}
-                onChange={id => setActiveTab(id as any)}
+                id="main-demo"
+                defaultActiveId="overview"
                 items={[
                   { id: 'overview', label: '🚀 Overview & Architecture' },
                   { id: 'form', label: '📝 Form & Zod Engine' },
@@ -179,10 +183,18 @@ export const App: React.FC = () => {
                 ]}
               />
 
-              {/* Scrollable Content Container for Active Tab */}
-              <div key={activeTab} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', animation: 'var(--ai-tab-panel-animation, ai-fade-in 0.22s ease)' }}>
+              {/*
+                Scrollable Content Container for Active Tab. No `key={activeTab}`
+                trick needed anymore to force the fade-in animation on switch —
+                each <TabStrip.Panel> below mounts/unmounts on its own (it
+                returns null while inactive) and carries its own animation, so
+                a fresh mount already replays it without any help from this
+                wrapper. This div's only job now is providing the scrollable
+                flex region; it has no idea which tab is active, on purpose.
+              */}
+              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                 {/* Tab 1: Overview & Architecture */}
-                {activeTab === 'overview' && (
+                <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
                     <Grid columns={2} gap="lg">
                       <Card>
@@ -235,10 +247,10 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </VStack>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 2: Form & Zod Engine */}
-                {activeTab === 'form' && (
+                <TabStrip.Panel groupId="main-demo" value="form">
                   <Grid columns={2} gap="lg">
                     <Card>
                       <Card.Header>User Profile Form (Zod 4 Validated Engine)</Card.Header>
@@ -319,10 +331,10 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </Grid>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 3: Overlays */}
-                {activeTab === 'overlays' && (
+                <TabStrip.Panel groupId="main-demo" value="overlays">
                   <Grid columns={3} gap="lg">
                     <Card>
                       <Card.Header>Popup Container (Popover)</Card.Header>
@@ -378,10 +390,10 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </Grid>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 4: Toasts */}
-                {activeTab === 'toasts' && (
+                <TabStrip.Panel groupId="main-demo" value="toasts">
                   <Card>
                     <Card.Header>Toast Subsystem Controls</Card.Header>
                     <Card.Content style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -431,10 +443,10 @@ export const App: React.FC = () => {
                       </HStack>
                     </Card.Content>
                   </Card>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 5: Virtualized Data Table */}
-                {activeTab === 'datatable' && (
+                <TabStrip.Panel groupId="main-demo" value="datatable">
                   <Card layout="auto" style={{ height: '100%', minHeight: 0 }}>
                     <Card.Header>
                       <Toolbar>
@@ -457,10 +469,10 @@ export const App: React.FC = () => {
                       />
                     </Card.Content>
                   </Card>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 6: Common Layout Idioms (NEW) */}
-                {activeTab === 'layout' && (
+                <TabStrip.Panel groupId="main-demo" value="layout">
                   <VStack gap="lg">
                     <Grid columns={2} gap="lg">
                       <Card>
@@ -523,10 +535,10 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </VStack>
-                )}
+                </TabStrip.Panel>
 
                 {/* Tab 7: Component Showcase */}
-                {activeTab === 'showcase' && (
+                <TabStrip.Panel groupId="main-demo" value="showcase">
                   <VStack gap="lg">
                     {/* Section 1: Button Variants & Subthemes */}
                     <Card>
@@ -655,7 +667,7 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </VStack>
-                )}
+                </TabStrip.Panel>
               </div>
             </div>
           </Splitter.Panel>

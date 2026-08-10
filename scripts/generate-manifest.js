@@ -268,6 +268,8 @@ function generateHelperMethods() {
   const methods = [];
   for (const member of classDecl.members) {
     if (!ts.isMethodDeclaration(member) || !ts.isIdentifier(member.name)) continue;
+    const isPrivate = member.modifiers?.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword);
+    if (isPrivate) continue;
     const methodName = member.name.text;
     if (EVENT_BUS_CORE_METHODS.has(methodName)) continue;
 

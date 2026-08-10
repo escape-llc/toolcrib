@@ -239,7 +239,7 @@
       },
       {
         "name": "tab:changed",
-        "payload": "{ activeId: string; previousId?: string }"
+        "payload": "{ id?: string; activeId: string; previousId?: string }"
       },
       {
         "name": "log:cleared",
@@ -758,6 +758,11 @@
         "Panel"
       ],
       "props": {
+        "id": {
+          "type": "string",
+          "required": true,
+          "description": "Identifies this tab group for event bus coordination — every\n`<TabStrip.Panel groupId={...}>` that should respond to this control\nmust use the exact same string. Required (not auto-generated) because,\nunlike a Modal's `id`, it has to be a stable value the panels — wherever\nthey're rendered — can reference independently."
+        },
         "items": {
           "type": "TabItem[]",
           "required": true,
@@ -765,13 +770,16 @@
         },
         "activeId": {
           "type": "string",
-          "required": true,
-          "description": "The `id` of the currently active tab (controlled)."
+          "description": "Controlled active tab id. Omit to let `<TabStrip>` manage its own\nstate internally — the common case, since panels never need it passed\ndown (they get it from the bus)."
+        },
+        "defaultActiveId": {
+          "type": "string",
+          "default": "items[0]?.id",
+          "description": "Initial active tab when uncontrolled."
         },
         "onChange": {
           "type": "(id: string) => void",
-          "required": true,
-          "description": "Callback fired when the user selects a different tab."
+          "description": "Change callback for controlled usage (e.g. syncing with a router).\nCross-tree panels should not rely on this — they subscribe to\n`tab:changed` via `useAIEvent` instead, which fires regardless of\nwhether this component is controlled or self-managed."
         },
         "className": {
           "type": "string"

@@ -141,10 +141,11 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     });
   });
 
-  it('verifies TabStrip emits tab:changed event', () => {
+  it('verifies TabStrip emits tab:changed event, including its group id', () => {
     const handleTabChange = vi.fn();
     render(
       <TabStrip
+        id="traffic-tabs"
         activeId="tab1"
         onChange={handleTabChange}
         items={[{ id: 'tab1', label: 'Tab 1' }, { id: 'tab2', label: 'Tab 2' }]}
@@ -157,7 +158,7 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     }
     expect(trafficSpy).toHaveBeenCalledWith({
       type: 'tab:changed',
-      detail: expect.objectContaining({ activeId: 'tab2', previousId: 'tab1' }),
+      detail: expect.objectContaining({ id: 'traffic-tabs', activeId: 'tab2', previousId: 'tab1' }),
     });
   });
 

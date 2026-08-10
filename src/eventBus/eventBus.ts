@@ -42,7 +42,7 @@ export interface AIEventMap {
   'menu:item_selected': { id?: string; itemValue: string };
   'select:changed': { name?: string; value: string };
   'slider:changed': { name?: string; value: number };
-  'tab:changed': { activeId: string; previousId?: string };
+  'tab:changed': { id?: string; activeId: string; previousId?: string };
   'log:cleared': { timestamp: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
   'layout:corners:squared': {
@@ -61,17 +61,54 @@ export interface AIEventMap {
 export type EventKey = keyof AIEventMap;
 export type EventCallback<K extends EventKey> = (event: AIEventMap[K]) => void;
 
+/**
+ * Events marked sticky replay their last-emitted payload(s) to a new
+ * subscriber immediately upon `on()`, synchronously, before any future
+ * event fires. This is for events broadcast from a component that may
+ * mount/emit before an interested subscriber has attached — e.g.
+ * `<TabStrip>` and `<TabStrip.Panel>` are independent, unrelated subtrees
+ * with no DOM or effect-ordering guarantee between them, so a plain
+ * pub/sub can permanently miss the initial broadcast depending on which
+ * one happens to mount first. Designate an event sticky here, once, rather
+ * than negotiating replay per subscription — the contract belongs to the
+ * event, not to any particular publisher/subscriber pair.
+ *
+ * Replay is scoped per-entity: if the event payload has an `id` field
+ * (most do — modal, popup, slideout, tab, toast, accordion, menu all key
+ * off `id`), the last value is remembered separately for each `id`, and a
+ * new subscriber is replayed the last value for *every* known `id`, same
+ * as it would receive them as live events — its own filtering logic
+ * (e.g. `event.id === groupId`) sorts out which one applies. Events
+ * without an `id` field remember a single last value.
+ */
+const STICKY_EVENTS = new Set<EventKey>(['tab:changed']);
+
 class AIEventBus {
   private listeners: { [K in EventKey]?: Set<EventCallback<K>> } = {};
+  private stickyValues: { [K in EventKey]?: Map<string, AIEventMap[K]> } = {};
+
+  private stickyDiscriminator<K extends EventKey>(payload: AIEventMap[K]): string {
+    const id = (payload as any)?.id;
+    return typeof id === 'string' ? id : '';
+  }
 
   /**
    * Subscribe to a strongly-typed event. Returns an unsubscribe function.
+   * For events in `STICKY_EVENTS`, immediately replays any already-known
+   * last value(s) to `callback` before returning.
    */
   on<K extends EventKey>(event: K, callback: EventCallback<K>): () => void {
     if (!this.listeners[event]) {
       this.listeners[event] = new Set() as any;
     }
     (this.listeners[event] as Set<EventCallback<K>>).add(callback);
+
+    if (STICKY_EVENTS.has(event)) {
+      const stored = this.stickyValues[event];
+      if (stored) {
+        stored.forEach(payload => callback(payload));
+      }
+    }
 
     return () => {
       this.off(event, callback);
@@ -92,6 +129,13 @@ class AIEventBus {
    * Emit an event payload to all active subscribers.
    */
   emit<K extends EventKey>(event: K, payload: AIEventMap[K]): void {
+    if (STICKY_EVENTS.has(event)) {
+      if (!this.stickyValues[event]) {
+        this.stickyValues[event] = new Map() as any;
+      }
+      (this.stickyValues[event] as Map<string, AIEventMap[K]>).set(this.stickyDiscriminator(payload), payload);
+    }
+
     const set = this.listeners[event];
     if (set) {
       set.forEach(callback => {
