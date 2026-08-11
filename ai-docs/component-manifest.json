@@ -835,19 +835,9 @@
     {
       "name": "ThemeEditor",
       "import": "import { ThemeEditor } from '#toolcrib'",
-      "props": {
-        "isOpen": {
-          "type": "boolean"
-        },
-        "onOpenChange": {
-          "type": "(open: boolean) => void"
-        },
-        "trigger": {
-          "type": "ReactElement"
-        }
-      },
-      "category": "Overlays",
-      "description": "Real-time HSV theme editor rendered in a SlideOut panel"
+      "props": {},
+      "category": "Form Controls",
+      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
     },
     {
       "name": "Toolbar",

@@ -67,7 +67,6 @@ export const App: React.FC = () => {
   // independently. Control and content don't share a DOM ancestor, a
   // prop, or state — see src/components/TabStrip/TabStrip.tsx.
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
-  const [isThemeEditorOpen, setIsThemeEditorOpen] = useState(false);
 
   // Subscribe to ALL aiBus events for the live event monitor
   useAIEvent('*' as any, (event: any) => {
@@ -154,11 +153,14 @@ export const App: React.FC = () => {
               Harmony: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.harmonyMode}</strong> | Mode: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.isDarkMode ? 'Dark 🌙' : 'Light ☀️'}</strong> | Padding: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.paddingMode}</strong> | Radius: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.cornerRadiusMode}</strong>
             </span>
           </div>
-          <ThemeEditor
-            isOpen={isThemeEditorOpen}
-            onOpenChange={setIsThemeEditorOpen}
+          <SlideOut
+            id="theme-editor-panel"
+            title="🎨 OOTB Theme Designer"
             trigger={<Button variant="primary">🎨 OOTB Theme Designer</Button>}
-          />
+            width="26rem"
+          >
+            <ThemeEditor />
+          </SlideOut>
         </UIGroup>
         </div>
       </AppShell.Header>

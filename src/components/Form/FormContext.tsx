@@ -124,12 +124,16 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
     const testValues = { ...values, [name]: val !== undefined ? val : values[name] };
     const errs = validateValues(testValues);
     setErrors(errs);
-    const isValid = !errs[name];
-    aiBus.emit('form:validated', { formId: id, isValid });
-    if (!isValid) {
+    const fieldIsValid = !errs[name];
+    // form:validated/form:errored describe the whole form (matching
+    // setFieldValue/handleSubmit's emissions of the same events) — only
+    // the return value below is scoped to this one field.
+    const formIsValid = Object.keys(errs).length === 0;
+    aiBus.emit('form:validated', { formId: id, isValid: formIsValid });
+    if (!formIsValid) {
       aiBus.emit('form:errored', { formId: id, errors: errs });
     }
-    return isValid;
+    return fieldIsValid;
   };
 
   const resetForm = () => {

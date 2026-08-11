@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef } from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -51,17 +51,35 @@ export const Accordion: React.FC<AccordionProps> = ({
 }) => {
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
 
+  // Tracks which item values are currently open so onValueChange can emit
+  // one accordion:opened/closed per item that actually changed state —
+  // Radix's onValueChange only reports the new value(s) (a single string
+  // for type="single", an array for type="multiple"), not a diff, so a
+  // naive "truthy = opened, falsy = closed" read can't tell which item
+  // closed when switching between single-mode panels or toggling one item
+  // in multi-mode while others stay open.
+  const previousOpenRef = useRef<Set<string>>(new Set(defaultValue ? [defaultValue] : []));
+
   return (
     <AccordionPrimitive.Root
       type={type as any}
       defaultValue={defaultValue}
       onValueChange={(val: any) => {
-        const itemVal = Array.isArray(val) ? val.join(',') : val;
-        if (itemVal) {
-          aiBus.emit('accordion:opened', { id, itemValue: itemVal });
-        } else {
-          aiBus.emit('accordion:closed', { id, itemValue: '' });
+        const nextOpen = new Set<string>(Array.isArray(val) ? val : val ? [val] : []);
+        const previousOpen = previousOpenRef.current;
+
+        for (const itemValue of nextOpen) {
+          if (!previousOpen.has(itemValue)) {
+            aiBus.emit('accordion:opened', { id, itemValue });
+          }
         }
+        for (const itemValue of previousOpen) {
+          if (!nextOpen.has(itemValue)) {
+            aiBus.emit('accordion:closed', { id, itemValue });
+          }
+        }
+
+        previousOpenRef.current = nextOpen;
       }}
       style={{
         display: 'flex',

@@ -113,7 +113,6 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<SlideOut>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
-| `<ThemeEditor>` | — | `isOpen`, `onOpenChange`, `trigger` | Real-time HSV theme editor rendered in a SlideOut panel |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
 
 ### Data Display
@@ -129,6 +128,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
+| `<ThemeEditor>` | — | — | Real-time HSV theme editor content — no overlay chrome of its own;
+host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |
 
 `<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 

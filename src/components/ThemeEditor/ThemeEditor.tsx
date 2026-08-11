@@ -1,4 +1,4 @@
-import React, { useState, ReactElement } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { HarmonyMode } from '../../theme/harmonies';
 import { PaddingMode } from '../../theme/padding';
@@ -10,23 +10,15 @@ import { Select } from '../Form/Select';
 import { Slider } from '../Form/Slider';
 import { Accordion } from '../Accordion/Accordion';
 import { Tooltip } from '../Tooltip/Tooltip';
-import { SlideOut } from '../Overlay/SlideOut';
 
-export interface ThemeEditorProps {
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  trigger?: ReactElement;
-}
+export interface ThemeEditorProps {}
 
 /**
- * @manifest Real-time HSV theme editor rendered in a SlideOut panel
- * @manifestCategory Overlays
+ * @manifest Real-time HSV theme editor content — no overlay chrome of its own;
+ * host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing.
+ * @manifestCategory Form Controls
  */
-export const ThemeEditor: React.FC<ThemeEditorProps> = ({
-  isOpen,
-  onOpenChange,
-  trigger,
-}) => {
+export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
   const {
     parameters,
     cssVariables,
@@ -69,9 +61,6 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const defaultTrigger = <Button variant="primary">🎨 OOTB Theme Editor</Button>;
-  const activeTrigger = trigger || defaultTrigger;
 
   const appearanceContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -526,7 +515,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
     </div>
   );
 
-  const content = (
+  return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
       {/* Collapsible Accordion Sections */}
       <Accordion
@@ -555,18 +544,5 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
         </Button>
       </div>
     </div>
-  );
-
-  return (
-    <SlideOut
-      id="theme-editor-panel"
-      title="🎨 OOTB Theme Designer"
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      trigger={activeTrigger}
-      width="26rem"
-    >
-      {content}
-    </SlideOut>
   );
 };
