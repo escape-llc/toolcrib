@@ -8,6 +8,15 @@ import { versionsCommand } from './commands/versions.js';
 
 const program = new Command();
 
+// Without this, commander resolves `--version` anywhere in argv against the
+// root program's own auto `-V, --version` flag before it ever reaches a
+// subcommand — so `toolcrib init --version 1.2.3` silently printed the CLI's
+// own version and exited instead of running init. Positional mode scopes an
+// option to whichever command it's written after, letting `init`'s own
+// `--version <version>` (a different thing: the toolkit version to install)
+// coexist with the root flag.
+program.enablePositionalOptions();
+
 program
   .name('toolcrib')
   .description('Bootstrap and maintain the toolcrib UI toolkit in your project')
@@ -56,11 +65,23 @@ program
 
 function fail(err) {
   console.error(`\nError: ${err.message}`);
-  // Setting exitCode alone isn't enough here: @clack/prompts' spinner runs
-  // on a setInterval that keeps the event loop alive, so an unhandled
-  // failure mid-spinner would otherwise hang the process indefinitely
-  // instead of exiting with the failure code. Force it explicitly.
-  process.exit(1);
+  process.exitCode = 1;
+  // Setting exitCode alone isn't always enough: a codepath that leaves a
+  // spinner's setInterval running (rather than stopping it before the
+  // error propagates — see each command's own try/catch around its
+  // fetchRelease() calls) would otherwise hang the process indefinitely.
+  // But calling process.exit() immediately is worse: it force-closes every
+  // libuv handle synchronously, and on Windows this crashes with
+  // "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)" whenever a
+  // handle — concretely, the global fetch()/undici socket every command
+  // here uses to hit the GitHub API — is still mid-close from a normal
+  // failure a moment earlier. An unref'd, delayed force-exit gives normal
+  // handles time to close on their own first: if nothing else is pending,
+  // Node exits on its own before the timer ever fires; if something truly
+  // is stuck, the timer (which doesn't itself keep the process alive)
+  // still guarantees termination.
+  const forceExit = setTimeout(() => process.exit(1), 2000);
+  forceExit.unref();
 }
 
 program.parse();

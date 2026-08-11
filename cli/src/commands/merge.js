@@ -133,10 +133,16 @@ export async function mergeCommand(options) {
 
   const spinner = p.spinner();
   spinner.start(`Fetching current (v${lock.version}) and target (${options.version}) releases`);
-  const [oldRelease, newRelease] = await Promise.all([
-    fetchRelease(lock.version),
-    fetchRelease(options.version),
-  ]);
+  let oldRelease, newRelease;
+  try {
+    [oldRelease, newRelease] = await Promise.all([
+      fetchRelease(lock.version),
+      fetchRelease(options.version),
+    ]);
+  } catch (err) {
+    spinner.stop('Failed to fetch releases');
+    throw err;
+  }
   spinner.stop(`Comparing v${oldRelease.version} → v${newRelease.version}`);
 
   if (oldRelease.version === newRelease.version) {

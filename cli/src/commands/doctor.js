@@ -110,7 +110,13 @@ export async function doctorCommand() {
 
   const spinner = p.spinner();
   spinner.start(`Checking against installed version v${lock.version}`);
-  const release = await fetchRelease(lock.version);
+  let release;
+  try {
+    release = await fetchRelease(lock.version);
+  } catch (err) {
+    spinner.stop('Failed to fetch release');
+    throw err;
+  }
 
   const drifted = [];
   for (const relPath of release.allFiles()) {
