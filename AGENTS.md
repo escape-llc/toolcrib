@@ -95,8 +95,10 @@ If you touch CLI path-handling or file-reading code, prefer testing it against a
 
 ## Testing
 
-Write tests for anything you add — pure `src/theme`/`src/eventBus` logic and component behavior go in `src/__tests__/`, CLI `lib/` functions go in `cli/test/`. Match the existing file's structure/conventions rather than inventing a new pattern. `npm test` (root) and `cli && npm test` are both required to pass; CI runs both plus the manifest check before packaging a release.
+Write tests for anything you add — pure `src/theme`/`src/eventBus` logic and component behavior go in `src/__tests__/`, CLI `lib/` functions go in `cli/test/`. Match the existing file's structure/conventions rather than inventing a new pattern. `npm test` (root) and `cli && npm test` are both required to pass; CI runs both plus `check-manifest` and `check-docs` before packaging a release. Note `cli/` has its own independent `package.json`/`node_modules` (its own `vitest`, currently on a much older major than root) — a root-level dependency upgrade doesn't touch it, and vice versa.
 
 ## TypeScript
 
 Full TypeScript coverage on everything — this is what keeps an AI consuming the toolkit from hallucinating props or types that don't exist. Run `npx tsc` (root) before considering a change done; it's `noEmit`, just a type-check.
+
+**`typescript` is pinned to `6.x`, not floated to `latest`.** TypeScript 7.0 is a from-scratch rewrite (apparently the native/Go-based compiler) whose package export is reduced to `{ version, versionMajorMinor }` — `createSourceFile`, `ScriptTarget`, `isVariableStatement`, and the rest of the classic Compiler API that `scripts/lib/extract.js` depends on for manifest/docs generation are simply absent, not renamed or deprecated. `6.0.3` is the last release with the full classic API still present and confirmed working; don't bump past the `6.x` line without first confirming `extract.js`'s API surface still exists in whatever version you're moving to.
