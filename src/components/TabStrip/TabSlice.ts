@@ -94,4 +94,13 @@ export const TabThemeSlice: ThemeSlice<TabSliceState, TabCSSVariables> = {
   name: '📑 Tab Group Panels & Variants',
   defaultState: defaultTabState,
   getCSSVariables: getTabVariables,
+  fieldVars: {
+    // variant and activeSubtheme both feed the "active tab" cluster —
+    // e.g. the 'underline' variant's border colour is derived from
+    // activeSubtheme's colour, so either field touches all three.
+    variant: ['--ai-tab-border-radius', '--ai-tab-active-bg', '--ai-tab-active-color', '--ai-tab-active-border'],
+    activeSubtheme: ['--ai-tab-active-bg', '--ai-tab-active-color', '--ai-tab-active-border'],
+    size: ['--ai-tab-padding', '--ai-tab-font-size'],
+    panelTransition: ['--ai-tab-panel-animation'],
+  },
 };

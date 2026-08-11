@@ -1,4 +1,5 @@
-import React, { ReactNode, Children, isValidElement, cloneElement, ReactElement, useEffect } from 'react';
+import React, { ReactNode, useEffect } from 'react';
+import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for the `<UIGroup>` component.
@@ -17,11 +18,18 @@ export interface UIGroupProps {
   orientation?: 'horizontal' | 'vertical';
   /** Override border radius for the outer corners. @default 'var(--ai-radius-md, 0.375rem)' */
   borderRadius?: string;
-  className?: string;
-  style?: React.CSSProperties;
 }
 
-// Inject focus/hover stacking CSS for UIGroup elements
+// Inject focus/hover stacking + border-merging CSS for UIGroup elements.
+// Corner-radius merging is deliberately pure CSS, not cloneElement-injected
+// style: UIGroup's children are almost always toolcrib components (Button,
+// Input, Select) whose own inline `style` attribute — computed internally,
+// applied after any {...props} spread — would silently win over an
+// injected style prop once those components stopped accepting one, exactly
+// the failure mode found and fixed for Splitter.Panel. CSS selectors
+// scoped to this wrapper's own children sidestep that entirely: no
+// cooperation required from the child's own prop handling, `!important`
+// only because it has to outrank each child's inline `borderRadius`.
 const STYLE_ID = 'toolcrib-group-styles';
 function injectUIGroupStyles() {
   if (typeof document === 'undefined') return;
@@ -31,6 +39,7 @@ function injectUIGroupStyles() {
   styleEl.textContent = `
     .toolcrib-group > * {
       position: relative;
+      align-self: stretch;
     }
     .toolcrib-group > *:hover {
       z-index: 1;
@@ -39,6 +48,45 @@ function injectUIGroupStyles() {
     .toolcrib-group > *:focus-within,
     .toolcrib-group > *:active {
       z-index: 2 !important;
+    }
+
+    .toolcrib-group[data-orientation="horizontal"] > * {
+      border-top-left-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+    }
+    .toolcrib-group[data-orientation="horizontal"] > *:first-child {
+      border-top-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+      border-bottom-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+    }
+    .toolcrib-group[data-orientation="horizontal"] > *:last-child {
+      border-top-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+      border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+    }
+    .toolcrib-group[data-orientation="horizontal"] > *:not(:first-child) {
+      margin-left: -0.0625rem;
+    }
+
+    .toolcrib-group[data-orientation="vertical"] {
+      flex-direction: column;
+    }
+    .toolcrib-group[data-orientation="vertical"] > * {
+      border-top-left-radius: 0 !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+    }
+    .toolcrib-group[data-orientation="vertical"] > *:first-child {
+      border-top-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+      border-top-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+    }
+    .toolcrib-group[data-orientation="vertical"] > *:last-child {
+      border-bottom-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+      border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
+    }
+    .toolcrib-group[data-orientation="vertical"] > *:not(:first-child) {
+      margin-top: -0.0625rem;
     }
   `;
   document.head.appendChild(styleEl);
@@ -49,83 +97,26 @@ export const UIGroup: React.FC<UIGroupProps> = ({
   children,
   orientation = 'horizontal',
   borderRadius = 'var(--ai-radius-md, 0.375rem)',
-  className,
-  style,
+  ...props
 }) => {
+  warnIfLegacyStyleProps(props, 'UIGroup');
   useEffect(() => {
     injectUIGroupStyles();
   }, []);
 
-  const childArray = Children.toArray(children).filter(isValidElement);
-  const total = childArray.length;
-
-  const isHorizontal = orientation === 'horizontal';
-
   return (
     <div
-      className={`toolcrib-group ${className || ''}`.trim()}
+      className="toolcrib-group"
+      data-orientation={orientation}
       role="group"
       style={{
         display: 'inline-flex',
-        flexDirection: isHorizontal ? 'row' : 'column',
+        flexDirection: orientation === 'horizontal' ? 'row' : 'column',
         alignItems: 'stretch',
-        ...style,
+        ['--toolcrib-group-radius' as string]: borderRadius,
       }}
     >
-      {childArray.map((child, index) => {
-        const isFirst = index === 0;
-        const isLast = index === total - 1;
-
-        let topLeft = '0';
-        let topRight = '0';
-        let bottomLeft = '0';
-        let bottomRight = '0';
-
-        if (total === 1) {
-          topLeft = borderRadius;
-          topRight = borderRadius;
-          bottomLeft = borderRadius;
-          bottomRight = borderRadius;
-        } else if (isHorizontal) {
-          if (isFirst) {
-            topLeft = borderRadius;
-            bottomLeft = borderRadius;
-          } else if (isLast) {
-            topRight = borderRadius;
-            bottomRight = borderRadius;
-          }
-        } else {
-          // Vertical layout
-          if (isFirst) {
-            topLeft = borderRadius;
-            topRight = borderRadius;
-          } else if (isLast) {
-            bottomLeft = borderRadius;
-            bottomRight = borderRadius;
-          }
-        }
-
-        const element = child as ReactElement<any>;
-        const existingStyle = element.props.style || {};
-
-        const allEqual = topLeft === topRight && topRight === bottomRight && bottomRight === bottomLeft;
-        const radiusShorthand = allEqual ? topLeft : `${topLeft} ${topRight} ${bottomRight} ${bottomLeft}`;
-
-        return cloneElement(element, {
-          key: element.key || index,
-          style: {
-            alignSelf: 'stretch',
-            ...existingStyle,
-            borderTopLeftRadius: topLeft,
-            borderTopRightRadius: topRight,
-            borderBottomLeftRadius: bottomLeft,
-            borderBottomRightRadius: bottomRight,
-            borderRadius: radiusShorthand,
-            ...(isHorizontal && !isFirst ? { marginLeft: '-0.0625rem' } : {}),
-            ...(!isHorizontal && !isFirst ? { marginTop: '-0.0625rem' } : {}),
-          },
-        });
-      })}
+      {children}
     </div>
   );
 };

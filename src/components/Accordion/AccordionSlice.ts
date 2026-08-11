@@ -74,4 +74,10 @@ export const AccordionThemeSlice: ThemeSlice<AccordionSliceState, AccordionCSSVa
   name: '🪗 Accordion Header & Gap Spacing',
   defaultState: defaultAccordionState,
   getCSSVariables: getAccordionVariables,
+  fieldVars: {
+    headerPadding: ['--ai-accordion-header-padding'],
+    itemGap: ['--ai-accordion-item-gap'],
+    variant: ['--ai-accordion-border-radius', '--ai-accordion-border'],
+    panelAnimation: ['--ai-accordion-animation'],
+  },
 };

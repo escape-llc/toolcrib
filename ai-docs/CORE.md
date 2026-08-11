@@ -59,6 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
    ```
 5. **HSV Colour Space Only.** No RGB. All colours derive from CSS variables injected at `:root`.
 6. **`layout="auto"` for Flex Filling.** Set `layout="auto"` on `<Card>` (and `<Card.Content>`) to enable flex-fill behaviour inside Splitters and other flex containers. This also activates automatic corner-squaring.
+7. **NO `style`/`className` on Toolcrib Components.** No component in this toolkit accepts either prop — this is enforced by the type system, not just convention. Use `overrides` for per-instance theme control (§9) instead of ad hoc inline styles. `style`/`className` still work normally on your own plain HTML elements (`<div>`, `<span>`, ...) — the restriction is specifically the toolkit's own component API surface.
 
 ---
 
@@ -74,6 +75,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<SlideOut>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
+| Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
 
 ---
 
@@ -252,7 +254,45 @@ globalThemeSliceRegistry.register(MySlice);
 
 ---
 
-## 9. Event Bus — Complete Payload Reference
+## 9. Per-Instance Overrides & Style Domains
+
+A component with theme-controlled visual axes exposes them through an `overrides` prop instead of `style` — a typed, sparse patch applied only to that one instance, layered on top of (never replacing) the global Theme Editor state:
+
+```tsx
+<Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
+  <Card.Header>Compact Card</Card.Header>
+  <Card.Content>Only this Card gets these values — every other Card, and the
+  global Theme Editor's Card slice, is untouched.</Card.Content>
+</Card>
+```
+
+Not every component has an `overrides` prop — only ones with a registered theme slice (Card, TabStrip, Accordion, Tooltip, DataTable) or explicit theme-controlled fields (Button's `subtheme`). A component with nothing theme-controlled beyond structural props (children, callbacks, `id`) simply has none to expose.
+
+**Subtheme** (`'error' | 'success' | 'warning' | 'info'`) resolves the same way wherever a component supports it: `overrides.subtheme` (or `subtheme` directly on components like `Button` that don't have a full `overrides` object) wins if set; otherwise it falls back to the nearest ancestor `<StyleDomainProvider>`:
+
+```tsx
+import { StyleDomainProvider } from '#toolcrib';
+
+<StyleDomainProvider subtheme="error">
+  {/* Every subtheme-aware component in here defaults to the error
+      treatment without setting subtheme itself — e.g. a validation
+      section you want visually flagged as a whole. */}
+  <Card>
+    <Card.Header>Validation Failed</Card.Header>
+    <Card.Content>...</Card.Content>
+  </Card>
+</StyleDomainProvider>
+```
+
+This is Context-based on purpose, not CSS-variable inheritance — `<Modal>`, `<Popup>`, and `<SlideOut>` all render their content through a portal elsewhere in the DOM, and `<StyleDomainProvider>` still reaches them correctly because it follows the component tree, not DOM position.
+
+If neither `overrides` nor a style domain covers what you need, that's a real, intentional boundary — the toolkit trades some flexibility for keeping every visual decision theme-driven and AI-legible. There is no raw-style escape hatch on toolcrib components themselves.
+
+---
+
+## 10. Event Bus — Complete Payload Reference
+
+Most events are fire-and-forget: a subscriber only sees them from the moment it calls `useAIEvent`/`aiBus.on` onward. A few events (currently `tab:changed`) are **sticky** — the bus remembers the last payload per discriminator (its `id` field) and replays it immediately to a new subscriber, so a late-mounting listener still learns the current state instead of only future changes. This matters for components with no shared DOM ancestor or mount-order guarantee, like `<TabStrip>` and `<TabStrip.Panel>`.
 
 | Event | Payload Type |
 |:---|:---|
@@ -268,7 +308,7 @@ globalThemeSliceRegistry.register(MySlice);
 | `form:submitted` | `{ formId?: string; values: Record<string, any> }` |
 | `form:validated` | `{ formId?: string; isValid: boolean }` |
 | `form:errored` | `{ formId?: string; errors: Record<string, string> }` |
-| `tab:changed` | `{ activeId: string; previousId?: string }` |
+| `tab:changed` | `{ id?: string; activeId: string; previousId?: string }` — `id` is the `<TabStrip id>` group identifier; sticky (see below), so a `<TabStrip.Panel>` mounted after this fires still gets the current value replayed to it |
 | `accordion:opened` | `{ id?: string; itemValue: string }` |
 | `accordion:closed` | `{ id?: string; itemValue: string }` |
 | `select:changed` | `{ name?: string; value: string }` |

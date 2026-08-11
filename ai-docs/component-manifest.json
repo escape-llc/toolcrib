@@ -179,11 +179,11 @@
       },
       {
         "name": "toast:shown",
-        "payload": "{ id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
       },
       {
         "name": "toast:added",
-        "payload": "{ id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
       },
       {
         "name": "toast:expired",
@@ -309,11 +309,9 @@
           "type": "string",
           "description": "Value of the initially expanded panel (for `type='single'`)."
         },
-        "className": {
-          "type": "string"
-        },
-        "style": {
-          "type": "React.CSSProperties"
+        "overrides": {
+          "type": "Partial<AccordionSliceState>",
+          "description": "Per-instance overrides for header padding, item gap, variant, and panel animation."
         }
       },
       "description": "Data-driven collapsible panel group with animations"
@@ -325,14 +323,7 @@
         "Header",
         "Main"
       ],
-      "props": {
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
-        }
-      },
+      "props": {},
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
     },
@@ -356,11 +347,9 @@
           "default": "undefined (no squaring)",
           "description": "Override which corners are squared off. `'auto'` defers to layout domain context."
         },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
+        "overrides": {
+          "type": "CardOverrides",
+          "description": "Per-instance theme overrides (padding, header style, subtheme)."
         }
       },
       "description": "Slot-based container with automatic layout domain corner squaring"
@@ -406,13 +395,7 @@
         },
         "squareCorners": {
           "type": "SquareCornerOption",
-          "description": "Squares off the given corners — accepted (and consumed) so `<Content>`\ncan sit directly inside `<Splitter.Panel squareCorners=\"...\">`, whose\ncorner-squaring only forwards to children it recognizes as components\n(not plain DOM elements). Meaningless unless `style` also gives this\nelement visible chrome (background/border) of its own."
-        },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
+          "description": "Explicit corner-squaring override. `<Content>` always establishes a\nlayout domain (equivalent to `<Card layout=\"auto\">`), so it already\nconsults the nearest ancestor `<Splitter>`'s layout domain via\n`useCornerSquaring` automatically — set this only to override that\nwith a specific edge instead of deferring to the domain."
         }
       },
       "description": "Fills its container and establishes a flex-column layout domain for its children"
@@ -455,8 +438,9 @@
           "type": "(record: T, index: number) => string | number",
           "description": "Custom row key extractor for React reconciliation. Defaults to array index."
         },
-        "style": {
-          "type": "React.CSSProperties"
+        "overrides": {
+          "type": "Partial<TableSliceState>",
+          "description": "Per-instance overrides for density, border style, and striping."
         }
       },
       "description": "Virtualized, sortable, paginated data table with sticky headers"
@@ -511,12 +495,6 @@
         "id": {
           "type": "string",
           "description": "Form element id attribute. Also used as `formId` in event bus payloads."
-        },
-        "className": {
-          "type": "string"
-        },
-        "style": {
-          "type": "React.CSSProperties"
         }
       },
       "childComponents": [
@@ -560,12 +538,6 @@
         "paddingMode": {
           "type": "PaddingMode",
           "description": "Override padding using the theme padding token scale."
-        },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
         }
       },
       "description": "CSS Grid responsive multi-column layout"
@@ -605,12 +577,6 @@
           "type": "boolean",
           "default": "false",
           "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
-        },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
         }
       },
       "description": "Horizontal flex row layout primitive"
@@ -686,9 +652,6 @@
           "type": "(open: boolean) => void",
           "description": "Callback fired when the popup opens or closes."
         },
-        "style": {
-          "type": "React.CSSProperties"
-        },
         "zIndex": {
           "type": "number",
           "default": "Z_INDEX.DROPDOWN (300)",
@@ -736,9 +699,6 @@
           "type": "number",
           "default": "Z_INDEX.DRAWER (100)",
           "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
-        },
-        "style": {
-          "type": "React.CSSProperties"
         }
       },
       "description": "Edge drawer overlay with backdrop blur and slide animation"
@@ -768,12 +728,6 @@
           "type": "number",
           "default": "15",
           "description": "Minimum percentage size for either panel to prevent collapsing."
-        },
-        "className": {
-          "type": "string"
-        },
-        "style": {
-          "type": "React.CSSProperties"
         }
       },
       "constraints": "Requires exactly 2 children",
@@ -810,11 +764,9 @@
           "type": "(id: string) => void",
           "description": "Change callback for controlled usage (e.g. syncing with a router).\nCross-tree panels should not rely on this — they subscribe to\n`tab:changed` via `useAIEvent` instead, which fires regardless of\nwhether this component is controlled or self-managed."
         },
-        "className": {
-          "type": "string"
-        },
-        "style": {
-          "type": "React.CSSProperties"
+        "overrides": {
+          "type": "Partial<TabSliceState>",
+          "description": "Per-instance overrides for variant, size, active-tab colour, and panel transition."
         }
       },
       "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
@@ -831,9 +783,6 @@
         },
         "trigger": {
           "type": "ReactElement"
-        },
-        "style": {
-          "type": "React.CSSProperties"
         }
       },
       "description": "Real-time HSV theme editor rendered in a SlideOut panel"
@@ -858,12 +807,6 @@
         "cornerRadiusMode": {
           "type": "CornerRadiusMode",
           "description": "Override corner radius using the theme radius token scale."
-        },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
         }
       },
       "description": "Horizontal action bar with left/center/right slot areas"
@@ -895,6 +838,10 @@
           "type": "number",
           "default": "200",
           "description": "Delay in milliseconds before the tooltip appears on hover."
+        },
+        "overrides": {
+          "type": "Partial<TooltipSliceState>",
+          "description": "Per-instance overrides for theme (dark/light/accent) and size."
         }
       },
       "description": "Hover/focus tooltip wrapping a child trigger element"
@@ -912,12 +859,6 @@
           "type": "string",
           "default": "'var(--ai-radius-md, 0.375rem)'",
           "description": "Override border radius for the outer corners."
-        },
-        "className": {
-          "type": "string"
-        },
-        "style": {
-          "type": "React.CSSProperties"
         }
       },
       "description": "Merges adjacent elements into a single visual compound control"
@@ -957,12 +898,6 @@
           "type": "boolean",
           "default": "false",
           "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
-        },
-        "style": {
-          "type": "React.CSSProperties"
-        },
-        "className": {
-          "type": "string"
         }
       },
       "description": "Vertical flex column layout primitive"

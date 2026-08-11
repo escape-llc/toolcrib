@@ -3,8 +3,16 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { UIGroup } from '../components/UIGroup/UIGroup';
 
-describe('UIGroup Component - Extensive CSS & Corner Combination Tests', () => {
-  it('correctly styles a 3-button horizontal toolbar', () => {
+// Corner-radius merging is applied via an injected global stylesheet
+// (`.toolcrib-group[data-orientation=...] > *` selectors), not inline
+// style on each child — jsdom doesn't run a CSS engine, so
+// `element.style.borderRadius` can't observe stylesheet-applied values
+// here the way a real browser can. These tests check the structural
+// contract UIGroup renders (wrapper attributes, the CSS variable carrying
+// the configured radius, children rendered unmodified) — the actual
+// visual corner-squaring is verified separately in a real browser.
+describe('UIGroup Component', () => {
+  it('renders all children inside a single group wrapper with the right orientation attribute', () => {
     render(
       <UIGroup borderRadius="0.375rem">
         <button>First</button>
@@ -13,70 +21,29 @@ describe('UIGroup Component - Extensive CSS & Corner Combination Tests', () => {
       </UIGroup>
     );
 
-    const first = screen.getByText('First');
-    const middle = screen.getByText('Middle');
-    const last = screen.getByText('Last');
+    expect(screen.getByText('First')).toBeInTheDocument();
+    expect(screen.getByText('Middle')).toBeInTheDocument();
+    expect(screen.getByText('Last')).toBeInTheDocument();
 
-    expect(first.style.borderRadius).toBe('0.375rem 0 0 0.375rem');
-    expect(first.style.alignSelf).toBe('stretch');
-
-    expect(middle.style.borderRadius).toBe('0');
-    expect(middle.style.marginLeft).toBe('-0.0625rem');
-    expect(middle.style.alignSelf).toBe('stretch');
-
-    expect(last.style.borderRadius).toBe('0 0.375rem 0.375rem 0');
-    expect(last.style.marginLeft).toBe('-0.0625rem');
-    expect(last.style.alignSelf).toBe('stretch');
+    const group = screen.getByRole('group');
+    expect(group.className).toBe('toolcrib-group');
+    expect(group.getAttribute('data-orientation')).toBe('horizontal');
+    expect(group.style.getPropertyValue('--toolcrib-group-radius')).toBe('0.375rem');
   });
 
-  it('correctly styles a mixed badge div + button toolbar combination', () => {
+  it('defaults to horizontal orientation and the theme radius token', () => {
     render(
-      <UIGroup borderRadius="0.375rem">
-        <div style={{ padding: '0.5rem' }}>Badge Text</div>
-        <button>Action Button</button>
+      <UIGroup>
+        <button>Only</button>
       </UIGroup>
     );
 
-    const badge = screen.getByText('Badge Text');
-    const button = screen.getByText('Action Button');
-
-    expect(badge.style.borderRadius).toBe('0.375rem 0 0 0.375rem');
-
-    expect(button.style.borderRadius).toBe('0 0.375rem 0.375rem 0');
-    expect(button.style.marginLeft).toBe('-0.0625rem');
-    expect(button.style.alignSelf).toBe('stretch');
+    const group = screen.getByRole('group');
+    expect(group.getAttribute('data-orientation')).toBe('horizontal');
+    expect(group.style.getPropertyValue('--toolcrib-group-radius')).toBe('var(--ai-radius-md, 0.375rem)');
   });
 
-  it('correctly styles a 4-element DataTable pagination toolbar (select + button + span + button)', () => {
-    render(
-      <UIGroup borderRadius="0.25rem">
-        <select data-testid="select">
-          <option>10 per page</option>
-        </select>
-        <button>◀</button>
-        <span>1 / 10</span>
-        <button>▶</button>
-      </UIGroup>
-    );
-
-    const select = screen.getByTestId('select');
-    const prevBtn = screen.getByText('◀');
-    const pageSpan = screen.getByText('1 / 10');
-    const nextBtn = screen.getByText('▶');
-
-    expect(select.style.borderRadius).toBe('0.25rem 0 0 0.25rem');
-
-    expect(prevBtn.style.borderRadius).toBe('0');
-    expect(prevBtn.style.marginLeft).toBe('-0.0625rem');
-
-    expect(pageSpan.style.borderRadius).toBe('0');
-    expect(pageSpan.style.marginLeft).toBe('-0.0625rem');
-
-    expect(nextBtn.style.borderRadius).toBe('0 0.25rem 0.25rem 0');
-    expect(nextBtn.style.marginLeft).toBe('-0.0625rem');
-  });
-
-  it('correctly styles a vertical layout combination (Popup menu items)', () => {
+  it('supports vertical orientation', () => {
     render(
       <UIGroup orientation="vertical" borderRadius="0.375rem">
         <button>Menu Item 1</button>
@@ -85,27 +52,35 @@ describe('UIGroup Component - Extensive CSS & Corner Combination Tests', () => {
       </UIGroup>
     );
 
-    const item1 = screen.getByText('Menu Item 1');
-    const item2 = screen.getByText('Menu Item 2');
-    const item3 = screen.getByText('Menu Item 3');
-
-    expect(item1.style.borderRadius).toBe('0.375rem 0.375rem 0 0');
-
-    expect(item2.style.borderRadius).toBe('0');
-    expect(item2.style.marginTop).toBe('-0.0625rem');
-
-    expect(item3.style.borderRadius).toBe('0 0 0.375rem 0.375rem');
-    expect(item3.style.marginTop).toBe('-0.0625rem');
+    const group = screen.getByRole('group');
+    expect(group.getAttribute('data-orientation')).toBe('vertical');
+    expect(screen.getByText('Menu Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Menu Item 2')).toBeInTheDocument();
+    expect(screen.getByText('Menu Item 3')).toBeInTheDocument();
   });
 
-  it('handles a single child gracefully with all 4 rounded corners', () => {
+  it('renders mixed plain-element and component children without modifying their own props', () => {
     render(
-      <UIGroup borderRadius="0.5rem">
-        <button>Single Child</button>
+      <UIGroup borderRadius="0.375rem">
+        <div style={{ padding: '0.5rem' }}>Badge Text</div>
+        <button>Action Button</button>
       </UIGroup>
     );
 
-    const button = screen.getByText('Single Child');
-    expect(button.style.borderRadius).toBe('0.5rem');
+    const badge = screen.getByText('Badge Text');
+    // The child's own inline style is left untouched — UIGroup no longer
+    // clones/injects props into children at all.
+    expect(badge.style.padding).toBe('0.5rem');
+    expect(screen.getByText('Action Button')).toBeInTheDocument();
+  });
+
+  it('injects the group stylesheet into the document exactly once', () => {
+    render(
+      <>
+        <UIGroup><button>A</button></UIGroup>
+        <UIGroup><button>B</button></UIGroup>
+      </>
+    );
+    expect(document.querySelectorAll('#toolcrib-group-styles').length).toBe(1);
   });
 });

@@ -32,9 +32,14 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     );
 
     const btn = screen.getByText('Trigger Button');
-    // Closed popup uses inherit for joining corner property to avoid React rerender warnings
-    expect(btn.style.borderBottomLeftRadius).toBe('inherit');
-    expect(btn.style.borderRadius).toBe('var(--ai-radius-md)');
+    // Closed: Popup passes squareCorners="none" to the trigger, so Button
+    // falls back to its own natural radius on all four corners — set as
+    // explicit longhands (not the `borderRadius` shorthand) so the set of
+    // style keys stays stable across open/close renders; see Button's own
+    // comment on why mixing shorthand + a sometimes-present longhand
+    // triggers a real React warning.
+    expect(btn.style.borderBottomLeftRadius).toBe('var(--ai-radius-md)');
+    expect(btn.style.borderTopRightRadius).toBe('var(--ai-radius-md)');
   });
 
   it('squares off joining corner on trigger button when Popup is opened', () => {
@@ -50,9 +55,9 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     // bottom-start placement squares off borderBottomLeftRadius when open
     expect(btn.style.borderBottomLeftRadius).toBe('0');
 
-    // Light dismiss closes and reverts corner to inherit
+    // Light dismiss closes and reverts to the button's own natural radius
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(btn.style.borderBottomLeftRadius).toBe('inherit');
+    expect(btn.style.borderBottomLeftRadius).toBe('var(--ai-radius-md)');
   });
 
   it('renders SlideOut drawer and dismisses on close button click', async () => {

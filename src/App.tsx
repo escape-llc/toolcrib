@@ -24,6 +24,7 @@ import { VStack, HStack } from './components/Layout/Stack';
 import { Grid } from './components/Layout/Grid';
 import { Content } from './components/Layout/Content';
 import { AppShell } from './components/AppShell/AppShell';
+import { StyleDomainProvider } from './theme/StyleDomainContext';
 import { aiBus } from './eventBus/eventBus';
 import { useAIEvent } from './eventBus/useAIEvent';
 
@@ -122,7 +123,7 @@ export const App: React.FC = () => {
     <AppShell>
       {/* Top Header Bar */}
       <AppShell.Header>
-        <HStack gap="sm" style={{ width: 'auto' }}>
+        <HStack gap="sm">
           <div style={{ fontSize: '1.5rem' }}>🤖</div>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
@@ -132,7 +133,11 @@ export const App: React.FC = () => {
           </div>
         </HStack>
 
-        <UIGroup style={{ height: '2.375rem' }}>
+        {/* Fixed height keeps the status pill and designer button visually
+            aligned — lives on this wrapper since UIGroup no longer accepts
+            a raw style prop. */}
+        <div style={{ height: '2.375rem' }}>
+        <UIGroup>
           <div
             style={{
               display: 'flex',
@@ -155,6 +160,7 @@ export const App: React.FC = () => {
             trigger={<Button variant="primary">🎨 OOTB Theme Designer</Button>}
           />
         </UIGroup>
+        </div>
       </AppShell.Header>
 
       {/* Main Content Area with Resizable Splitter */}
@@ -194,14 +200,14 @@ export const App: React.FC = () => {
                 region within <Content>'s domain; it has no idea which tab
                 is active, on purpose.
               */}
-              <Content.Grow style={{ overflowY: 'auto' }}>
+              <Content.Grow>
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
                     <Grid columns={2} gap="lg">
                       <Card>
                         <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
-                        <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+                        <Card.Content>
                           <p style={{ marginTop: 0 }}>
                             By wrapping Radix UI primitives (`radix-ui`), <code>Toolcrib</code> decouples robust WAI-ARIA accessibility, keyboard navigation, focus trapping, and light-dismiss from design system styling.
                           </p>
@@ -217,7 +223,7 @@ export const App: React.FC = () => {
 
                       <Card>
                         <Card.Header>🧩 Why Use Common Layout Idioms & Theme Slices?</Card.Header>
-                        <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+                        <Card.Content>
                           <p style={{ marginTop: 0 }}>
                             Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>Toolcrib</code> solves this by giving the AI high-level layout idioms:
                           </p>
@@ -233,7 +239,7 @@ export const App: React.FC = () => {
 
                     <Card>
                       <Card.Header>📐 AI Schema & rem Scaling Engine</Card.Header>
-                      <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+                      <Card.Content>
                         <p style={{ marginTop: 0 }}>
                           In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
                           Changing the <strong>Master Font Size</strong> slider in the OOTB Theme Designer updates <code>--ai-master-font-size</code> on <code>:root</code>, smoothly scaling the entire UI layout up or down in real time!
@@ -318,7 +324,7 @@ export const App: React.FC = () => {
 
                     <Card>
                       <Card.Header>Form Architecture & Validation Features</Card.Header>
-                      <Card.Content style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+                      <Card.Content>
                         <p style={{ marginTop: 0 }}>
                           The <code>Form</code> component provides automatic Zod 4 schema validation, field registration, error layout, and touched field tracking without prop-drilling.
                         </p>
@@ -398,58 +404,60 @@ export const App: React.FC = () => {
                 <TabStrip.Panel groupId="main-demo" value="toasts">
                   <Card>
                     <Card.Header>Toast Subsystem Controls</Card.Header>
-                    <Card.Content style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToast()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
-                      <UIGroup>
-                        <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
-                          Fire Info Toast
-                        </Button>
-                        <Button subtheme="success" onClick={() => aiBus.showToast('Success notification!', 'success', 'high')}>
-                          Fire Success Toast
-                        </Button>
-                        <Button subtheme="warning" onClick={() => aiBus.showToast('Warning: Check parameters', 'warning', 'high')}>
-                          Fire Warning Toast
-                        </Button>
-                        <Button subtheme="error" onClick={() => aiBus.showToast('Critical System Failure', 'error', 'urgent')}>
-                          Fire Urgent Error Toast
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            addToast({
-                              type: 'error',
-                              message: 'Connection lost',
-                              sticky: true,
-                              actions: [{ label: 'Retry', onClick: () => addToast({ type: 'success', message: 'Reconnected!' }) }],
-                            })
-                          }
-                        >
-                          Fire Sticky Toast w/ Action
-                        </Button>
-                      </UIGroup>
+                    <Card.Content>
+                      <VStack gap="md">
+                        <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToast()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
+                        <UIGroup>
+                          <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
+                            Fire Info Toast
+                          </Button>
+                          <Button subtheme="success" onClick={() => aiBus.showToast('Success notification!', 'success', 'high')}>
+                            Fire Success Toast
+                          </Button>
+                          <Button subtheme="warning" onClick={() => aiBus.showToast('Warning: Check parameters', 'warning', 'high')}>
+                            Fire Warning Toast
+                          </Button>
+                          <Button subtheme="error" onClick={() => aiBus.showToast('Critical System Failure', 'error', 'urgent')}>
+                            Fire Urgent Error Toast
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              addToast({
+                                type: 'error',
+                                message: 'Connection lost',
+                                sticky: true,
+                                actions: [{ label: 'Retry', onClick: () => addToast({ type: 'success', message: 'Reconnected!' }) }],
+                              })
+                            }
+                          >
+                            Fire Sticky Toast w/ Action
+                          </Button>
+                        </UIGroup>
 
-                      <HStack gap="sm" style={{ marginTop: 'var(--ai-margin-md)', width: 'auto' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</span>
-                        <Select
-                          defaultValue="top-right"
-                          onChange={val => setAnchor(val as any)}
-                          options={[
-                            { label: 'Top Right', value: 'top-right' },
-                            { label: 'Top Left', value: 'top-left' },
-                            { label: 'Bottom Right', value: 'bottom-right' },
-                            { label: 'Bottom Left', value: 'bottom-left' },
-                            { label: 'Top Center', value: 'top-center' },
-                            { label: 'Bottom Center', value: 'bottom-center' },
-                          ]}
-                        />
-                      </HStack>
+                        <HStack gap="sm">
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</span>
+                          <Select
+                            defaultValue="top-right"
+                            onChange={val => setAnchor(val as any)}
+                            options={[
+                              { label: 'Top Right', value: 'top-right' },
+                              { label: 'Top Left', value: 'top-left' },
+                              { label: 'Bottom Right', value: 'bottom-right' },
+                              { label: 'Bottom Left', value: 'bottom-left' },
+                              { label: 'Top Center', value: 'top-center' },
+                              { label: 'Bottom Center', value: 'bottom-center' },
+                            ]}
+                          />
+                        </HStack>
+                      </VStack>
                     </Card.Content>
                   </Card>
                 </TabStrip.Panel>
 
                 {/* Tab 5: Virtualized Data Table */}
                 <TabStrip.Panel groupId="main-demo" value="datatable">
-                  <Card layout="auto" style={{ height: '100%', minHeight: 0 }}>
+                  <Card layout="auto">
                     <Card.Header>
                       <Toolbar>
                         <Toolbar.Left>
@@ -460,7 +468,7 @@ export const App: React.FC = () => {
                         </Toolbar.Right>
                       </Toolbar>
                     </Card.Header>
-                    <Card.Content layout="auto" style={{ padding: '0.75rem' }}>
+                    <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         data={dummyUsers}
                         columns={columns}
@@ -481,14 +489,22 @@ export const App: React.FC = () => {
                         <Card.Header>Vertical & Horizontal Stacks (`&lt;VStack&gt;` & `&lt;HStack&gt;`)</Card.Header>
                         <Card.Content>
                           <p style={{ marginTop: 0 }}>Self-spacing flex containers that automatically apply theme <code>--ai-margin-gap</code> spacing.</p>
-                          <VStack gap="md" style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-md)' }}>
-                            <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 1</div>
-                            <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 2</div>
-                            <HStack justify="between" style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)' }}>
-                              <span style={{ fontWeight: 600 }}>HStack Left Item</span>
-                              <Button size="sm" variant="primary">HStack Right Action</Button>
-                            </HStack>
-                          </VStack>
+                          {/* Demo chrome (background/padding/radius) lives on
+                              plain wrapper divs, not VStack/HStack — they're
+                              pure layout primitives with no styled-box
+                              concept of their own. */}
+                          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-md)' }}>
+                            <VStack gap="md">
+                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 1</div>
+                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 2</div>
+                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)' }}>
+                                <HStack justify="between">
+                                  <span style={{ fontWeight: 600 }}>HStack Left Item</span>
+                                  <Button size="sm" variant="primary">HStack Right Action</Button>
+                                </HStack>
+                              </div>
+                            </VStack>
+                          </div>
                         </Card.Content>
                       </Card>
 
@@ -578,49 +594,99 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
 
+                    {/* Section 1.6: per-instance overrides & style domains —
+                        Card no longer accepts `style`/`className`; instance-
+                        level theme values go through `overrides`, resolved
+                        as sparse CSS variables on Card's own root node (see
+                        theme/useSliceOverrides.ts). `subtheme` follows the
+                        same prop but falls back to the nearest
+                        <StyleDomainProvider> if the instance doesn't set its
+                        own — demonstrated below via a domain wrapping a
+                        Card that doesn't set `overrides.subtheme` itself. */}
+                    <Grid columns={2} gap="lg">
+                      <Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
+                        <Card.Header>Per-Instance Override (`overrides`)</Card.Header>
+                        <Card.Content>
+                          <p style={{ marginTop: 0 }}>
+                            This Card passes <code>overrides={'{'}{'{'} padding: 'compact', headerStyle: 'subtle-bg' {'}'}{'}'}</code> — a sparse CSS-variable patch applied only to this Card's own root node, leaving every other Card (and the global Theme Editor's Card slice) untouched.
+                          </p>
+                        </Card.Content>
+                      </Card>
+
+                      <StyleDomainProvider subtheme="error">
+                        <Card>
+                          <Card.Header>Style Domain (`&lt;StyleDomainProvider&gt;`)</Card.Header>
+                          <Card.Content>
+                            <p style={{ marginTop: 0 }}>
+                              This Card sets no <code>overrides.subtheme</code> of its own — its error-coloured border comes entirely from the ancestor <code>&lt;StyleDomainProvider subtheme="error"&gt;</code> wrapping it, via React Context (not CSS inheritance, so it still reaches components that render through a portal).
+                            </p>
+                          </Card.Content>
+                        </Card>
+                      </StyleDomainProvider>
+                    </Grid>
+
                     {/* Section 2: Adaptive Card Layout & Groups */}
                     <Grid columns={2} gap="lg">
-                      <Card layout="auto" style={{ height: '18rem' }}>
-                        <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
-                        <Card.Content layout="auto">
-                          <p style={{ marginTop: 0 }}>
-                            When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
-                          </p>
-                          <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
-                            Auto-Filling Bounding Box Area
-                          </div>
-                        </Card.Content>
-                        <Card.Footer>
-                          <span>Adaptive Status: Active</span>
-                          <Card.Actions>
-                            <Button size="sm" variant="outline" icon="✨" onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
-                          </Card.Actions>
-                        </Card.Footer>
-                      </Card>
-
-                      <Card layout="auto" style={{ height: '18rem' }}>
-                        <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
-                        <Card.Content layout="auto">
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
-                              <UIGroup>
-                                <Button variant="outline" icon="◀" onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
-                                <Button variant="outline" icon="●" onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
-                                <Button variant="outline" icon="▶" onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
-                              </UIGroup>
+                      {/* layout="auto" fills 100% of its container — Card
+                          itself no longer accepts a raw style prop to pin a
+                          fixed demo height, so the fixed size lives on this
+                          plain wrapper div instead (not a toolcrib
+                          component, so it's outside the "no ad hoc style"
+                          constraint). */}
+                      <div style={{ height: '18rem' }}>
+                        <Card layout="auto">
+                          <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
+                          <Card.Content layout="auto">
+                            <p style={{ marginTop: 0 }}>
+                              When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
+                            </p>
+                            <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
+                              Auto-Filling Bounding Box Area
                             </div>
+                          </Card.Content>
+                          <Card.Footer>
+                            <span>Adaptive Status: Active</span>
+                            <Card.Actions>
+                              <Button size="sm" variant="outline" icon="✨" onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
+                            </Card.Actions>
+                          </Card.Footer>
+                        </Card>
+                      </div>
 
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
-                              <UIGroup style={{ width: '100%' }}>
-                                <Input placeholder="Search records..." style={{ width: '100%' }} />
-                                <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
-                              </UIGroup>
-                            </div>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
+                      <div style={{ height: '18rem' }}>
+                        <Card layout="auto">
+                          <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
+                          <Card.Content layout="auto">
+                            <VStack gap="md">
+                              <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
+                                <UIGroup>
+                                  <Button variant="outline" icon="◀" onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
+                                  <Button variant="outline" icon="●" onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
+                                  <Button variant="outline" icon="▶" onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
+                                </UIGroup>
+                              </div>
+
+                              <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
+                                {/* display:'grid' (not a plain block div) —
+                                    UIGroup is inline-flex, which shrinks to
+                                    content in normal block flow regardless
+                                    of a block parent's width; a grid item
+                                    stretches to fill its track by default
+                                    (justify-items:stretch), which works
+                                    against an inline-flex child too. */}
+                                <div style={{ display: 'grid', width: '100%' }}>
+                                  <UIGroup>
+                                    <Input placeholder="Search records..." />
+                                    <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
+                                  </UIGroup>
+                                </div>
+                              </div>
+                            </VStack>
+                          </Card.Content>
+                        </Card>
+                      </div>
                     </Grid>
 
                     {/* Section 3: Radix UI Primitives */}
@@ -676,11 +742,11 @@ export const App: React.FC = () => {
 
           {/* Bottom Panel: Live Event Bus Monitor */}
           <Splitter.Panel squareCorners="top">
-            <Card squareCorners="top" style={{ margin: 0, height: '100%', border: '0.0625rem solid var(--ai-border)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <Card.Header style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+            <Card layout="auto" squareCorners="top">
+              <Card.Header paddingMode="compact">
                 <Toolbar>
                   <Toolbar.Left>
-                    <span>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
+                    <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
                   </Toolbar.Left>
                   <Toolbar.Right>
                     <Tooltip content="Clear all recorded event log items from stream">
@@ -699,7 +765,7 @@ export const App: React.FC = () => {
                   </Toolbar.Right>
                 </Toolbar>
               </Card.Header>
-              <Card.Content style={{ padding: '0.5rem 1rem', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <Card.Content layout="auto" paddingMode="compact">
                 <div style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
                   {eventLogs.length === 0 ? (
                     <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>

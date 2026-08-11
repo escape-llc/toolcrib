@@ -2,6 +2,8 @@ import React, { ReactNode, useState } from 'react';
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { TooltipThemeSlice, TooltipSliceState } from './TooltipSlice';
 
 /**
  * Props for the `<Tooltip>` hover/focus information overlay.
@@ -31,6 +33,8 @@ export interface TooltipProps {
    * @default 200
    */
   delayDuration?: number;
+  /** Per-instance overrides for theme (dark/light/accent) and size. */
+  overrides?: Partial<TooltipSliceState>;
 }
 
 /** @manifest Hover/focus tooltip wrapping a child trigger element */
@@ -41,7 +45,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
   side = 'top',
   align = 'center',
   delayDuration = 200,
+  overrides,
 }) => {
+  const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
@@ -85,6 +91,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
               userSelect: 'none',
               pointerEvents: 'none',
               animation: 'ai-popup-fade 0.12s ease-out',
+              ...vars,
             }}
           >
             {content}

@@ -52,4 +52,8 @@ export const TooltipThemeSlice: ThemeSlice<TooltipSliceState, TooltipCSSVariable
   name: '💬 Tooltip Styling & Theme',
   defaultState: defaultTooltipState,
   getCSSVariables: getTooltipVariables,
+  fieldVars: {
+    theme: ['--ai-tooltip-bg', '--ai-tooltip-color'],
+    size: ['--ai-tooltip-padding', '--ai-tooltip-font-size'],
+  },
 };

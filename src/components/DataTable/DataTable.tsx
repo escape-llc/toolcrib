@@ -2,6 +2,8 @@ import React, { useState, useMemo, useRef, ReactNode } from 'react';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
 /** Column definition for `<DataTable>`. */
 export interface Column<T = any> {
@@ -49,7 +51,8 @@ export interface DataTableProps<T = any> {
   containerHeight?: number | 'auto';
   /** Custom row key extractor for React reconciliation. Defaults to array index. */
   rowKey?: (record: T, index: number) => string | number;
-  style?: React.CSSProperties;
+  /** Per-instance overrides for density, border style, and striping. */
+  overrides?: Partial<TableSliceState>;
 }
 
 /** @manifest Virtualized, sortable, paginated data table with sticky headers */
@@ -61,8 +64,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   itemHeight = 44,
   containerHeight = 'auto',
   rowKey,
-  style,
+  overrides,
 }: DataTableProps<T>) {
+  const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -141,7 +145,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         height: isAutoHeight ? '100%' : undefined,
         flex: isAutoHeight ? '1 1 0px' : undefined,
         minHeight: 0,
-        ...style,
+        ...vars,
       }}
     >
       {/* Scrollable Virtualized Body (Fills parent flex box when containerHeight="auto") */}

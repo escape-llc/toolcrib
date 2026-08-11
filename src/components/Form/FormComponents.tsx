@@ -3,6 +3,10 @@ import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-
 import { useOptionalFormContext } from './FormContext';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
+import { StyleFree } from '../../theme/safeProps';
+import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
+import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
+import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
@@ -28,16 +32,15 @@ export interface FormFieldProps {
   helperText?: ReactNode;
   /** The form control to render (e.g. `<Input />`, `<Select />`). */
   children: ReactNode;
-  style?: React.CSSProperties;
 }
 
-export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children, style }) => {
+export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children }) => {
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
 
   return (
     <FieldContext.Provider value={{ name }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)', ...style }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
         {label && (
           <label htmlFor={name} style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }}>
             {label}
@@ -68,10 +71,9 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
 export interface FormErrorProps {
   /** Field name to show the error for. Omit for a summary error banner. */
   name?: string;
-  style?: React.CSSProperties;
 }
 
-export const FormError: React.FC<FormErrorProps> = ({ name, style }) => {
+export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   const formContext = useOptionalFormContext();
   if (!formContext) return null;
 
@@ -80,7 +82,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name, style }) => {
     const error = touched[name] ? errors[name] : undefined;
     if (!error) return null;
     return (
-      <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem', ...style }}>
+      <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
         {error}
       </div>
     );
@@ -90,7 +92,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name, style }) => {
   if (!hasErrors) return null;
 
   return (
-    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)', ...style }}>
+    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
       Please correct the errors in the form before submitting.
     </div>
   );
@@ -101,7 +103,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name, style }) => {
  *
  * Supports five variants, three sizes, subtheme colouring, and icon slots.
  */
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonElement>> {
   /**
    * Visual style variant.
    * - `'primary'` — Filled with primary colour.
@@ -124,8 +126,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   trailingIcon?: ReactNode;
   /** Shorthand for `leadingIcon`. */
   icon?: ReactNode;
-  /** Apply a subtheme colour (`'error'` | `'success'` | `'warning'` | `'info'`). */
-  subtheme?: 'error' | 'success' | 'warning' | 'info';
+  /** Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted. */
+  subtheme?: SubthemeName;
+  /**
+   * Explicit corner-squaring override, e.g. for a trigger button whose
+   * corner needs to flatten against an open `<Popup>`/`<DropdownMenu>`.
+   * Applied after the button's own computed radius, so it wins.
+   */
+  squareCorners?: SquareCornerOption;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -137,12 +145,14 @@ export const Button: React.FC<ButtonProps> = ({
   leadingIcon,
   trailingIcon,
   icon,
-  subtheme,
-  style,
+  subtheme: instanceSubtheme,
+  squareCorners,
   disabled,
   ...props
 }) => {
   const startIcon = icon || leadingIcon;
+  const subtheme = useResolvedSubtheme(instanceSubtheme);
+  const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
 
   const getSizeStyles = (): React.CSSProperties => {
     const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
@@ -154,7 +164,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getVariantStyles = (): React.CSSProperties => {
-    let baseBg = subtheme ? `var(--ai-subtheme-${subtheme})` : 'var(--ai-color-primary, #3b82f6)';
+    let baseBg = subthemeColors ? subthemeColors.main : 'var(--ai-color-primary, #3b82f6)';
     let textColor = '#ffffff';
 
     if (variant === 'secondary') {
@@ -162,8 +172,8 @@ export const Button: React.FC<ButtonProps> = ({
     } else if (variant === 'outline') {
       return {
         background: 'transparent',
-        border: `0.0625rem solid ${subtheme ? `var(--ai-subtheme-${subtheme})` : 'var(--ai-border, #d1d5db)'}`,
-        color: subtheme ? `var(--ai-subtheme-${subtheme})` : 'var(--ai-text-primary, #111827)',
+        border: `0.0625rem solid ${subthemeColors ? subthemeColors.main : 'var(--ai-border, #d1d5db)'}`,
+        color: subthemeColors ? subthemeColors.main : 'var(--ai-text-primary, #111827)',
       };
     } else if (variant === 'ghost') {
       return {
@@ -183,6 +193,17 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const currentRadius = resolveRadius(cornerRadiusMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
+  // Explicit per-corner longhands, always all four, rather than spreading
+  // resolveSquareCorners(...) directly (sparse — only the squared corners'
+  // keys) alongside the borderRadius shorthand: since squareCorners can
+  // toggle between 'none' (no keys) and a specific corner (some keys) as
+  // e.g. a Popup opens/closes, the set of style keys would change between
+  // renders while the shorthand stayed put — React warns "Removing a style
+  // property during rerender ... can lead to styling bugs" for exactly
+  // this. Keeping all four keys present on every render, only their
+  // values changing, avoids it — confirmed via a real test run, not just
+  // reasoning about it.
+  const cornerOverrides = resolveSquareCorners(squareCorners);
 
   return (
     <button
@@ -194,13 +215,15 @@ export const Button: React.FC<ButtonProps> = ({
         justifyContent: 'center',
         gap: '0.5rem',
         fontWeight: 600,
-        borderRadius: currentRadius,
+        borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? currentRadius,
+        borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? currentRadius,
+        borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
+        borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
         ...getSizeStyles(),
         ...getVariantStyles(),
-        ...style,
       }}
     >
       {startIcon && (
@@ -229,14 +252,14 @@ export const SubmitButton: React.FC<ButtonProps> = (props) => {
 };
 
 /** Props for `<Input>` — text input bound to Form context via `name`. */
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'name'> {
+export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInputElement>, 'name'>> {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
 }
 
-export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cornerRadiusMode, style, onBlur, onChange, value: externalValue, ...props }) => {
+export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -273,7 +296,6 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
         outline: 'none',
         boxSizing: 'border-box',
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-        ...style,
       }}
       {...props}
     />
@@ -293,10 +315,9 @@ export interface CheckboxProps {
   checked?: boolean;
   /** Change handler. Receives a synthetic event with `target.checked`. */
   onChange?: (e: { target: { checked: boolean } }) => void;
-  style?: React.CSSProperties;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange, style }) => {
+export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -316,7 +337,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   };
 
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', ...style }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
       <CheckboxPrimitive.Root
         id={name || undefined}
         checked={checked}
@@ -355,10 +376,9 @@ export interface SwitchProps {
   checked?: boolean;
   /** Change handler. Receives the new boolean value directly. */
   onChange?: (checked: boolean) => void;
-  style?: React.CSSProperties;
 }
 
-export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange, style }) => {
+export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -378,7 +398,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   };
 
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', fontSize: '0.875rem', ...style }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', fontSize: '0.875rem' }}>
       <SwitchPrimitive.Root
         id={name || undefined}
         checked={checked}
@@ -416,14 +436,14 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
 };
 
 /** Props for `<Textarea>` — multi-line text input bound to Form context via `name`. */
-export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'> {
+export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'>> {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, cornerRadiusMode, style, onChange, onBlur, value: externalValue, ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -461,7 +481,6 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
         boxSizing: 'border-box',
         fontFamily: 'inherit',
         resize: 'vertical',
-        ...style,
       }}
       {...props}
     />

@@ -3,6 +3,8 @@ import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
+import { SquareCornerOption } from '../Card/Card';
+import { StyleFree, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -29,7 +31,6 @@ export interface PopupProps {
   isOpen?: boolean;
   /** Callback fired when the popup opens or closes. */
   onOpenChange?: (open: boolean) => void;
-  style?: React.CSSProperties;
   /**
    * Z-index layer. Uses the toolkit's Z_INDEX.DROPDOWN tier by default.
    * @default Z_INDEX.DROPDOWN (300)
@@ -45,7 +46,6 @@ export const Popup: React.FC<PopupProps> = ({
   placement = 'bottom-start',
   isOpen: externalIsOpen,
   onOpenChange,
-  style,
   zIndex = Z_INDEX.DROPDOWN,
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -73,6 +73,23 @@ export const Popup: React.FC<PopupProps> = ({
   useAIEvent('popup:hidden', e => {
     if (e.id === id && isOpen) handleOpenChange(false, true);
   });
+
+  // Which corner of the trigger should flatten against the popup while
+  // open, expressed as the shared SquareCornerOption vocabulary
+  // (Card/Content/Button all understand it) rather than a raw style
+  // object — used for a trigger that's a toolcrib component (the common
+  // case, e.g. <Button>) and can consult this prop itself. A plain DOM
+  // element trigger can't consult a typed prop, so it still gets a
+  // directly-injected style patch — see renderedTrigger below.
+  const getTriggerSquareCorners = (): SquareCornerOption => {
+    if (!isOpen) return 'none';
+    switch (placement) {
+      case 'bottom-start': return ['bottom-left'];
+      case 'bottom-end': return ['bottom-right'];
+      case 'top-start': return ['top-left'];
+      case 'top-end': return ['top-right'];
+    }
+  };
 
   const getTriggerCornerStyle = (): React.CSSProperties => {
     switch (placement) {
@@ -103,16 +120,19 @@ export const Popup: React.FC<PopupProps> = ({
   };
 
   const { side, align } = getRadixSideAndAlign();
-  const typedTrigger = trigger as ReactElement<{ style?: React.CSSProperties }>;
-  const renderedTrigger = isValidElement(typedTrigger)
-    ? cloneElement(typedTrigger, {
+  const typedTrigger = trigger as ReactElement<any>;
+  const isTriggerComponent = isValidElement(typedTrigger) && typeof typedTrigger.type !== 'string';
+  const renderedTrigger = !isValidElement(typedTrigger)
+    ? trigger
+    : isTriggerComponent
+    ? cloneElement(typedTrigger as ReactElement<any>, { squareCorners: getTriggerSquareCorners() })
+    : cloneElement(typedTrigger as ReactElement<any>, {
         style: {
-          ...(typedTrigger.props.style || {}),
+          ...((typedTrigger.props as any).style || {}),
           ...getTriggerCornerStyle(),
           transition: 'border-radius 0.15s ease',
         },
-      })
-    : trigger;
+      });
 
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
@@ -134,7 +154,6 @@ export const Popup: React.FC<PopupProps> = ({
             minWidth: '11.25rem',
             outline: 'none',
             ...getPopupCornerStyle(),
-            ...style,
           }}
         >
           {children}

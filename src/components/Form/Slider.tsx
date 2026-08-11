@@ -24,7 +24,6 @@ export interface SliderProps {
   onChange?: (value: number) => void;
   /** If true, the slider is non-interactive. @default false */
   disabled?: boolean;
-  style?: React.CSSProperties;
 }
 
 export const Slider: React.FC<SliderProps> = ({
@@ -36,7 +35,6 @@ export const Slider: React.FC<SliderProps> = ({
   step = 1,
   onChange,
   disabled = false,
-  style,
 }) => {
   const currentVal = value !== undefined ? value : defaultValue;
 
@@ -62,7 +60,6 @@ export const Slider: React.FC<SliderProps> = ({
         height: '1.25rem',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
-        ...style,
       }}
     >
       <SliderPrimitive.Track

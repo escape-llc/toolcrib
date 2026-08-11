@@ -34,7 +34,6 @@ export interface SelectProps {
   onChange?: (value: string) => void;
   /** If true, the select is non-interactive. */
   disabled?: boolean;
-  style?: React.CSSProperties;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -45,7 +44,6 @@ export const Select: React.FC<SelectProps> = ({
   defaultValue,
   onChange: externalOnChange,
   disabled = false,
-  style,
 }) => {
   const formContext = useOptionalFormContext();
   const fieldName = name;
@@ -84,7 +82,6 @@ export const Select: React.FC<SelectProps> = ({
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
-          ...style,
         }}
       >
         <SelectPrimitive.Value placeholder={placeholder} />

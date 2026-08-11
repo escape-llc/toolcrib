@@ -1,4 +1,4 @@
-import React, { useState, ReactElement, isValidElement, cloneElement } from 'react';
+import React, { useState, ReactElement } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { HarmonyMode } from '../../theme/harmonies';
 import { PaddingMode } from '../../theme/padding';
@@ -16,7 +16,6 @@ export interface ThemeEditorProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: ReactElement;
-  style?: React.CSSProperties;
 }
 
 /** @manifest Real-time HSV theme editor rendered in a SlideOut panel */
@@ -24,7 +23,6 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
   isOpen,
   onOpenChange,
   trigger,
-  style,
 }) => {
   const {
     parameters,
@@ -71,18 +69,6 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
 
   const defaultTrigger = <Button variant="primary">🎨 OOTB Theme Editor</Button>;
   const activeTrigger = trigger || defaultTrigger;
-
-  const typedTrigger = activeTrigger as ReactElement<{ style?: React.CSSProperties }>;
-  const renderedTrigger = isValidElement(typedTrigger)
-    ? cloneElement(typedTrigger, {
-        style: {
-          height: '100%',
-          alignSelf: 'stretch',
-          ...(typedTrigger.props.style || {}),
-          ...style,
-        },
-      })
-    : activeTrigger;
 
   const appearanceContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -556,10 +542,15 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
         ]}
       />
 
-      {/* Copy CSS Custom Properties Button */}
-      <Button onClick={copyCSSVariables} variant="secondary" style={{ marginTop: '0.5rem' }}>
-        {copied ? '✓ Copied CSS Variables!' : '📋 Copy CSS Custom Properties'}
-      </Button>
+      {/* Copy CSS Custom Properties Button — the extra marginTop lives on
+          this plain wrapper (not a toolcrib component) since it's an
+          intentional bit of breathing room beyond the parent's own
+          gap:'1rem', and Button no longer accepts a raw style prop. */}
+      <div style={{ marginTop: '0.5rem' }}>
+        <Button onClick={copyCSSVariables} variant="secondary">
+          {copied ? '✓ Copied CSS Variables!' : '📋 Copy CSS Custom Properties'}
+        </Button>
+      </div>
     </div>
   );
 
@@ -569,8 +560,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
       title="🎨 OOTB Theme Designer"
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      trigger={renderedTrigger}
-      style={style}
+      trigger={activeTrigger}
       width="26rem"
     >
       {content}

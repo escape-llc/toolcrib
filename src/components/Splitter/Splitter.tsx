@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, ReactNode, ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
-import { LayoutDomainProvider } from './LayoutDomainContext';
+import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
+import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 export type SplitterOrientation = 'horizontal' | 'vertical';
 
@@ -31,13 +32,16 @@ export interface SplitterProps {
   minSize?: number;
   /** Exactly two child elements representing the two panels. */
   children: [ReactNode, ReactNode];
-  className?: string;
-  style?: React.CSSProperties;
 }
 
 /**
- * Props for `<Splitter.Panel>` wrapper. Manages corner-squaring propagation
- * to its direct children based on the panel's position in the splitter.
+ * Props for `<Splitter.Panel>` wrapper. Squares off its own corners based
+ * on its position in the splitter; a toolcrib component nested inside it
+ * (e.g. `<Card>`, `<Content>`) squares its own corners independently via
+ * `useCornerSquaring`/the ambient layout domain — Panel no longer forwards
+ * a computed `style` into component children, only into plain DOM element
+ * children, which have no other way to receive it (see `Splitter.Panel`'s
+ * implementation).
  */
 export interface SplitterPanelProps {
   children: ReactNode;
@@ -46,8 +50,6 @@ export interface SplitterPanelProps {
    * @default undefined
    */
   squareCorners?: 'auto' | 'top' | 'bottom' | 'left' | 'right' | 'none';
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /**
@@ -62,9 +64,9 @@ export const Splitter: React.FC<SplitterProps> & {
   initialSplit = 70,
   minSize = 15,
   children,
-  className,
-  style,
+  ...props
 }) => {
+  warnIfLegacyStyleProps(props, 'Splitter');
   const domainIdRef = useRef<string>(propId || `splitter-domain-${Math.random().toString(36).substring(2, 7)}`);
   const domainId = domainIdRef.current;
 
@@ -169,24 +171,9 @@ export const Splitter: React.FC<SplitterProps> & {
       : { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 };
   };
 
-  const renderPanelWithCornerStyle = (panel: ReactNode, cornerStyle: React.CSSProperties) => {
-    if (!isValidElement(panel)) return panel;
-    const typedPanel = panel as ReactElement<any>;
-    return cloneElement(typedPanel, {
-      style: {
-        width: '100%',
-        height: '100%',
-        boxSizing: 'border-box',
-        ...(typedPanel.props.style || {}),
-        ...cornerStyle,
-      },
-    });
-  };
-
   return (
     <div
       ref={containerRef}
-      className={className}
       style={{
         display: 'flex',
         flexDirection: isVertical ? 'column' : 'row',
@@ -197,7 +184,6 @@ export const Splitter: React.FC<SplitterProps> & {
         overflow: 'hidden',
         position: 'relative',
         userSelect: isDragging ? 'none' : 'auto',
-        ...style,
       }}
     >
       {/* First / Top / Left Panel Container */}
@@ -226,7 +212,7 @@ export const Splitter: React.FC<SplitterProps> & {
             ...getFirstPanelCornerStyle(),
           }}
         >
-          {renderPanelWithCornerStyle(firstPanel, getFirstPanelCornerStyle())}
+          {firstPanel}
         </div>
       </LayoutDomainProvider>
 
@@ -288,14 +274,23 @@ export const Splitter: React.FC<SplitterProps> & {
             ...getSecondPanelCornerStyle(),
           }}
         >
-          {renderPanelWithCornerStyle(secondPanel, getSecondPanelCornerStyle())}
+          {secondPanel}
         </div>
       </LayoutDomainProvider>
     </div>
   );
 };
 
-Splitter.Panel = ({ children, squareCorners, style, className }) => {
+Splitter.Panel = ({ children, squareCorners }) => {
+  // Deriving "am I first or second, what orientation" straight from the
+  // ambient layout domain (same mechanism Card/Content use) replaces a
+  // previous relay where Splitter injected a computed style *into* Panel's
+  // own `style` prop, and Panel then read its own border-radius values
+  // back out to infer its position — a real, if convoluted, use of the
+  // now-removed cloneElement forwarding, exercised by Splitter.test.tsx's
+  // "no explicit squareCorners" cases. Only triggers when the caller
+  // hasn't given an explicit edge (or asked for 'auto' explicitly).
+  const { style: domainCornerStyle } = useCornerSquaring(squareCorners === undefined || squareCorners === 'auto');
   const childArray = React.Children.toArray(children);
 
   const getExplicitSquareStyle = (): React.CSSProperties => {
@@ -304,30 +299,27 @@ Splitter.Panel = ({ children, squareCorners, style, className }) => {
     if (squareCorners === 'left') return { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 };
     if (squareCorners === 'right') return { borderTopRightRadius: 0, borderBottomRightRadius: 0 };
     if (squareCorners === 'none') return {};
-
-    return style ? {
-      ...(style.borderTopLeftRadius !== undefined ? { borderTopLeftRadius: style.borderTopLeftRadius } : {}),
-      ...(style.borderTopRightRadius !== undefined ? { borderTopRightRadius: style.borderTopRightRadius } : {}),
-      ...(style.borderBottomLeftRadius !== undefined ? { borderBottomLeftRadius: style.borderBottomLeftRadius } : {}),
-      ...(style.borderBottomRightRadius !== undefined ? { borderBottomRightRadius: style.borderBottomRightRadius } : {}),
-    } : {};
+    return domainCornerStyle;
   };
 
   const radiusOverride = getExplicitSquareStyle();
   const hasRadiusOverride = Object.keys(radiusOverride).length > 0;
 
-  // Single-level corner style application (only 1 level down)
+  // Only plain DOM element children (e.g. a raw <div>) get their corner
+  // radius injected directly — they have no way to call
+  // useCornerSquaring()/useLayoutDomain() themselves, unlike a toolcrib
+  // component (Card, Content, ...), which now consults the ambient layout
+  // domain on its own and no longer accepts an injected `style` prop at
+  // all. "Single-level" is intentional: matches how deep useCornerSquaring
+  // itself reaches (immediate domain, not arbitrary descendants).
   const processDirectChild = (child: ReactNode): ReactNode => {
     if (!isValidElement(child)) return child;
     const typedChild = child as ReactElement<any>;
-    const childStyle = typedChild.props.style || {};
     const isReactComponent = typeof typedChild.type !== 'string';
-    const childSquareCorners = isReactComponent
-      ? (typedChild.props.squareCorners || (squareCorners && squareCorners !== 'auto' ? squareCorners : undefined))
-      : undefined;
+    if (isReactComponent) return child;
 
+    const childStyle = typedChild.props.style || {};
     return cloneElement(typedChild, {
-      ...(childSquareCorners ? { squareCorners: childSquareCorners } : {}),
       style: {
         width: '100%',
         boxSizing: 'border-box',
@@ -343,7 +335,6 @@ Splitter.Panel = ({ children, squareCorners, style, className }) => {
 
   return (
     <div
-      className={className}
       style={{
         width: '100%',
         height: '100%',
@@ -352,7 +343,6 @@ Splitter.Panel = ({ children, squareCorners, style, className }) => {
         flexDirection: 'column',
         overflow: 'hidden',
         ...radiusOverride,
-        ...style,
       }}
     >
       {renderedContent}

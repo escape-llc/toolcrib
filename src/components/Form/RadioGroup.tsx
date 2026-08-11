@@ -37,8 +37,6 @@ export interface RadioGroupProps {
   children?: ReactNode;
   /** If true, all options are disabled. */
   disabled?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
 }
 
 interface RadioGroupContextValue {
@@ -51,7 +49,7 @@ interface RadioGroupContextValue {
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
 
 export const RadioGroup: React.FC<RadioGroupProps> & {
-  Option: React.FC<{ value: string; label: ReactNode; disabled?: boolean; helperText?: ReactNode; style?: React.CSSProperties }>;
+  Option: React.FC<{ value: string; label: ReactNode; disabled?: boolean; helperText?: ReactNode }>;
 } = ({
   name,
   value: externalValue,
@@ -61,8 +59,6 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   direction = 'vertical',
   children,
   disabled = false,
-  className,
-  style,
 }) => {
   const formContext = useOptionalFormContext();
   const fieldName = name;
@@ -94,13 +90,11 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         value={stringVal}
         onValueChange={handleChange}
         disabled={disabled}
-        className={className}
         style={{
           display: 'flex',
           flexDirection: direction === 'horizontal' ? 'row' : 'column',
           gap: direction === 'horizontal' ? '1.25rem' : '0.625rem',
           outline: 'none',
-          ...style,
         }}
       >
         {options
@@ -119,7 +113,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   );
 };
 
-RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText, style }) => {
+RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => {
   const ctx = useContext(RadioGroupContext);
   if (!ctx) {
     throw new Error('RadioGroup.Option must be used within a RadioGroup component');
@@ -137,7 +131,6 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText, style
         cursor: isDisabled ? 'not-allowed' : 'pointer',
         opacity: isDisabled ? 0.6 : 1,
         userSelect: 'none',
-        ...style,
       }}
     >
       <RadioGroupPrimitive.Item

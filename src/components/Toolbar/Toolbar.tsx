@@ -1,14 +1,15 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { ReactNode } from 'react';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { MarginMode } from '../../theme/margin';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
+import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for the `<Toolbar>` horizontal container.
  *
  * Slot sub-components: `Toolbar.Left`, `Toolbar.Center`, `Toolbar.Right`.
  */
-export interface ToolbarProps extends HTMLAttributes<HTMLDivElement> {
+export interface ToolbarProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
   /** Override padding using the theme padding token scale. */
   paddingMode?: PaddingMode;
@@ -16,15 +17,11 @@ export interface ToolbarProps extends HTMLAttributes<HTMLDivElement> {
   marginMode?: MarginMode;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /** Props for Toolbar slot sub-components (`Toolbar.Left`, `Toolbar.Center`, `Toolbar.Right`). */
-export interface ToolbarSlotProps extends HTMLAttributes<HTMLDivElement> {
+export interface ToolbarSlotProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /** @manifest Horizontal action bar with left/center/right slot areas */
@@ -32,10 +29,10 @@ export const Toolbar: React.FC<ToolbarProps> & {
   Left: React.FC<ToolbarSlotProps>;
   Center: React.FC<ToolbarSlotProps>;
   Right: React.FC<ToolbarSlotProps>;
-} = ({ children, paddingMode, marginMode, cornerRadiusMode, style, className, ...props }) => {
+} = ({ children, paddingMode, marginMode, cornerRadiusMode, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Toolbar');
   return (
     <div
-      className={className}
       {...props}
       style={{
         display: 'flex',
@@ -46,7 +43,6 @@ export const Toolbar: React.FC<ToolbarProps> & {
         gap: 'var(--ai-margin-gap, 0.875rem)',
         padding: paddingMode ? resolvePadding(paddingMode, 'sm') : undefined,
         borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
-        ...style,
       }}
     >
       {children}
@@ -54,57 +50,60 @@ export const Toolbar: React.FC<ToolbarProps> & {
   );
 };
 
-Toolbar.Left = ({ children, style, className, ...props }) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      justifyContent: 'flex-start',
-      flexShrink: 0,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+Toolbar.Left = ({ children, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Toolbar.Left');
+  return (
+    <div
+      {...props}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        justifyContent: 'flex-start',
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
-Toolbar.Center = ({ children, style, className, ...props }) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      justifyContent: 'center',
-      flex: 1,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+Toolbar.Center = ({ children, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Toolbar.Center');
+  return (
+    <div
+      {...props}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        justifyContent: 'center',
+        flex: 1,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
-Toolbar.Right = ({ children, style, className, ...props }) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      justifyContent: 'flex-end',
-      flexShrink: 0,
-      marginLeft: 'auto',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+Toolbar.Right = ({ children, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Toolbar.Right');
+  return (
+    <div
+      {...props}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        justifyContent: 'flex-end',
+        flexShrink: 0,
+        marginLeft: 'auto',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 Toolbar.Left.displayName = 'Toolbar.Left';
 Toolbar.Center.displayName = 'Toolbar.Center';

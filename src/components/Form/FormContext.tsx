@@ -55,8 +55,6 @@ export interface FormProps<T extends Record<string, any> = Record<string, any>> 
   children: ReactNode;
   /** Form element id attribute. Also used as `formId` in event bus payloads. */
   id?: string;
-  className?: string;
-  style?: React.CSSProperties;
 }
 
 /**
@@ -69,8 +67,6 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   onSubmit,
   children,
   id,
-  className,
-  style,
 }: FormProps<T>) {
   const [values, setValues] = useState<Record<string, any>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -197,7 +193,7 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
         resetForm,
       }}
     >
-      <form id={id} className={className} style={style} onSubmit={handleSubmit} noValidate>
+      <form id={id} onSubmit={handleSubmit} noValidate>
         {children}
       </form>
     </FormContext.Provider>

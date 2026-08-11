@@ -1,13 +1,15 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { ReactNode } from 'react';
 import { MarginMode, resolveMargin } from '../../theme/margin';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
+import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for `<Content>` — the flex-domain-establishing layout root.
  *
  * Slot sub-component: `Content.Grow`.
  */
-export interface ContentProps extends HTMLAttributes<HTMLDivElement> {
+export interface ContentProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
   /**
    * Gap between children. Named tokens map to theme spacing scale.
@@ -17,15 +19,13 @@ export interface ContentProps extends HTMLAttributes<HTMLDivElement> {
   /** Override margin/gap using the theme margin token scale. */
   marginMode?: MarginMode;
   /**
-   * Squares off the given corners — accepted (and consumed) so `<Content>`
-   * can sit directly inside `<Splitter.Panel squareCorners="...">`, whose
-   * corner-squaring only forwards to children it recognizes as components
-   * (not plain DOM elements). Meaningless unless `style` also gives this
-   * element visible chrome (background/border) of its own.
+   * Explicit corner-squaring override. `<Content>` always establishes a
+   * layout domain (equivalent to `<Card layout="auto">`), so it already
+   * consults the nearest ancestor `<Splitter>`'s layout domain via
+   * `useCornerSquaring` automatically — set this only to override that
+   * with a specific edge instead of deferring to the domain.
    */
   squareCorners?: SquareCornerOption;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /**
@@ -40,31 +40,33 @@ export interface ContentProps extends HTMLAttributes<HTMLDivElement> {
  */
 export const Content: React.FC<ContentProps> & {
   Grow: React.FC<ContentGrowProps>;
-} = ({ children, gap = 'md', marginMode, squareCorners, style, className, ...props }) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      height: '100%',
-      width: '100%',
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: 0,
-      gap: resolveMargin(marginMode, gap),
-      ...resolveSquareCorners(squareCorners),
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+} = ({ children, gap = 'md', marginMode, squareCorners, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Content');
+  const { style: domainCornerStyle } = useCornerSquaring(true);
+
+  return (
+    <div
+      {...props}
+      style={{
+        height: '100%',
+        width: '100%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        gap: resolveMargin(marginMode, gap),
+        ...domainCornerStyle,
+        ...resolveSquareCorners(squareCorners),
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 /** Props for the `<Content.Grow>` slot. */
-export interface ContentGrowProps extends HTMLAttributes<HTMLDivElement> {
+export interface ContentGrowProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /**
@@ -72,24 +74,28 @@ export interface ContentGrowProps extends HTMLAttributes<HTMLDivElement> {
  * `<Content>` or `<VStack>` ancestor) and flex-grows to fill whatever
  * space is left over — a sibling with a fixed size (like a `<TabStrip>`)
  * takes what it needs, and this takes the rest. Sets `minHeight: 0` so
- * overflowing content (e.g. `overflowY: 'auto'` via `style`) scrolls
- * inside this box instead of pushing the domain taller than its
- * container — the classic flexbox min-height trap.
+ * overflowing content scrolls inside this box instead of pushing the
+ * domain taller than its container — the classic flexbox min-height trap
+ * — and defaults `overflowY: 'auto'` to make that scrolling actually
+ * happen, matching its stated purpose (a scrollable body below a
+ * fixed-height header).
  */
-Content.Grow = ({ children, style, className, ...props }) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      flex: '1 1 0px',
-      minHeight: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+Content.Grow = ({ children, ...props }) => {
+  warnIfLegacyStyleProps(props, 'Content.Grow');
+  return (
+    <div
+      {...props}
+      style={{
+        flex: '1 1 0px',
+        minHeight: 0,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 Content.Grow.displayName = 'Content.Grow';

@@ -1,6 +1,8 @@
 import React, { ReactNode } from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { AccordionThemeSlice, AccordionSliceState } from './AccordionSlice';
 
 /** Data shape for each item in a data-driven `<Accordion>`. */
 export interface AccordionItemData {
@@ -32,8 +34,8 @@ export interface AccordionProps {
   type?: 'single' | 'multiple';
   /** Value of the initially expanded panel (for `type='single'`). */
   defaultValue?: string;
-  className?: string;
-  style?: React.CSSProperties;
+  /** Per-instance overrides for header padding, item gap, variant, and panel animation. */
+  overrides?: Partial<AccordionSliceState>;
 }
 
 /** @manifest Data-driven collapsible panel group with animations */
@@ -42,9 +44,10 @@ export const Accordion: React.FC<AccordionProps> = ({
   items,
   type = 'single',
   defaultValue,
-  className,
-  style,
+  overrides,
 }) => {
+  const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
+
   return (
     <AccordionPrimitive.Root
       type={type as any}
@@ -57,13 +60,12 @@ export const Accordion: React.FC<AccordionProps> = ({
           aiBus.emit('accordion:closed', { id, itemValue: '' });
         }
       }}
-      className={className}
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--ai-accordion-item-gap, 0.375rem)',
         width: '100%',
-        ...style,
+        ...vars,
       }}
     >
       {items.map((item) => (

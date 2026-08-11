@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
+import { SubthemeName } from '../../theme/subtheme';
 
 /** Toast urgency level. Higher priority toasts are displayed first. */
 export type ToastPriority = 'low' | 'medium' | 'high' | 'urgent';
-/** Visual style variant for toasts. Maps to subtheme colours. */
-export type ToastType = 'info' | 'success' | 'warning' | 'error';
+/** Visual style variant for toasts — the same vocabulary as `SubthemeName`. */
+export type ToastType = SubthemeName;
 /** Screen corner where the toast stack is anchored. */
 export type ToastAnchor =
   | 'top-right'

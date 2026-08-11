@@ -51,4 +51,8 @@ export const CardThemeSlice: ThemeSlice<CardSliceState, CardCSSVariables> = {
   name: '🃏 Card Padding & Header Layout',
   defaultState: defaultCardState,
   getCSSVariables: getCardVariables,
+  fieldVars: {
+    padding: ['--ai-card-padding', '--ai-card-header-padding'],
+    headerStyle: ['--ai-card-header-bg', '--ai-card-header-border'],
+  },
 };

@@ -65,4 +65,9 @@ export const DataTableThemeSlice: ThemeSlice<TableSliceState> = {
     striped: true,
   },
   getCSSVariables: (state) => getTableVariables(state),
+  fieldVars: {
+    density: ['--ai-table-cell-padding', '--ai-table-header-padding', '--ai-table-row-height'],
+    borderStyle: ['--ai-table-border'],
+    striped: ['--ai-table-stripe-bg'],
+  },
 };

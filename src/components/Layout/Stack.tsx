@@ -1,7 +1,8 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { ReactNode } from 'react';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { MarginMode, resolveMargin } from '../../theme/margin';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
+import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props shared by `<VStack>` and `<HStack>` layout containers.
@@ -9,7 +10,7 @@ import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
  * These are the primary layout primitives. Use `<VStack>` for vertical stacking
  * and `<HStack>` for horizontal row layout.
  */
-export interface StackProps extends HTMLAttributes<HTMLDivElement> {
+export interface StackProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
   /**
    * Gap between children. Named tokens map to theme spacing scale.
@@ -29,8 +30,6 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   cornerRadiusMode?: CornerRadiusMode;
   /** Allow children to wrap onto multiple lines instead of overflowing/shrinking. @default false */
   wrap?: boolean;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 const alignMap = {
@@ -61,30 +60,29 @@ export const VStack: React.FC<StackProps> = ({
   marginMode,
   cornerRadiusMode,
   wrap = false,
-  style,
-  className,
   ...props
-}) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      flexWrap: wrap ? 'wrap' : undefined,
-      gap: resolveMargin(marginMode, gap),
-      alignItems: alignMap[align],
-      justifyContent: justifyMap[justify],
-      width: '100%',
-      boxSizing: 'border-box',
-      padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
-      borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+}) => {
+  warnIfLegacyStyleProps(props, 'VStack');
+  return (
+    <div
+      {...props}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: wrap ? 'wrap' : undefined,
+        gap: resolveMargin(marginMode, gap),
+        alignItems: alignMap[align],
+        justifyContent: justifyMap[justify],
+        width: '100%',
+        boxSizing: 'border-box',
+        padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
+        borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 /**
  * HStack Layout Idiom: Horizontal stack container automatically applying Theme Margin/Gap tokens.
@@ -99,26 +97,25 @@ export const HStack: React.FC<StackProps> = ({
   marginMode,
   cornerRadiusMode,
   wrap = false,
-  style,
-  className,
   ...props
-}) => (
-  <div
-    className={className}
-    {...props}
-    style={{
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: wrap ? 'wrap' : undefined,
-      gap: resolveMargin(marginMode, gap),
-      alignItems: alignMap[align],
-      justifyContent: justifyMap[justify],
-      boxSizing: 'border-box',
-      padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
-      borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+}) => {
+  warnIfLegacyStyleProps(props, 'HStack');
+  return (
+    <div
+      {...props}
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: wrap ? 'wrap' : undefined,
+        gap: resolveMargin(marginMode, gap),
+        alignItems: alignMap[align],
+        justifyContent: justifyMap[justify],
+        boxSizing: 'border-box',
+        padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
+        borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
+      }}
+    >
+      {children}
+    </div>
+  );
+};

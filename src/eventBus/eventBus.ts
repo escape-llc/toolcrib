@@ -3,6 +3,7 @@
  * Facilitates cross-tree action dispatching without prop-drilling or component hierarchy restructuring.
  */
 import { ThemeParameters, GeneratedPalette } from '../theme/harmonies';
+import { SubthemeName } from '../theme/subtheme';
 
 export interface AIEventMap {
   'theme:changed': {
@@ -27,8 +28,8 @@ export interface AIEventMap {
   'form:submitted': { formId?: string; values: Record<string, any> };
   'form:validated': { formId?: string; isValid: boolean };
   'form:errored': { formId?: string; errors: Record<string, string> };
-  'toast:shown': { id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
-  'toast:added': { id: string; type: 'info' | 'success' | 'warning' | 'error'; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
+  'toast:shown': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
+  'toast:added': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
   'toast:expired': { id: string; message?: string; type?: string };
   'toast:dismissed': { id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' };
   'toast:action_clicked': { id: string; actionLabel: string; message?: string };
@@ -188,7 +189,7 @@ class AIEventBus {
   }
 
   /** @manifestReturns string (toast id) */
-  showToast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium') {
+  showToast(message: string, type: SubthemeName = 'info', priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium') {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.emit('toast:shown', { id, type, message, priority });
     return id;

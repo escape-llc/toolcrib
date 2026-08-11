@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef, ReactNode, ReactElement } from 'react';
+import { Portal } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -39,7 +39,6 @@ export interface SlideOutProps {
    * @default Z_INDEX.DRAWER (100)
    */
   zIndex?: number;
-  style?: React.CSSProperties;
 }
 
 /** @manifest Edge drawer overlay with backdrop blur and slide animation */
@@ -53,7 +52,6 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   title,
   width: propWidth,
   zIndex = Z_INDEX.DRAWER,
-  style,
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -137,18 +135,6 @@ export const SlideOut: React.FC<SlideOutProps> = ({
     }
   };
 
-  const typedTrigger = trigger as ReactElement<{ style?: React.CSSProperties }>;
-  const renderedTrigger = isValidElement(typedTrigger)
-    ? cloneElement(typedTrigger, {
-        style: {
-          height: '100%',
-          alignSelf: 'stretch',
-          ...(typedTrigger.props.style || {}),
-          ...style,
-        },
-      })
-    : trigger;
-
   const backdropAnim = isClosing
     ? 'ai-fade-out var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards'
     : 'ai-fade-in var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards';
@@ -229,11 +215,14 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   return (
     <>
       {trigger && (
-        <div onClick={() => toggle()} style={{ display: 'inline-flex', alignItems: 'stretch', alignSelf: 'stretch', cursor: 'pointer', ...style }}>
-          {renderedTrigger}
+        // alignItems:'stretch' (the flexbox default) already stretches
+        // trigger to fill this wrapper's height on its own — no need to
+        // cloneElement-inject height/alignSelf into it directly.
+        <div onClick={() => toggle()} style={{ display: 'inline-flex', alignItems: 'stretch', cursor: 'pointer' }}>
+          {trigger}
         </div>
       )}
-      {isMounted && typeof document !== 'undefined' && createPortal(portalContent, document.body)}
+      {isMounted && <Portal.Root>{portalContent}</Portal.Root>}
     </>
   );
 };

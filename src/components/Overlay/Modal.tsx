@@ -47,11 +47,11 @@ export interface ModalProps {
 
 /** @manifest Dialog overlay with focus trap, backdrop, and slot composition */
 export const Modal: React.FC<ModalProps> & {
-  Header: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
-  Body: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
-  Footer: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
-  Actions: React.FC<{ children: ReactNode; style?: React.CSSProperties }>;
-  CloseButton: React.FC<{ children?: ReactNode; style?: React.CSSProperties }>;
+  Header: React.FC<{ children: ReactNode }>;
+  Body: React.FC<{ children: ReactNode }>;
+  Footer: React.FC<{ children: ReactNode }>;
+  Actions: React.FC<{ children: ReactNode }>;
+  CloseButton: React.FC<{ children?: ReactNode }>;
 } = ({
   id = `modal-${Math.random().toString(36).substring(2, 7)}`,
   trigger,
@@ -143,7 +143,7 @@ export const Modal: React.FC<ModalProps> & {
   );
 };
 
-Modal.Header = ({ children, style }) => (
+Modal.Header = ({ children }) => (
   <div
     style={{
       padding: '1rem 1.5rem',
@@ -151,14 +151,13 @@ Modal.Header = ({ children, style }) => (
       fontWeight: 700,
       fontSize: '1.25rem',
       color: 'var(--ai-text-primary, #111827)',
-      ...style,
     }}
   >
     {children}
   </div>
 );
 
-Modal.Body = ({ children, style }) => (
+Modal.Body = ({ children }) => (
   <div
     style={{
       padding: '1.5rem',
@@ -166,14 +165,14 @@ Modal.Body = ({ children, style }) => (
       color: 'var(--ai-text-primary, #111827)',
       fontSize: '0.875rem',
       flex: 1,
-      ...style,
+      minHeight: 0,
     }}
   >
     {children}
   </div>
 );
 
-Modal.Footer = ({ children, style }) => (
+Modal.Footer = ({ children }) => (
   <div
     style={{
       padding: '1rem 1.5rem',
@@ -182,28 +181,26 @@ Modal.Footer = ({ children, style }) => (
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      ...style,
     }}
   >
     {children}
   </div>
 );
 
-Modal.Actions = ({ children, style }) => (
+Modal.Actions = ({ children }) => (
   <div
     style={{
       display: 'flex',
       gap: '0.625rem',
       alignItems: 'center',
       justifyContent: 'flex-end',
-      ...style,
     }}
   >
     {children}
   </div>
 );
 
-Modal.CloseButton = ({ children = 'Close', style }) => {
+Modal.CloseButton = ({ children = 'Close' }) => {
   return (
     <DialogPrimitive.Close asChild>
       <button
@@ -216,7 +213,6 @@ Modal.CloseButton = ({ children = 'Close', style }) => {
           fontWeight: 600,
           fontSize: '0.875rem',
           cursor: 'pointer',
-          ...style,
         }}
       >
         {children}

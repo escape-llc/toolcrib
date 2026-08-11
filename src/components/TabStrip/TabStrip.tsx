@@ -3,6 +3,9 @@ import { Tabs as TabsPrimitive } from 'radix-ui';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
 export interface TabItem {
@@ -54,15 +57,16 @@ export interface TabStripProps {
    * whether this component is controlled or self-managed.
    */
   onChange?: (id: string) => void;
-  className?: string;
-  style?: React.CSSProperties;
+  /** Per-instance overrides for variant, size, active-tab colour, and panel transition. */
+  overrides?: Partial<TabSliceState>;
 }
 
 /** @manifest Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content */
 export const TabStrip: React.FC<TabStripProps> & {
   Tab: React.FC<{ id: string; active?: boolean; onClick?: () => void; children: ReactNode; disabled?: boolean }>;
   Panel: React.FC<TabPanelProps>;
-} = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, className, style }) => {
+} = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
+  const { vars } = useSliceOverrides(TabThemeSlice, overrides);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -133,7 +137,6 @@ export const TabStrip: React.FC<TabStripProps> & {
     <TabsPrimitive.Root
       value={activeId}
       onValueChange={handleChange}
-      className={className}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -144,7 +147,7 @@ export const TabStrip: React.FC<TabStripProps> & {
         position: 'relative',
         userSelect: 'none',
         maxWidth: '100%',
-        ...style,
+        ...vars,
       }}
     >
       {/* Filmstrip Left Scroll Button */}
@@ -294,7 +297,7 @@ TabStrip.Tab = ({ active, onClick, children, disabled }) => (
  * When `activeId` is provided, the panel auto-hides if `activeId !== value`.
  * Omit `activeId` to always render (useful for manual conditional rendering).
  */
-export interface TabPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface TabPanelProps extends StyleFreeAttributes<HTMLDivElement> {
   /**
    * The `id` of the `<TabStrip>` group this panel belongs to — must match
    * that TabStrip's own `id` exactly. This is the *only* link between them;
@@ -306,8 +309,6 @@ export interface TabPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   /** The tab id (matching one of that TabStrip's `items`) this panel renders for. */
   value: string;
   children: ReactNode;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /**
@@ -325,7 +326,8 @@ export interface TabPanelProps extends React.HTMLAttributes<HTMLDivElement> {
  * ordering guarantee, and a panel could permanently miss the initial
  * broadcast depending on commit order.
  */
-export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, style, className, ...props }) => {
+export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ...props }) => {
+  warnIfLegacyStyleProps(props, 'TabStrip.Panel');
   const [isActive, setIsActive] = useState(false);
 
   useAIEvent('tab:changed', (event) => {
@@ -337,12 +339,24 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, st
   return (
     <div
       key={value}
-      className={className}
       {...props}
       style={{
         width: '100%',
+        // Participates in a surrounding flex domain (e.g. <Content.Grow>)
+        // and establishes its own for its children — without this, a
+        // height:'100%' descendant (e.g. <Card layout="auto">) resolves
+        // against a parent whose own height is content-based ('auto'),
+        // which CSS treats as no percentage basis at all, so the height
+        // never actually propagates down. flex/minHeight only take effect
+        // when the parent is itself a flex container; harmless no-ops
+        // otherwise. Found via a real browser run: a virtualized
+        // <DataTable> inside one of these panels measured 0px height and
+        // rendered no rows.
+        flex: '1 1 0px',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
         animation: 'var(--ai-tab-panel-animation, ai-fade-in 0.22s ease)',
-        ...style,
       }}
     >
       {children}

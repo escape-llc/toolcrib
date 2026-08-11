@@ -1,13 +1,14 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { ReactNode } from 'react';
 import { resolveMargin, MarginMode } from '../../theme/margin';
 import { resolvePadding, PaddingMode } from '../../theme/padding';
+import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for the `<Grid>` responsive multi-column layout container.
  *
  * Supports fixed column count or CSS auto-fit/auto-fill for responsive grids.
  */
-export interface GridProps extends HTMLAttributes<HTMLDivElement> {
+export interface GridProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
   /**
    * Number of columns, or `'auto-fit'` / `'auto-fill'` for responsive behaviour.
@@ -23,8 +24,6 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   marginMode?: MarginMode;
   /** Override padding using the theme padding token scale. */
   paddingMode?: PaddingMode;
-  style?: React.CSSProperties;
-  className?: string;
 }
 
 /**
@@ -38,10 +37,9 @@ export const Grid: React.FC<GridProps> = ({
   gap = 'gap',
   marginMode,
   paddingMode,
-  style,
-  className,
   ...props
 }) => {
+  warnIfLegacyStyleProps(props, 'Grid');
   let gridTemplateColumns: string;
 
   if (typeof columns === 'number') {
@@ -52,7 +50,6 @@ export const Grid: React.FC<GridProps> = ({
 
   return (
     <div
-      className={className}
       {...props}
       style={{
         display: 'grid',
@@ -61,7 +58,6 @@ export const Grid: React.FC<GridProps> = ({
         width: '100%',
         boxSizing: 'border-box',
         padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
-        ...style,
       }}
     >
       {children}

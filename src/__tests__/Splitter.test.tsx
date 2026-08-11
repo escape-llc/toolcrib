@@ -32,11 +32,11 @@ describe('Splitter Component & Corner Squaring', () => {
     const topCard = screen.getByTestId('top-card');
     const bottomCard = screen.getByTestId('bottom-card');
 
-    expect(topCard.style.borderBottomLeftRadius).toBe('0');
-    expect(topCard.style.borderBottomRightRadius).toBe('0');
+    expect(topCard.style.borderBottomLeftRadius).toBe('0rem');
+    expect(topCard.style.borderBottomRightRadius).toBe('0rem');
 
-    expect(bottomCard.style.borderTopLeftRadius).toBe('0');
-    expect(bottomCard.style.borderTopRightRadius).toBe('0');
+    expect(bottomCard.style.borderTopLeftRadius).toBe('0rem');
+    expect(bottomCard.style.borderTopRightRadius).toBe('0rem');
   });
 
   it('squares off joining right corners for left pane and left corners for right pane in horizontal orientation', () => {
@@ -54,10 +54,10 @@ describe('Splitter Component & Corner Squaring', () => {
     const leftCard = screen.getByTestId('left-card');
     const rightCard = screen.getByTestId('right-card');
 
-    expect(leftCard.style.borderTopRightRadius).toBe('0');
-    expect(leftCard.style.borderBottomRightRadius).toBe('0');
+    expect(leftCard.style.borderTopRightRadius).toBe('0rem');
+    expect(leftCard.style.borderBottomRightRadius).toBe('0rem');
 
-    expect(rightCard.style.borderTopLeftRadius).toBe('0');
-    expect(rightCard.style.borderBottomLeftRadius).toBe('0');
+    expect(rightCard.style.borderTopLeftRadius).toBe('0rem');
+    expect(rightCard.style.borderBottomLeftRadius).toBe('0rem');
   });
 });
