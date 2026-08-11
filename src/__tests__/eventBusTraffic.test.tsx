@@ -26,7 +26,7 @@ import { Form } from '../components/Form/FormContext';
 import { FormField, Input, SubmitButton } from '../components/Form/FormComponents';
 
 describe('EventBus Traffic & Emission Verification Suite', () => {
-  let trafficSpy: ReturnType<typeof vi.fn>;
+  let trafficSpy: ReturnType<typeof vi.fn<(event: { type: string; detail: any }) => void>>;
 
   beforeEach(() => {
     trafficSpy = vi.fn();

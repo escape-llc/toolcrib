@@ -52,8 +52,10 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     const btn = screen.getByText('Open Placement Test');
     fireEvent.click(btn);
 
-    // bottom-start placement squares off borderBottomLeftRadius when open
-    expect(btn.style.borderBottomLeftRadius).toBe('0');
+    // bottom-start placement squares off borderBottomLeftRadius when open.
+    // jsdom 30+ appends 'px' to a unitless numeric style value (matching
+    // real browser CSSOM behavior more closely than older jsdom did).
+    expect(btn.style.borderBottomLeftRadius).toBe('0px');
 
     // Light dismiss closes and reverts to the button's own natural radius
     fireEvent.keyDown(document, { key: 'Escape' });
