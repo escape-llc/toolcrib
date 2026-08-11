@@ -123,7 +123,10 @@ export interface CardActionsProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-/** @manifest Slot-based container with automatic layout domain corner squaring */
+/**
+ * @manifest Slot-based container with automatic layout domain corner squaring
+ * @manifestCategory Containers
+ */
 export const Card: React.FC<CardProps> & {
   Header: React.FC<CardHeaderProps>;
   Content: React.FC<CardContentProps>;

@@ -18,7 +18,10 @@ export interface ThemeEditorProps {
   trigger?: ReactElement;
 }
 
-/** @manifest Real-time HSV theme editor rendered in a SlideOut panel */
+/**
+ * @manifest Real-time HSV theme editor rendered in a SlideOut panel
+ * @manifestCategory Overlays
+ */
 export const ThemeEditor: React.FC<ThemeEditorProps> = ({
   isOpen,
   onOpenChange,

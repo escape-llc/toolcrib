@@ -92,7 +92,10 @@ function injectUIGroupStyles() {
   document.head.appendChild(styleEl);
 }
 
-/** @manifest Merges adjacent elements into a single visual compound control */
+/**
+ * @manifest Merges adjacent elements into a single visual compound control
+ * @manifestCategory Layout Primitives
+ */
 export const UIGroup: React.FC<UIGroupProps> = ({
   children,
   orientation = 'horizontal',

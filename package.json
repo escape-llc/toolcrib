@@ -10,7 +10,9 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "check-manifest": "node scripts/generate-manifest.js",
-    "generate-manifest": "node scripts/generate-manifest.js --write"
+    "generate-manifest": "node scripts/generate-manifest.js --write",
+    "check-docs": "node scripts/generate-docs.js",
+    "generate-docs": "node scripts/generate-docs.js --write"
   },
   "dependencies": {
     "radix-ui": "^1.0.0",
@@ -23,10 +25,12 @@
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^26.2.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^6.0.0",
     "@vitest/coverage-v8": "^2.1.9",
+    "handlebars": "^4.7.9",
     "jsdom": "^24.1.1",
     "playwright": "^1.62.1",
     "typescript": "^5.5.3",

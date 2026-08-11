@@ -38,7 +38,10 @@ export interface PopupProps {
   zIndex?: number;
 }
 
-/** @manifest Anchored popover with light dismiss and corner-squaring to trigger */
+/**
+ * @manifest Anchored popover with light dismiss and corner-squaring to trigger
+ * @manifestCategory Overlays
+ */
 export const Popup: React.FC<PopupProps> = ({
   id = `popup-${Math.random().toString(36).substring(2, 7)}`,
   trigger,

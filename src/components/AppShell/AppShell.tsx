@@ -29,6 +29,7 @@ export interface AppShellMainProps extends StyleFreeAttributes<HTMLDivElement> {
 /**
  * @manifest Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app
  * @manifestConstraints Intended to be rendered once, at the root of the component tree
+ * @manifestCategory Containers
  */
 export const AppShell: React.FC<AppShellProps> & {
   Header: React.FC<AppShellHeaderProps>;

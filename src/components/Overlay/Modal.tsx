@@ -45,7 +45,10 @@ export interface ModalProps {
   ariaLabel?: string;
 }
 
-/** @manifest Dialog overlay with focus trap, backdrop, and slot composition */
+/**
+ * @manifest Dialog overlay with focus trap, backdrop, and slot composition
+ * @manifestCategory Overlays
+ */
 export const Modal: React.FC<ModalProps> & {
   Header: React.FC<{ children: ReactNode }>;
   Body: React.FC<{ children: ReactNode }>;

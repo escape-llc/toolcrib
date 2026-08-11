@@ -38,7 +38,10 @@ export interface AccordionProps {
   overrides?: Partial<AccordionSliceState>;
 }
 
-/** @manifest Data-driven collapsible panel group with animations */
+/**
+ * @manifest Data-driven collapsible panel group with animations
+ * @manifestCategory Data Display
+ */
 export const Accordion: React.FC<AccordionProps> = ({
   id = `accordion-${Math.random().toString(36).substring(2, 7)}`,
   items,

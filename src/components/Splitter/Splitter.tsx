@@ -55,6 +55,7 @@ export interface SplitterPanelProps {
 /**
  * @manifest Resizable two-panel layout with automatic corner-squaring domain
  * @manifestConstraints Requires exactly 2 children
+ * @manifestCategory Containers
  */
 export const Splitter: React.FC<SplitterProps> & {
   Panel: React.FC<SplitterPanelProps>;

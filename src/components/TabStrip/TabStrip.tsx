@@ -61,7 +61,10 @@ export interface TabStripProps {
   overrides?: Partial<TabSliceState>;
 }
 
-/** @manifest Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content */
+/**
+ * @manifest Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content
+ * @manifestCategory Data Display
+ */
 export const TabStrip: React.FC<TabStripProps> & {
   Tab: React.FC<{ id: string; active?: boolean; onClick?: () => void; children: ReactNode; disabled?: boolean }>;
   Panel: React.FC<TabPanelProps>;

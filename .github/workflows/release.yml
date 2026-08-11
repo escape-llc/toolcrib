@@ -42,6 +42,17 @@ jobs:
       - name: Check component-manifest.json matches source
         run: node scripts/generate-manifest.js --check
 
+      # Fails the workflow (and blocks the release) if ai-docs/CORE.md
+      # doesn't match what scripts/generate-docs.js renders from
+      # ai-docs/templates/CORE.md.hbs + the same source-derived data as
+      # the manifest check above (via scripts/lib/extract.js) — CORE.md's
+      # Component Reference/Z-Index/Theme Slices/Event Bus sections are
+      # generated, not hand-maintained, specifically because they drifted
+      # silently before this existed (9 of 32 real event channels and 4 of
+      # 20 real components were missing from the hand-written version).
+      - name: Check ai-docs/CORE.md matches source
+        run: node scripts/generate-docs.js --check
+
       # Fails the workflow (and blocks the release) if the vendored
       # source imports a package package.json doesn't correctly declare
       # in "dependencies" — catches an AI-managed package.json drifting

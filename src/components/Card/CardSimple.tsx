@@ -35,6 +35,7 @@ export interface CardSimpleProps extends Omit<CardProps, 'children' | 'title'> {
  * Generates `Card.Header`, `Card.Content`, `Card.Footer`, and `Card.Actions`
  * automatically from flat props. Passes through all `CardProps` to the root `<Card>`.
  * @manifest Token-saving shorthand for simple cards without slot composition
+ * @manifestCategory Containers
  */
 export const CardSimple: React.FC<CardSimpleProps> = ({
   title,

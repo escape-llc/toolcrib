@@ -24,7 +24,10 @@ export interface ToolbarSlotProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-/** @manifest Horizontal action bar with left/center/right slot areas */
+/**
+ * @manifest Horizontal action bar with left/center/right slot areas
+ * @manifestCategory Layout Primitives
+ */
 export const Toolbar: React.FC<ToolbarProps> & {
   Left: React.FC<ToolbarSlotProps>;
   Center: React.FC<ToolbarSlotProps>;

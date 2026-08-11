@@ -41,7 +41,10 @@ export interface SlideOutProps {
   zIndex?: number;
 }
 
-/** @manifest Edge drawer overlay with backdrop blur and slide animation */
+/**
+ * @manifest Edge drawer overlay with backdrop blur and slide animation
+ * @manifestCategory Overlays
+ */
 export const SlideOut: React.FC<SlideOutProps> = ({
   id = `slideout-${Math.random().toString(36).substring(2, 7)}`,
   trigger,

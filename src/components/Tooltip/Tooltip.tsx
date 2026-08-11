@@ -37,7 +37,10 @@ export interface TooltipProps {
   overrides?: Partial<TooltipSliceState>;
 }
 
-/** @manifest Hover/focus tooltip wrapping a child trigger element */
+/**
+ * @manifest Hover/focus tooltip wrapping a child trigger element
+ * @manifestCategory Overlays
+ */
 export const Tooltip: React.FC<TooltipProps> = ({
   id,
   content,

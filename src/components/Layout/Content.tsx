@@ -37,6 +37,7 @@ export interface ContentProps extends StyleFreeAttributes<HTMLDivElement> {
  * scrollable body below a fixed-height header, for example) rather than
  * establish a domain of its own.
  * @manifest Fills its container and establishes a flex-column layout domain for its children
+ * @manifestCategory Layout Primitives
  */
 export const Content: React.FC<ContentProps> & {
   Grow: React.FC<ContentGrowProps>;

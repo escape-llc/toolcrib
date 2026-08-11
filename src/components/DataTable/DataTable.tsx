@@ -55,7 +55,10 @@ export interface DataTableProps<T = any> {
   overrides?: Partial<TableSliceState>;
 }
 
-/** @manifest Virtualized, sortable, paginated data table with sticky headers */
+/**
+ * @manifest Virtualized, sortable, paginated data table with sticky headers
+ * @manifestCategory Data Display
+ */
 export function DataTable<T extends Record<string, any> = Record<string, any>>({
   data,
   columns,

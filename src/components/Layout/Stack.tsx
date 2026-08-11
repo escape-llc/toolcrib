@@ -50,6 +50,7 @@ const justifyMap = {
 /**
  * VStack Layout Idiom: Vertical stack container automatically applying Theme Margin/Gap tokens.
  * @manifest Vertical flex column layout primitive
+ * @manifestCategory Layout Primitives
  */
 export const VStack: React.FC<StackProps> = ({
   children,
@@ -87,6 +88,7 @@ export const VStack: React.FC<StackProps> = ({
 /**
  * HStack Layout Idiom: Horizontal stack container automatically applying Theme Margin/Gap tokens.
  * @manifest Horizontal flex row layout primitive
+ * @manifestCategory Layout Primitives
  */
 export const HStack: React.FC<StackProps> = ({
   children,

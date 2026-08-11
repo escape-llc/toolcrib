@@ -109,6 +109,52 @@
       "--ai-transition-fast",
       "--ai-transition-normal",
       "--ai-transition-slow"
+    ],
+    "slices": [
+      {
+        "id": "padding",
+        "name": "Padding Density Mode"
+      },
+      {
+        "id": "margin",
+        "name": "Margin & Element Spacing Mode"
+      },
+      {
+        "id": "radius",
+        "name": "Corner Rounding Mode"
+      },
+      {
+        "id": "shadow",
+        "name": "Elevation & Shadow Depth"
+      },
+      {
+        "id": "table",
+        "name": "Data Table Layout & Cell Density"
+      },
+      {
+        "id": "animation",
+        "name": "✨ Motion, Transitions & Micro-Animations"
+      },
+      {
+        "id": "tab",
+        "name": "📑 Tab Group Panels & Variants"
+      },
+      {
+        "id": "slideout",
+        "name": "🪟 SlideOut Drawer & Retract Dynamics"
+      },
+      {
+        "id": "accordion",
+        "name": "🪗 Accordion Header & Gap Spacing"
+      },
+      {
+        "id": "card",
+        "name": "🃏 Card Padding & Header Layout"
+      },
+      {
+        "id": "tooltip",
+        "name": "💬 Tooltip Styling & Theme"
+      }
     ]
   },
   "zIndexScale": {
@@ -314,6 +360,7 @@
           "description": "Per-instance overrides for header padding, item gap, variant, and panel animation."
         }
       },
+      "category": "Data Display",
       "description": "Data-driven collapsible panel group with animations"
     },
     {
@@ -325,6 +372,7 @@
       ],
       "props": {},
       "constraints": "Intended to be rendered once, at the root of the component tree",
+      "category": "Containers",
       "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
     },
     {
@@ -352,6 +400,7 @@
           "description": "Per-instance theme overrides (padding, header style, subtheme)."
         }
       },
+      "category": "Containers",
       "description": "Slot-based container with automatic layout domain corner squaring"
     },
     {
@@ -375,6 +424,7 @@
           "description": "Action elements (e.g. buttons) rendered in the footer's right side."
         }
       },
+      "category": "Containers",
       "description": "Token-saving shorthand for simple cards without slot composition"
     },
     {
@@ -398,6 +448,7 @@
           "description": "Explicit corner-squaring override. `<Content>` always establishes a\nlayout domain (equivalent to `<Card layout=\"auto\">`), so it already\nconsults the nearest ancestor `<Splitter>`'s layout domain via\n`useCornerSquaring` automatically — set this only to override that\nwith a specific edge instead of deferring to the domain."
         }
       },
+      "category": "Layout Primitives",
       "description": "Fills its container and establishes a flex-column layout domain for its children"
     },
     {
@@ -443,6 +494,7 @@
           "description": "Per-instance overrides for density, border style, and striping."
         }
       },
+      "category": "Data Display",
       "description": "Virtualized, sortable, paginated data table with sticky headers"
     },
     {
@@ -474,6 +526,7 @@
           "description": "Alignment along the menu's side axis."
         }
       },
+      "category": "Overlays",
       "description": "Data-driven action menu with separator support"
     },
     {
@@ -510,6 +563,7 @@
         "RadioGroup",
         "Slider"
       ],
+      "category": "Form Controls",
       "description": "Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate"
     },
     {
@@ -540,6 +594,7 @@
           "description": "Override padding using the theme padding token scale."
         }
       },
+      "category": "Layout Primitives",
       "description": "CSS Grid responsive multi-column layout"
     },
     {
@@ -579,6 +634,7 @@
           "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
         }
       },
+      "category": "Layout Primitives",
       "description": "Horizontal flex row layout primitive"
     },
     {
@@ -624,6 +680,7 @@
           "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<SlideOut title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
         }
       },
+      "category": "Overlays",
       "description": "Dialog overlay with focus trap, backdrop, and slot composition"
     },
     {
@@ -658,6 +715,7 @@
           "description": "Z-index layer. Uses the toolkit's Z_INDEX.DROPDOWN tier by default."
         }
       },
+      "category": "Overlays",
       "description": "Anchored popover with light dismiss and corner-squaring to trigger"
     },
     {
@@ -701,6 +759,7 @@
           "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
         }
       },
+      "category": "Overlays",
       "description": "Edge drawer overlay with backdrop blur and slide animation"
     },
     {
@@ -731,6 +790,7 @@
         }
       },
       "constraints": "Requires exactly 2 children",
+      "category": "Containers",
       "description": "Resizable two-panel layout with automatic corner-squaring domain"
     },
     {
@@ -769,6 +829,7 @@
           "description": "Per-instance overrides for variant, size, active-tab colour, and panel transition."
         }
       },
+      "category": "Data Display",
       "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
     },
     {
@@ -785,6 +846,7 @@
           "type": "ReactElement"
         }
       },
+      "category": "Overlays",
       "description": "Real-time HSV theme editor rendered in a SlideOut panel"
     },
     {
@@ -809,6 +871,7 @@
           "description": "Override corner radius using the theme radius token scale."
         }
       },
+      "category": "Layout Primitives",
       "description": "Horizontal action bar with left/center/right slot areas"
     },
     {
@@ -844,6 +907,7 @@
           "description": "Per-instance overrides for theme (dark/light/accent) and size."
         }
       },
+      "category": "Overlays",
       "description": "Hover/focus tooltip wrapping a child trigger element"
     },
     {
@@ -861,6 +925,7 @@
           "description": "Override border radius for the outer corners."
         }
       },
+      "category": "Layout Primitives",
       "description": "Merges adjacent elements into a single visual compound control"
     },
     {
@@ -900,6 +965,7 @@
           "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
         }
       },
+      "category": "Layout Primitives",
       "description": "Vertical flex column layout primitive"
     }
   ]

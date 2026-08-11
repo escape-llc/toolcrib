@@ -44,7 +44,10 @@ export interface DropdownMenuProps {
   align?: 'start' | 'center' | 'end';
 }
 
-/** @manifest Data-driven action menu with separator support */
+/**
+ * @manifest Data-driven action menu with separator support
+ * @manifestCategory Overlays
+ */
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   id = `menu-${Math.random().toString(36).substring(2, 7)}`,
   trigger,

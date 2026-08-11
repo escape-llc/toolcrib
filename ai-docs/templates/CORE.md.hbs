@@ -77,7 +77,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<SlideOut>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
-| Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
+| Pass `style=\{{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
 
 ---
 
@@ -85,51 +85,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Props** lists every prop name, not full types/defaults/descriptions; consult the manifest for those. **Slots** are compound sub-components (`Card.Header`, etc.), `—` if none.
 
-### Layout Primitives
+{{#each componentsByCategory}}
+### {{category}}
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<Content>` | `.Grow` | `gap`, `marginMode`, `squareCorners` | Fills its container and establishes a flex-column layout domain for its children |
-| `<Grid>` | — | `columns`, `minColWidth`, `gap`, `marginMode`, `paddingMode` | CSS Grid responsive multi-column layout |
-| `<HStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Horizontal flex row layout primitive |
-| `<Toolbar>` | `.Left`, `.Center`, `.Right` | `paddingMode`, `marginMode`, `cornerRadiusMode` | Horizontal action bar with left/center/right slot areas |
-| `<UIGroup>` | — | `orientation`, `borderRadius` | Merges adjacent elements into a single visual compound control |
-| `<VStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Vertical flex column layout primitive |
+{{#each components}}| `<{{name}}>` | {{slots}} | {{props}} | {{description}} |
+{{/each}}
 
-### Containers
-
-| Component | Slots | Props | Description |
-|:---|:---|:---|:---|
-| `<AppShell>` | `.Header`, `.Main` | — | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
-| `<Card>` | `.Header`, `.Content`, `.Footer`, `.Actions` | `layout`, `squareCorners`, `overrides` | Slot-based container with automatic layout domain corner squaring |
-| `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
-| `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
-
-### Overlays
-
-| Component | Slots | Props | Description |
-|:---|:---|:---|:---|
-| `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align` | Data-driven action menu with separator support |
-| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Dialog overlay with focus trap, backdrop, and slot composition |
-| `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex` | Anchored popover with light dismiss and corner-squaring to trigger |
-| `<SlideOut>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
-| `<ThemeEditor>` | — | `isOpen`, `onOpenChange`, `trigger` | Real-time HSV theme editor rendered in a SlideOut panel |
-| `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
-
-### Data Display
-
-| Component | Slots | Props | Description |
-|:---|:---|:---|:---|
-| `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
-| `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
-| `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
-
-### Form Controls
-
-| Component | Slots | Props | Description |
-|:---|:---|:---|:---|
-| `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
-
+{{/each}}
 `<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 
 ### Toast Subsystem
@@ -192,14 +156,8 @@ When a `<Card>` is placed inside a flex container (like a `<Splitter>` panel), s
 
 | Tier | Value | Used By |
 |:---:|:---:|:---|
-| `BASE` | 0 | Cards, Grids, Stacks, Accordion |
-| `STICKY` | 10 | DataTable headers, sticky Toolbars |
-| `SPLITTER` | 20 | Splitter resize handles |
-| `DRAWER` | 100 | SlideOut drawers, Theme Editor |
-| `MODAL` | 200 | Modal dialogs |
-| `DROPDOWN` | 300 | Select dropdowns, Popup, DropdownMenu |
-| `TOOLTIP` | 400 | Tooltip overlays |
-| `TOAST` | 500 | Toast notifications |
+{{#each zIndexRows}}| `{{tier}}` | {{value}} | {{usedBy}} |
+{{/each}}
 
 ---
 
@@ -233,7 +191,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `slideout`, `accordion`, `card`, `tooltip`.
+Built-in slices: {{themeSliceIdList}}.
 
 Register custom slices:
 ```tsx
@@ -258,7 +216,7 @@ globalThemeSliceRegistry.register(MySlice);
 A component with theme-controlled visual axes exposes them through an `overrides` prop instead of `style` — a typed, sparse patch applied only to that one instance, layered on top of (never replacing) the global Theme Editor state:
 
 ```tsx
-<Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
+<Card overrides=\{{ padding: 'compact', headerStyle: 'subtle-bg' }}>
   <Card.Header>Compact Card</Card.Header>
   <Card.Content>Only this Card gets these values — every other Card, and the
   global Theme Editor's Card slice, is untouched.</Card.Content>
@@ -296,42 +254,9 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[32]{name,payload}:
-  "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
-  "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
-  "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
-  "viewport:resized","{ width: number; height: number }"
-  "popup:shown","{ id: string; targetId?: string; data?: any }"
-  "popup:hidden","{ id: string }"
-  "slideout:shown","{ id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any }"
-  "slideout:hidden","{ id: string }"
-  "modal:shown","{ id: string; data?: any }"
-  "modal:hidden","{ id: string }"
-  "form:submitted","{ formId?: string; values: Record<string, any> }"
-  "form:validated","{ formId?: string; isValid: boolean }"
-  "form:errored","{ formId?: string; errors: Record<string, string> }"
-  "toast:shown","{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
-  "toast:added","{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
-  "toast:expired","{ id: string; message?: string; type?: string }"
-  "toast:dismissed","{ id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' }"
-  "toast:action_clicked","{ id: string; actionLabel: string; message?: string }"
-  "error:boundary","{ componentName: string; error: string; stack?: string }"
-  "tooltip:shown","{ id?: string; content: string }"
-  "tooltip:hidden","{ id?: string }"
-  "accordion:opened","{ id?: string; itemValue: string }"
-  "accordion:closed","{ id?: string; itemValue: string }"
-  "menu:opened","{ id?: string }"
-  "menu:closed","{ id?: string }"
-  "menu:item_selected","{ id?: string; itemValue: string }"
-  "select:changed","{ name?: string; value: string }"
-  "slider:changed","{ name?: string; value: number }"
-  "tab:changed","{ id?: string; activeId: string; previousId?: string }"
-  "log:cleared","{ timestamp: string }"
-  "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
-  "layout:corners:squared","{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"
+{{{eventChannelsToon}}}
 ```
 
 Notable payloads:
-- `error:boundary` — emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<SlideOut>`) whenever a child throws during render
-- `tab:changed` — `id` is the `<TabStrip id>` group identifier; sticky (see above), so a `<TabStrip.Panel>` mounted after this fires still gets the current value replayed to it
-
+{{#each eventChannelRows}}{{#if note}}- `{{name}}` — {{note}}
+{{/if}}{{/each}}

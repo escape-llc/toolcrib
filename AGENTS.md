@@ -50,6 +50,8 @@ export interface CardProps {
 
 **Slots** (`Card.Header`, `Modal.Body`, etc.) are discovered automatically by scanning the component's file for `ComponentName.SlotName = ...` assignments — no tag needed. Standard React statics assigned the same way (`Component.displayName = ...`) are excluded automatically; don't add new ones to that exclusion list casually if you're not sure they aren't a real slot.
 
+**`@manifestCategory <name>` is required, not optional** — one of `Layout Primitives`, `Containers`, `Overlays`, `Data Display`, `Form Controls` (`VALID_CATEGORIES` in `scripts/lib/extract.js`). Generation fails outright (both `--check` and `--write`) if a `@manifest`-tagged component is missing it or uses a value outside that set — it's what groups components into `ai-docs/CORE.md`'s generated Component Reference tables (§4), so an uncategorized component would otherwise fall out of that doc's tables silently.
+
 **Two more tags for facts that aren't mechanically derivable:**
 - `@manifestConstraints <text>` — a structural requirement the type system can't express (e.g. Splitter's `@manifestConstraints Requires exactly 2 children`).
 - `@manifestChildren <Comma, Separated, Names>` — a curated "commonly used together" list, e.g. Form's child form controls. This is a judgment call about typical usage, not a property of the source, so it has to be authored, not inferred.
@@ -61,6 +63,8 @@ export interface CardProps {
 **Event bus helper methods** (`aiBus.openModal(...)` etc.) are read from `AIEventBus`'s methods, excluding `on`/`off`/`emit` themselves. "emits" is read from the first `this.emit('event:name', ...)` call in the method body. If a method returns something worth documenting (like `showToast` returning the toast id), add `@manifestReturns <description>` to its JSDoc — otherwise `returns` is simply omitted.
 
 **After any of the above:** run `npm run generate-manifest`, review the diff, commit it alongside your source change. Don't hand-edit `component-manifest.json` directly — the next run will silently overwrite it, and CI will catch the drift anyway.
+
+**`ai-docs/CORE.md` is also generated, not hand-edited** — `node scripts/generate-docs.js --write` (or `npm run generate-docs`) renders `ai-docs/templates/CORE.md.hbs` against the same source-derived data as the manifest (shared via `scripts/lib/extract.js`, so the two can't disagree with each other). This exists because CORE.md's hand-written tables had already drifted before this pipeline did — missing 9 of 32 real event channels and 4 of 20 real components at the time it was built. `npm run check-docs` (or `node scripts/generate-docs.js --check`) validates there's no drift, same contract as `check-manifest`; CI runs both. If a source change should change CORE.md's *generated* sections (Component Reference, Z-Index table, Theme Slices list, Event Bus payload reference), regenerate — don't hand-edit the committed file. If it should change CORE.md's *static* prose (Root Setup, Core Principles, Anti-Patterns, the escape-hatches/overrides sections, code samples), edit `CORE.md.hbs` directly, then regenerate.
 
 ## Theme overrides — no component accepts `style`/`className`
 
