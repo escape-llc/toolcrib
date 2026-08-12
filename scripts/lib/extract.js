@@ -34,7 +34,12 @@ export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 
 // -------------------------------------------------------------------------
 
 export function parse(filePath) {
-  const text = fs.readFileSync(filePath, 'utf-8');
+  // Normalize line endings up front so every downstream .getText()/.text
+  // read from this source file is already \n-only, regardless of whether
+  // the checkout has \r\n (see jsDocCommentText's comment for why this
+  // matters — core.autocrlf makes the same commit check out differently
+  // on Windows vs Linux CI).
+  const text = fs.readFileSync(filePath, 'utf-8').replace(/\r\n?/g, '\n');
   return ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, /* setParentNodes */ true);
 }
 
@@ -56,8 +61,15 @@ export function leadingJsDoc(node) {
 
 export function jsDocCommentText(comment) {
   if (comment == null) return '';
-  if (typeof comment === 'string') return comment;
-  return comment.map((c) => c.text ?? '').join('');
+  // Normalize line endings before anything downstream sees this text — the
+  // AST's `.text` segments carry whatever bytes are literally in the
+  // checked-out file, and `core.autocrlf=true` (a common Windows Git
+  // default) means the same commit checks out as \r\n on Windows and \n on
+  // Linux CI. Without normalizing here, whichever OS last ran the
+  // generator bakes its own line ending into the committed JSON/docs, and
+  // the *other* OS's --check then reports false drift.
+  if (typeof comment === 'string') return comment.replace(/\r\n?/g, '\n');
+  return comment.map((c) => c.text ?? '').join('').replace(/\r\n?/g, '\n');
 }
 
 export function jsDocTag(doc, tagName) {
