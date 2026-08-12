@@ -37,17 +37,7 @@ Toolcrib fixes this by removing the model's ability to generate `class` or `styl
 
 The deployment model for Toolcrib is "Full Vendoring" meaning you copy all the source into your repo.  This is also how `shadcn` operates.  This gives the model complete access to how the toolkit works, and allows the model to alter the toolkit for your specific needs.
 
-The easiest way to initialize your repo is to run `npx toolcrib init`.  This will pull down everything from github into your `./toolcrib` folder.
-
-```bash
-npx toolcrib init
-```
-
-Pass in a different folder if necessary:
-
-```bash
-npx toolcrib init ./src/ui
-```
+> Refer to the USER_GUIDE.md file for detailed instructions!
 
 # Usage
 
@@ -56,6 +46,8 @@ To get the most out of Toolcrib, you need to tell your AI agent to use it.
 There are assets in the `ai-docs` folder you can integrate into your `AGENTS.md` or other similar files.
 
 The `component-manifest.json` is a machine-readable manifest of the toolkit API surface. Refer to this file, instead of piling API descriptions into your prompts.
+
+> The CLI will install these for you (as patches)!
 
 # Theming
 
