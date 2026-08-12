@@ -11,7 +11,7 @@ import { buildManagedBlock } from '../src/lib/managedDocs.js';
  * same-version path is exercised here — the "block claims a different
  * version, fetch that release too" branch calls the real fetchRelease()
  * and is covered by the opt-in network integration test instead (see
- * cli/README.md), not here.
+ * cli/CONTRIBUTING.md), not here.
  */
 function fakeRelease(version, docs) {
   return {

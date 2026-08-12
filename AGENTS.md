@@ -87,7 +87,7 @@ The CLI (`cli/`) generates git patches for a consumer's project via `PendingChan
 
 The same real-Windows-run also found: fence regexes (`cli/src/lib/fences.js`, used for the managed-block system below) must tolerate `\r?\n`, not just `\n` — `git apply` writes CRLF whenever `core.autocrlf=true`, a common Windows Git default. And file reads (`cli/src/lib/project.js`, `release.js`) strip a UTF-8 BOM before use — Node's `fs` never does this itself, and it breaks `JSON.parse()` outright on a BOM'd `package.json`/`tsconfig.json`.
 
-If you touch CLI path-handling or file-reading code, prefer testing it against a real `init`/`apply`/`doctor` run over a dummy project (see `cli/README.md`'s integration-test section) — the unit tests cover the pure-logic modules, but this exact class of bug is invisible to them by construction (Linux dev/CI environments don't reproduce it).
+If you touch CLI path-handling or file-reading code, prefer testing it against a real `init`/`apply`/`doctor` run over a dummy project (see `cli/CONTRIBUTING.md`'s integration-test section) — the unit tests cover the pure-logic modules, but this exact class of bug is invisible to them by construction (Linux dev/CI environments don't reproduce it).
 
 ### Managed fence blocks
 

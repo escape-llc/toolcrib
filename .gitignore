@@ -14,5 +14,5 @@ toolcrib.zip.sha256
 toolcrib-tests.zip
 toolcrib-tests.zip.sha256
 
-# Local scratch data from cli/README.md's integration-test instructions
+# Local scratch data from cli/CONTRIBUTING.md's integration-test instructions
 cli/integration-test/releases/
