@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/escape-llc/toolcrib.git",
+    "url": "git+https://github.com/escape-llc/toolcrib.git",
     "directory": "cli"
   },
   "bin": {
-    "toolcrib": "./src/index.js"
+    "toolcrib": "src/index.js"
   },
   "files": [
     "src"
