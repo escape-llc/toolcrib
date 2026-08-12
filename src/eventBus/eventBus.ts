@@ -163,6 +163,27 @@ class AIEventBus {
   }
 
   /**
+   * Remove a single sticky entry for `event`/`id` (or the whole event's
+   * sticky map if `id` is omitted). `stickyValues` otherwise only ever
+   * grows — every distinct id ever emitted for a sticky event stays
+   * remembered for the app's lifetime, which is fine for statically-known,
+   * finite ids but a real leak if an id is ever generated per dynamic
+   * instance (e.g. one `<TabStrip>` per row in a list that gets created and
+   * destroyed repeatedly). The component that owns the id is what knows
+   * when it's genuinely done with it — this just gives it a way to say so
+   * on unmount rather than the bus guessing.
+   */
+  clearSticky<K extends EventKey>(event: K, id?: string): void {
+    const stored = this.stickyValues[event];
+    if (!stored) return;
+    if (id === undefined) {
+      delete this.stickyValues[event];
+    } else {
+      stored.delete(id);
+    }
+  }
+
+  /**
    * Helper methods for AI convenience to trigger common global actions
    */
   openModal(id: string, data?: any) {

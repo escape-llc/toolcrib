@@ -1,4 +1,4 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { ReactNode } from 'react';
 import { Card, CardProps } from './Card';
 
 /**

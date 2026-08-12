@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
@@ -18,7 +17,6 @@ import { Popup } from '../components/Overlay/Popup';
 import { Tooltip } from '../components/Tooltip/Tooltip';
 import { Accordion } from '../components/Accordion/Accordion';
 import { DropdownMenu } from '../components/DropdownMenu/DropdownMenu';
-import { Select } from '../components/Form/Select';
 import { Slider } from '../components/Form/Slider';
 import { TabStrip } from '../components/TabStrip/TabStrip';
 import { Button } from '../components/Form/FormComponents';

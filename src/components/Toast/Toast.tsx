@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Toast as ToastPrimitive } from 'radix-ui';
 import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
@@ -12,18 +12,25 @@ export interface ToastProps {
 export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const { dismissToast } = useToast();
 
-  useEffect(() => {
-    if (toast.sticky || !toast.duration || toast.duration <= 0) return;
-    const timer = setTimeout(() => {
-      aiBus.emit('toast:expired', {
-        id: toast.id,
-        message: toast.message,
-        type: toast.type,
-      });
-      dismissToast(toast.id, 'expired');
-    }, toast.duration);
-    return () => clearTimeout(timer);
-  }, [toast.sticky, toast.duration, toast.id, toast.message, toast.type, dismissToast]);
+  // ToastPrimitive.Root is given the same `duration` below and runs its own
+  // internal auto-dismiss timer, which — per Radix's documented Toast
+  // behavior — pauses while the toast is hovered/focused, so it doesn't
+  // disappear mid-read. A second, independently-scheduled setTimeout here
+  // (the previous implementation) had no concept of hover at all: it kept
+  // counting down regardless, so it could fire and dismiss the toast out
+  // from under a user actively reading it — defeating Radix's own
+  // accessibility behavior. Radix is now the only timer.
+  //
+  // The one thing that timer was also doing — distinguishing "timed out"
+  // from "user dismissed" for the `reason` field and the `toast:expired`
+  // event — still needs answering, since Radix's onOpenChange(false) fires
+  // identically for a timeout, a swipe-to-dismiss, or a "close all"
+  // shortcut, without saying which. The explicit dismiss paths (the ✕
+  // button, an action button) already call dismissToast with their own
+  // correct reason directly and never reach onOpenChange at all. The only
+  // other path in is a swipe gesture, so tracking whether one started is
+  // enough to tell the two apart without needing a timer of our own.
+  const swipedRef = useRef(false);
 
   const getSubthemeColor = (type: ToastItem['type']): string => {
     switch (type) {
@@ -60,8 +67,15 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
     <ToastPrimitive.Root
       data-testid="toast-item"
       duration={toast.sticky ? Infinity : (toast.duration || 5000)}
+      onSwipeStart={() => { swipedRef.current = true; }}
       onOpenChange={(open) => {
-        if (!open) dismissToast(toast.id, 'user');
+        if (open) return;
+        if (swipedRef.current) {
+          dismissToast(toast.id, 'user');
+        } else {
+          aiBus.emit('toast:expired', { id: toast.id, message: toast.message, type: toast.type });
+          dismissToast(toast.id, 'expired');
+        }
       }}
       style={{
         display: 'flex',

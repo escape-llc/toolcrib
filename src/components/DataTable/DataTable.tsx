@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, ReactNode } from 'react';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
@@ -78,6 +78,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
+
+  // Nothing previously reset scrollTop (state or the real DOM scroll
+  // position) when the page changed — scrolling deep into page 1, then
+  // paging forward, left the virtualization window (startIndex/endIndex
+  // below) computed from a scroll offset that belonged to a completely
+  // different page's row count, which could render as an apparently empty
+  // table until the user manually scrolled back up.
+  useEffect(() => {
+    setScrollTop(0);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]);
 
   // 1. Sorting
   const sortedData = useMemo(() => {

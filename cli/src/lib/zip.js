@@ -19,6 +19,16 @@ const execFileAsync = promisify(execFile);
  * If you'd rather have zero external-binary reliance, swap this for the
  * `unzipper` or `yauzl` npm package — either is fine for CLI-only code.
  */
+/**
+ * Escape a value for embedding inside a PowerShell single-quoted string
+ * literal. PowerShell's escape rule for a single quote inside a
+ * single-quoted string is to double it (`''`), not backslash-escape it —
+ * this is PowerShell's own rule, unrelated to Node/shell escaping.
+ */
+export function powerShellQuote(value) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
 export async function extractZip(zipBuffer, targetDir) {
   await fsp.mkdir(targetDir, { recursive: true });
 
@@ -28,11 +38,24 @@ export async function extractZip(zipBuffer, targetDir) {
   try {
     if (process.platform === 'win32') {
       // PowerShell's Expand-Archive ships on all modern Windows installs.
-      await execFileAsync('powershell', [
-        '-NoProfile',
-        '-Command',
-        `Expand-Archive -Path '${tmpZipPath}' -DestinationPath '${targetDir}' -Force`,
-      ]);
+      //
+      // The script text is passed via -EncodedCommand (a base64-encoded
+      // UTF-16LE string) rather than as a plain -Command string built by
+      // interpolating paths directly into single-quoted PowerShell literals.
+      // execFile doesn't invoke a shell, so Node itself never reinterprets
+      // these arguments — but powershell.exe's own argument handling for a
+      // multi-token -Command re-joins everything after it into one script
+      // line, which put the actual escaping burden on this string being
+      // built correctly to begin with. -EncodedCommand takes exactly one
+      // argument (the encoded blob) with nothing left for powershell.exe's
+      // own parser to re-split or reinterpret, and powerShellQuote() above
+      // still applies PowerShell's real single-quote escaping rule to each
+      // value, so a path containing a literal `'` (however unlikely from
+      // os.tmpdir()/mkdtemp() in practice) is handled correctly rather than
+      // relying on that never happening.
+      const script = `Expand-Archive -Path ${powerShellQuote(tmpZipPath)} -DestinationPath ${powerShellQuote(targetDir)} -Force`;
+      const encodedScript = Buffer.from(script, 'utf16le').toString('base64');
+      await execFileAsync('powershell', ['-NoProfile', '-EncodedCommand', encodedScript]);
     } else {
       await execFileAsync('unzip', ['-o', '-q', tmpZipPath, '-d', targetDir]);
     }

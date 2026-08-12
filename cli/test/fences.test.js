@@ -68,3 +68,29 @@ describe('fences.js style isolation', () => {
     expect(extractFence(FENCE_STYLES.markdown, hashBlock, 'demo')).toBeNull();
   });
 });
+
+describe.each([
+  ['markdown', FENCE_STYLES.markdown],
+  ['hash', FENCE_STYLES.hash],
+  ['js', FENCE_STYLES.js],
+])('fences.js with the %s style and a regex-metacharacter id (regression)', (_name, style) => {
+  // Every id this CLI actually passes today is a fixed internal constant,
+  // never attacker- or user-controlled, so this was never reachable in
+  // practice — but pattern() interpolated `id` into `new RegExp(...)`
+  // unescaped despite escapeRegExp() already existing in this same file
+  // for exactly this purpose. Confirms it's now applied, rather than
+  // relying on every future id staying "obviously safe" by convention.
+  const trickyId = 'demo.id[1]+(x)?';
+
+  it('builds and round-trips a fence whose id contains regex metacharacters', () => {
+    const block = buildFence(style, trickyId, '1.0.0', 'payload');
+    expect(extractFence(style, block, trickyId)).toMatchObject({ version: '1.0.0', content: 'payload' });
+  });
+
+  it('does not accidentally match a similarly-shaped but different id', () => {
+    const block = buildFence(style, trickyId, '1.0.0', 'payload');
+    // If the metacharacters in trickyId were live regex syntax instead of
+    // literal text, this near-miss id could wrongly match the same block.
+    expect(extractFence(style, block, 'demoXid11xxx')).toBeNull();
+  });
+});

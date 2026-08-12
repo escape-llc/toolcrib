@@ -16,6 +16,21 @@ export function applyPatchFallback(patchPath, projectRoot) {
   const targetRelPath = parsed.newFileName.replace(/^b\//, '');
   const targetPath = path.join(projectRoot, targetRelPath);
 
+  // Defense in depth: every relPath this CLI itself writes into a patch
+  // header comes from its own vendored file list or fixed strings
+  // (package.json, .gitignore, ...), never from anything an attacker
+  // controls directly — but nothing enforced that at the point a patch is
+  // actually applied. Rejecting a resolved target outside projectRoot here
+  // means a corrupted, hand-edited, or (in a worse scenario) tampered
+  // patch file can't be used to write outside the project regardless of
+  // how it got that path, rather than relying solely on every upstream
+  // producer of a patch file staying honest.
+  const resolvedRoot = path.resolve(projectRoot);
+  const resolvedTarget = path.resolve(targetPath);
+  if (resolvedTarget !== resolvedRoot && !resolvedTarget.startsWith(resolvedRoot + path.sep)) {
+    return { success: false, error: `Refusing to apply patch: target path "${targetRelPath}" resolves outside the project root.` };
+  }
+
   const isNewFile = parsed.oldFileName === '/dev/null';
   const currentContent = isNewFile ? '' : fs.readFileSync(targetPath, 'utf-8');
 

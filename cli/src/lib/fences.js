@@ -35,6 +35,10 @@ function bannerFor(style) {
   return style === 'markdown' ? `<!-- ${text} -->` : style === 'hash' ? `# ${text}` : `// ${text}`;
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export const FENCE_STYLES = {
   // Markdown / HTML-comment files: AGENTS.md, CLAUDE.md.
   markdown: {
@@ -50,18 +54,31 @@ export const FENCE_STYLES = {
     // content run through normalize() by their callers (doctor.js,
     // merge.js) so a pure line-ending difference is never itself reported
     // as drift — this is about matching the fence at all.
-    pattern: (id) =>
-      new RegExp(
-        `<!-- toolcrib:managed:${id}:start version=(\\S+) -->\\r?\\n([\\s\\S]*?)<!-- toolcrib:managed:${id}:end -->\\r?\\n?`
-      ),
+    //
+    // `id` is escaped before interpolation into the RegExp source — every
+    // `id` this CLI actually passes today is a fixed internal constant
+    // ('gitignore', 'core', 'new-app', 'refactor-app'), never attacker- or
+    // even user-controlled, so this has never been reachable in practice.
+    // Escaping anyway costs nothing and means that stays true by
+    // construction rather than by every future caller happening to keep
+    // passing safe ids — the same reasoning as escaping the version string,
+    // just not yet applied here consistently.
+    pattern: (id) => {
+      const safeId = escapeRegExp(id);
+      return new RegExp(
+        `<!-- toolcrib:managed:${safeId}:start version=(\\S+) -->\\r?\\n([\\s\\S]*?)<!-- toolcrib:managed:${safeId}:end -->\\r?\\n?`
+      );
+    },
   },
   // #-comment files: .gitignore, .env, YAML, shell scripts.
   hash: {
     start: (id, version) => `# toolcrib:managed:${id}:start version=${version}`,
     banner: () => bannerFor('hash'),
     end: (id) => `# toolcrib:managed:${id}:end`,
-    pattern: (id) =>
-      new RegExp(`# toolcrib:managed:${id}:start version=(\\S+)\\r?\\n([\\s\\S]*?)# toolcrib:managed:${id}:end\\r?\\n?`),
+    pattern: (id) => {
+      const safeId = escapeRegExp(id);
+      return new RegExp(`# toolcrib:managed:${safeId}:start version=(\\S+)\\r?\\n([\\s\\S]*?)# toolcrib:managed:${safeId}:end\\r?\\n?`);
+    },
   },
   // JS/TS/JSX/TSX source files. Not used by any current CLI feature — no
   // command patches user source code yet — but defined here so a future
@@ -72,8 +89,10 @@ export const FENCE_STYLES = {
     start: (id, version) => `// toolcrib:managed:${id}:start version=${version}`,
     banner: () => bannerFor('js'),
     end: (id) => `// toolcrib:managed:${id}:end`,
-    pattern: (id) =>
-      new RegExp(`// toolcrib:managed:${id}:start version=(\\S+)\\r?\\n([\\s\\S]*?)// toolcrib:managed:${id}:end\\r?\\n?`),
+    pattern: (id) => {
+      const safeId = escapeRegExp(id);
+      return new RegExp(`// toolcrib:managed:${safeId}:start version=(\\S+)\\r?\\n([\\s\\S]*?)// toolcrib:managed:${safeId}:end\\r?\\n?`);
+    },
   },
 };
 
@@ -82,10 +101,6 @@ export const FENCE_STYLES = {
 // patches (package.json) is instead tracked structurally, by known
 // dependency/imports key names (see lib/deps.js), not by an inline marker.
 export const NO_FENCE_ASSET_TYPES = ['json'];
-
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /** Build a complete fenced block (start marker, banner, content, end marker) in the given style. */
 export function buildFence(style, id, version, content) {

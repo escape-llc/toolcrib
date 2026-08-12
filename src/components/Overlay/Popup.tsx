@@ -1,10 +1,10 @@
-import React, { useState, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
+import React, { useState, useRef, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
 import { SquareCornerOption } from '../Card/Card';
-import { StyleFree, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -43,7 +43,7 @@ export interface PopupProps {
  * @manifestCategory Overlays
  */
 export const Popup: React.FC<PopupProps> = ({
-  id = `popup-${Math.random().toString(36).substring(2, 7)}`,
+  id: propId,
   trigger,
   children,
   placement = 'bottom-start',
@@ -51,6 +51,10 @@ export const Popup: React.FC<PopupProps> = ({
   onOpenChange,
   zIndex = Z_INDEX.DROPDOWN,
 }) => {
+  // See Modal.tsx for why this is a ref rather than a default-parameter
+  // fallback.
+  const idRef = useRef<string>(propId || `popup-${Math.random().toString(36).substring(2, 7)}`);
+  const id = idRef.current;
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -159,7 +163,9 @@ export const Popup: React.FC<PopupProps> = ({
             ...getPopupCornerStyle(),
           }}
         >
-          {children}
+          <AIErrorBoundary componentName="Popup">
+            {children}
+          </AIErrorBoundary>
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>

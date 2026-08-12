@@ -34,6 +34,14 @@ jobs:
         run: npm test
         working-directory: cli
 
+      # scripts/lib/extract.js has its own isolated devDependency (a pinned
+      # typescript@6.x, kept separate from root's own typescript version —
+      # see root AGENTS.md's TypeScript section for why) that root's own
+      # `npm ci` above doesn't install.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
       # Fails the workflow (and blocks the release) if ai-docs/component-manifest.json
       # doesn't match what scripts/generate-manifest.js derives directly from
       # component source (JSDoc @manifest tags, prop types, slots, event bus

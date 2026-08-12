@@ -46,7 +46,7 @@ export interface SlideOutProps {
  * @manifestCategory Overlays
  */
 export const SlideOut: React.FC<SlideOutProps> = ({
-  id = `slideout-${Math.random().toString(36).substring(2, 7)}`,
+  id: propId,
   trigger,
   children,
   position = 'right',
@@ -56,6 +56,11 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   width: propWidth,
   zIndex = Z_INDEX.DRAWER,
 }) => {
+  // See Modal.tsx for why this is a ref rather than a default-parameter
+  // fallback: the latter re-evaluates every render, silently reshuffling
+  // the id and breaking event-bus targeting for any caller relying on it.
+  const idRef = useRef<string>(propId || `slideout-${Math.random().toString(36).substring(2, 7)}`);
+  const id = idRef.current;
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);

@@ -1,0 +1,59 @@
+name: CI
+
+# Runs on every push/PR to main — independent of release.yml, which only
+# triggers on a pushed version tag. Before this existed, test failures and
+# manifest/docs/index drift were only ever caught at release time, which
+# could be days or releases apart from the change that introduced them.
+# This intentionally does NOT build or publish anything — see release.yml
+# for that, gated on tags as before.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install toolkit dependencies
+        run: npm ci
+
+      - name: Run toolkit test suite
+        run: npm test
+
+      - name: Install CLI dependencies
+        run: npm ci
+        working-directory: cli
+
+      - name: Run CLI test suite
+        run: npm test
+        working-directory: cli
+
+      # scripts/lib/extract.js has its own isolated devDependency (a pinned
+      # typescript@6.x — see root AGENTS.md's TypeScript section) that
+      # root's own npm ci above doesn't install.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
+      # Same three checks release.yml runs before packaging — kept in sync
+      # with that file's own comments on why each one exists. Running them
+      # here too means drift is caught on the PR that introduces it, not
+      # discovered later when someone finally cuts a release.
+      - name: Check component-manifest.json matches source
+        run: node scripts/generate-manifest.js --check
+
+      - name: Check ai-docs/CORE.md matches source
+        run: node scripts/generate-docs.js --check
+
+      - name: Check src/index.ts matches source
+        run: node scripts/generate-index.js --check

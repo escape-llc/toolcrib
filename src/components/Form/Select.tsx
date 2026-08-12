@@ -1,6 +1,7 @@
 import React, { ReactNode, useContext } from 'react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
+import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 
@@ -41,7 +42,7 @@ export interface SelectProps {
  * @manifestCategory Form Controls
  */
 export const Select: React.FC<SelectProps> = ({
-  name,
+  name: propName,
   placeholder = 'Select option...',
   options,
   value: externalValue,
@@ -49,8 +50,22 @@ export const Select: React.FC<SelectProps> = ({
   onChange: externalOnChange,
   disabled = false,
 }) => {
+  const fieldCtx = useContext(FieldContext);
+  const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
-  const fieldName = name;
+
+  // Without this, a Select's name is never added to the form's `values`
+  // object until the user actually picks something — and handleSubmit's
+  // "mark all fields touched" loop only touches keys already present in
+  // `values`. A required Select left at its placeholder on first submit
+  // would compute a real validation error (schema validation runs
+  // regardless) but never be marked touched, so <FormField>'s
+  // `touched[name] ? errors[name] : undefined` display logic would hide
+  // that error forever. Matches Input/Textarea/Checkbox/Switch, which all
+  // already call this on mount.
+  React.useEffect(() => {
+    if (fieldName && formContext) formContext.registerField(fieldName);
+  }, [fieldName, formContext]);
 
   const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? String(formValue) : defaultValue;

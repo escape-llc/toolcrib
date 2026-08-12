@@ -1,4 +1,4 @@
-import React, { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, createContext, useContext } from 'react';
+import React, { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, useContext } from 'react';
 import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
@@ -7,16 +7,10 @@ import { StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { FieldContext } from './FieldContext';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
-
-// FieldContext allows FormField to automatically provide name to child controls
-interface FieldContextValue {
-  name?: string;
-}
-
-const FieldContext = createContext<FieldContextValue>({});
 
 /**
  * Props for `<FormField>` — wraps a form control with label, error display, and helper text.
@@ -248,8 +242,16 @@ export const Button: React.FC<ButtonProps> = ({
 export const SubmitButton: React.FC<ButtonProps> = (props) => {
   const formContext = useOptionalFormContext();
   const isSubmitting = formContext ? formContext.isSubmitting : false;
+  // `disabled` must be applied AFTER `{...props}`, not before — see the
+  // general rule on this in AGENTS.md ("a value that must win over a prop
+  // spread has to come after it, not before"). A consumer passing their own
+  // `disabled` at all (e.g. `disabled={!isValid}`, a very natural way to
+  // gate submission until the form is valid) would otherwise have that
+  // exact value re-applied by the spread, silently discarding the
+  // `isSubmitting ||` guard the instant the trailing spread runs — the
+  // button would stop showing disabled while actively submitting.
   return (
-    <Button type="submit" disabled={isSubmitting || props.disabled} {...props}>
+    <Button type="submit" {...props} disabled={isSubmitting || props.disabled}>
       {isSubmitting ? 'Submitting...' : props.children || 'Submit'}
     </Button>
   );

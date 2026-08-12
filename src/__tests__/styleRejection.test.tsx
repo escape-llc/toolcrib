@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { Card } from '../components/Card/Card';
 import { Button } from '../components/Form/FormComponents';

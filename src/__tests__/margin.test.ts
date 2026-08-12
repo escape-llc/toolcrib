@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMarginVariables, resolveMargin, MarginMode } from '../theme/margin';
+import { getMarginVariables, resolveMargin } from '../theme/margin';
 
 describe('Margin & Spacing Mode System', () => {
   it('generates correct CSS variables for normal margin mode', () => {

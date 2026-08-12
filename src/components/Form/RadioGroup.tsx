@@ -1,6 +1,7 @@
 import React, { ReactNode, createContext, useContext } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
+import { FieldContext } from './FieldContext';
 
 /** Data shape for each option in a `<RadioGroup>`. */
 export interface RadioOption {
@@ -55,7 +56,7 @@ const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
 export const RadioGroup: React.FC<RadioGroupProps> & {
   Option: React.FC<{ value: string; label: ReactNode; disabled?: boolean; helperText?: ReactNode }>;
 } = ({
-  name,
+  name: propName,
   value: externalValue,
   defaultValue,
   onChange: externalOnChange,
@@ -64,8 +65,17 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   children,
   disabled = false,
 }) => {
+  const fieldCtx = useContext(FieldContext);
+  const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
-  const fieldName = name;
+
+  // See Select.tsx for why this matters: without it, a RadioGroup left at
+  // its default (nothing selected) on first submit never gets marked
+  // touched, so a required-field validation error for it would compute
+  // correctly but never actually display.
+  React.useEffect(() => {
+    if (fieldName && formContext) formContext.registerField(fieldName);
+  }, [fieldName, formContext]);
 
   const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? formValue : defaultValue;

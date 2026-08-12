@@ -129,6 +129,51 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
             onChange={val => setBaseColor({ ...parameters.baseColor, v: val })}
           />
         </div>
+
+        {/* Darken / Lighten Factor — applied on top of the base HSV Value
+            channel during palette generation (see harmonies.ts), distinct
+            from the raw Brightness (V) slider above: this scales the whole
+            generated palette's lightness, not just the base swatch. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              Darken / Lighten Factor
+              <Tooltip content="Scales the generated palette's lightness. 1.0 = default; below 1 darkens, above 1 lightens.">
+                <span style={{ cursor: 'pointer' }}>ℹ️</span>
+              </Tooltip>
+            </span>
+            <span>{parameters.darkenLightenFactor.toFixed(2)}x</span>
+          </div>
+          <Slider
+            min={0.5}
+            max={1.5}
+            step={0.05}
+            value={parameters.darkenLightenFactor}
+            onChange={val => setDarkenLightenFactor(val)}
+          />
+        </div>
+
+        {/* Saturation Factor — scales the generated palette's saturation
+            (harmonies.ts), distinct from the base swatch's own Saturation
+            (S) slider above. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              Saturation Factor
+              <Tooltip content="Scales the generated palette's saturation. 1.0 = default; below 1 mutes, above 1 intensifies.">
+                <span style={{ cursor: 'pointer' }}>ℹ️</span>
+              </Tooltip>
+            </span>
+            <span>{parameters.saturationFactor.toFixed(2)}x</span>
+          </div>
+          <Slider
+            min={0}
+            max={2}
+            step={0.05}
+            value={parameters.saturationFactor}
+            onChange={val => setSaturationFactor(val)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -515,6 +560,74 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     </div>
   );
 
+  const cardSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Card Padding */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Card Padding</label>
+        <Select
+          value={cardState.padding}
+          onChange={val => setCardState({ padding: val as any })}
+          options={[
+            { label: 'Compact (0.75rem 1rem)', value: 'compact' },
+            { label: 'Normal (1.25rem 1.5rem)', value: 'normal' },
+            { label: 'Spacious (1.75rem 2.25rem)', value: 'spacious' },
+          ]}
+        />
+      </div>
+
+      {/* Card Header Style */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Card Header Style</label>
+          <Tooltip content="Controls the header's background and bottom border across all Card components">
+            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
+          </Tooltip>
+        </div>
+        <Select
+          value={cardState.headerStyle}
+          onChange={val => setCardState({ headerStyle: val as any })}
+          options={[
+            { label: 'Flush (No Border)', value: 'flush' },
+            { label: 'Bordered (Bottom Border)', value: 'bordered' },
+            { label: 'Subtle Background (Tinted Header)', value: 'subtle-bg' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+
+  const tooltipSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Tooltip Theme */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tooltip Colour Theme</label>
+        <Select
+          value={tooltipState.theme}
+          onChange={val => setTooltipState({ theme: val as any })}
+          options={[
+            { label: 'Dark (Default)', value: 'dark' },
+            { label: 'Light (Surface Colour)', value: 'light' },
+            { label: 'Accent (Primary Colour)', value: 'accent' },
+          ]}
+        />
+      </div>
+
+      {/* Tooltip Size */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tooltip Size</label>
+        <Select
+          value={tooltipState.size}
+          onChange={val => setTooltipState({ size: val as any })}
+          options={[
+            { label: 'Small (Compact Padding & Font)', value: 'sm' },
+            { label: 'Medium (Standard Padding & Font)', value: 'md' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
       {/* Collapsible Accordion Sections */}
@@ -527,6 +640,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
           { value: 'animation', title: '✨ Motion, Transitions & Physics', content: animationContent },
           { value: 'slideout', title: '🪟 SlideOut Drawer & Retract Dynamics', content: slideOutContent },
           { value: 'accordion', title: '🪗 Accordion Header & Gap Spacing', content: accordionSectionContent },
+          { value: 'card', title: '🃏 Card Padding & Header Layout', content: cardSectionContent },
+          { value: 'tooltip', title: '💬 Tooltip Styling & Theme', content: tooltipSectionContent },
           { value: 'tab', title: '📑 Tab Group Panels & Variants', content: tabStripContent },
           { value: 'table', title: '📊 Data Table Layout & Density', content: tableContent },
           { value: 'harmony', title: '🎼 Color Harmony & Typography', content: harmonyContent },

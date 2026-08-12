@@ -1,4 +1,4 @@
-import React, { ReactNode, ReactElement } from 'react';
+import React, { useRef, ReactNode, ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -49,12 +49,17 @@ export interface DropdownMenuProps {
  * @manifestCategory Overlays
  */
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
-  id = `menu-${Math.random().toString(36).substring(2, 7)}`,
+  id: propId,
   trigger,
   items,
   side = 'bottom',
   align = 'start',
 }) => {
+  // See Modal.tsx for why this is a ref rather than a default-parameter
+  // fallback.
+  const idRef = useRef<string>(propId || `menu-${Math.random().toString(36).substring(2, 7)}`);
+  const id = idRef.current;
+
   return (
     <DropdownMenuPrimitive.Root
       onOpenChange={(open) => {

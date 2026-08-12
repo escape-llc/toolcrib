@@ -43,12 +43,16 @@ export interface AccordionProps {
  * @manifestCategory Data Display
  */
 export const Accordion: React.FC<AccordionProps> = ({
-  id = `accordion-${Math.random().toString(36).substring(2, 7)}`,
+  id: propId,
   items,
   type = 'single',
   defaultValue,
   overrides,
 }) => {
+  // See Modal.tsx for why this is a ref rather than a default-parameter
+  // fallback.
+  const idRef = useRef<string>(propId || `accordion-${Math.random().toString(36).substring(2, 7)}`);
+  const id = idRef.current;
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
 
   // Tracks which item values are currently open so onValueChange can emit

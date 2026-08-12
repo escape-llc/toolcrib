@@ -50,4 +50,47 @@ describe('Strongly-Typed EventBus', () => {
     aiBus.closePopup('demo-popup');
     expect(hidden).toHaveBeenCalledWith({ id: 'demo-popup' });
   });
+
+  describe('sticky events', () => {
+    it('replays the last value for a given id to a new subscriber', () => {
+      aiBus.emit('tab:changed', { id: 'sticky-test-group', activeId: 'tab-1' });
+
+      const callback = vi.fn();
+      aiBus.on('tab:changed', callback);
+
+      expect(callback).toHaveBeenCalledWith({ id: 'sticky-test-group', activeId: 'tab-1' });
+    });
+
+    it('clearSticky(event, id) evicts one id without affecting others (regression: unbounded sticky map)', () => {
+      aiBus.emit('tab:changed', { id: 'sticky-clear-a', activeId: 'a1' });
+      aiBus.emit('tab:changed', { id: 'sticky-clear-b', activeId: 'b1' });
+
+      aiBus.clearSticky('tab:changed', 'sticky-clear-a');
+
+      const callback = vi.fn();
+      aiBus.on('tab:changed', callback);
+
+      // Evicted id: no replay.
+      expect(callback).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'sticky-clear-a' }));
+      // Untouched id: still replays normally.
+      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ id: 'sticky-clear-b' }));
+    });
+
+    it('clearSticky(event) with no id clears every entry for that event', () => {
+      aiBus.emit('tab:changed', { id: 'sticky-clear-all-1', activeId: 'x' });
+      aiBus.emit('tab:changed', { id: 'sticky-clear-all-2', activeId: 'y' });
+
+      aiBus.clearSticky('tab:changed');
+
+      const callback = vi.fn();
+      aiBus.on('tab:changed', callback);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('clearSticky is a no-op for an event/id with nothing stored', () => {
+      expect(() => aiBus.clearSticky('tab:changed', 'never-emitted')).not.toThrow();
+      expect(() => aiBus.clearSticky('modal:shown')).not.toThrow();
+    });
+  });
 });

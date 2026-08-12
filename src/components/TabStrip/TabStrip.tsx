@@ -94,6 +94,17 @@ export const TabStrip: React.FC<TabStripProps> & {
   useEffect(() => {
     aiBus.emit('tab:changed', { id: groupId, activeId, previousId: undefined });
     previousIdRef.current = activeId;
+    // Evict this group's sticky entry on unmount. A statically-known,
+    // hand-chosen `id` (the common case) never needs this — the sticky map
+    // stays bounded by the small, fixed set of group ids the app defines.
+    // It matters when `id` is generated per dynamic instance (e.g. one
+    // <TabStrip> per row in a list), where every mount/unmount cycle would
+    // otherwise leave its id's entry behind forever. See eventBus.ts's
+    // clearSticky for why this is the owning component's call to make, not
+    // the bus's.
+    return () => {
+      aiBus.clearSticky('tab:changed', groupId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

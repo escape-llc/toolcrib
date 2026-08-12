@@ -1,7 +1,7 @@
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TabStrip } from '../components/TabStrip/TabStrip';
+import { aiBus } from '../eventBus/eventBus';
 
 describe('TabStrip Component', () => {
   const items = [
@@ -56,5 +56,17 @@ describe('TabStrip Component', () => {
   it('a panel for a groupId with no matching TabStrip mounted anywhere just stays hidden', () => {
     render(<TabStrip.Panel groupId="nobody-is-broadcasting-this-id" value="tab1">Orphan Panel</TabStrip.Panel>);
     expect(screen.queryByText('Orphan Panel')).not.toBeInTheDocument();
+  });
+
+  it('clears its sticky tab:changed entry on unmount (regression: unbounded sticky map for dynamically-created groups)', () => {
+    const { unmount } = render(<TabStrip id="ephemeral-group" items={items} defaultActiveId="tab1" />);
+    unmount();
+
+    // A late subscriber after unmount should get nothing replayed for this
+    // id — before the fix, the sticky entry outlived the component that
+    // created it, forever, regardless of how many such groups came and went.
+    const callback = vi.fn();
+    aiBus.on('tab:changed', callback);
+    expect(callback).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'ephemeral-group' }));
   });
 });

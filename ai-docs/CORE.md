@@ -2,7 +2,7 @@
 
 `toolcrib` is a React component library designed specifically for AI code generation ("vibe coding"). It provides structural UI components, slot-based composition without prop-drilling, a strongly-typed Event Bus, a Zod 4 form validation engine, and an HSV-based CSS variable theme system.
 
-**Always include this file's content in your system instructions** (Cursor `.cursorrules`, `AGENTS.md`, Claude System Prompt, Custom GPTs) when working in a project that uses `toolcrib`. In addition to this file, also include exactly one of:
+**Always include this file's content in your system instructions** (Cursor `.cursorrules`, `AGENTS.md`, `CLAUDE.md`, Custom GPTs) when working in a project that uses `toolcrib`. In addition to this file, also include exactly one of:
 - **`NEW_APP.md`** — starting a project from scratch with `toolcrib` as the UI layer from day one.
 - **`REFACTOR_APP.md`** — introducing `toolcrib` into a codebase that already has UI, styling, and state management.
 
@@ -44,14 +44,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 ## 2. Core Principles
 
 1. **NO Prop-Drilling.** Use slot subcomponents (e.g. `<Card.Header>`, `<Modal.Actions>`) and React contexts.
-2. **NO Manual `useState` for Overlays.** `<Popup>`, `<SlideOut>`, and `<Modal>` manage open/close state internally or via `aiBus`.
-3. **Cross-Tree Actions via Event Bus.** Trigger overlays, toasts, and form actions from anywhere:
+2. **Cross-Tree Actions via Event Bus — for components with no direct ancestor/descendant relationship.** Trigger overlays, toasts, and form actions from anywhere:
    ```tsx
    import { aiBus, useAIEvent } from '#toolcrib';
    aiBus.openModal('delete-confirm', { itemId: row.id });
    aiBus.showToast('Item deleted', 'success');
    useAIEvent('modal:shown', (e) => { /* auto-cleanup */ });
    ```
+   **The decision rule:** the event bus solves "how does component A tell component B something, when B isn't A's child and passing a prop isn't an option" — a `<Modal>` opened by id from anywhere, `<TabStrip>`/`<TabStrip.Panel>` as unrelated siblings with no shared parent, a toast triggered from a click handler nowhere near the toast viewport. It is **not** a general substitute for React Context or props between a component and its own direct descendants — `<SubmitButton>` reading `isSubmitting` from its ancestor `<Form>` via context is the correct tool already, precisely because that *is* a direct-tree relationship with no mount-order race to solve. Reach for the bus when there's a real cross-tree problem; reach for context/props when there isn't, even if the toolkit's aiBus is sitting right there and looks like it would "also work."
+3. **NO Manual `useState` for Overlays.** `<Popup>`, `<SlideOut>`, and `<Modal>` manage open/close state internally or via `aiBus`.
 4. **Schema-Driven Forms.** Pass a Zod schema — controls bind via context automatically:
    ```tsx
    <Form schema={z.object({ email: z.string().email() })} onSubmit={save}>

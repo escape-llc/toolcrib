@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement } from 'react';
+import React, { useState, useRef, ReactNode, ReactElement } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -56,7 +56,7 @@ export const Modal: React.FC<ModalProps> & {
   Actions: React.FC<{ children: ReactNode }>;
   CloseButton: React.FC<{ children?: ReactNode }>;
 } = ({
-  id = `modal-${Math.random().toString(36).substring(2, 7)}`,
+  id: propId,
   trigger,
   children,
   isOpen: externalIsOpen,
@@ -65,6 +65,14 @@ export const Modal: React.FC<ModalProps> & {
   zIndex = Z_INDEX.MODAL,
   ariaLabel = 'Dialog',
 }) => {
+  // A default-parameter fallback here (`id = \`modal-${Math.random()...}\``)
+  // re-evaluates on every render, not just at mount — the id would silently
+  // change on any unrelated re-render, breaking event-bus targeting for any
+  // caller that captured it after the first render. useRef computes it once
+  // and holds it for the component's lifetime, matching Splitter's existing
+  // pattern for the same problem.
+  const idRef = useRef<string>(propId || `modal-${Math.random().toString(36).substring(2, 7)}`);
+  const id = idRef.current;
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 

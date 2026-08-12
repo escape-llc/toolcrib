@@ -302,6 +302,9 @@
     ],
     "helperMethods": [
       {
+        "method": "aiBus.clearSticky(event, id?)"
+      },
+      {
         "method": "aiBus.openModal(id, data?)",
         "emits": "modal:shown"
       },

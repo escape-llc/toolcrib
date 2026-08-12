@@ -1,0 +1,9 @@
+{
+  "name": "toolcrib-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Isolated devDependency scope for scripts/lib/extract.js, which depends on the classic TypeScript Compiler API (ts.createSourceFile, ts.forEachChild, ts.isXxx node guards, ...) to walk component source for manifest/docs/index generation. TypeScript 7's package export is reduced to { version, versionMajorMinor } — that API is absent, not renamed or deprecated (see root AGENTS.md's TypeScript section). Root package.json is free to run a newer typescript for its own build/type-check without affecting this pin, and vice versa: Node resolves 'typescript' starting from this directory's own node_modules before falling back to root's, so extract.js always gets the version declared here regardless of what root has installed.",
+  "dependencies": {
+    "typescript": "6.0.3"
+  }
+}

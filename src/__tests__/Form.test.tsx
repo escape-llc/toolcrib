@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
@@ -81,6 +80,45 @@ describe('Form & Zod Validation Engine', () => {
     expect(submittedSpy).toHaveBeenCalledWith({
       formId: 'test-form',
       values: { username: 'alice', email: 'alice@example.com' },
+    });
+  });
+
+  it('stays disabled while submitting even when the consumer passes their own disabled prop (regression)', async () => {
+    // Reproduces a real bug: SubmitButton spread {...props} *after* its
+    // computed disabled={isSubmitting || props.disabled}, so passing any
+    // explicit `disabled` at all — even `disabled={false}`, as a consumer
+    // gating submission on form validity naturally would — silently
+    // re-applied that original value via the trailing spread and discarded
+    // the isSubmitting guard entirely.
+    let resolveSubmit: () => void;
+    const handleSubmit = vi.fn(
+      () => new Promise<void>((resolve) => { resolveSubmit = resolve; })
+    );
+
+    render(
+      <Form id="test-form" schema={testSchema} onSubmit={handleSubmit}>
+        <FormField name="username" label="Username">
+          <Input placeholder="Username" />
+        </FormField>
+        <FormField name="email" label="Email">
+          <Input placeholder="Email" />
+        </FormField>
+        <SubmitButton disabled={false}>Submit</SubmitButton>
+      </Form>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'alice@example.com' } });
+
+    fireEvent.click(screen.getByText('Submit'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeDisabled();
+    });
+
+    resolveSubmit!();
+    await waitFor(() => {
+      expect(screen.getByRole('button')).not.toBeDisabled();
     });
   });
 

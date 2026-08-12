@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { aiBus } from '../../eventBus/eventBus';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 
 /** @barrelExport */

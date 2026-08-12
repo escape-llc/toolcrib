@@ -4,7 +4,7 @@ import { fetchRelease } from '../lib/release.js';
 import { PendingChanges, joinPatchPath } from '../lib/patches.js';
 import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
 import { readJsonIfExists, readTextIfExists, proposeGitignore, proposeLockUpdate } from '../lib/project.js';
-import { MANAGED_DOCS, DEFAULT_TARGET_FILE, upsertManagedBlock } from '../lib/managedDocs.js';
+import { MANAGED_DOCS, DEFAULT_TARGET_FILE, KNOWN_TARGET_FILES, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
 // The subpath-imports entry that gives consumer code a stable, file-location-
@@ -15,6 +15,23 @@ const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
 
 // docIds always written, plus the situational one --situation selects.
 const SITUATION_TO_DOC_ID = { new: 'new-app', refactor: 'refactor-app' };
+
+/**
+ * Which instruction file to write the managed block into. Mirrors what
+ * doctor/merge already scan (KNOWN_TARGET_FILES) rather than always
+ * defaulting to AGENTS.md — a project that already has a CLAUDE.md (e.g.
+ * an existing Claude Code setup) and no AGENTS.md would otherwise get a
+ * brand-new AGENTS.md sitting unused next to the file its own assistant
+ * actually reads, while merge/doctor go on dutifully tracking blocks in
+ * both. First existing file wins; DEFAULT_TARGET_FILE only applies when
+ * neither is present yet.
+ */
+function resolveTargetFile(projectRoot) {
+  for (const file of KNOWN_TARGET_FILES) {
+    if (readTextIfExists(path.join(projectRoot, file))) return file;
+  }
+  return DEFAULT_TARGET_FILE;
+}
 
 export async function initCommand(options) {
   const projectRoot = process.cwd();
@@ -93,7 +110,8 @@ export async function initCommand(options) {
   const situationDocId = SITUATION_TO_DOC_ID[options.situation];
   const docIdsToWrite = situationDocId ? ['core', situationDocId] : ['core'];
 
-  const agentsPath = path.join(projectRoot, DEFAULT_TARGET_FILE);
+  const targetFile = resolveTargetFile(projectRoot);
+  const agentsPath = path.join(projectRoot, targetFile);
   const originalAgentsContent = readTextIfExists(agentsPath);
   let proposedAgentsContent = originalAgentsContent;
   for (const docId of docIdsToWrite) {
@@ -101,7 +119,7 @@ export async function initCommand(options) {
     proposedAgentsContent = upsertManagedBlock(proposedAgentsContent, docId, release.version, docContent);
   }
   if (proposedAgentsContent !== originalAgentsContent) {
-    changes.propose(DEFAULT_TARGET_FILE, originalAgentsContent, proposedAgentsContent, DEFAULT_TARGET_FILE);
+    changes.propose(targetFile, originalAgentsContent, proposedAgentsContent, targetFile);
   }
 
   await release.cleanup();
@@ -117,7 +135,7 @@ export async function initCommand(options) {
   reportConflicts(depDecisions);
 
   const missingSituation = !situationDocId
-    ? `\n\nThis staged a "core" block in ${DEFAULT_TARGET_FILE}, but not a situational one — re-run with ` +
+    ? `\n\nThis staged a "core" block in ${targetFile}, but not a situational one — re-run with ` +
       `--situation new (greenfield project) or --situation refactor (adopting into an existing app) to add it, ` +
       `or add it by hand wrapped in the same <!-- toolcrib:managed:... --> fence so 'toolcrib merge' can still ` +
       `track it. See ./toolcrib/ai-docs/NEW_APP.md / REFACTOR_APP.md.`
