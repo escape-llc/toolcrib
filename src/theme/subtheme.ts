@@ -1,4 +1,5 @@
 /** Semantic status colouring available on components that opt into it via `subtheme`. */
+/** @barrelExport */
 export type SubthemeName = 'error' | 'success' | 'warning' | 'info';
 
 export interface SubthemeColors {

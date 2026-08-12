@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type TooltipTheme = 'dark' | 'light' | 'accent';
 export type TooltipSize = 'sm' | 'md';
 

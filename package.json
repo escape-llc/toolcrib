@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "imports": {
+    "#toolcrib": "./src/index.ts"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,7 +15,9 @@
     "check-manifest": "node scripts/generate-manifest.js",
     "generate-manifest": "node scripts/generate-manifest.js --write",
     "check-docs": "node scripts/generate-docs.js",
-    "generate-docs": "node scripts/generate-docs.js --write"
+    "generate-docs": "node scripts/generate-docs.js --write",
+    "check-index": "node scripts/generate-index.js",
+    "generate-index": "node scripts/generate-index.js --write"
   },
   "dependencies": {
     "radix-ui": "^1.0.0",

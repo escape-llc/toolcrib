@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type SlideOutWidth = 'sm' | 'md' | 'lg' | '25vw' | '33vw' | '50vw' | '75vw' | 'full';
 export type SlideOutPosition = 'right' | 'left' | 'top' | 'bottom';
 export type SlideOutBackdrop = 'none' | 'subtle' | 'heavy';

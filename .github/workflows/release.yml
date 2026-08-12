@@ -53,6 +53,16 @@ jobs:
       - name: Check ai-docs/CORE.md matches source
         run: node scripts/generate-docs.js --check
 
+      # Fails the workflow (and blocks the release) if src/index.ts (the
+      # public `#toolcrib` barrel) doesn't match what scripts/generate-index.js
+      # derives from source — a file carries `@manifest` or `@barrelExport`,
+      # it's re-exported, full stop. Exists because the hand-maintained
+      # version drifted for real: an audit found Content, DataTableSlice,
+      # and useSliceOverrides silently missing — each shipped to every
+      # consumer as a vendored file, but unimportable via `#toolcrib`.
+      - name: Check src/index.ts matches source
+        run: node scripts/generate-index.js --check
+
       # Fails the workflow (and blocks the release) if the vendored
       # source imports a package package.json doesn't correctly declare
       # in "dependencies" — catches an AI-managed package.json drifting

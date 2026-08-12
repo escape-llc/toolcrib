@@ -1,5 +1,6 @@
 import { aiBus } from '../eventBus/eventBus';
 
+/** @barrelExport */
 export interface ObservedElementConfig {
   id?: string;
   debounceMs?: number;

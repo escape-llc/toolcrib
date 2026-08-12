@@ -6,7 +6,9 @@ This file is for whoever (human or AI) is working **on** this repo — adding co
 
 `toolcrib` is a React component library designed specifically for AI code generation ("vibe coding") — an AI that's building a UI tends to hand-roll the same popups, slide-outs, and ad-hoc CSS over and over. Toolcrib exists to give it a structural toolkit instead: slot-based components, a strongly-typed event bus for cross-tree actions, an HSV-derived CSS-variable theme system, and a Zod-schema-driven form engine.
 
-It is **not distributed as an npm package**. Consumers run `toolcrib init` (this repo's `cli/`), which vendors `src/theme`, `src/eventBus`, `src/observer`, `src/components/**`, and `ai-docs/` directly into their own project as reviewable patches, then wires a `#toolcrib` subpath import (`package.json`'s `"imports"` field) to it. `src/App.tsx`, `src/main.tsx`, `src/index.html`, `src/index.css`, and this file are this repo's own dev/demo harness and contributor instructions — they are **not** vendored, and never will be just by adding them to a directory that happens to get copied.
+The toolkit itself (`src/theme`, `src/eventBus`, `src/observer`, `src/components/**`) is **not distributed as an npm package**. Consumers run `toolcrib init` (via the `toolcrib` CLI on npm, built from `cli/`), which vendors those directories plus `ai-docs/` directly into their own project as reviewable patches, then wires a `#toolcrib` subpath import (`package.json`'s `"imports"` field) to it. `src/` is *only* toolkit source — nothing else lives there.
+
+`demo/` (`App.tsx`, `main.tsx`, `index.css`, `vite-env.d.ts`), the root `index.html`, and this file are this repo's own dev/demo harness and contributor instructions — they are **not** vendored, and never will be just by adding them to a directory that happens to get copied. `demo/` imports the toolkit exclusively via `import { ... } from '#toolcrib'` (the same alias, resolved locally to `./src/index.ts` by root `package.json`'s own `"imports"` field) — never a relative path into `src/`. This is deliberate, not a style preference: a relative import can reach right past the public barrel into an internal file, so the demo would keep working even if `src/index.ts` forgot to re-export something a real consumer needs. Going through `#toolcrib` means the demo breaks the same way a real consumer's build would the moment that happens — see `@barrelExport` below for how `src/index.ts` itself stays honest.
 
 ## Dev machine is Windows — use PowerShell, not Bash
 
@@ -16,6 +18,7 @@ PowerShell-specific gotchas hit in practice:
 - `Start-Process -FilePath "npm"` fails **silently** (no process, no error) — Windows needs the actual executable name, `npm.cmd`, not the bare command a normal shell would resolve via PATHEXT.
 - The console can mangle non-ASCII characters (em dashes, etc.) on read-back even when the file on disk is correct UTF-8 — if a file's content looks corrupted after `Get-Content`, verify with `[System.IO.File]::ReadAllText(path, [System.Text.Encoding]::UTF8)` before assuming the file itself is broken.
 - The working directory does not reliably persist between separate tool calls the way a single interactive shell session would — pass an explicit `cd`/path in each command rather than relying on a previous `cd` still being in effect.
+- `.gitattributes` (`* text=auto eol=lf`) normalizes line endings repo-wide, but it only affects the *index* going forward — a file already checked out with stale CRLF (from before `.gitattributes` existed, or from `core.autocrlf=true`) stays CRLF on disk indefinitely; `git status`/`git checkout HEAD -- <file>` both silently no-op on it, since autocrlf-aware comparison treats the CRLF working copy and the LF blob as equivalent. Found for real while investigating an unrelated `npm publish` warning about `cli/src/index.js`'s `bin` entry — that warning turned out to be a harmless, unrelated cosmetic path normalization (npm stripping a redundant leading `./`), but the file's shebang line genuinely did still have stale CRLF from before `.gitattributes` existed, which would break real execution on Linux/Mac (`#!/usr/bin/env node\r` resolves to a nonexistent `node\r` interpreter). `git checkout HEAD -- cli/src/index.js` alone did nothing to fix it. The actual fix is deleting the file first so there's nothing to short-circuit against, then re-checking it out: `rm <file> && git checkout HEAD -- <file>`. Verify with a real byte-level check (`buffer.includes(0x0d)` in Node, not `git status`) before trusting it's fixed — and don't assume a CRLF-adjacent error message is actually about CRLF; verify the real cause before "fixing" it.
 
 ## Core rules
 
@@ -66,6 +69,24 @@ export interface CardProps {
 
 **`ai-docs/CORE.md` is also generated, not hand-edited** — `node scripts/generate-docs.js --write` (or `npm run generate-docs`) renders `ai-docs/templates/CORE.md.hbs` against the same source-derived data as the manifest (shared via `scripts/lib/extract.js`, so the two can't disagree with each other). This exists because CORE.md's hand-written tables had already drifted before this pipeline did — missing 9 of 32 real event channels and 4 of 20 real components at the time it was built. `npm run check-docs` (or `node scripts/generate-docs.js --check`) validates there's no drift, same contract as `check-manifest`; CI runs both. If a source change should change CORE.md's *generated* sections (Component Reference, Z-Index table, Theme Slices list, Event Bus payload reference), regenerate — don't hand-edit the committed file. If it should change CORE.md's *static* prose (Root Setup, Core Principles, Anti-Patterns, the escape-hatches/overrides sections, code samples), edit `CORE.md.hbs` directly, then regenerate.
 
+## Keeping `src/index.ts` (the public `#toolcrib` barrel) in sync
+
+`src/index.ts` is also generated, not hand-edited — `node scripts/generate-index.js --write` (or `npm run generate-index`) rebuilds it by scanning every file under `src/theme`, `src/eventBus`, `src/observer`, and `src/components/**` for exported declarations tagged `@manifest` or `@barrelExport`, and re-exporting the *whole file* (`export * from './path'`) for any that qualify. `npm run check-index` validates there's no drift; CI runs it alongside `check-manifest`/`check-docs`. This exists because the hand-maintained version drifted for real — an audit while separating the demo app from the toolkit found `Content`, `DataTableSlice`, and `useSliceOverrides` silently missing, each shipped to every consumer as a vendored file but literally unimportable via `#toolcrib`.
+
+**A component's `@manifest` tag already counts** — nothing extra to add. For everything else meant to be public (a hook, a `ThemeSlice` definition, a context's exported types, a shared utility), tag one exported declaration in the file with `@barrelExport`:
+
+```ts
+/** @barrelExport */
+export interface TableSliceState {
+  density: TableDensity;
+  ...
+}
+```
+
+One tagged declaration is enough — the whole file gets re-exported alongside it, so a component's own Props interface doesn't need its own tag once the component itself is tagged. This is opt-in by design, not opt-out: nothing lands in the public API surface without an explicit marker, matching `@manifestCategory`'s own "required, not inferred" philosophy above. If you add a new file under one of the vendored directories and forget to tag anything in it, `check-index` simply won't include it — no error, just silence, so if something you just added isn't reachable via `#toolcrib`, this is the first thing to check.
+
+**After any of the above:** run `npm run generate-index`, review the diff, commit it alongside your source change — same discipline as `generate-manifest`/`generate-docs`.
+
 ## Theme overrides — no component accepts `style`/`className`
 
 Every component's Props interface extends `StyleFree<...>` or `StyleFreeAttributes<T>` (`src/theme/safeProps.ts`) instead of a raw `HTMLAttributes<T>`/`ButtonHTMLAttributes<T>`/etc. — extending the raw attributes type silently reintroduces `style`/`className` regardless of whether the interface redeclares them itself, so deleting the interface's own `style?:`/`className?:` lines is not sufficient on its own. If a component genuinely has nothing else to add, `StyleFreeAttributes<HTMLDivElement>` alone is fine.
@@ -95,7 +116,9 @@ If you touch CLI path-handling or file-reading code, prefer testing it against a
 
 ## Testing
 
-Write tests for anything you add — pure `src/theme`/`src/eventBus` logic and component behavior go in `src/__tests__/`, CLI `lib/` functions go in `cli/test/`. Match the existing file's structure/conventions rather than inventing a new pattern. `npm test` (root) and `cli && npm test` are both required to pass; CI runs both plus `check-manifest` and `check-docs` before packaging a release. Note `cli/` has its own independent `package.json`/`node_modules` (its own `vitest`, currently on a much older major than root) — a root-level dependency upgrade doesn't touch it, and vice versa.
+Write tests for anything you add — pure `src/theme`/`src/eventBus` logic and component behavior go in `src/__tests__/`, CLI `lib/` functions go in `cli/test/`. Match the existing file's structure/conventions rather than inventing a new pattern. `npm test` (root) and `cli && npm test` are both required to pass; CI runs both plus `check-manifest`, `check-docs`, and `check-index` before packaging a release.
+
+`cli/` has its own independent `package.json`/`node_modules` — a root-level dependency upgrade doesn't touch it, and vice versa. This is deliberate, not an oversight: `cli/` is a standalone, independently-published npm package, and consolidating `node_modules` via npm/pnpm workspaces would risk a phantom dependency — `cli/` code accidentally resolving something only because it's hoisted from the toolkit's own (much larger, react/vite-heavy) dependency tree, working locally, then breaking for every real `npm install -g toolcrib` user, whose install has no access to this repo's other project at all. There's no automated check guarding against that for `cli/` the way `build-release.js` validates it for the toolkit's own vendored source, so the isolation is standing in for that missing safety net. Considered and rejected for this reason — don't "helpfully" merge them without adding that check first.
 
 ## TypeScript
 

@@ -11,10 +11,16 @@
  *
  * Layout assumptions specific to this repo (escape-llc/toolcrib):
  *  - Vendorable source lives in src/theme, src/eventBus, src/observer,
- *    and src/components/** (each component in its own folder).
- *  - src/App.tsx, src/main.tsx, src/index.html, src/index.css, and the
- *    root AGENTS.md are the repo's own dev/demo harness and contributor
- *    instructions — NOT shipped to consumers.
+ *    and src/components/** (each component in its own folder) — src/ is
+ *    now *only* toolkit source, nothing else.
+ *  - demo/ (App.tsx, main.tsx, index.css, vite-env.d.ts), the root
+ *    index.html, and the root AGENTS.md are the repo's own dev/demo
+ *    harness and contributor instructions — NOT shipped to consumers.
+ *    demo/ imports the toolkit exclusively via the `#toolcrib` alias
+ *    (root package.json's "imports" field), the same subpath a real
+ *    consumer uses post-`toolcrib init` — never a relative path into
+ *    src/ — so the demo can't silently depend on something src/index.ts
+ *    doesn't actually export.
  *  - ai-docs/ already contains real AI-facing docs (CORE.md, NEW_APP.md,
  *    REFACTOR_APP.md, component-manifest.json) and ships as-is.
  *  - src/__tests__/ is excluded here entirely — it's packaged separately

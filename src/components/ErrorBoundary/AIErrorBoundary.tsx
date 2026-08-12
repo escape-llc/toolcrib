@@ -8,6 +8,7 @@ import { aiBus } from '../../eventBus/eventBus';
  *          errors in portal content from crashing the entire React tree.
  *          You can also wrap any AI-generated section with it for resilience.
  */
+/** @barrelExport */
 export interface AIErrorBoundaryProps {
   children: ReactNode;
   /** Unique name for error reporting (e.g. 'Modal', 'SlideOut'). */

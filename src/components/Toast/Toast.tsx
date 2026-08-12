@@ -4,6 +4,7 @@ import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 
+/** @barrelExport */
 export interface ToastProps {
   toast: ToastItem;
 }

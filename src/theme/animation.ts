@@ -1,5 +1,6 @@
 import { ThemeSlice } from './slice';
 
+/** @barrelExport */
 export type AnimationPreset = 'none' | 'subtle' | 'smooth' | 'snappy' | 'spring';
 export type ReducedMotionOption = 'auto' | 'always' | 'never';
 

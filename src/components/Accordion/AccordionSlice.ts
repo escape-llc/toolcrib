@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type AccordionHeaderPadding = 'compact' | 'normal' | 'spacious';
 export type AccordionItemGap = 'none' | 'compact' | 'normal' | 'spacious';
 export type AccordionVariant = 'bordered' | 'ghost' | 'cards';

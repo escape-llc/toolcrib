@@ -4,6 +4,7 @@
  * No RGB calculations are performed anywhere in this engine.
  */
 
+/** @barrelExport */
 export interface HSVColor {
   /** Hue angle in degrees (0 - 360) */
   h: number;

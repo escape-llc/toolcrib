@@ -129,6 +129,9 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 |:---|:---|:---|:---|
 | `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
+| `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled` | Single-select radio control bound to Form context, data-driven or compositional |
+| `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled` | Dropdown select control bound to Form context, built on Radix Select |
+| `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | — | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |
 

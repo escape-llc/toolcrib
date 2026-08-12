@@ -34,6 +34,7 @@ globalThemeSliceRegistry.register(AccordionThemeSlice);
 globalThemeSliceRegistry.register(CardThemeSlice);
 globalThemeSliceRegistry.register(TooltipThemeSlice);
 
+/** @barrelExport */
 export interface ThemeContextType {
   parameters: ThemeParameters & { shadowMode?: ShadowMode };
   tableState: TableSliceState;

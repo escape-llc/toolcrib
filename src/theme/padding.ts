@@ -1,3 +1,4 @@
+/** @barrelExport */
 export type PaddingMode = 'compact' | 'normal' | 'spacious';
 
 export function getPaddingVariables(mode: PaddingMode = 'normal'): Record<string, string> {

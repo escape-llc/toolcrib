@@ -1,5 +1,6 @@
 import { ThemeSlice } from './slice';
 
+/** @barrelExport */
 export type ShadowMode = 'none' | 'subtle' | 'elevated' | 'glass';
 
 export function getShadowVariables(mode: ShadowMode = 'subtle'): Record<string, string> {

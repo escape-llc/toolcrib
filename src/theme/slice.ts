@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 
+/** @barrelExport */
 export interface ThemeSlice<
   TState = any,
   TVars extends Record<string, string> = Record<string, string>

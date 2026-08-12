@@ -2,6 +2,7 @@ import { useState, useEffect, RefObject } from 'react';
 import { observerManager, ObservedElementConfig } from './observerManager';
 import { useAIEvent } from '../eventBus/useAIEvent';
 
+/** @barrelExport */
 export interface AdaptiveSizeResult {
   width: number;
   height: number;

@@ -5,6 +5,7 @@
 import { ThemeParameters, GeneratedPalette } from '../theme/harmonies';
 import { SubthemeName } from '../theme/subtheme';
 
+/** @barrelExport */
 export interface AIEventMap {
   'theme:changed': {
     /** The full theme parameter state that produced this palette. */

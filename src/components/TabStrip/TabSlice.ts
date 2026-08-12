@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type TabVariant = 'pills' | 'underline' | 'cards' | 'segment';
 export type TabSize = 'sm' | 'md' | 'lg';
 export type TabPanelTransition = 'fade' | 'scale-fade' | 'none';

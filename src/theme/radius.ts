@@ -1,3 +1,4 @@
+/** @barrelExport */
 export type CornerRadiusMode = 'sharp' | 'subtle' | 'rounded' | 'pill';
 
 export interface RadiusVariables extends Record<string, string> {

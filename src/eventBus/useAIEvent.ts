@@ -10,6 +10,7 @@ import { aiBus, AIEventMap, EventKey, EventCallback } from './eventBus';
  *   if (event.id === 'delete-confirm') setTargetId(event.data);
  * });
  */
+/** @barrelExport */
 export function useAIEvent<K extends EventKey>(
   event: K,
   callback: EventCallback<K>

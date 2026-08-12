@@ -765,6 +765,84 @@
       "description": "Anchored popover with light dismiss and corner-squaring to trigger"
     },
     {
+      "name": "RadioGroup",
+      "import": "import { RadioGroup } from '#toolcrib'",
+      "slots": [
+        "Option"
+      ],
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "value": {
+          "type": "string",
+          "description": "Controlled selected value."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Initial selected value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string) => void",
+          "description": "Change handler. Receives the selected value string."
+        },
+        "options": {
+          "type": "RadioOption[]",
+          "description": "Data-driven options. Alternatively, use `children` with `<RadioGroup.Item>`."
+        },
+        "direction": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'vertical'",
+          "description": "Layout direction."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, all options are disabled."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Single-select radio control bound to Form context, data-driven or compositional"
+    },
+    {
+      "name": "Select",
+      "import": "import { Select } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "placeholder": {
+          "type": "string",
+          "default": "'Select option...'",
+          "description": "Placeholder text when no value is selected."
+        },
+        "options": {
+          "type": "SelectOptionData[]",
+          "required": true,
+          "description": "Array of selectable options."
+        },
+        "value": {
+          "type": "string",
+          "description": "Controlled selected value."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Initial selected value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string) => void",
+          "description": "Change handler. Receives the selected value string."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the select is non-interactive."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Dropdown select control bound to Form context, built on Radix Select"
+    },
+    {
       "name": "SlideOut",
       "import": "import { SlideOut } from '#toolcrib'",
       "props": {
@@ -807,6 +885,51 @@
       },
       "category": "Overlays",
       "description": "Edge drawer overlay with backdrop blur and slide animation"
+    },
+    {
+      "name": "Slider",
+      "import": "import { Slider } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Used in event bus payloads."
+        },
+        "value": {
+          "type": "number",
+          "description": "Controlled current value."
+        },
+        "defaultValue": {
+          "type": "number",
+          "default": "50",
+          "description": "Initial value (uncontrolled)."
+        },
+        "min": {
+          "type": "number",
+          "default": "0",
+          "description": "Minimum value."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Maximum value."
+        },
+        "step": {
+          "type": "number",
+          "default": "1",
+          "description": "Step increment."
+        },
+        "onChange": {
+          "type": "(value: number) => void",
+          "description": "Change handler. Receives the new numeric value."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, the slider is non-interactive."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Range input control built on Radix Slider"
     },
     {
       "name": "Splitter",

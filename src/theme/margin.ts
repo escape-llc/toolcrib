@@ -1,3 +1,4 @@
+/** @barrelExport */
 export type MarginMode = 'compact' | 'normal' | 'spacious';
 
 export function getMarginVariables(mode: MarginMode = 'normal'): Record<string, string> {

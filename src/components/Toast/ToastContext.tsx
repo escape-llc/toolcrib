@@ -4,6 +4,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { SubthemeName } from '../../theme/subtheme';
 
 /** Toast urgency level. Higher priority toasts are displayed first. */
+/** @barrelExport */
 export type ToastPriority = 'low' | 'medium' | 'high' | 'urgent';
 /** Visual style variant for toasts — the same vocabulary as `SubthemeName`. */
 export type ToastType = SubthemeName;

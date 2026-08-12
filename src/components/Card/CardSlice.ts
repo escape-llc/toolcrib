@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type CardPadding = 'compact' | 'normal' | 'spacious';
 export type CardHeaderStyle = 'flush' | 'bordered' | 'subtle-bg';
 

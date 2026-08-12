@@ -36,6 +36,10 @@ export interface SelectProps {
   disabled?: boolean;
 }
 
+/**
+ * @manifest Dropdown select control bound to Form context, built on Radix Select
+ * @manifestCategory Form Controls
+ */
 export const Select: React.FC<SelectProps> = ({
   name,
   placeholder = 'Select option...',

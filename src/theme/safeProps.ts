@@ -9,6 +9,7 @@ import { HTMLAttributes } from 'react';
  * `extends X` silently reintroduces both regardless of whether the
  * interface redeclares them itself.
  */
+/** @barrelExport */
 export type StyleFree<P> = Omit<P, 'style' | 'className'>;
 
 /** `StyleFree<HTMLAttributes<T>>` — the common case for a plain DOM element. */

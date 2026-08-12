@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 
+/** @barrelExport */
 export interface SquaredCornersState {
   topLeft?: boolean;
   topRight?: boolean;

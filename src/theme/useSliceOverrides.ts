@@ -2,6 +2,7 @@ import { ThemeSlice, getSparseVariables } from './slice';
 import { useStyleDomain } from './StyleDomainContext';
 import { SubthemeName } from './subtheme';
 
+/** @barrelExport */
 export interface SliceOverridesResult<TVars extends Record<string, string>> {
   /** Sparse CSS-variable patch — spread into the component's own root `style`. */
   vars: Partial<TVars>;

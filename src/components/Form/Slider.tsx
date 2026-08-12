@@ -26,6 +26,10 @@ export interface SliderProps {
   disabled?: boolean;
 }
 
+/**
+ * @manifest Range input control built on Radix Slider
+ * @manifestCategory Form Controls
+ */
 export const Slider: React.FC<SliderProps> = ({
   name,
   value,

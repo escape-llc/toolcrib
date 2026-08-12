@@ -600,3 +600,77 @@ export function generateComponents() {
   validateNoForbiddenProps(components);
   return components;
 }
+
+// -------------------------------------------------------------------------
+// src/index.ts (the public `#toolcrib` barrel)
+// -------------------------------------------------------------------------
+
+/**
+ * Whether a source file has at least one exported declaration tagged
+ * `@manifest` or `@barrelExport` — the signal generateBarrelExports() uses
+ * to decide the whole file belongs in the public barrel. Deliberately a
+ * whole-file question, not per-declaration: the barrel re-exports whole
+ * modules (`export * from './x'`), so one qualifying declaration is enough
+ * to pull in everything else that file exports alongside it (e.g. a
+ * component's own Props interface doesn't need its own tag).
+ *
+ * Opt-in by design, not opt-out: nothing ships in the public API surface
+ * without an explicit marker. `@manifest` already means "this is a public
+ * component" for the manifest's own purposes, so it doubles as the barrel
+ * signal too rather than requiring components to carry two tags that would
+ * always agree. `@barrelExport` exists for the rest of the public surface
+ * that isn't a manifest component — hooks, Slice definitions, context
+ * types, shared utilities.
+ */
+function hasBarrelTag(sourceFile) {
+  let found = false;
+  const check = (node) => {
+    if (found) return;
+    const isExported = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+    if (!isExported) return;
+    const isTaggableDeclaration =
+      ts.isVariableStatement(node) ||
+      ts.isFunctionDeclaration(node) ||
+      ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node) ||
+      ts.isClassDeclaration(node);
+    if (!isTaggableDeclaration) return;
+    const doc = leadingJsDoc(node);
+    if (jsDocTag(doc, 'manifest') !== null || jsDocTag(doc, 'barrelExport') !== null) {
+      found = true;
+    }
+  };
+  ts.forEachChild(sourceFile, check);
+  return found;
+}
+
+/**
+ * Every vendored module (theme/, eventBus/, observer/, components/**)
+ * that should be re-exported from src/index.ts, grouped by top-level
+ * vendored directory (matching build-release.js's own VENDOR_DIRS) and
+ * sorted alphabetically within each group. Returns module specifiers
+ * relative to src/ (e.g. './theme/hsv'), extension-stripped, matching
+ * index.ts's existing `export * from '...'` style.
+ */
+export function generateBarrelExports() {
+  const groups = [
+    { key: 'theme', dir: THEME_DIR },
+    { key: 'eventBus', dir: path.join(SRC, 'eventBus') },
+    { key: 'observer', dir: path.join(SRC, 'observer') },
+    { key: 'components', dir: COMPONENTS_DIR },
+  ];
+
+  const result = {};
+  for (const { key, dir } of groups) {
+    const specifiers = [];
+    for (const filePath of listSourceFiles(dir)) {
+      const sourceFile = parse(filePath);
+      if (!hasBarrelTag(sourceFile)) continue;
+      const relPath = path.relative(SRC, filePath).split(path.sep).join('/').replace(/\.tsx?$/, '');
+      specifiers.push(`./${relPath}`);
+    }
+    specifiers.sort();
+    result[key] = specifiers;
+  }
+  return result;
+}

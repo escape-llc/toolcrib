@@ -1,5 +1,6 @@
 import { ThemeSlice } from '../../theme/slice';
 
+/** @barrelExport */
 export type TableDensity = 'compact' | 'normal' | 'spacious';
 export type TableBorderStyle = 'grid' | 'horizontal' | 'none';
 

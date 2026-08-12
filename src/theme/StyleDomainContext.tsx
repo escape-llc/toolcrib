@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { SubthemeName } from './subtheme';
 
+/** @barrelExport */
 export interface StyleDomainInfo {
   /** Semantic status a whole subtree should adopt, e.g. an entire form section in an error state. */
   subtheme?: SubthemeName;

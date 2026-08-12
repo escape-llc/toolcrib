@@ -13,6 +13,7 @@ import { PaddingMode, getPaddingVariables } from './padding';
 import { MarginMode, getMarginVariables } from './margin';
 import { CornerRadiusMode, getRadiusVariables } from './radius';
 
+/** @barrelExport */
 export type HarmonyMode =
   | 'monochromatic'
   | 'analogous'

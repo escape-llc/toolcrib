@@ -3,6 +3,7 @@
  *
  * Provides a clean, reasonable, and systematic z-index hierarchy across all toolkit components.
  */
+/** @barrelExport */
 export const Z_INDEX = {
   /** Base page flow elements (Cards, Grid, Stack, Accordion) */
   BASE: 0,
