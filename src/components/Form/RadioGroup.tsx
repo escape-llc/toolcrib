@@ -68,14 +68,22 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
   // See Select.tsx for why this matters: without it, a RadioGroup left at
   // its default (nothing selected) on first submit never gets marked
   // touched, so a required-field validation error for it would compute
   // correctly but never actually display.
+  //
+  // Depends on registerField itself, not the whole formContext object —
+  // Form recreates that object on every render (any field changing), and
+  // registerField is idempotent but re-running it on every keystroke
+  // anywhere in the form was still wasted effect churn. registerField is
+  // stable for the form's lifetime (see FormContext.tsx), so this now only
+  // fires when fieldName actually changes.
   React.useEffect(() => {
-    if (fieldName && formContext) formContext.registerField(fieldName);
-  }, [fieldName, formContext]);
+    if (fieldName && registerField) registerField(fieldName);
+  }, [fieldName, registerField]);
 
   const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? formValue : defaultValue;

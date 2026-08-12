@@ -269,10 +269,15 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
+  // Depends on registerField itself, not the whole formContext object —
+  // see RadioGroup.tsx for why (Form recreates that object on every render,
+  // so depending on it re-fires this on every keystroke anywhere in the
+  // form; registerField is stable for the form's lifetime).
   React.useEffect(() => {
-    if (name && formContext) formContext.registerField(name);
-  }, [name, formContext]);
+    if (name && registerField) registerField(name);
+  }, [name, registerField]);
 
   const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
@@ -327,10 +332,15 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
+  // Depends on registerField itself, not the whole formContext object —
+  // see RadioGroup.tsx for why (Form recreates that object on every render,
+  // so depending on it re-fires this on every keystroke anywhere in the
+  // form; registerField is stable for the form's lifetime).
   React.useEffect(() => {
-    if (name && formContext) formContext.registerField(name);
-  }, [name, formContext]);
+    if (name && registerField) registerField(name);
+  }, [name, registerField]);
 
   const checked = externalChecked !== undefined ? externalChecked : (name && formContext ? !!formContext.values[name] : false);
 
@@ -388,10 +398,15 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
+  // Depends on registerField itself, not the whole formContext object —
+  // see RadioGroup.tsx for why (Form recreates that object on every render,
+  // so depending on it re-fires this on every keystroke anywhere in the
+  // form; registerField is stable for the form's lifetime).
   React.useEffect(() => {
-    if (name && formContext) formContext.registerField(name);
-  }, [name, formContext]);
+    if (name && registerField) registerField(name);
+  }, [name, registerField]);
 
   const checked = externalChecked !== undefined ? externalChecked : (name && formContext ? !!formContext.values[name] : false);
 
@@ -453,10 +468,15 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
+  // Depends on registerField itself, not the whole formContext object —
+  // see RadioGroup.tsx for why (Form recreates that object on every render,
+  // so depending on it re-fires this on every keystroke anywhere in the
+  // form; registerField is stable for the form's lifetime).
   React.useEffect(() => {
-    if (name && formContext) formContext.registerField(name);
-  }, [name, formContext]);
+    if (name && registerField) registerField(name);
+  }, [name, registerField]);
 
   const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;

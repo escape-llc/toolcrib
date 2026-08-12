@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, FormEvent } from 'react';
+import { createContext, useCallback, useContext, useState, ReactNode, FormEvent } from 'react';
 import { ZodType } from 'zod';
 import { aiBus } from '../../eventBus/eventBus';
 
@@ -113,11 +113,18 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
     setTouched(prev => ({ ...prev, [name]: isTouched }));
   };
 
-  const registerField = (name: string) => {
-    if (values[name] === undefined) {
-      setValues(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+  // Stable across the form's whole lifetime (empty deps) — reads/writes
+  // values entirely through the functional setValues form rather than
+  // closing over the `values` variable above, specifically so field
+  // controls (Input, RadioGroup, Select, etc.) can depend on this function
+  // itself instead of the whole FormContext value, which Form recreates as
+  // a new object literal on every render. Depending on the object was
+  // re-firing every field's mount-registration effect on every keystroke
+  // anywhere in the form; depending on this stable function fixes that at
+  // the source for every consumer at once.
+  const registerField = useCallback((name: string) => {
+    setValues(prev => (prev[name] === undefined ? { ...prev, [name]: '' } : prev));
+  }, []);
 
   const validateField = (name: string, val?: any): boolean => {
     if (!schema) return true;

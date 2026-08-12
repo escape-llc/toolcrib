@@ -24,12 +24,26 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   // The one thing that timer was also doing — distinguishing "timed out"
   // from "user dismissed" for the `reason` field and the `toast:expired`
   // event — still needs answering, since Radix's onOpenChange(false) fires
-  // identically for a timeout, a swipe-to-dismiss, or a "close all"
-  // shortcut, without saying which. The explicit dismiss paths (the ✕
-  // button, an action button) already call dismissToast with their own
-  // correct reason directly and never reach onOpenChange at all. The only
-  // other path in is a swipe gesture, so tracking whether one started is
-  // enough to tell the two apart without needing a timer of our own.
+  // identically for a timeout, a swipe-to-dismiss, an explicit close click,
+  // or a "close all" shortcut, without saying which.
+  //
+  // The explicit dismiss paths (the ✕ button, an action button) look like
+  // they call dismissToast with their own correct reason and never reach
+  // onOpenChange at all — but ToastClose/ToastAction are built on Radix's
+  // shared close primitive, which composes the consumer's onClick with
+  // Radix's own onClose (setOpen(false)) right after it, in the same click.
+  // That fires onOpenChange(false) synchronously immediately following the
+  // explicit dismissToast call, so without dismissedRef this branch would
+  // treat every button-driven dismissal as a second, spurious "expired"
+  // event on top of the correct one. dismissedRef lets onOpenChange
+  // recognize "I already know why this closed" and no-op.
+  const dismissedRef = useRef(false);
+  // Tracks whether the current close is a swipe-to-dismiss, to tell it
+  // apart from a genuine timeout in onOpenChange below (both call it
+  // identically). onSwipeCancel resets this when a drag is released before
+  // the dismiss threshold — the toast stays open and its timer keeps
+  // running, so if it's still false when that timer eventually does fire,
+  // the later dismissal is correctly reported as 'expired', not 'user'.
   const swipedRef = useRef(false);
 
   const getSubthemeColor = (type: ToastItem['type']): string => {
@@ -68,8 +82,10 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
       data-testid="toast-item"
       duration={toast.sticky ? Infinity : (toast.duration || 5000)}
       onSwipeStart={() => { swipedRef.current = true; }}
+      onSwipeCancel={() => { swipedRef.current = false; }}
       onOpenChange={(open) => {
         if (open) return;
+        if (dismissedRef.current) return;
         if (swipedRef.current) {
           dismissToast(toast.id, 'user');
         } else {
@@ -116,7 +132,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
 
         <ToastPrimitive.Close
           aria-label="Dismiss toast"
-          onClick={() => dismissToast(toast.id, 'user')}
+          onClick={() => { dismissedRef.current = true; dismissToast(toast.id, 'user'); }}
           style={{
             background: 'transparent',
             border: 'none',
@@ -143,6 +159,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                   message: toast.message,
                 });
                 act.onClick();
+                dismissedRef.current = true;
                 dismissToast(toast.id, 'action');
               }}
               style={{

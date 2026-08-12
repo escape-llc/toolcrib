@@ -3,6 +3,7 @@ import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AccordionThemeSlice, AccordionSliceState } from './AccordionSlice';
+import { useStableId } from '../shared/useStableId';
 
 /** Data shape for each item in a data-driven `<Accordion>`. */
 export interface AccordionItemData {
@@ -49,10 +50,7 @@ export const Accordion: React.FC<AccordionProps> = ({
   defaultValue,
   overrides,
 }) => {
-  // See Modal.tsx for why this is a ref rather than a default-parameter
-  // fallback.
-  const idRef = useRef<string>(propId || `accordion-${Math.random().toString(36).substring(2, 7)}`);
-  const id = idRef.current;
+  const id = useStableId(propId, 'accordion');
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
 
   // Tracks which item values are currently open so onValueChange can emit

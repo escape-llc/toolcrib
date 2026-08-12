@@ -4,6 +4,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
+import { useStableId } from '../shared/useStableId';
 
 /**
  * Props for the `<SlideOut>` drawer overlay.
@@ -56,11 +57,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   width: propWidth,
   zIndex = Z_INDEX.DRAWER,
 }) => {
-  // See Modal.tsx for why this is a ref rather than a default-parameter
-  // fallback: the latter re-evaluates every render, silently reshuffling
-  // the id and breaking event-bus targeting for any caller relying on it.
-  const idRef = useRef<string>(propId || `slideout-${Math.random().toString(36).substring(2, 7)}`);
-  const id = idRef.current;
+  const id = useStableId(propId, 'slideout');
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);

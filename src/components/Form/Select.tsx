@@ -53,6 +53,7 @@ export const Select: React.FC<SelectProps> = ({
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
 
   // Without this, a Select's name is never added to the form's `values`
   // object until the user actually picks something — and handleSubmit's
@@ -63,9 +64,13 @@ export const Select: React.FC<SelectProps> = ({
   // `touched[name] ? errors[name] : undefined` display logic would hide
   // that error forever. Matches Input/Textarea/Checkbox/Switch, which all
   // already call this on mount.
+  //
+  // Depends on registerField itself, not the whole formContext object —
+  // see RadioGroup.tsx for why that distinction matters (wasted re-runs on
+  // every keystroke anywhere in the form, not just this field's own).
   React.useEffect(() => {
-    if (fieldName && formContext) formContext.registerField(fieldName);
-  }, [fieldName, formContext]);
+    if (fieldName && registerField) registerField(fieldName);
+  }, [fieldName, registerField]);
 
   const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? String(formValue) : defaultValue;

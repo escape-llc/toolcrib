@@ -84,12 +84,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // paging forward, left the virtualization window (startIndex/endIndex
   // below) computed from a scroll offset that belonged to a completely
   // different page's row count, which could render as an apparently empty
-  // table until the user manually scrolled back up.
+  // table until the user manually scrolled back up. Sorting reorders the
+  // current page's rows exactly the same way pagination does, so it has to
+  // reset the window too — sortKey/sortDirection are included below for
+  // that reason, not left out as an oversight.
   useEffect(() => {
     setScrollTop(0);
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, sortKey, sortDirection]);
 
   // 1. Sorting
   const sortedData = useMemo(() => {

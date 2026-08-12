@@ -1,7 +1,8 @@
-import React, { useRef, ReactNode, ReactElement } from 'react';
+import React, { ReactNode, ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
+import { useStableId } from '../shared/useStableId';
 
 /** Data shape for each item in a `<DropdownMenu>`. */
 export interface MenuItemData {
@@ -55,10 +56,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   side = 'bottom',
   align = 'start',
 }) => {
-  // See Modal.tsx for why this is a ref rather than a default-parameter
-  // fallback.
-  const idRef = useRef<string>(propId || `menu-${Math.random().toString(36).substring(2, 7)}`);
-  const id = idRef.current;
+  const id = useStableId(propId, 'menu');
 
   return (
     <DropdownMenuPrimitive.Root
