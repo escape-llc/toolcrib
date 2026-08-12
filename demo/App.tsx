@@ -38,6 +38,14 @@ import {
   StyleDomainProvider,
   aiBus,
   useAIEvent,
+  AlertDialog,
+  Progress,
+  Separator,
+  Avatar,
+  Toggle,
+  ToggleGroup,
+  ContextMenu,
+  Collapsible,
 } from '#toolcrib';
 
 // Zod validation schema for Demo Form
@@ -79,6 +87,7 @@ export const App: React.FC = () => {
   // independently. Control and content don't share a DOM ancestor, a
   // prop, or state — see src/components/TabStrip/TabStrip.tsx.
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
+  const [progressValue, setProgressValue] = useState(45);
 
   // Subscribe to ALL aiBus events for the live event monitor
   useAIEvent('*' as any, (event: any) => {
@@ -745,6 +754,96 @@ export const App: React.FC = () => {
                               ]}
                             />
                           </div>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
+
+                    {/* Section 4: Newer Radix wraps — AlertDialog, Progress,
+                        Separator, Avatar, Toggle/ToggleGroup, ContextMenu,
+                        Collapsible */}
+                    <Card>
+                      <Card.Header>Newer Primitives (AlertDialog, Progress, Separator, Avatar, Toggle, ContextMenu & Collapsible)</Card.Header>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Blocking Confirmation (`&lt;AlertDialog&gt;`)</div>
+                              <AlertDialog trigger={<Button variant="danger" icon="🗑️">Delete Record</Button>} ariaLabel="Delete confirmation">
+                                <AlertDialog.Header>Delete this record?</AlertDialog.Header>
+                                <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
+                                <AlertDialog.Footer>
+                                  <AlertDialog.Actions>
+                                    <AlertDialog.Cancel />
+                                    <AlertDialog.Action onClick={() => addToast({ type: 'success', message: 'Record deleted' })}>Delete</AlertDialog.Action>
+                                  </AlertDialog.Actions>
+                                </AlertDialog.Footer>
+                              </AlertDialog>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Determinate Progress Bar (`&lt;Progress&gt;`)</div>
+                              <VStack gap="sm">
+                                <Progress id="demo-upload" value={progressValue} subtheme="success" />
+                                <UIGroup>
+                                  <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.max(0, v - 10))}>-10%</Button>
+                                  <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.min(100, v + 10))}>+10%</Button>
+                                </UIGroup>
+                              </VStack>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>User Avatars with Fallback (`&lt;Avatar&gt;`)</div>
+                              <HStack gap="sm">
+                                <Avatar fallback="JD" alt="Jane Doe" />
+                                <Avatar fallback="AS" alt="Alex Smith" size="lg" />
+                                <Separator orientation="vertical" decorative />
+                                <Avatar src="https://broken-image-url.example/none.png" fallback="404" alt="Broken image" />
+                              </HStack>
+                            </div>
+                          </VStack>
+
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Single Disclosure Panel (`&lt;Collapsible&gt;`)</div>
+                              <Collapsible trigger="Show advanced options">
+                                <p style={{ margin: 0 }}>Content revealed on demand — for a single panel. See the Accordion above for a data-driven set of several.</p>
+                              </Collapsible>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Toggle & Connected ToggleGroup (`&lt;Toggle&gt;` / `&lt;ToggleGroup&gt;`)</div>
+                              <VStack gap="sm">
+                                <Toggle name="favorite" onPressedChange={pressed => addToast({ type: 'info', message: `Favorite ${pressed ? 'enabled' : 'disabled'}`, priority: 'low' })}>⭐ Favorite</Toggle>
+                                <ToggleGroup
+                                  name="text-align"
+                                  type="single"
+                                  defaultValue="left"
+                                  options={[
+                                    { value: 'left', label: '◀ Left' },
+                                    { value: 'center', label: '● Center' },
+                                    { value: 'right', label: '▶ Right' },
+                                  ]}
+                                  onChange={val => addToast({ type: 'info', message: `Alignment: ${val}`, priority: 'low' })}
+                                />
+                              </VStack>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Right-Click Menu (`&lt;ContextMenu&gt;`)</div>
+                              <ContextMenu
+                                items={[
+                                  { value: 'copy', label: 'Copy', icon: '📋', onClick: () => addToast({ type: 'info', message: 'Copied', priority: 'low' }) },
+                                  { value: 'rename', label: 'Rename', icon: '✏️', onClick: () => addToast({ type: 'info', message: 'Rename selected', priority: 'low' }) },
+                                  { isSeparator: true, value: 'sep', label: '' },
+                                  { value: 'delete', label: 'Delete', icon: '🗑️', onClick: () => addToast({ type: 'warning', message: 'Deleted', priority: 'medium' }) },
+                                ]}
+                              >
+                                <div style={{ padding: '1.25rem', border: '0.0625rem dashed var(--ai-border, #d1d5db)', borderRadius: 'var(--ai-radius-md, 0.375rem)', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                                  Right-click this area
+                                </div>
+                              </ContextMenu>
+                            </div>
+                          </VStack>
                         </Grid>
                       </Card.Content>
                     </Card>

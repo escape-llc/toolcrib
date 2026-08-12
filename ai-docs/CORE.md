@@ -93,6 +93,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<Content>` | `.Grow` | `gap`, `marginMode`, `squareCorners` | Fills its container and establishes a flex-column layout domain for its children |
 | `<Grid>` | — | `columns`, `minColWidth`, `gap`, `marginMode`, `paddingMode` | CSS Grid responsive multi-column layout |
 | `<HStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Horizontal flex row layout primitive |
+| `<Separator>` | — | `orientation`, `decorative` | Themed visual divider between content sections |
 | `<Toolbar>` | `.Left`, `.Center`, `.Right` | `paddingMode`, `marginMode`, `cornerRadiusMode` | Horizontal action bar with left/center/right slot areas |
 | `<UIGroup>` | — | `orientation`, `borderRadius` | Merges adjacent elements into a single visual compound control |
 | `<VStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Vertical flex column layout primitive |
@@ -104,12 +105,15 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<AppShell>` | `.Header`, `.Main` | — | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
 | `<Card>` | `.Header`, `.Content`, `.Footer`, `.Actions` | `layout`, `squareCorners`, `overrides` | Slot-based container with automatic layout domain corner squaring |
 | `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
+| `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
+| `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
+| `<ContextMenu>` | — | `id`, `items` | Right-click action menu, data-driven with separator support |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align` | Data-driven action menu with separator support |
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex` | Anchored popover with light dismiss and corner-squaring to trigger |
@@ -121,7 +125,9 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
+| `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs` | User/entity avatar image with automatic initials fallback |
 | `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
+| `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme` | Determinate progress bar |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
 ### Form Controls
@@ -135,6 +141,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | — | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |
+| `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
+| `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled` | Connected button set for single or multiple selection, data-driven |
 
 `<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 
@@ -302,7 +310,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[32]{name,payload}:
+[39]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -313,6 +321,10 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "slideout:hidden","{ id: string }"
   "modal:shown","{ id: string; data?: any }"
   "modal:hidden","{ id: string }"
+  "alertdialog:shown","{ id: string; data?: any }"
+  "alertdialog:hidden","{ id: string }"
+  "collapsible:opened","{ id?: string }"
+  "collapsible:closed","{ id?: string }"
   "form:submitted","{ formId?: string; values: Record<string, any> }"
   "form:validated","{ formId?: string; isValid: boolean }"
   "form:errored","{ formId?: string; errors: Record<string, string> }"
@@ -331,6 +343,9 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "menu:item_selected","{ id?: string; itemValue: string }"
   "select:changed","{ name?: string; value: string }"
   "slider:changed","{ name?: string; value: number }"
+  "toggle:changed","{ name?: string; pressed: boolean }"
+  "togglegroup:changed","{ name?: string; value: string | string[] }"
+  "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
   "log:cleared","{ timestamp: string }"
   "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"

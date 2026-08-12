@@ -26,6 +26,10 @@ export interface AIEventMap {
   'slideout:hidden': { id: string };
   'modal:shown': { id: string; data?: any };
   'modal:hidden': { id: string };
+  'alertdialog:shown': { id: string; data?: any };
+  'alertdialog:hidden': { id: string };
+  'collapsible:opened': { id?: string };
+  'collapsible:closed': { id?: string };
   'form:submitted': { formId?: string; values: Record<string, any> };
   'form:validated': { formId?: string; isValid: boolean };
   'form:errored': { formId?: string; errors: Record<string, string> };
@@ -44,6 +48,9 @@ export interface AIEventMap {
   'menu:item_selected': { id?: string; itemValue: string };
   'select:changed': { name?: string; value: string };
   'slider:changed': { name?: string; value: number };
+  'toggle:changed': { name?: string; pressed: boolean };
+  'togglegroup:changed': { name?: string; value: string | string[] };
+  'progress:changed': { id?: string; value: number; max: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
   'log:cleared': { timestamp: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
@@ -192,6 +199,14 @@ class AIEventBus {
 
   closeModal(id: string) {
     this.emit('modal:hidden', { id });
+  }
+
+  openAlertDialog(id: string, data?: any) {
+    this.emit('alertdialog:shown', { id, data });
+  }
+
+  closeAlertDialog(id: string) {
+    this.emit('alertdialog:hidden', { id });
   }
 
   openSlideOut(id: string, position: 'top' | 'right' | 'bottom' | 'left' = 'right', data?: any) {

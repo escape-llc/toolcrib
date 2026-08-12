@@ -212,6 +212,22 @@
         "payload": "{ id: string }"
       },
       {
+        "name": "alertdialog:shown",
+        "payload": "{ id: string; data?: any }"
+      },
+      {
+        "name": "alertdialog:hidden",
+        "payload": "{ id: string }"
+      },
+      {
+        "name": "collapsible:opened",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "collapsible:closed",
+        "payload": "{ id?: string }"
+      },
+      {
         "name": "form:submitted",
         "payload": "{ formId?: string; values: Record<string, any> }"
       },
@@ -284,6 +300,18 @@
         "payload": "{ name?: string; value: number }"
       },
       {
+        "name": "toggle:changed",
+        "payload": "{ name?: string; pressed: boolean }"
+      },
+      {
+        "name": "togglegroup:changed",
+        "payload": "{ name?: string; value: string | string[] }"
+      },
+      {
+        "name": "progress:changed",
+        "payload": "{ id?: string; value: number; max: number }"
+      },
+      {
         "name": "tab:changed",
         "payload": "{ id?: string; activeId: string; previousId?: string }"
       },
@@ -311,6 +339,14 @@
       {
         "method": "aiBus.closeModal(id)",
         "emits": "modal:hidden"
+      },
+      {
+        "method": "aiBus.openAlertDialog(id, data?)",
+        "emits": "alertdialog:shown"
+      },
+      {
+        "method": "aiBus.closeAlertDialog(id)",
+        "emits": "alertdialog:hidden"
       },
       {
         "method": "aiBus.openSlideOut(id, position?, data?)",
@@ -367,6 +403,53 @@
       "description": "Data-driven collapsible panel group with animations"
     },
     {
+      "name": "AlertDialog",
+      "import": "import { AlertDialog } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Body",
+        "Footer",
+        "Actions",
+        "Cancel",
+        "Action"
+      ],
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier used for event bus targeting (e.g. `aiBus.openAlertDialog('confirm-delete')`). Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that opens the dialog on click. Rendered inline; the dialog manages open/close state automatically."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the dialog opens or closes."
+        },
+        "width": {
+          "type": "string",
+          "default": "'25rem' (400px at 16px base)",
+          "description": "Width of the dialog panel."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.MODAL (200)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "default": "'Confirm Action'",
+          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden, matching `Modal`'s `ariaLabel` — set this\nexplicitly (typically matching your `AlertDialog.Header` text) for a\nmeaningful announcement."
+        }
+      },
+      "category": "Overlays",
+      "description": "Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions"
+    },
+    {
       "name": "AppShell",
       "import": "import { AppShell } from '#toolcrib'",
       "slots": [
@@ -377,6 +460,36 @@
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "category": "Containers",
       "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
+    },
+    {
+      "name": "Avatar",
+      "import": "import { Avatar } from '#toolcrib'",
+      "props": {
+        "src": {
+          "type": "string",
+          "description": "Image URL. Falls back to `fallback` if omitted, loading, or failing to load."
+        },
+        "alt": {
+          "type": "string",
+          "description": "Accessible alt text for the image."
+        },
+        "fallback": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Content shown while `src` is missing/loading/erroring — typically initials."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Diameter."
+        },
+        "fallbackDelayMs": {
+          "type": "number",
+          "description": "Delay in milliseconds before the fallback renders while the image is\nstill loading, avoiding a flash of fallback content for a fast-loading\nimage. Omitted by default — Radix's own `AvatarPrimitive.Fallback`\nrenders immediately with no artificial delay unless `delayMs` is\nexplicitly passed (confirmed in `@radix-ui/react-avatar`'s source:\nits `canRender` state starts `true` only when `delayMs === undefined`),\nso defaulting this to a nonzero value here would force every avatar\nwith no `src` — the common initials-only case — to sit blank for that\nlong before showing its fallback, for no benefit."
+        }
+      },
+      "category": "Data Display",
+      "description": "User/entity avatar image with automatic initials fallback"
     },
     {
       "name": "Button",
@@ -477,6 +590,40 @@
       "description": "Token-saving shorthand for simple cards without slot composition"
     },
     {
+      "name": "Collapsible",
+      "import": "import { Collapsible } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Clickable header content that toggles the panel."
+        },
+        "defaultOpen": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial open state (uncontrolled)."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the panel opens or closes."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the trigger is non-interactive and the panel can't be toggled."
+        }
+      },
+      "category": "Containers",
+      "description": "Single expand/collapse content panel — see Accordion for a data-driven set of panels"
+    },
+    {
       "name": "Content",
       "import": "import { Content } from '#toolcrib'",
       "slots": [
@@ -499,6 +646,23 @@
       },
       "category": "Layout Primitives",
       "description": "Fills its container and establishes a flex-column layout domain for its children"
+    },
+    {
+      "name": "ContextMenu",
+      "import": "import { ContextMenu } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "MenuItemData[]",
+          "required": true,
+          "description": "Array of menu items to render."
+        }
+      },
+      "category": "Overlays",
+      "description": "Right-click action menu, data-driven with separator support"
     },
     {
       "name": "DataTable",
@@ -768,6 +932,37 @@
       "description": "Anchored popover with light dismiss and corner-squaring to trigger"
     },
     {
+      "name": "Progress",
+      "import": "import { Progress } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier included in emitted `progress:changed` events."
+        },
+        "value": {
+          "type": "number",
+          "required": true,
+          "description": "Current progress value, between 0 and `max`."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Value representing 100% completion."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Bar thickness."
+        },
+        "subtheme": {
+          "type": "SubthemeName",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        }
+      },
+      "category": "Data Display",
+      "description": "Determinate progress bar"
+    },
+    {
       "name": "RadioGroup",
       "import": "import { RadioGroup } from '#toolcrib'",
       "slots": [
@@ -844,6 +1039,24 @@
       },
       "category": "Form Controls",
       "description": "Dropdown select control bound to Form context, built on Radix Select"
+    },
+    {
+      "name": "Separator",
+      "import": "import { Separator } from '#toolcrib'",
+      "props": {
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Layout axis. `'horizontal'` divides stacked content; `'vertical'`\ndivides side-by-side content (needs a sizing/flex ancestor to be\nvisible, same as any 100%-height element)."
+        },
+        "decorative": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Purely presentational (true) vs. a semantic content boundary announced\nto assistive tech (false)."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Themed visual divider between content sections"
     },
     {
       "name": "SlideOut",
@@ -1024,6 +1237,73 @@
       "props": {},
       "category": "Form Controls",
       "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
+    },
+    {
+      "name": "Toggle",
+      "import": "import { Toggle } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Included in the emitted `toggle:changed` event payload."
+        },
+        "pressed": {
+          "type": "boolean",
+          "description": "Controlled pressed state."
+        },
+        "defaultPressed": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial pressed state (uncontrolled)."
+        },
+        "onPressedChange": {
+          "type": "(pressed: boolean) => void",
+          "description": "Change handler. Receives the new pressed state."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the toggle is non-interactive."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)"
+    },
+    {
+      "name": "ToggleGroup",
+      "import": "import { ToggleGroup } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Included in the emitted `togglegroup:changed` event payload."
+        },
+        "type": {
+          "type": "'single' | 'multiple'",
+          "default": "'single'",
+          "description": "`'single'` allows zero or one selected option. `'multiple'` allows any combination."
+        },
+        "value": {
+          "type": "string | string[]",
+          "description": "Controlled selected value(s) — a string for `type=\"single\"`, a string array for `type=\"multiple\"`."
+        },
+        "defaultValue": {
+          "type": "string | string[]",
+          "description": "Initial selected value(s) (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string | string[]) => void",
+          "description": "Change handler. Receives the new value in the same shape as `value`."
+        },
+        "options": {
+          "type": "ToggleGroupOption[]",
+          "required": true,
+          "description": "Data-driven options rendered as connected buttons."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, every option is disabled."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Connected button set for single or multiple selection, data-driven"
     },
     {
       "name": "Toolbar",
