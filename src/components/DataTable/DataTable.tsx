@@ -110,7 +110,21 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   // 3. Virtualization within current page view & adaptive height
   const totalItems = paginatedData.length;
-  const effectiveContainerHeight = typeof containerHeight === 'number' ? containerHeight : observedHeight > 0 ? observedHeight : 350;
+  // Fallback used both for virtualization math and as this component's own
+  // minimum visible height below. Necessary because containerHeight="auto"
+  // fills its parent via `flex: 1 1 0px` + `height: 100%` — CSS that only
+  // resolves to something nonzero when the immediate ancestor is itself a
+  // `display: flex; flex-direction: column` box with a definite height
+  // (e.g. a `<Splitter.Panel>`). A plain content wrapper like a bare
+  // `<TabStrip.Panel>` gives a flex-basis-0 child nothing to grow into, so
+  // without this floor the whole table silently collapses to zero height —
+  // correctly-rendered rows clipped inside an invisible 0px scroll box,
+  // rather than an error. The `minHeight` below only ever acts as a floor:
+  // inside an ancestor that DOES provide real flex height, flex-grow still
+  // expands past it exactly as before.
+  const AUTO_HEIGHT_FALLBACK_PX = 350;
+  const effectiveContainerHeight =
+    typeof containerHeight === 'number' ? containerHeight : observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX;
 
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 2);
   const visibleCount = Math.ceil(effectiveContainerHeight / itemHeight) + 4;
@@ -147,7 +161,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         width: '100%',
         height: isAutoHeight ? '100%' : undefined,
         flex: isAutoHeight ? '1 1 0px' : undefined,
-        minHeight: 0,
+        minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX / 16}rem` : 0,
         ...vars,
       }}
     >
@@ -158,7 +172,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         style={{
           height: typeof containerHeight === 'number' ? `${containerHeight / 16}rem` : undefined,
           flex: isAutoHeight ? '1 1 0px' : undefined,
-          minHeight: 0,
+          minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX / 16}rem` : 0,
           overflowY: 'auto',
           position: 'relative',
           width: '100%',

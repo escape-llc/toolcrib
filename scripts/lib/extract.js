@@ -449,7 +449,33 @@ function extractProps(interfaceDecl, sourceFile) {
 // `CardSimple.displayName = 'CardSimple'` was picked up as a bogus "slot".
 const NON_SLOT_STATICS = new Set(['displayName', 'propTypes', 'defaultProps']);
 
-/** Scan a source file's top-level statements for `ComponentName.Slot = ...` assignments. */
+/**
+ * Find a top-level `const X: React.FC<XProps> = ...` (or plain
+ * `const X: XProps = ...`) declaration and return its Props interface name,
+ * so a slot assigned from a named identifier (e.g. `TabStrip.Panel =
+ * TabPanel`, where `TabPanel: React.FC<TabPanelProps>`) can have its own
+ * props resolved the same way a root component's can.
+ */
+function findPropsNameForIdentifier(sourceFile, identifierName) {
+  let propsName = null;
+  ts.forEachChild(sourceFile, (node) => {
+    if (propsName || !ts.isVariableStatement(node)) return;
+    for (const decl of node.declarationList.declarations) {
+      if (ts.isIdentifier(decl.name) && decl.name.text === identifierName && decl.type) {
+        propsName = propsInterfaceNameFromType(decl.type);
+      }
+    }
+  });
+  return propsName;
+}
+
+/**
+ * Scan a source file's top-level statements for `ComponentName.Slot = ...`
+ * assignments. Returns `{ name, propsName }` per slot — `propsName` is the
+ * slot's own Props interface, resolved when the RHS is a named identifier
+ * (e.g. `TabStrip.Panel = TabPanel`); `null` when it's an inline arrow
+ * function with no separately-declared Props type to point at.
+ */
 function findSlots(sourceFile, componentName) {
   const slots = [];
   ts.forEachChild(sourceFile, (node) => {
@@ -462,7 +488,9 @@ function findSlots(sourceFile, componentName) {
       expr.left.expression.getText() === componentName &&
       !NON_SLOT_STATICS.has(expr.left.name.text)
     ) {
-      slots.push(expr.left.name.text);
+      const name = expr.left.name.text;
+      const propsName = ts.isIdentifier(expr.right) ? findPropsNameForIdentifier(sourceFile, expr.right.text) : null;
+      slots.push({ name, propsName });
     }
   });
   return slots;
@@ -475,7 +503,20 @@ function generateComponentEntry(sourceFile, decl) {
   };
 
   const slots = findSlots(sourceFile, decl.name);
-  if (slots.length > 0) entry.slots = slots;
+  if (slots.length > 0) {
+    entry.slots = slots.map((s) => s.name);
+
+    // Resolve each slot's own props (e.g. `<TabStrip.Panel>`'s `value`/
+    // `groupId`) so an AI agent isn't left guessing them from the parent
+    // component's prop table, which only ever describes the root element.
+    const slotProps = {};
+    for (const slot of slots) {
+      if (!slot.propsName) continue;
+      const slotInterface = findInterface(sourceFile, slot.propsName);
+      if (slotInterface) slotProps[slot.name] = extractProps(slotInterface, sourceFile);
+    }
+    if (Object.keys(slotProps).length > 0) entry.slotProps = slotProps;
+  }
 
   if (decl.propsName) {
     const interfaceDecl = findInterface(sourceFile, decl.propsName);

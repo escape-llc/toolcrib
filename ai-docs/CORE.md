@@ -127,6 +127,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
+| `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<ThemeEditor>` | — | — | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |

@@ -51,6 +51,23 @@ const AI_DOCS_DIR = path.join(ROOT, 'ai-docs');
 // peerDependency even if imported (e.g. types-only or ambient imports).
 const IGNORE_PACKAGES = new Set(['react/jsx-runtime']);
 
+// A small, explicit exception to the "scan is the only ground truth" rule
+// above: packages a consumer needs to actually RUN the toolkit, but which
+// no vendored file imports because they're only used from the consumer's
+// own app entry point (e.g. `ReactDOM.createRoot` in main.tsx — see
+// ai-docs/templates/CORE.md.hbs's "Root Setup"). Scanning can never find
+// these since, structurally, nothing in the vendored source ever will
+// import them. Kept to an explicit, tiny, commented map rather than folded
+// into the scan so it can't silently grow — each entry needs a reason here.
+// Version is inherited from the peer it's keyed on, since these packages
+// are expected to stay in lockstep with it (react-dom's major always
+// matches react's).
+const COMPANION_PEER_DEPENDENCIES = {
+  // Every React app needs react-dom to render; the toolkit itself never
+  // imports it directly, so the source scan alone would never catch this.
+  react: ['react-dom'],
+};
+
 function loadRootPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
 }
@@ -200,6 +217,17 @@ function main() {
   const peerDependencies = {};
   for (const pkg of requiredPackages) {
     peerDependencies[pkg] = rootPkg.dependencies[pkg];
+  }
+  // Add companions after the scan-derived set is final, keyed on whichever
+  // trigger package actually ended up required — never invented out of
+  // thin air, and never validated against rootPkg.dependencies (see
+  // validateAgainstPackageJson above), since by definition nothing vendored
+  // imports them.
+  for (const [trigger, companions] of Object.entries(COMPANION_PEER_DEPENDENCIES)) {
+    if (!(trigger in peerDependencies)) continue;
+    for (const companion of companions) {
+      peerDependencies[companion] = peerDependencies[trigger];
+    }
   }
 
   // ai-docs/ ships as-is, whatever's actually there.

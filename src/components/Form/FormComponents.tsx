@@ -136,6 +136,10 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
   squareCorners?: SquareCornerOption;
 }
 
+/**
+ * @manifest Styled button with five variants, three sizes, subtheme colouring, and icon slots
+ * @manifestCategory Form Controls
+ */
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',

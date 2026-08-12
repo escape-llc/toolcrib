@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
 import { mergeImportsField } from '../lib/deps.js';
-import { readJsonIfExists, readLock, readTextIfExists } from '../lib/project.js';
+import { readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
@@ -201,6 +201,18 @@ export async function mergeCommand(options) {
       );
     }
   }
+
+  // Advance the lock file to the target version. Proposed unconditionally
+  // — the version genuinely changed (the early return above already ruled
+  // out oldRelease.version === newRelease.version), regardless of whether
+  // any individual vendored file's content also did. Without this, the
+  // lock keeps pointing at the pre-merge version forever: `doctor` would
+  // keep reporting "a newer version is available" for a version you just
+  // installed, and a later `merge` would diff from the wrong baseline,
+  // misclassifying every file that legitimately changed in this merge as
+  // a local edit — and flagging false conflicts against it next time.
+  const lockChange = proposeLockUpdate(projectRoot, newRelease.version);
+  changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
 
   // Conflicts get their own patch showing the *upstream* diff (local vs.
   // untouched), so the human/AI can see exactly what upstream changed

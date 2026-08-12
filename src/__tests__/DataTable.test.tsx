@@ -42,4 +42,31 @@ describe('DataTable Virtualized Component', () => {
     fireEvent.click(screen.getByText('Name'));
     expect(screen.getByText('Name')).toBeInTheDocument();
   });
+
+  it('applies a minHeight floor in auto height mode (default), so a collapsed flex ancestor still shows rows', () => {
+    // Regression test: containerHeight="auto" (the default) fills its
+    // parent via `flex: 1 1 0px` + `height: 100%`, which only resolves to
+    // something nonzero when the immediate ancestor is itself a flex
+    // column with a definite height (e.g. a Splitter.Panel). Nested
+    // directly in a plain content wrapper (e.g. a bare TabStrip.Panel),
+    // that flex chain has nothing to grow into and previously collapsed
+    // to 0 — rows rendered correctly in the DOM, just clipped inside an
+    // invisible 0-height scroll container. See DataTable.tsx's
+    // AUTO_HEIGHT_FALLBACK_PX comment for the full mechanism.
+    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    const table = container.querySelector('table');
+    const scrollBody = table?.parentElement as HTMLElement;
+    expect(scrollBody.style.minHeight).not.toBe('0px');
+    expect(scrollBody.style.minHeight).not.toBe('');
+  });
+
+  it('leaves minHeight unset (0) when a fixed containerHeight is given', () => {
+    // The floor is specifically an auto-mode safety net — an explicit
+    // pixel height already guarantees visibility on its own, and forcing
+    // a floor here would fight a deliberately small containerHeight.
+    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} containerHeight={500} />);
+    const table = container.querySelector('table');
+    const scrollBody = table?.parentElement as HTMLElement;
+    expect(scrollBody.style.minHeight).toBe('0px');
+  });
 });

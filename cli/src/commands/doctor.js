@@ -5,6 +5,7 @@ import { normalize } from '../lib/patches.js';
 import { readJsonIfExists, readLock, readTextIfExists } from '../lib/project.js';
 import { listVersions } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
+import { detectBundler } from '../lib/bundler.js';
 
 const TOOLKIT_DIR = './toolcrib';
 
@@ -165,6 +166,12 @@ export async function doctorCommand() {
         `but tsc/your editor may report "Cannot find module '#toolcrib'". ` +
         `Set "moduleResolution": "bundler" (or "node16"/"nodenext") in compilerOptions to fix the false error.`
     );
+  }
+
+  const pkg = readJsonIfExists(path.join(projectRoot, 'package.json'));
+  const bundler = detectBundler(projectRoot, pkg);
+  if (bundler?.note) {
+    p.log.info(`Detected ${bundler.label} — ${bundler.note}`);
   }
 
   p.outro('Done.');
