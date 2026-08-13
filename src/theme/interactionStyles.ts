@@ -57,11 +57,14 @@ export function injectInteractionStyles(): void {
       background: color-mix(in srgb, currentColor var(--ai-tab-hover-amount, 12%), var(--ai-tab-bg, transparent)) !important;
     }
 
-    /* :focus-visible — <Button> doesn't set an inline \`outline\`, so no
-       !important needed there; TabStrip's Trigger does (\`outline: 'none'\`),
-       so its rule needs one to actually win. */
+    /* :focus-visible — !important unconditionally: some .ai-btn consumers
+       (e.g. Collapsible's trigger, via \`all: 'unset'\`) reset outline inline
+       same as an explicit \`outline: 'none'\` would, and there's no
+       legitimate case where a .ai-btn user wants its own focus ring
+       suppressed, so this doesn't need tracking per-consumer like :hover's
+       --ai-btn-bg does. */
     .ai-btn:focus-visible {
-      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6);
+      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
       outline-offset: var(--ai-focus-ring-offset, 0.125rem);
     }
     .ai-tab-trigger:focus-visible {

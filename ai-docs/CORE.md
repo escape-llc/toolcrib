@@ -134,7 +134,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
+| `<Button>` | — | — | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |

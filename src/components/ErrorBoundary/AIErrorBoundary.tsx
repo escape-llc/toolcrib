@@ -1,5 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { Button } from '../Form/FormComponents';
 
 /**
  * Props for `<AIErrorBoundary>` — a React error boundary for overlay portals.
@@ -46,6 +48,15 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
 
   state: AIErrorBoundaryState = { hasError: false, error: null };
 
+  componentDidMount(): void {
+    // Class component, no useEffect — this is its equivalent "on mount"
+    // hook, needed independently of whatever parent mounts it (Modal/
+    // SlideOut/AlertDialog already call this themselves, but this boundary
+    // is documented as usable standalone too, wrapping any AI-generated
+    // section directly).
+    injectInteractionStyles();
+  }
+
   static getDerivedStateFromError(error: Error): AIErrorBoundaryState {
     return { hasError: true, error };
   }
@@ -86,21 +97,9 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
           <div style={{ color: 'var(--ai-text-secondary, #6b7280)', marginBottom: '1rem' }}>
             {this.state.error.message}
           </div>
-          <button
-            onClick={this.reset}
-            style={{
-              padding: 'var(--ai-padding-sm, 0.375rem 0.875rem)',
-              borderRadius: 'var(--ai-radius-md, 0.375rem)',
-              border: '0.0625rem solid var(--ai-border, #d1d5db)',
-              background: 'var(--ai-bg-surface, #ffffff)',
-              color: 'var(--ai-text-primary, #111827)',
-              cursor: 'pointer',
-              fontSize: '0.8125rem',
-              fontWeight: 'var(--ai-font-weight-semibold, 600)',
-            }}
-          >
+          <Button onClick={this.reset} variant="outline" size="sm">
             Try Again
-          </button>
+          </Button>
         </div>
       );
     }

@@ -3,6 +3,7 @@ import { UIGroup } from '../UIGroup/UIGroup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
 /** Column definition for `<DataTable>`. */
@@ -70,6 +71,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   overrides,
 }: DataTableProps<T>) {
   const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -362,6 +366,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={validCurrentPage === 1}
               aria-label="Previous page"
+              className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
@@ -370,6 +375,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 fontSize: '0.75rem',
                 cursor: validCurrentPage === 1 ? 'not-allowed' : 'pointer',
                 opacity: validCurrentPage === 1 ? 0.5 : 1,
+                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
               }}
             >
               ◀
@@ -392,6 +398,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={validCurrentPage === totalPages}
               aria-label="Next page"
+              className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
@@ -400,6 +407,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 fontSize: '0.75rem',
                 cursor: validCurrentPage === totalPages ? 'not-allowed' : 'pointer',
                 opacity: validCurrentPage === totalPages ? 0.5 : 1,
+                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
               }}
             >
               ▶

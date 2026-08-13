@@ -1,9 +1,10 @@
-import React, { useState, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { CollapsibleThemeSlice, CollapsibleSliceState } from './CollapsibleSlice';
 
 /**
@@ -48,6 +49,9 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 }) => {
   const id = useStableId(propId, 'collapsible');
   const collapsibleVars = getSparseVariables(CollapsibleThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
   const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -78,6 +82,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
       style={{ width: '100%', ...collapsibleVars }}
     >
       <CollapsiblePrimitive.Trigger
+        className="ai-btn"
         style={{
           all: 'unset',
           display: 'flex',
@@ -94,6 +99,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
           transition: 'background 0.15s ease',
+          ['--ai-btn-bg' as string]: 'var(--ai-bg-container, #f9fafb)',
         }}
       >
         <span>{trigger}</span>

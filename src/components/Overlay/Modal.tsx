@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement } from 'react';
+import React, { useState, useEffect, ReactNode, ReactElement } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -6,7 +6,9 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { SubthemeName } from '../../theme/subtheme';
+import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, ModalSliceState } from './ModalSlice';
 
 /**
@@ -73,6 +75,9 @@ export const Modal: React.FC<ModalProps> & {
   overrides,
 }) => {
   const id = useStableId(propId, 'modal');
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
   const { vars: modalVars } = useSliceOverrides(ModalThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -216,20 +221,7 @@ Modal.Actions = ({ children }) => (
 Modal.CloseButton = ({ children = 'Close' }) => {
   return (
     <DialogPrimitive.Close asChild>
-      <button
-        style={{
-          padding: 'var(--ai-padding-md, 0.5rem 1rem)',
-          borderRadius: 'var(--ai-radius-md, 0.375rem)',
-          border: '0.0625rem solid var(--ai-border, #d1d5db)',
-          background: 'transparent',
-          color: 'var(--ai-text-primary, #111827)',
-          fontWeight: 'var(--ai-font-weight-semibold, 600)',
-          fontSize: '0.875rem',
-          cursor: 'pointer',
-        }}
-      >
-        {children}
-      </button>
+      <Button variant="outline">{children}</Button>
     </DialogPrimitive.Close>
   );
 };

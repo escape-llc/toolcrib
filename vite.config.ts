@@ -23,7 +23,10 @@ export default defineConfig(({ command }) => ({
     // README) — without this, vitest's default include pattern picks up
     // cli/test/*.test.js here too, which only works by accident (relies on
     // cli/node_modules already being installed) and duplicates what `cd cli
-    // && npm test` already runs.
-    exclude: [...configDefaults.exclude, 'cli/**'],
+    // && npm test` already runs. e2e/ is Playwright's own separate suite
+    // (see e2e/README.md, run via `npm run test:e2e`) — its specs import
+    // `test`/`expect` from `@playwright/test`, not Vitest's, so Vitest
+    // picking them up here fails immediately with no `page` fixture.
+    exclude: [...configDefaults.exclude, 'cli/**', 'e2e/**'],
   },
 }));

@@ -17,7 +17,9 @@
     "check-docs": "node scripts/generate-docs.js",
     "generate-docs": "node scripts/generate-docs.js --write",
     "check-index": "node scripts/generate-index.js",
-    "generate-index": "node scripts/generate-index.js --write"
+    "generate-index": "node scripts/generate-index.js --write",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "radix-ui": "^1.0.0",
@@ -26,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.0.0",

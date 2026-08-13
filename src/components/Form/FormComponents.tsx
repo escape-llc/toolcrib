@@ -145,7 +145,13 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
  * @manifest Styled button with five variants, three sizes, subtheme colouring, and icon slots
  * @manifestCategory Form Controls
  */
-export const Button: React.FC<ButtonProps> = ({
+// forwardRef, not a plain React.FC — Button is used as the child of Radix
+// `asChild` compositions (Modal.CloseButton, AlertDialog.Cancel/Action), and
+// Radix's Slot mechanism clones the child with a composed `ref` prop.
+// Giving a ref to a plain function component is a silent no-op that also
+// logs a dev-mode console warning ("Function components cannot be given
+// refs") — forwardRef is what makes that composition actually work cleanly.
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   children,
   variant = 'primary',
   size = 'md',
@@ -159,7 +165,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   overrides,
   ...props
-}) => {
+}, ref) => {
   const startIcon = icon || leadingIcon;
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
@@ -227,6 +233,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       {...props}
+      ref={ref}
       className="ai-btn"
       disabled={disabled}
       style={{
@@ -265,7 +272,8 @@ export const Button: React.FC<ButtonProps> = ({
       )}
     </button>
   );
-};
+});
+Button.displayName = 'Button';
 
 export const SubmitButton: React.FC<ButtonProps> = (props) => {
   const formContext = useOptionalFormContext();

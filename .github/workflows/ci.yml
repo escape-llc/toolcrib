@@ -12,6 +12,14 @@ on:
   pull_request:
     branches: [main]
 
+# Least-privilege default: this workflow only checks out the repo and runs
+# tests — it never pushes, comments, or touches releases/Pages, so the
+# default GITHUB_TOKEN would otherwise carry broader (e.g. write) scopes
+# than it ever uses. Matches release.yml/deploy-demo.yml, which already
+# scope theirs.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

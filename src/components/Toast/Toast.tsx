@@ -4,6 +4,7 @@ import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 
@@ -62,6 +63,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const { dismissToast } = useToast();
   useEffect(() => {
     injectToastAnimations();
+    injectInteractionStyles();
   }, []);
 
   // ToastPrimitive.Root is given the same `duration` below and runs its own
@@ -206,6 +208,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         <ToastPrimitive.Close
           aria-label="Dismiss toast"
           onClick={() => { dismissedRef.current = true; dismissToast(toast.id, 'user'); }}
+          className="ai-btn"
           style={{
             background: 'transparent',
             border: 'none',
@@ -213,6 +216,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
             cursor: 'pointer',
             fontSize: '1rem',
             padding: 'var(--ai-padding-xs, 0.125rem 0.375rem)',
+            ['--ai-btn-bg' as string]: 'transparent',
           }}
         >
           ×
@@ -235,6 +239,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                 dismissedRef.current = true;
                 dismissToast(toast.id, 'action');
               }}
+              className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)',
                 borderRadius: 'var(--ai-radius-sm, 0.25rem)',
@@ -244,6 +249,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                 fontSize: '0.75rem',
                 fontWeight: 'var(--ai-font-weight-semibold, 600)',
                 cursor: 'pointer',
+                ['--ai-btn-bg' as string]: 'transparent',
               }}
             >
               {act.label}

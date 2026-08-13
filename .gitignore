@@ -16,3 +16,9 @@ toolcrib-tests.zip.sha256
 
 # Local scratch data from cli/CONTRIBUTING.md's integration-test instructions
 cli/integration-test/releases/
+
+# Playwright (npm run test:e2e) output — see e2e/README.md
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

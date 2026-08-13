@@ -1,0 +1,31 @@
+import { test, expect } from '@playwright/test';
+
+// Covers TypographyThemeSlice end-to-end — switching Font Family in the
+// Theme Editor actually reaches --ai-font-family on :root and from there
+// the real computed font on document.body. Not about CSS mechanics jsdom
+// can't do (computed font-family resolution works fine in jsdom) — this is
+// here because it's the one full round-trip test for the slice this turn
+// added, and the other e2e specs already need a live browser anyway.
+
+test('switching Font Family in the Theme Editor updates --ai-font-family and the real computed font', async ({ page }) => {
+  await page.goto('/');
+
+  const before = await page.evaluate(() => ({
+    varValue: getComputedStyle(document.documentElement).getPropertyValue('--ai-font-family').trim(),
+    bodyFont: getComputedStyle(document.body).fontFamily,
+  }));
+  expect(before.varValue).toContain('Inter');
+  expect(before.bodyFont).toContain('Inter');
+
+  await page.getByRole('button', { name: 'Open Theme Designer' }).click();
+  await page.getByText('Typography (Font Family & Size)').click();
+  await page.getByText('System (Inter / system-ui)').click();
+  await page.getByText('Monospace (SF Mono / Consolas)').click();
+
+  const after = await page.evaluate(() => ({
+    varValue: getComputedStyle(document.documentElement).getPropertyValue('--ai-font-family').trim(),
+    bodyFont: getComputedStyle(document.body).fontFamily,
+  }));
+  expect(after.varValue).toContain('Consolas');
+  expect(after.bodyFont).toContain('Consolas');
+});

@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement } from 'react';
+import React, { useState, useEffect, ReactNode, ReactElement } from 'react';
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -6,7 +6,9 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { SubthemeName } from '../../theme/subtheme';
+import { Button } from '../Form/FormComponents';
 import { AlertDialogThemeSlice, AlertDialogSliceState } from './AlertDialogSlice';
 
 /**
@@ -83,6 +85,9 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   overrides,
 }) => {
   const id = useStableId(propId, 'alertdialog');
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
   const { vars: alertDialogVars } = useSliceOverrides(AlertDialogThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -224,20 +229,7 @@ AlertDialog.Actions = ({ children }) => (
 
 AlertDialog.Cancel = ({ children = 'Cancel' }) => (
   <AlertDialogPrimitive.Cancel asChild>
-    <button
-      style={{
-        padding: 'var(--ai-padding-md, 0.5rem 1rem)',
-        borderRadius: 'var(--ai-radius-md, 0.375rem)',
-        border: '0.0625rem solid var(--ai-border, #d1d5db)',
-        background: 'transparent',
-        color: 'var(--ai-text-primary, #111827)',
-        fontWeight: 'var(--ai-font-weight-semibold, 600)',
-        fontSize: '0.875rem',
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
+    <Button variant="outline">{children}</Button>
   </AlertDialogPrimitive.Cancel>
 );
 
@@ -248,21 +240,7 @@ AlertDialog.Cancel = ({ children = 'Cancel' }) => (
 // (Cancel or Action), never a timer or swipe.
 AlertDialog.Action = ({ children = 'Confirm', onClick }) => (
   <AlertDialogPrimitive.Action asChild>
-    <button
-      onClick={onClick}
-      style={{
-        padding: 'var(--ai-padding-md, 0.5rem 1rem)',
-        borderRadius: 'var(--ai-radius-md, 0.375rem)',
-        border: 'none',
-        background: 'var(--ai-subtheme-error, #ef4444)',
-        color: '#ffffff',
-        fontWeight: 'var(--ai-font-weight-semibold, 600)',
-        fontSize: '0.875rem',
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
+    <Button variant="danger" onClick={onClick}>{children}</Button>
   </AlertDialogPrimitive.Action>
 );
 

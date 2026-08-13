@@ -1,7 +1,8 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { ToggleThemeSlice, ToggleSliceState } from './ToggleSlice';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
@@ -37,6 +38,9 @@ export const Toggle: React.FC<ToggleProps> = ({
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   const handlePressedChange = (next: boolean) => {
     if (externalPressed === undefined) setInternalPressed(next);
@@ -49,6 +53,7 @@ export const Toggle: React.FC<ToggleProps> = ({
       pressed={isPressed}
       onPressedChange={handlePressedChange}
       disabled={disabled}
+      className="ai-btn"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -65,6 +70,7 @@ export const Toggle: React.FC<ToggleProps> = ({
         opacity: disabled ? 0.5 : 1,
         transition: 'all 0.15s ease',
         outline: 'none',
+        ['--ai-btn-bg' as string]: isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
         ...toggleVars,
       }}
     >
@@ -135,6 +141,9 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   );
   const currentValue = externalValue !== undefined ? externalValue : internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   const handleValueChange = (next: string | string[]) => {
     if (externalValue === undefined) setInternalValue(next);
@@ -164,6 +173,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
             key={opt.value}
             value={opt.value}
             disabled={itemDisabled}
+            className="ai-btn"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -186,6 +196,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               zIndex: selected ? 1 : 0,
               transition: 'all 0.15s ease',
               outline: 'none',
+              ['--ai-btn-bg' as string]: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
               ...toggleGroupVars,
             }}
           >

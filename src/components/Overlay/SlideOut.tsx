@@ -5,6 +5,7 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 
 /**
  * Props for the `<SlideOut>` drawer overlay.
@@ -58,6 +59,9 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   zIndex = Z_INDEX.DRAWER,
 }) => {
   const id = useStableId(propId, 'slideout');
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -196,12 +200,14 @@ export const SlideOut: React.FC<SlideOutProps> = ({
           </div>
           <button
             onClick={() => toggle(false)}
+            className="ai-btn"
             style={{
               background: 'transparent',
               border: 'none',
               fontSize: '1.25rem',
               cursor: 'pointer',
               color: 'var(--ai-text-secondary, #6b7280)',
+              ['--ai-btn-bg' as string]: 'transparent',
             }}
           >
             ×
