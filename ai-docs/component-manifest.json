@@ -1391,7 +1391,13 @@
     {
       "name": "ThemeEditor",
       "import": "import { ThemeEditor } from '#toolcrib'",
-      "props": {},
+      "props": {
+        "themeManagement": {
+          "type": "boolean | ThemeManagementOptions",
+          "default": "true",
+          "description": "Controls which Save & Load Themes commands appear in the header\ntoolbar. Omit (or `true`) for everything enabled — the default. Pass\n`false` to hide the whole toolbar, or an options object to lock out\nspecific commands individually — e.g. an app author shipping a fixed\nbundled theme (via `<ThemeProvider initialParameters={...}>`) who\ndoesn't want end users overriding it with an imported file, or\npersisting their own local variant that outlives an intentional reset."
+        }
+      },
       "category": "Form Controls",
       "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
     },

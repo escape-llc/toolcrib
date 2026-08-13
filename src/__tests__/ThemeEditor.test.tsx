@@ -1,3 +1,4 @@
+import { ComponentProps } from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from '../theme/themeContext';
@@ -16,10 +17,10 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
   (globalThis as any).ResizeObserver = ResizeObserverMock as any;
 }
 
-function renderEditor() {
+function renderEditor(props?: ComponentProps<typeof ThemeEditor>) {
   return render(
     <ThemeProvider>
-      <ThemeEditor />
+      <ThemeEditor {...props} />
     </ThemeProvider>
   );
 }
@@ -74,5 +75,36 @@ describe('ThemeEditor', () => {
 
     expect(screen.getByText('Dark (Default)')).toBeInTheDocument();
     expect(screen.getByText('Medium (Standard Padding & Font)')).toBeInTheDocument();
+  });
+
+  describe('themeManagement lockout prop', () => {
+    it('shows every Save & Load Themes command by default', () => {
+      renderEditor();
+
+      expect(screen.getByText(/🍋 Lime \(Default\)/)).toBeInTheDocument(); // a bundled preset
+      expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument(); // the localStorage "save" field
+      expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /⬆️ Import/ })).toBeInTheDocument();
+    });
+
+    it('hides the entire toolbar when themeManagement={false} — e.g. an app author shipping one fixed bundled theme', () => {
+      renderEditor({ themeManagement: false });
+
+      expect(screen.queryByText(/🍋 Lime \(Default\)/)).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /⬇️ Export/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument();
+      // The rest of the editor (category groups) still renders normally.
+      expect(screen.getByText(/Global Theme & Color System/)).toBeInTheDocument();
+    });
+
+    it('locks out individual commands without affecting the others', () => {
+      renderEditor({ themeManagement: { import: false, library: false } });
+
+      expect(screen.getByText(/🍋 Lime \(Default\)/)).toBeInTheDocument(); // presets still shown
+      expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument(); // export still shown
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument(); // library locked out
+      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument(); // import locked out
+    });
   });
 });

@@ -1,17 +1,47 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { HarmonyMode } from '../../theme/harmonies';
 import { PaddingMode } from '../../theme/padding';
 import { MarginMode } from '../../theme/margin';
 import { CornerRadiusMode } from '../../theme/radius';
 import { ShadowMode } from '../../theme/shadow';
+import { captureThemeSnapshot, applyThemeSnapshot } from '../../theme/themePersistence';
+import { presetThemes, PresetTheme } from '../../theme/presetThemes';
+import { listSavedThemes, saveThemeToLibrary, deleteThemeFromLibrary, getThemeFromLibrary, SavedTheme } from '../../theme/themeLibrary';
+import { downloadThemeSnapshot, readThemeSnapshotFromFile } from '../../theme/themeFileTransfer';
 import { Button } from '../Form/FormComponents';
+import { Input } from '../Form/FormComponents';
 import { Select } from '../Form/Select';
 import { Slider } from '../Form/Slider';
 import { Accordion } from '../Accordion/Accordion';
 import { Tooltip } from '../Tooltip/Tooltip';
+import { UIGroup } from '../UIGroup/UIGroup';
 
-export interface ThemeEditorProps {}
+/** Per-command switches for the Save & Load Themes header toolbar — see `ThemeEditorProps.themeManagement`. */
+export interface ThemeManagementOptions {
+  /** Bundled preset swatches (presetThemes.ts). @default true */
+  presets?: boolean;
+  /** Save/load/delete themes in this browser's localStorage (themeLibrary.ts) — the "your saved themes" row. @default true */
+  library?: boolean;
+  /** Download the current theme as a `.json` file. @default true */
+  export?: boolean;
+  /** Upload a `.json` theme file. @default true */
+  import?: boolean;
+}
+
+export interface ThemeEditorProps {
+  /**
+   * Controls which Save & Load Themes commands appear in the header
+   * toolbar. Omit (or `true`) for everything enabled — the default. Pass
+   * `false` to hide the whole toolbar, or an options object to lock out
+   * specific commands individually — e.g. an app author shipping a fixed
+   * bundled theme (via `<ThemeProvider initialParameters={...}>`) who
+   * doesn't want end users overriding it with an imported file, or
+   * persisting their own local variant that outlives an intentional reset.
+   * @default true
+   */
+  themeManagement?: boolean | ThemeManagementOptions;
+}
 
 /** A `label` + `Select` pairing, optionally with an info tooltip — the field-row shape every per-slice control in this editor follows. */
 function FieldRow({
@@ -47,10 +77,21 @@ function FieldRow({
  * host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing.
  * @manifestCategory Form Controls
  */
-export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
+export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true }) => {
+  // The whole context object, not just its destructured fields below — the
+  // save/load handlers need to hand it as a unit to captureThemeSnapshot/
+  // applyThemeSnapshot (see themePersistence.ts), which take the full
+  // ThemeContextType rather than one field at a time.
+  const theme = useTheme();
+  const mgmt: ThemeManagementOptions = themeManagement === false ? {} : themeManagement === true ? {} : themeManagement;
+  const allDisabled = themeManagement === false;
+  const showPresets = !allDisabled && mgmt.presets !== false;
+  const showLibrary = !allDisabled && mgmt.library !== false;
+  const showExport = !allDisabled && mgmt.export !== false;
+  const showImport = !allDisabled && mgmt.import !== false;
+  const showThemeToolbar = showPresets || showLibrary || showExport || showImport;
   const {
     parameters,
-    cssVariables,
     setBaseColor,
     setHarmonyMode,
     setHueSpread,
@@ -119,31 +160,57 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     toggleDarkMode,
   } = useTheme();
 
-  const [copied, setCopied] = useState(false);
-  // Harmless under React 18 (setState on an unmounted component is
-  // silently a no-op there, not a warning), but explicit cleanup is what
-  // makes this the "correct" pattern rather than one relying on that
-  // React-version-specific behavior — e.g. it's a real warning again on
-  // React <18, and StrictMode/test-renderer environments are exactly where
-  // that kind of thing tends to get noticed.
-  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // --- Save & Load Themes (header toolbar, not buried at the bottom) ---
+  // Three independent sources feed the same applyThemeSnapshot(theme, ...)
+  // call (see themePersistence.ts's own comment on why that separation
+  // matters): bundled presetThemes.ts, this browser's localStorage via
+  // themeLibrary.ts, and an uploaded/downloaded file via
+  // themeFileTransfer.ts. Baked directly into this shipped toolkit
+  // component (not demo-only code) — anyone who mounts <ThemeEditor> gets
+  // save/load with zero wiring of their own.
+  const [themeName, setThemeName] = useState('');
+  const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(() => listSavedThemes());
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    return () => {
-      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    };
-  }, []);
+  const handleSaveCurrentTheme = () => {
+    const trimmed = themeName.trim();
+    if (!trimmed) return;
+    saveThemeToLibrary(trimmed, captureThemeSnapshot(theme, trimmed));
+    setThemeName('');
+    setSavedThemes(listSavedThemes());
+  };
 
-  const copyCSSVariables = () => {
-    const cssText = `:root {\n` +
-      Object.entries(cssVariables)
-        .map(([k, v]) => `  ${k}: ${v};`)
-        .join('\n') +
-      `\n}`;
-    navigator.clipboard.writeText(cssText);
-    setCopied(true);
-    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+  const handleLoadSavedTheme = (id: string) => {
+    const entry = getThemeFromLibrary(id);
+    if (entry) applyThemeSnapshot(theme, entry.snapshot);
+  };
+
+  const handleDeleteSavedTheme = (id: string) => {
+    deleteThemeFromLibrary(id);
+    setSavedThemes(listSavedThemes());
+  };
+
+  const handleLoadPreset = (preset: PresetTheme) => {
+    applyThemeSnapshot(theme, preset.snapshot);
+  };
+
+  const handleDownloadTheme = () => {
+    const trimmed = themeName.trim();
+    downloadThemeSnapshot(captureThemeSnapshot(theme, trimmed || undefined), `${trimmed || 'toolcrib-theme'}.json`);
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // clears the input so re-selecting the same filename still fires onChange
+    if (!file) return;
+    try {
+      const snapshot = await readThemeSnapshotFromFile(file);
+      applyThemeSnapshot(theme, snapshot);
+      setImportError(null);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not import this file.');
+    }
   };
 
   const appearanceContent = (
@@ -1098,6 +1165,97 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
+      {/* Save & Load Themes — lives in the header, above everything else,
+          not buried at the bottom past 6 categories of scrolling. Any of
+          the four command groups can be individually locked out via the
+          `themeManagement` prop (see its own doc comment) — e.g. an app
+          author shipping one fixed bundled theme who doesn't want it
+          overridable. */}
+      {showThemeToolbar && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.625rem',
+            paddingBottom: '0.875rem',
+            borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
+          }}
+        >
+          {showPresets && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {presetThemes.map(preset => (
+                <Button key={preset.id} size="sm" variant="outline" onClick={() => handleLoadPreset(preset)}>
+                  {preset.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {(showLibrary || showExport || showImport) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+              {showLibrary && (
+                <>
+                  <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
+                    <Input
+                      placeholder="Theme name..."
+                      value={themeName}
+                      onChange={e => setThemeName(e.target.value)}
+                    />
+                  </div>
+                  <Button size="sm" onClick={handleSaveCurrentTheme} disabled={!themeName.trim()}>
+                    💾 Save
+                  </Button>
+                </>
+              )}
+              {showExport && (
+                <Button size="sm" variant="outline" onClick={handleDownloadTheme}>
+                  ⬇️ Export
+                </Button>
+              )}
+              {showImport && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    ⬆️ Import
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={handleFileSelected}
+                    style={{ display: 'none' }}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {showLibrary && savedThemes.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)' }}>Saved:</span>
+              {savedThemes.map(entry => (
+                <UIGroup key={entry.id}>
+                  <Button size="sm" variant="ghost" onClick={() => handleLoadSavedTheme(entry.id)}>
+                    {entry.name}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Delete saved theme ${entry.name}`}
+                    onClick={() => handleDeleteSavedTheme(entry.id)}
+                  >
+                    🗑️
+                  </Button>
+                </UIGroup>
+              ))}
+            </div>
+          )}
+
+          {importError && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)' }}>{importError}</span>
+          )}
+        </div>
+      )}
+
       {/* Top-level grouping by ThemeSliceCategory — each group holds its own
           nested Accordion of per-component sections, since a single flat
           list of ~26 sections would be unusably long to scan or scroll. */}
@@ -1113,16 +1271,6 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
           { value: 'formcontrols', title: '🎛️ Form Controls', content: formControlsGroupContent },
         ]}
       />
-
-      {/* Copy CSS Custom Properties Button — the extra marginTop lives on
-          this plain wrapper (not a toolcrib component) since it's an
-          intentional bit of breathing room beyond the parent's own
-          gap:'1rem', and Button no longer accepts a raw style prop. */}
-      <div style={{ marginTop: '0.5rem' }}>
-        <Button onClick={copyCSSVariables} variant="secondary">
-          {copied ? '✓ Copied CSS Variables!' : '📋 Copy CSS Custom Properties'}
-        </Button>
-      </div>
     </div>
   );
 };

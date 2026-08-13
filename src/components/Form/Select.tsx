@@ -102,7 +102,7 @@ export const Select: React.FC<SelectProps> = ({
       disabled={disabled}
     >
       <SelectPrimitive.Trigger
-        className="ai-focus-ring"
+        className="ai-btn"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -118,6 +118,7 @@ export const Select: React.FC<SelectProps> = ({
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
+          ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           ...selectVars,
         }}
       >

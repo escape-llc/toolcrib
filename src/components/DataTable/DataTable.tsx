@@ -346,6 +346,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
+              className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
@@ -353,6 +354,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 color: 'var(--ai-text-primary, #111827)',
                 fontSize: '0.75rem',
                 cursor: 'pointer',
+                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
               }}
             >
               {pageSizeOptions.map(opt => (
