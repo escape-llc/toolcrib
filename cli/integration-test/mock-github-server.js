@@ -24,7 +24,21 @@ const server = http.createServer((req, res) => {
   // Mimics: GET /releases/latest/download/{asset} and /releases/download/v{x}/{asset}
   if (req.url.startsWith('/releases/')) {
     const assetName = req.url.split('/').pop();
-    const filePath = path.join(DIR, 'releases', assetName);
+    if (!assetName || path.basename(assetName) !== assetName) {
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
+    }
+
+    const releasesDir = path.resolve(DIR, 'releases');
+    const filePath = path.resolve(releasesDir, assetName);
+    const relativePath = path.relative(releasesDir, filePath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
     if (!fs.existsSync(filePath)) {
       res.writeHead(404);
       res.end('Not Found');
