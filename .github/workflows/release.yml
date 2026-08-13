@@ -23,6 +23,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # scripts/lib/extract.js has its own isolated devDependency (a pinned
+      # typescript@6.x, kept separate from root's own typescript version —
+      # see root AGENTS.md's TypeScript section for why) that root's own
+      # `npm ci` above doesn't install. Has to run BEFORE "Run toolkit test
+      # suite" below, not after: src/__tests__/docsInSync.test.ts (part of
+      # that suite) shells out to scripts/generate-*.js --check itself, and
+      # without scripts/node_modules already present, Node resolves
+      # `typescript` from root's own node_modules instead (7.x, whose
+      # reduced API surface is missing ts.ScriptTarget/createSourceFile) —
+      # a real ordering bug that broke every run of this exact job, not a
+      # hypothetical.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
       - name: Run toolkit test suite
         run: npm test
 
@@ -33,14 +48,6 @@ jobs:
       - name: Run CLI test suite
         run: npm test
         working-directory: cli
-
-      # scripts/lib/extract.js has its own isolated devDependency (a pinned
-      # typescript@6.x, kept separate from root's own typescript version —
-      # see root AGENTS.md's TypeScript section for why) that root's own
-      # `npm ci` above doesn't install.
-      - name: Install scripts/ dependencies
-        run: npm ci
-        working-directory: scripts
 
       # Fails the workflow (and blocks the release) if ai-docs/component-manifest.json
       # doesn't match what scripts/generate-manifest.js derives directly from

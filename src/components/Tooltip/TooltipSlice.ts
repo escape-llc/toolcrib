@@ -51,6 +51,7 @@ export function getTooltipVariables(state: TooltipSliceState = defaultTooltipSta
 export const TooltipThemeSlice: ThemeSlice<TooltipSliceState, TooltipCSSVariables> = {
   id: 'tooltip',
   name: '💬 Tooltip Styling & Theme',
+  category: 'Overlays',
   defaultState: defaultTooltipState,
   getCSSVariables: getTooltipVariables,
   fieldVars: {

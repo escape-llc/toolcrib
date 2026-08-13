@@ -6,6 +6,12 @@ import { warnIfLegacyStyleProps } from '../../theme/safeProps';
  *
  * Visually groups adjacent elements (e.g. buttons) by merging their borders
  * and removing internal border-radii so they appear as a single compound control.
+ *
+ * The border-overlap width (see `UIGroupThemeSlice`) is themed globally via
+ * `var(--ai-uigroup-overlap, ...)` in the one shared stylesheet this
+ * component injects (see `injectUIGroupStyles` below) — not per-instance
+ * `overrides`, since that shared, singleton stylesheet has no per-instance
+ * scoping to hang a sparse override off of.
  */
 export interface UIGroupProps {
   children: ReactNode;
@@ -65,7 +71,7 @@ function injectUIGroupStyles() {
       border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
     .toolcrib-group[data-orientation="horizontal"] > *:not(:first-child) {
-      margin-left: -0.0625rem;
+      margin-left: var(--ai-uigroup-overlap, -0.0625rem);
     }
 
     .toolcrib-group[data-orientation="vertical"] {
@@ -86,7 +92,7 @@ function injectUIGroupStyles() {
       border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
     .toolcrib-group[data-orientation="vertical"] > *:not(:first-child) {
-      margin-top: -0.0625rem;
+      margin-top: var(--ai-uigroup-overlap, -0.0625rem);
     }
   `;
   document.head.appendChild(styleEl);

@@ -1,6 +1,8 @@
 import React, { ReactNode } from 'react';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { getSparseVariables } from '../../theme/slice';
+import { AppShellThemeSlice, AppShellSliceState } from './AppShellSlice';
 
 /**
  * Props for the root `<AppShell>` container — the full-viewport frame every
@@ -10,6 +12,8 @@ import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safePro
  */
 export interface AppShellProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
+  /** Per-instance override for Header/Main padding density. Since AppShell is meant to render once, this mostly exists for consistency with other components — the global Theme Editor control is the more typical way to change this. */
+  overrides?: Partial<AppShellSliceState>;
 }
 
 /** Props for the `<AppShell.Header>` slot. Renders as a `<header>` with themed padding, background, and a bottom border. */
@@ -34,8 +38,9 @@ export interface AppShellMainProps extends StyleFreeAttributes<HTMLDivElement> {
 export const AppShell: React.FC<AppShellProps> & {
   Header: React.FC<AppShellHeaderProps>;
   Main: React.FC<AppShellMainProps>;
-} = ({ children, ...props }) => {
+} = ({ children, overrides, ...props }) => {
   warnIfLegacyStyleProps(props, 'AppShell');
+  const appShellVars = getSparseVariables(AppShellThemeSlice, overrides ?? {});
   return (
     <div
       {...props}
@@ -47,6 +52,7 @@ export const AppShell: React.FC<AppShellProps> & {
         overflow: 'hidden',
         background: 'var(--ai-bg-primary)',
         color: 'var(--ai-text-primary)',
+        ...appShellVars,
       }}
     >
       {children}
@@ -66,6 +72,18 @@ AppShell.Header = ({ children, paddingMode, ...props }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        // flexWrap + gap, not overflow/nowrap: a header's typical two
+        // children (a title block, an actions cluster) each have their own
+        // natural content width, and neither this element nor a plain flex
+        // row gives either child anywhere to shrink to below that — so at
+        // a narrow viewport they don't compress, they overlap. Wrapping
+        // instead lets the actions cluster drop to its own line below the
+        // title once they no longer fit side by side, which is what a
+        // real header needs regardless of what a given consumer puts in
+        // it. No visual change for anything that already fits on one line
+        // — this only activates once content actually doesn't fit.
+        flexWrap: 'wrap',
+        gap: '0.75rem',
         flexShrink: 0,
       }}
     >

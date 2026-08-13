@@ -4,6 +4,9 @@ import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { MenuItemData } from '../DropdownMenu/DropdownMenu';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { ContextMenuThemeSlice, ContextMenuSliceState } from './ContextMenuSlice';
 
 /**
  * Props for the `<ContextMenu>` right-click action menu.
@@ -20,6 +23,8 @@ export interface ContextMenuProps {
   children: ReactNode;
   /** Array of menu items to render. */
   items: MenuItemData[];
+  /** Per-instance overrides for shadow depth and item density. */
+  overrides?: Partial<ContextMenuSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -30,8 +35,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   id: propId,
   children,
   items,
+  overrides,
 }) => {
   const id = useStableId(propId, 'contextmenu');
+  const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
 
   return (
     <ContextMenuPrimitive.Root
@@ -56,11 +63,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+            boxShadow: 'var(--ai-contextmenu-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.125rem',
             outline: 'none',
+            ...menuVars,
           }}
         >
           {items.map((item, idx) => {
@@ -89,7 +97,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  padding: '0.4375rem 0.75rem',
+                  padding: 'var(--ai-contextmenu-item-padding, 0.4375rem 0.75rem)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',

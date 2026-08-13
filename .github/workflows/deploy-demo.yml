@@ -1,0 +1,65 @@
+name: Deploy Demo to GitHub Pages
+
+# Independent of ci.yml (tests on every push/PR) and release.yml (npm
+# package releases on version tags) — this only builds and publishes the
+# demo/ dev harness (demo/App.tsx + friends) as a static site, so anyone
+# can see the toolkit working without cloning the repo. Runs on every push
+# to main; a broken build here doesn't block ci.yml or release.yml, and
+# vice versa.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment can run at a time; a second push while one is
+# still building cancels the in-progress run rather than queuing behind it,
+# so Pages always ends up serving the *latest* pushed commit, not
+# whichever commit's deploy happened to finish last.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # vite.config.ts's `base` only switches to '/toolcrib/' when Vite's
+      # own `command` is 'build' (this step) — local `npm run dev` stays at
+      # the domain root, unaffected. See that file's own comment.
+      - name: Build demo
+        run: npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload build output
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

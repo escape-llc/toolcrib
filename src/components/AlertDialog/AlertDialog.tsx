@@ -5,6 +5,9 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { AlertDialogThemeSlice, AlertDialogSliceState } from './AlertDialogSlice';
 
 /**
  * Props for the `<AlertDialog>` blocking confirmation dialog.
@@ -53,6 +56,8 @@ export interface AlertDialogProps {
    * @default 'Confirm Action'
    */
   ariaLabel?: string;
+  /** Per-instance overrides for backdrop blur and overlay darkness. */
+  overrides?: Partial<AlertDialogSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -75,8 +80,10 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   width = '25rem',
   zIndex = Z_INDEX.MODAL,
   ariaLabel = 'Confirm Action',
+  overrides,
 }) => {
   const id = useStableId(propId, 'alertdialog');
+  const { vars: alertDialogVars } = useSliceOverrides(AlertDialogThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -118,13 +125,14 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
             position: 'fixed',
             inset: 0,
             zIndex: zIndex,
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(0.1875rem)',
+            background: 'var(--ai-alertdialog-overlay-bg, rgba(0, 0, 0, 0.5))',
+            backdropFilter: 'blur(var(--ai-alertdialog-backdrop-blur, 0.1875rem))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1.25rem',
             animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+            ...alertDialogVars,
           }}
         >
           <AlertDialogPrimitive.Content

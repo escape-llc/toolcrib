@@ -93,6 +93,7 @@ export function getTabVariables(state: TabSliceState = defaultTabState): TabCSSV
 export const TabThemeSlice: ThemeSlice<TabSliceState, TabCSSVariables> = {
   id: 'tab',
   name: '📑 Tab Group Panels & Variants',
+  category: 'Data Display',
   defaultState: defaultTabState,
   getCSSVariables: getTabVariables,
   fieldVars: {

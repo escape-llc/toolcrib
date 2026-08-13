@@ -102,13 +102,33 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         background: getSubthemeBackground(toast.type),
         color: 'var(--ai-text-primary, #111827)',
         border: `0.0625rem solid ${getSubthemeBorder(toast.type)}`,
-        borderLeft: `0.3125rem solid ${getSubthemeColor(toast.type)}`,
-        boxShadow: '0 0.625rem 0.9375rem -0.1875rem rgba(0,0,0,0.12), 0 0.25rem 0.375rem -0.125rem rgba(0,0,0,0.06)',
+        borderLeft: `var(--ai-toast-accent-width, 0.3125rem) solid ${getSubthemeColor(toast.type)}`,
+        boxShadow: 'var(--ai-toast-shadow, 0 0.625rem 0.9375rem -0.1875rem rgba(0,0,0,0.12), 0 0.25rem 0.375rem -0.125rem rgba(0,0,0,0.06))',
         minWidth: '17.5rem',
         maxWidth: '26.25rem',
         position: 'relative',
         zIndex: 3000,
         outline: 'none',
+        // Confirmed via a real browser run (DOM dump + computed-style walk):
+        // Radix's ToastPrimitive.Root portals its actual rendered content to
+        // be a direct child of the Viewport's <ol>, not a descendant of
+        // whatever wrapper the consumer places around <ToastPrimitive.Root>
+        // in JSX. ToastContainer below used to rely on a per-toast wrapper
+        // <div style={{ pointerEvents: 'auto' }}> to counteract the
+        // Viewport's own pointerEvents: 'none' (needed so the empty space
+        // around toasts stays click-through) — but since the portal moves
+        // this Root's real output out from under that div entirely, the div
+        // was overriding pointer-events on an empty shell while the actual
+        // toast (this element and everything inside it, including the
+        // dismiss button) kept inheriting 'none' straight from the Viewport.
+        // Every click on a toast's close/action button was silently
+        // swallowed and fell through to whatever was underneath on the page
+        // — reproduced exactly as reported: dismiss appeared to do nothing,
+        // and the click landed on the header button one toast happened to
+        // overlap instead. Setting it here, on the element that's actually
+        // still a real ancestor of the dismiss/action buttons after the
+        // portal, is what actually fixes it.
+        pointerEvents: 'auto',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
@@ -220,10 +240,12 @@ export const ToastContainer: React.FC = () => {
   return (
     <ToastPrimitive.Provider swipeDirection="right">
       <ToastPrimitive.Viewport style={getPositionStyles()}>
+        {/* No per-toast wrapper div here — see ToastItemComponent's own
+            pointerEvents: 'auto' comment for why one existed before and why
+            it never actually worked (ToastPrimitive.Root portals its real
+            output out from under it, straight to this Viewport). */}
         {toasts.map(toast => (
-          <div key={toast.id} style={{ pointerEvents: 'auto' }}>
-            <ToastItemComponent toast={toast} />
-          </div>
+          <ToastItemComponent key={toast.id} toast={toast} />
         ))}
       </ToastPrimitive.Viewport>
     </ToastPrimitive.Provider>

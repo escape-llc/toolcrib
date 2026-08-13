@@ -1,6 +1,8 @@
 import React, { ReactNode, useState } from 'react';
 import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
+import { getSparseVariables } from '../../theme/slice';
+import { ToggleThemeSlice, ToggleSliceState } from './ToggleSlice';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
 export interface ToggleProps {
@@ -15,6 +17,8 @@ export interface ToggleProps {
   /** If true, the toggle is non-interactive. */
   disabled?: boolean;
   children: ReactNode;
+  /** Per-instance override for padding density. Shared with `<ToggleGroup>`. */
+  overrides?: Partial<ToggleSliceState>;
 }
 
 /**
@@ -28,9 +32,11 @@ export const Toggle: React.FC<ToggleProps> = ({
   onPressedChange,
   disabled = false,
   children,
+  overrides,
 }) => {
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
+  const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
 
   const handlePressedChange = (next: boolean) => {
     if (externalPressed === undefined) setInternalPressed(next);
@@ -47,8 +53,8 @@ export const Toggle: React.FC<ToggleProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '0.375rem',
-        padding: '0.4375rem 0.75rem',
+        gap: 'var(--ai-toggle-gap, 0.375rem)',
+        padding: 'var(--ai-toggle-padding, 0.4375rem 0.75rem)',
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
         border: `0.0625rem solid ${isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
         background: isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
@@ -59,6 +65,7 @@ export const Toggle: React.FC<ToggleProps> = ({
         opacity: disabled ? 0.5 : 1,
         transition: 'all 0.15s ease',
         outline: 'none',
+        ...toggleVars,
       }}
     >
       {children}
@@ -105,6 +112,8 @@ export interface ToggleGroupProps {
   options: ToggleGroupOption[];
   /** If true, every option is disabled. */
   disabled?: boolean;
+  /** Per-instance override for padding density. Shared with `<Toggle>`. */
+  overrides?: Partial<ToggleSliceState>;
 }
 
 /**
@@ -119,11 +128,13 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   onChange,
   options,
   disabled = false,
+  overrides,
 }) => {
   const [internalValue, setInternalValue] = useState<string | string[]>(
     defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : ''
   );
   const currentValue = externalValue !== undefined ? externalValue : internalValue;
+  const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
 
   const handleValueChange = (next: string | string[]) => {
     if (externalValue === undefined) setInternalValue(next);
@@ -157,8 +168,8 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.375rem',
-              padding: '0.4375rem 0.75rem',
+              gap: 'var(--ai-toggle-gap, 0.375rem)',
+              padding: 'var(--ai-toggle-padding, 0.4375rem 0.75rem)',
               border: `0.0625rem solid ${selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
               borderTopLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
@@ -175,6 +186,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               zIndex: selected ? 1 : 0,
               transition: 'all 0.15s ease',
               outline: 'none',
+              ...toggleGroupVars,
             }}
           >
             {opt.icon}

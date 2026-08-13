@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { Progress as ProgressPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
+import { getSparseVariables } from '../../theme/slice';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
+import { ProgressThemeSlice, ProgressSliceState } from './ProgressSlice';
 
 /**
  * Props for the `<Progress>` bar.
@@ -22,6 +24,8 @@ export interface ProgressProps {
   size?: 'sm' | 'md' | 'lg';
   /** Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted. */
   subtheme?: SubthemeName;
+  /** Per-instance override for the track's corner shape. */
+  overrides?: Partial<ProgressSliceState>;
 }
 
 const SIZE_HEIGHT: Record<NonNullable<ProgressProps['size']>, string> = {
@@ -40,9 +44,11 @@ export const Progress: React.FC<ProgressProps> = ({
   max = 100,
   size = 'md',
   subtheme: instanceSubtheme,
+  overrides,
 }) => {
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
+  const progressVars = getSparseVariables(ProgressThemeSlice, overrides ?? {});
   const clampedValue = Math.min(Math.max(value, 0), max);
   const percentage = max > 0 ? (clampedValue / max) * 100 : 0;
 
@@ -59,8 +65,9 @@ export const Progress: React.FC<ProgressProps> = ({
         overflow: 'hidden',
         width: '100%',
         height: SIZE_HEIGHT[size],
-        borderRadius: '0.625rem',
+        borderRadius: 'var(--ai-progress-radius, 0.625rem)',
         background: 'var(--ai-bg-container, #f3f4f6)',
+        ...progressVars,
       }}
     >
       <ProgressPrimitive.Indicator

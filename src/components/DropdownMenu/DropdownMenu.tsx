@@ -3,6 +3,9 @@ import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { DropdownMenuThemeSlice, DropdownMenuSliceState } from './DropdownMenuSlice';
 
 /** Data shape for each item in a `<DropdownMenu>`. */
 export interface MenuItemData {
@@ -43,6 +46,8 @@ export interface DropdownMenuProps {
    * @default 'start'
    */
   align?: 'start' | 'center' | 'end';
+  /** Per-instance overrides for shadow depth and item density. */
+  overrides?: Partial<DropdownMenuSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -55,8 +60,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   items,
   side = 'bottom',
   align = 'start',
+  overrides,
 }) => {
   const id = useStableId(propId, 'menu');
+  const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
 
   return (
     <DropdownMenuPrimitive.Root
@@ -84,11 +91,12 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+            boxShadow: 'var(--ai-dropdownmenu-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.125rem',
             outline: 'none',
+            ...menuVars,
           }}
         >
           {items.map((item, idx) => {
@@ -117,7 +125,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  padding: '0.4375rem 0.75rem',
+                  padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',

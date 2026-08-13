@@ -3,6 +3,8 @@ import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
+import { getSparseVariables } from '../../theme/slice';
+import { CollapsibleThemeSlice, CollapsibleSliceState } from './CollapsibleSlice';
 
 /**
  * Props for the `<Collapsible>` single expand/collapse panel.
@@ -26,6 +28,8 @@ export interface CollapsibleProps {
   onOpenChange?: (open: boolean) => void;
   /** If true, the trigger is non-interactive and the panel can't be toggled. */
   disabled?: boolean;
+  /** Per-instance override for header/content padding. */
+  overrides?: Partial<CollapsibleSliceState>;
 }
 
 /**
@@ -40,8 +44,10 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
   isOpen: externalIsOpen,
   onOpenChange,
   disabled = false,
+  overrides,
 }) => {
   const id = useStableId(propId, 'collapsible');
+  const collapsibleVars = getSparseVariables(CollapsibleThemeSlice, overrides ?? {});
   const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -69,7 +75,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
       open={isOpen}
       onOpenChange={open => handleOpenChange(open)}
       disabled={disabled}
-      style={{ width: '100%' }}
+      style={{ width: '100%', ...collapsibleVars }}
     >
       <CollapsiblePrimitive.Trigger
         style={{
@@ -79,7 +85,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           justifyContent: 'space-between',
           width: '100%',
           boxSizing: 'border-box',
-          padding: '0.875rem 1.125rem',
+          padding: 'var(--ai-collapsible-header-padding, 0.875rem 1.125rem)',
           borderRadius: 'var(--ai-radius-md, 0.375rem)',
           background: 'var(--ai-bg-container, #f9fafb)',
           fontWeight: 600,
@@ -105,7 +111,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 
       <CollapsiblePrimitive.Content
         style={{
-          padding: '1rem 1.125rem',
+          padding: 'var(--ai-collapsible-content-padding, 1rem 1.125rem)',
           fontSize: '0.875rem',
           color: 'var(--ai-text-primary, #111827)',
         }}

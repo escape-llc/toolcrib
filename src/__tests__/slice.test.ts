@@ -46,6 +46,7 @@ const fixtureDefaultState: FixtureState = { padding: 'normal', headerStyle: 'bor
 const fixtureSliceWithFieldVars: ThemeSlice<FixtureState, FixtureVars> = {
   id: 'fixture',
   name: 'Fixture',
+  category: 'Containers',
   defaultState: fixtureDefaultState,
   getCSSVariables: (state) => ({
     '--fixture-padding': state.padding === 'compact' ? '0.5rem' : '1rem',

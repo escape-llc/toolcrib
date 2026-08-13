@@ -6,6 +6,9 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { SquareCornerOption } from '../Card/Card';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { PopupThemeSlice, PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -37,6 +40,8 @@ export interface PopupProps {
    * @default Z_INDEX.DROPDOWN (300)
    */
   zIndex?: number;
+  /** Per-instance overrides for shadow depth and border style. */
+  overrides?: Partial<PopupSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -51,8 +56,10 @@ export const Popup: React.FC<PopupProps> = ({
   isOpen: externalIsOpen,
   onOpenChange,
   zIndex = Z_INDEX.DROPDOWN,
+  overrides,
 }) => {
   const id = useStableId(propId, 'popup');
+  const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -153,12 +160,13 @@ export const Popup: React.FC<PopupProps> = ({
           style={{
             zIndex,
             background: 'var(--ai-bg-surface, #ffffff)',
-            border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+            border: 'var(--ai-popup-border, 0.0625rem solid var(--ai-border, #e5e7eb))',
+            boxShadow: 'var(--ai-popup-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
             padding: '0.75rem',
             minWidth: '11.25rem',
             outline: 'none',
             ...getPopupCornerStyle(),
+            ...popupVars,
           }}
         >
           <AIErrorBoundary componentName="Popup">

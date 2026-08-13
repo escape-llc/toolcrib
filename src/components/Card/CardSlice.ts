@@ -50,6 +50,7 @@ export function getCardVariables(state: CardSliceState = defaultCardState): Card
 export const CardThemeSlice: ThemeSlice<CardSliceState, CardCSSVariables> = {
   id: 'card',
   name: '🃏 Card Padding & Header Layout',
+  category: 'Containers',
   defaultState: defaultCardState,
   getCSSVariables: getCardVariables,
   fieldVars: {

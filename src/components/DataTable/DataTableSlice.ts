@@ -60,6 +60,7 @@ export function getTableVariables(state: TableSliceState): Record<string, string
 export const DataTableThemeSlice: ThemeSlice<TableSliceState> = {
   id: 'table',
   name: 'Data Table Layout & Cell Density',
+  category: 'Data Display',
   defaultState: {
     density: 'normal',
     borderStyle: 'horizontal',

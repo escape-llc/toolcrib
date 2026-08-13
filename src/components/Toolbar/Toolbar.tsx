@@ -3,6 +3,8 @@ import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { MarginMode } from '../../theme/margin';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { getSparseVariables } from '../../theme/slice';
+import { ToolbarThemeSlice, ToolbarSliceState } from './ToolbarSlice';
 
 /**
  * Props for the `<Toolbar>` horizontal container.
@@ -17,6 +19,8 @@ export interface ToolbarProps extends StyleFreeAttributes<HTMLDivElement> {
   marginMode?: MarginMode;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
+  /** Per-instance override for the gap within each slot (`Toolbar.Left`/`.Center`/`.Right`). */
+  overrides?: Partial<ToolbarSliceState>;
 }
 
 /** Props for Toolbar slot sub-components (`Toolbar.Left`, `Toolbar.Center`, `Toolbar.Right`). */
@@ -32,8 +36,9 @@ export const Toolbar: React.FC<ToolbarProps> & {
   Left: React.FC<ToolbarSlotProps>;
   Center: React.FC<ToolbarSlotProps>;
   Right: React.FC<ToolbarSlotProps>;
-} = ({ children, paddingMode, marginMode, cornerRadiusMode, ...props }) => {
+} = ({ children, paddingMode, marginMode, cornerRadiusMode, overrides, ...props }) => {
   warnIfLegacyStyleProps(props, 'Toolbar');
+  const toolbarVars = getSparseVariables(ToolbarThemeSlice, overrides ?? {});
   return (
     <div
       {...props}
@@ -46,6 +51,7 @@ export const Toolbar: React.FC<ToolbarProps> & {
         gap: 'var(--ai-margin-gap, 0.875rem)',
         padding: paddingMode ? resolvePadding(paddingMode, 'sm') : undefined,
         borderRadius: cornerRadiusMode ? resolveRadius(cornerRadiusMode) : undefined,
+        ...toolbarVars,
       }}
     >
       {children}
@@ -61,7 +67,7 @@ Toolbar.Left = ({ children, ...props }) => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
+        gap: 'var(--ai-toolbar-slot-gap, 0.5rem)',
         justifyContent: 'flex-start',
         flexShrink: 0,
       }}
@@ -79,7 +85,7 @@ Toolbar.Center = ({ children, ...props }) => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
+        gap: 'var(--ai-toolbar-slot-gap, 0.5rem)',
         justifyContent: 'center',
         flex: 1,
       }}
@@ -97,7 +103,7 @@ Toolbar.Right = ({ children, ...props }) => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
+        gap: 'var(--ai-toolbar-slot-gap, 0.5rem)',
         justifyContent: 'flex-end',
         flexShrink: 0,
         marginLeft: 'auto',

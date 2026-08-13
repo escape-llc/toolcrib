@@ -1,5 +1,7 @@
 import React from 'react';
 import { Separator as SeparatorPrimitive } from 'radix-ui';
+import { getSparseVariables } from '../../theme/slice';
+import { SeparatorThemeSlice, SeparatorSliceState } from './SeparatorSlice';
 
 /** Props for the `<Separator>` visual divider. */
 export interface SeparatorProps {
@@ -15,6 +17,8 @@ export interface SeparatorProps {
    * to assistive tech (false). @default true
    */
   decorative?: boolean;
+  /** Per-instance override for line thickness. */
+  overrides?: Partial<SeparatorSliceState>;
 }
 
 /**
@@ -24,14 +28,20 @@ export interface SeparatorProps {
 export const Separator: React.FC<SeparatorProps> = ({
   orientation = 'horizontal',
   decorative = true,
-}) => (
-  <SeparatorPrimitive.Root
-    orientation={orientation}
-    decorative={decorative}
-    style={
-      orientation === 'horizontal'
-        ? { width: '100%', height: '0.0625rem', background: 'var(--ai-border, #e5e7eb)', border: 'none', flexShrink: 0 }
-        : { width: '0.0625rem', height: '100%', background: 'var(--ai-border, #e5e7eb)', border: 'none', flexShrink: 0 }
-    }
-  />
-);
+  overrides,
+}) => {
+  const separatorVars = getSparseVariables(SeparatorThemeSlice, overrides ?? {});
+  const thickness = 'var(--ai-separator-thickness, 0.0625rem)';
+
+  return (
+    <SeparatorPrimitive.Root
+      orientation={orientation}
+      decorative={decorative}
+      style={
+        orientation === 'horizontal'
+          ? { width: '100%', height: thickness, background: 'var(--ai-border, #e5e7eb)', border: 'none', flexShrink: 0, ...separatorVars }
+          : { width: thickness, height: '100%', background: 'var(--ai-border, #e5e7eb)', border: 'none', flexShrink: 0, ...separatorVars }
+      }
+    />
+  );
+};

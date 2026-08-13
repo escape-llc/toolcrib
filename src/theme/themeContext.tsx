@@ -18,6 +18,26 @@ import { SlideOutThemeSlice, SlideOutSliceState, defaultSlideOutState } from '..
 import { AccordionThemeSlice, AccordionSliceState, defaultAccordionState } from '../components/Accordion/AccordionSlice';
 import { CardThemeSlice, CardSliceState, defaultCardState } from '../components/Card/CardSlice';
 import { TooltipThemeSlice, TooltipSliceState, defaultTooltipState } from '../components/Tooltip/TooltipSlice';
+import { ButtonThemeSlice, ButtonSliceState, defaultButtonState } from '../components/Form/ButtonSlice';
+import { InputThemeSlice, InputSliceState, defaultInputState } from '../components/Form/InputSlice';
+import { ToggleControlThemeSlice, ToggleControlSliceState, defaultToggleControlState } from '../components/Form/ToggleControlSlice';
+import { SelectThemeSlice, SelectSliceState, defaultSelectState } from '../components/Form/SelectSlice';
+import { RadioGroupThemeSlice, RadioGroupSliceState, defaultRadioGroupState } from '../components/Form/RadioGroupSlice';
+import { SliderThemeSlice, SliderSliceState, defaultSliderState } from '../components/Form/SliderSlice';
+import { ModalThemeSlice, ModalSliceState, defaultModalState } from '../components/Overlay/ModalSlice';
+import { AlertDialogThemeSlice, AlertDialogSliceState, defaultAlertDialogState } from '../components/AlertDialog/AlertDialogSlice';
+import { PopupThemeSlice, PopupSliceState, defaultPopupState } from '../components/Overlay/PopupSlice';
+import { ToastThemeSlice, ToastSliceState, defaultToastState } from '../components/Toast/ToastSlice';
+import { DropdownMenuThemeSlice, DropdownMenuSliceState, defaultDropdownMenuState } from '../components/DropdownMenu/DropdownMenuSlice';
+import { ContextMenuThemeSlice, ContextMenuSliceState, defaultContextMenuState } from '../components/ContextMenu/ContextMenuSlice';
+import { ProgressThemeSlice, ProgressSliceState, defaultProgressState } from '../components/Progress/ProgressSlice';
+import { SeparatorThemeSlice, SeparatorSliceState, defaultSeparatorState } from '../components/Separator/SeparatorSlice';
+import { AvatarThemeSlice, AvatarSliceState, defaultAvatarState } from '../components/Avatar/AvatarSlice';
+import { ToggleThemeSlice, ToggleSliceState, defaultToggleState } from '../components/ToggleGroup/ToggleSlice';
+import { CollapsibleThemeSlice, CollapsibleSliceState, defaultCollapsibleState } from '../components/Collapsible/CollapsibleSlice';
+import { UIGroupThemeSlice, UIGroupSliceState, defaultUIGroupState } from '../components/UIGroup/UIGroupSlice';
+import { ToolbarThemeSlice, ToolbarSliceState, defaultToolbarState } from '../components/Toolbar/ToolbarSlice';
+import { AppShellThemeSlice, AppShellSliceState, defaultAppShellState } from '../components/AppShell/AppShellSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { aiBus } from '../eventBus/eventBus';
 
@@ -33,6 +53,26 @@ globalThemeSliceRegistry.register(SlideOutThemeSlice);
 globalThemeSliceRegistry.register(AccordionThemeSlice);
 globalThemeSliceRegistry.register(CardThemeSlice);
 globalThemeSliceRegistry.register(TooltipThemeSlice);
+globalThemeSliceRegistry.register(ButtonThemeSlice);
+globalThemeSliceRegistry.register(InputThemeSlice);
+globalThemeSliceRegistry.register(ToggleControlThemeSlice);
+globalThemeSliceRegistry.register(SelectThemeSlice);
+globalThemeSliceRegistry.register(RadioGroupThemeSlice);
+globalThemeSliceRegistry.register(SliderThemeSlice);
+globalThemeSliceRegistry.register(ModalThemeSlice);
+globalThemeSliceRegistry.register(AlertDialogThemeSlice);
+globalThemeSliceRegistry.register(PopupThemeSlice);
+globalThemeSliceRegistry.register(ToastThemeSlice);
+globalThemeSliceRegistry.register(DropdownMenuThemeSlice);
+globalThemeSliceRegistry.register(ContextMenuThemeSlice);
+globalThemeSliceRegistry.register(ProgressThemeSlice);
+globalThemeSliceRegistry.register(SeparatorThemeSlice);
+globalThemeSliceRegistry.register(AvatarThemeSlice);
+globalThemeSliceRegistry.register(ToggleThemeSlice);
+globalThemeSliceRegistry.register(CollapsibleThemeSlice);
+globalThemeSliceRegistry.register(UIGroupThemeSlice);
+globalThemeSliceRegistry.register(ToolbarThemeSlice);
+globalThemeSliceRegistry.register(AppShellThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {
@@ -44,6 +84,26 @@ export interface ThemeContextType {
   accordionState: AccordionSliceState;
   cardState: CardSliceState;
   tooltipState: TooltipSliceState;
+  buttonState: ButtonSliceState;
+  inputState: InputSliceState;
+  toggleControlState: ToggleControlSliceState;
+  selectState: SelectSliceState;
+  radioGroupState: RadioGroupSliceState;
+  sliderState: SliderSliceState;
+  modalState: ModalSliceState;
+  alertDialogState: AlertDialogSliceState;
+  popupState: PopupSliceState;
+  toastState: ToastSliceState;
+  dropdownMenuState: DropdownMenuSliceState;
+  contextMenuState: ContextMenuSliceState;
+  progressState: ProgressSliceState;
+  separatorState: SeparatorSliceState;
+  avatarState: AvatarSliceState;
+  toggleState: ToggleSliceState;
+  collapsibleState: CollapsibleSliceState;
+  uiGroupState: UIGroupSliceState;
+  toolbarState: ToolbarSliceState;
+  appShellState: AppShellSliceState;
   palette: GeneratedPalette;
   cssVariables: Record<string, string>;
   setBaseColor: (color: HSVColor) => void;
@@ -63,6 +123,26 @@ export interface ThemeContextType {
   setAccordionState: (state: Partial<AccordionSliceState>) => void;
   setCardState: (state: Partial<CardSliceState>) => void;
   setTooltipState: (state: Partial<TooltipSliceState>) => void;
+  setButtonState: (state: Partial<ButtonSliceState>) => void;
+  setInputState: (state: Partial<InputSliceState>) => void;
+  setToggleControlState: (state: Partial<ToggleControlSliceState>) => void;
+  setSelectState: (state: Partial<SelectSliceState>) => void;
+  setRadioGroupState: (state: Partial<RadioGroupSliceState>) => void;
+  setSliderState: (state: Partial<SliderSliceState>) => void;
+  setModalState: (state: Partial<ModalSliceState>) => void;
+  setAlertDialogState: (state: Partial<AlertDialogSliceState>) => void;
+  setPopupState: (state: Partial<PopupSliceState>) => void;
+  setToastState: (state: Partial<ToastSliceState>) => void;
+  setDropdownMenuState: (state: Partial<DropdownMenuSliceState>) => void;
+  setContextMenuState: (state: Partial<ContextMenuSliceState>) => void;
+  setProgressState: (state: Partial<ProgressSliceState>) => void;
+  setSeparatorState: (state: Partial<SeparatorSliceState>) => void;
+  setAvatarState: (state: Partial<AvatarSliceState>) => void;
+  setToggleState: (state: Partial<ToggleSliceState>) => void;
+  setCollapsibleState: (state: Partial<CollapsibleSliceState>) => void;
+  setUIGroupState: (state: Partial<UIGroupSliceState>) => void;
+  setToolbarState: (state: Partial<ToolbarSliceState>) => void;
+  setAppShellState: (state: Partial<AppShellSliceState>) => void;
   toggleDarkMode: () => void;
   setDarkMode: (isDark: boolean) => void;
 }
@@ -99,6 +179,40 @@ export interface ThemeProviderProps {
   initialAccordionState?: Partial<AccordionSliceState>;
   initialCardState?: Partial<CardSliceState>;
   initialTooltipState?: Partial<TooltipSliceState>;
+  initialButtonState?: Partial<ButtonSliceState>;
+  initialInputState?: Partial<InputSliceState>;
+  initialToggleControlState?: Partial<ToggleControlSliceState>;
+  initialSelectState?: Partial<SelectSliceState>;
+  initialRadioGroupState?: Partial<RadioGroupSliceState>;
+  initialSliderState?: Partial<SliderSliceState>;
+  initialModalState?: Partial<ModalSliceState>;
+  initialAlertDialogState?: Partial<AlertDialogSliceState>;
+  initialPopupState?: Partial<PopupSliceState>;
+  initialToastState?: Partial<ToastSliceState>;
+  initialDropdownMenuState?: Partial<DropdownMenuSliceState>;
+  initialContextMenuState?: Partial<ContextMenuSliceState>;
+  initialProgressState?: Partial<ProgressSliceState>;
+  initialSeparatorState?: Partial<SeparatorSliceState>;
+  initialAvatarState?: Partial<AvatarSliceState>;
+  initialToggleState?: Partial<ToggleSliceState>;
+  initialCollapsibleState?: Partial<CollapsibleSliceState>;
+  initialUIGroupState?: Partial<UIGroupSliceState>;
+  initialToolbarState?: Partial<ToolbarSliceState>;
+  initialAppShellState?: Partial<AppShellSliceState>;
+  /**
+   * The `Document` whose `<html>` element gets this provider's CSS custom
+   * properties. Defaults to the global `document` — correct for the
+   * overwhelmingly common case of one `ThemeProvider` at the root of an
+   * app. Pass a different `Document` explicitly (e.g. an `<iframe>`'s own
+   * `contentDocument`) when portaling a second, independent
+   * `ThemeProvider` instance into a different document's DOM — using the
+   * default here would inject that instance's variables onto the
+   * *outer* page's `<html>` instead of the iframe's own `:root`, silently
+   * fighting with (and corrupting) whichever `ThemeProvider` owns the
+   * outer page, since `document` always resolves to it regardless of
+   * where the component instance actually renders.
+   */
+  targetDocument?: Document;
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
@@ -111,6 +225,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialAccordionState,
   initialCardState,
   initialTooltipState,
+  initialButtonState,
+  initialInputState,
+  initialToggleControlState,
+  initialSelectState,
+  initialRadioGroupState,
+  initialSliderState,
+  initialModalState,
+  initialAlertDialogState,
+  initialPopupState,
+  initialToastState,
+  initialDropdownMenuState,
+  initialContextMenuState,
+  initialProgressState,
+  initialSeparatorState,
+  initialAvatarState,
+  initialToggleState,
+  initialCollapsibleState,
+  initialUIGroupState,
+  initialToolbarState,
+  initialAppShellState,
+  targetDocument,
 }) => {
   const [parameters, setParameters] = useState<ThemeParameters & { shadowMode?: ShadowMode }>({
     ...defaultParameters,
@@ -152,6 +287,106 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     ...initialTooltipState,
   });
 
+  const [buttonState, setButtonStateInternal] = useState<ButtonSliceState>({
+    ...defaultButtonState,
+    ...initialButtonState,
+  });
+
+  const [inputState, setInputStateInternal] = useState<InputSliceState>({
+    ...defaultInputState,
+    ...initialInputState,
+  });
+
+  const [toggleControlState, setToggleControlStateInternal] = useState<ToggleControlSliceState>({
+    ...defaultToggleControlState,
+    ...initialToggleControlState,
+  });
+
+  const [selectState, setSelectStateInternal] = useState<SelectSliceState>({
+    ...defaultSelectState,
+    ...initialSelectState,
+  });
+
+  const [radioGroupState, setRadioGroupStateInternal] = useState<RadioGroupSliceState>({
+    ...defaultRadioGroupState,
+    ...initialRadioGroupState,
+  });
+
+  const [sliderState, setSliderStateInternal] = useState<SliderSliceState>({
+    ...defaultSliderState,
+    ...initialSliderState,
+  });
+
+  const [modalState, setModalStateInternal] = useState<ModalSliceState>({
+    ...defaultModalState,
+    ...initialModalState,
+  });
+
+  const [alertDialogState, setAlertDialogStateInternal] = useState<AlertDialogSliceState>({
+    ...defaultAlertDialogState,
+    ...initialAlertDialogState,
+  });
+
+  const [popupState, setPopupStateInternal] = useState<PopupSliceState>({
+    ...defaultPopupState,
+    ...initialPopupState,
+  });
+
+  const [toastState, setToastStateInternal] = useState<ToastSliceState>({
+    ...defaultToastState,
+    ...initialToastState,
+  });
+
+  const [dropdownMenuState, setDropdownMenuStateInternal] = useState<DropdownMenuSliceState>({
+    ...defaultDropdownMenuState,
+    ...initialDropdownMenuState,
+  });
+
+  const [contextMenuState, setContextMenuStateInternal] = useState<ContextMenuSliceState>({
+    ...defaultContextMenuState,
+    ...initialContextMenuState,
+  });
+
+  const [progressState, setProgressStateInternal] = useState<ProgressSliceState>({
+    ...defaultProgressState,
+    ...initialProgressState,
+  });
+
+  const [separatorState, setSeparatorStateInternal] = useState<SeparatorSliceState>({
+    ...defaultSeparatorState,
+    ...initialSeparatorState,
+  });
+
+  const [avatarState, setAvatarStateInternal] = useState<AvatarSliceState>({
+    ...defaultAvatarState,
+    ...initialAvatarState,
+  });
+
+  const [toggleState, setToggleStateInternal] = useState<ToggleSliceState>({
+    ...defaultToggleState,
+    ...initialToggleState,
+  });
+
+  const [collapsibleState, setCollapsibleStateInternal] = useState<CollapsibleSliceState>({
+    ...defaultCollapsibleState,
+    ...initialCollapsibleState,
+  });
+
+  const [uiGroupState, setUIGroupStateInternal] = useState<UIGroupSliceState>({
+    ...defaultUIGroupState,
+    ...initialUIGroupState,
+  });
+
+  const [toolbarState, setToolbarStateInternal] = useState<ToolbarSliceState>({
+    ...defaultToolbarState,
+    ...initialToolbarState,
+  });
+
+  const [appShellState, setAppShellStateInternal] = useState<AppShellSliceState>({
+    ...defaultAppShellState,
+    ...initialAppShellState,
+  });
+
   const palette = useMemo(() => {
     return generateHarmonyPalette(parameters);
   }, [parameters]);
@@ -176,20 +411,70 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       accordion: accordionState,
       card: cardState,
       tooltip: tooltipState,
+      button: buttonState,
+      input: inputState,
+      togglecontrol: toggleControlState,
+      select: selectState,
+      radiogroup: radioGroupState,
+      slider: sliderState,
+      modal: modalState,
+      alertdialog: alertDialogState,
+      popup: popupState,
+      toast: toastState,
+      dropdownmenu: dropdownMenuState,
+      contextmenu: contextMenuState,
+      progress: progressState,
+      separator: separatorState,
+      avatar: avatarState,
+      toggle: toggleState,
+      collapsible: collapsibleState,
+      uigroup: uiGroupState,
+      toolbar: toolbarState,
+      appshell: appShellState,
     });
     return { ...baseVars, ...sliceVars };
-  }, [palette, parameters, tableState, animationState, tabState, slideOutState, accordionState, cardState, tooltipState]);
+  }, [
+    palette,
+    parameters,
+    tableState,
+    animationState,
+    tabState,
+    slideOutState,
+    accordionState,
+    cardState,
+    tooltipState,
+    buttonState,
+    inputState,
+    toggleControlState,
+    selectState,
+    radioGroupState,
+    sliderState,
+    modalState,
+    alertDialogState,
+    popupState,
+    toastState,
+    dropdownMenuState,
+    contextMenuState,
+    progressState,
+    separatorState,
+    avatarState,
+    toggleState,
+    collapsibleState,
+    uiGroupState,
+    toolbarState,
+    appShellState,
+  ]);
 
   // Inject CSS variables into root document element
   useEffect(() => {
-    const root = document.documentElement;
+    const root = (targetDocument ?? document).documentElement;
     Object.entries(cssVariables).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
 
     // Notify Event Bus of theme change
     aiBus.emit('theme:changed', { parameters, palette, cssVariables });
-  }, [cssVariables, parameters, palette]);
+  }, [cssVariables, parameters, palette, targetDocument]);
 
   const setBaseColor = (baseColor: HSVColor) => setParameters(p => ({ ...p, baseColor }));
   const setHarmonyMode = (harmonyMode: HarmonyMode) => setParameters(p => ({ ...p, harmonyMode }));
@@ -208,6 +493,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setAccordionState = (update: Partial<AccordionSliceState>) => setAccordionStateInternal(prev => ({ ...prev, ...update }));
   const setCardState = (update: Partial<CardSliceState>) => setCardStateInternal(prev => ({ ...prev, ...update }));
   const setTooltipState = (update: Partial<TooltipSliceState>) => setTooltipStateInternal(prev => ({ ...prev, ...update }));
+  const setButtonState = (update: Partial<ButtonSliceState>) => setButtonStateInternal(prev => ({ ...prev, ...update }));
+  const setInputState = (update: Partial<InputSliceState>) => setInputStateInternal(prev => ({ ...prev, ...update }));
+  const setToggleControlState = (update: Partial<ToggleControlSliceState>) => setToggleControlStateInternal(prev => ({ ...prev, ...update }));
+  const setSelectState = (update: Partial<SelectSliceState>) => setSelectStateInternal(prev => ({ ...prev, ...update }));
+  const setRadioGroupState = (update: Partial<RadioGroupSliceState>) => setRadioGroupStateInternal(prev => ({ ...prev, ...update }));
+  const setSliderState = (update: Partial<SliderSliceState>) => setSliderStateInternal(prev => ({ ...prev, ...update }));
+  const setModalState = (update: Partial<ModalSliceState>) => setModalStateInternal(prev => ({ ...prev, ...update }));
+  const setAlertDialogState = (update: Partial<AlertDialogSliceState>) => setAlertDialogStateInternal(prev => ({ ...prev, ...update }));
+  const setPopupState = (update: Partial<PopupSliceState>) => setPopupStateInternal(prev => ({ ...prev, ...update }));
+  const setToastState = (update: Partial<ToastSliceState>) => setToastStateInternal(prev => ({ ...prev, ...update }));
+  const setDropdownMenuState = (update: Partial<DropdownMenuSliceState>) => setDropdownMenuStateInternal(prev => ({ ...prev, ...update }));
+  const setContextMenuState = (update: Partial<ContextMenuSliceState>) => setContextMenuStateInternal(prev => ({ ...prev, ...update }));
+  const setProgressState = (update: Partial<ProgressSliceState>) => setProgressStateInternal(prev => ({ ...prev, ...update }));
+  const setSeparatorState = (update: Partial<SeparatorSliceState>) => setSeparatorStateInternal(prev => ({ ...prev, ...update }));
+  const setAvatarState = (update: Partial<AvatarSliceState>) => setAvatarStateInternal(prev => ({ ...prev, ...update }));
+  const setToggleState = (update: Partial<ToggleSliceState>) => setToggleStateInternal(prev => ({ ...prev, ...update }));
+  const setCollapsibleState = (update: Partial<CollapsibleSliceState>) => setCollapsibleStateInternal(prev => ({ ...prev, ...update }));
+  const setUIGroupState = (update: Partial<UIGroupSliceState>) => setUIGroupStateInternal(prev => ({ ...prev, ...update }));
+  const setToolbarState = (update: Partial<ToolbarSliceState>) => setToolbarStateInternal(prev => ({ ...prev, ...update }));
+  const setAppShellState = (update: Partial<AppShellSliceState>) => setAppShellStateInternal(prev => ({ ...prev, ...update }));
   const toggleDarkMode = () => setParameters(p => ({ ...p, isDarkMode: !p.isDarkMode }));
   const setDarkMode = (isDarkMode: boolean) => setParameters(p => ({ ...p, isDarkMode }));
 
@@ -220,6 +525,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     accordionState,
     cardState,
     tooltipState,
+    buttonState,
+    inputState,
+    toggleControlState,
+    selectState,
+    radioGroupState,
+    sliderState,
+    modalState,
+    alertDialogState,
+    popupState,
+    toastState,
+    dropdownMenuState,
+    contextMenuState,
+    progressState,
+    separatorState,
+    avatarState,
+    toggleState,
+    collapsibleState,
+    uiGroupState,
+    toolbarState,
+    appShellState,
     palette,
     cssVariables,
     setBaseColor,
@@ -239,6 +564,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setAccordionState,
     setCardState,
     setTooltipState,
+    setButtonState,
+    setInputState,
+    setToggleControlState,
+    setSelectState,
+    setRadioGroupState,
+    setSliderState,
+    setModalState,
+    setAlertDialogState,
+    setPopupState,
+    setToastState,
+    setDropdownMenuState,
+    setContextMenuState,
+    setProgressState,
+    setSeparatorState,
+    setAvatarState,
+    setToggleState,
+    setCollapsibleState,
+    setUIGroupState,
+    setToolbarState,
+    setAppShellState,
     toggleDarkMode,
     setDarkMode,
   };

@@ -51,6 +51,7 @@ export function resolvePadding(
 export const PaddingThemeSlice = {
   id: 'padding',
   name: 'Padding Density Mode',
+  category: 'Layout Primitives' as const,
   defaultState: 'normal' as PaddingMode,
   getCSSVariables: (mode: PaddingMode) => getPaddingVariables(mode),
 };

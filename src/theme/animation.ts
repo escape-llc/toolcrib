@@ -101,6 +101,7 @@ export function getAnimationVariables(state: AnimationSliceState = defaultAnimat
 export const AnimationThemeSlice: ThemeSlice<AnimationSliceState, AnimationCSSVariables> = {
   id: 'animation',
   name: '✨ Motion, Transitions & Micro-Animations',
+  category: 'Layout Primitives',
   defaultState: defaultAnimationState,
   getCSSVariables: getAnimationVariables,
 };

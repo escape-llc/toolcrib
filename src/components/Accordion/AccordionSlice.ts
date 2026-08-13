@@ -73,6 +73,7 @@ export function getAccordionVariables(state: AccordionSliceState = defaultAccord
 export const AccordionThemeSlice: ThemeSlice<AccordionSliceState, AccordionCSSVariables> = {
   id: 'accordion',
   name: '🪗 Accordion Header & Gap Spacing',
+  category: 'Data Display',
   defaultState: defaultAccordionState,
   getCSSVariables: getAccordionVariables,
   fieldVars: {

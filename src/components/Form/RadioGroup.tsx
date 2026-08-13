@@ -2,6 +2,8 @@ import React, { ReactNode, createContext, useContext } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
+import { getSparseVariables } from '../../theme/slice';
+import { RadioGroupThemeSlice, RadioGroupSliceState } from './RadioGroupSlice';
 
 /** Data shape for each option in a `<RadioGroup>`. */
 export interface RadioOption {
@@ -38,6 +40,8 @@ export interface RadioGroupProps {
   children?: ReactNode;
   /** If true, all options are disabled. */
   disabled?: boolean;
+  /** Per-instance overrides for option spacing and radio dot size. */
+  overrides?: Partial<RadioGroupSliceState>;
 }
 
 interface RadioGroupContextValue {
@@ -64,11 +68,13 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   direction = 'vertical',
   children,
   disabled = false,
+  overrides,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, overrides ?? {});
 
   // See Select.tsx for why this matters: without it, a RadioGroup left at
   // its default (nothing selected) on first submit never gets marked
@@ -115,8 +121,11 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         style={{
           display: 'flex',
           flexDirection: direction === 'horizontal' ? 'row' : 'column',
-          gap: direction === 'horizontal' ? '1.25rem' : '0.625rem',
+          gap: direction === 'horizontal'
+            ? 'var(--ai-radiogroup-gap-horizontal, 1.25rem)'
+            : 'var(--ai-radiogroup-gap-vertical, 0.625rem)',
           outline: 'none',
+          ...radioGroupVars,
         }}
       >
         {options
@@ -160,8 +169,8 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
         disabled={isDisabled}
         style={{
           all: 'unset',
-          width: '1.125rem',
-          height: '1.125rem',
+          width: 'var(--ai-radiogroup-dot-size, 1.125rem)',
+          height: 'var(--ai-radiogroup-dot-size, 1.125rem)',
           borderRadius: '50%',
           border: `0.125rem solid ${isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: 'var(--ai-bg-surface, #ffffff)',
@@ -187,8 +196,8 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
         >
           <div
             style={{
-              width: '0.5rem',
-              height: '0.5rem',
+              width: 'var(--ai-radiogroup-dot-inner-size, 0.5rem)',
+              height: 'var(--ai-radiogroup-dot-inner-size, 0.5rem)',
               borderRadius: '50%',
               background: 'var(--ai-color-primary, #3b82f6)',
             }}

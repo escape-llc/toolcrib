@@ -5,6 +5,9 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { ModalThemeSlice, ModalSliceState } from './ModalSlice';
 
 /**
  * Props for the `<Modal>` dialog overlay.
@@ -44,6 +47,8 @@ export interface ModalProps {
    * @default 'Dialog'
    */
   ariaLabel?: string;
+  /** Per-instance overrides for backdrop blur and overlay darkness. */
+  overrides?: Partial<ModalSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -65,8 +70,10 @@ export const Modal: React.FC<ModalProps> & {
   width = '31.25rem',
   zIndex = Z_INDEX.MODAL,
   ariaLabel = 'Dialog',
+  overrides,
 }) => {
   const id = useStableId(propId, 'modal');
+  const { vars: modalVars } = useSliceOverrides(ModalThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -108,13 +115,14 @@ export const Modal: React.FC<ModalProps> & {
             position: 'fixed',
             inset: 0,
             zIndex: zIndex,
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(0.1875rem)',
+            background: 'var(--ai-modal-overlay-bg, rgba(0, 0, 0, 0.5))',
+            backdropFilter: 'blur(var(--ai-modal-backdrop-blur, 0.1875rem))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1.25rem',
             animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+            ...modalVars,
           }}
         >
           <DialogPrimitive.Content

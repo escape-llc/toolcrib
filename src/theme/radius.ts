@@ -56,6 +56,7 @@ export function resolveRadius(
 export const RadiusThemeSlice = {
   id: 'radius',
   name: 'Corner Rounding Mode',
+  category: 'Layout Primitives' as const,
   defaultState: 'rounded' as CornerRadiusMode,
   getCSSVariables: (mode: CornerRadiusMode) => getRadiusVariables(mode),
 };

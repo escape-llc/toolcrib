@@ -118,6 +118,25 @@ export const Splitter: React.FC<SplitterProps> & {
 
   useEffect(() => {
     if (!isDragging) return;
+    if (!containerRef.current) return;
+
+    // The bare global `window` is always the window this module was first
+    // loaded into — for a Splitter whose whole tree is portaled into a
+    // *different* document (e.g. a live demo tile rendered inside an
+    // <iframe> via ReactDOM.createPortal), that's the outer page's window,
+    // not the iframe's own. Mouse/pointer events firing while dragging
+    // inside the iframe are scoped to the iframe's own document and never
+    // bubble out to the outer page's window at all, so listeners bound
+    // there silently never run — confirmed via a real browser run: the
+    // handle picked up mousedown fine (React's per-root delegation reaches
+    // it correctly) but every subsequent drag move did nothing, because
+    // handlePointerMove below was listening on the wrong window entirely.
+    // Deriving the window from this Splitter's own rendered node (already
+    // held in containerRef) is correct in both the single-document case
+    // (the overwhelmingly common one — ownerDocument.defaultView is just
+    // the same window) and the portaled-into-another-document case, with
+    // no new prop or opt-in required either way.
+    const ownerWindow = containerRef.current.ownerDocument.defaultView ?? window;
 
     const handlePointerMove = (e: MouseEvent | PointerEvent) => {
       if (!containerRef.current) return;
@@ -140,16 +159,16 @@ export const Splitter: React.FC<SplitterProps> & {
       setIsDragging(false);
     };
 
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    ownerWindow.addEventListener('mousemove', handlePointerMove);
+    ownerWindow.addEventListener('mouseup', handlePointerUp);
+    ownerWindow.addEventListener('pointermove', handlePointerMove);
+    ownerWindow.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      ownerWindow.removeEventListener('mousemove', handlePointerMove);
+      ownerWindow.removeEventListener('mouseup', handlePointerUp);
+      ownerWindow.removeEventListener('pointermove', handlePointerMove);
+      ownerWindow.removeEventListener('pointerup', handlePointerUp);
     };
   }, [isDragging, isVertical, minSize]);
 

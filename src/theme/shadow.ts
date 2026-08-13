@@ -48,6 +48,7 @@ export function resolveShadow(
 export const ShadowThemeSlice: ThemeSlice<ShadowMode> = {
   id: 'shadow',
   name: 'Elevation & Shadow Depth',
+  category: 'Layout Primitives',
   defaultState: 'subtle',
   getCSSVariables: (mode) => getShadowVariables(mode),
 };

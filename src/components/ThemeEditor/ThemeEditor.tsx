@@ -13,6 +13,35 @@ import { Tooltip } from '../Tooltip/Tooltip';
 
 export interface ThemeEditorProps {}
 
+/** A `label` + `Select` pairing, optionally with an info tooltip — the field-row shape every per-slice control in this editor follows. */
+function FieldRow({
+  label,
+  tooltip,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  tooltip?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: { label: string; value: string }[];
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>{label}</label>
+        {tooltip && (
+          <Tooltip content={tooltip}>
+            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
+          </Tooltip>
+        )}
+      </div>
+      <Select value={value} onChange={val => onChange(val)} options={options} />
+    </div>
+  );
+}
+
 /**
  * @manifest Real-time HSV theme editor content — no overlay chrome of its own;
  * host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing.
@@ -46,6 +75,46 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     setCardState,
     tooltipState,
     setTooltipState,
+    buttonState,
+    setButtonState,
+    inputState,
+    setInputState,
+    toggleControlState,
+    setToggleControlState,
+    selectState,
+    setSelectState,
+    radioGroupState,
+    setRadioGroupState,
+    sliderState,
+    setSliderState,
+    modalState,
+    setModalState,
+    alertDialogState,
+    setAlertDialogState,
+    popupState,
+    setPopupState,
+    toastState,
+    setToastState,
+    dropdownMenuState,
+    setDropdownMenuState,
+    contextMenuState,
+    setContextMenuState,
+    progressState,
+    setProgressState,
+    separatorState,
+    setSeparatorState,
+    avatarState,
+    setAvatarState,
+    toggleState,
+    setToggleState,
+    collapsibleState,
+    setCollapsibleState,
+    uiGroupState,
+    setUIGroupState,
+    toolbarState,
+    setToolbarState,
+    appShellState,
+    setAppShellState,
     toggleDarkMode,
   } = useTheme();
 
@@ -180,71 +249,79 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
 
   const densityContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Global Padding Mode */}
+      <FieldRow
+        label="Global Padding Mode"
+        tooltip="Controls internal container padding density across all components"
+        value={parameters.paddingMode}
+        onChange={val => setPaddingMode(val as PaddingMode)}
+        options={[
+          { label: 'Compact (Tight rem padding)', value: 'compact' },
+          { label: 'Normal (Standard rem padding)', value: 'normal' },
+          { label: 'Spacious (Generous rem padding)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Global Margin & Element Gaps"
+        tooltip="Controls vertical rhythm and gap spacing between UI elements"
+        value={parameters.marginMode || 'normal'}
+        onChange={val => setMarginMode(val as MarginMode)}
+        options={[
+          { label: 'Compact (Tight element gaps)', value: 'compact' },
+          { label: 'Normal (Standard element gaps)', value: 'normal' },
+          { label: 'Spacious (Generous element gaps)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Corner Rounding Mode"
+        value={parameters.cornerRadiusMode}
+        onChange={val => setCornerRadiusMode(val as CornerRadiusMode)}
+        options={[
+          { label: 'Sharp (0rem Square Corners)', value: 'sharp' },
+          { label: 'Subtle (Compact Corner Rounding)', value: 'subtle' },
+          { label: 'Rounded (Standard Corner Rounding)', value: 'rounded' },
+          { label: 'Pill (Full Rounding)', value: 'pill' },
+        ]}
+      />
+      <FieldRow
+        label="Elevation & Shadow Depth"
+        value={parameters.shadowMode || 'subtle'}
+        onChange={val => setShadowMode(val as ShadowMode)}
+        options={[
+          { label: 'Flat (No Shadows)', value: 'none' },
+          { label: 'Subtle (Soft Elevation)', value: 'subtle' },
+          { label: 'Elevated (Deep Elevation)', value: 'elevated' },
+          { label: 'Glassmorphism Depth', value: 'glass' },
+        ]}
+      />
+    </div>
+  );
+
+  const animationContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Transition Physics Preset"
+        tooltip="Configures global easing curves and transition durations across all components"
+        value={animationState.preset}
+        onChange={val => setAnimationState({ preset: val as any })}
+        options={[
+          { label: 'Smooth (Standard Easing Curve)', value: 'smooth' },
+          { label: 'Spring (Elastic Bouncy Physics)', value: 'spring' },
+          { label: 'Snappy (Fast Responsive Curves)', value: 'snappy' },
+          { label: 'Subtle (Gentle Slow Fades)', value: 'subtle' },
+          { label: 'None (Instant 0s Transitions)', value: 'none' },
+        ]}
+      />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Global Padding Mode</label>
-          <Tooltip content="Controls internal container padding density across all components">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 600 }}>
+          <span>Motion Duration Factor</span>
+          <span>{animationState.speed}x</span>
         </div>
-        <Select
-          value={parameters.paddingMode}
-          onChange={val => setPaddingMode(val as PaddingMode)}
-          options={[
-            { label: 'Compact (Tight rem padding)', value: 'compact' },
-            { label: 'Normal (Standard rem padding)', value: 'normal' },
-            { label: 'Spacious (Generous rem padding)', value: 'spacious' },
-          ]}
-        />
-      </div>
-
-      {/* Global Margin & Spacing Mode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Global Margin & Element Gaps</label>
-          <Tooltip content="Controls vertical rhythm and gap spacing between UI elements">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={parameters.marginMode || 'normal'}
-          onChange={val => setMarginMode(val as MarginMode)}
-          options={[
-            { label: 'Compact (Tight element gaps)', value: 'compact' },
-            { label: 'Normal (Standard element gaps)', value: 'normal' },
-            { label: 'Spacious (Generous element gaps)', value: 'spacious' },
-          ]}
-        />
-      </div>
-
-      {/* Global Corner Radius Mode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Corner Rounding Mode</label>
-        <Select
-          value={parameters.cornerRadiusMode}
-          onChange={val => setCornerRadiusMode(val as CornerRadiusMode)}
-          options={[
-            { label: 'Sharp (0rem Square Corners)', value: 'sharp' },
-            { label: 'Subtle (Compact Corner Rounding)', value: 'subtle' },
-            { label: 'Rounded (Standard Corner Rounding)', value: 'rounded' },
-            { label: 'Pill (Full Rounding)', value: 'pill' },
-          ]}
-        />
-      </div>
-
-      {/* Elevation & Shadow Mode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Elevation & Shadow Depth</label>
-        <Select
-          value={parameters.shadowMode || 'subtle'}
-          onChange={val => setShadowMode(val as ShadowMode)}
-          options={[
-            { label: 'Flat (No Shadows)', value: 'none' },
-            { label: 'Subtle (Soft Elevation)', value: 'subtle' },
-            { label: 'Elevated (Deep Elevation)', value: 'elevated' },
-            { label: 'Glassmorphism Depth', value: 'glass' },
-          ]}
+        <Slider
+          value={Math.round(animationState.speed * 100)}
+          min={50}
+          max={200}
+          step={25}
+          onChange={val => setAnimationState({ speed: val / 100 })}
         />
       </div>
     </div>
@@ -252,26 +329,19 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
 
   const harmonyContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Harmony Mode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Color Harmony Mode</label>
-          <Tooltip content="Calculates primary, secondary, and accent colors in HSV space">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={parameters.harmonyMode}
-          onChange={val => setHarmonyMode(val as HarmonyMode)}
-          options={[
-            { label: 'Monochromatic', value: 'monochromatic' },
-            { label: 'Analogous', value: 'analogous' },
-            { label: 'Split Complementary', value: 'split-complementary' },
-            { label: 'Triadic', value: 'triadic' },
-            { label: 'Tetradic', value: 'tetradic' },
-          ]}
-        />
-      </div>
+      <FieldRow
+        label="Color Harmony Mode"
+        tooltip="Calculates primary, secondary, and accent colors in HSV space"
+        value={parameters.harmonyMode}
+        onChange={val => setHarmonyMode(val as HarmonyMode)}
+        options={[
+          { label: 'Monochromatic', value: 'monochromatic' },
+          { label: 'Analogous', value: 'analogous' },
+          { label: 'Split Complementary', value: 'split-complementary' },
+          { label: 'Triadic', value: 'triadic' },
+          { label: 'Tetradic', value: 'tetradic' },
+        ]}
+      />
 
       {/* Hue Spread */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -325,327 +395,690 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     </div>
   );
 
-  const tableContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Table Cell Density */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Table Cell Density</label>
-          <Tooltip content="Configures padding and row height across all Data Table instances">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={tableState.density}
-          onChange={val => setTableState({ density: val as any })}
-          options={[
-            { label: 'Compact (2.25rem Row Height & Tight Cell Padding)', value: 'compact' },
-            { label: 'Normal (2.75rem Row Height & Standard Cell Padding)', value: 'normal' },
-            { label: 'Spacious (3.5rem Row Height & Generous Cell Padding)', value: 'spacious' },
-          ]}
-        />
-      </div>
+  // ---- Layout Primitives ----
 
-      {/* Table Border Grid Style */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Grid Border Lines</label>
-        <Select
-          value={tableState.borderStyle}
-          onChange={val => setTableState({ borderStyle: val as any })}
-          options={[
-            { label: 'Horizontal Rows Only', value: 'horizontal' },
-            { label: 'Full Grid Borders', value: 'grid' },
-            { label: 'No Borders (Borderless)', value: 'none' },
-          ]}
-        />
-      </div>
-    </div>
+  const separatorSectionContent = (
+    <FieldRow
+      label="Separator Thickness"
+      value={separatorState.thickness}
+      onChange={val => setSeparatorState({ thickness: val as any })}
+      options={[
+        { label: 'Thin (0.0625rem)', value: 'thin' },
+        { label: 'Normal (0.125rem)', value: 'normal' },
+        { label: 'Thick (0.1875rem)', value: 'thick' },
+      ]}
+    />
   );
 
-  const animationContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Animation Preset */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Transition Physics Preset</label>
-          <Tooltip content="Configures global easing curves and transition durations across all components">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={animationState.preset}
-          onChange={val => setAnimationState({ preset: val as any })}
-          options={[
-            { label: 'Smooth (Standard Easing Curve)', value: 'smooth' },
-            { label: 'Spring (Elastic Bouncy Physics)', value: 'spring' },
-            { label: 'Snappy (Fast Responsive Curves)', value: 'snappy' },
-            { label: 'Subtle (Gentle Slow Fades)', value: 'subtle' },
-            { label: 'None (Instant 0s Transitions)', value: 'none' },
-          ]}
-        />
-      </div>
-
-      {/* Animation Speed Factor */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 600 }}>
-          <span>Motion Duration Factor</span>
-          <span>{animationState.speed}x</span>
-        </div>
-        <Slider
-          value={Math.round(animationState.speed * 100)}
-          min={50}
-          max={200}
-          step={25}
-          onChange={val => setAnimationState({ speed: val / 100 })}
-        />
-      </div>
-    </div>
+  const uiGroupSectionContent = (
+    <FieldRow
+      label="UIGroup Border Overlap"
+      tooltip="Global only — this shared, singleton stylesheet has no per-instance scoping to override"
+      value={uiGroupState.overlap}
+      onChange={val => setUIGroupState({ overlap: val as any })}
+      options={[
+        { label: 'Thin (-0.0625rem)', value: 'thin' },
+        { label: 'Normal (-0.125rem)', value: 'normal' },
+      ]}
+    />
   );
 
-  const tabStripContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Tab Variant */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tab Group Variant</label>
-          <Tooltip content="Configures tab trigger visual styling across all TabStrip components">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={tabState.variant}
-          onChange={val => setTabState({ variant: val as any })}
-          options={[
-            { label: 'Pills (Rounded Pill Triggers)', value: 'pills' },
-            { label: 'Underline (Bottom Active Indicator)', value: 'underline' },
-            { label: 'Cards (Folder Tab Header Style)', value: 'cards' },
-            { label: 'Segment (Segmented Control)', value: 'segment' },
-          ]}
-        />
-      </div>
-
-      {/* Tab Size */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tab Density & Size</label>
-        <Select
-          value={tabState.size}
-          onChange={val => setTabState({ size: val as any })}
-          options={[
-            { label: 'Small (Compact Padding & 12px Font)', value: 'sm' },
-            { label: 'Medium (Standard Padding & 14px Font)', value: 'md' },
-            { label: 'Large (Spacious Padding & 16px Font)', value: 'lg' },
-          ]}
-        />
-      </div>
-
-      {/* Tab Panel Switch Transition */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tab Panel Switch Animation</label>
-        <Select
-          value={tabState.panelTransition}
-          onChange={val => setTabState({ panelTransition: val as any })}
-          options={[
-            { label: 'Fade In (Smooth Dissolve Transition)', value: 'fade' },
-            { label: 'Scale & Fade (Pop & Scale Transition)', value: 'scale-fade' },
-            { label: 'None (Instant Panel Switching)', value: 'none' },
-          ]}
-        />
-      </div>
-    </div>
+  const toolbarSectionContent = (
+    <FieldRow
+      label="Toolbar Slot Gap"
+      value={toolbarState.slotGap}
+      onChange={val => setToolbarState({ slotGap: val as any })}
+      options={[
+        { label: 'Compact (0.25rem)', value: 'compact' },
+        { label: 'Normal (0.5rem)', value: 'normal' },
+        { label: 'Spacious (0.875rem)', value: 'spacious' },
+      ]}
+    />
   );
 
-  const slideOutContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* SlideOut Default Width */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Drawer Panel Width</label>
-          <Tooltip content="Configures default width for SlideOut drawers">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={slideOutState.width}
-          onChange={val => setSlideOutState({ width: val as any })}
-          options={[
-            { label: 'Small (20rem / 320px)', value: 'sm' },
-            { label: 'Medium (26rem / 416px)', value: 'md' },
-            { label: 'Large (36rem / 576px)', value: 'lg' },
-            { label: 'Quarter Screen (25vw)', value: '25vw' },
-            { label: 'Third Screen (33vw)', value: '33vw' },
-            { label: 'Half Screen (50vw)', value: '50vw' },
-            { label: 'Three-Quarters (75vw)', value: '75vw' },
-            { label: 'Full Screen (100vw)', value: 'full' },
-          ]}
-        />
-      </div>
-
-      {/* Header Margin Mode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Drawer Header Margin & Floating Mode</label>
-        <Select
-          value={slideOutState.headerMargin}
-          onChange={val => setSlideOutState({ headerMargin: val as any })}
-          options={[
-            { label: 'Flush Header (0 Margin)', value: 'none' },
-            { label: 'Compact Gap (0.5rem Bottom Margin)', value: 'compact' },
-            { label: 'Normal Gap (1.0rem Bottom Margin)', value: 'normal' },
-            { label: 'Spacious Gap (1.5rem Bottom Margin)', value: 'spacious' },
-            { label: 'Floating Card Header (Detached Margin)', value: 'detached' },
-          ]}
-        />
-      </div>
-
-      {/* Backdrop Blur Intensity */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Backdrop Glassmorphism Blur</label>
-        <Select
-          value={slideOutState.backdropBlur}
-          onChange={val => setSlideOutState({ backdropBlur: val as any })}
-          options={[
-            { label: 'Subtle Blur (2px)', value: 'subtle' },
-            { label: 'Heavy Glass Blur (8px)', value: 'heavy' },
-            { label: 'None (Solid Backdrop)', value: 'none' },
-          ]}
-        />
-      </div>
-    </div>
-  );
-
-  const accordionSectionContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Header Padding */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Accordion Header Padding</label>
-        <Select
-          value={accordionState.headerPadding}
-          onChange={val => setAccordionState({ headerPadding: val as any })}
-          options={[
-            { label: 'Compact (0.5rem 0.75rem)', value: 'compact' },
-            { label: 'Normal (0.875rem 1.125rem)', value: 'normal' },
-            { label: 'Spacious (1.25rem 1.5rem)', value: 'spacious' },
-          ]}
-        />
-      </div>
-
-      {/* Inter-Header Item Gap Margin */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Inter-Header Item Gap Margin</label>
-        <Select
-          value={accordionState.itemGap}
-          onChange={val => setAccordionState({ itemGap: val as any })}
-          options={[
-            { label: 'None (Flush 0px Gap)', value: 'none' },
-            { label: 'Compact Gap (0.375rem Gap)', value: 'compact' },
-            { label: 'Normal Gap (0.75rem Gap)', value: 'normal' },
-            { label: 'Spacious Gap (1.25rem Gap)', value: 'spacious' },
-          ]}
-        />
-      </div>
-
-      {/* Panel Transition & Animation Preset */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Panel Transition & Animation Preset</label>
-        <Select
-          value={accordionState.panelAnimation}
-          onChange={val => setAccordionState({ panelAnimation: val as any })}
-          options={[
-            { label: 'Slide & Fade Down (Smooth 0.25s)', value: 'slide-fade' },
-            { label: 'Quick Expand (Snappy 0.2s)', value: 'expand' },
-            { label: 'Scale & Fade (Pop In)', value: 'scale-fade' },
-            { label: 'None (Instant Toggle)', value: 'none' },
-          ]}
-        />
-      </div>
-    </div>
-  );
+  // ---- Containers ----
 
   const cardSectionContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Card Padding */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Card Padding</label>
-        <Select
-          value={cardState.padding}
-          onChange={val => setCardState({ padding: val as any })}
-          options={[
-            { label: 'Compact (0.75rem 1rem)', value: 'compact' },
-            { label: 'Normal (1.25rem 1.5rem)', value: 'normal' },
-            { label: 'Spacious (1.75rem 2.25rem)', value: 'spacious' },
-          ]}
-        />
-      </div>
+      <FieldRow
+        label="Card Padding"
+        value={cardState.padding}
+        onChange={val => setCardState({ padding: val as any })}
+        options={[
+          { label: 'Compact (0.75rem 1rem)', value: 'compact' },
+          { label: 'Normal (1.25rem 1.5rem)', value: 'normal' },
+          { label: 'Spacious (1.75rem 2.25rem)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Card Header Style"
+        tooltip="Controls the header's background and bottom border across all Card components"
+        value={cardState.headerStyle}
+        onChange={val => setCardState({ headerStyle: val as any })}
+        options={[
+          { label: 'Flush (No Border)', value: 'flush' },
+          { label: 'Bordered (Bottom Border)', value: 'bordered' },
+          { label: 'Subtle Background (Tinted Header)', value: 'subtle-bg' },
+        ]}
+      />
+    </div>
+  );
 
-      {/* Card Header Style */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Card Header Style</label>
-          <Tooltip content="Controls the header's background and bottom border across all Card components">
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
-          </Tooltip>
-        </div>
-        <Select
-          value={cardState.headerStyle}
-          onChange={val => setCardState({ headerStyle: val as any })}
-          options={[
-            { label: 'Flush (No Border)', value: 'flush' },
-            { label: 'Bordered (Bottom Border)', value: 'bordered' },
-            { label: 'Subtle Background (Tinted Header)', value: 'subtle-bg' },
-          ]}
-        />
-      </div>
+  const collapsibleSectionContent = (
+    <FieldRow
+      label="Collapsible Header & Content Padding"
+      value={collapsibleState.padding}
+      onChange={val => setCollapsibleState({ padding: val as any })}
+      options={[
+        { label: 'Compact', value: 'compact' },
+        { label: 'Normal', value: 'normal' },
+        { label: 'Spacious', value: 'spacious' },
+      ]}
+    />
+  );
+
+  const appShellSectionContent = (
+    <FieldRow
+      label="App Shell Header & Main Density"
+      tooltip="Since AppShell is meant to render once, this mostly exists for consistency with other components"
+      value={appShellState.density}
+      onChange={val => setAppShellState({ density: val as any })}
+      options={[
+        { label: 'Compact', value: 'compact' },
+        { label: 'Normal', value: 'normal' },
+        { label: 'Spacious', value: 'spacious' },
+      ]}
+    />
+  );
+
+  // ---- Overlays ----
+
+  const slideOutContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Drawer Panel Width"
+        tooltip="Configures default width for SlideOut drawers"
+        value={slideOutState.width}
+        onChange={val => setSlideOutState({ width: val as any })}
+        options={[
+          { label: 'Small (20rem / 320px)', value: 'sm' },
+          { label: 'Medium (26rem / 416px)', value: 'md' },
+          { label: 'Large (36rem / 576px)', value: 'lg' },
+          { label: 'Quarter Screen (25vw)', value: '25vw' },
+          { label: 'Third Screen (33vw)', value: '33vw' },
+          { label: 'Half Screen (50vw)', value: '50vw' },
+          { label: 'Three-Quarters (75vw)', value: '75vw' },
+          { label: 'Full Screen (100vw)', value: 'full' },
+        ]}
+      />
+      <FieldRow
+        label="Drawer Header Margin & Floating Mode"
+        value={slideOutState.headerMargin}
+        onChange={val => setSlideOutState({ headerMargin: val as any })}
+        options={[
+          { label: 'Flush Header (0 Margin)', value: 'none' },
+          { label: 'Compact Gap (0.5rem Bottom Margin)', value: 'compact' },
+          { label: 'Normal Gap (1.0rem Bottom Margin)', value: 'normal' },
+          { label: 'Spacious Gap (1.5rem Bottom Margin)', value: 'spacious' },
+          { label: 'Floating Card Header (Detached Margin)', value: 'detached' },
+        ]}
+      />
+      <FieldRow
+        label="Backdrop Glassmorphism Blur"
+        value={slideOutState.backdropBlur}
+        onChange={val => setSlideOutState({ backdropBlur: val as any })}
+        options={[
+          { label: 'Subtle Blur (2px)', value: 'subtle' },
+          { label: 'Heavy Glass Blur (8px)', value: 'heavy' },
+          { label: 'None (Solid Backdrop)', value: 'none' },
+        ]}
+      />
     </div>
   );
 
   const tooltipSectionContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Tooltip Theme */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tooltip Colour Theme</label>
-        <Select
-          value={tooltipState.theme}
-          onChange={val => setTooltipState({ theme: val as any })}
-          options={[
-            { label: 'Dark (Default)', value: 'dark' },
-            { label: 'Light (Surface Colour)', value: 'light' },
-            { label: 'Accent (Primary Colour)', value: 'accent' },
-          ]}
-        />
-      </div>
-
-      {/* Tooltip Size */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tooltip Size</label>
-        <Select
-          value={tooltipState.size}
-          onChange={val => setTooltipState({ size: val as any })}
-          options={[
-            { label: 'Small (Compact Padding & Font)', value: 'sm' },
-            { label: 'Medium (Standard Padding & Font)', value: 'md' },
-          ]}
-        />
-      </div>
+      <FieldRow
+        label="Tooltip Colour Theme"
+        value={tooltipState.theme}
+        onChange={val => setTooltipState({ theme: val as any })}
+        options={[
+          { label: 'Dark (Default)', value: 'dark' },
+          { label: 'Light (Surface Colour)', value: 'light' },
+          { label: 'Accent (Primary Colour)', value: 'accent' },
+        ]}
+      />
+      <FieldRow
+        label="Tooltip Size"
+        value={tooltipState.size}
+        onChange={val => setTooltipState({ size: val as any })}
+        options={[
+          { label: 'Small (Compact Padding & Font)', value: 'sm' },
+          { label: 'Medium (Standard Padding & Font)', value: 'md' },
+        ]}
+      />
     </div>
+  );
+
+  const modalSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Modal Backdrop Blur"
+        value={modalState.backdropBlur}
+        onChange={val => setModalState({ backdropBlur: val as any })}
+        options={[
+          { label: 'None', value: 'none' },
+          { label: 'Subtle (0.1875rem)', value: 'subtle' },
+          { label: 'Heavy (0.5rem)', value: 'heavy' },
+        ]}
+      />
+      <FieldRow
+        label="Modal Overlay Darkness"
+        value={modalState.overlayDarkness}
+        onChange={val => setModalState({ overlayDarkness: val as any })}
+        options={[
+          { label: 'Light (30% Black)', value: 'light' },
+          { label: 'Normal (50% Black)', value: 'normal' },
+          { label: 'Dark (70% Black)', value: 'dark' },
+        ]}
+      />
+    </div>
+  );
+
+  const alertDialogSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Alert Dialog Backdrop Blur"
+        value={alertDialogState.backdropBlur}
+        onChange={val => setAlertDialogState({ backdropBlur: val as any })}
+        options={[
+          { label: 'None', value: 'none' },
+          { label: 'Subtle (0.1875rem)', value: 'subtle' },
+          { label: 'Heavy (0.5rem)', value: 'heavy' },
+        ]}
+      />
+      <FieldRow
+        label="Alert Dialog Overlay Darkness"
+        value={alertDialogState.overlayDarkness}
+        onChange={val => setAlertDialogState({ overlayDarkness: val as any })}
+        options={[
+          { label: 'Light (30% Black)', value: 'light' },
+          { label: 'Normal (50% Black)', value: 'normal' },
+          { label: 'Dark (70% Black)', value: 'dark' },
+        ]}
+      />
+    </div>
+  );
+
+  const popupSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Popup Shadow Depth"
+        value={popupState.shadowDepth}
+        onChange={val => setPopupState({ shadowDepth: val as any })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Popup Border Style"
+        value={popupState.borderStyle}
+        onChange={val => setPopupState({ borderStyle: val as any })}
+        options={[
+          { label: 'Bordered', value: 'bordered' },
+          { label: 'Borderless', value: 'borderless' },
+        ]}
+      />
+    </div>
+  );
+
+  const toastSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Toast Shadow Depth"
+        value={toastState.shadowDepth}
+        onChange={val => setToastState({ shadowDepth: val as any })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Toast Accent Style"
+        value={toastState.accentStyle}
+        onChange={val => setToastState({ accentStyle: val as any })}
+        options={[
+          { label: 'Stripe (0.3125rem Accent Bar)', value: 'stripe' },
+          { label: 'Border Only (No Accent Bar)', value: 'border-only' },
+        ]}
+      />
+    </div>
+  );
+
+  const dropdownMenuSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Dropdown Menu Shadow Depth"
+        value={dropdownMenuState.shadowDepth}
+        onChange={val => setDropdownMenuState({ shadowDepth: val as any })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Dropdown Menu Item Density"
+        value={dropdownMenuState.itemDensity}
+        onChange={val => setDropdownMenuState({ itemDensity: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+        ]}
+      />
+    </div>
+  );
+
+  const contextMenuSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Context Menu Shadow Depth"
+        value={contextMenuState.shadowDepth}
+        onChange={val => setContextMenuState({ shadowDepth: val as any })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Context Menu Item Density"
+        value={contextMenuState.itemDensity}
+        onChange={val => setContextMenuState({ itemDensity: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+        ]}
+      />
+    </div>
+  );
+
+  // ---- Data Display ----
+
+  const tableContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Table Cell Density"
+        tooltip="Configures padding and row height across all Data Table instances"
+        value={tableState.density}
+        onChange={val => setTableState({ density: val as any })}
+        options={[
+          { label: 'Compact (2.25rem Row Height & Tight Cell Padding)', value: 'compact' },
+          { label: 'Normal (2.75rem Row Height & Standard Cell Padding)', value: 'normal' },
+          { label: 'Spacious (3.5rem Row Height & Generous Cell Padding)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Grid Border Lines"
+        value={tableState.borderStyle}
+        onChange={val => setTableState({ borderStyle: val as any })}
+        options={[
+          { label: 'Horizontal Rows Only', value: 'horizontal' },
+          { label: 'Full Grid Borders', value: 'grid' },
+          { label: 'No Borders (Borderless)', value: 'none' },
+        ]}
+      />
+    </div>
+  );
+
+  const tabStripContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Tab Group Variant"
+        tooltip="Configures tab trigger visual styling across all TabStrip components"
+        value={tabState.variant}
+        onChange={val => setTabState({ variant: val as any })}
+        options={[
+          { label: 'Pills (Rounded Pill Triggers)', value: 'pills' },
+          { label: 'Underline (Bottom Active Indicator)', value: 'underline' },
+          { label: 'Cards (Folder Tab Header Style)', value: 'cards' },
+          { label: 'Segment (Segmented Control)', value: 'segment' },
+        ]}
+      />
+      <FieldRow
+        label="Tab Density & Size"
+        value={tabState.size}
+        onChange={val => setTabState({ size: val as any })}
+        options={[
+          { label: 'Small (Compact Padding & 12px Font)', value: 'sm' },
+          { label: 'Medium (Standard Padding & 14px Font)', value: 'md' },
+          { label: 'Large (Spacious Padding & 16px Font)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Tab Panel Switch Animation"
+        value={tabState.panelTransition}
+        onChange={val => setTabState({ panelTransition: val as any })}
+        options={[
+          { label: 'Fade In (Smooth Dissolve Transition)', value: 'fade' },
+          { label: 'Scale & Fade (Pop & Scale Transition)', value: 'scale-fade' },
+          { label: 'None (Instant Panel Switching)', value: 'none' },
+        ]}
+      />
+    </div>
+  );
+
+  const accordionSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Accordion Header Padding"
+        value={accordionState.headerPadding}
+        onChange={val => setAccordionState({ headerPadding: val as any })}
+        options={[
+          { label: 'Compact (0.5rem 0.75rem)', value: 'compact' },
+          { label: 'Normal (0.875rem 1.125rem)', value: 'normal' },
+          { label: 'Spacious (1.25rem 1.5rem)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Inter-Header Item Gap Margin"
+        value={accordionState.itemGap}
+        onChange={val => setAccordionState({ itemGap: val as any })}
+        options={[
+          { label: 'None (Flush 0px Gap)', value: 'none' },
+          { label: 'Compact Gap (0.375rem Gap)', value: 'compact' },
+          { label: 'Normal Gap (0.75rem Gap)', value: 'normal' },
+          { label: 'Spacious Gap (1.25rem Gap)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Panel Transition & Animation Preset"
+        value={accordionState.panelAnimation}
+        onChange={val => setAccordionState({ panelAnimation: val as any })}
+        options={[
+          { label: 'Slide & Fade Down (Smooth 0.25s)', value: 'slide-fade' },
+          { label: 'Quick Expand (Snappy 0.2s)', value: 'expand' },
+          { label: 'Scale & Fade (Pop In)', value: 'scale-fade' },
+          { label: 'None (Instant Toggle)', value: 'none' },
+        ]}
+      />
+    </div>
+  );
+
+  const progressSectionContent = (
+    <FieldRow
+      label="Progress Bar Track Shape"
+      value={progressState.trackRadius}
+      onChange={val => setProgressState({ trackRadius: val as any })}
+      options={[
+        { label: 'Sharp (0rem)', value: 'sharp' },
+        { label: 'Rounded', value: 'rounded' },
+        { label: 'Pill (Full Rounding)', value: 'pill' },
+      ]}
+    />
+  );
+
+  const avatarSectionContent = (
+    <FieldRow
+      label="Avatar Shape"
+      value={avatarState.shape}
+      onChange={val => setAvatarState({ shape: val as any })}
+      options={[
+        { label: 'Circle', value: 'circle' },
+        { label: 'Rounded Square', value: 'rounded-square' },
+        { label: 'Square', value: 'square' },
+      ]}
+    />
+  );
+
+  // ---- Form Controls ----
+
+  const buttonSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Button Font Weight"
+        value={buttonState.fontWeight}
+        onChange={val => setButtonState({ fontWeight: val as any })}
+        options={[
+          { label: 'Normal (500)', value: 'normal' },
+          { label: 'Semibold (600)', value: 'semibold' },
+          { label: 'Bold (700)', value: 'bold' },
+        ]}
+      />
+      <FieldRow
+        label="Button Icon Gap"
+        value={buttonState.iconGap}
+        onChange={val => setButtonState({ iconGap: val as any })}
+        options={[
+          { label: 'Compact (0.25rem)', value: 'compact' },
+          { label: 'Normal (0.5rem)', value: 'normal' },
+          { label: 'Spacious (0.75rem)', value: 'spacious' },
+        ]}
+      />
+    </div>
+  );
+
+  const inputSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Input & Textarea Padding"
+        value={inputState.padding}
+        onChange={val => setInputState({ padding: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Input & Textarea Border Width"
+        value={inputState.borderWidth}
+        onChange={val => setInputState({ borderWidth: val as any })}
+        options={[
+          { label: 'Thin (0.0625rem)', value: 'thin' },
+          { label: 'Normal (0.125rem)', value: 'normal' },
+          { label: 'Thick (0.1875rem)', value: 'thick' },
+        ]}
+      />
+    </div>
+  );
+
+  const toggleControlSectionContent = (
+    <FieldRow
+      label="Checkbox & Switch Size"
+      value={toggleControlState.size}
+      onChange={val => setToggleControlState({ size: val as any })}
+      options={[
+        { label: 'Small', value: 'sm' },
+        { label: 'Medium', value: 'md' },
+        { label: 'Large', value: 'lg' },
+      ]}
+    />
+  );
+
+  const selectSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Select Trigger Padding"
+        value={selectState.padding}
+        onChange={val => setSelectState({ padding: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Select Item Density"
+        value={selectState.itemDensity}
+        onChange={val => setSelectState({ itemDensity: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+        ]}
+      />
+    </div>
+  );
+
+  const radioGroupSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Radio Group Gap"
+        value={radioGroupState.gap}
+        onChange={val => setRadioGroupState({ gap: val as any })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Radio Dot Size"
+        value={radioGroupState.dotSize}
+        onChange={val => setRadioGroupState({ dotSize: val as any })}
+        options={[
+          { label: 'Small', value: 'sm' },
+          { label: 'Medium', value: 'md' },
+          { label: 'Large', value: 'lg' },
+        ]}
+      />
+    </div>
+  );
+
+  const sliderSectionContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Slider Track Height"
+        value={sliderState.trackHeight}
+        onChange={val => setSliderState({ trackHeight: val as any })}
+        options={[
+          { label: 'Thin (0.25rem)', value: 'thin' },
+          { label: 'Normal (0.375rem)', value: 'normal' },
+          { label: 'Thick (0.5rem)', value: 'thick' },
+        ]}
+      />
+      <FieldRow
+        label="Slider Thumb Size"
+        value={sliderState.thumbSize}
+        onChange={val => setSliderState({ thumbSize: val as any })}
+        options={[
+          { label: 'Small', value: 'sm' },
+          { label: 'Medium', value: 'md' },
+          { label: 'Large', value: 'lg' },
+        ]}
+      />
+    </div>
+  );
+
+  const toggleSectionContent = (
+    <FieldRow
+      label="Toggle & Toggle Group Padding"
+      value={toggleState.padding}
+      onChange={val => setToggleState({ padding: val as any })}
+      options={[
+        { label: 'Compact', value: 'compact' },
+        { label: 'Normal', value: 'normal' },
+        { label: 'Spacious', value: 'spacious' },
+      ]}
+    />
+  );
+
+  // ---- Category groups: each renders its own inner Accordion of sections ----
+
+  const globalGroupContent = (
+    <Accordion
+      type="single"
+      defaultValue="appearance"
+      items={[
+        { value: 'appearance', title: '🎨 Appearance & Base Color (HSV)', content: appearanceContent },
+        { value: 'density', title: '📐 Density, Spacing & Elevation', content: densityContent },
+        { value: 'animation', title: '✨ Motion, Transitions & Physics', content: animationContent },
+        { value: 'harmony', title: '🎼 Color Harmony & Typography', content: harmonyContent },
+        { value: 'subthemes', title: '🌈 Monochromatic Subthemes', content: subthemeContent },
+      ]}
+    />
+  );
+
+  const layoutPrimitivesGroupContent = (
+    <Accordion
+      type="single"
+      items={[
+        { value: 'separator', title: '➖ Separator', content: separatorSectionContent },
+        { value: 'uigroup', title: '🔗 UIGroup', content: uiGroupSectionContent },
+        { value: 'toolbar', title: '🧰 Toolbar', content: toolbarSectionContent },
+      ]}
+    />
+  );
+
+  const containersGroupContent = (
+    <Accordion
+      type="single"
+      items={[
+        { value: 'card', title: '🃏 Card', content: cardSectionContent },
+        { value: 'collapsible', title: '📂 Collapsible', content: collapsibleSectionContent },
+        { value: 'appshell', title: '🖥️ App Shell', content: appShellSectionContent },
+      ]}
+    />
+  );
+
+  const overlaysGroupContent = (
+    <Accordion
+      type="single"
+      items={[
+        { value: 'slideout', title: '🪟 SlideOut Drawer', content: slideOutContent },
+        { value: 'tooltip', title: '💬 Tooltip', content: tooltipSectionContent },
+        { value: 'modal', title: '🪧 Modal', content: modalSectionContent },
+        { value: 'alertdialog', title: '⚠️ Alert Dialog', content: alertDialogSectionContent },
+        { value: 'popup', title: '💬 Popup', content: popupSectionContent },
+        { value: 'toast', title: '🔔 Toast', content: toastSectionContent },
+        { value: 'dropdownmenu', title: '⚙️ Dropdown Menu', content: dropdownMenuSectionContent },
+        { value: 'contextmenu', title: '🖱️ Context Menu', content: contextMenuSectionContent },
+      ]}
+    />
+  );
+
+  const dataDisplayGroupContent = (
+    <Accordion
+      type="single"
+      items={[
+        { value: 'table', title: '📊 Data Table', content: tableContent },
+        { value: 'tab', title: '📑 Tab Strip', content: tabStripContent },
+        { value: 'accordion', title: '🪗 Accordion', content: accordionSectionContent },
+        { value: 'progress', title: '📶 Progress Bar', content: progressSectionContent },
+        { value: 'avatar', title: '🖼️ Avatar', content: avatarSectionContent },
+      ]}
+    />
+  );
+
+  const formControlsGroupContent = (
+    <Accordion
+      type="single"
+      items={[
+        { value: 'button', title: '🔘 Button', content: buttonSectionContent },
+        { value: 'input', title: '📝 Input & Textarea', content: inputSectionContent },
+        { value: 'togglecontrol', title: '☑️ Checkbox & Switch', content: toggleControlSectionContent },
+        { value: 'select', title: '🔽 Select', content: selectSectionContent },
+        { value: 'radiogroup', title: '🔘 Radio Group', content: radioGroupSectionContent },
+        { value: 'slider', title: '🎚️ Slider', content: sliderSectionContent },
+        { value: 'toggle', title: '🔀 Toggle & Toggle Group', content: toggleSectionContent },
+      ]}
+    />
   );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
-      {/* Collapsible Accordion Sections */}
+      {/* Top-level grouping by ThemeSliceCategory — each group holds its own
+          nested Accordion of per-component sections, since a single flat
+          list of ~26 sections would be unusably long to scan or scroll. */}
       <Accordion
         type="single"
-        defaultValue="appearance"
+        defaultValue="global"
         items={[
-          { value: 'appearance', title: '🎨 Appearance & Base Color (HSV)', content: appearanceContent },
-          { value: 'density', title: '📐 Density, Spacing & Elevation', content: densityContent },
-          { value: 'animation', title: '✨ Motion, Transitions & Physics', content: animationContent },
-          { value: 'slideout', title: '🪟 SlideOut Drawer & Retract Dynamics', content: slideOutContent },
-          { value: 'accordion', title: '🪗 Accordion Header & Gap Spacing', content: accordionSectionContent },
-          { value: 'card', title: '🃏 Card Padding & Header Layout', content: cardSectionContent },
-          { value: 'tooltip', title: '💬 Tooltip Styling & Theme', content: tooltipSectionContent },
-          { value: 'tab', title: '📑 Tab Group Panels & Variants', content: tabStripContent },
-          { value: 'table', title: '📊 Data Table Layout & Density', content: tableContent },
-          { value: 'harmony', title: '🎼 Color Harmony & Typography', content: harmonyContent },
-          { value: 'subthemes', title: '🌈 Monochromatic Subthemes', content: subthemeContent },
+          { value: 'global', title: '🌐 Global Theme & Color System', content: globalGroupContent },
+          { value: 'layout', title: '📐 Layout Primitives', content: layoutPrimitivesGroupContent },
+          { value: 'containers', title: '📦 Containers', content: containersGroupContent },
+          { value: 'overlays', title: '🪟 Overlays', content: overlaysGroupContent },
+          { value: 'datadisplay', title: '📊 Data Display', content: dataDisplayGroupContent },
+          { value: 'formcontrols', title: '🎛️ Form Controls', content: formControlsGroupContent },
         ]}
       />
 

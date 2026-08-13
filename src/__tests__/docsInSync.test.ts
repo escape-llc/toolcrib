@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import { execSync } from 'node:child_process';
 
 /**
@@ -12,16 +12,48 @@ import { execSync } from 'node:child_process';
  * works correctly under plain `node scripts/x.js` execution — the only
  * way these scripts are actually meant to run.
  */
+/**
+ * `expect(() => execSync(...)).not.toThrow()` reports only
+ * `Error: Command failed: node scripts/x.js --check` — execSync's own
+ * thrown error carries the actually useful part (the generator script's
+ * real stdout/stderr: either a drift diff, or a crash) on `.stdout`/
+ * `.stderr`, which that bare assertion never surfaces. In CI that means the
+ * failure the person is staring at literally cannot tell them what
+ * happened. Run the command outside the assertion, catch it, and rethrow
+ * with that real output inlined plus the two concrete causes worth
+ * checking first.
+ */
+function runDriftCheck(command: string): void {
+  try {
+    execSync(command, { stdio: 'pipe' });
+  } catch (err: any) {
+    const stdout = err.stdout ? err.stdout.toString().trim() : '';
+    const stderr = err.stderr ? err.stderr.toString().trim() : '';
+    throw new Error(
+      `\`${command}\` exited with code ${err.status ?? 'unknown'}.\n` +
+      (stdout ? `\n--- stdout ---\n${stdout}\n` : '') +
+      (stderr ? `\n--- stderr ---\n${stderr}\n` : '') +
+      `\nMost likely one of:\n` +
+      `  - Real drift: source changed but the generated file wasn't regenerated. Fix: rerun the same command ` +
+      `with --write instead of --check, then commit the result.\n` +
+      `  - scripts/node_modules isn't installed (a "Cannot read properties of undefined" TypeScript error, ` +
+      `typically mentioning ScriptTarget/createSourceFile, is this case): scripts/lib/extract.js needs the ` +
+      `typescript@6.x pinned in scripts/package.json, isolated from root's own typescript version — see ` +
+      `AGENTS.md's TypeScript section. Run \`npm install\` inside scripts/ before this test suite, not after.`
+    );
+  }
+}
+
 describe('generated docs stay in sync with source', () => {
   it('component-manifest.json has no drift', () => {
-    expect(() => execSync('node scripts/generate-manifest.js --check', { stdio: 'pipe' })).not.toThrow();
+    runDriftCheck('node scripts/generate-manifest.js --check');
   });
 
   it('ai-docs/CORE.md has no drift', () => {
-    expect(() => execSync('node scripts/generate-docs.js --check', { stdio: 'pipe' })).not.toThrow();
+    runDriftCheck('node scripts/generate-docs.js --check');
   });
 
   it('src/index.ts (the #toolcrib barrel) has no drift', () => {
-    expect(() => execSync('node scripts/generate-index.js --check', { stdio: 'pipe' })).not.toThrow();
+    runDriftCheck('node scripts/generate-index.js --check');
   });
 });

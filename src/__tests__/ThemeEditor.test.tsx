@@ -25,26 +25,36 @@ function renderEditor() {
 }
 
 describe('ThemeEditor', () => {
-  it('renders every theme slice section, including Card and Tooltip (regression: previously wired into ThemeProvider/CSS variables with no editor UI)', () => {
+  it('renders the top-level category groups, and the Global group (open by default) shows its sections', () => {
     renderEditor();
 
+    // Top-level categories, mirroring ThemeSliceCategory — each is its own
+    // outer Accordion item whose content is a nested per-component Accordion.
+    expect(screen.getByText(/Global Theme & Color System/)).toBeInTheDocument();
+    expect(screen.getByText(/Layout Primitives/)).toBeInTheDocument();
+    expect(screen.getByText(/Containers/)).toBeInTheDocument();
+    expect(screen.getByText(/Overlays/)).toBeInTheDocument();
+    expect(screen.getByText(/Data Display/)).toBeInTheDocument();
+    expect(screen.getByText(/Form Controls/)).toBeInTheDocument();
+
+    // The "Global" category is open by default, so its nested Accordion's
+    // item triggers (not necessarily their panel content) are already in
+    // the DOM without needing an extra click.
     expect(screen.getByText(/Appearance & Base Color/)).toBeInTheDocument();
     expect(screen.getByText(/Density, Spacing & Elevation/)).toBeInTheDocument();
     expect(screen.getByText(/Motion, Transitions & Physics/)).toBeInTheDocument();
-    expect(screen.getByText(/SlideOut Drawer & Retract Dynamics/)).toBeInTheDocument();
-    expect(screen.getByText(/Accordion Header & Gap Spacing/)).toBeInTheDocument();
-    expect(screen.getByText(/Card Padding & Header Layout/)).toBeInTheDocument();
-    expect(screen.getByText(/Tooltip Styling & Theme/)).toBeInTheDocument();
-    expect(screen.getByText(/Tab Group Panels & Variants/)).toBeInTheDocument();
-    expect(screen.getByText(/Data Table Layout & Density/)).toBeInTheDocument();
     expect(screen.getByText(/Color Harmony & Typography/)).toBeInTheDocument();
     expect(screen.getByText(/Monochromatic Subthemes/)).toBeInTheDocument();
   });
 
-  it('opening the Card section shows its current padding and header style values', () => {
+  it('opening the Containers category then the Card section shows its current padding and header style values', () => {
     renderEditor();
 
-    fireEvent.click(screen.getByText(/Card Padding & Header Layout/));
+    // Radix Accordion.Content isn't mounted while its item is closed, so
+    // the Containers category (not open by default) must be expanded
+    // before its nested Card/Collapsible/App Shell items exist to click.
+    fireEvent.click(screen.getByText(/Containers/));
+    fireEvent.click(screen.getByText(/🃏 Card/));
 
     // Select here is a custom Radix dropdown (SelectPrimitive), not a
     // native <select> — getByDisplayValue/fireEvent.change don't apply to
@@ -55,10 +65,11 @@ describe('ThemeEditor', () => {
     expect(screen.getByText('Bordered (Bottom Border)')).toBeInTheDocument();
   });
 
-  it('opening the Tooltip section shows its current theme and size values', () => {
+  it('opening the Overlays category then the Tooltip section shows its current theme and size values', () => {
     renderEditor();
 
-    fireEvent.click(screen.getByText(/Tooltip Styling & Theme/));
+    fireEvent.click(screen.getByText(/Overlays/));
+    fireEvent.click(screen.getByText(/💬 Tooltip/));
 
     expect(screen.getByText('Dark (Default)')).toBeInTheDocument();
     expect(screen.getByText('Medium (Standard Padding & Font)')).toBeInTheDocument();

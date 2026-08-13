@@ -1,5 +1,16 @@
 import { ReactNode } from 'react';
 
+/**
+ * Groups a slice under one of the Theme Editor's category sections —
+ * the same vocabulary `@manifestCategory` uses for the component manifest,
+ * so a slice's category always matches the category of the component(s)
+ * it themes. Required (not inferred) for the same reason
+ * `@manifestCategory` is: without a fixed, exhaustive set, the Theme
+ * Editor's grouping would drift silently as slices are added, the way
+ * CORE.md's hand-maintained tables drifted before generation existed.
+ */
+export type ThemeSliceCategory = 'Layout Primitives' | 'Containers' | 'Overlays' | 'Data Display' | 'Form Controls';
+
 /** @barrelExport */
 export interface ThemeSlice<
   TState = any,
@@ -7,6 +18,8 @@ export interface ThemeSlice<
 > {
   id: string; // e.g. 'padding', 'margin', 'radius', 'shadow', 'color'
   name: string; // Human-readable label for Theme Editor (e.g. "Margin & Spacing")
+  /** Which Theme Editor section this slice's control renders under. */
+  category: ThemeSliceCategory;
   defaultState: TState;
 
   /**

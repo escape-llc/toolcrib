@@ -19,24 +19,37 @@
       "--ai-accordion-header-padding",
       "--ai-accordion-item-gap",
       "--ai-active-transform",
+      "--ai-alertdialog-backdrop-blur",
+      "--ai-alertdialog-overlay-bg",
       "--ai-appshell-header-padding",
       "--ai-appshell-main-padding",
+      "--ai-avatar-radius",
       "--ai-bg-container",
       "--ai-bg-primary",
       "--ai-bg-surface",
       "--ai-border",
+      "--ai-button-font-weight",
+      "--ai-button-icon-gap",
       "--ai-card-header-bg",
       "--ai-card-header-border",
       "--ai-card-header-padding",
       "--ai-card-padding",
+      "--ai-collapsible-content-padding",
+      "--ai-collapsible-header-padding",
       "--ai-color-accent",
       "--ai-color-base",
       "--ai-color-primary",
       "--ai-color-primary-hover",
       "--ai-color-secondary",
+      "--ai-contextmenu-item-padding",
+      "--ai-contextmenu-shadow",
+      "--ai-dropdownmenu-item-padding",
+      "--ai-dropdownmenu-shadow",
       "--ai-focus-ring",
       "--ai-hover-shadow",
       "--ai-hover-transform",
+      "--ai-input-border-width",
+      "--ai-input-padding",
       "--ai-layout-border-bottom-left-radius",
       "--ai-layout-border-bottom-right-radius",
       "--ai-layout-border-top-left-radius",
@@ -48,15 +61,27 @@
       "--ai-margin-xl",
       "--ai-margin-xs",
       "--ai-master-font-size",
+      "--ai-modal-backdrop-blur",
+      "--ai-modal-overlay-bg",
       "--ai-padding-lg",
       "--ai-padding-md",
       "--ai-padding-sm",
       "--ai-padding-xl",
       "--ai-padding-xs",
+      "--ai-popup-border",
+      "--ai-popup-shadow",
+      "--ai-progress-radius",
+      "--ai-radiogroup-dot-inner-size",
+      "--ai-radiogroup-dot-size",
+      "--ai-radiogroup-gap-horizontal",
+      "--ai-radiogroup-gap-vertical",
       "--ai-radius-lg",
       "--ai-radius-md",
       "--ai-radius-sm",
       "--ai-radius-xl",
+      "--ai-select-item-padding",
+      "--ai-select-trigger-padding",
+      "--ai-separator-thickness",
       "--ai-shadow-lg",
       "--ai-shadow-md",
       "--ai-shadow-sm",
@@ -66,6 +91,8 @@
       "--ai-slideout-header-border-radius",
       "--ai-slideout-header-margin",
       "--ai-slideout-width",
+      "--ai-slider-thumb-size",
+      "--ai-slider-track-height",
       "--ai-subtheme-error",
       "--ai-subtheme-error-bg",
       "--ai-subtheme-error-border",
@@ -97,6 +124,17 @@
       "--ai-table-stripe-bg",
       "--ai-text-primary",
       "--ai-text-secondary",
+      "--ai-toast-accent-width",
+      "--ai-toast-shadow",
+      "--ai-toggle-gap",
+      "--ai-toggle-padding",
+      "--ai-togglecontrol-checkbox-size",
+      "--ai-togglecontrol-switch-height",
+      "--ai-togglecontrol-switch-thumb-inset",
+      "--ai-togglecontrol-switch-thumb-size",
+      "--ai-togglecontrol-switch-thumb-travel",
+      "--ai-togglecontrol-switch-width",
+      "--ai-toolbar-slot-gap",
       "--ai-tooltip-bg",
       "--ai-tooltip-border-radius",
       "--ai-tooltip-color",
@@ -108,7 +146,8 @@
       "--ai-transition-easing",
       "--ai-transition-fast",
       "--ai-transition-normal",
-      "--ai-transition-slow"
+      "--ai-transition-slow",
+      "--ai-uigroup-overlap"
     ],
     "slices": [
       {
@@ -154,6 +193,86 @@
       {
         "id": "tooltip",
         "name": "💬 Tooltip Styling & Theme"
+      },
+      {
+        "id": "button",
+        "name": "🔘 Button Weight & Icon Spacing"
+      },
+      {
+        "id": "input",
+        "name": "📝 Input & Textarea Padding & Border"
+      },
+      {
+        "id": "togglecontrol",
+        "name": "☑️ Checkbox & Switch Size"
+      },
+      {
+        "id": "select",
+        "name": "🔽 Select Padding & Item Density"
+      },
+      {
+        "id": "radiogroup",
+        "name": "🔘 Radio Group Spacing & Dot Size"
+      },
+      {
+        "id": "slider",
+        "name": "🎚️ Slider Track & Thumb Size"
+      },
+      {
+        "id": "modal",
+        "name": "🪧 Modal Backdrop & Overlay"
+      },
+      {
+        "id": "alertdialog",
+        "name": "⚠️ Alert Dialog Backdrop & Overlay"
+      },
+      {
+        "id": "popup",
+        "name": "💬 Popup Shadow & Border"
+      },
+      {
+        "id": "toast",
+        "name": "🔔 Toast Shadow & Accent Style"
+      },
+      {
+        "id": "dropdownmenu",
+        "name": "⚙️ Dropdown Menu Shadow & Density"
+      },
+      {
+        "id": "contextmenu",
+        "name": "🖱️ Context Menu Shadow & Density"
+      },
+      {
+        "id": "progress",
+        "name": "📶 Progress Bar Track Shape"
+      },
+      {
+        "id": "separator",
+        "name": "➖ Separator Thickness"
+      },
+      {
+        "id": "avatar",
+        "name": "🖼️ Avatar Shape"
+      },
+      {
+        "id": "toggle",
+        "name": "🔀 Toggle & Toggle Group Padding"
+      },
+      {
+        "id": "collapsible",
+        "name": "📂 Collapsible Padding"
+      },
+      {
+        "id": "uigroup",
+        "name": "🔗 UIGroup Border Overlap"
+      },
+      {
+        "id": "toolbar",
+        "name": "🧰 Toolbar Slot Gap"
+      },
+      {
+        "id": "appshell",
+        "name": "🖥️ App Shell Density"
       }
     ]
   },
@@ -444,6 +563,10 @@
           "type": "string",
           "default": "'Confirm Action'",
           "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden, matching `Modal`'s `ariaLabel` — set this\nexplicitly (typically matching your `AlertDialog.Header` text) for a\nmeaningful announcement."
+        },
+        "overrides": {
+          "type": "Partial<AlertDialogSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for backdrop blur and overlay darkness."
         }
       },
       "category": "Overlays",
@@ -456,7 +579,12 @@
         "Header",
         "Main"
       ],
-      "props": {},
+      "props": {
+        "overrides": {
+          "type": "Partial<AppShellSliceState>",
+          "description": "Per-instance override for Header/Main padding density. Since AppShell is meant to render once, this mostly exists for consistency with other components — the global Theme Editor control is the more typical way to change this."
+        }
+      },
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "category": "Containers",
       "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
@@ -486,6 +614,10 @@
         "fallbackDelayMs": {
           "type": "number",
           "description": "Delay in milliseconds before the fallback renders while the image is\nstill loading, avoiding a flash of fallback content for a fast-loading\nimage. Omitted by default — Radix's own `AvatarPrimitive.Fallback`\nrenders immediately with no artificial delay unless `delayMs` is\nexplicitly passed (confirmed in `@radix-ui/react-avatar`'s source:\nits `canRender` state starts `true` only when `delayMs === undefined`),\nso defaulting this to a nonzero value here would force every avatar\nwith no `src` — the common initials-only case — to sit blank for that\nlong before showing its fallback, for no benefit."
+        },
+        "overrides": {
+          "type": "Partial<AvatarSliceState>",
+          "description": "Per-instance override for the avatar's shape."
         }
       },
       "category": "Data Display",
@@ -532,6 +664,10 @@
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a trigger button whose\ncorner needs to flatten against an open `<Popup>`/`<DropdownMenu>`.\nApplied after the button's own computed radius, so it wins."
+        },
+        "overrides": {
+          "type": "Partial<ButtonSliceState>",
+          "description": "Per-instance overrides for label weight and icon spacing. Separate from\n`subtheme` above (Button already resolves that itself via\n`useResolvedSubtheme`, unrelated to this slice's own two fields)."
         }
       },
       "category": "Form Controls",
@@ -618,6 +754,10 @@
         "disabled": {
           "type": "boolean",
           "description": "If true, the trigger is non-interactive and the panel can't be toggled."
+        },
+        "overrides": {
+          "type": "Partial<CollapsibleSliceState>",
+          "description": "Per-instance override for header/content padding."
         }
       },
       "category": "Containers",
@@ -659,6 +799,10 @@
           "type": "MenuItemData[]",
           "required": true,
           "description": "Array of menu items to render."
+        },
+        "overrides": {
+          "type": "Partial<ContextMenuSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and item density."
         }
       },
       "category": "Overlays",
@@ -737,6 +881,10 @@
           "type": "'start' | 'center' | 'end'",
           "default": "'start'",
           "description": "Alignment along the menu's side axis."
+        },
+        "overrides": {
+          "type": "Partial<DropdownMenuSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and item density."
         }
       },
       "category": "Overlays",
@@ -891,6 +1039,10 @@
           "type": "string",
           "default": "'Dialog'",
           "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<SlideOut title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
+        },
+        "overrides": {
+          "type": "Partial<ModalSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for backdrop blur and overlay darkness."
         }
       },
       "category": "Overlays",
@@ -926,6 +1078,10 @@
           "type": "number",
           "default": "Z_INDEX.DROPDOWN (300)",
           "description": "Z-index layer. Uses the toolkit's Z_INDEX.DROPDOWN tier by default."
+        },
+        "overrides": {
+          "type": "Partial<PopupSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and border style."
         }
       },
       "category": "Overlays",
@@ -957,6 +1113,10 @@
         "subtheme": {
           "type": "SubthemeName",
           "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        },
+        "overrides": {
+          "type": "Partial<ProgressSliceState>",
+          "description": "Per-instance override for the track's corner shape."
         }
       },
       "category": "Data Display",
@@ -997,6 +1157,10 @@
         "disabled": {
           "type": "boolean",
           "description": "If true, all options are disabled."
+        },
+        "overrides": {
+          "type": "Partial<RadioGroupSliceState>",
+          "description": "Per-instance overrides for option spacing and radio dot size."
         }
       },
       "category": "Form Controls",
@@ -1035,6 +1199,10 @@
         "disabled": {
           "type": "boolean",
           "description": "If true, the select is non-interactive."
+        },
+        "overrides": {
+          "type": "Partial<SelectSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for trigger padding and item density."
         }
       },
       "category": "Form Controls",
@@ -1053,6 +1221,10 @@
           "type": "boolean",
           "default": "true",
           "description": "Purely presentational (true) vs. a semantic content boundary announced\nto assistive tech (false)."
+        },
+        "overrides": {
+          "type": "Partial<SeparatorSliceState>",
+          "description": "Per-instance override for line thickness."
         }
       },
       "category": "Layout Primitives",
@@ -1142,6 +1314,10 @@
           "type": "boolean",
           "default": "false",
           "description": "If true, the slider is non-interactive."
+        },
+        "overrides": {
+          "type": "Partial<SliderSliceState>",
+          "description": "Per-instance overrides for track height and thumb size."
         }
       },
       "category": "Form Controls",
@@ -1262,6 +1438,10 @@
         "disabled": {
           "type": "boolean",
           "description": "If true, the toggle is non-interactive."
+        },
+        "overrides": {
+          "type": "Partial<ToggleSliceState>",
+          "description": "Per-instance override for padding density. Shared with `<ToggleGroup>`."
         }
       },
       "category": "Form Controls",
@@ -1300,6 +1480,10 @@
         "disabled": {
           "type": "boolean",
           "description": "If true, every option is disabled."
+        },
+        "overrides": {
+          "type": "Partial<ToggleSliceState>",
+          "description": "Per-instance override for padding density. Shared with `<Toggle>`."
         }
       },
       "category": "Form Controls",
@@ -1325,6 +1509,10 @@
         "cornerRadiusMode": {
           "type": "CornerRadiusMode",
           "description": "Override corner radius using the theme radius token scale."
+        },
+        "overrides": {
+          "type": "Partial<ToolbarSliceState>",
+          "description": "Per-instance override for the gap within each slot (`Toolbar.Left`/`.Center`/`.Right`)."
         }
       },
       "category": "Layout Primitives",

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
+import { getSparseVariables } from '../../theme/slice';
+import { SliderThemeSlice, SliderSliceState } from './SliderSlice';
 
 /**
  * Props for the `<Slider>` range input control.
@@ -24,6 +26,8 @@ export interface SliderProps {
   onChange?: (value: number) => void;
   /** If true, the slider is non-interactive. @default false */
   disabled?: boolean;
+  /** Per-instance overrides for track height and thumb size. */
+  overrides?: Partial<SliderSliceState>;
 }
 
 /**
@@ -39,8 +43,10 @@ export const Slider: React.FC<SliderProps> = ({
   step = 1,
   onChange,
   disabled = false,
+  overrides,
 }) => {
   const currentVal = value !== undefined ? value : defaultValue;
+  const sliderVars = getSparseVariables(SliderThemeSlice, overrides ?? {});
 
   return (
     <SliderPrimitive.Root
@@ -64,6 +70,7 @@ export const Slider: React.FC<SliderProps> = ({
         height: '1.25rem',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
+        ...sliderVars,
       }}
     >
       <SliderPrimitive.Track
@@ -72,7 +79,7 @@ export const Slider: React.FC<SliderProps> = ({
           position: 'relative',
           flexGrow: 1,
           borderRadius: '0.625rem',
-          height: '0.375rem',
+          height: 'var(--ai-slider-track-height, 0.375rem)',
         }}
       >
         <SliderPrimitive.Range
@@ -87,8 +94,8 @@ export const Slider: React.FC<SliderProps> = ({
       <SliderPrimitive.Thumb
         style={{
           display: 'block',
-          width: '1.125rem',
-          height: '1.125rem',
+          width: 'var(--ai-slider-thumb-size, 1.125rem)',
+          height: 'var(--ai-slider-thumb-size, 1.125rem)',
           background: 'var(--ai-bg-surface, #ffffff)',
           border: '0.125rem solid var(--ai-color-primary, #3b82f6)',
           borderRadius: '50%',

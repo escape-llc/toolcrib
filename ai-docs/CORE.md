@@ -93,8 +93,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<Content>` | `.Grow` | `gap`, `marginMode`, `squareCorners` | Fills its container and establishes a flex-column layout domain for its children |
 | `<Grid>` | — | `columns`, `minColWidth`, `gap`, `marginMode`, `paddingMode` | CSS Grid responsive multi-column layout |
 | `<HStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Horizontal flex row layout primitive |
-| `<Separator>` | — | `orientation`, `decorative` | Themed visual divider between content sections |
-| `<Toolbar>` | `.Left`, `.Center`, `.Right` | `paddingMode`, `marginMode`, `cornerRadiusMode` | Horizontal action bar with left/center/right slot areas |
+| `<Separator>` | — | `orientation`, `decorative`, `overrides` | Themed visual divider between content sections |
+| `<Toolbar>` | `.Left`, `.Center`, `.Right` | `paddingMode`, `marginMode`, `cornerRadiusMode`, `overrides` | Horizontal action bar with left/center/right slot areas |
 | `<UIGroup>` | — | `orientation`, `borderRadius` | Merges adjacent elements into a single visual compound control |
 | `<VStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Vertical flex column layout primitive |
 
@@ -102,21 +102,21 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<AppShell>` | `.Header`, `.Main` | — | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
+| `<AppShell>` | `.Header`, `.Main` | `overrides` | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
 | `<Card>` | `.Header`, `.Content`, `.Footer`, `.Actions` | `layout`, `squareCorners`, `overrides` | Slot-based container with automatic layout domain corner squaring |
 | `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
-| `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
+| `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled`, `overrides` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
-| `<ContextMenu>` | — | `id`, `items` | Right-click action menu, data-driven with separator support |
-| `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align` | Data-driven action menu with separator support |
-| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel` | Dialog overlay with focus trap, backdrop, and slot composition |
-| `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex` | Anchored popover with light dismiss and corner-squaring to trigger |
+| `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
+| `<ContextMenu>` | — | `id`, `items`, `overrides` | Right-click action menu, data-driven with separator support |
+| `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
+| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
+| `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<SlideOut>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
 
@@ -125,24 +125,24 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
-| `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs` | User/entity avatar image with automatic initials fallback |
+| `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
 | `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
-| `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme` | Determinate progress bar |
+| `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
 ### Form Controls
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
+| `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
-| `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled` | Single-select radio control bound to Form context, data-driven or compositional |
-| `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled` | Dropdown select control bound to Form context, built on Radix Select |
-| `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled` | Range input control built on Radix Slider |
+| `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides` | Single-select radio control bound to Form context, data-driven or compositional |
+| `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |
+| `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `overrides` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | — | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |
-| `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
-| `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled` | Connected button set for single or multiple selection, data-driven |
+| `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
+| `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled`, `overrides` | Connected button set for single or multiple selection, data-driven |
 
 `<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 
@@ -247,7 +247,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `slideout`, `accordion`, `card`, `tooltip`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `slideout`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`.
 
 Register custom slices:
 ```tsx

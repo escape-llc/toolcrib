@@ -4,10 +4,14 @@ import { useOptionalFormContext } from './FormContext';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
 import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { StyleFree } from '../../theme/safeProps';
-import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
+import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
+import { getSparseVariables } from '../../theme/slice';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
+import { ButtonThemeSlice, ButtonSliceState } from './ButtonSlice';
+import { InputThemeSlice, InputSliceState } from './InputSlice';
+import { ToggleControlThemeSlice, ToggleControlSliceState } from './ToggleControlSlice';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
@@ -128,6 +132,12 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
    * Applied after the button's own computed radius, so it wins.
    */
   squareCorners?: SquareCornerOption;
+  /**
+   * Per-instance overrides for label weight and icon spacing. Separate from
+   * `subtheme` above (Button already resolves that itself via
+   * `useResolvedSubtheme`, unrelated to this slice's own two fields).
+   */
+  overrides?: Partial<ButtonSliceState>;
 }
 
 /**
@@ -146,11 +156,17 @@ export const Button: React.FC<ButtonProps> = ({
   subtheme: instanceSubtheme,
   squareCorners,
   disabled,
+  overrides,
   ...props
 }) => {
   const startIcon = icon || leadingIcon;
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
+  // getSparseVariables directly, not the full useSliceOverrides — Button
+  // already resolves subtheme itself via useResolvedSubtheme above (its
+  // pre-existing, unrelated mechanism), so there's no second subtheme
+  // concern for this slice to fold in.
+  const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
 
   const getSizeStyles = (): React.CSSProperties => {
     const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
@@ -211,8 +227,8 @@ export const Button: React.FC<ButtonProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '0.5rem',
-        fontWeight: 600,
+        gap: 'var(--ai-button-icon-gap, 0.5rem)',
+        fontWeight: 'var(--ai-button-font-weight, 600)',
         borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? currentRadius,
         borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? currentRadius,
         borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
@@ -222,6 +238,7 @@ export const Button: React.FC<ButtonProps> = ({
         transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
         ...getSizeStyles(),
         ...getVariantStyles(),
+        ...buttonVars,
       }}
     >
       {startIcon && (
@@ -263,13 +280,16 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
+  /** Per-instance overrides for padding and border width. Shared with `<Textarea>`. */
+  overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
 }
 
-export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, ...props }) => {
+export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const { vars: inputVars } = useSliceOverrides(InputThemeSlice, overrides);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -298,15 +318,16 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
       }}
       style={{
         width: '100%',
-        padding: '0.5rem 0.75rem',
+        padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
-        border: `0.0625rem solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: '0.875rem',
         outline: 'none',
         boxSizing: 'border-box',
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+        ...inputVars,
       }}
       {...props}
     />
@@ -326,13 +347,16 @@ export interface CheckboxProps {
   checked?: boolean;
   /** Change handler. Receives a synthetic event with `target.checked`. */
   onChange?: (e: { target: { checked: boolean } }) => void;
+  /** Per-instance size override. Shared with `<Switch>`. */
+  overrides?: Partial<ToggleControlSliceState>;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange }) => {
+export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -360,8 +384,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
         onCheckedChange={handleCheckedChange}
         style={{
           all: 'unset',
-          width: '1.125rem',
-          height: '1.125rem',
+          width: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
+          height: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
           borderRadius: '0.25rem',
           border: `0.0625rem solid ${checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
@@ -371,6 +395,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           cursor: 'pointer',
           boxSizing: 'border-box',
           transition: 'all 0.15s ease',
+          ...checkboxVars,
         }}
       >
         <CheckboxPrimitive.Indicator style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -392,13 +417,16 @@ export interface SwitchProps {
   checked?: boolean;
   /** Change handler. Receives the new boolean value directly. */
   onChange?: (checked: boolean) => void;
+  /** Per-instance size override. Shared with `<Checkbox>`. */
+  overrides?: Partial<ToggleControlSliceState>;
 }
 
-export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange }) => {
+export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -426,8 +454,8 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
         onCheckedChange={handleCheckedChange}
         style={{
           all: 'unset',
-          width: '2.375rem',
-          height: '1.25rem',
+          width: 'var(--ai-togglecontrol-switch-width, 2.375rem)',
+          height: 'var(--ai-togglecontrol-switch-height, 1.25rem)',
           borderRadius: '0.625rem',
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
           position: 'relative',
@@ -436,16 +464,23 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           display: 'inline-flex',
           alignItems: 'center',
           boxSizing: 'border-box',
+          ...switchVars,
         }}
       >
         <SwitchPrimitive.Thumb
           style={{
             display: 'block',
-            width: '1rem',
-            height: '1rem',
+            width: 'var(--ai-togglecontrol-switch-thumb-size, 1rem)',
+            height: 'var(--ai-togglecontrol-switch-thumb-size, 1rem)',
             borderRadius: '50%',
             background: '#ffffff',
-            transform: checked ? 'translateX(1.25rem)' : 'translateX(0.125rem)',
+            // Travel distance is computed alongside width/height in the
+            // slice itself (trackWidth - thumb - 2*inset), not hardcoded
+            // separately — see ToggleControlSlice.ts's own comment on why
+            // that matters once the size is themeable.
+            transform: checked
+              ? 'translateX(var(--ai-togglecontrol-switch-thumb-travel, 1.25rem))'
+              : 'translateX(var(--ai-togglecontrol-switch-thumb-inset, 0.125rem))',
             transition: 'transform 0.2s ease',
             boxShadow: '0 0.0625rem 0.1875rem rgba(0,0,0,0.2)',
           }}
@@ -462,13 +497,16 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
+  /** Per-instance overrides for padding and border width. Shared with `<Input>`. */
+  overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const { vars: textareaVars } = useSliceOverrides(InputThemeSlice, overrides);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -497,9 +535,9 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
       }}
       style={{
         width: '100%',
-        padding: '0.5rem 0.75rem',
+        padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
-        border: `0.0625rem solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: '0.875rem',
@@ -507,6 +545,7 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
         boxSizing: 'border-box',
         fontFamily: 'inherit',
         resize: 'vertical',
+        ...textareaVars,
       }}
       {...props}
     />

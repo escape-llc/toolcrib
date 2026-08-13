@@ -166,4 +166,29 @@ describe('Toast Subsystem Event Generation', () => {
     unsub();
     vi.useRealTimers();
   });
+
+  // Regression: ToastPrimitive.Root portals its real rendered output to be a
+  // direct child of the Viewport's <ol> — a per-toast wrapper <div> in JSX
+  // does NOT end up as this element's DOM ancestor, so setting
+  // pointerEvents: 'auto' on that wrapper (the previous implementation)
+  // silently did nothing. Since the Viewport itself sets pointerEvents:
+  // 'none' (so empty space around toasts stays click-through), every toast
+  // — and everything inside it, including the dismiss/action buttons —
+  // inherited 'none' and swallowed every click. Confirmed via a real browser
+  // run (DOM dump + computed-style walk), not just reasoning about it; see
+  // Toast.tsx's own comment on this element. This asserts the fix directly
+  // on the rendered node's own inline style, which is what a jsdom test can
+  // actually observe (jsdom doesn't compute real inherited pointer-events
+  // the way a browser's hit-testing does).
+  it('sets pointerEvents: auto directly on the toast root, not on a wrapper the portal bypasses', () => {
+    render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByText('Trigger Toast'));
+    const toastEl = screen.getByTestId('toast-item');
+    expect(toastEl.style.pointerEvents).toBe('auto');
+  });
 });

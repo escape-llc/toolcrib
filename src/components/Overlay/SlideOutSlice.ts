@@ -70,6 +70,7 @@ export function getSlideOutVariables(state: SlideOutSliceState = defaultSlideOut
 export const SlideOutThemeSlice: ThemeSlice<SlideOutSliceState, SlideOutCSSVariables> = {
   id: 'slideout',
   name: '🪟 SlideOut Drawer & Retract Dynamics',
+  category: 'Overlays',
   defaultState: defaultSlideOutState,
   getCSSVariables: getSlideOutVariables,
 };

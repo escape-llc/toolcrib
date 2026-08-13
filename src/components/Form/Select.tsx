@@ -4,6 +4,9 @@ import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
+import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { SubthemeName } from '../../theme/subtheme';
+import { SelectThemeSlice, SelectSliceState } from './SelectSlice';
 
 /** Data shape for each option in a `<Select>` dropdown. */
 export interface SelectOptionData {
@@ -35,6 +38,8 @@ export interface SelectProps {
   onChange?: (value: string) => void;
   /** If true, the select is non-interactive. */
   disabled?: boolean;
+  /** Per-instance overrides for trigger padding and item density. */
+  overrides?: Partial<SelectSliceState> & { subtheme?: SubthemeName };
 }
 
 /**
@@ -49,11 +54,13 @@ export const Select: React.FC<SelectProps> = ({
   defaultValue,
   onChange: externalOnChange,
   disabled = false,
+  overrides,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
 
   // Without this, a Select's name is never added to the form's `values`
   // object until the user actually picks something — and handleSubmit's
@@ -96,7 +103,7 @@ export const Select: React.FC<SelectProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          padding: '0.5rem 0.75rem',
+          padding: 'var(--ai-select-trigger-padding, 0.5rem 0.75rem)',
           borderRadius: 'var(--ai-radius-md, 0.375rem)',
           border: '0.0625rem solid var(--ai-border, #d1d5db)',
           background: 'var(--ai-bg-surface, #ffffff)',
@@ -106,6 +113,7 @@ export const Select: React.FC<SelectProps> = ({
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
+          ...selectVars,
         }}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
@@ -115,6 +123,12 @@ export const Select: React.FC<SelectProps> = ({
       </SelectPrimitive.Trigger>
 
       <SelectPrimitive.Portal>
+        {/* Content portals to a different DOM location than Trigger above
+            (see this file's comment near `overrides` — CSS custom
+            properties only inherit through the real DOM tree, not the
+            React tree), so selectVars is spread here too, not just on
+            Trigger, even though --ai-select-trigger-padding itself is a
+            no-op here. */}
         <SelectPrimitive.Content
           style={{
             zIndex: Z_INDEX.DROPDOWN,
@@ -124,6 +138,7 @@ export const Select: React.FC<SelectProps> = ({
             boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
             overflow: 'hidden',
             minWidth: '11.25rem',
+            ...selectVars,
           }}
         >
           <SelectPrimitive.Viewport style={{ padding: '0.25rem' }}>
@@ -136,7 +151,7 @@ export const Select: React.FC<SelectProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.4375rem 0.75rem',
+                  padding: 'var(--ai-select-item-padding, 0.4375rem 0.75rem)',
                   fontSize: '0.875rem',
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',
                   color: 'var(--ai-text-primary, #111827)',

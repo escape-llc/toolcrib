@@ -27,6 +27,20 @@ jobs:
       - name: Install toolkit dependencies
         run: npm ci
 
+      # scripts/lib/extract.js has its own isolated devDependency (a pinned
+      # typescript@6.x — see root AGENTS.md's TypeScript section) that
+      # root's own npm ci above doesn't install. This has to run BEFORE
+      # "Run toolkit test suite" below, not after: src/__tests__/
+      # docsInSync.test.ts (part of that suite) shells out to
+      # scripts/generate-*.js --check itself, and without scripts/
+      # node_modules already present, Node resolves `typescript` from
+      # root's own node_modules instead (7.x, whose reduced API surface is
+      # missing ts.ScriptTarget/createSourceFile) — a real ordering bug
+      # that broke every run of this exact job, not a hypothetical.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
       - name: Run toolkit test suite
         run: npm test
 
@@ -38,17 +52,12 @@ jobs:
         run: npm test
         working-directory: cli
 
-      # scripts/lib/extract.js has its own isolated devDependency (a pinned
-      # typescript@6.x — see root AGENTS.md's TypeScript section) that
-      # root's own npm ci above doesn't install.
-      - name: Install scripts/ dependencies
-        run: npm ci
-        working-directory: scripts
-
-      # Same three checks release.yml runs before packaging — kept in sync
-      # with that file's own comments on why each one exists. Running them
-      # here too means drift is caught on the PR that introduces it, not
-      # discovered later when someone finally cuts a release.
+      # Same three checks src/__tests__/docsInSync.test.ts already runs as
+      # part of "Run toolkit test suite" above (and that release.yml runs
+      # before packaging) — kept here too as a second, narrower signal:
+      # if only one of these three fails, the step name says exactly which
+      # generated file drifted without needing to open the test suite's own
+      # (more verbose, now much clearer) output first.
       - name: Check component-manifest.json matches source
         run: node scripts/generate-manifest.js --check
 

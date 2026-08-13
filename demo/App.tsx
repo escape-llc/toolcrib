@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { z } from 'zod';
 import {
   useTheme,
+  ThemeProvider,
   ThemeEditor,
   Card,
   CardSimple,
@@ -77,6 +79,348 @@ const dummyUsers: DemoUser[] = Array.from({ length: 250 }, (_, i) => ({
   score: Math.floor(Math.random() * 100),
 }));
 
+// --- Layout Wireframe Gallery ---------------------------------------------
+// Each wireframe below is a self-contained HTML document rendered via
+// iframe `srcDoc`, deliberately isolated from the parent page's own CSS and
+// from the live HSV theme — a wireframe's whole point is structure over
+// finish, so these use a fixed flat palette rather than reading
+// `:root`'s theme variables. The region colors are consistent across every
+// wireframe (see the legend rendered above the gallery) so a viewer can
+// visually parse "this box plays this role" the moment they recognize the
+// color, without re-reading each one from scratch.
+const LOREM_SHORT =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
+const LOREM_TINY = 'Lorem ipsum dolor sit amet consectetur.';
+
+const WIREFRAME_STYLE = `
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; color: #111827; overflow: hidden; }
+  .region { display: flex; align-items: center; }
+  .chrome { color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+  .header { background: #3b82f6; padding: 0 14px; height: 34px; flex-shrink: 0; justify-content: space-between; }
+  .sidebar { background: #8b5cf6; flex-direction: column; align-items: stretch; padding: 10px 0; gap: 3px; flex-shrink: 0; }
+  .sidebar .nav-item { color: #fff; font-size: 11px; padding: 6px 14px; opacity: 0.8; }
+  .sidebar .nav-item.active { opacity: 1; background: rgba(255,255,255,0.2); font-weight: 700; }
+  .aside { background: #f59e0b; flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; flex-shrink: 0; }
+  .footer { background: #6b7280; padding: 0 14px; height: 26px; flex-shrink: 0; }
+  .content { background: #ffffff; border-left: 3px solid #10b981; padding: 12px 14px; overflow: hidden; min-width: 0; min-height: 0; }
+  .content-label { color: #10b981; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .content p { margin: 0 0 6px; font-size: 11px; line-height: 1.5; color: #4b5563; }
+  .bar { height: 8px; border-radius: 3px; background: rgba(255,255,255,0.5); }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; min-width: 0; }
+  .card .top { height: 4px; border-radius: 2px; margin-bottom: 6px; }
+  .card p { margin: 0; font-size: 9.5px; line-height: 1.4; color: #6b7280; }
+  .grid { display: grid; gap: 8px; }
+`;
+
+function wireframeDoc(bodyHtml: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${WIREFRAME_STYLE}</style></head><body>${bodyHtml}</body></html>`;
+}
+
+interface WireframeDef {
+  title: string;
+  components: string;
+  /** Static tiles (the default): a self-contained HTML document rendered via iframe `srcDoc`. */
+  srcDoc?: string;
+  /**
+   * Live tiles: real Toolcrib components, portaled into the iframe's own
+   * document (see `<LiveIframe>`) so they're genuinely interactive —
+   * draggable `<Splitter>` handles, real `<TabStrip>` tab switching —
+   * rather than a flat CSS approximation. Reserved for the couple of
+   * layouts (like a Splitter-heavy IDE workbench) where "can you actually
+   * drag it" is the point; the rest stay static since there's nothing in
+   * them to interact with.
+   */
+  content?: ReactNode;
+}
+
+/**
+ * Mounts `children` into a *different* Document — the iframe's own, via
+ * `ReactDOM.createPortal` — so real Toolcrib components (not a flat HTML/
+ * CSS approximation) can render and behave normally inside a gallery tile:
+ * a real `<Splitter>` handle actually drags, a real `<TabStrip>` actually
+ * switches panels.
+ *
+ * Two things a portal into an iframe needs that a same-document portal
+ * doesn't:
+ *  1. The iframe's document starts with no stylesheets of its own — clone
+ *     every `<style>`/`<link rel="stylesheet">` from the outer document's
+ *     `<head>` into it once the iframe loads, so the portaled content gets
+ *     the same base CSS (resets, keyframes) as the rest of the app.
+ *  2. Its own `<ThemeProvider targetDocument={mountDoc}>`, not a shared
+ *     one — `ThemeProvider` writes CSS custom properties onto
+ *     `(targetDocument ?? document).documentElement`; without passing the
+ *     iframe's own document explicitly here, the default (the bare global
+ *     `document`) would inject this instance's variables onto the *outer*
+ *     page's `<html>` instead, fighting with the real page's own
+ *     `ThemeProvider` in main.tsx. See themeContext.tsx's own comment on
+ *     why the prop exists.
+ */
+const LiveIframe: React.FC<{ title: string; height: string; children: ReactNode }> = ({ title, height, children }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [mountDoc, setMountDoc] = useState<Document | null>(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const setup = () => {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      document.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => {
+        doc.head.appendChild(node.cloneNode(true));
+      });
+      doc.body.style.margin = '0';
+      setMountDoc(doc);
+    };
+
+    if (iframe.contentDocument?.readyState === 'complete') {
+      setup();
+    } else {
+      iframe.addEventListener('load', setup);
+    }
+    return () => iframe.removeEventListener('load', setup);
+  }, []);
+
+  return (
+    <>
+      <iframe
+        ref={iframeRef}
+        title={title}
+        style={{
+          width: '100%',
+          height,
+          border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+          borderRadius: 'var(--ai-radius-md, 0.375rem)',
+          display: 'block',
+        }}
+      />
+      {mountDoc &&
+        createPortal(
+          <ThemeProvider targetDocument={mountDoc}>
+            <div style={{ height: '100vh', boxSizing: 'border-box' }}>{children}</div>
+          </ThemeProvider>,
+          mountDoc.body
+        )}
+    </>
+  );
+};
+
+const WIREFRAMES: WireframeDef[] = [
+  {
+    title: 'App Shell',
+    components: '<AppShell>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div class="header region chrome"><span>Header</span></div>
+        <div class="content" style="flex:1;">
+          <div class="content-label">Main</div>
+          <p>${LOREM_SHORT}</p>
+          <p>${LOREM_TINY}</p>
+        </div>
+      </div>
+    `),
+  },
+  {
+    title: 'Dashboard',
+    components: '<AppShell> + <Splitter> + <Grid>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div class="header region chrome"><span>Header</span></div>
+        <div style="display:flex;flex:1;min-height:0;">
+          <div class="sidebar" style="width:110px;">
+            <div class="nav-item active">Overview</div>
+            <div class="nav-item">Analytics</div>
+            <div class="nav-item">Settings</div>
+          </div>
+          <div class="content" style="flex:1;">
+            <div class="content-label">Main</div>
+            <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;">
+              <div class="card"><div class="top" style="background:#3b82f6"></div><p>${LOREM_TINY}</p></div>
+              <div class="card"><div class="top" style="background:#8b5cf6"></div><p>${LOREM_TINY}</p></div>
+              <div class="card"><div class="top" style="background:#f59e0b"></div><p>${LOREM_TINY}</p></div>
+            </div>
+            <p>${LOREM_SHORT}</p>
+          </div>
+        </div>
+      </div>
+    `),
+  },
+  {
+    title: 'Holy Grail',
+    components: '<AppShell> + nested <Splitter> + <Content>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div class="header region chrome"><span>Header</span></div>
+        <div style="display:flex;flex:1;min-height:0;">
+          <div class="sidebar" style="width:80px;">
+            <div class="nav-item active">Nav 1</div>
+            <div class="nav-item">Nav 2</div>
+          </div>
+          <div class="content" style="flex:1;">
+            <div class="content-label">Main</div>
+            <p>${LOREM_SHORT}</p>
+          </div>
+          <div class="aside" style="width:90px;">
+            <div class="chrome">Aside</div>
+            <div class="bar"></div>
+            <div class="bar" style="width:70%"></div>
+          </div>
+        </div>
+        <div class="footer region chrome"><span>Footer</span></div>
+      </div>
+    `),
+  },
+  {
+    title: 'Master-Detail',
+    components: '<Splitter> + <UIGroup>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;height:100vh;">
+        <div class="sidebar" style="width:120px;">
+          <div class="nav-item active">Item 1</div>
+          <div class="nav-item">Item 2</div>
+          <div class="nav-item">Item 3</div>
+          <div class="nav-item">Item 4</div>
+        </div>
+        <div class="content" style="flex:1;">
+          <div class="content-label">Detail</div>
+          <p>${LOREM_SHORT}</p>
+          <p>${LOREM_TINY}</p>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <div style="background:#3b82f6;color:#fff;font-size:10px;padding:5px 10px;border-radius:4px;">Save</div>
+            <div style="border:1px solid #d1d5db;color:#6b7280;font-size:10px;padding:5px 10px;border-radius:4px;">Cancel</div>
+          </div>
+        </div>
+      </div>
+    `),
+  },
+  {
+    title: 'Card Grid',
+    components: '<Toolbar> + <Grid> + <Card>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div class="header region chrome"><span>Toolbar</span><span class="bar" style="width:40px;height:14px;"></span></div>
+        <div class="content" style="flex:1;">
+          <div class="grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="card"><div class="top" style="background:#3b82f6"></div><p>${LOREM_TINY}</p></div>
+            <div class="card"><div class="top" style="background:#8b5cf6"></div><p>${LOREM_TINY}</p></div>
+            <div class="card"><div class="top" style="background:#10b981"></div><p>${LOREM_TINY}</p></div>
+            <div class="card"><div class="top" style="background:#f59e0b"></div><p>${LOREM_TINY}</p></div>
+            <div class="card"><div class="top" style="background:#ef4444"></div><p>${LOREM_TINY}</p></div>
+            <div class="card"><div class="top" style="background:#6b7280"></div><p>${LOREM_TINY}</p></div>
+          </div>
+        </div>
+      </div>
+    `),
+  },
+  {
+    title: 'Kanban Board',
+    components: '<Toolbar> + <HStack> + <VStack> + <Card>',
+    srcDoc: wireframeDoc(`
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div class="header region chrome"><span>Toolbar</span></div>
+        <div class="content" style="flex:1;display:flex;gap:10px;overflow:hidden;">
+          ${['To Do', 'In Progress', 'Done']
+            .map(
+              col => `
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+              <div class="content-label">${col}</div>
+              <div class="card"><div class="top" style="background:#3b82f6"></div><p>${LOREM_TINY}</p></div>
+              <div class="card"><div class="top" style="background:#8b5cf6"></div><p>${LOREM_TINY}</p></div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+    `),
+  },
+  {
+    title: 'IDE Workbench (live)',
+    components: '<Splitter> (nested ×2, draggable) + <TabStrip>',
+    content: (
+      <Splitter id="live-ide-outer" orientation="horizontal" initialSplit={78}>
+        <Splitter.Panel>
+          <Splitter id="live-ide-inner" orientation="vertical" initialSplit={72}>
+            <Splitter.Panel>
+              <TabStrip
+                id="live-ide-tabs"
+                defaultActiveId="app"
+                items={[
+                  { id: 'app', label: 'App.tsx' },
+                  { id: 'index', label: 'index.ts' },
+                ]}
+              />
+              <TabStrip.Panel groupId="live-ide-tabs" value="app">
+                <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--ai-text-secondary)', lineHeight: 1.8 }}>
+                  <div>import React from 'react';</div>
+                  <div>export const App = () =&gt; ...</div>
+                </div>
+              </TabStrip.Panel>
+              <TabStrip.Panel groupId="live-ide-tabs" value="index">
+                <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>
+                  <div>export * from './App';</div>
+                </div>
+              </TabStrip.Panel>
+            </Splitter.Panel>
+            <Splitter.Panel>
+              <div style={{ background: '#111827', color: '#6ee7b7', fontFamily: 'monospace', fontSize: '0.6875rem', padding: '0.5rem', height: '100%', boxSizing: 'border-box' }}>
+                <div style={{ color: '#34d399' }}>&gt; npm run dev</div>
+                <div>VITE ready in 320 ms</div>
+              </div>
+            </Splitter.Panel>
+          </Splitter>
+        </Splitter.Panel>
+        <Splitter.Panel>
+          <div style={{ padding: '0.625rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.6875rem', marginBottom: '0.375rem' }}>Explorer</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--ai-text-secondary)', lineHeight: 1.9 }}>
+              📁 src<br />&nbsp;&nbsp;📄 App.tsx<br />&nbsp;&nbsp;📄 index.ts
+            </div>
+          </div>
+        </Splitter.Panel>
+      </Splitter>
+    ),
+  },
+  {
+    title: 'Split Diff / Compare (live)',
+    components: '<Splitter> (draggable) + <TabStrip>',
+    content: (
+      <Splitter id="live-diff" orientation="horizontal" initialSplit={50}>
+        <Splitter.Panel>
+          <TabStrip id="live-diff-left" defaultActiveId="v1" items={[{ id: 'v1', label: 'v1 — App.tsx' }]} />
+          <TabStrip.Panel groupId="live-diff-left" value="v1">
+            <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
+              <div style={{ color: 'var(--ai-text-secondary)' }}>import React from 'react';</div>
+              <div style={{ background: 'rgba(239, 68, 68, 0.15)' }}>const OLD = true;</div>
+              <div style={{ color: 'var(--ai-text-secondary)' }}>export const App = () =&gt; ...</div>
+            </div>
+          </TabStrip.Panel>
+        </Splitter.Panel>
+        <Splitter.Panel>
+          <TabStrip id="live-diff-right" defaultActiveId="v2" items={[{ id: 'v2', label: 'v2 — App.tsx' }]} />
+          <TabStrip.Panel groupId="live-diff-right" value="v2">
+            <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
+              <div style={{ color: 'var(--ai-text-secondary)' }}>import React from 'react';</div>
+              <div style={{ background: 'rgba(16, 185, 129, 0.15)' }}>const NEW = true;</div>
+              <div style={{ color: 'var(--ai-text-secondary)' }}>export const App = () =&gt; ...</div>
+            </div>
+          </TabStrip.Panel>
+        </Splitter.Panel>
+      </Splitter>
+    ),
+  },
+];
+
+const WIREFRAME_LEGEND: { label: string; color: string }[] = [
+  { label: 'Header / Toolbar', color: '#3b82f6' },
+  { label: 'Sidebar / Nav', color: '#8b5cf6' },
+  { label: 'Main Content', color: '#10b981' },
+  { label: 'Aside', color: '#f59e0b' },
+  { label: 'Footer', color: '#6b7280' },
+];
+
 export const App: React.FC = () => {
   const { parameters } = useTheme();
   const { addToast, setAnchor } = useToast();
@@ -102,8 +446,20 @@ export const App: React.FC = () => {
       // via a browser run, not visible from types or unit tests. Render DOM
       // nodes as a short tag description instead of failing the whole log
       // entry.
+      //
+      // `instanceof HTMLElement` alone isn't enough: it checks against
+      // *this* document's HTMLElement constructor, but aiBus is a single
+      // shared module-level singleton, so an element from a live wireframe
+      // tile (a real component tree portaled into an <iframe>'s own,
+      // separate document — see LiveIframe) is an HTMLElement from a
+      // *different* realm, and cross-realm instanceof always fails even
+      // though the object genuinely is one — the same "circular structure"
+      // crash resurfaces from that direction instead. `nodeType === 1`
+      // (Element) is realm-independent, confirmed via a real browser run
+      // dragging a live tile's Splitter, which is exactly what triggers a
+      // resize event with a foreign-realm target.
       payload: JSON.stringify(event.detail || event, (_key, value) =>
-        value instanceof HTMLElement ? `<${value.tagName.toLowerCase()}>` : value
+        value && typeof value === 'object' && value.nodeType === 1 ? `<${value.tagName.toLowerCase()}>` : value
       ),
       time: timestamp,
     };
@@ -153,10 +509,15 @@ export const App: React.FC = () => {
           </div>
         </HStack>
 
-        {/* Fixed height keeps the status pill and designer button visually
-            aligned — lives on this wrapper since UIGroup no longer accepts
-            a raw style prop. */}
-        <div style={{ height: '2.375rem' }}>
+        {/* Back in a single UIGroup (was briefly split into a plain
+            wrapping row to fix narrow-viewport overflow) — the trigger is
+            now an icon-only glyph instead of a full text label, so the
+            whole merged pill+button cluster is narrow enough to actually
+            fit next to the title at most widths, and AppShell.Header's own
+            flexWrap (see its own comment) still drops this whole cluster
+            to a second line as a unit on the rare width where it doesn't.
+            The label moves to a Tooltip so it's still discoverable, not
+            lost. */}
         <UIGroup>
           <div
             style={{
@@ -167,7 +528,6 @@ export const App: React.FC = () => {
               border: '0.0625rem solid var(--ai-border, #d1d5db)',
               fontSize: '0.875rem',
               color: 'var(--ai-text-secondary, #6b7280)',
-              whiteSpace: 'nowrap',
             }}
           >
             <span>
@@ -177,13 +537,24 @@ export const App: React.FC = () => {
           <SlideOut
             id="theme-editor-panel"
             title="🎨 OOTB Theme Designer"
-            trigger={<Button variant="primary">🎨 OOTB Theme Designer</Button>}
+            trigger={
+              // squareCorners="left" set explicitly, not left to UIGroup's
+              // usual automatic CSS: that CSS only reaches its own direct
+              // children, and this Button sits two wrappers deep (SlideOut's
+              // own trigger div, then Tooltip's own trigger span) — both
+              // wrappers correctly stretch/report the squared radius
+              // themselves (confirmed via a real browser run), but neither
+              // is the visible element, so the squaring had no visible
+              // effect and the button's own natural corners showed instead.
+              <Tooltip content="OOTB Theme Designer" side="bottom">
+                <Button variant="primary" squareCorners="left" aria-label="Open Theme Designer">🎨</Button>
+              </Tooltip>
+            }
             width="26rem"
           >
             <ThemeEditor />
           </SlideOut>
         </UIGroup>
-        </div>
       </AppShell.Header>
 
       {/* Main Content Area with Resizable Splitter */}
@@ -208,6 +579,7 @@ export const App: React.FC = () => {
                   { id: 'toasts', label: '🔔 Toast Subsystem' },
                   { id: 'datatable', label: '📊 Virtualized Data Table' },
                   { id: 'layout', label: '📐 Common Layout Idioms' },
+                  { id: 'wireframes', label: '🖼️ Wireframe Gallery' },
                   { id: 'showcase', label: '🧩 Component Showcase' },
                 ]}
               />
@@ -578,7 +950,68 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Tab 7: Component Showcase */}
+                {/* Tab 7: Layout Wireframe Gallery (NEW) */}
+                <TabStrip.Panel groupId="main-demo" value="wireframes">
+                  <VStack gap="lg">
+                    <Card>
+                      <Card.Header>Common Layout Wireframes</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Each tile below is an isolated <code>&lt;iframe srcDoc&gt;</code> — a static structural wireframe, deliberately flat-colored and filled with lorem ipsum rather than skinned in the live HSV theme, since a wireframe's job is to communicate regions and proportions, not final finish. The caption under each names the Toolcrib layout primitives that build the real thing.
+                        </p>
+                        <HStack gap="md" wrap>
+                          {WIREFRAME_LEGEND.map(item => (
+                            <HStack key={item.label} gap="sm">
+                              <div
+                                style={{
+                                  width: '0.75rem',
+                                  height: '0.75rem',
+                                  borderRadius: '0.1875rem',
+                                  background: item.color,
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>{item.label}</span>
+                            </HStack>
+                          ))}
+                        </HStack>
+                      </Card.Content>
+                    </Card>
+
+                    <Grid columns={3} gap="lg">
+                      {WIREFRAMES.map(wireframe => (
+                        <Card key={wireframe.title}>
+                          <Card.Header>{wireframe.title}</Card.Header>
+                          <Card.Content>
+                            {wireframe.content ? (
+                              <LiveIframe title={`${wireframe.title} wireframe`} height="11.25rem">
+                                {wireframe.content}
+                              </LiveIframe>
+                            ) : (
+                              <iframe
+                                title={`${wireframe.title} wireframe`}
+                                srcDoc={wireframe.srcDoc}
+                                sandbox=""
+                                style={{
+                                  width: '100%',
+                                  height: '11.25rem',
+                                  border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                                  borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                                  display: 'block',
+                                }}
+                              />
+                            )}
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)', fontFamily: 'monospace' }}>
+                              {wireframe.components}
+                            </div>
+                          </Card.Content>
+                        </Card>
+                      ))}
+                    </Grid>
+                  </VStack>
+                </TabStrip.Panel>
+
+                {/* Tab 8: Component Showcase */}
                 <TabStrip.Panel groupId="main-demo" value="showcase">
                   <VStack gap="lg">
                     {/* Section 1: Button Variants & Subthemes */}

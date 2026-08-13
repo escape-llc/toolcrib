@@ -54,6 +54,7 @@ export function resolveMargin(
 export const MarginThemeSlice = {
   id: 'margin',
   name: 'Margin & Element Spacing Mode',
+  category: 'Layout Primitives' as const,
   defaultState: 'normal' as MarginMode,
   getCSSVariables: (mode: MarginMode) => getMarginVariables(mode),
 };

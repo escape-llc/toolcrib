@@ -1,5 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Avatar as AvatarPrimitive } from 'radix-ui';
+import { getSparseVariables } from '../../theme/slice';
+import { AvatarThemeSlice, AvatarSliceState } from './AvatarSlice';
 
 /** Props for the `<Avatar>` user/entity image with fallback. */
 export interface AvatarProps {
@@ -23,6 +25,8 @@ export interface AvatarProps {
    * long before showing its fallback, for no benefit.
    */
   fallbackDelayMs?: number;
+  /** Per-instance override for the avatar's shape. */
+  overrides?: Partial<AvatarSliceState>;
 }
 
 const SIZE_DIAMETER: Record<NonNullable<AvatarProps['size']>, string> = {
@@ -47,7 +51,10 @@ export const Avatar: React.FC<AvatarProps> = ({
   fallback,
   size = 'md',
   fallbackDelayMs,
-}) => (
+  overrides,
+}) => {
+  const avatarVars = getSparseVariables(AvatarThemeSlice, overrides ?? {});
+  return (
   <AvatarPrimitive.Root
     style={{
       display: 'inline-flex',
@@ -55,11 +62,12 @@ export const Avatar: React.FC<AvatarProps> = ({
       justifyContent: 'center',
       width: SIZE_DIAMETER[size],
       height: SIZE_DIAMETER[size],
-      borderRadius: '50%',
+      borderRadius: 'var(--ai-avatar-radius, 50%)',
       overflow: 'hidden',
       background: 'var(--ai-bg-container, #f3f4f6)',
       flexShrink: 0,
       userSelect: 'none',
+      ...avatarVars,
     }}
   >
     <AvatarPrimitive.Image
@@ -84,4 +92,5 @@ export const Avatar: React.FC<AvatarProps> = ({
       {fallback}
     </AvatarPrimitive.Fallback>
   </AvatarPrimitive.Root>
-);
+  );
+};
