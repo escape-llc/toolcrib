@@ -24,8 +24,38 @@ const server = http.createServer((req, res) => {
   // Mimics: GET /releases/latest/download/{asset} and /releases/download/v{x}/{asset}
   if (req.url.startsWith('/releases/')) {
     const assetName = req.url.split('/').pop();
-    const filePath = path.join(DIR, 'releases', assetName);
-    if (!fs.existsSync(filePath)) {
+
+    // `.split('/').pop()` only strips '/'-delimited segments — on Windows,
+    // `path.join`/`path.resolve` (the native, non-posix module) also treats
+    // backslash as a separator, so a segment like `..\..\Windows\System32\...`
+    // survives the split intact and would otherwise escape `releasesDir`.
+    // Rejecting anything whose basename differs from itself catches that,
+    // plus any other embedded separator.
+    if (!assetName || path.basename(assetName) !== assetName) {
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
+    }
+
+    const releasesDir = path.resolve(DIR, 'releases');
+    const filePath = path.resolve(releasesDir, assetName);
+    const relativePath = path.relative(releasesDir, filePath);
+    // Segment-aware containment check: a plain `startsWith('..')` would also
+    // reject legitimate filenames that merely start with two dots (e.g.
+    // `..backup.zip`), since that's a valid single path segment, not a
+    // traversal. `isAbsolute` catches the Windows cross-drive case, where
+    // `path.relative` can't express a relative path and returns the
+    // absolute target instead.
+    if (relativePath === '..' || relativePath.startsWith('..' + path.sep) || path.isAbsolute(relativePath)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
+    // `assetName === '.'` passes both checks above (it resolves to
+    // `releasesDir` itself) — without this, `fs.createReadStream` on a
+    // directory emits an unhandled `error` (EISDIR) and crashes the process.
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
       res.writeHead(404);
       res.end('Not Found');
       return;
