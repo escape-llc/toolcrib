@@ -209,7 +209,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
         <span
           style={{
             fontSize: '0.875rem',
-            fontWeight: isChecked ? 600 : 400,
+            fontWeight: isChecked ? 'var(--ai-font-weight-semibold, 600)' : 'var(--ai-font-weight-normal, 400)',
             color: 'var(--ai-text-primary, #111827)',
           }}
         >

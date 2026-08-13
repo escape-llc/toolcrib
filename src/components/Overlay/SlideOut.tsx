@@ -184,14 +184,14 @@ export const SlideOut: React.FC<SlideOutProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '1rem 1.25rem',
+            padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
             margin: 'var(--ai-slideout-header-margin, 0)',
             borderRadius: 'var(--ai-slideout-header-border-radius, 0)',
             borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
             background: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
+          <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
             {title || 'Slide Out Panel'}
           </div>
           <button
@@ -208,7 +208,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
           </button>
         </div>
 
-        <div style={{ padding: '1.25rem', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
+        <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
           <AIErrorBoundary componentName="SlideOut">
             {children}
           </AIErrorBoundary>

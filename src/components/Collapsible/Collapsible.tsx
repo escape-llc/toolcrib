@@ -88,7 +88,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           padding: 'var(--ai-collapsible-header-padding, 0.875rem 1.125rem)',
           borderRadius: 'var(--ai-radius-md, 0.375rem)',
           background: 'var(--ai-bg-container, #f9fafb)',
-          fontWeight: 600,
+          fontWeight: 'var(--ai-font-weight-semibold, 600)',
           fontSize: '0.9rem',
           color: 'var(--ai-text-primary, #111827)',
           cursor: disabled ? 'not-allowed' : 'pointer',

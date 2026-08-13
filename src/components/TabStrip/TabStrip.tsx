@@ -5,6 +5,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectHoverStyles } from '../../theme/hoverStyles';
 import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
@@ -70,6 +71,9 @@ export const TabStrip: React.FC<TabStripProps> & {
   Panel: React.FC<TabPanelProps>;
 } = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
+  useEffect(() => {
+    injectHoverStyles();
+  }, []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -157,7 +161,7 @@ export const TabStrip: React.FC<TabStripProps> & {
         background: 'var(--ai-bg-container, #f9fafb)',
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
         border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-        padding: '0.25rem',
+        padding: 'var(--ai-padding-xs, 0.25rem)',
         position: 'relative',
         userSelect: 'none',
         maxWidth: '100%',
@@ -169,6 +173,7 @@ export const TabStrip: React.FC<TabStripProps> & {
         <button
           onClick={() => scrollBy(-180)}
           aria-label="Scroll tabs left"
+          className="ai-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -185,6 +190,7 @@ export const TabStrip: React.FC<TabStripProps> & {
             boxShadow: '0 0.0625rem 0.125rem rgba(0,0,0,0.05)',
             flexShrink: 0,
             zIndex: 2,
+            ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           ◀
@@ -229,13 +235,14 @@ export const TabStrip: React.FC<TabStripProps> & {
                 value={item.id}
                 disabled={item.disabled}
                 onClick={() => !item.disabled && handleChange(item.id)}
+                className="ai-tab-trigger"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: 'var(--ai-tab-padding, 0.4375rem 0.875rem)',
                   fontSize: 'var(--ai-tab-font-size, 0.875rem)',
-                  fontWeight: isActive ? 700 : 500,
+                  fontWeight: isActive ? 'var(--ai-font-weight-bold, 700)' : 'var(--ai-font-weight-medium, 500)',
                   color: isActive ? 'var(--ai-tab-active-color, #ffffff)' : 'var(--ai-tab-inactive-color, var(--ai-text-primary, #111827))',
                   background: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',
                   border: isActive ? 'var(--ai-tab-active-border, none)' : 'none',
@@ -246,6 +253,10 @@ export const TabStrip: React.FC<TabStripProps> & {
                   transition: 'var(--ai-transition-fast, all 0.15s ease)',
                   flexShrink: 0,
                   outline: 'none',
+                  // Same live color-mix hover as `.ai-btn` (see hoverStyles.ts)
+                  // — this just publishes the active/inactive background this
+                  // trigger already resolved to as the mix base.
+                  ['--ai-tab-bg' as string]: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',
                 }}
               >
                 {item.icon && <span>{item.icon}</span>}
@@ -261,13 +272,14 @@ export const TabStrip: React.FC<TabStripProps> & {
         <button
           onClick={() => scrollBy(180)}
           aria-label="Scroll tabs right"
+          className="ai-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             width: '1.75rem',
             height: '1.75rem',
-            borderRadius: '0.375rem',
+            borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #d1d5db)',
             color: 'var(--ai-text-primary, #111827)',
@@ -277,6 +289,7 @@ export const TabStrip: React.FC<TabStripProps> & {
             boxShadow: '0 0.0625rem 0.125rem rgba(0,0,0,0.05)',
             flexShrink: 0,
             zIndex: 2,
+            ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           ▶
@@ -290,15 +303,17 @@ TabStrip.Tab = ({ active, onClick, children, disabled }) => (
   <button
     onClick={onClick}
     disabled={disabled}
+    className="ai-btn"
     style={{
-      padding: '0.5rem 1rem',
+      padding: 'var(--ai-padding-md, 0.5rem 1rem)',
       borderRadius: 'var(--ai-radius-md, 0.375rem)',
       border: 'none',
       background: active ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
       color: active ? '#ffffff' : 'var(--ai-text-primary, #111827)',
-      fontWeight: active ? 700 : 500,
+      fontWeight: active ? 'var(--ai-font-weight-bold, 700)' : 'var(--ai-font-weight-medium, 500)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
+      ['--ai-btn-bg' as string]: active ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
     }}
   >
     {children}

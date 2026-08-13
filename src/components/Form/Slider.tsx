@@ -78,7 +78,7 @@ export const Slider: React.FC<SliderProps> = ({
           background: 'var(--ai-border, #d1d5db)',
           position: 'relative',
           flexGrow: 1,
-          borderRadius: '0.625rem',
+          borderRadius: 'var(--ai-radius-lg, 0.625rem)',
           height: 'var(--ai-slider-track-height, 0.375rem)',
         }}
       >
@@ -86,7 +86,7 @@ export const Slider: React.FC<SliderProps> = ({
           style={{
             position: 'absolute',
             background: 'var(--ai-color-primary, #3b82f6)',
-            borderRadius: '0.625rem',
+            borderRadius: 'var(--ai-radius-lg, 0.625rem)',
             height: '100%',
           }}
         />

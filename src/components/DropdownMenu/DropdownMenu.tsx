@@ -87,7 +87,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             minWidth: '11.25rem',
-            padding: '0.375rem',
+            padding: 'var(--ai-padding-sm, 0.375rem)',
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -127,7 +127,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   gap: '0.5rem',
                   padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
+                  fontWeight: 'var(--ai-font-weight-medium, 500)',
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',
                   color: 'var(--ai-text-primary, #111827)',
                   cursor: item.disabled ? 'not-allowed' : 'pointer',

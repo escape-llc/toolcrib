@@ -114,7 +114,7 @@ export const Accordion: React.FC<AccordionProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                fontWeight: 600,
+                fontWeight: 'var(--ai-font-weight-semibold, 600)',
                 fontSize: '0.9rem',
                 color: 'var(--ai-text-primary, #111827)',
                 cursor: item.disabled ? 'not-allowed' : 'pointer',
@@ -130,7 +130,7 @@ export const Accordion: React.FC<AccordionProps> = ({
           <AccordionPrimitive.Content
             className="ai-accordion-content"
             style={{
-              padding: '1rem 1.125rem',
+              padding: 'var(--ai-padding-xl, 1rem 1.125rem)',
               fontSize: '0.875rem',
               color: 'var(--ai-text-primary, #111827)',
               borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',

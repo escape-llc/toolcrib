@@ -84,7 +84,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         width: '100%',
         height: '100%',
         fontSize: SIZE_FONT[size],
-        fontWeight: 700,
+        fontWeight: 'var(--ai-font-weight-bold, 700)',
         color: 'var(--ai-text-secondary, #6b7280)',
         background: 'var(--ai-bg-container, #f3f4f6)',
       }}

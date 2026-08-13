@@ -1,4 +1,4 @@
-import React, { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, useContext } from 'react';
+import React, { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, useContext, useEffect } from 'react';
 import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { PaddingMode, resolvePadding } from '../../theme/padding';
@@ -6,6 +6,7 @@ import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
+import { injectHoverStyles } from '../../theme/hoverStyles';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
@@ -40,7 +41,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
     <FieldContext.Provider value={{ name }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
         {label && (
-          <label htmlFor={name} style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }}>
+          <label htmlFor={name} style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }}>
             {label}
           </label>
         )}
@@ -90,7 +91,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   if (!hasErrors) return null;
 
   return (
-    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
+    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: 'var(--ai-padding-md, 0.5rem 0.75rem)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
       Please correct the errors in the form before submitting.
     </div>
   );
@@ -167,6 +168,9 @@ export const Button: React.FC<ButtonProps> = ({
   // pre-existing, unrelated mechanism), so there's no second subtheme
   // concern for this slice to fold in.
   const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectHoverStyles();
+  }, []);
 
   const getSizeStyles = (): React.CSSProperties => {
     const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
@@ -218,10 +222,12 @@ export const Button: React.FC<ButtonProps> = ({
   // values changing, avoids it — confirmed via a real test run, not just
   // reasoning about it.
   const cornerOverrides = resolveSquareCorners(squareCorners);
+  const variantStyles = getVariantStyles();
 
   return (
     <button
       {...props}
+      className="ai-btn"
       disabled={disabled}
       style={{
         display: 'inline-flex',
@@ -237,7 +243,12 @@ export const Button: React.FC<ButtonProps> = ({
         opacity: disabled ? 0.6 : 1,
         transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
         ...getSizeStyles(),
-        ...getVariantStyles(),
+        ...variantStyles,
+        // Hover's actual colour is computed live in CSS (see hoverStyles.ts's
+        // `color-mix()` rule) from this element's own currentColor — this
+        // just publishes what "normal" already resolved to as the mix base,
+        // so the rule never has to duplicate this per-variant logic.
+        ['--ai-btn-bg' as string]: variantStyles.background,
         ...buttonVars,
       }}
     >
@@ -386,7 +397,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           all: 'unset',
           width: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
           height: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
-          borderRadius: '0.25rem',
+          borderRadius: 'var(--ai-radius-sm, 0.25rem)',
           border: `0.0625rem solid ${checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
           display: 'flex',
@@ -398,7 +409,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           ...checkboxVars,
         }}
       >
-        <CheckboxPrimitive.Indicator style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CheckboxPrimitive.Indicator style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           ✓
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
@@ -456,7 +467,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           all: 'unset',
           width: 'var(--ai-togglecontrol-switch-width, 2.375rem)',
           height: 'var(--ai-togglecontrol-switch-height, 1.25rem)',
-          borderRadius: '0.625rem',
+          borderRadius: 'var(--ai-radius-lg, 0.625rem)',
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
           position: 'relative',
           transition: 'background 0.2s ease',

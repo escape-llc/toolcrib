@@ -1,5 +1,6 @@
 import React, { ReactNode, useEffect } from 'react';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 
 /**
  * Props for the `<UIGroup>` component.
@@ -38,11 +39,9 @@ export interface UIGroupProps {
 // only because it has to outrank each child's inline `borderRadius`.
 const STYLE_ID = 'toolcrib-group-styles';
 function injectUIGroupStyles() {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById(STYLE_ID)) return;
-  const styleEl = document.createElement('style');
-  styleEl.id = STYLE_ID;
-  styleEl.textContent = `
+  injectGlobalStyle(
+    STYLE_ID,
+    `
     .toolcrib-group > * {
       position: relative;
       align-self: stretch;
@@ -94,8 +93,8 @@ function injectUIGroupStyles() {
     .toolcrib-group[data-orientation="vertical"] > *:not(:first-child) {
       margin-top: var(--ai-uigroup-overlap, -0.0625rem);
     }
-  `;
-  document.head.appendChild(styleEl);
+    `
+  );
 }
 
 /**

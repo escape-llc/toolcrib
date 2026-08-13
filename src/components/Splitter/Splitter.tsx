@@ -262,7 +262,7 @@ export const Splitter: React.FC<SplitterProps> & {
             width: isVertical ? '2.5rem' : '0.125rem',
             height: isVertical ? '0.125rem' : '2.5rem',
             background: 'var(--ai-text-secondary, #9ca3af)',
-            borderRadius: '0.125rem',
+            borderRadius: 'var(--ai-radius-sm, 0.125rem)',
             pointerEvents: 'none',
           }}
         />

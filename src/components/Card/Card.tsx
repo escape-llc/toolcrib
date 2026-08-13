@@ -177,7 +177,7 @@ Card.Header = ({ children, paddingMode, ...props }) => {
         padding: paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-card-header-padding, 1.25rem 1.5rem)',
         background: 'var(--ai-card-header-bg, transparent)',
         borderBottom: 'var(--ai-card-header-border, 0.0625rem solid var(--ai-border, #e5e7eb))',
-        fontWeight: 700,
+        fontWeight: 'var(--ai-font-weight-bold, 700)',
         fontSize: '1.125rem',
         color: 'var(--ai-text-primary, #111827)',
         display: 'flex',

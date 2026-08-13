@@ -141,7 +141,7 @@ export const Select: React.FC<SelectProps> = ({
             ...selectVars,
           }}
         >
-          <SelectPrimitive.Viewport style={{ padding: '0.25rem' }}>
+          <SelectPrimitive.Viewport style={{ padding: 'var(--ai-padding-xs, 0.25rem)' }}>
             {options.map((opt) => (
               <SelectPrimitive.Item
                 key={opt.value}
@@ -161,7 +161,7 @@ export const Select: React.FC<SelectProps> = ({
                 }}
               >
                 <SelectPrimitive.ItemText>{opt.label}</SelectPrimitive.ItemText>
-                <SelectPrimitive.ItemIndicator style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 900 }}>
+                <SelectPrimitive.ItemIndicator style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 'var(--ai-font-weight-black, 900)' }}>
                   ✓
                 </SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>

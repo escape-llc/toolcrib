@@ -220,6 +220,16 @@ export function paletteToCSSVariables(
 
   return {
     '--ai-master-font-size': `${masterFontSize}px`,
+    // Fixed (not mode-driven, unlike padding/margin/radius above) — exists
+    // so every component's font-weight literal can read from one named
+    // scale instead of repeating the bare number, and so a consuming app
+    // can retint all of them at once via a single global CSS override
+    // without touching component source.
+    '--ai-font-weight-normal': '400',
+    '--ai-font-weight-medium': '500',
+    '--ai-font-weight-semibold': '600',
+    '--ai-font-weight-bold': '700',
+    '--ai-font-weight-black': '900',
     ...paddingVars,
     ...marginVars,
     ...radiusVars,

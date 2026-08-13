@@ -162,7 +162,7 @@ export const Popup: React.FC<PopupProps> = ({
             background: 'var(--ai-bg-surface, #ffffff)',
             border: 'var(--ai-popup-border, 0.0625rem solid var(--ai-border, #e5e7eb))',
             boxShadow: 'var(--ai-popup-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
-            padding: '0.75rem',
+            padding: 'var(--ai-padding-lg, 0.75rem)',
             minWidth: '11.25rem',
             outline: 'none',
             ...getPopupCornerStyle(),

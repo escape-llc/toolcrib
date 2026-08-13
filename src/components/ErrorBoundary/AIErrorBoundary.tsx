@@ -74,13 +74,13 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
       return (
         <div
           style={{
-            padding: '1.5rem',
+            padding: 'var(--ai-padding-xl, 1.5rem)',
             textAlign: 'center',
             color: 'var(--ai-subtheme-error, #ef4444)',
             fontSize: '0.875rem',
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>
+          <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', marginBottom: '0.5rem' }}>
             ⚠️ Something went wrong
           </div>
           <div style={{ color: 'var(--ai-text-secondary, #6b7280)', marginBottom: '1rem' }}>
@@ -89,14 +89,14 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
           <button
             onClick={this.reset}
             style={{
-              padding: '0.375rem 0.875rem',
+              padding: 'var(--ai-padding-sm, 0.375rem 0.875rem)',
               borderRadius: 'var(--ai-radius-md, 0.375rem)',
               border: '0.0625rem solid var(--ai-border, #d1d5db)',
               background: 'var(--ai-bg-surface, #ffffff)',
               color: 'var(--ai-text-primary, #111827)',
               cursor: 'pointer',
               fontSize: '0.8125rem',
-              fontWeight: 600,
+              fontWeight: 'var(--ai-font-weight-semibold, 600)',
             }}
           >
             Try Again

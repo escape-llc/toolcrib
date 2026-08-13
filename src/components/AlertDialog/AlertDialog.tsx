@@ -130,7 +130,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.25rem',
+            padding: 'var(--ai-padding-lg, 1.25rem)',
             animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             ...alertDialogVars,
           }}
@@ -168,9 +168,9 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
 AlertDialog.Header = ({ children }) => (
   <div
     style={{
-      padding: '1rem 1.5rem',
+      padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
-      fontWeight: 700,
+      fontWeight: 'var(--ai-font-weight-bold, 700)',
       fontSize: '1.125rem',
       color: 'var(--ai-text-primary, #111827)',
     }}
@@ -182,7 +182,7 @@ AlertDialog.Header = ({ children }) => (
 AlertDialog.Body = ({ children }) => (
   <div
     style={{
-      padding: '1.5rem',
+      padding: 'var(--ai-padding-xl, 1.5rem)',
       overflowY: 'auto',
       color: 'var(--ai-text-primary, #111827)',
       fontSize: '0.875rem',
@@ -197,7 +197,7 @@ AlertDialog.Body = ({ children }) => (
 AlertDialog.Footer = ({ children }) => (
   <div
     style={{
-      padding: '1rem 1.5rem',
+      padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
       background: 'var(--ai-bg-container, #f9fafb)',
       display: 'flex',
@@ -226,12 +226,12 @@ AlertDialog.Cancel = ({ children = 'Cancel' }) => (
   <AlertDialogPrimitive.Cancel asChild>
     <button
       style={{
-        padding: '0.5rem 1rem',
+        padding: 'var(--ai-padding-md, 0.5rem 1rem)',
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
         border: '0.0625rem solid var(--ai-border, #d1d5db)',
         background: 'transparent',
         color: 'var(--ai-text-primary, #111827)',
-        fontWeight: 600,
+        fontWeight: 'var(--ai-font-weight-semibold, 600)',
         fontSize: '0.875rem',
         cursor: 'pointer',
       }}
@@ -251,12 +251,12 @@ AlertDialog.Action = ({ children = 'Confirm', onClick }) => (
     <button
       onClick={onClick}
       style={{
-        padding: '0.5rem 1rem',
+        padding: 'var(--ai-padding-md, 0.5rem 1rem)',
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
         border: 'none',
         background: 'var(--ai-subtheme-error, #ef4444)',
         color: '#ffffff',
-        fontWeight: 600,
+        fontWeight: 'var(--ai-font-weight-semibold, 600)',
         fontSize: '0.875rem',
         cursor: 'pointer',
       }}

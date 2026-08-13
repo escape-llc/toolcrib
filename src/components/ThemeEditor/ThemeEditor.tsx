@@ -30,7 +30,7 @@ function FieldRow({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>{label}</label>
+        <label style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem' }}>{label}</label>
         {tooltip && (
           <Tooltip content={tooltip}>
             <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
@@ -134,8 +134,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
   const appearanceContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Light / Dark Mode Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--ai-bg-container, #f9fafb)', borderRadius: 'var(--ai-radius-sm, 0.375rem)' }}>
-        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Mode Appearance</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--ai-padding-lg, 0.75rem)', background: 'var(--ai-bg-container, #f9fafb)', borderRadius: 'var(--ai-radius-sm, 0.375rem)' }}>
+        <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem' }}>Mode Appearance</span>
         <Button size="sm" variant="outline" onClick={toggleDarkMode}>
           {parameters.isDarkMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
         </Button>
@@ -143,7 +143,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
 
       {/* Base Color HSV Sliders */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Base Color Swatch (HSV)</span>
           <div
             style={{
@@ -312,7 +312,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
         ]}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 600 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           <span>Motion Duration Factor</span>
           <span>{animationState.speed}x</span>
         </div>
@@ -379,16 +379,16 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
         Monochromatic sub-schemes anchored off Red (0°), Green (140°), Amber (38°), and Blue (210°) carrying base SV axes with WCAG contrast ratios.
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem' }}>
-        <div style={{ padding: '0.5rem', background: 'var(--ai-subtheme-error-bg)', color: 'var(--ai-subtheme-error-text)', border: '0.0625rem solid var(--ai-subtheme-error-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600 }}>
+        <div style={{ padding: 'var(--ai-padding-md, 0.5rem)', background: 'var(--ai-subtheme-error-bg)', color: 'var(--ai-subtheme-error-text)', border: '0.0625rem solid var(--ai-subtheme-error-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           Error Subtheme
         </div>
-        <div style={{ padding: '0.5rem', background: 'var(--ai-subtheme-success-bg)', color: 'var(--ai-subtheme-success-text)', border: '0.0625rem solid var(--ai-subtheme-success-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600 }}>
+        <div style={{ padding: 'var(--ai-padding-md, 0.5rem)', background: 'var(--ai-subtheme-success-bg)', color: 'var(--ai-subtheme-success-text)', border: '0.0625rem solid var(--ai-subtheme-success-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           Success Subtheme
         </div>
-        <div style={{ padding: '0.5rem', background: 'var(--ai-subtheme-warning-bg)', color: 'var(--ai-subtheme-warning-text)', border: '0.0625rem solid var(--ai-subtheme-warning-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600 }}>
+        <div style={{ padding: 'var(--ai-padding-md, 0.5rem)', background: 'var(--ai-subtheme-warning-bg)', color: 'var(--ai-subtheme-warning-text)', border: '0.0625rem solid var(--ai-subtheme-warning-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           Warning Subtheme
         </div>
-        <div style={{ padding: '0.5rem', background: 'var(--ai-subtheme-info-bg)', color: 'var(--ai-subtheme-info-text)', border: '0.0625rem solid var(--ai-subtheme-info-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600 }}>
+        <div style={{ padding: 'var(--ai-padding-md, 0.5rem)', background: 'var(--ai-subtheme-info-bg)', color: 'var(--ai-subtheme-info-text)', border: '0.0625rem solid var(--ai-subtheme-info-border)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', textAlign: 'center', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           Info Subtheme
         </div>
       </div>

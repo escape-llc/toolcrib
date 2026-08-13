@@ -114,7 +114,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
               zIndex: Z_INDEX.TOOLTIP,
               padding: 'var(--ai-tooltip-padding, 0.375rem 0.75rem)',
               fontSize: 'var(--ai-tooltip-font-size, 0.75rem)',
-              fontWeight: 600,
+              fontWeight: 'var(--ai-font-weight-semibold, 600)',
               borderRadius: 'var(--ai-tooltip-border-radius, var(--ai-radius-md, 0.375rem))',
               background: 'var(--ai-tooltip-bg, var(--ai-text-primary, #111827))',
               color: 'var(--ai-tooltip-color, var(--ai-bg-surface, #ffffff))',

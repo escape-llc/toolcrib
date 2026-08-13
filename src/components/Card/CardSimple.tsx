@@ -52,7 +52,7 @@ export const CardSimple: React.FC<CardSimpleProps> = ({
         {subtitle && (
           <span
             style={{
-              fontWeight: 400,
+              fontWeight: 'var(--ai-font-weight-normal, 400)',
               fontSize: '0.8125rem',
               color: 'var(--ai-text-secondary, #6b7280)',
               marginLeft: '0.75rem',

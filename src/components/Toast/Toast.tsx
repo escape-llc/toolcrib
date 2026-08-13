@@ -1,8 +1,57 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Toast as ToastPrimitive } from 'radix-ui';
 import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+
+const TOAST_STYLE_ID = 'toolcrib-toast-animations';
+
+// Radix's Toast Root is wrapped in Presence: once `open` goes false (i.e.
+// `data-state` flips to "closed"), Presence keeps the DOM node mounted
+// until a real `animationend` fires on it before actually removing it —
+// confirmed the hard way for Tooltip (see Tooltip.tsx's own comment on the
+// exact same class of bug). An inline `style.animation` can't express
+// "play THIS keyframe on data-state=open, a DIFFERENT one on closed" (its
+// value doesn't change between renders just because a data-attribute did,
+// so the browser never restarts it) — real `[data-state]`/`[data-swipe]`
+// selectors need a real stylesheet, hence injecting one instead of relying
+// on inline styles like the rest of this component's styling does.
+function injectToastAnimations(): void {
+  injectGlobalStyle(
+    TOAST_STYLE_ID,
+    `
+    @keyframes toolcrib-toast-slide-in {
+      from { opacity: 0; transform: translateY(0.5rem) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toolcrib-toast-fade-out {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(-0.25rem) scale(0.96); }
+    }
+    @keyframes toolcrib-toast-swipe-out {
+      from { transform: translateX(var(--radix-toast-swipe-end-x, 0)); opacity: 1; }
+      to { transform: translateX(150%); opacity: 0; }
+    }
+    .ai-toast-root[data-state="open"] {
+      animation: toolcrib-toast-slide-in var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1));
+    }
+    .ai-toast-root[data-state="closed"]:not([data-swipe="end"]) {
+      animation: toolcrib-toast-fade-out var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+    }
+    .ai-toast-root[data-swipe="move"] {
+      transform: translateX(var(--radix-toast-swipe-move-x, 0));
+    }
+    .ai-toast-root[data-swipe="cancel"] {
+      transform: translateX(0);
+      transition: transform 0.2s ease-out;
+    }
+    .ai-toast-root[data-swipe="end"] {
+      animation: toolcrib-toast-swipe-out 0.2s ease-out forwards;
+    }
+    `
+  );
+}
 
 /** @barrelExport */
 export interface ToastProps {
@@ -11,6 +60,9 @@ export interface ToastProps {
 
 export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const { dismissToast } = useToast();
+  useEffect(() => {
+    injectToastAnimations();
+  }, []);
 
   // ToastPrimitive.Root is given the same `duration` below and runs its own
   // internal auto-dismiss timer, which — per Radix's documented Toast
@@ -80,6 +132,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   return (
     <ToastPrimitive.Root
       data-testid="toast-item"
+      className="ai-toast-root"
       duration={toast.sticky ? Infinity : (toast.duration || 5000)}
       onSwipeStart={() => { swipedRef.current = true; }}
       onSwipeCancel={() => { swipedRef.current = false; }}
@@ -97,7 +150,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '0.375rem',
-        padding: '0.75rem 1rem',
+        padding: 'var(--ai-padding-lg, 0.75rem 1rem)',
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
         background: getSubthemeBackground(toast.type),
         color: 'var(--ai-text-primary, #111827)',
@@ -135,12 +188,12 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             {toast.title && (
-              <ToastPrimitive.Title style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              <ToastPrimitive.Title style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.9rem' }}>
                 {toast.title}
               </ToastPrimitive.Title>
             )}
             {toast.sticky && (
-              <span style={{ fontSize: '0.6875rem', padding: '0.0625rem 0.375rem', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ai-subtheme-error, #ef4444)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.6875rem', padding: 'var(--ai-padding-xs, 0.0625rem 0.375rem)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ai-subtheme-error, #ef4444)', fontWeight: 'var(--ai-font-weight-bold, 700)' }}>
                 📌 Sticky
               </span>
             )}
@@ -159,7 +212,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
             color: 'var(--ai-text-secondary, #6b7280)',
             cursor: 'pointer',
             fontSize: '1rem',
-            padding: '0.125rem 0.375rem',
+            padding: 'var(--ai-padding-xs, 0.125rem 0.375rem)',
           }}
         >
           ×
@@ -183,13 +236,13 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                 dismissToast(toast.id, 'action');
               }}
               style={{
-                padding: '0.25rem 0.625rem',
+                padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)',
                 borderRadius: 'var(--ai-radius-sm, 0.25rem)',
                 border: `0.0625rem solid ${getSubthemeColor(toast.type)}`,
                 background: 'transparent',
                 color: getSubthemeColor(toast.type),
                 fontSize: '0.75rem',
-                fontWeight: 600,
+                fontWeight: 'var(--ai-font-weight-semibold, 600)',
                 cursor: 'pointer',
               }}
             >
@@ -214,7 +267,7 @@ export const ToastContainer: React.FC = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '0.625rem',
-      padding: '1rem',
+      padding: 'var(--ai-padding-xl, 1rem)',
       pointerEvents: 'none',
       margin: 0,
       listStyle: 'none',

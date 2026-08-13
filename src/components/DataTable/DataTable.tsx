@@ -224,7 +224,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                   style={{
                     padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
-                    fontWeight: 600,
+                    fontWeight: 'var(--ai-font-weight-semibold, 600)',
                     color: 'var(--ai-text-primary, #111827)',
                     cursor: col.sortable !== false ? 'pointer' : 'default',
                     userSelect: 'none',
@@ -302,7 +302,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0.625rem 1rem',
+          padding: 'var(--ai-padding-md, 0.625rem 1rem)',
           borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
           background: 'var(--ai-bg-container, #f9fafb)',
           fontSize: '0.875rem',
@@ -325,7 +325,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 setCurrentPage(1);
               }}
               style={{
-                padding: '0.25rem 0.5rem',
+                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
                 background: 'var(--ai-bg-surface, #ffffff)',
                 color: 'var(--ai-text-primary, #111827)',
@@ -345,7 +345,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               disabled={validCurrentPage === 1}
               aria-label="Previous page"
               style={{
-                padding: '0.25rem 0.5rem',
+                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
                 background: 'var(--ai-bg-surface, #ffffff)',
                 color: 'var(--ai-text-primary, #111827)',
@@ -359,11 +359,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
             <span
               style={{
-                padding: '0.25rem 0.5rem',
+                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
                 background: 'var(--ai-bg-surface, #ffffff)',
                 fontSize: '0.75rem',
-                fontWeight: 600,
+                fontWeight: 'var(--ai-font-weight-semibold, 600)',
                 color: 'var(--ai-text-primary, #111827)',
               }}
             >
@@ -375,7 +375,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               disabled={validCurrentPage === totalPages}
               aria-label="Next page"
               style={{
-                padding: '0.25rem 0.5rem',
+                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
                 border: '0.0625rem solid var(--ai-border, #d1d5db)',
                 background: 'var(--ai-bg-surface, #ffffff)',
                 color: 'var(--ai-text-primary, #111827)',
