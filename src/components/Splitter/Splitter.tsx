@@ -3,6 +3,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { useStableId } from '../shared/useStableId';
 
 export type SplitterOrientation = 'horizontal' | 'vertical';
 
@@ -68,8 +69,15 @@ export const Splitter: React.FC<SplitterProps> & {
   ...props
 }) => {
   warnIfLegacyStyleProps(props, 'Splitter');
-  const domainIdRef = useRef<string>(propId || `splitter-domain-${Math.random().toString(36).substring(2, 7)}`);
-  const domainId = domainIdRef.current;
+  // useStableId (React's useId() under the hood) rather than the previous
+  // Math.random()-in-a-useRef: domainId is rendered directly into
+  // `data-ai-layout-domain` below, on both panel wrappers, so a value that
+  // differs between the server's render and the client's first render
+  // fails hydration for anyone server-rendering — see useStableId's own
+  // comment for the full mechanism. Splitter is the one caller of this
+  // pattern that actually renders its id, which is what made this a live
+  // bug rather than a theoretical one.
+  const domainId = useStableId(propId, 'splitter-domain');
 
   // Validation: Splitter requires exactly 2 children
   const childCount = React.Children.count(children);

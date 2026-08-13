@@ -41,9 +41,10 @@ describe('ThemeEditor', () => {
     // item triggers (not necessarily their panel content) are already in
     // the DOM without needing an extra click.
     expect(screen.getByText(/Appearance & Base Color/)).toBeInTheDocument();
+    expect(screen.getByText(/Typography \(Font Family & Size\)/)).toBeInTheDocument();
     expect(screen.getByText(/Density, Spacing & Elevation/)).toBeInTheDocument();
     expect(screen.getByText(/Motion, Transitions & Physics/)).toBeInTheDocument();
-    expect(screen.getByText(/Color Harmony & Typography/)).toBeInTheDocument();
+    expect(screen.getByText(/Color Harmony & Hue Spread/)).toBeInTheDocument();
     expect(screen.getByText(/Monochromatic Subthemes/)).toBeInTheDocument();
   });
 

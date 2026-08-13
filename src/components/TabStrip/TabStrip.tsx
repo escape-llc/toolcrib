@@ -5,7 +5,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectHoverStyles } from '../../theme/hoverStyles';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
@@ -72,7 +72,7 @@ export const TabStrip: React.FC<TabStripProps> & {
 } = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
   useEffect(() => {
-    injectHoverStyles();
+    injectInteractionStyles();
   }, []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -253,7 +253,7 @@ export const TabStrip: React.FC<TabStripProps> & {
                   transition: 'var(--ai-transition-fast, all 0.15s ease)',
                   flexShrink: 0,
                   outline: 'none',
-                  // Same live color-mix hover as `.ai-btn` (see hoverStyles.ts)
+                  // Same live color-mix hover as `.ai-btn` (see interactionStyles.ts)
                   // — this just publishes the active/inactive background this
                   // trigger already resolved to as the mix base.
                   ['--ai-tab-bg' as string]: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',

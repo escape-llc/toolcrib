@@ -38,6 +38,7 @@ import { CollapsibleThemeSlice, CollapsibleSliceState, defaultCollapsibleState }
 import { UIGroupThemeSlice, UIGroupSliceState, defaultUIGroupState } from '../components/UIGroup/UIGroupSlice';
 import { ToolbarThemeSlice, ToolbarSliceState, defaultToolbarState } from '../components/Toolbar/ToolbarSlice';
 import { AppShellThemeSlice, AppShellSliceState, defaultAppShellState } from '../components/AppShell/AppShellSlice';
+import { TypographyThemeSlice, TypographySliceState, defaultTypographyState } from './typography';
 import { globalThemeSliceRegistry } from './slice';
 import { aiBus } from '../eventBus/eventBus';
 
@@ -73,6 +74,7 @@ globalThemeSliceRegistry.register(CollapsibleThemeSlice);
 globalThemeSliceRegistry.register(UIGroupThemeSlice);
 globalThemeSliceRegistry.register(ToolbarThemeSlice);
 globalThemeSliceRegistry.register(AppShellThemeSlice);
+globalThemeSliceRegistry.register(TypographyThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {
@@ -104,6 +106,7 @@ export interface ThemeContextType {
   uiGroupState: UIGroupSliceState;
   toolbarState: ToolbarSliceState;
   appShellState: AppShellSliceState;
+  typographyState: TypographySliceState;
   palette: GeneratedPalette;
   cssVariables: Record<string, string>;
   setBaseColor: (color: HSVColor) => void;
@@ -111,7 +114,6 @@ export interface ThemeContextType {
   setHueSpread: (spread: number) => void;
   setDarkenLightenFactor: (factor: number) => void;
   setSaturationFactor: (factor: number) => void;
-  setMasterFontSize: (size: number) => void;
   setPaddingMode: (mode: PaddingMode) => void;
   setMarginMode: (mode: MarginMode) => void;
   setCornerRadiusMode: (mode: CornerRadiusMode) => void;
@@ -143,6 +145,7 @@ export interface ThemeContextType {
   setUIGroupState: (state: Partial<UIGroupSliceState>) => void;
   setToolbarState: (state: Partial<ToolbarSliceState>) => void;
   setAppShellState: (state: Partial<AppShellSliceState>) => void;
+  setTypographyState: (state: Partial<TypographySliceState>) => void;
   toggleDarkMode: () => void;
   setDarkMode: (isDark: boolean) => void;
 }
@@ -153,7 +156,6 @@ const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
   hueSpread: 30,
   darkenLightenFactor: 1.0,
   saturationFactor: 1.0,
-  masterFontSize: 16,
   paddingMode: 'normal',
   marginMode: 'normal',
   cornerRadiusMode: 'rounded',
@@ -199,6 +201,7 @@ export interface ThemeProviderProps {
   initialUIGroupState?: Partial<UIGroupSliceState>;
   initialToolbarState?: Partial<ToolbarSliceState>;
   initialAppShellState?: Partial<AppShellSliceState>;
+  initialTypographyState?: Partial<TypographySliceState>;
   /**
    * The `Document` whose `<html>` element gets this provider's CSS custom
    * properties. Defaults to the global `document` — correct for the
@@ -245,6 +248,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialUIGroupState,
   initialToolbarState,
   initialAppShellState,
+  initialTypographyState,
   targetDocument,
 }) => {
   const [parameters, setParameters] = useState<ThemeParameters & { shadowMode?: ShadowMode }>({
@@ -387,6 +391,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     ...initialAppShellState,
   });
 
+  const [typographyState, setTypographyStateInternal] = useState<TypographySliceState>({
+    ...defaultTypographyState,
+    ...initialTypographyState,
+  });
+
   const palette = useMemo(() => {
     return generateHarmonyPalette(parameters);
   }, [parameters]);
@@ -394,7 +403,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const cssVariables = useMemo(() => {
     const baseVars = paletteToCSSVariables(
       palette,
-      parameters.masterFontSize,
       parameters.paddingMode,
       parameters.cornerRadiusMode,
       parameters.marginMode || 'normal'
@@ -431,6 +439,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       uigroup: uiGroupState,
       toolbar: toolbarState,
       appshell: appShellState,
+      typography: typographyState,
     });
     return { ...baseVars, ...sliceVars };
   }, [
@@ -463,6 +472,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     uiGroupState,
     toolbarState,
     appShellState,
+    typographyState,
   ]);
 
   // Inject CSS variables into root document element
@@ -481,7 +491,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setHueSpread = (hueSpread: number) => setParameters(p => ({ ...p, hueSpread }));
   const setDarkenLightenFactor = (darkenLightenFactor: number) => setParameters(p => ({ ...p, darkenLightenFactor }));
   const setSaturationFactor = (saturationFactor: number) => setParameters(p => ({ ...p, saturationFactor }));
-  const setMasterFontSize = (masterFontSize: number) => setParameters(p => ({ ...p, masterFontSize }));
   const setPaddingMode = (paddingMode: PaddingMode) => setParameters(p => ({ ...p, paddingMode }));
   const setMarginMode = (marginMode: MarginMode) => setParameters(p => ({ ...p, marginMode }));
   const setCornerRadiusMode = (cornerRadiusMode: CornerRadiusMode) => setParameters(p => ({ ...p, cornerRadiusMode }));
@@ -513,6 +522,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setUIGroupState = (update: Partial<UIGroupSliceState>) => setUIGroupStateInternal(prev => ({ ...prev, ...update }));
   const setToolbarState = (update: Partial<ToolbarSliceState>) => setToolbarStateInternal(prev => ({ ...prev, ...update }));
   const setAppShellState = (update: Partial<AppShellSliceState>) => setAppShellStateInternal(prev => ({ ...prev, ...update }));
+  const setTypographyState = (update: Partial<TypographySliceState>) => setTypographyStateInternal(prev => ({ ...prev, ...update }));
   const toggleDarkMode = () => setParameters(p => ({ ...p, isDarkMode: !p.isDarkMode }));
   const setDarkMode = (isDarkMode: boolean) => setParameters(p => ({ ...p, isDarkMode }));
 
@@ -545,6 +555,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     uiGroupState,
     toolbarState,
     appShellState,
+    typographyState,
     palette,
     cssVariables,
     setBaseColor,
@@ -552,7 +563,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setHueSpread,
     setDarkenLightenFactor,
     setSaturationFactor,
-    setMasterFontSize,
     setPaddingMode,
     setMarginMode,
     setCornerRadiusMode,
@@ -584,6 +594,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setUIGroupState,
     setToolbarState,
     setAppShellState,
+    setTypographyState,
     toggleDarkMode,
     setDarkMode,
   };

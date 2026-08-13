@@ -27,7 +27,6 @@ export interface ThemeParameters {
   hueSpread: number; // e.g. 30
   darkenLightenFactor: number; // e.g. 1.0 (default), >1 lighter, <1 darker
   saturationFactor: number; // e.g. 1.0 (default)
-  masterFontSize: number; // e.g. 16 (in px, controls all rem scaling)
   paddingMode: PaddingMode; // 'compact' | 'normal' | 'spacious'
   marginMode?: MarginMode; // 'compact' | 'normal' | 'spacious'
   cornerRadiusMode: CornerRadiusMode; // 'sharp' | 'subtle' | 'rounded' | 'pill'
@@ -209,7 +208,6 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
  */
 export function paletteToCSSVariables(
   palette: GeneratedPalette,
-  masterFontSize: number = 16,
   paddingMode: PaddingMode = 'normal',
   cornerRadiusMode: CornerRadiusMode = 'rounded',
   marginMode: MarginMode = 'normal'
@@ -219,7 +217,6 @@ export function paletteToCSSVariables(
   const radiusVars = getRadiusVariables(cornerRadiusMode);
 
   return {
-    '--ai-master-font-size': `${masterFontSize}px`,
     // Fixed (not mode-driven, unlike padding/margin/radius above) — exists
     // so every component's font-weight literal can read from one named
     // scale instead of repeating the bare number, and so a consuming app
@@ -230,6 +227,12 @@ export function paletteToCSSVariables(
     '--ai-font-weight-semibold': '600',
     '--ai-font-weight-bold': '700',
     '--ai-font-weight-black': '900',
+    // Fixed interaction-state constants consumed by interactionStyles.ts's
+    // injected :focus-visible rule — named here rather than inlined in that
+    // stylesheet so a consumer can retint/resize the ring globally the same
+    // way as every other themed value, without editing component source.
+    '--ai-focus-ring-width': '0.125rem',
+    '--ai-focus-ring-offset': '0.125rem',
     ...paddingVars,
     ...marginVars,
     ...radiusVars,

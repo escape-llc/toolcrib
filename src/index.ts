@@ -11,6 +11,7 @@ export * from './theme/shadow';
 export * from './theme/slice';
 export * from './theme/subtheme';
 export * from './theme/themeContext';
+export * from './theme/typography';
 export * from './theme/useSliceOverrides';
 export * from './theme/zIndex';
 

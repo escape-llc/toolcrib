@@ -8,7 +8,6 @@ describe('Color Harmonies Engine', () => {
     hueSpread: 30,
     darkenLightenFactor: 1.0,
     saturationFactor: 1.0,
-    masterFontSize: 16,
     paddingMode: 'normal',
     cornerRadiusMode: 'rounded',
     isDarkMode: false,
@@ -37,9 +36,8 @@ describe('Color Harmonies Engine', () => {
 
   it('converts palette to CSS variables map', () => {
     const palette = generateHarmonyPalette(baseParams);
-    const vars = paletteToCSSVariables(palette, baseParams.masterFontSize);
+    const vars = paletteToCSSVariables(palette);
 
-    expect(vars['--ai-master-font-size']).toBe('16px');
     expect(vars['--ai-color-primary']).toBeDefined();
     expect(vars['--ai-subtheme-error']).toBeDefined();
   });

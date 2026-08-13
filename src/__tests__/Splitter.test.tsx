@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { Splitter } from '../components/Splitter/Splitter';
 
 describe('Splitter Component & Corner Squaring', () => {
@@ -58,5 +59,33 @@ describe('Splitter Component & Corner Squaring', () => {
 
     expect(rightCard.style.borderTopLeftRadius).toBe('0rem');
     expect(rightCard.style.borderBottomLeftRadius).toBe('0rem');
+  });
+
+  it('regression: layout domain id is deterministic across independent server renders (SSR/hydration safety)', () => {
+    // Splitter renders its layout domain id directly into
+    // `data-ai-layout-domain` on both panel wrappers. It previously
+    // generated that id via Math.random() in a useRef, which produces a
+    // different value on every fresh render call — harmless client-only,
+    // but for anyone server-rendering, the server's render and the
+    // client's first (pre-hydration) render must produce byte-identical
+    // markup or React logs a hydration mismatch (and, worse here, the
+    // mismatched attribute would desync LayoutDomainProvider's context
+    // value from what corner-squaring children actually read). Two
+    // independent renderToString() calls simulate exactly that: same
+    // props, no shared client-side state between them, same output
+    // expected.
+    const render1 = renderToString(
+      <Splitter orientation="vertical" initialSplit={60}>
+        <div>a</div>
+        <div>b</div>
+      </Splitter>
+    );
+    const render2 = renderToString(
+      <Splitter orientation="vertical" initialSplit={60}>
+        <div>a</div>
+        <div>b</div>
+      </Splitter>
+    );
+    expect(render1).toBe(render2);
   });
 });

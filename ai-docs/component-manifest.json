@@ -48,6 +48,9 @@
       "--ai-dropdownmenu-item-padding",
       "--ai-dropdownmenu-shadow",
       "--ai-focus-ring",
+      "--ai-focus-ring-offset",
+      "--ai-focus-ring-width",
+      "--ai-font-family",
       "--ai-font-weight-black",
       "--ai-font-weight-bold",
       "--ai-font-weight-medium",
@@ -282,6 +285,10 @@
       {
         "id": "appshell",
         "name": "🖥️ App Shell Density"
+      },
+      {
+        "id": "typography",
+        "name": "🔤 Typography (Font Family & Size)"
       }
     ]
   },

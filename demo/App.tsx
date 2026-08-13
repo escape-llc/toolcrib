@@ -422,7 +422,7 @@ const WIREFRAME_LEGEND: { label: string; color: string }[] = [
 ];
 
 export const App: React.FC = () => {
-  const { parameters } = useTheme();
+  const { parameters, typographyState } = useTheme();
   const { addToast, setAnchor } = useToast();
 
   // No `activeTab` useState here anymore: <TabStrip id="main-demo"> manages
@@ -504,7 +504,7 @@ export const App: React.FC = () => {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-              React UI Component Package Tailored for AI Consumption (Master Font: {parameters.masterFontSize}px)
+              React UI Component Package Tailored for AI Consumption (Master Font: {typographyState.masterFontSize}px)
             </p>
           </div>
         </HStack>

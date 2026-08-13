@@ -68,4 +68,27 @@ describe('DataTable Virtualized Component', () => {
     const scrollBody = table?.parentElement as HTMLElement;
     expect(scrollBody.style.minHeight).toBe('0px');
   });
+
+  it('regression: does not silently jump back to a stale page after data shrinks then grows again', () => {
+    // Reproduces the bug: navigate to a later page, have the parent shrink
+    // `data` (e.g. a search/filter above the table), which correctly
+    // clamps the *displayed* page — then have the parent restore the
+    // original data. Without syncing `currentPage` itself (not just the
+    // derived display value) back when totalPages changes, the table used
+    // to jump straight back to the stale page instead of staying on the
+    // page the user was actually looking at.
+    const { rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByLabelText('Next page'));
+    expect(screen.getByText('5 / 5')).toBeInTheDocument();
+
+    const filtered = testData.slice(0, 5);
+    rerender(<DataTable data={filtered} columns={testColumns} pageSize={10} />);
+    expect(screen.getByText('1 / 1')).toBeInTheDocument();
+    expect((screen.getByLabelText('Previous page') as HTMLButtonElement).disabled).toBe(true);
+
+    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    expect(screen.getByText('1 / 5')).toBeInTheDocument();
+    expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+  });
 });

@@ -117,6 +117,24 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const totalPages = Math.max(1, Math.ceil(sortedData.length / pageSize));
   const validCurrentPage = Math.min(currentPage, totalPages);
 
+  // `validCurrentPage` above only ever clamps the *derived, render-only*
+  // value used for display — it never wrote the clamp back into the
+  // `currentPage` state itself. That's fine while `data` only shrinks (the
+  // label and Previous/Next both correctly read off validCurrentPage), but
+  // if the caller's `data` prop later grows back (e.g. a search/filter box
+  // above this table gets cleared), `currentPage` was still silently
+  // sitting at whatever stale, out-of-range page it was on before the
+  // shrink, and the table would jump straight back to it — confirmed via a
+  // real render sequence (50 rows → navigate to page 5 → filter down to 5
+  // rows, correctly shows "1 / 1" → clear the filter back to 50 rows →
+  // silently jumps to "5 / 5" instead of staying on the page the user was
+  // just looking at). Syncing the actual state here, once, whenever
+  // `totalPages` changes is what makes the earlier clamp durable instead of
+  // cosmetic.
+  useEffect(() => {
+    setCurrentPage(p => Math.min(p, totalPages));
+  }, [totalPages]);
+
   const paginatedData = useMemo(() => {
     const start = (validCurrentPage - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);

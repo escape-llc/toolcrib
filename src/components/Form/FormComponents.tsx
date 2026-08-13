@@ -6,7 +6,7 @@ import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
-import { injectHoverStyles } from '../../theme/hoverStyles';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
@@ -169,7 +169,7 @@ export const Button: React.FC<ButtonProps> = ({
   // concern for this slice to fold in.
   const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
   useEffect(() => {
-    injectHoverStyles();
+    injectInteractionStyles();
   }, []);
 
   const getSizeStyles = (): React.CSSProperties => {
@@ -244,7 +244,7 @@ export const Button: React.FC<ButtonProps> = ({
         transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
         ...getSizeStyles(),
         ...variantStyles,
-        // Hover's actual colour is computed live in CSS (see hoverStyles.ts's
+        // Hover's actual colour is computed live in CSS (see interactionStyles.ts's
         // `color-mix()` rule) from this element's own currentColor — this
         // just publishes what "normal" already resolved to as the mix base,
         // so the rule never has to duplicate this per-variant logic.

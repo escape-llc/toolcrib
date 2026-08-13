@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { HarmonyMode } from '../../theme/harmonies';
 import { PaddingMode } from '../../theme/padding';
@@ -56,7 +56,6 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     setHueSpread,
     setDarkenLightenFactor,
     setSaturationFactor,
-    setMasterFontSize,
     setPaddingMode,
     setMarginMode,
     setCornerRadiusMode,
@@ -115,10 +114,25 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
     setToolbarState,
     appShellState,
     setAppShellState,
+    typographyState,
+    setTypographyState,
     toggleDarkMode,
   } = useTheme();
 
   const [copied, setCopied] = useState(false);
+  // Harmless under React 18 (setState on an unmounted component is
+  // silently a no-op there, not a warning), but explicit cleanup is what
+  // makes this the "correct" pattern rather than one relying on that
+  // React-version-specific behavior — e.g. it's a real warning again on
+  // React <18, and StrictMode/test-renderer environments are exactly where
+  // that kind of thing tends to get noticed.
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
 
   const copyCSSVariables = () => {
     const cssText = `:root {\n` +
@@ -128,7 +142,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
       `\n}`;
     navigator.clipboard.writeText(cssText);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const appearanceContent = (
@@ -356,18 +371,34 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
           onChange={val => setHueSpread(val)}
         />
       </div>
+    </div>
+  );
+
+  const typographyContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Font Family"
+        tooltip="Sets --ai-font-family, consumed anywhere a component uses fontFamily: 'inherit' up to :root"
+        value={typographyState.fontFamily}
+        onChange={val => setTypographyState({ fontFamily: val as any })}
+        options={[
+          { label: 'System (Inter / system-ui)', value: 'system' },
+          { label: 'Serif (Georgia / Times)', value: 'serif' },
+          { label: 'Monospace (SF Mono / Consolas)', value: 'monospace' },
+        ]}
+      />
 
       {/* Master Font Size */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
           <span>Master Font Size (rem Base)</span>
-          <span>{parameters.masterFontSize}px</span>
+          <span>{typographyState.masterFontSize}px</span>
         </div>
         <Slider
           min={12}
           max={24}
-          value={parameters.masterFontSize}
-          onChange={val => setMasterFontSize(val)}
+          value={typographyState.masterFontSize}
+          onChange={val => setTypographyState({ masterFontSize: val })}
         />
       </div>
     </div>
@@ -990,9 +1021,10 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = () => {
       defaultValue="appearance"
       items={[
         { value: 'appearance', title: '🎨 Appearance & Base Color (HSV)', content: appearanceContent },
+        { value: 'typography', title: '🔤 Typography (Font Family & Size)', content: typographyContent },
         { value: 'density', title: '📐 Density, Spacing & Elevation', content: densityContent },
         { value: 'animation', title: '✨ Motion, Transitions & Physics', content: animationContent },
-        { value: 'harmony', title: '🎼 Color Harmony & Typography', content: harmonyContent },
+        { value: 'harmony', title: '🎼 Color Harmony & Hue Spread', content: harmonyContent },
         { value: 'subthemes', title: '🌈 Monochromatic Subthemes', content: subthemeContent },
       ]}
     />
