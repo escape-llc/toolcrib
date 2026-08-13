@@ -1,10 +1,19 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
 import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
 import { mergeCommand } from './commands/merge.js';
 import { applyCommand } from './commands/apply.js';
 import { doctorCommand } from './commands/doctor.js';
 import { versionsCommand } from './commands/versions.js';
+
+// Read at runtime instead of a JSON import assertion: `assert { type: 'json' }`
+// vs `with { type: 'json' }` differs across the Node 18-22 range this CLI's
+// `engines.node >= 18` promises to support, so plain fs avoids picking a
+// syntax that breaks on some of those versions.
+const packageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+);
 
 const program = new Command();
 
@@ -20,7 +29,7 @@ program.enablePositionalOptions();
 program
   .name('toolcrib')
   .description('Bootstrap and maintain the toolcrib UI toolkit in your project')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 program
   .command('init')
