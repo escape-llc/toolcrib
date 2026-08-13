@@ -1,7 +1,12 @@
 /**
  * Toolcrib HSV Color Engine
- * All color math is strictly performed in the HSV (Hue, Saturation, Value) color space.
- * No RGB calculations are performed anywhere in this engine.
+ * All color storage, blending, and shifting is strictly performed in the
+ * HSV (Hue, Saturation, Value) color space — colors are never stored or
+ * manipulated as RGB anywhere in this engine. The one exception is
+ * getHSVLuminance's internal RGB conversion, required because WCAG's own
+ * relative-luminance formula is fundamentally defined against RGB channel
+ * weights (see that function's own comment for why an HSV-native
+ * approximation isn't accurate enough to honor real WCAG guarantees).
  */
 
 /** @barrelExport */
@@ -58,12 +63,14 @@ export function adjustValue(color: HSVColor, factor: number): HSVColor {
 /**
  * Applies darken or lighten factor to HSV Value channel.
  * factor > 1 lightens, factor < 1 darkens.
+ *
+ * Identical operation to adjustValue above — kept as its own exported name
+ * (call sites read more clearly as "darken/lighten the palette" vs. "scale
+ * this specific color's Value") rather than two independently-maintained
+ * implementations that could silently drift apart.
  */
 export function applyDarkenLighten(color: HSVColor, factor: number): HSVColor {
-  return normalizeHSV({
-    ...color,
-    v: color.v * factor,
-  });
+  return adjustValue(color, factor);
 }
 
 /**
@@ -126,16 +133,55 @@ export function hexToHSV(hex: string): HSVColor {
 }
 
 /**
- * Calculates WCAG relative luminance directly from HSV color tuple.
+ * HSV -> normalized (0..1) sRGB, used only by getHSVLuminance below. WCAG's
+ * relative luminance is fundamentally defined against per-channel RGB
+ * weights (0.2126/0.7152/0.0722, see getHSVLuminance) — there is no
+ * hue-aware way to derive it from HSV alone, so this file's "no RGB
+ * calculations" design (see the header comment) is scoped to color
+ * storage/blending, not to this one WCAG-mandated exception.
+ */
+function hsvToRGB01(hsv: HSVColor): [number, number, number] {
+  const norm = normalizeHSV(hsv);
+  const h = norm.h;
+  const s = norm.s / 100;
+  const v = norm.v / 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  return [r + m, g + m, b + m];
+}
+
+/**
+ * Calculates real WCAG 2.x relative luminance from an HSV color, per the
+ * spec's own formula (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance):
+ * piecewise-linearized sRGB channels weighted 0.2126/0.7152/0.0722.
+ *
+ * A previous version computed this from HSV's Lightness channel alone
+ * (`V * (1 - S/2)`, gamma-approximated via `Math.pow(L, 2.2)`) with no
+ * reference to hue at all — meaning e.g. fully-saturated red, green, and
+ * blue at the same S/V all produced the *identical* "luminance", when their
+ * real WCAG luminance differs by roughly 10x (green's channel weight alone
+ * is ~10x blue's). Verified empirically: at S=85/V=85, the old formula
+ * reported a constant contrast ratio of 4.56 against a near-black
+ * background across every hue and called all of them WCAG-AA compliant,
+ * while the real contrast ranged from 1.89:1 (blue, well below the 4.5:1
+ * minimum) to 11.55:1 (yellow) — `ensureWCAGContrast` below, which drives
+ * every subtheme's "text" shade (see harmonies.ts's
+ * generateMonochromaticSubTheme), was silently accepting real accessibility
+ * failures for blue/red/purple-anchored subthemes specifically (i.e. this
+ * toolkit's own default error and info subthemes).
  */
 export function getHSVLuminance(hsv: HSVColor): number {
-  const norm = normalizeHSV(hsv);
-  const S_hsv = norm.s / 100;
-  const V_hsv = norm.v / 100;
-
-  const L = V_hsv * (1 - S_hsv / 2);
-  // Approximation of WCAG relative luminance from Lightness channel
-  return Math.pow(L, 2.2);
+  const [r, g, b] = hsvToRGB01(hsv);
+  const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
 }
 
 /**
@@ -148,6 +194,33 @@ export function getHSVContrastRatio(hsv1: HSVColor, hsv2: HSVColor): number {
   const maxLum = Math.max(lum1, lum2);
   const minLum = Math.min(lum1, lum2);
   return (maxLum + 0.05) / (minLum + 0.05);
+}
+
+/**
+ * Picks whichever of pure black or pure white has higher WCAG contrast
+ * against a given background — the right approach for text/icons painted
+ * directly on top of a solid, possibly-vivid fill (a filled button, a
+ * pressed toggle, a checkbox's own checkmark), as opposed to
+ * ensureWCAGContrast below (which nudges a color while preserving its own
+ * hue — correct for "themed text on a neutral surface", not "text on a
+ * colored fill").
+ *
+ * Provably meets WCAG AA (>=4.5:1) against *any* background, with no
+ * iteration needed: white's contrast rises and black's falls (or vice
+ * versa) as background luminance moves away from ~0.179 — the one point
+ * where they're equal — so the worse of the two is minimized exactly
+ * there, and even at that worst case both already reach ~4.58:1.
+ *
+ * This is the fix for a real reported case: Button's primary/secondary/
+ * danger variants hardcoded white text unconditionally, so a bright
+ * high-luminance primary color (e.g. this toolkit's own default lime
+ * green, hue ~88°) produced genuinely unreadable white-on-lime text —
+ * `ensureWCAGContrast` was never involved in that path at all.
+ */
+export function pickReadableTextColor(bg: HSVColor): HSVColor {
+  const white: HSVColor = { h: 0, s: 0, v: 100 };
+  const black: HSVColor = { h: 0, s: 0, v: 0 };
+  return getHSVContrastRatio(white, bg) >= getHSVContrastRatio(black, bg) ? white : black;
 }
 
 /**

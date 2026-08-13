@@ -188,11 +188,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   };
 
   const getVariantStyles = (): React.CSSProperties => {
+    // Text color per fill is picked from the palette's own
+    // WCAG-guaranteed pickReadableTextColor result (see hsv.ts), not
+    // hardcoded white — a bright, high-luminance primary color (e.g. this
+    // toolkit's own default lime green) makes white-on-fill genuinely
+    // unreadable otherwise. Mirrors baseBg's own subthemeColors-vs-variant
+    // branching exactly, so text always matches whichever fill actually
+    // rendered.
     let baseBg = subthemeColors ? subthemeColors.main : 'var(--ai-color-primary, #3b82f6)';
-    let textColor = '#ffffff';
+    let textColor = subthemeColors ? subthemeColors.onMain : 'var(--ai-color-primary-text, #ffffff)';
 
     if (variant === 'secondary') {
       baseBg = 'var(--ai-color-secondary, #64748b)';
+      textColor = 'var(--ai-color-secondary-text, #ffffff)';
     } else if (variant === 'outline') {
       return {
         background: 'transparent',
@@ -207,6 +215,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       };
     } else if (variant === 'danger') {
       baseBg = 'var(--ai-subtheme-error, #ef4444)';
+      textColor = 'var(--ai-subtheme-error-on-main, #ffffff)';
     }
 
     return {
@@ -421,7 +430,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           ...checkboxVars,
         }}
       >
-        <CheckboxPrimitive.Indicator style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CheckboxPrimitive.Indicator style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           ✓
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>

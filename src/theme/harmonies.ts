@@ -3,10 +3,10 @@ import {
   normalizeHSV,
   shiftHue,
   adjustSaturation,
-  adjustValue,
   applyDarkenLighten,
   hsvToCSS,
   ensureWCAGContrast,
+  pickReadableTextColor,
 } from './hsv';
 
 import { PaddingMode, getPaddingVariables } from './padding';
@@ -38,6 +38,8 @@ export interface SubThemeColorGroup {
   bg: HSVColor;
   border: HSVColor;
   text: HSVColor;
+  /** Readable text/icon color for content painted directly on top of `main` as a solid fill (e.g. a filled badge) — see `pickReadableTextColor`. Distinct from `text`, which is for themed text on a neutral surface. */
+  onMain: HSVColor;
 }
 
 export interface GeneratedPalette {
@@ -45,6 +47,20 @@ export interface GeneratedPalette {
   primary: HSVColor;
   secondary: HSVColor;
   accent: HSVColor;
+  /**
+   * A 4th hue-based color role, present for every harmony mode (not just
+   * `'tetradic'`) — each mode's own comment in generateHarmonyPalette
+   * explains its specific 4th point.
+   */
+  quaternary: HSVColor;
+  /** Readable text/icon color for content painted directly on top of `primary` as a solid fill — see `pickReadableTextColor`. */
+  primaryText: HSVColor;
+  /** Readable text/icon color for content painted directly on top of `secondary` as a solid fill. */
+  secondaryText: HSVColor;
+  /** Readable text/icon color for content painted directly on top of `accent` as a solid fill. */
+  accentText: HSVColor;
+  /** Readable text/icon color for content painted directly on top of `quaternary` as a solid fill. */
+  quaternaryText: HSVColor;
   bgPrimary: HSVColor;
   bgSurface: HSVColor;
   bgContainer: HSVColor;
@@ -77,6 +93,11 @@ function generateMonochromaticSubTheme(
   // Monochromatic main shade
   const rawMain: HSVColor = normalizeHSV({ h: anchorHue, s: carriedS, v: carriedV });
   const main = ensureWCAGContrast(rawMain, bgSurface, 3.0, isDarkMode);
+  // Readable text/icon color for content filled directly on top of `main`
+  // (e.g. a solid badge) — not run through ensureWCAGContrast, since that
+  // preserves anchorHue while nudging V/S, which is the wrong tool for
+  // "pick black or white for a fill that's already fixed."
+  const onMain = pickReadableTextColor(main);
 
   // Monochromatic high-contrast text shade (WCAG AA 4.5:1 / AAA 7.0:1 compliant)
   const rawText: HSVColor = isDarkMode
@@ -94,7 +115,7 @@ function generateMonochromaticSubTheme(
     ? normalizeHSV({ h: anchorHue, s: Math.min(50, carriedS * 0.5), v: 35 })
     : normalizeHSV({ h: anchorHue, s: Math.min(45, carriedS * 0.4), v: 85 });
 
-  return { main, bg, border, text };
+  return { main, bg, border, text, onMain };
 }
 
 /**
@@ -117,38 +138,71 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
   let primary: HSVColor;
   let secondary: HSVColor;
   let accent: HSVColor;
+  let quaternary: HSVColor;
 
   switch (harmonyMode) {
     case 'monochromatic':
       primary = base;
       secondary = normalizeHSV({ ...base, v: Math.max(10, base.v * 0.7) });
       accent = normalizeHSV({ ...base, s: Math.min(100, base.s * 1.4), v: Math.min(100, base.v * 1.2) });
+      // Same hue as the other three (monochromatic has none to spare) — a
+      // 4th tint variant: notably lighter and softer than accent, rounding
+      // out the shade/tint range primary/secondary/accent don't cover.
+      quaternary = normalizeHSV({ ...base, s: Math.max(5, base.s * 0.3), v: Math.min(100, base.v * 1.3) });
       break;
 
     case 'analogous':
       primary = base;
       secondary = shiftHue(base, -hueSpread);
       accent = shiftHue(base, hueSpread);
+      // The direct complement (180°) — "analogous + a complementary pop
+      // accent" is a standard extension of a 3-hue analogous scheme, giving
+      // a 4th color that contrasts with the other three instead of
+      // extending the same narrow hue run further.
+      quaternary = shiftHue(base, 180);
       break;
 
     case 'split-complementary':
       primary = base;
       secondary = shiftHue(base, 180 - hueSpread);
       accent = shiftHue(base, 180 + hueSpread);
+      // The exact complement itself — split-complementary normally uses
+      // only the two hues flanking it; adding the complement gives a 4th,
+      // distinct "true opposite" punch color the other three don't cover.
+      quaternary = shiftHue(base, 180);
       break;
 
     case 'triadic':
       primary = base;
       secondary = shiftHue(base, 120);
       accent = shiftHue(base, 240);
+      // Triadic's own hues are already evenly spaced (0/120/240) with no
+      // room for a 4th evenly-spaced point — the standard way to extend a
+      // triadic scheme to 4 colors is adding the base's direct complement
+      // (180°) as an accent, distinct from all three existing points.
+      quaternary = shiftHue(base, 180);
       break;
 
     case 'tetradic':
       primary = base;
       secondary = shiftHue(base, hueSpread);
       accent = shiftHue(base, 180);
+      // Completes the classic "rectangle" tetradic scheme (base,
+      // base+spread, base+180, base+180+spread) — previously this mode
+      // only ever produced 3 of its own 4 defining hues.
+      quaternary = shiftHue(base, 180 + hueSpread);
       break;
   }
+
+  // Readable text/icon colors for content filled directly on top of each of
+  // the four hue-based colors above (e.g. a primary-filled Button's own
+  // label) — see pickReadableTextColor's own comment for why a hardcoded
+  // white was wrong here (this toolkit's own default primary is a bright
+  // lime green; white text on it is close to unreadable).
+  const primaryText = pickReadableTextColor(primary);
+  const secondaryText = pickReadableTextColor(secondary);
+  const accentText = pickReadableTextColor(accent);
+  const quaternaryText = pickReadableTextColor(quaternary);
 
   // Generate Light / Dark mode surfaces and texts
   let bgPrimary: HSVColor;
@@ -192,6 +246,11 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     primary,
     secondary,
     accent,
+    quaternary,
+    primaryText,
+    secondaryText,
+    accentText,
+    quaternaryText,
     bgPrimary,
     bgSurface,
     bgContainer,
@@ -238,9 +297,13 @@ export function paletteToCSSVariables(
     ...radiusVars,
     '--ai-color-base': hsvToCSS(palette.base),
     '--ai-color-primary': hsvToCSS(palette.primary),
-    '--ai-color-primary-hover': hsvToCSS(adjustValue(palette.primary, 0.9)),
+    '--ai-color-primary-text': hsvToCSS(palette.primaryText),
     '--ai-color-secondary': hsvToCSS(palette.secondary),
+    '--ai-color-secondary-text': hsvToCSS(palette.secondaryText),
     '--ai-color-accent': hsvToCSS(palette.accent),
+    '--ai-color-accent-text': hsvToCSS(palette.accentText),
+    '--ai-color-quaternary': hsvToCSS(palette.quaternary),
+    '--ai-color-quaternary-text': hsvToCSS(palette.quaternaryText),
 
     '--ai-bg-primary': hsvToCSS(palette.bgPrimary),
     '--ai-bg-surface': hsvToCSS(palette.bgSurface),
@@ -256,20 +319,24 @@ export function paletteToCSSVariables(
     '--ai-subtheme-error-bg': hsvToCSS(palette.subThemes.error.bg),
     '--ai-subtheme-error-border': hsvToCSS(palette.subThemes.error.border),
     '--ai-subtheme-error-text': hsvToCSS(palette.subThemes.error.text),
+    '--ai-subtheme-error-on-main': hsvToCSS(palette.subThemes.error.onMain),
 
     '--ai-subtheme-success': hsvToCSS(palette.subThemes.success.main),
     '--ai-subtheme-success-bg': hsvToCSS(palette.subThemes.success.bg),
     '--ai-subtheme-success-border': hsvToCSS(palette.subThemes.success.border),
     '--ai-subtheme-success-text': hsvToCSS(palette.subThemes.success.text),
+    '--ai-subtheme-success-on-main': hsvToCSS(palette.subThemes.success.onMain),
 
     '--ai-subtheme-warning': hsvToCSS(palette.subThemes.warning.main),
     '--ai-subtheme-warning-bg': hsvToCSS(palette.subThemes.warning.bg),
     '--ai-subtheme-warning-border': hsvToCSS(palette.subThemes.warning.border),
     '--ai-subtheme-warning-text': hsvToCSS(palette.subThemes.warning.text),
+    '--ai-subtheme-warning-on-main': hsvToCSS(palette.subThemes.warning.onMain),
 
     '--ai-subtheme-info': hsvToCSS(palette.subThemes.info.main),
     '--ai-subtheme-info-bg': hsvToCSS(palette.subThemes.info.bg),
     '--ai-subtheme-info-border': hsvToCSS(palette.subThemes.info.border),
     '--ai-subtheme-info-text': hsvToCSS(palette.subThemes.info.text),
+    '--ai-subtheme-info-on-main': hsvToCSS(palette.subThemes.info.onMain),
   };
 }

@@ -9,8 +9,10 @@ export interface SubthemeColors {
   background: string;
   /** Border colour — `var(--ai-subtheme-{name}-border)`. */
   border: string;
-  /** Text colour — `var(--ai-subtheme-{name}-text)`. */
+  /** Text colour for themed text on a neutral surface — `var(--ai-subtheme-{name}-text)`. */
   color: string;
+  /** Readable text/icon colour for content filled directly on top of `main` (e.g. a solid badge/button) — `var(--ai-subtheme-{name}-on-main)`. Distinct from `color`, which targets a neutral surface, not `main` itself. */
+  onMain: string;
 }
 
 /**
@@ -27,5 +29,6 @@ export function resolveSubtheme(subtheme: SubthemeName): SubthemeColors {
     background: `var(--ai-subtheme-${subtheme}-bg)`,
     border: `var(--ai-subtheme-${subtheme}-border)`,
     color: `var(--ai-subtheme-${subtheme}-text)`,
+    onMain: `var(--ai-subtheme-${subtheme}-on-main)`,
   };
 }

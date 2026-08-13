@@ -309,7 +309,7 @@ TabStrip.Tab = ({ active, onClick, children, disabled }) => (
       borderRadius: 'var(--ai-radius-md, 0.375rem)',
       border: 'none',
       background: active ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
-      color: active ? '#ffffff' : 'var(--ai-text-primary, #111827)',
+      color: active ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
       fontWeight: active ? 'var(--ai-font-weight-bold, 700)' : 'var(--ai-font-weight-medium, 500)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,

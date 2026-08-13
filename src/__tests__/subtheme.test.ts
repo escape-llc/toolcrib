@@ -8,6 +8,7 @@ describe('resolveSubtheme', () => {
       background: 'var(--ai-subtheme-error-bg)',
       border: 'var(--ai-subtheme-error-border)',
       color: 'var(--ai-subtheme-error-text)',
+      onMain: 'var(--ai-subtheme-error-on-main)',
     });
   });
 
@@ -19,6 +20,7 @@ describe('resolveSubtheme', () => {
       expect(colors.background).toBe(`var(--ai-subtheme-${name}-bg)`);
       expect(colors.border).toBe(`var(--ai-subtheme-${name}-border)`);
       expect(colors.color).toBe(`var(--ai-subtheme-${name}-text)`);
+      expect(colors.onMain).toBe(`var(--ai-subtheme-${name}-on-main)`);
     }
   });
 });
