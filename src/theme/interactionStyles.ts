@@ -23,6 +23,23 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  *   sitting unused until now), so it automatically respects the same
  *   Motion/Physics preset and `reducedMotion` setting as everything else.
  *
+ * Two more classes extend the same systematic treatment to controls that
+ * don't fit the "button with a hover-tintable background" shape:
+ *
+ * - `.ai-focus-ring` — just the `:focus-visible` ring, for custom-shaped
+ *   native controls with no hover-tint model of their own (the Select
+ *   trigger, RadioGroup's dot, Checkbox, Switch). Same accessibility gap as
+ *   above: all four previously reset `outline` to nothing (via an explicit
+ *   `outline: 'none'` or `all: 'unset'`) with no replacement.
+ * - `.ai-menu-item[data-highlighted]` — for Radix menu-style items
+ *   (DropdownMenu.Item, ContextMenu.Item, Select.Item). Radix's own
+ *   `data-highlighted` attribute already unifies mouse-hover and keyboard
+ *   navigation into one signal (correctly, regardless of whether a given
+ *   Radix primitive happens to move real DOM focus per item or not) — using
+ *   it instead of separate `:hover`/`:focus-visible` rules means one rule
+ *   covers both input modalities exactly the way Radix itself considers
+ *   "this item is the current candidate", rather than approximating it.
+ *
  * `!important` is only used where a component's own inline `style` already
  * sets that exact property (documented per-rule below) — inline style
  * always outranks an external stylesheet rule otherwise, override or not.
@@ -59,6 +76,22 @@ export function injectInteractionStyles(): void {
     }
     .ai-tab-trigger:active:not(:disabled) {
       transform: var(--ai-active-transform, scale(0.98));
+    }
+
+    /* .ai-focus-ring — every current user (Select's trigger, RadioGroup's
+       dot, Checkbox, Switch) sets an inline \`outline: 'none'\` (or resets it
+       via \`all: 'unset'\`, same effective result), so this needs !important
+       on every one of them to actually win. */
+    .ai-focus-ring:focus-visible {
+      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
+      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
+    }
+
+    /* .ai-menu-item — none of DropdownMenu.Item/ContextMenu.Item/Select.Item
+       set an inline \`background\` at all (implicitly transparent), so no
+       !important is needed to tint one in. */
+    .ai-menu-item[data-highlighted] {
+      background: color-mix(in srgb, currentColor var(--ai-menu-item-highlight-amount, 10%), transparent);
     }
     `
   );

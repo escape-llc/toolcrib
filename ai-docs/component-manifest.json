@@ -71,6 +71,7 @@
       "--ai-margin-xl",
       "--ai-margin-xs",
       "--ai-master-font-size",
+      "--ai-menu-item-highlight-amount",
       "--ai-modal-backdrop-blur",
       "--ai-modal-overlay-bg",
       "--ai-padding-lg",

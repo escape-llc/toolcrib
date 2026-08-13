@@ -1,9 +1,10 @@
-import React, { ReactNode, ReactElement } from 'react';
+import React, { ReactNode, ReactElement, useEffect } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, DropdownMenuSliceState } from './DropdownMenuSlice';
 
@@ -64,6 +65,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 }) => {
   const id = useStableId(propId, 'menu');
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   return (
     <DropdownMenuPrimitive.Root
@@ -121,6 +125,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   aiBus.emit('menu:item_selected', { id, itemValue: item.value });
                   if (item.onClick) item.onClick();
                 }}
+                className="ai-menu-item"
                 style={{
                   display: 'flex',
                   alignItems: 'center',

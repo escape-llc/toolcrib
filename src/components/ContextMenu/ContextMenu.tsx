@@ -1,10 +1,11 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { SubthemeName } from '../../theme/subtheme';
 import { ContextMenuThemeSlice, ContextMenuSliceState } from './ContextMenuSlice';
 
@@ -39,6 +40,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
 }) => {
   const id = useStableId(propId, 'contextmenu');
   const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   return (
     <ContextMenuPrimitive.Root
@@ -93,6 +97,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                   aiBus.emit('menu:item_selected', { id, itemValue: item.value });
                   if (item.onClick) item.onClick();
                 }}
+                className="ai-menu-item"
                 style={{
                   display: 'flex',
                   alignItems: 'center',

@@ -1,8 +1,9 @@
-import React, { ReactNode, createContext, useContext } from 'react';
+import React, { ReactNode, createContext, useContext, useEffect } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { RadioGroupThemeSlice, RadioGroupSliceState } from './RadioGroupSlice';
 
 /** Data shape for each option in a `<RadioGroup>`. */
@@ -75,6 +76,9 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   // See Select.tsx for why this matters: without it, a RadioGroup left at
   // its default (nothing selected) on first submit never gets marked
@@ -167,6 +171,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
       <RadioGroupPrimitive.Item
         value={value}
         disabled={isDisabled}
+        className="ai-focus-ring"
         style={{
           all: 'unset',
           width: 'var(--ai-radiogroup-dot-size, 1.125rem)',

@@ -368,6 +368,9 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -393,6 +396,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
+        className="ai-focus-ring"
         style={{
           all: 'unset',
           width: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
@@ -438,6 +442,9 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
+  useEffect(() => {
+    injectInteractionStyles();
+  }, []);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -463,6 +470,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
+        className="ai-focus-ring"
         style={{
           all: 'unset',
           width: 'var(--ai-togglecontrol-switch-width, 2.375rem)',
