@@ -460,6 +460,18 @@
         "payload": "{ id?: string; activeId: string; previousId?: string }"
       },
       {
+        "name": "datatable:sorted",
+        "payload": "{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
+      },
+      {
+        "name": "datatable:paginated",
+        "payload": "{ id?: string; page: number; pageSize: number }"
+      },
+      {
+        "name": "datatable:row_clicked",
+        "payload": "{ id?: string; index: number }"
+      },
+      {
         "name": "log:cleared",
         "payload": "{ timestamp: string }"
       },
@@ -793,6 +805,10 @@
       "name": "DataTable",
       "import": "import { DataTable } from '#toolcrib'",
       "props": {
+        "id": {
+          "type": "string",
+          "description": "Identifier included in this instance's `datatable:sorted`/\n`datatable:paginated`/`datatable:row_clicked` event bus payloads, so a\nlistener watching multiple tables can tell them apart. Auto-generated\nif omitted (still included in payloads either way) — unlike\n`Modal`/`Popup`/`Accordion`'s `id`, there's no bus-driven open/close\ncounterpart to target, so this exists purely for event attribution."
+        },
         "data": {
           "type": "T[]",
           "required": true,
@@ -828,8 +844,12 @@
           "description": "Custom row key extractor for React reconciliation. Defaults to array index."
         },
         "rowSubtheme": {
-          "type": "(record: T, index: number) => SubthemeName | undefined",
-          "description": "Classifies a row into one of the toolkit's four semantic subthemes\n(`error`/`success`/`warning`/`info`), tinting its background and\nborder accordingly, and overriding that row's cell text color and\ndisabling zebra-striping for it so the tint stays legible. Return\n`undefined` for a row that shouldn't be flagged. This is the row-level\nequivalent of `subtheme` on components like `Button`/`Progress`/`Toast`\n— it exists specifically so flagging a row (a failed job, a pending\ninvoice) doesn't require bypassing `DataTable` for hand-rolled markup\njust to reach the row element: the same WCAG-guaranteed subtheme colors\nused everywhere else in the toolkit (see `theme/subtheme.ts`'s\n`resolveSubtheme`) are available here without introducing a raw\n`style`/`className` escape hatch on the row.\n\n`index` is the row's position within the *current page* (matching\n`rowKey`/`Column.render`'s `index`), not its position in the full\n`data` array — it resets to `0` at the top of every page."
+          "type": "(record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined",
+          "description": "Styles a row. Return either:\n- One of the toolkit's four semantic subtheme names (`'error'` /\n  `'success'` / `'warning'` / `'info'`) — resolved via\n  `theme/subtheme.ts`'s `resolveSubtheme` into the same\n  WCAG-guaranteed colors used by `subtheme` on `Button`/`Progress`/\n  `Toast`. This is the common case: flagging a row (a failed job, a\n  pending invoice) with the toolkit's existing semantic vocabulary\n  instead of one-off colors.\n- A `Partial<SubthemeColors>` slice — `{ background?, border?, color?\n  }` (see `theme/subtheme.ts`) — for a custom row color the four\n  presets don't cover. Only the fields you set are applied; a field\n  left out falls back to that row's normal, unflagged appearance\n  (default zebra background / border / text color) rather than to\n  any preset. `resolveSubtheme(name)` returns this exact shape, so\n  `rowSubtheme={(r) => ({ ...resolveSubtheme('warning'), border:\n  myCustomBorder })}` composes a preset with a one-off override.\n\nEither form is applied to the row's background/border and to every\ncell's text color in it, and disables that row's zebra-striping so\nthe color stays legible. Return `undefined` for a row that shouldn't\nbe styled.\n\n`index` is the row's position within the *current page* (matching\n`rowKey`/`Column.render`'s `index`), not its position in the full\n`data` array — it resets to `0` at the top of every page."
+        },
+        "onRowClick": {
+          "type": "(record: T, index: number) => void",
+          "description": "Called when a row is clicked. Every row click also emits\n`datatable:row_clicked` on the event bus regardless of whether this is\ngiven, so an AI agent observing the bus can see row interactions even\nin apps that don't wire up their own handler — this prop is for the\napp's own reaction (open a detail view, select the row, etc.). Rows\nonly show a pointer cursor when this is provided, so the visual\naffordance matches what's actually clickable."
         },
         "overrides": {
           "type": "Partial<TableSliceState>",

@@ -127,7 +127,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
 | `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
-| `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
+| `<DataTable>` | — | `id`, `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
@@ -311,7 +311,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[39]{name,payload}:
+[42]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -348,6 +348,9 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
+  "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
+  "datatable:paginated","{ id?: string; page: number; pageSize: number }"
+  "datatable:row_clicked","{ id?: string; index: number }"
   "log:cleared","{ timestamp: string }"
   "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
   "layout:corners:squared","{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"

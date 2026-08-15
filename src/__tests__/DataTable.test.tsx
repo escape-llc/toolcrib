@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DataTable, Column } from '../components/DataTable/DataTable';
+import { aiBus } from '../eventBus/eventBus';
 
 interface TestItem {
   id: number;
@@ -128,5 +129,127 @@ describe('DataTable Virtualized Component', () => {
     // (jsdom normalizes the `border-bottom: none` shorthand rather than
     // echoing the literal string back, so check the longhand style instead.)
     expect(getComputedStyle(flaggedRow).borderBottomStyle).toBe('none');
+  });
+
+  it('accepts a custom Partial<SubthemeColors> slice from rowSubtheme, applying only the fields it sets', () => {
+    render(
+      <DataTable
+        data={testData}
+        columns={testColumns}
+        pageSize={10}
+        rowSubtheme={(record: TestItem) => (record.id === 1 ? { background: 'rebeccapurple' } : undefined)}
+      />
+    );
+
+    const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
+    expect(flaggedRow.style.background).toBe('rebeccapurple');
+    // border/color weren't set in the slice, so they fall back to the
+    // row's normal unflagged appearance rather than to any preset.
+    expect(flaggedRow.style.borderBottom).toBe('0.0625rem solid var(--ai-border, #f3f4f6)');
+
+    const flaggedCell = screen.getByText('Item 1');
+    expect(flaggedCell.style.color).toBe('var(--ai-text-primary, #111827)');
+  });
+
+  it('does not let a stale in-flight scroll frame stomp the reset when sorting mid-scroll', async () => {
+    const { container } = render(
+      <DataTable data={testData} columns={testColumns} pageSize={50} containerHeight={200} />
+    );
+    const table = container.querySelector('table');
+    const scrollBody = table?.parentElement as HTMLElement;
+
+    // Scroll far down — schedules a throttled rAF that hasn't fired yet...
+    fireEvent.scroll(scrollBody, { target: { scrollTop: 800 } });
+    // ...then immediately sort, before that frame gets a chance to fire.
+    // Without cancelling the in-flight frame, it would later reapply the
+    // stale 800 offset on top of the sort's scroll reset.
+    fireEvent.click(screen.getByText('ID'));
+
+    // Let the (should-be-cancelled) frame resolve.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    expect(screen.getByText('Item 1')).toBeInTheDocument();
+  });
+
+  it('sorts NaN numeric values to the end instead of an unspecified position', () => {
+    interface ScoredItem {
+      id: number;
+      name: string;
+      score: number;
+    }
+    const nanData: ScoredItem[] = [
+      { id: 1, name: 'Alpha', score: 50 },
+      { id: 2, name: 'Beta', score: NaN },
+      { id: 3, name: 'Gamma', score: 10 },
+    ];
+    const scoredColumns: Column<ScoredItem>[] = [
+      { key: 'name', title: 'Name', sortable: true },
+      { key: 'score', title: 'Score', sortable: true },
+    ];
+
+    render(<DataTable data={nanData} columns={scoredColumns} pageSize={10} />);
+    fireEvent.click(screen.getByText('Score')); // ascending
+
+    const dataRows = screen.getAllByRole('row').slice(1); // drop the header row
+    const order = dataRows.map(row => (row.textContent?.includes('Gamma') ? 'Gamma' : row.textContent?.includes('Alpha') ? 'Alpha' : 'Beta'));
+    expect(order).toEqual(['Gamma', 'Alpha', 'Beta']);
+  });
+
+  it('emits datatable:sorted with the resolved key/direction, cycling asc -> desc -> unsorted', () => {
+    const sortedFn = vi.fn();
+    const unsub = aiBus.on('datatable:sorted', sortedFn);
+
+    render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+
+    fireEvent.click(screen.getByText('Name'));
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: 'name', direction: 'asc' });
+
+    fireEvent.click(screen.getByText('Name'));
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: 'name', direction: 'desc' });
+
+    fireEvent.click(screen.getByText('Name'));
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: null, direction: 'desc' });
+
+    unsub();
+  });
+
+  it('emits datatable:paginated from Prev/Next and the page-size select', () => {
+    const paginatedFn = vi.fn();
+    const unsub = aiBus.on('datatable:paginated', paginatedFn);
+
+    render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+
+    fireEvent.click(screen.getByLabelText('Next page'));
+    expect(paginatedFn).toHaveBeenLastCalledWith({ id: 'my-table', page: 2, pageSize: 10 });
+
+    fireEvent.click(screen.getByLabelText('Previous page'));
+    expect(paginatedFn).toHaveBeenLastCalledWith({ id: 'my-table', page: 1, pageSize: 10 });
+
+    fireEvent.change(screen.getByDisplayValue('10 per page'), { target: { value: '25' } });
+    expect(paginatedFn).toHaveBeenLastCalledWith({ id: 'my-table', page: 1, pageSize: 25 });
+
+    unsub();
+  });
+
+  it('emits datatable:row_clicked and calls onRowClick, showing a pointer cursor only when onRowClick is given', () => {
+    const rowClickedFn = vi.fn();
+    const onRowClick = vi.fn();
+    const unsub = aiBus.on('datatable:row_clicked', rowClickedFn);
+
+    const { rerender } = render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+    const plainRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
+    expect(plainRow.style.cursor).toBe('');
+    fireEvent.click(plainRow);
+    expect(rowClickedFn).toHaveBeenLastCalledWith({ id: 'my-table', index: 0 });
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    rerender(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} onRowClick={onRowClick} />);
+    const clickableRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
+    expect(clickableRow.style.cursor).toBe('pointer');
+    fireEvent.click(clickableRow);
+    expect(onRowClick).toHaveBeenCalledWith(testData[0], 0);
+    expect(rowClickedFn).toHaveBeenLastCalledWith({ id: 'my-table', index: 0 });
+
+    unsub();
   });
 });

@@ -4,7 +4,9 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
+import { resolveSubtheme, SubthemeName, SubthemeColors } from '../../theme/subtheme';
+import { useStableId } from '../shared/useStableId';
+import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
 /** Column definition for `<DataTable>`. */
@@ -27,6 +29,15 @@ export interface Column<T = any> {
  * Supports client-side sorting and pagination out of the box.
  */
 export interface DataTableProps<T = any> {
+  /**
+   * Identifier included in this instance's `datatable:sorted`/
+   * `datatable:paginated`/`datatable:row_clicked` event bus payloads, so a
+   * listener watching multiple tables can tell them apart. Auto-generated
+   * if omitted (still included in payloads either way) — unlike
+   * `Modal`/`Popup`/`Accordion`'s `id`, there's no bus-driven open/close
+   * counterpart to target, so this exists purely for event attribution.
+   */
+  id?: string;
   /** Array of data records to display. */
   data: T[];
   /** Column definitions controlling header, cell rendering, and sorting. */
@@ -54,24 +65,43 @@ export interface DataTableProps<T = any> {
   /** Custom row key extractor for React reconciliation. Defaults to array index. */
   rowKey?: (record: T, index: number) => string | number;
   /**
-   * Classifies a row into one of the toolkit's four semantic subthemes
-   * (`error`/`success`/`warning`/`info`), tinting its background and
-   * border accordingly, and overriding that row's cell text color and
-   * disabling zebra-striping for it so the tint stays legible. Return
-   * `undefined` for a row that shouldn't be flagged. This is the row-level
-   * equivalent of `subtheme` on components like `Button`/`Progress`/`Toast`
-   * — it exists specifically so flagging a row (a failed job, a pending
-   * invoice) doesn't require bypassing `DataTable` for hand-rolled markup
-   * just to reach the row element: the same WCAG-guaranteed subtheme colors
-   * used everywhere else in the toolkit (see `theme/subtheme.ts`'s
-   * `resolveSubtheme`) are available here without introducing a raw
-   * `style`/`className` escape hatch on the row.
+   * Styles a row. Return either:
+   * - One of the toolkit's four semantic subtheme names (`'error'` /
+   *   `'success'` / `'warning'` / `'info'`) — resolved via
+   *   `theme/subtheme.ts`'s `resolveSubtheme` into the same
+   *   WCAG-guaranteed colors used by `subtheme` on `Button`/`Progress`/
+   *   `Toast`. This is the common case: flagging a row (a failed job, a
+   *   pending invoice) with the toolkit's existing semantic vocabulary
+   *   instead of one-off colors.
+   * - A `Partial<SubthemeColors>` slice — `{ background?, border?, color?
+   *   }` (see `theme/subtheme.ts`) — for a custom row color the four
+   *   presets don't cover. Only the fields you set are applied; a field
+   *   left out falls back to that row's normal, unflagged appearance
+   *   (default zebra background / border / text color) rather than to
+   *   any preset. `resolveSubtheme(name)` returns this exact shape, so
+   *   `rowSubtheme={(r) => ({ ...resolveSubtheme('warning'), border:
+   *   myCustomBorder })}` composes a preset with a one-off override.
+   *
+   * Either form is applied to the row's background/border and to every
+   * cell's text color in it, and disables that row's zebra-striping so
+   * the color stays legible. Return `undefined` for a row that shouldn't
+   * be styled.
    *
    * `index` is the row's position within the *current page* (matching
    * `rowKey`/`Column.render`'s `index`), not its position in the full
    * `data` array — it resets to `0` at the top of every page.
    */
-  rowSubtheme?: (record: T, index: number) => SubthemeName | undefined;
+  rowSubtheme?: (record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined;
+  /**
+   * Called when a row is clicked. Every row click also emits
+   * `datatable:row_clicked` on the event bus regardless of whether this is
+   * given, so an AI agent observing the bus can see row interactions even
+   * in apps that don't wire up their own handler — this prop is for the
+   * app's own reaction (open a detail view, select the row, etc.). Rows
+   * only show a pointer cursor when this is provided, so the visual
+   * affordance matches what's actually clickable.
+   */
+  onRowClick?: (record: T, index: number) => void;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
 }
@@ -81,6 +111,7 @@ export interface DataTableProps<T = any> {
  * @manifestCategory Data Display
  */
 export function DataTable<T extends Record<string, any> = Record<string, any>>({
+  id: propId,
   data,
   columns,
   pageSize: initialPageSize = 10,
@@ -89,8 +120,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   containerHeight = 'auto',
   rowKey,
   rowSubtheme,
+  onRowClick,
   overrides,
 }: DataTableProps<T>) {
+  const id = useStableId(propId, 'datatable');
   const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
   // Row-level borders below are set directly in JS (not through
   // --ai-table-border, which only reaches the cells' borderRight — see that
@@ -110,6 +143,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
 
+  // Scroll events are throttled to one setScrollTop per animation frame (see
+  // onScroll below) via these two refs.
+  const latestScrollTopRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
+
   // Nothing previously reset scrollTop (state or the real DOM scroll
   // position) when the page changed — scrolling deep into page 1, then
   // paging forward, left the virtualization window (startIndex/endIndex
@@ -119,7 +157,19 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // current page's rows exactly the same way pagination does, so it has to
   // reset the window too — sortKey/sortDirection are included below for
   // that reason, not left out as an oversight.
+  //
+  // Also cancels any in-flight scroll rAF and clears latestScrollTopRef:
+  // without this, a scroll on the *old* page that was still waiting for its
+  // throttled frame when the page/sort changed would fire after this reset,
+  // calling setScrollTop with the stale pre-change offset and silently
+  // undoing the reset above — reintroducing the exact blank-table bug this
+  // effect exists to prevent.
   useEffect(() => {
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
+    }
+    latestScrollTopRef.current = 0;
     setScrollTop(0);
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [currentPage, pageSize, sortKey, sortDirection]);
@@ -134,6 +184,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       if (valA == null) return 1;
       if (valB == null) return -1;
       if (typeof valA === 'number' && typeof valB === 'number') {
+        // A NaN operand makes `valA - valB` itself NaN, which
+        // Array.prototype.sort treats as an unspecified (non-crashing but
+        // effectively unsorted) comparison result — sort NaN to the end,
+        // the same place `null`/`undefined` land above, rather than
+        // leaving its position undefined.
+        if (Number.isNaN(valA) && Number.isNaN(valB)) return 0;
+        if (Number.isNaN(valA)) return 1;
+        if (Number.isNaN(valB)) return -1;
         return sortDirection === 'asc' ? valA - valB : valB - valA;
       }
       const strA = String(valA).toLowerCase();
@@ -196,13 +254,29 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const visibleRows = paginatedData.slice(startIndex, endIndex);
 
   const handleSort = (key: string) => {
+    let newKey: string | null;
+    let newDirection: 'asc' | 'desc';
     if (sortKey === key) {
-      if (sortDirection === 'asc') setSortDirection('desc');
-      else setSortKey(null);
+      if (sortDirection === 'asc') {
+        newKey = key;
+        newDirection = 'desc';
+      } else {
+        newKey = null;
+        newDirection = sortDirection;
+      }
     } else {
-      setSortKey(key);
-      setSortDirection('asc');
+      newKey = key;
+      newDirection = 'asc';
     }
+    setSortKey(newKey);
+    setSortDirection(newDirection);
+    aiBus.emit('datatable:sorted', { id, key: newKey, direction: newDirection });
+  };
+
+  const goToPage = (page: number) => {
+    const clamped = Math.max(1, Math.min(page, totalPages));
+    setCurrentPage(clamped);
+    aiBus.emit('datatable:paginated', { id, page: clamped, pageSize });
   };
 
   // Raw scroll events can fire far faster than one per frame; setting
@@ -210,9 +284,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // rowSubtheme/resolveSubtheme for every visible row) that often too.
   // Coalescing to one update per animation frame — keeping only the latest
   // offset via the ref — cuts that to the rate the browser can actually
-  // paint at.
-  const latestScrollTopRef = useRef(0);
-  const scrollRafRef = useRef<number | null>(null);
+  // paint at. (latestScrollTopRef/scrollRafRef are declared up with
+  // bodyRef, not here, so the page/sort-change reset effect above can
+  // cancel an in-flight frame — see that effect's comment.)
   useEffect(() => {
     return () => {
       if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
@@ -243,7 +317,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         width: '100%',
         height: isAutoHeight ? '100%' : undefined,
         flex: isAutoHeight ? '1 1 0px' : undefined,
-        minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX / 16}rem` : 0,
+        minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX}px` : 0,
         ...vars,
       }}
     >
@@ -252,9 +326,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ref={bodyRef}
         onScroll={onScroll}
         style={{
-          height: typeof containerHeight === 'number' ? `${containerHeight / 16}rem` : undefined,
+          height: typeof containerHeight === 'number' ? `${containerHeight}px` : undefined,
           flex: isAutoHeight ? '1 1 0px' : undefined,
-          minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX / 16}rem` : 0,
+          minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX}px` : 0,
           overflowY: 'auto',
           position: 'relative',
           width: '100%',
@@ -314,7 +388,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           <tbody>
             {startIndex > 0 && (
               <tr>
-                <td colSpan={columns.length} style={{ height: `${(startIndex * itemHeight) / 16}rem`, padding: 0 }} />
+                <td colSpan={columns.length} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
               </tr>
             )}
 
@@ -323,18 +397,24 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               const actualIndex = startIndex + relativeIndex;
               const key = rowKey ? rowKey(record, actualIndex) : actualIndex;
               const subtheme = rowSubtheme?.(record, actualIndex);
-              const subthemeColors = subtheme ? resolveSubtheme(subtheme) : null;
+              const subthemeColors: Partial<SubthemeColors> | null =
+                typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
               return (
                 <tr
                   key={key}
+                  onClick={() => {
+                    onRowClick?.(record, actualIndex);
+                    aiBus.emit('datatable:row_clicked', { id, index: actualIndex });
+                  }}
                   style={{
-                    height: `${itemHeight / 16}rem`,
-                    borderBottom: subthemeColors
+                    height: `${itemHeight}px`,
+                    cursor: onRowClick ? 'pointer' : undefined,
+                    borderBottom: subthemeColors?.border
                       ? effectiveBorderStyle === 'none'
                         ? 'none'
                         : `0.0625rem dashed ${subthemeColors.border}`
                       : '0.0625rem solid var(--ai-border, #f3f4f6)',
-                    background: subthemeColors
+                    background: subthemeColors?.background
                       ? subthemeColors.background
                       : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
                     transition: 'background 0.15s ease',
@@ -347,7 +427,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         key={col.key}
                         style={{
                           padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
-                          color: subthemeColors ? subthemeColors.color : 'var(--ai-text-primary, #111827)',
+                          color: subthemeColors?.color ?? 'var(--ai-text-primary, #111827)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -365,7 +445,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             {/* Virtual Spacer Bottom */}
             {endIndex < totalItems && (
               <tr>
-                <td colSpan={columns.length} style={{ height: `${((totalItems - endIndex) * itemHeight) / 16}rem`, padding: 0 }} />
+                <td colSpan={columns.length} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
               </tr>
             )}
           </tbody>
@@ -397,8 +477,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             <select
               value={pageSize}
               onChange={e => {
-                setPageSize(Number(e.target.value));
+                const newSize = Number(e.target.value);
+                setPageSize(newSize);
                 setCurrentPage(1);
+                aiBus.emit('datatable:paginated', { id, page: 1, pageSize: newSize });
               }}
               className="ai-btn"
               style={{
@@ -419,7 +501,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </select>
 
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => goToPage(validCurrentPage - 1)}
               disabled={validCurrentPage === 1}
               aria-label="Previous page"
               className="ai-btn"
@@ -451,7 +533,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </span>
 
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => goToPage(validCurrentPage + 1)}
               disabled={validCurrentPage === totalPages}
               aria-label="Next page"
               className="ai-btn"
