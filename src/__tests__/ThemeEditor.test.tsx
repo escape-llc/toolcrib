@@ -81,7 +81,7 @@ describe('ThemeEditor', () => {
     it('shows every Save & Load Themes command by default', () => {
       renderEditor();
 
-      expect(screen.getByText(/🍋 Lime \(Default\)/)).toBeInTheDocument(); // a bundled preset
+      expect(screen.getByText(/🔷 Tailwind \(Default\)/)).toBeInTheDocument(); // a bundled preset
       expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument(); // the localStorage "save" field
       expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /⬆️ Import/ })).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe('ThemeEditor', () => {
     it('hides the entire toolbar when themeManagement={false} — e.g. an app author shipping one fixed bundled theme', () => {
       renderEditor({ themeManagement: false });
 
-      expect(screen.queryByText(/🍋 Lime \(Default\)/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /⬇️ Export/ })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('ThemeEditor', () => {
     it('locks out individual commands without affecting the others', () => {
       renderEditor({ themeManagement: { import: false, library: false } });
 
-      expect(screen.getByText(/🍋 Lime \(Default\)/)).toBeInTheDocument(); // presets still shown
+      expect(screen.getByText(/🔷 Tailwind \(Default\)/)).toBeInTheDocument(); // presets still shown
       expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument(); // export still shown
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument(); // library locked out
       expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument(); // import locked out

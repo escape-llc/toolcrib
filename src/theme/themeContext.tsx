@@ -151,7 +151,12 @@ export interface ThemeContextType {
 }
 
 const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
-  baseColor: { h: 88, s: 78, v: 85 }, // Lime / Neon Olive Green from reference screenshot
+  // Matches presetThemes.ts's 'tailwind' preset — Tailwind CSS's blue-500
+  // (#3b82f6) converted to HSV, light mode. Not derived from that preset
+  // programmatically (see presetThemes.ts's header comment: presets are
+  // pure bundled data with no dependency on this file); kept in sync by
+  // hand, same as every preset here always has been.
+  baseColor: { h: 217, s: 76, v: 96 },
   harmonyMode: 'analogous',
   hueSpread: 30,
   darkenLightenFactor: 1.0,
@@ -160,7 +165,7 @@ const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
   marginMode: 'normal',
   cornerRadiusMode: 'rounded',
   shadowMode: 'subtle',
-  isDarkMode: true,
+  isDarkMode: false,
 };
 
 const defaultTableState: TableSliceState = {

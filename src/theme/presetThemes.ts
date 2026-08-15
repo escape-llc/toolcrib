@@ -19,8 +19,23 @@ export interface PresetTheme {
 
 export const presetThemes: PresetTheme[] = [
   {
+    id: 'tailwind',
+    name: '🔷 Tailwind (Default)',
+    snapshot: {
+      schemaVersion: 1,
+      // baseColor is Tailwind CSS's blue-500 (#3b82f6) converted to HSV —
+      // the closest this HSV-driven engine gets to "Tailwind compatible":
+      // it's already the literal hardcoded fallback on nearly every
+      // component's CSS custom properties throughout this codebase (e.g.
+      // `var(--ai-color-primary, #3b82f6)`), so this preset is what those
+      // components already look like with no ThemeProvider at all — light
+      // mode to match Tailwind's own unstyled/base (non-`dark:`) appearance.
+      parameters: { baseColor: { h: 217, s: 76, v: 96 }, harmonyMode: 'analogous', hueSpread: 30, isDarkMode: false },
+    },
+  },
+  {
     id: 'lime',
-    name: '🍋 Lime (Default)',
+    name: '🍋 Lime',
     snapshot: {
       schemaVersion: 1,
       parameters: { baseColor: { h: 88, s: 78, v: 85 }, harmonyMode: 'analogous', hueSpread: 30, isDarkMode: true },
