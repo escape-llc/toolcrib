@@ -41,6 +41,7 @@ export interface AccordionProps {
 
 /**
  * @manifest Data-driven collapsible panel group with animations
+ * @manifestConstraints For a long list of many items, wrap each item's `content` value in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones (each item is content-sized, not flex-fill, so this is safe)
  * @manifestCategory Data Display
  */
 export const Accordion: React.FC<AccordionProps> = ({

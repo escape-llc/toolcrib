@@ -60,6 +60,7 @@ export * from './components/Form/Slider';
 export * from './components/Form/SliderSlice';
 export * from './components/Form/ToggleControlSlice';
 export * from './components/Layout/Content';
+export * from './components/Layout/DeferredContent';
 export * from './components/Layout/Grid';
 export * from './components/Layout/Stack';
 export * from './components/Overlay/Modal';

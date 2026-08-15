@@ -555,6 +555,7 @@
           "description": "Per-instance overrides for header padding, item gap, variant, and panel animation."
         }
       },
+      "constraints": "For a long list of many items, wrap each item's `content` value in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones (each item is content-sized, not flex-fill, so this is safe)",
       "category": "Data Display",
       "description": "Data-driven collapsible panel group with animations"
     },
@@ -691,6 +692,7 @@
           "description": "Per-instance theme overrides (padding, header style, subtheme)."
         }
       },
+      "constraints": "For a long list/grid of many Cards (default, non-`auto` layout — content-sized, not flex-fill), wrap each Card in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones",
       "category": "Containers",
       "description": "Slot-based container with automatic layout domain corner squaring"
     },
@@ -858,6 +860,23 @@
       },
       "category": "Data Display",
       "description": "Virtualized, sortable, paginated data table with sticky headers"
+    },
+    {
+      "name": "DeferredContent",
+      "import": "import { DeferredContent } from '#toolcrib'",
+      "props": {
+        "estimatedHeight": {
+          "type": "number",
+          "required": true,
+          "description": "Estimated height in pixels to reserve while this content's real size is\nunknown — before it's ever been rendered, or while the browser is\ncurrently skipping it. Only needs to be roughly right: browsers\nremember the actual last-rendered height and reuse it for every future\nskip (that's what the native `auto` keyword this component always\npasses to `contain-intrinsic-height` does), so a wrong guess here only\ncosts one approximate layout, on this element's very first render."
+        },
+        "onVisibilityChange": {
+          "type": "(state: ContentVisibilityState) => void",
+          "description": "Called when this content's rendering is skipped or resumed by the\nbrowser — e.g. to pause/resume an expensive child (a video, a live\nchart, a canvas animation) while it's off-screen. Optional: most\nchildren don't do continuous work and don't need this."
+        }
+      },
+      "category": "Containers",
+      "description": "Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this"
     },
     {
       "name": "DropdownMenu",

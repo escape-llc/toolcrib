@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { z } from 'zod';
+import toolcribIcon from './toolcrib-256x256.png';
 import {
   useTheme,
   ThemeProvider,
@@ -500,7 +501,13 @@ export const App: React.FC = () => {
       {/* Top Header Bar */}
       <AppShell.Header>
         <HStack gap="sm">
-          <div style={{ fontSize: '1.5rem' }}>🤖</div>
+          <img
+            src={toolcribIcon}
+            alt="Toolcrib"
+            width={28}
+            height={28}
+            style={{ borderRadius: 'var(--ai-radius-md, 0.375rem)', flexShrink: 0 }}
+          />
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>

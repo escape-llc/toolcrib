@@ -125,6 +125,7 @@ export interface CardActionsProps extends StyleFreeAttributes<HTMLDivElement> {
 
 /**
  * @manifest Slot-based container with automatic layout domain corner squaring
+ * @manifestConstraints For a long list/grid of many Cards (default, non-`auto` layout — content-sized, not flex-fill), wrap each Card in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones
  * @manifestCategory Containers
  */
 export const Card: React.FC<CardProps> & {
