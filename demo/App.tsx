@@ -49,6 +49,8 @@ import {
   ToggleGroup,
   ContextMenu,
   Collapsible,
+  AIErrorBoundary,
+  DeferredContent,
 } from '#toolcrib';
 
 // Zod validation schema for Demo Form
@@ -422,6 +424,21 @@ const WIREFRAME_LEGEND: { label: string; color: string }[] = [
   { label: 'Footer', color: '#6b7280' },
 ];
 
+/**
+ * Throws during render once `triggerKey > 0` — an error boundary only
+ * catches render/lifecycle errors, not ones thrown inside an event handler,
+ * so the "crash" has to be a render-time effect of state changing, not the
+ * button's own onClick. Module-level (not defined inside App) so it isn't
+ * torn down and recreated — with fresh internal state — on every App
+ * re-render.
+ */
+const Flaky: React.FC<{ triggerKey: number }> = ({ triggerKey }) => {
+  if (triggerKey > 0) {
+    throw new Error(`Simulated render crash #${triggerKey}`);
+  }
+  return <p style={{ margin: 0 }}>Nothing went wrong (yet). Click the button below to simulate a render crash.</p>;
+};
+
 export const App: React.FC = () => {
   const { parameters, typographyState } = useTheme();
   const { addToast, setAnchor } = useToast();
@@ -433,6 +450,7 @@ export const App: React.FC = () => {
   // prop, or state — see src/components/TabStrip/TabStrip.tsx.
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
   const [progressValue, setProgressValue] = useState(45);
+  const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
 
   // Subscribe to ALL aiBus events for the live event monitor
   useAIEvent('*' as any, (event: any) => {
@@ -465,6 +483,25 @@ export const App: React.FC = () => {
       time: timestamp,
     };
     setEventLogs(prev => [logItem, ...prev.slice(0, 49)]);
+  });
+
+  // `error:boundary` is already visible in the log above (it's part of the
+  // wildcard stream every other event goes through) — this is a *second*,
+  // narrower subscription showing the pattern a real app would actually
+  // use: forward just the events you care about to wherever "elsewhere"
+  // is. A toast stands in for a real destination (Sentry, a support queue,
+  // your own backend) — same idea, just swap what happens inside the
+  // callback. Nothing else about this pattern is error-specific: the same
+  // `aiBus.on`/`useAIEvent` mechanism works for any event, or the wildcard
+  // stream wholesale, if what you want is broader usage telemetry rather
+  // than only crash reports.
+  useAIEvent('error:boundary', event => {
+    addToast({
+      type: 'error',
+      priority: 'high',
+      title: `Caught in <${event.componentName}>`,
+      message: event.error,
+    });
   });
 
   const columns: Column<DemoUser>[] = [
@@ -872,12 +909,25 @@ export const App: React.FC = () => {
                     </Card.Header>
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
+                        id="demo-users-table"
                         data={dummyUsers}
                         columns={columns}
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
                         containerHeight="auto"
                         rowKey={rec => rec.id}
+                        onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
+                        rowSubtheme={rec =>
+                          rec.status === 'Inactive'
+                            // Preset form: one of the four semantic subthemes.
+                            ? 'error'
+                            : rec.score >= 90
+                            // Custom Partial<SubthemeColors> slice form: an
+                            // arbitrary "top performer" highlight the four
+                            // presets don't cover.
+                            ? { background: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.4)', color: 'rgb(109, 40, 217)' }
+                            : undefined
+                        }
                       />
                     </Card.Content>
                   </Card>
@@ -1287,6 +1337,59 @@ export const App: React.FC = () => {
                         </Grid>
                       </Card.Content>
                     </Card>
+
+                    {/* Section 5: Error Boundaries & Deferred Rendering */}
+                    <Card>
+                      <Card.Header>Resilience & Off-Screen Rendering (`&lt;AIErrorBoundary&gt;`, `&lt;DeferredContent&gt;`)</Card.Header>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</div>
+                            <VStack gap="sm">
+                              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                                Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>SlideOut</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
+                              </p>
+                              <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md)' }}>
+                                <AIErrorBoundary componentName="ShowcaseWidget" fallback={(error, reset) => (
+                                  <VStack gap="sm">
+                                    <p style={{ margin: 0, color: 'var(--ai-subtheme-error)', fontSize: '0.8125rem' }}>⚠️ {error.message}</p>
+                                    <Button size="sm" variant="outline" onClick={() => { setFlakyTriggerKey(0); reset(); }}>Reset</Button>
+                                  </VStack>
+                                )}>
+                                  <Flaky triggerKey={flakyTriggerKey} />
+                                </AIErrorBoundary>
+                              </div>
+                              <Button size="sm" variant="danger" onClick={() => setFlakyTriggerKey(k => k + 1)}>💥 Trigger Error</Button>
+                            </VStack>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Defer Off-Screen Content (`&lt;DeferredContent&gt;`)</div>
+                            <VStack gap="sm">
+                              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                                Each row below is wrapped in its own <code>&lt;DeferredContent&gt;</code> — scroll the list and the browser skips layout/paint for rows currently off-screen, resuming automatically as they scroll into view. Best for long lists/grids of many content-sized (not flex-fill) repeated items.
+                              </p>
+                              <div style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
+                                {Array.from({ length: 40 }, (_, i) => (
+                                  <DeferredContent key={i} estimatedHeight={44}>
+                                    <div
+                                      style={{
+                                        padding: '0.625rem 0.875rem',
+                                        borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)',
+                                        background: i % 2 === 0 ? 'transparent' : 'var(--ai-bg-container)',
+                                        fontSize: '0.8125rem',
+                                      }}
+                                    >
+                                      Deferred row #{i + 1}
+                                    </div>
+                                  </DeferredContent>
+                                ))}
+                              </div>
+                            </VStack>
+                          </div>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
                   </VStack>
                 </TabStrip.Panel>
               </Content.Grow>
@@ -1302,6 +1405,35 @@ export const App: React.FC = () => {
                     <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
                   </Toolbar.Left>
                   <Toolbar.Right>
+                    <Tooltip content="Download the captured events below as newline-delimited JSON — boilerplate for the telemetry-forwarding pattern this panel and the error:boundary toast above both demonstrate live in-browser: swap this Blob download for a fetch()/fs.appendFile() call and the same shape ships events to a real backend instead">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon="⬇️"
+                        disabled={eventLogs.length === 0}
+                        onClick={() => {
+                          // One JSON object per line, oldest first (eventLogs
+                          // is newest-first for display) — the standard JSONL
+                          // convention so a consumer can append-only stream
+                          // this to a file/log pipeline. `log.payload` is
+                          // already a JSON string (built by JSON.stringify
+                          // above), so it's spliced in directly rather than
+                          // re-stringified, avoiding double-encoding it.
+                          const lines = [...eventLogs].reverse().map(
+                            log => `{"time":${JSON.stringify(log.time)},"event":${JSON.stringify(log.event)},"payload":${log.payload}}`
+                          );
+                          const blob = new Blob([lines.join('\n')], { type: 'application/x-ndjson' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `aibus-events-${Date.now()}.jsonl`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        Export JSONL
+                      </Button>
+                    </Tooltip>
                     <Tooltip content="Clear all recorded event log items from stream">
                       <Button
                         size="sm"
