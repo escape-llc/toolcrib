@@ -504,14 +504,14 @@ export const App: React.FC = () => {
           <img
             src={toolcribIcon}
             alt="Toolcrib"
-            width={28}
-            height={28}
+            width={56}
+            height={56}
             style={{ borderRadius: 'var(--ai-radius-md, 0.375rem)', flexShrink: 0 }}
           />
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-              React UI Component Package Tailored for AI Consumption (Master Font: {typographyState.masterFontSize}px)
+              React UI Component Package Tailored for AI Consumption
             </p>
           </div>
         </HStack>
@@ -538,7 +538,7 @@ export const App: React.FC = () => {
             }}
           >
             <span>
-              Harmony: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.harmonyMode}</strong> | Mode: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.isDarkMode ? 'Dark 🌙' : 'Light ☀️'}</strong> | Padding: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.paddingMode}</strong> | Radius: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.cornerRadiusMode}</strong>
+              Harmony: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.harmonyMode}</strong> | Mode: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.isDarkMode ? 'Dark 🌙' : 'Light ☀️'}</strong> | Master Font: <strong style={{ color: 'var(--ai-text-primary)' }}>{typographyState.masterFontSize}px</strong>
             </span>
           </div>
           <SlideOut
