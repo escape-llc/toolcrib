@@ -219,7 +219,15 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     bgContainer = normalizeHSV({ h: base.h, s: 18, v: 16 });
 
     textPrimary = normalizeHSV({ h: base.h, s: 4, v: 96 });
-    textSecondary = normalizeHSV({ h: base.h, s: 10, v: 72 });
+    // textSecondary is checked against bgContainer, not bgPrimary/bgSurface --
+    // bgContainer is the darkest (dark mode) / lightest (light mode) of the
+    // three surfaces relative to textSecondary's fixed V, so passing there
+    // guarantees the other two surfaces clear the same ratio too. Without
+    // this, textSecondary could read as low as 4.21:1 against bgContainer in
+    // light mode -- short of WCAG AA's 4.5:1 for normal text, even though it
+    // passed comfortably against the other two surfaces. This was previously
+    // the one palette role not routed through ensureWCAGContrast at all.
+    textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 10, v: 72 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 25, v: 22 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(80, primary.s), v: Math.min(100, primary.v * 1.1) });
   } else {
@@ -228,7 +236,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     bgContainer = normalizeHSV({ h: base.h, s: 8, v: 94 });
 
     textPrimary = normalizeHSV({ h: base.h, s: 20, v: 12 });
-    textSecondary = normalizeHSV({ h: base.h, s: 15, v: 45 });
+    textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 15, v: 45 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 12, v: 85 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(60, primary.s), v: Math.max(50, primary.v) });
   }

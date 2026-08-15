@@ -757,7 +757,7 @@
           "description": "Gap between children. Named tokens map to theme spacing scale."
         },
         "marginMode": {
-          "type": "MarginMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override margin/gap using the theme margin token scale."
         },
         "squareCorners": {
@@ -826,6 +826,10 @@
         "rowKey": {
           "type": "(record: T, index: number) => string | number",
           "description": "Custom row key extractor for React reconciliation. Defaults to array index."
+        },
+        "rowSubtheme": {
+          "type": "(record: T, index: number) => SubthemeName | undefined",
+          "description": "Classifies a row into one of the toolkit's four semantic subthemes\n(`error`/`success`/`warning`/`info`), tinting its background and\nborder accordingly. Return `undefined` for a row that shouldn't be\nflagged. This is the row-level equivalent of `subtheme` on components\nlike `Button`/`Progress`/`Toast` — it exists specifically so flagging\na row (a failed job, a pending invoice) doesn't require bypassing\n`DataTable` for hand-rolled markup just to reach the row element: the\nsame WCAG-guaranteed subtheme colors used everywhere else in the\ntoolkit (see `theme/subtheme.ts`'s `resolveSubtheme`) are available\nhere without introducing a raw `style`/`className` escape hatch on\nthe row."
         },
         "overrides": {
           "type": "Partial<TableSliceState>",
@@ -928,11 +932,11 @@
           "description": "Gap between grid cells."
         },
         "marginMode": {
-          "type": "MarginMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override margin/gap using the theme margin token scale."
         },
         "paddingMode": {
-          "type": "PaddingMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override padding using the theme padding token scale."
         }
       },
@@ -959,15 +963,15 @@
           "description": "Main-axis distribution."
         },
         "paddingMode": {
-          "type": "PaddingMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override padding using the theme padding token scale."
         },
         "marginMode": {
-          "type": "MarginMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override margin using the theme margin token scale (affects gap sizing)."
         },
         "cornerRadiusMode": {
-          "type": "CornerRadiusMode",
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
           "description": "Override corner radius using the theme radius token scale."
         },
         "wrap": {
@@ -1043,7 +1047,7 @@
           "description": "Required trigger element. The popup anchors to this element."
         },
         "placement": {
-          "type": "PopupPlacement",
+          "type": "'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'",
           "default": "'bottom-start'",
           "description": "Anchoring position relative to the trigger element."
         },
@@ -1092,7 +1096,7 @@
           "description": "Bar thickness."
         },
         "subtheme": {
-          "type": "SubthemeName",
+          "type": "'error' | 'success' | 'warning' | 'info'",
           "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
         },
         "overrides": {
@@ -1316,7 +1320,7 @@
           "description": "Unique domain identifier for layout context. Auto-generated if omitted."
         },
         "orientation": {
-          "type": "SplitterOrientation",
+          "type": "'horizontal' | 'vertical'",
           "default": "'vertical'",
           "description": "Split direction. `'vertical'` = top/bottom panels, `'horizontal'` = left/right panels."
         },
@@ -1486,15 +1490,15 @@
       ],
       "props": {
         "paddingMode": {
-          "type": "PaddingMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override padding using the theme padding token scale."
         },
         "marginMode": {
-          "type": "MarginMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override margin using the theme margin token scale (unused, reserved)."
         },
         "cornerRadiusMode": {
-          "type": "CornerRadiusMode",
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
           "description": "Override corner radius using the theme radius token scale."
         },
         "overrides": {
@@ -1579,15 +1583,15 @@
           "description": "Main-axis distribution."
         },
         "paddingMode": {
-          "type": "PaddingMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override padding using the theme padding token scale."
         },
         "marginMode": {
-          "type": "MarginMode",
+          "type": "'compact' | 'normal' | 'spacious'",
           "description": "Override margin using the theme margin token scale (affects gap sizing)."
         },
         "cornerRadiusMode": {
-          "type": "CornerRadiusMode",
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
           "description": "Override corner radius using the theme radius token scale."
         },
         "wrap": {
@@ -1599,5 +1603,161 @@
       "category": "Layout Primitives",
       "description": "Vertical flex column layout primitive"
     }
-  ]
+  ],
+  "$defs": {
+    "AccordionItemData": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string key identifying this item (used for expand/collapse tracking)."
+      },
+      "title": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered in the clickable header trigger."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered in the collapsible body panel."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the item cannot be expanded or collapsed."
+      }
+    },
+    "CardOverrides": {
+      "subtheme": {
+        "type": "'error' | 'success' | 'warning' | 'info'"
+      }
+    },
+    "MenuItemData": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string value emitted in the `menu:item_selected` event."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label rendered in the menu item."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the item is visually dimmed and not clickable."
+      },
+      "isSeparator": {
+        "type": "boolean",
+        "description": "If true, renders a horizontal separator line instead of a clickable item."
+      },
+      "onClick": {
+        "type": "() => void",
+        "description": "Click handler for this individual item."
+      }
+    },
+    "Column": {
+      "key": {
+        "type": "string",
+        "required": true,
+        "description": "Property key on the data record to read the cell value from."
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Header text for this column."
+      },
+      "render": {
+        "type": "(value: any, record: T, index: number) => ReactNode",
+        "description": "Custom cell renderer. Receives the cell value, full record, and row index."
+      },
+      "sortable": {
+        "type": "boolean",
+        "default": "false",
+        "description": "If true, clicking this column header toggles sorting."
+      },
+      "width": {
+        "type": "string | number",
+        "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      }
+    },
+    "RadioOption": {
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label for this radio option."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this option is not selectable."
+      },
+      "helperText": {
+        "type": "ReactNode",
+        "description": "Additional help text below the option label."
+      }
+    },
+    "SelectOptionData": {
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display text for the option."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
+      }
+    },
+    "TabItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this tab — used in `activeId` and `onChange`."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Label content rendered in the tab header."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the tab cannot be selected."
+      }
+    },
+    "ToggleGroupOption": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique value for this option — appears in `value`/`togglegroup:changed`."
+      },
+      "label": {
+        "type": "ReactNode",
+        "description": "Display label."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this option is not selectable."
+      }
+    }
+  }
 }

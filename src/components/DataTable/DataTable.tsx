@@ -4,6 +4,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
 /** Column definition for `<DataTable>`. */
@@ -52,6 +53,20 @@ export interface DataTableProps<T = any> {
   containerHeight?: number | 'auto';
   /** Custom row key extractor for React reconciliation. Defaults to array index. */
   rowKey?: (record: T, index: number) => string | number;
+  /**
+   * Classifies a row into one of the toolkit's four semantic subthemes
+   * (`error`/`success`/`warning`/`info`), tinting its background and
+   * border accordingly. Return `undefined` for a row that shouldn't be
+   * flagged. This is the row-level equivalent of `subtheme` on components
+   * like `Button`/`Progress`/`Toast` — it exists specifically so flagging
+   * a row (a failed job, a pending invoice) doesn't require bypassing
+   * `DataTable` for hand-rolled markup just to reach the row element: the
+   * same WCAG-guaranteed subtheme colors used everywhere else in the
+   * toolkit (see `theme/subtheme.ts`'s `resolveSubtheme`) are available
+   * here without introducing a raw `style`/`className` escape hatch on
+   * the row.
+   */
+  rowSubtheme?: (record: T, index: number) => SubthemeName | undefined;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
 }
@@ -68,6 +83,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   itemHeight = 44,
   containerHeight = 'auto',
   rowKey,
+  rowSubtheme,
   overrides,
 }: DataTableProps<T>) {
   const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
@@ -276,13 +292,19 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             {visibleRows.map((record, relativeIndex) => {
               const actualIndex = startIndex + relativeIndex;
               const key = rowKey ? rowKey(record, actualIndex) : actualIndex;
+              const subtheme = rowSubtheme?.(record, actualIndex);
+              const subthemeColors = subtheme ? resolveSubtheme(subtheme) : null;
               return (
                 <tr
                   key={key}
                   style={{
                     height: `${itemHeight / 16}rem`,
-                    borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)',
-                    background: actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
+                    borderBottom: subthemeColors
+                      ? `0.0625rem dashed ${subthemeColors.border}`
+                      : '0.0625rem solid var(--ai-border, #f3f4f6)',
+                    background: subthemeColors
+                      ? subthemeColors.background
+                      : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
                     transition: 'background 0.15s ease',
                   }}
                 >
@@ -293,7 +315,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         key={col.key}
                         style={{
                           padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
-                          color: 'var(--ai-text-primary, #111827)',
+                          color: subthemeColors ? subthemeColors.color : 'var(--ai-text-primary, #111827)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',

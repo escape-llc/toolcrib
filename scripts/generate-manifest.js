@@ -63,6 +63,7 @@ import {
   generateEventChannels,
   generateHelperMethods,
   generateComponents,
+  getCollectedTypeDefs,
 } from './lib/extract.js';
 
 const MANIFEST_PATH = path.join(ROOT, 'ai-docs', 'component-manifest.json');
@@ -78,6 +79,10 @@ const COLOR_SPACE = 'HSV';
 function generateManifest() {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
   const eventBusMeta = generateEventBusMeta();
+  const components = generateComponents();
+  // Must be read after generateComponents() -- it's populated as a side
+  // effect of that call (see extract.js's getCollectedTypeDefs comment).
+  const defs = getCollectedTypeDefs();
 
   return {
     $schema: SCHEMA_URL,
@@ -97,7 +102,8 @@ function generateManifest() {
       channels: generateEventChannels(),
       helperMethods: generateHelperMethods(),
     },
-    components: generateComponents(),
+    components,
+    ...(Object.keys(defs).length > 0 ? { $defs: defs } : {}),
   };
 }
 

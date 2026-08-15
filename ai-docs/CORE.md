@@ -79,6 +79,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 | Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<SlideOut>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
 | Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
+| Fake per-row emphasis in `<DataTable>` via `column.render` (styling each cell individually to approximate a highlighted row) | Use `<DataTable rowSubtheme={(record) => ...}>` — classifies a row into `'error'` / `'success'` / `'warning'` / `'info'` and tints the actual row background/border, not a per-cell approximation |
 
 ---
 
@@ -126,7 +127,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
 | `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
-| `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
+| `<DataTable>` | — | `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 

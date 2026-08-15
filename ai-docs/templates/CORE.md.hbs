@@ -79,6 +79,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 | Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<SlideOut>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
 | Pass `style=\{{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
+| Fake per-row emphasis in `<DataTable>` via `column.render` (styling each cell individually to approximate a highlighted row) | Use `<DataTable rowSubtheme={(record) => ...}>` — classifies a row into `'error'` / `'success'` / `'warning'` / `'info'` and tints the actual row background/border, not a per-cell approximation |
 
 ---
 

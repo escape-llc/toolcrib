@@ -430,14 +430,108 @@ function findInterface(sourceFile, name) {
   return findTopLevel(sourceFile, (n) => ts.isInterfaceDeclaration(n) && n.name.text === name);
 }
 
+// -------------------------------------------------------------------------
+// Cross-file named type resolution
+// -------------------------------------------------------------------------
+//
+// extractProps previously took `member.type.getText()` at face value: for
+// a prop typed as an inline union (VStack's `gap: 'xs' | 'sm' | ...`)
+// that's already the full, useful answer, but for a prop typed as a bare
+// reference to a *named* exported type declared in another file
+// (`paddingMode?: PaddingMode`, from theme/padding.ts) it produced only
+// the opaque name "PaddingMode" — correct, but not something an AI
+// consuming only this manifest (per CORE.md: "consult the manifest, don't
+// guess") could act on without also reading theme/padding.ts's source.
+// Two real, reported cases of exactly this: an invalid `paddingMode="loose"`
+// (PaddingMode's real values were never listed anywhere in the manifest)
+// and a DataTable `columns` entry using `{ key, header }` instead of the
+// actual `Column<T>` shape's `{ key, title, render?, sortable?, width? }`
+// (the manifest listed only the array's element type name, never Column's
+// own members). This section closes that gap for both shapes of named
+// type: a type alias resolving to a union of string literals is expanded
+// inline; an interface (standalone or array-wrapped, e.g. `Column<T>[]`)
+// has its own members captured once into a shared `defs` accumulator,
+// surfaced by generate-manifest.js as the manifest's top-level `$defs` --
+// consistent with the JSON Schema draft this manifest already declares.
+
+let _typeIndexCache = null;
+
+/** "Column<T>[]" -> "Column", "PaddingMode" -> "PaddingMode". Strips a
+ * trailing array suffix and any generic type arguments, leaving the bare
+ * identifier a reference is actually naming. */
+function baseIdentifierFromTypeText(typeText) {
+  return typeText.replace(/\[\]$/, '').replace(/<.*>$/, '').trim();
+}
+
+/** One pass over every source file under SRC, indexing every top-level
+ * `export type X = ...` and `export interface X { ... }` by name — so a
+ * prop can be resolved against a type declared in a completely different
+ * file than the component using it, which is the common case for this
+ * toolkit's own shared PaddingMode/MarginMode/CornerRadiusMode aliases. */
+function buildTypeIndex() {
+  if (_typeIndexCache) return _typeIndexCache;
+  const aliases = new Map(); // name -> expanded literal-union text, or null if not that simple case
+  const interfaces = new Map(); // name -> { interfaceDecl, sourceFile }
+
+  for (const filePath of listSourceFiles(SRC)) {
+    const sourceFile = parse(filePath);
+    ts.forEachChild(sourceFile, (node) => {
+      const isExported = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+      if (!isExported) return;
+
+      if (ts.isTypeAliasDeclaration(node)) {
+        // Only the common case this manifest actually needs: a union of
+        // string-literal types. Anything else (mapped types, generics,
+        // object shapes) is left unresolved rather than guessed at --
+        // the original opaque name is a more honest answer than a wrong
+        // expansion would be.
+        const isStringLiteralUnion =
+          ts.isUnionTypeNode(node.type) &&
+          node.type.types.every((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal));
+        aliases.set(node.name.text, isStringLiteralUnion ? node.type.getText(sourceFile) : null);
+      } else if (ts.isInterfaceDeclaration(node)) {
+        if (!interfaces.has(node.name.text)) {
+          interfaces.set(node.name.text, { interfaceDecl: node, sourceFile });
+        }
+      }
+    });
+  }
+
+  _typeIndexCache = { aliases, interfaces };
+  return _typeIndexCache;
+}
+
+/**
+ * Resolve a prop's raw `.getText()` type string against the cross-file
+ * type index, if it's a bare reference to something the index knows about.
+ * Returns null for anything else (primitives, inline unions, unresolvable
+ * aliases) -- callers keep the original raw text unchanged in that case.
+ */
+function resolveNamedType(typeText) {
+  const { aliases, interfaces } = buildTypeIndex();
+  const base = baseIdentifierFromTypeText(typeText);
+  if (aliases.has(base)) {
+    const resolved = aliases.get(base);
+    return resolved ? { kind: 'literal-union', text: resolved } : null;
+  }
+  if (interfaces.has(base)) {
+    return { kind: 'interface', name: base };
+  }
+  return null;
+}
 /**
  * Extract {name, type, default?, description?, required?} for every own
  * property of an interface. Does not follow `extends` clauses — inherited
  * props aren't re-listed, matching how the manifest already treats them.
  * `children` is skipped: implicit on every React component, never
  * documented per-component in this manifest's existing style.
+ *
+ * A prop's `type` field is more than `.getText()`'s raw output where that
+ * text is a bare reference to another named, exported type — see the
+ * "Cross-file named type resolution" section above for what gets expanded
+ * and why.
  */
-function extractProps(interfaceDecl, sourceFile) {
+function extractProps(interfaceDecl, sourceFile, defs = {}) {
   const props = {};
   for (const member of interfaceDecl.members) {
     if (!ts.isPropertySignature(member) || !ts.isIdentifier(member.name)) continue;
@@ -445,7 +539,20 @@ function extractProps(interfaceDecl, sourceFile) {
 
     const doc = leadingJsDoc(member);
     const entry = {};
-    if (member.type) entry.type = member.type.getText(sourceFile);
+    if (member.type) {
+      const rawText = member.type.getText(sourceFile);
+      entry.type = rawText;
+      const resolved = resolveNamedType(rawText);
+      if (resolved?.kind === 'literal-union') {
+        entry.type = resolved.text;
+      } else if (resolved?.kind === 'interface' && !defs[resolved.name]) {
+        // Reserve the key before recursing, so a self- or mutually-
+        // referential interface can't recurse into itself forever.
+        defs[resolved.name] = null;
+        const { interfaceDecl: refDecl, sourceFile: refFile } = buildTypeIndex().interfaces.get(resolved.name);
+        defs[resolved.name] = extractProps(refDecl, refFile, defs);
+      }
+    }
     if (!member.questionToken) entry.required = true;
     const defaultTag = jsDocTag(doc, 'default');
     if (defaultTag) entry.default = defaultTag;
@@ -508,7 +615,7 @@ function findSlots(sourceFile, componentName) {
   return slots;
 }
 
-function generateComponentEntry(sourceFile, decl) {
+function generateComponentEntry(sourceFile, decl, defs) {
   const entry = {
     name: decl.name,
     import: MANUAL_IMPORT_OVERRIDES[decl.name] ?? `import { ${decl.name} } from '#toolcrib'`,
@@ -525,14 +632,14 @@ function generateComponentEntry(sourceFile, decl) {
     for (const slot of slots) {
       if (!slot.propsName) continue;
       const slotInterface = findInterface(sourceFile, slot.propsName);
-      if (slotInterface) slotProps[slot.name] = extractProps(slotInterface, sourceFile);
+      if (slotInterface) slotProps[slot.name] = extractProps(slotInterface, sourceFile, defs);
     }
     if (Object.keys(slotProps).length > 0) entry.slotProps = slotProps;
   }
 
   if (decl.propsName) {
     const interfaceDecl = findInterface(sourceFile, decl.propsName);
-    if (interfaceDecl) entry.props = extractProps(interfaceDecl, sourceFile);
+    if (interfaceDecl) entry.props = extractProps(interfaceDecl, sourceFile, defs);
   }
 
   if (decl.children) {
@@ -587,17 +694,37 @@ export function validateCategories(components) {
   }
 }
 
+// Populated by generateComponents() as a side effect and read back by
+// generate-manifest.js immediately afterward (both run synchronously in
+// the same process/script invocation). Kept separate from
+// generateComponents()'s own return value -- which stays a plain array,
+// exactly as before -- so generate-docs.js's existing
+// `const components = generateComponents();` call keeps working
+// unmodified; it has no use for $defs and shouldn't need to know this
+// exists.
+let _lastCollectedDefs = {};
+
+/** The `$defs` accumulated during the most recent generateComponents()
+ * call -- every named interface (Column, etc.) referenced by any
+ * component or slot prop, keyed by name, each resolved via the same
+ * extractProps() logic used for a component's own root props. */
+export function getCollectedTypeDefs() {
+  return _lastCollectedDefs;
+}
+
 export function generateComponents() {
   const components = [];
+  const defs = {};
   for (const filePath of listSourceFiles(COMPONENTS_DIR)) {
     const sourceFile = parse(filePath);
     for (const decl of findComponentDeclarations(sourceFile)) {
-      components.push(generateComponentEntry(sourceFile, decl));
+      components.push(generateComponentEntry(sourceFile, decl, defs));
     }
   }
   components.sort((a, b) => a.name.localeCompare(b.name));
   validateCategories(components);
   validateNoForbiddenProps(components);
+  _lastCollectedDefs = defs;
   return components;
 }
 
