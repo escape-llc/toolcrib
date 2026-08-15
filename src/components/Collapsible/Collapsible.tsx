@@ -120,6 +120,9 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           padding: 'var(--ai-collapsible-content-padding, 1rem 1.125rem)',
           fontSize: '0.875rem',
           color: 'var(--ai-text-primary, #111827)',
+          // See Accordion.tsx's identical reasoning — isolates this
+          // panel's content without touching Radix's own height animation.
+          contain: 'content',
         }}
       >
         {children}

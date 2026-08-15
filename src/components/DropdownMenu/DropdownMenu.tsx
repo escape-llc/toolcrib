@@ -100,6 +100,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             flexDirection: 'column',
             gap: '0.125rem',
             outline: 'none',
+            // Self-contained floating menu — see Modal.tsx's identical
+            // reasoning.
+            contain: 'content',
             ...menuVars,
           }}
         >

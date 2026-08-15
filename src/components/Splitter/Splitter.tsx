@@ -212,6 +212,13 @@ export const Splitter: React.FC<SplitterProps> & {
         overflow: 'hidden',
         position: 'relative',
         userSelect: isDragging ? 'none' : 'auto',
+        // Every drag frame changes `split`, which resizes the two panels
+        // below — layout containment tells the browser that reflow can't
+        // escape this box, so a resize here never forces the rest of the
+        // page (siblings of this whole Splitter) to re-layout. Already
+        // `overflow: hidden`, so paint containment (clipping to this box)
+        // changes nothing observable; `content` = layout+paint+style.
+        contain: 'content',
       }}
     >
       {/* First / Top / Left Panel Container */}
@@ -230,6 +237,10 @@ export const Splitter: React.FC<SplitterProps> & {
             flexDirection: 'column',
             minHeight: 0,
             minWidth: 0,
+            // Isolates whatever arbitrary content this panel holds (a
+            // DataTable, a nested Splitter, ...) so its own reflow/repaint
+            // doesn't cascade to the sibling panel or the drag handle.
+            contain: 'content',
             ...(isVertical ? {
               '--ai-layout-border-bottom-left-radius': '0rem',
               '--ai-layout-border-bottom-right-radius': '0rem',
@@ -292,6 +303,8 @@ export const Splitter: React.FC<SplitterProps> & {
             flexDirection: 'column',
             minHeight: 0,
             minWidth: 0,
+            // See the first panel's identical comment above.
+            contain: 'content',
             ...(isVertical ? {
               '--ai-layout-border-top-left-radius': '0rem',
               '--ai-layout-border-top-right-radius': '0rem',

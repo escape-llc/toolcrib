@@ -386,6 +386,12 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ..
         display: 'flex',
         flexDirection: 'column',
         animation: 'var(--ai-tab-panel-animation, ai-fade-in 0.22s ease)',
+        // Isolates the active panel's content from the rest of the page on
+        // every tab switch. Deliberately not `size` — this box is sized by
+        // its parent flex context (`flex: 1 1 0px`), and `size` containment
+        // would break the height-propagation-to-children behavior the
+        // comment above exists to document.
+        contain: 'content',
       }}
     >
       {children}

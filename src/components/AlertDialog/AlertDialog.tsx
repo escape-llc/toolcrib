@@ -157,6 +157,9 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
               zIndex: zIndex + 1,
               outline: 'none',
               animation: 'ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+              // See Modal.tsx's identical comment — same self-contained
+              // dialog-panel shape.
+              contain: 'content',
             }}
           >
             <AlertDialogPrimitive.Title style={{ display: 'none' }}>{ariaLabel}</AlertDialogPrimitive.Title>

@@ -148,6 +148,13 @@ export const Modal: React.FC<ModalProps> & {
               zIndex: zIndex + 1,
               outline: 'none',
               animation: 'ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+              // A self-contained dialog panel: its own children's layout/
+              // paint never needs to affect the rest of the page, and
+              // nothing inside relies on escaping this box (any further
+              // dropdown/tooltip opened from inside a Modal renders through
+              // its own Radix Portal, off document.body — unaffected by
+              // this being a new containing block).
+              contain: 'content',
             }}
           >
             <DialogPrimitive.Title style={{ display: 'none' }}>{ariaLabel}</DialogPrimitive.Title>

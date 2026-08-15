@@ -134,6 +134,11 @@ export const Accordion: React.FC<AccordionProps> = ({
               fontSize: '0.875rem',
               color: 'var(--ai-text-primary, #111827)',
               borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
+              // Isolates each panel's content reflow from its sibling
+              // panels during expand/collapse. Not `size` (that axis is
+              // left alone), so Radix's own height-driving CSS var/
+              // animation for this panel is unaffected.
+              contain: 'content',
             }}
           >
             {item.content}

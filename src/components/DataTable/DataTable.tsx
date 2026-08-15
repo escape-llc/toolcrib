@@ -332,6 +332,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           overflowY: 'auto',
           position: 'relative',
           width: '100%',
+          // Every scroll frame and every sort/page/rowSubtheme change
+          // rewrites this whole virtualized row set — containment scopes
+          // that reflow/repaint to this box instead of the rest of the
+          // page. Safe with the sticky <thead> below: sticky positioning
+          // is computed against this element as the nearest scrolling
+          // ancestor either way, which containment doesn't change (that's
+          // a distinct mechanism from the containing-block-for-fixed/
+          // absolute-descendants part of `contain`, which nothing in this
+          // table relies on).
+          contain: 'content',
         }}
       >
         <table

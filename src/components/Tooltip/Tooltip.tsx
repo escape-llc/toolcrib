@@ -121,6 +121,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
               boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.15)',
               userSelect: 'none',
               pointerEvents: 'none',
+              // Verified empirically (Playwright screenshot test) before
+              // applying here: `contain: paint` does not clip a descendant
+              // — like `TooltipPrimitive.Arrow` below, positioned to poke
+              // past this box's edge — as long as `overflow` stays
+              // `visible` (the default, and what this element uses). It
+              // only clips when `overflow` is already non-`visible`.
+              contain: 'content',
               ...vars,
             }}
           >

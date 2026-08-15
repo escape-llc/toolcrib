@@ -165,6 +165,10 @@ export const Popup: React.FC<PopupProps> = ({
             padding: 'var(--ai-padding-lg, 0.75rem)',
             minWidth: '11.25rem',
             outline: 'none',
+            // Self-contained floating panel — see Modal.tsx's identical
+            // reasoning (this is already Radix-portaled to document.body,
+            // so nothing inside needs to escape this box).
+            contain: 'content',
             ...getPopupCornerStyle(),
             ...popupVars,
           }}

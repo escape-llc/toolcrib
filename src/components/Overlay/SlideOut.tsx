@@ -180,6 +180,10 @@ export const SlideOut: React.FC<SlideOutProps> = ({
           zIndex: zIndex + 1,
           overflowY: 'auto',
           animation: drawerAnim,
+          // Self-contained drawer panel — see Modal.tsx's identical
+          // reasoning. Being position:'fixed' itself doesn't conflict with
+          // also being a containment boundary for what's inside it.
+          contain: 'content',
           ...getPositionStyles(),
         }}
       >

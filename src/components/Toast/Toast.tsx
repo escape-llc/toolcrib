@@ -164,6 +164,14 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         position: 'relative',
         zIndex: 3000,
         outline: 'none',
+        // Self-contained toast item — isolates its own layout/paint from
+        // its sibling toasts and the rest of the page. Doesn't affect the
+        // swipe-to-dismiss transform/animation (contain doesn't clip
+        // visual overflow while this element's own `overflow` stays
+        // `visible`, and the transform moves the whole box, not a
+        // descendant escaping it — see Tooltip.tsx's comment for how this
+        // was verified).
+        contain: 'content',
         // Confirmed via a real browser run (DOM dump + computed-style walk):
         // Radix's ToastPrimitive.Root portals its actual rendered content to
         // be a direct child of the Viewport's <ol>, not a descendant of
