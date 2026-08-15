@@ -91,4 +91,42 @@ describe('DataTable Virtualized Component', () => {
     expect(screen.getByText('1 / 5')).toBeInTheDocument();
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
   });
+
+  it('tints a flagged row with its subtheme background and dashed border', () => {
+    render(
+      <DataTable
+        data={testData}
+        columns={testColumns}
+        pageSize={10}
+        rowSubtheme={(record: TestItem) => (record.id === 1 ? 'error' : undefined)}
+      />
+    );
+
+    const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
+    expect(flaggedRow.style.background).toBe('var(--ai-subtheme-error-bg)');
+    expect(flaggedRow.style.borderBottom).toBe('0.0625rem dashed var(--ai-subtheme-error-border)');
+
+    const plainRow = screen.getByText('Item 2').closest('tr') as HTMLElement;
+    expect(plainRow.style.background).not.toBe('var(--ai-subtheme-error-bg)');
+  });
+
+  it('suppresses the flagged-row border when overrides disable table borders', () => {
+    render(
+      <DataTable
+        data={testData}
+        columns={testColumns}
+        pageSize={10}
+        overrides={{ borderStyle: 'none' }}
+        rowSubtheme={(record: TestItem) => (record.id === 1 ? 'error' : undefined)}
+      />
+    );
+
+    const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
+    // Still tinted...
+    expect(flaggedRow.style.background).toBe('var(--ai-subtheme-error-bg)');
+    // ...but the dashed border a 'none' borderStyle should suppress is gone.
+    // (jsdom normalizes the `border-bottom: none` shorthand rather than
+    // echoing the literal string back, so check the longhand style instead.)
+    expect(getComputedStyle(flaggedRow).borderBottomStyle).toBe('none');
+  });
 });

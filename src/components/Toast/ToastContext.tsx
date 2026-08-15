@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
 import { SubthemeName } from '../../theme/subtheme';
@@ -92,6 +92,17 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [anchor, setAnchor] = useState<ToastAnchor>(defaultAnchor);
+  // dismissToast needs the dismissed toast's data (message/type) for the
+  // `toast:dismissed` payload, but reads it via a `let` captured by the
+  // setToasts updater and used immediately after the setToasts call —
+  // relying on the updater having already run synchronously, which React 18
+  // batching does not guarantee (two toasts auto-expiring in the same batch
+  // is enough to break it, since only the first gets the eager-update
+  // shortcut). Mirroring toasts into a ref keeps dismissToast referentially
+  // stable (still `[]` deps, matching every other callback here) while
+  // giving it a synchronously-current snapshot to read from instead.
+  const toastsRef = useRef<ToastItem[]>(toasts);
+  toastsRef.current = toasts;
 
   const addToast = useCallback((toastData: Omit<ToastItem, 'id'> & { id?: string }): string => {
     const id = toastData.id || `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -124,11 +135,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   }, [anchor]);
 
   const dismissToast = useCallback((id: string, reason: 'user' | 'expired' | 'action' = 'user') => {
-    let targetToast: ToastItem | undefined;
-    setToasts(prev => {
-      targetToast = prev.find(t => t.id === id);
-      return prev.filter(t => t.id !== id);
-    });
+    const targetToast = toastsRef.current.find(t => t.id === id);
+    setToasts(prev => prev.filter(t => t.id !== id));
 
     aiBus.emit('toast:dismissed', {
       id,

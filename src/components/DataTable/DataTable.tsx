@@ -56,15 +56,20 @@ export interface DataTableProps<T = any> {
   /**
    * Classifies a row into one of the toolkit's four semantic subthemes
    * (`error`/`success`/`warning`/`info`), tinting its background and
-   * border accordingly. Return `undefined` for a row that shouldn't be
-   * flagged. This is the row-level equivalent of `subtheme` on components
-   * like `Button`/`Progress`/`Toast` — it exists specifically so flagging
-   * a row (a failed job, a pending invoice) doesn't require bypassing
-   * `DataTable` for hand-rolled markup just to reach the row element: the
-   * same WCAG-guaranteed subtheme colors used everywhere else in the
-   * toolkit (see `theme/subtheme.ts`'s `resolveSubtheme`) are available
-   * here without introducing a raw `style`/`className` escape hatch on
-   * the row.
+   * border accordingly, and overriding that row's cell text color and
+   * disabling zebra-striping for it so the tint stays legible. Return
+   * `undefined` for a row that shouldn't be flagged. This is the row-level
+   * equivalent of `subtheme` on components like `Button`/`Progress`/`Toast`
+   * — it exists specifically so flagging a row (a failed job, a pending
+   * invoice) doesn't require bypassing `DataTable` for hand-rolled markup
+   * just to reach the row element: the same WCAG-guaranteed subtheme colors
+   * used everywhere else in the toolkit (see `theme/subtheme.ts`'s
+   * `resolveSubtheme`) are available here without introducing a raw
+   * `style`/`className` escape hatch on the row.
+   *
+   * `index` is the row's position within the *current page* (matching
+   * `rowKey`/`Column.render`'s `index`), not its position in the full
+   * `data` array — it resets to `0` at the top of every page.
    */
   rowSubtheme?: (record: T, index: number) => SubthemeName | undefined;
   /** Per-instance overrides for density, border style, and striping. */
@@ -87,6 +92,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   overrides,
 }: DataTableProps<T>) {
   const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
+  // Row-level borders below are set directly in JS (not through
+  // --ai-table-border, which only reaches the cells' borderRight — see that
+  // usage further down), so a flagged row's dashed border needs its own
+  // read of the effective borderStyle to respect `overrides={{ borderStyle:
+  // 'none' }}` instead of always drawing a border regardless.
+  const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
   useEffect(() => {
     injectInteractionStyles();
   }, []);
@@ -194,8 +205,27 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     }
   };
 
+  // Raw scroll events can fire far faster than one per frame; setting
+  // scrollTop straight from each one re-runs the virtualization math (and
+  // rowSubtheme/resolveSubtheme for every visible row) that often too.
+  // Coalescing to one update per animation frame — keeping only the latest
+  // offset via the ref — cuts that to the rate the browser can actually
+  // paint at.
+  const latestScrollTopRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
+
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+    latestScrollTopRef.current = e.currentTarget.scrollTop;
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollTop(latestScrollTopRef.current);
+    });
   };
 
   const isAutoHeight = containerHeight === 'auto';
@@ -300,7 +330,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   style={{
                     height: `${itemHeight / 16}rem`,
                     borderBottom: subthemeColors
-                      ? `0.0625rem dashed ${subthemeColors.border}`
+                      ? effectiveBorderStyle === 'none'
+                        ? 'none'
+                        : `0.0625rem dashed ${subthemeColors.border}`
                       : '0.0625rem solid var(--ai-border, #f3f4f6)',
                     background: subthemeColors
                       ? subthemeColors.background

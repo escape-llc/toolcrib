@@ -10,6 +10,7 @@ export interface ObservedElementConfig {
 class GlobalObserverManager {
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
+  private resizeListener: (() => void) | null = null;
 
   private trackedElements = new Map<HTMLElement, ObservedElementConfig>();
   private debounceTimers = new Map<HTMLElement, any>();
@@ -72,7 +73,7 @@ class GlobalObserverManager {
 
     // Global viewport resize listener
     let windowTimer: any = null;
-    window.addEventListener('resize', () => {
+    this.resizeListener = () => {
       if (windowTimer) clearTimeout(windowTimer);
       windowTimer = setTimeout(() => {
         aiBus.emit('viewport:resized', {
@@ -80,22 +81,39 @@ class GlobalObserverManager {
           height: window.innerHeight,
         });
       }, 100);
-    });
+    };
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  /**
+   * Detaches the global `resize` listener. The manager is a module-level
+   * singleton, so nothing calls this in normal app lifetime — it exists for
+   * HMR/test teardown, where the module (and this listener) would otherwise
+   * be re-created on `window` without ever removing the previous instance's.
+   */
+  public destroy() {
+    if (typeof window === 'undefined' || !this.resizeListener) return;
+    window.removeEventListener('resize', this.resizeListener);
+    this.resizeListener = null;
   }
 
   public observe(element: HTMLElement | null, config: ObservedElementConfig = {}) {
     if (!element) return;
 
-    if (!this.trackedElements.has(element)) {
-      this.trackedElements.set(element, config);
+    const alreadyTracked = this.trackedElements.has(element);
+    // Always store the latest config, even for an already-tracked element —
+    // previously a second observe() call on the same element (e.g. a hook's
+    // effect re-running with a changed config.id/enableIntersection while
+    // the DOM node stays mounted) silently kept the first call's config
+    // forever, so resize events kept reporting stale data.
+    this.trackedElements.set(element, config);
 
-      if (this.resizeObserver) {
-        this.resizeObserver.observe(element);
-      }
+    if (!alreadyTracked && this.resizeObserver) {
+      this.resizeObserver.observe(element);
+    }
 
-      if (this.intersectionObserver && config.enableIntersection) {
-        this.intersectionObserver.observe(element);
-      }
+    if (config.enableIntersection && this.intersectionObserver) {
+      this.intersectionObserver.observe(element);
     }
   }
 

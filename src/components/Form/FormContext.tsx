@@ -94,19 +94,25 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   };
 
   const setFieldValue = (name: string, value: any) => {
-    setValues(prev => {
-      const updated = { ...prev, [name]: value };
-      if (schema) {
-        const errs = validateValues(updated);
-        setErrors(errs);
-        const isValid = Object.keys(errs).length === 0;
-        aiBus.emit('form:validated', { formId: id, isValid });
-        if (!isValid) {
-          aiBus.emit('form:errored', { formId: id, errors: errs });
-        }
+    // setFieldValue is a plain function recreated every render (not
+    // useCallback), so `values` here is always the current render's value —
+    // safe to read directly rather than going through setValues' functional
+    // updater. That matters because the validation/emit side effects below
+    // must run exactly once per call: React 18 StrictMode invokes functional
+    // updaters twice in dev specifically to catch impure updaters, and
+    // putting setErrors/aiBus.emit inside one (the previous implementation)
+    // meant every field edit double-emitted form:validated/form:errored.
+    const updated = { ...values, [name]: value };
+    setValues(updated);
+    if (schema) {
+      const errs = validateValues(updated);
+      setErrors(errs);
+      const isValid = Object.keys(errs).length === 0;
+      aiBus.emit('form:validated', { formId: id, isValid });
+      if (!isValid) {
+        aiBus.emit('form:errored', { formId: id, errors: errs });
       }
-      return updated;
-    });
+    }
   };
 
   const setFieldTouched = (name: string, isTouched = true) => {
