@@ -50,7 +50,7 @@ export const presetThemes: PresetTheme[] = [
     },
   },
   {
-    id: 'orange',
+    id: 'sunset',
     name: '🌅 Sunset Orange',
     snapshot: {
       schemaVersion: 1,
@@ -79,7 +79,7 @@ export const presetThemes: PresetTheme[] = [
     },
   },
   {
-    id: 'blue',
+    id: 'ocean',
     name: '🌊 Ocean Blue',
     snapshot: {
       schemaVersion: 1,

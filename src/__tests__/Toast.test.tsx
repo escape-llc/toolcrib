@@ -60,7 +60,15 @@ describe('Toast Subsystem Event Generation', () => {
       })
     );
 
-    // Fast-forward duration timer (100ms)
+    // Fast-forward past the 100ms duration timer — this triggers Radix's
+    // onOpenChange(false), which emits toast:expired synchronously but only
+    // *schedules* the actual dismissToast() call (a 500ms backstop timer,
+    // normally preempted by a real animationend — see Toast.tsx's own
+    // comment on why dismissToast is deferred at all). jsdom never fires a
+    // real animationend, so the backstop is the only thing that will ever
+    // resolve it here; advance past it too in the same act() so fake-timer
+    // causality (the backstop is only scheduled once the duration timer's
+    // own callback runs) resolves correctly.
     act(() => {
       vi.advanceTimersByTime(150);
     });
@@ -72,6 +80,10 @@ describe('Toast Subsystem Event Generation', () => {
         type: 'info',
       })
     );
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
 
     expect(dismissedFn).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -87,6 +99,11 @@ describe('Toast Subsystem Event Generation', () => {
   });
 
   it('emits toast:action_clicked and toast:dismissed with reason="action" when action button is clicked', () => {
+    // Fake timers, same reason as the expiry test above: dismissToast()
+    // (and its toast:dismissed emission) is deferred until the exit
+    // animation's real animationend, which jsdom never produces, so only
+    // the 500ms backstop timer resolves it here.
+    vi.useFakeTimers();
     const actionClickedFn = vi.fn();
     const dismissedFn = vi.fn();
     const customActionCallback = vi.fn();
@@ -112,6 +129,10 @@ describe('Toast Subsystem Event Generation', () => {
       })
     );
 
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
     expect(dismissedFn).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'test-toast-1',
@@ -121,6 +142,7 @@ describe('Toast Subsystem Event Generation', () => {
 
     unsub1();
     unsub2();
+    vi.useRealTimers();
   });
 
   it('keeps sticky toasts on screen without auto-expiring until user dismisses', () => {

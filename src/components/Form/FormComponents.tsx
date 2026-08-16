@@ -6,8 +6,7 @@ import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
@@ -175,10 +174,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   // pre-existing, unrelated mechanism), so there's no second subtheme
   // concern for this slice to fold in.
   const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   const getSizeStyles = (): React.CSSProperties => {
     const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
@@ -314,23 +310,19 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
 }
 
-export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, ...props }) => {
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: inputVars } = useSliceOverrides(InputThemeSlice, overrides);
-  const targetDocument = useTargetDocument();
-
-  React.useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
-  React.useEffect(() => {
+  useEffect(() => {
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
@@ -340,7 +332,7 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
   return (
     <input
       {...props}
-      id={name || undefined}
+      id={id ?? (name || undefined)}
       name={name || undefined}
       type={type}
       value={value}
@@ -393,16 +385,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
-  React.useEffect(() => {
+  useEffect(() => {
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
@@ -468,16 +457,13 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
-  React.useEffect(() => {
+  useEffect(() => {
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
@@ -547,23 +533,19 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: textareaVars } = useSliceOverrides(InputThemeSlice, overrides);
-  const targetDocument = useTargetDocument();
-
-  React.useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
-  React.useEffect(() => {
+  useEffect(() => {
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
@@ -573,7 +555,7 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
   return (
     <textarea
       {...props}
-      id={name || undefined}
+      id={id ?? (name || undefined)}
       name={name || undefined}
       rows={rows}
       value={value}

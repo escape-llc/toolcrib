@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { SliderThemeSlice, SliderSliceState } from './SliderSlice';
 
 /**
@@ -49,10 +48,7 @@ export const Slider: React.FC<SliderProps> = ({
 }) => {
   const currentVal = value !== undefined ? value : defaultValue;
   const sliderVars = getSparseVariables(SliderThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   return (
     <SliderPrimitive.Root

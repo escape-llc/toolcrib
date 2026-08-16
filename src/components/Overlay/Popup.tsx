@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
+import React, { useState, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -7,7 +7,7 @@ import { SquareCornerOption } from '../Card/Card';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { PopupThemeSlice, PopupSliceState } from './PopupSlice';
@@ -63,9 +63,7 @@ export const Popup: React.FC<PopupProps> = ({
   const id = useStableId(propId, 'popup');
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 

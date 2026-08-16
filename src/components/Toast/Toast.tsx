@@ -4,7 +4,7 @@ import { ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
@@ -66,8 +66,8 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const targetDocument = useTargetDocument();
   useEffect(() => {
     injectToastAnimations(targetDocument);
-    injectInteractionStyles(targetDocument);
   }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // ToastPrimitive.Root is given the same `duration` below and runs its own
   // internal auto-dismiss timer, which — per Radix's documented Toast
@@ -84,17 +84,19 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   // identically for a timeout, a swipe-to-dismiss, an explicit close click,
   // or a "close all" shortcut, without saying which.
   //
-  // The explicit dismiss paths (the ✕ button, an action button) look like
-  // they call dismissToast with their own correct reason and never reach
-  // onOpenChange at all — but ToastClose/ToastAction are built on Radix's
-  // shared close primitive, which composes the consumer's onClick with
-  // Radix's own onClose (setOpen(false)) right after it, in the same click.
-  // That fires onOpenChange(false) synchronously immediately following the
-  // explicit dismissToast call, so without dismissedRef this branch would
-  // treat every button-driven dismissal as a second, spurious "expired"
-  // event on top of the correct one. dismissedRef lets onOpenChange
-  // recognize "I already know why this closed" and no-op.
-  const dismissedRef = useRef(false);
+  // dismissReasonRef records *why* as soon as it's known (a click, a swipe,
+  // or Radix's own duration timer firing) but deliberately does NOT call
+  // dismissToast yet — see finalize()/onAnimationEnd below for why: doing
+  // so immediately was a real bug (toasts never animated on dismiss/expiry,
+  // reported directly), because dismissToast removes the toast from
+  // ToastContext's `toasts` array, and ToastContainer maps directly over
+  // that array — so an immediate removal unmounts this whole
+  // <ToastPrimitive.Root>. Radix's Presence (used internally by Root) only
+  // defers UNMOUNTING ITS OWN CHILDREN until a real animationend; it can't
+  // defer anything once an ancestor stops rendering it, which is exactly
+  // what happened. The fix keeps this component mounted — and the exit
+  // animation playing — until that real animationend fires.
+  const dismissReasonRef = useRef<'user' | 'expired' | 'action' | null>(null);
   // Tracks whether the current close is a swipe-to-dismiss, to tell it
   // apart from a genuine timeout in onOpenChange below (both call it
   // identically). onSwipeCancel resets this when a drag is released before
@@ -102,6 +104,20 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   // running, so if it's still false when that timer eventually does fire,
   // the later dismissal is correctly reported as 'expired', not 'user'.
   const swipedRef = useRef(false);
+  // Actually removes the toast from state — deferred until the exit
+  // animation's real animationend (see onAnimationEnd below), with a
+  // bounded fallback in case one never fires (e.g. a consumer's own global
+  // stylesheet disables animations via `prefers-reduced-motion` +
+  // `!important`) so a toast can never get stuck in the DOM forever — the
+  // same class of bug this toolkit hit before for Tooltip with a missing
+  // @keyframes. finalizedRef guards against the fallback timer double-
+  // firing after a real animationend already handled it.
+  const finalizedRef = useRef(false);
+  const finalize = (reason: 'user' | 'expired' | 'action') => {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
+    dismissToast(toast.id, reason);
+  };
 
   const getSubthemeColor = (type: ToastItem['type']): string => {
     switch (type) {
@@ -143,12 +159,24 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
       onSwipeCancel={() => { swipedRef.current = false; }}
       onOpenChange={(open) => {
         if (open) return;
-        if (dismissedRef.current) return;
-        if (swipedRef.current) {
-          dismissToast(toast.id, 'user');
-        } else {
-          aiBus.emit('toast:expired', { id: toast.id, message: toast.message, type: toast.type });
-          dismissToast(toast.id, 'expired');
+        if (!dismissReasonRef.current) {
+          // No explicit click already recorded a reason — this is either a
+          // swipe-to-dismiss or Radix's own duration timer firing.
+          if (swipedRef.current) {
+            dismissReasonRef.current = 'user';
+          } else {
+            aiBus.emit('toast:expired', { id: toast.id, message: toast.message, type: toast.type });
+            dismissReasonRef.current = 'expired';
+          }
+        }
+        window.setTimeout(() => finalize(dismissReasonRef.current!), 500);
+      }}
+      onAnimationEnd={(e) => {
+        if (
+          dismissReasonRef.current &&
+          (e.animationName === 'toolcrib-toast-fade-out' || e.animationName === 'toolcrib-toast-swipe-out')
+        ) {
+          finalize(dismissReasonRef.current);
         }
       }}
       style={{
@@ -210,7 +238,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
 
         <ToastPrimitive.Close
           aria-label="Dismiss toast"
-          onClick={() => { dismissedRef.current = true; dismissToast(toast.id, 'user'); }}
+          onClick={() => { dismissReasonRef.current = 'user'; }}
           className="ai-btn"
           style={{
             background: 'transparent',
@@ -239,8 +267,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                   message: toast.message,
                 });
                 act.onClick();
-                dismissedRef.current = true;
-                dismissToast(toast.id, 'action');
+                dismissReasonRef.current = 'action';
               }}
               className="ai-btn"
               style={{

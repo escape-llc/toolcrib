@@ -1,11 +1,11 @@
-import React, { ReactNode, useContext, useEffect } from 'react';
+import React, { ReactNode, useContext } from 'react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { SelectThemeSlice, SelectSliceState } from './SelectSlice';
@@ -64,9 +64,7 @@ export const Select: React.FC<SelectProps> = ({
   const registerField = formContext?.registerField;
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // Without this, a Select's name is never added to the form's `values`
   // object until the user actually picks something — and handleSubmit's
@@ -104,7 +102,7 @@ export const Select: React.FC<SelectProps> = ({
       disabled={disabled}
     >
       <SelectPrimitive.Trigger
-        className="ai-btn"
+        className="ai-btn ai-focus-ring"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -138,6 +136,7 @@ export const Select: React.FC<SelectProps> = ({
             Trigger, even though --ai-select-trigger-padding itself is a
             no-op here. */}
         <SelectPrimitive.Content
+          className="ai-focus-ring"
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             background: 'var(--ai-bg-surface, #ffffff)',

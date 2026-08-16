@@ -1,10 +1,10 @@
-import React, { ReactNode, ReactElement, useEffect } from 'react';
+import React, { ReactNode, ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, DropdownMenuSliceState } from './DropdownMenuSlice';
@@ -67,9 +67,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const id = useStableId(propId, 'menu');
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
   const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   return (
     <DropdownMenuPrimitive.Root

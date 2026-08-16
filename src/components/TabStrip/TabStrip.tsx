@@ -5,8 +5,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
@@ -72,10 +71,7 @@ export const TabStrip: React.FC<TabStripProps> & {
   Panel: React.FC<TabPanelProps>;
 } = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -218,17 +214,26 @@ export const TabStrip: React.FC<TabStripProps> & {
         {items.map((item, index) => {
           const isActive = item.id === activeId;
           const prevIsActive = index > 0 && items[index - 1].id === activeId;
-          const showDivider = index > 0 && !isActive && !prevIsActive;
+          // Hidden (not omitted) next to an active tab's colored background,
+          // where a divider line would look redundant — via opacity, not
+          // conditional rendering, so it still occupies its layout space
+          // either way. Conditionally mounting/unmounting it here used to
+          // change the filmstrip's total content width on every click
+          // (whichever divider sat next to the newly/previously active tab
+          // popped in or out), shifting every tab after it left or right —
+          // the same class of activeId-driven width change as the
+          // fontWeight fix above, just smaller in magnitude.
+          const hideDivider = index === 0 || isActive || prevIsActive;
 
           return (
             <React.Fragment key={item.id}>
-              {showDivider && (
+              {index > 0 && (
                 <div
                   style={{
                     width: '0.0625rem',
                     height: '1.125rem',
                     background: 'var(--ai-border, #d1d5db)',
-                    opacity: 0.7,
+                    opacity: hideDivider ? 0 : 0.7,
                     flexShrink: 0,
                     margin: '0 0.125rem',
                   }}
@@ -245,7 +250,17 @@ export const TabStrip: React.FC<TabStripProps> & {
                   gap: '0.5rem',
                   padding: 'var(--ai-tab-padding, 0.4375rem 0.875rem)',
                   fontSize: 'var(--ai-tab-font-size, 0.875rem)',
-                  fontWeight: isActive ? 'var(--ai-font-weight-bold, 700)' : 'var(--ai-font-weight-medium, 500)',
+                  // Deliberately the SAME weight regardless of active state
+                  // — background fill + color already signal which tab is
+                  // active. A per-state weight (bold active / medium
+                  // inactive, the previous behavior) changes each label's
+                  // rendered width, so every click shifted every tab left
+                  // or right by several pixels — reported directly as
+                  // "jarring" and, since this filmstrip can also toggle its
+                  // own scroll-arrow buttons in response to the resulting
+                  // width change (see checkScroll/useAdaptiveSize above), a
+                  // real overflow trigger too, not just a cosmetic wobble.
+                  fontWeight: 'var(--ai-font-weight-semibold, 600)',
                   color: isActive ? 'var(--ai-tab-active-color, #ffffff)' : 'var(--ai-tab-inactive-color, var(--ai-text-primary, #111827))',
                   background: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',
                   border: isActive ? 'var(--ai-tab-active-border, none)' : 'none',

@@ -1,9 +1,8 @@
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { ToggleThemeSlice, ToggleSliceState } from './ToggleSlice';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
@@ -39,10 +38,7 @@ export const Toggle: React.FC<ToggleProps> = ({
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   const handlePressedChange = (next: boolean) => {
     if (externalPressed === undefined) setInternalPressed(next);
@@ -143,10 +139,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   );
   const currentValue = externalValue !== undefined ? externalValue : internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   const handleValueChange = (next: string | string[]) => {
     if (externalValue === undefined) setInternalValue(next);

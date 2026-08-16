@@ -134,5 +134,20 @@ describe('ThemeEditor', () => {
 
       expect(screen.getByText('Custom UI')).toBeInTheDocument();
     });
+
+    it('hides the toolbar entirely for themeManagementSlot={null}, instead of falling back to the built-in toolbar', () => {
+      // Regression test: showThemeToolbar used to check `!== undefined`
+      // while the render site used `??` (null-or-undefined). A consumer
+      // conditionally passing `themeManagementSlot={condition ? <X/> : null}`
+      // — a natural conditional-slot idiom — got a bordered, empty toolbar
+      // box: showThemeToolbar counted `null` as "a slot was given" (true),
+      // but `null ?? defaultThemeManagementContent` then rendered the
+      // built-in toolbar anyway, matching neither the caller's slot content
+      // nor a hidden toolbar.
+      renderEditor({ themeManagement: false, themeManagementSlot: null });
+
+      expect(screen.queryByTestId('theme-editor-toolbar')).not.toBeInTheDocument();
+      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
+    });
   });
 });

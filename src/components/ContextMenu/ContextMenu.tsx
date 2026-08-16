@@ -1,11 +1,11 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { ContextMenuThemeSlice, ContextMenuSliceState } from './ContextMenuSlice';
@@ -42,9 +42,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   const id = useStableId(propId, 'contextmenu');
   const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
   const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   return (
     <ContextMenuPrimitive.Root

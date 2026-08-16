@@ -1,10 +1,9 @@
-import React, { ReactNode, createContext, useContext, useEffect } from 'react';
+import React, { ReactNode, createContext, useContext } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
-import { injectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { RadioGroupThemeSlice, RadioGroupSliceState } from './RadioGroupSlice';
 
 /** Data shape for each option in a `<RadioGroup>`. */
@@ -77,10 +76,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, overrides ?? {});
-  const targetDocument = useTargetDocument();
-  useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+  useInjectInteractionStyles();
 
   // See Select.tsx for why this matters: without it, a RadioGroup left at
   // its default (nothing selected) on first submit never gets marked

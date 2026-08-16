@@ -56,13 +56,34 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
 
   state: AIErrorBoundaryState = { hasError: false, error: null };
 
+  // Tracks the targetDocument last passed to injectInteractionStyles, so
+  // componentDidUpdate can tell a real context change apart from an
+  // unrelated re-render. Functional siblings get this for free via
+  // useEffect's dependency array; a class component with static
+  // contextType has no equivalent built-in comparison.
+  private lastInjectedDocument: Document | undefined = undefined;
+
   componentDidMount(): void {
     // Class component, no useEffect — this is its equivalent "on mount"
     // hook, needed independently of whatever parent mounts it (Modal/
     // SlideOut/AlertDialog already call this themselves, but this boundary
     // is documented as usable standalone too, wrapping any AI-generated
     // section directly).
+    this.lastInjectedDocument = this.context;
     injectInteractionStyles(this.context);
+  }
+
+  componentDidUpdate(): void {
+    // Covers the case where this boundary mounts before its <ThemeProvider
+    // targetDocument> value is known (e.g. an iframe whose contentDocument
+    // is only available after a later 'load' event) — componentDidMount's
+    // this.context would be undefined at that point, and without this,
+    // interaction styles would stay injected into the wrong document
+    // forever once the real targetDocument arrives.
+    if (this.context !== this.lastInjectedDocument) {
+      this.lastInjectedDocument = this.context;
+      injectInteractionStyles(this.context);
+    }
   }
 
   static getDerivedStateFromError(error: Error): AIErrorBoundaryState {

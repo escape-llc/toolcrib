@@ -111,7 +111,15 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   const showLibrary = !allDisabled && mgmt.library !== false;
   const showExport = !allDisabled && mgmt.export !== false;
   const showImport = !allDisabled && mgmt.import !== false;
-  const showThemeToolbar = themeManagementSlot !== undefined || showPresets || showLibrary || showExport || showImport;
+  // `!= null` (not `!== undefined`) so this agrees with the render site's
+  // own `themeManagementSlot ?? defaultThemeManagementContent` below — both
+  // must treat `null` and `undefined` as "no slot given" the same way, or a
+  // consumer passing `themeManagementSlot={condition ? <X/> : null}` (a
+  // natural conditional-slot idiom) gets an empty bordered toolbar box: this
+  // check would count `null` as "a slot was given" (rendering the wrapper)
+  // while the render line's `??` falls through to the built-in toolbar,
+  // producing neither the consumer's content nor a hidden toolbar.
+  const showThemeToolbar = themeManagementSlot != null || showPresets || showLibrary || showExport || showImport;
   const {
     parameters,
     setBaseColor,
@@ -1278,6 +1286,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           hands in instead — see that prop's own doc comment. */}
       {showThemeToolbar && (
         <div
+          data-testid="theme-editor-toolbar"
           style={{
             display: 'flex',
             flexDirection: 'column',

@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { injectGlobalStyle } from './injectGlobalStyle';
+import { useTargetDocument } from './targetDocumentContext';
 
 const STYLE_ID = 'toolcrib-interaction-styles';
 
@@ -99,4 +101,19 @@ export function injectInteractionStyles(targetDocument?: Document): void {
     `,
     targetDocument
   );
+}
+
+/**
+ * Convenience hook wrapping the `useTargetDocument()` + `useEffect(() =>
+ * injectInteractionStyles(targetDocument), [targetDocument])` triad every
+ * `.ai-btn`/`.ai-focus-ring`/`.ai-menu-item` consumer needs — found
+ * hand-copied at ~20 separate call sites across the component tree by an
+ * external review pass; collapses each to a single `useInjectInteractionStyles();`
+ * call instead.
+ */
+export function useInjectInteractionStyles(): void {
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 }
