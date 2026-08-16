@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
+import React, { useState, useEffect, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -7,6 +7,8 @@ import { SquareCornerOption } from '../Card/Card';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { PopupThemeSlice, PopupSliceState } from './PopupSlice';
 
@@ -60,6 +62,10 @@ export const Popup: React.FC<PopupProps> = ({
 }) => {
   const id = useStableId(propId, 'popup');
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -152,11 +158,12 @@ export const Popup: React.FC<PopupProps> = ({
         <div style={{ display: 'inline-block', cursor: 'pointer' }}>{renderedTrigger}</div>
       </PopoverPrimitive.Trigger>
 
-      <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
           side={side}
           align={align}
           sideOffset={-1}
+          className="ai-focus-ring"
           style={{
             zIndex,
             background: 'var(--ai-bg-surface, #ffffff)',

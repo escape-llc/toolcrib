@@ -197,8 +197,8 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
   // Readable text/icon colors for content filled directly on top of each of
   // the four hue-based colors above (e.g. a primary-filled Button's own
   // label) — see pickReadableTextColor's own comment for why a hardcoded
-  // white was wrong here (this toolkit's own default primary is a bright
-  // lime green; white text on it is close to unreadable).
+  // white was wrong here (a bright, high-luminance base color — a vivid
+  // yellow or lime-green hue — makes white text close to unreadable).
   const primaryText = pickReadableTextColor(primary);
   const secondaryText = pickReadableTextColor(secondary);
   const accentText = pickReadableTextColor(accent);

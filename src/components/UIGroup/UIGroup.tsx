@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 /**
  * Props for the `<UIGroup>` component.
@@ -38,7 +39,7 @@ export interface UIGroupProps {
 // cooperation required from the child's own prop handling, `!important`
 // only because it has to outrank each child's inline `borderRadius`.
 const STYLE_ID = 'toolcrib-group-styles';
-function injectUIGroupStyles() {
+function injectUIGroupStyles(targetDocument?: Document) {
   injectGlobalStyle(
     STYLE_ID,
     `
@@ -93,7 +94,8 @@ function injectUIGroupStyles() {
     .toolcrib-group[data-orientation="vertical"] > *:not(:first-child) {
       margin-top: var(--ai-uigroup-overlap, -0.0625rem);
     }
-    `
+    `,
+    targetDocument
   );
 }
 
@@ -108,9 +110,10 @@ export const UIGroup: React.FC<UIGroupProps> = ({
   ...props
 }) => {
   warnIfLegacyStyleProps(props, 'UIGroup');
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectUIGroupStyles();
-  }, []);
+    injectUIGroupStyles(targetDocument);
+  }, [targetDocument]);
 
   return (
     <div

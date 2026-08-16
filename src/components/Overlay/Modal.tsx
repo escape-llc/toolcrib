@@ -7,6 +7,7 @@ import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, ModalSliceState } from './ModalSlice';
@@ -75,9 +76,10 @@ export const Modal: React.FC<ModalProps> & {
   overrides,
 }) => {
   const id = useStableId(propId, 'modal');
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const { vars: modalVars } = useSliceOverrides(ModalThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -114,7 +116,7 @@ export const Modal: React.FC<ModalProps> & {
         </DialogPrimitive.Trigger>
       )}
 
-      <DialogPrimitive.Portal>
+      <DialogPrimitive.Portal container={targetDocument?.body}>
         <DialogPrimitive.Overlay
           style={{
             position: 'fixed',
@@ -133,6 +135,7 @@ export const Modal: React.FC<ModalProps> & {
           <DialogPrimitive.Content
             aria-describedby={undefined}
             data-testid="modal-container"
+            className="ai-focus-ring"
             style={{
               background: 'var(--ai-bg-surface, #ffffff)',
               borderRadius: 'var(--ai-radius-lg, 0.75rem)',

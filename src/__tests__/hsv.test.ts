@@ -83,8 +83,8 @@ describe('ensureWCAGContrast', () => {
 
 describe('pickReadableTextColor', () => {
   it('picks black for a bright, high-luminance background (e.g. lime green)', () => {
-    // The exact reported case: this toolkit's "Lime" preset uses a
-    // bright lime green (hue ~88°) — white text on it is close to
+    // The exact reported case that motivated pickReadableTextColor: a
+    // bright lime green base (hue ~88°) — white text on it is close to
     // unreadable, since lime's luminance is already close to white's.
     const lime: HSVColor = { h: 88, s: 78, v: 85 };
     const result = pickReadableTextColor(lime);

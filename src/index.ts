@@ -1,6 +1,7 @@
 // Theme Engine
 export * from './theme/StyleDomainContext';
 export * from './theme/animation';
+export * from './theme/animationKeyframes';
 export * from './theme/harmonies';
 export * from './theme/hsv';
 export * from './theme/margin';
@@ -11,6 +12,7 @@ export * from './theme/safeProps';
 export * from './theme/shadow';
 export * from './theme/slice';
 export * from './theme/subtheme';
+export * from './theme/targetDocumentContext';
 export * from './theme/themeContext';
 export * from './theme/themeFileTransfer';
 export * from './theme/themeLibrary';

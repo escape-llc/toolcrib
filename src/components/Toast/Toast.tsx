@@ -5,6 +5,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 
@@ -18,7 +19,7 @@ const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 // so the browser never restarts it) — real `[data-state]`/`[data-swipe]`
 // selectors need a real stylesheet, hence injecting one instead of relying
 // on inline styles like the rest of this component's styling does.
-function injectToastAnimations(): void {
+function injectToastAnimations(targetDocument?: Document): void {
   injectGlobalStyle(
     TOAST_STYLE_ID,
     `
@@ -50,7 +51,8 @@ function injectToastAnimations(): void {
     .ai-toast-root[data-swipe="end"] {
       animation: toolcrib-toast-swipe-out 0.2s ease-out forwards;
     }
-    `
+    `,
+    targetDocument
   );
 }
 
@@ -61,10 +63,11 @@ export interface ToastProps {
 
 export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const { dismissToast } = useToast();
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectToastAnimations();
-    injectInteractionStyles();
-  }, []);
+    injectToastAnimations(targetDocument);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // ToastPrimitive.Root is given the same `duration` below and runs its own
   // internal auto-dismiss timer, which — per Radix's documented Toast
@@ -134,7 +137,7 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   return (
     <ToastPrimitive.Root
       data-testid="toast-item"
-      className="ai-toast-root"
+      className="ai-toast-root ai-focus-ring"
       duration={toast.sticky ? Infinity : (toast.duration || 5000)}
       onSwipeStart={() => { swipedRef.current = true; }}
       onSwipeCancel={() => { swipedRef.current = false; }}
@@ -164,14 +167,6 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         position: 'relative',
         zIndex: 3000,
         outline: 'none',
-        // Self-contained toast item — isolates its own layout/paint from
-        // its sibling toasts and the rest of the page. Doesn't affect the
-        // swipe-to-dismiss transform/animation (contain doesn't clip
-        // visual overflow while this element's own `overflow` stays
-        // `visible`, and the transform moves the whole box, not a
-        // descendant escaping it — see Tooltip.tsx's comment for how this
-        // was verified).
-        contain: 'content',
         // Confirmed via a real browser run (DOM dump + computed-style walk):
         // Radix's ToastPrimitive.Root portals its actual rendered content to
         // be a direct child of the Viewport's <ol>, not a descendant of
@@ -306,7 +301,7 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <ToastPrimitive.Provider swipeDirection="right">
-      <ToastPrimitive.Viewport style={getPositionStyles()}>
+      <ToastPrimitive.Viewport className="ai-focus-ring" style={getPositionStyles()}>
         {/* No per-toast wrapper div here — see ToastItemComponent's own
             pointerEvents: 'auto' comment for why one existed before and why
             it never actually worked (ToastPrimitive.Root portals its real

@@ -639,7 +639,7 @@ export const App: React.FC = () => {
                 region within <Content>'s domain; it has no idea which tab
                 is active, on purpose.
               */}
-              <Content.Grow>
+              <Content.Grow data-testid="main-content-scroll">
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">

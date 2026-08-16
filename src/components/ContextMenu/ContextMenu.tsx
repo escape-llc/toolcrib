@@ -6,6 +6,7 @@ import { useStableId } from '../shared/useStableId';
 import { MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { ContextMenuThemeSlice, ContextMenuSliceState } from './ContextMenuSlice';
 
@@ -40,9 +41,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
 }) => {
   const id = useStableId(propId, 'contextmenu');
   const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   return (
     <ContextMenuPrimitive.Root
@@ -58,8 +60,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         <div style={{ display: 'inline-block' }}>{children}</div>
       </ContextMenuPrimitive.Trigger>
 
-      <ContextMenuPrimitive.Portal>
+      <ContextMenuPrimitive.Portal container={targetDocument?.body}>
         <ContextMenuPrimitive.Content
+          className="ai-focus-ring"
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             minWidth: '11.25rem',

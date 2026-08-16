@@ -1438,7 +1438,11 @@
         "themeManagement": {
           "type": "boolean | ThemeManagementOptions",
           "default": "true",
-          "description": "Controls which Save & Load Themes commands appear in the header\ntoolbar. Omit (or `true`) for everything enabled — the default. Pass\n`false` to hide the whole toolbar, or an options object to lock out\nspecific commands individually — e.g. an app author shipping a fixed\nbundled theme (via `<ThemeProvider initialParameters={...}>`) who\ndoesn't want end users overriding it with an imported file, or\npersisting their own local variant that outlives an intentional reset."
+          "description": "Controls which Save & Load Themes commands appear in the header\ntoolbar. Omit (or `true`) for everything enabled — the default. Pass\n`false` to hide the whole toolbar, or an options object to lock out\nspecific commands individually — e.g. an app author shipping a fixed\nbundled theme (via `<ThemeProvider initialParameters={...}>`) who\ndoesn't want end users overriding it with an imported file, or\npersisting their own local variant that outlives an intentional reset.\nIgnored when `themeManagementSlot` is given — see that prop."
+        },
+        "themeManagementSlot": {
+          "type": "ReactNode",
+          "description": "Replaces the entire built-in Save & Load Themes toolbar (presets,\nsave/load library, export/import) with your own UI, in the same\nheader position — for an app that wants different theme-selection/\npersistence UX than the bundled one (e.g. a picker styled to match a\nmarketing site, or backed by the app's own account system instead of\n`localStorage`). `themeManagement` is ignored while this is set: you\nown this area completely, all-or-nothing, rather than mixing built-in\nand custom pieces.\n\nNothing is threaded through as a render prop — every piece the\nbuilt-in toolbar itself is built from is already public API your own\nslot component can call directly: `presetThemes` (`theme/\npresetThemes.ts`) for the bundled swatches, `useTheme()` plus\n`captureThemeSnapshot`/`applyThemeSnapshot` (`theme/\nthemePersistence.ts`) to read/write the live theme, and `theme/\nthemeLibrary.ts`/`theme/themeFileTransfer.ts` for the same\nlocalStorage save/load and file export/import the default toolbar\nuses."
         }
       },
       "category": "Form Controls",

@@ -152,10 +152,6 @@ export const Card: React.FC<CardProps> & {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        // Cards are typically repeated (a grid/list of many), each with
-        // arbitrary caller-supplied content — containment scopes each
-        // card's own layout/paint to itself instead of the whole grid.
-        contain: 'content',
         ...(isAuto ? {
           height: '100%',
           width: '100%',

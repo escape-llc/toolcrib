@@ -213,8 +213,8 @@ export function getHSVContrastRatio(hsv1: HSVColor, hsv2: HSVColor): number {
  *
  * This is the fix for a real reported case: Button's primary/secondary/
  * danger variants hardcoded white text unconditionally, so a bright
- * high-luminance primary color (e.g. this toolkit's own default lime
- * green, hue ~88°) produced genuinely unreadable white-on-lime text —
+ * high-luminance primary color (e.g. a lime-green base, hue ~88°)
+ * produced genuinely unreadable white-on-lime text —
  * `ensureWCAGContrast` was never involved in that path at all.
  */
 export function pickReadableTextColor(bg: HSVColor): HSVColor {

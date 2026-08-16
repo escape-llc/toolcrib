@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { ReactNode, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { HarmonyMode } from '../../theme/harmonies';
 import { PaddingMode } from '../../theme/padding';
@@ -38,9 +38,31 @@ export interface ThemeEditorProps {
    * bundled theme (via `<ThemeProvider initialParameters={...}>`) who
    * doesn't want end users overriding it with an imported file, or
    * persisting their own local variant that outlives an intentional reset.
+   * Ignored when `themeManagementSlot` is given — see that prop.
    * @default true
    */
   themeManagement?: boolean | ThemeManagementOptions;
+  /**
+   * Replaces the entire built-in Save & Load Themes toolbar (presets,
+   * save/load library, export/import) with your own UI, in the same
+   * header position — for an app that wants different theme-selection/
+   * persistence UX than the bundled one (e.g. a picker styled to match a
+   * marketing site, or backed by the app's own account system instead of
+   * `localStorage`). `themeManagement` is ignored while this is set: you
+   * own this area completely, all-or-nothing, rather than mixing built-in
+   * and custom pieces.
+   *
+   * Nothing is threaded through as a render prop — every piece the
+   * built-in toolbar itself is built from is already public API your own
+   * slot component can call directly: `presetThemes` (`theme/
+   * presetThemes.ts`) for the bundled swatches, `useTheme()` plus
+   * `captureThemeSnapshot`/`applyThemeSnapshot` (`theme/
+   * themePersistence.ts`) to read/write the live theme, and `theme/
+   * themeLibrary.ts`/`theme/themeFileTransfer.ts` for the same
+   * localStorage save/load and file export/import the default toolbar
+   * uses.
+   */
+  themeManagementSlot?: ReactNode;
 }
 
 /** A `label` + `Select` pairing, optionally with an info tooltip — the field-row shape every per-slice control in this editor follows. */
@@ -77,7 +99,7 @@ function FieldRow({
  * host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing.
  * @manifestCategory Form Controls
  */
-export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true }) => {
+export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot }) => {
   // The whole context object, not just its destructured fields below — the
   // save/load handlers need to hand it as a unit to captureThemeSnapshot/
   // applyThemeSnapshot (see themePersistence.ts), which take the full
@@ -89,7 +111,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   const showLibrary = !allDisabled && mgmt.library !== false;
   const showExport = !allDisabled && mgmt.export !== false;
   const showImport = !allDisabled && mgmt.import !== false;
-  const showThemeToolbar = showPresets || showLibrary || showExport || showImport;
+  const showThemeToolbar = themeManagementSlot !== undefined || showPresets || showLibrary || showExport || showImport;
   const {
     parameters,
     setBaseColor,
@@ -1163,14 +1185,97 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     />
   );
 
+  // The built-in Save & Load Themes toolbar content — pulled out of the
+  // returned JSX below (matching this file's own convention of
+  // pre-computing each section as an `xContent` variable) specifically so
+  // it's easy to see it's just the `??` fallback for `themeManagementSlot`,
+  // not tangled into the header's own wrapper/border chrome.
+  const defaultThemeManagementContent = (
+    <>
+      {showPresets && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {presetThemes.map(preset => (
+            <Button key={preset.id} size="sm" variant="outline" onClick={() => handleLoadPreset(preset)}>
+              {preset.name}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {(showLibrary || showExport || showImport) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+          {showLibrary && (
+            <>
+              <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
+                <Input
+                  placeholder="Theme name..."
+                  value={themeName}
+                  onChange={e => setThemeName(e.target.value)}
+                />
+              </div>
+              <Button size="sm" onClick={handleSaveCurrentTheme} disabled={!themeName.trim()}>
+                💾 Save
+              </Button>
+            </>
+          )}
+          {showExport && (
+            <Button size="sm" variant="outline" onClick={handleDownloadTheme}>
+              ⬇️ Export
+            </Button>
+          )}
+          {showImport && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                ⬆️ Import
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                onChange={handleFileSelected}
+                style={{ display: 'none' }}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {showLibrary && savedThemes.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)' }}>Saved:</span>
+          {savedThemes.map(entry => (
+            <UIGroup key={entry.id}>
+              <Button size="sm" variant="ghost" onClick={() => handleLoadSavedTheme(entry.id)}>
+                {entry.name}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Delete saved theme ${entry.name}`}
+                onClick={() => handleDeleteSavedTheme(entry.id)}
+              >
+                🗑️
+              </Button>
+            </UIGroup>
+          ))}
+        </div>
+      )}
+
+      {importError && (
+        <span style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)' }}>{importError}</span>
+      )}
+    </>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
       {/* Save & Load Themes — lives in the header, above everything else,
-          not buried at the bottom past 6 categories of scrolling. Any of
-          the four command groups can be individually locked out via the
-          `themeManagement` prop (see its own doc comment) — e.g. an app
-          author shipping one fixed bundled theme who doesn't want it
-          overridable. */}
+          not buried at the bottom past 6 categories of scrolling. Either
+          the built-in toolbar (its four command groups individually
+          lockable via `themeManagement` — see its own doc comment, e.g. an
+          app author shipping one fixed bundled theme who doesn't want it
+          overridable) or, given `themeManagementSlot`, whatever the caller
+          hands in instead — see that prop's own doc comment. */}
       {showThemeToolbar && (
         <div
           style={{
@@ -1181,78 +1286,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
           }}
         >
-          {showPresets && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {presetThemes.map(preset => (
-                <Button key={preset.id} size="sm" variant="outline" onClick={() => handleLoadPreset(preset)}>
-                  {preset.name}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {(showLibrary || showExport || showImport) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-              {showLibrary && (
-                <>
-                  <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
-                    <Input
-                      placeholder="Theme name..."
-                      value={themeName}
-                      onChange={e => setThemeName(e.target.value)}
-                    />
-                  </div>
-                  <Button size="sm" onClick={handleSaveCurrentTheme} disabled={!themeName.trim()}>
-                    💾 Save
-                  </Button>
-                </>
-              )}
-              {showExport && (
-                <Button size="sm" variant="outline" onClick={handleDownloadTheme}>
-                  ⬇️ Export
-                </Button>
-              )}
-              {showImport && (
-                <>
-                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                    ⬆️ Import
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/json,.json"
-                    onChange={handleFileSelected}
-                    style={{ display: 'none' }}
-                  />
-                </>
-              )}
-            </div>
-          )}
-
-          {showLibrary && savedThemes.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)' }}>Saved:</span>
-              {savedThemes.map(entry => (
-                <UIGroup key={entry.id}>
-                  <Button size="sm" variant="ghost" onClick={() => handleLoadSavedTheme(entry.id)}>
-                    {entry.name}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={`Delete saved theme ${entry.name}`}
-                    onClick={() => handleDeleteSavedTheme(entry.id)}
-                  >
-                    🗑️
-                  </Button>
-                </UIGroup>
-              ))}
-            </div>
-          )}
-
-          {importError && (
-            <span style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)' }}>{importError}</span>
-          )}
+          {themeManagementSlot ?? defaultThemeManagementContent}
         </div>
       )}
 

@@ -1,6 +1,10 @@
+/* font-family/font-size are deliberately not set here anymore — the
+   library now self-injects `:root { font-family: var(--ai-font-family,
+   ...); font-size: var(--ai-master-font-size, ...); }` itself (see
+   ThemeProvider's own effect in src/theme/themeContext.tsx), since those
+   two are what actually make the toolkit's typography theming (and its
+   `rem`-based sizing throughout) work at all — not a demo-only concern. */
 :root {
-  font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif);
-  font-size: var(--ai-master-font-size, 16px);
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
@@ -24,16 +28,15 @@ body {
   box-sizing: border-box;
 }
 
-/* Input, Select, & Textarea Focus Ring Styles derived from HSV Theme */
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none !important;
-  border-color: var(--ai-color-primary, #3b82f6) !important;
-  box-shadow: 0 0 0 0.2rem var(--ai-focus-ring, rgba(59, 130, 246, 0.25)) !important;
-}
+/* The input/select/textarea focus-ring rule that used to live here is
+   gone too — Input/Textarea now carry the library's own `.ai-focus-ring`
+   class (self-injected via injectInteractionStyles()), which does the
+   same job without needing this file's help. */
 
-/* Focus Visible for Buttons & Interactive Controls */
+/* Focus Visible for Buttons & Interactive Controls — a generic a11y
+   baseline for any consumer's own plain <button>/<a> markup outside the
+   toolkit's own components (which already carry .ai-btn/.ai-focus-ring
+   and don't need this); left as an app-level default, not a library gap. */
 button:focus-visible,
 [role="button"]:focus-visible,
 a:focus-visible {
@@ -41,146 +44,19 @@ a:focus-visible {
   outline-offset: 0.125rem !important;
 }
 
-/* Keyframe Entry & Exit Animations parameterizable by AnimationThemeSlice & SlideOutSlice */
-@keyframes ai-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* NOTE: the @keyframes for Modal/AlertDialog/Popup/SlideOut/TabStrip.Panel
+   (ai-fade-in, ai-scale-in, ai-slide-in/out-*) and for Accordion
+   (ai-accordion-slide-down/up, .ai-accordion-* rules) used to live here.
+   They're now self-injected by the library itself — see
+   src/theme/animationKeyframes.ts (invoked from src/index.ts) and
+   src/components/Accordion/Accordion.tsx's injectAccordionStyles() — so a
+   consumer no longer needs to copy any of this for those components to
+   actually animate. Left removed rather than kept as a duplicate: the
+   library's injected copy is now the single source of truth. */
 
-@keyframes ai-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes ai-scale-in {
-  from { opacity: 0; transform: scale(0.92); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes ai-slide-in-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes ai-slide-out-right {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
-}
-
-@keyframes ai-slide-in-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes ai-slide-out-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
-}
-
-@keyframes ai-slide-in-top {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes ai-slide-out-top {
-  from { transform: translateY(0); }
-  to { transform: translateY(-100%); }
-}
-
-@keyframes ai-slide-in-bottom {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes ai-slide-out-bottom {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
-}
-
-/* Accordion Keyframe Animations & Chevron Transitions */
-@keyframes ai-accordion-slide-down {
-  from {
-    height: 0;
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-  to {
-    height: var(--radix-accordion-content-height);
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes ai-accordion-slide-up {
-  from {
-    height: var(--radix-accordion-content-height);
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    height: 0;
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-}
-
-.ai-accordion-content {
-  overflow: hidden;
-}
-
-.ai-accordion-content[data-state="open"] {
-  animation: var(--ai-accordion-animation, ai-accordion-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1));
-}
-
-.ai-accordion-content[data-state="closed"] {
-  animation: ai-accordion-slide-up 0.2s ease-out;
-}
-
-.ai-accordion-trigger:hover {
-  background: var(--ai-bg-surface, #ffffff) !important;
-  color: var(--ai-color-primary, #3b82f6) !important;
-}
-
-.ai-accordion-chevron {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  display: inline-block;
-}
-
-.ai-accordion-trigger[data-state="open"] .ai-accordion-chevron {
-  transform: rotate(180deg);
-  color: var(--ai-color-primary, #3b82f6);
-}
-
-/* Zero-AI-Labor Automatic Layout Domain Corner Squaring (Flexing / Auto Components) */
-
-/* Vertical Splitter Top Panel (slot="first"): Auto/flexing components square off bottom corners */
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] [data-ai-layout-auto="true"],
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] > :last-child,
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] > :last-child > :last-child {
-  border-bottom-left-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
-}
-
-/* Vertical Splitter Bottom Panel (slot="second"): Auto/flexing components square off top corners */
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] [data-ai-layout-auto="true"],
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] > :first-child,
-[data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] > :first-child > :first-child {
-  border-top-left-radius: 0px !important;
-  border-top-right-radius: 0px !important;
-}
-
-/* Horizontal Splitter Left Panel (slot="first"): Auto/flexing components square off right corners */
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] [data-ai-layout-auto="true"],
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] > :last-child,
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] > :last-child > :last-child {
-  border-top-right-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
-}
-
-/* Horizontal Splitter Right Panel (slot="second"): Auto/flexing components square off left corners */
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] [data-ai-layout-auto="true"],
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] > :first-child,
-[data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] > :first-child > :first-child {
-  border-top-left-radius: 0px !important;
-  border-bottom-left-radius: 0px !important;
-}
+/* The corner-squaring attribute-selector CSS that used to live here is
+   also gone — Splitter now self-injects it (injectCornerSquaringStyles()
+   in src/components/Splitter/Splitter.tsx), since it covers real cases
+   the JS-computed useCornerSquaring() inline style doesn't reach (a plain
+   child passed directly to <Splitter> without <Splitter.Panel>, a
+   non-toolcrib component child, anything nested two-plus levels deep). */

@@ -7,6 +7,7 @@ import { StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
 import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
@@ -174,9 +175,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   // pre-existing, unrelated mechanism), so there's no second subtheme
   // concern for this slice to fold in.
   const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   const getSizeStyles = (): React.CSSProperties => {
     const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
@@ -190,8 +192,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   const getVariantStyles = (): React.CSSProperties => {
     // Text color per fill is picked from the palette's own
     // WCAG-guaranteed pickReadableTextColor result (see hsv.ts), not
-    // hardcoded white — a bright, high-luminance primary color (e.g. this
-    // toolkit's own default lime green) makes white-on-fill genuinely
+    // hardcoded white — a bright, high-luminance primary color (e.g. a
+    // vivid yellow or lime-green base) makes white-on-fill genuinely
     // unreadable otherwise. Mirrors baseBg's own subthemeColors-vs-variant
     // branching exactly, so text always matches whichever fill actually
     // rendered.
@@ -318,6 +320,11 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: inputVars } = useSliceOverrides(InputThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
+
+  React.useEffect(() => {
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -332,10 +339,12 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
 
   return (
     <input
+      {...props}
       id={name || undefined}
       name={name || undefined}
       type={type}
       value={value}
+      className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);
         if (onChange) onChange(e);
@@ -357,7 +366,6 @@ export const Input: React.FC<InputProps> = ({ name: propName, type = 'text', cor
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         ...inputVars,
       }}
-      {...props}
     />
   );
 };
@@ -385,9 +393,10 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -459,9 +468,10 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -543,6 +553,11 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: textareaVars } = useSliceOverrides(InputThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
+
+  React.useEffect(() => {
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -557,10 +572,12 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
 
   return (
     <textarea
+      {...props}
       id={name || undefined}
       name={name || undefined}
       rows={rows}
       value={value}
+      className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);
         if (onChange) onChange(e);
@@ -583,7 +600,6 @@ export const Textarea: React.FC<TextareaProps> = ({ name: propName, rows = 3, co
         resize: 'vertical',
         ...textareaVars,
       }}
-      {...props}
     />
   );
 };

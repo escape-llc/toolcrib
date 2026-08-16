@@ -41,6 +41,9 @@ import { AppShellThemeSlice, AppShellSliceState, defaultAppShellState } from '..
 import { TypographyThemeSlice, TypographySliceState, defaultTypographyState } from './typography';
 import { globalThemeSliceRegistry } from './slice';
 import { aiBus } from '../eventBus/eventBus';
+import { injectGlobalStyle } from './injectGlobalStyle';
+import { injectSharedAnimationKeyframes } from './animationKeyframes';
+import { TargetDocumentContext } from './targetDocumentContext';
 
 // Register standard theme slices
 globalThemeSliceRegistry.register(PaddingThemeSlice);
@@ -491,6 +494,43 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     aiBus.emit('theme:changed', { parameters, palette, cssVariables });
   }, [cssVariables, parameters, palette, targetDocument]);
 
+  // `--ai-font-family`/`--ai-master-font-size` above are written as CSS
+  // custom properties on :root, but a custom property alone does nothing
+  // — nothing actually *uses* `var(--ai-font-family)`/
+  // `var(--ai-master-font-size)` as a real `font-family`/`font-size`
+  // unless some rule references it. That rule used to live only in the
+  // demo app's own index.css; a real consumer got the variables updating
+  // correctly (visible via devtools) with zero visual effect anywhere,
+  // including on this toolkit's own `rem`-based sizing throughout every
+  // component, which can only ever scale via :root's actual resolved
+  // font-size (that's inherent to what `rem` means — no scoped rule can
+  // substitute for it). One rule, injected once per target document
+  // (typically once total — the common case is a single ThemeProvider).
+  useEffect(() => {
+    injectGlobalStyle(
+      'toolcrib-typography-base',
+      `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); }`,
+      targetDocument
+    );
+  }, [targetDocument]);
+
+  // injectSharedAnimationKeyframes() (animationKeyframes.ts) already runs
+  // eagerly, once, the moment the package is first imported — but that
+  // call happens before any component (including this one) has rendered,
+  // so it has no way to know about a `targetDocument` and only ever
+  // reaches the global `document`. That's the right default (Modal/
+  // SlideOut/etc.'s entrance animations work with zero ThemeProvider
+  // involvement), but it means the one case this component *does* know
+  // about — a `targetDocument` pointing somewhere else entirely, e.g. an
+  // <iframe>'s own document via ReactDOM.createPortal — would otherwise
+  // never get its own copy of these keyframes, silently. Calling it again
+  // here is a harmless no-op for the common case (idempotent, guarded by
+  // injectGlobalStyle's per-document getElementById check) and the actual
+  // fix for the portaled one.
+  useEffect(() => {
+    injectSharedAnimationKeyframes(targetDocument);
+  }, [targetDocument]);
+
   const setBaseColor = (baseColor: HSVColor) => setParameters(p => ({ ...p, baseColor }));
   const setHarmonyMode = (harmonyMode: HarmonyMode) => setParameters(p => ({ ...p, harmonyMode }));
   const setHueSpread = (hueSpread: number) => setParameters(p => ({ ...p, hueSpread }));
@@ -604,7 +644,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setDarkMode,
   };
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>
+      <TargetDocumentContext.Provider value={targetDocument}>{children}</TargetDocumentContext.Provider>
+    </ThemeContext.Provider>
+  );
 };
 
 export const useTheme = (): ThemeContextType => {

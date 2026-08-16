@@ -3,6 +3,7 @@ import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from '
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ToggleThemeSlice, ToggleSliceState } from './ToggleSlice';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
@@ -38,9 +39,10 @@ export const Toggle: React.FC<ToggleProps> = ({
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   const handlePressedChange = (next: boolean) => {
     if (externalPressed === undefined) setInternalPressed(next);
@@ -141,9 +143,10 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   );
   const currentValue = externalValue !== undefined ? externalValue : internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   const handleValueChange = (next: string | string[]) => {
     if (externalValue === undefined) setInternalValue(next);

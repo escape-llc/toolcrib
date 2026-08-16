@@ -3,6 +3,7 @@ import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { TooltipThemeSlice, TooltipSliceState } from './TooltipSlice';
 
 /**
@@ -52,6 +53,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
 }) => {
   const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
   const [isOpen, setIsOpen] = useState(false);
+  const targetDocument = useTargetDocument();
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -87,7 +89,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
           <span style={{ display: 'inline-flex', alignItems: 'stretch', cursor: 'pointer' }}>{children}</span>
         </TooltipPrimitive.Trigger>
 
-        <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Portal container={targetDocument?.body}>
           {/* No `animation` here — confirmed via a real browser run (animationstart/
               animationend/animationcancel listeners attached directly to this node,
               plus computed-style inspection) that this component previously set

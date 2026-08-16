@@ -4,6 +4,62 @@ import { aiBus } from '../../eventBus/eventBus';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+
+const CORNER_SQUARING_STYLE_ID = 'toolcrib-corner-squaring';
+
+/**
+ * Automatic corner-squaring for the two panels this Splitter renders,
+ * expressed as attribute-selector CSS rather than the JS-computed inline
+ * style `useCornerSquaring` (`LayoutDomainContext.tsx`) returns for
+ * components that call it. Both exist because they cover different cases:
+ * `useCornerSquaring` only reaches a component that explicitly calls the
+ * hook (`Card`, `Content`, and — one level deep only — a plain DOM element
+ * child of `Splitter.Panel` via its own `cloneElement` forwarding). It
+ * does NOT reach a plain child passed directly to `<Splitter>` without
+ * `<Splitter.Panel>` at all, a non-toolcrib React component child (opted
+ * out of deliberately, see `Splitter.Panel`'s own comment), or anything
+ * nested two or more levels deep — this CSS is the catch-all for exactly
+ * those cases, keyed off the `data-ai-layout-orientation`/
+ * `data-ai-layout-slot`/`data-ai-layout-auto` attributes rendered below
+ * and on `Card`/`Content`. Used to live only in the demo app's own
+ * index.css, which happened to cover the demo's own markup but left any
+ * other consumer's plain/non-hook-calling children with square-less
+ * corners butting up against the splitter handle.
+ */
+function injectCornerSquaringStyles(targetDocument?: Document): void {
+  injectGlobalStyle(
+    CORNER_SQUARING_STYLE_ID,
+    `
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] [data-ai-layout-auto="true"],
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] > :last-child,
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="first"] > :last-child > :last-child {
+      border-bottom-left-radius: 0px !important;
+      border-bottom-right-radius: 0px !important;
+    }
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] [data-ai-layout-auto="true"],
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] > :first-child,
+    [data-ai-layout-orientation="vertical"][data-ai-layout-slot="second"] > :first-child > :first-child {
+      border-top-left-radius: 0px !important;
+      border-top-right-radius: 0px !important;
+    }
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] [data-ai-layout-auto="true"],
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] > :last-child,
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="first"] > :last-child > :last-child {
+      border-top-right-radius: 0px !important;
+      border-bottom-right-radius: 0px !important;
+    }
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] [data-ai-layout-auto="true"],
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] > :first-child,
+    [data-ai-layout-orientation="horizontal"][data-ai-layout-slot="second"] > :first-child > :first-child {
+      border-top-left-radius: 0px !important;
+      border-bottom-left-radius: 0px !important;
+    }
+    `,
+    targetDocument
+  );
+}
 
 export type SplitterOrientation = 'horizontal' | 'vertical';
 
@@ -69,6 +125,10 @@ export const Splitter: React.FC<SplitterProps> & {
   ...props
 }) => {
   warnIfLegacyStyleProps(props, 'Splitter');
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectCornerSquaringStyles(targetDocument);
+  }, [targetDocument]);
   // useStableId (React's useId() under the hood) rather than the previous
   // Math.random()-in-a-useRef: domainId is rendered directly into
   // `data-ai-layout-domain` below, on both panel wrappers, so a value that
@@ -212,13 +272,6 @@ export const Splitter: React.FC<SplitterProps> & {
         overflow: 'hidden',
         position: 'relative',
         userSelect: isDragging ? 'none' : 'auto',
-        // Every drag frame changes `split`, which resizes the two panels
-        // below — layout containment tells the browser that reflow can't
-        // escape this box, so a resize here never forces the rest of the
-        // page (siblings of this whole Splitter) to re-layout. Already
-        // `overflow: hidden`, so paint containment (clipping to this box)
-        // changes nothing observable; `content` = layout+paint+style.
-        contain: 'content',
       }}
     >
       {/* First / Top / Left Panel Container */}
@@ -237,10 +290,6 @@ export const Splitter: React.FC<SplitterProps> & {
             flexDirection: 'column',
             minHeight: 0,
             minWidth: 0,
-            // Isolates whatever arbitrary content this panel holds (a
-            // DataTable, a nested Splitter, ...) so its own reflow/repaint
-            // doesn't cascade to the sibling panel or the drag handle.
-            contain: 'content',
             ...(isVertical ? {
               '--ai-layout-border-bottom-left-radius': '0rem',
               '--ai-layout-border-bottom-right-radius': '0rem',
@@ -303,8 +352,6 @@ export const Splitter: React.FC<SplitterProps> & {
             flexDirection: 'column',
             minHeight: 0,
             minWidth: 0,
-            // See the first panel's identical comment above.
-            contain: 'content',
             ...(isVertical ? {
               '--ai-layout-border-top-left-radius': '0rem',
               '--ai-layout-border-top-right-radius': '0rem',

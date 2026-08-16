@@ -6,6 +6,7 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
@@ -71,9 +72,10 @@ export const TabStrip: React.FC<TabStripProps> & {
   Panel: React.FC<TabPanelProps>;
 } = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -200,6 +202,7 @@ export const TabStrip: React.FC<TabStripProps> & {
       {/* Connected Tab List Scroll Container using Radix Tabs.List */}
       <TabsPrimitive.List
         ref={scrollContainerRef}
+        className="ai-focus-ring"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -386,12 +389,6 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ..
         display: 'flex',
         flexDirection: 'column',
         animation: 'var(--ai-tab-panel-animation, ai-fade-in 0.22s ease)',
-        // Isolates the active panel's content from the rest of the page on
-        // every tab switch. Deliberately not `size` — this box is sized by
-        // its parent flex context (`flex: 1 1 0px`), and `size` containment
-        // would break the height-propagation-to-children behavior the
-        // comment above exists to document.
-        contain: 'content',
       }}
     >
       {children}

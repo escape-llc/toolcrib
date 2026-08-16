@@ -44,7 +44,7 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  * sets that exact property (documented per-rule below) — inline style
  * always outranks an external stylesheet rule otherwise, override or not.
  */
-export function injectInteractionStyles(): void {
+export function injectInteractionStyles(targetDocument?: Document): void {
   injectGlobalStyle(
     STYLE_ID,
     `
@@ -96,6 +96,7 @@ export function injectInteractionStyles(): void {
     .ai-menu-item[data-highlighted] {
       background: color-mix(in srgb, currentColor var(--ai-menu-item-highlight-amount, 10%), transparent);
     }
-    `
+    `,
+    targetDocument
   );
 }

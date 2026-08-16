@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { TargetDocumentContext } from '../../theme/targetDocumentContext';
 import { Button } from '../Form/FormComponents';
 
 /**
@@ -46,6 +47,13 @@ interface AIErrorBoundaryState {
 export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoundaryState> {
   static displayName = 'AIErrorBoundary';
 
+  // Class component, no useContext — `static contextType` is the class
+  // equivalent, giving `this.context` the nearest <ThemeProvider
+  // targetDocument>'s value (undefined outside one), same as every other
+  // component's own `useTargetDocument()` call reads.
+  static contextType = TargetDocumentContext;
+  declare context: Document | undefined;
+
   state: AIErrorBoundaryState = { hasError: false, error: null };
 
   componentDidMount(): void {
@@ -54,7 +62,7 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
     // SlideOut/AlertDialog already call this themselves, but this boundary
     // is documented as usable standalone too, wrapping any AI-generated
     // section directly).
-    injectInteractionStyles();
+    injectInteractionStyles(this.context);
   }
 
   static getDerivedStateFromError(error: Error): AIErrorBoundaryState {

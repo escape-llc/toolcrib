@@ -5,6 +5,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, DropdownMenuSliceState } from './DropdownMenuSlice';
 
@@ -65,9 +66,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 }) => {
   const id = useStableId(propId, 'menu');
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   return (
     <DropdownMenuPrimitive.Root
@@ -83,11 +85,12 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         <div style={{ display: 'inline-block', cursor: 'pointer' }}>{trigger}</div>
       </DropdownMenuPrimitive.Trigger>
 
-      <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
         <DropdownMenuPrimitive.Content
           side={side}
           align={align}
           sideOffset={5}
+          className="ai-focus-ring"
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             minWidth: '11.25rem',

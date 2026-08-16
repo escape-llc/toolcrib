@@ -4,6 +4,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { resolveSubtheme, SubthemeName, SubthemeColors } from '../../theme/subtheme';
 import { useStableId } from '../shared/useStableId';
 import { aiBus } from '../../eventBus/eventBus';
@@ -131,9 +132,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // read of the effective borderStyle to respect `overrides={{ borderStyle:
   // 'none' }}` instead of always drawing a border regardless.
   const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [sortKey, setSortKey] = useState<string | null>(null);

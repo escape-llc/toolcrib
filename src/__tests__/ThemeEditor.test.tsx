@@ -107,4 +107,32 @@ describe('ThemeEditor', () => {
       expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument(); // import locked out
     });
   });
+
+  describe('themeManagementSlot', () => {
+    it('replaces the entire built-in toolbar with custom content, ignoring themeManagement', () => {
+      renderEditor({
+        // Given alongside themeManagement to confirm the slot wins outright
+        // rather than merging with it.
+        themeManagement: { presets: false },
+        themeManagementSlot: <button>My Custom Theme Picker</button>,
+      });
+
+      expect(screen.getByText('My Custom Theme Picker')).toBeInTheDocument();
+      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /⬇️ Export/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument();
+      // The rest of the editor still renders normally around the slot.
+      expect(screen.getByText(/Global Theme & Color System/)).toBeInTheDocument();
+    });
+
+    it('still renders the header wrapper for a slot even when themeManagement={false}', () => {
+      // themeManagementSlot takes precedence over the boolean lockout too —
+      // false alone hides the toolbar, but a slot means the caller wants
+      // *something* shown here regardless.
+      renderEditor({ themeManagement: false, themeManagementSlot: <span>Custom UI</span> });
+
+      expect(screen.getByText('Custom UI')).toBeInTheDocument();
+    });
+  });
 });

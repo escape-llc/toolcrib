@@ -6,6 +6,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 /**
  * Props for the `<SlideOut>` drawer overlay.
@@ -59,9 +60,10 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   zIndex = Z_INDEX.DRAWER,
 }) => {
   const id = useStableId(propId, 'slideout');
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -237,7 +239,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
           {trigger}
         </div>
       )}
-      {isMounted && <Portal.Root>{portalContent}</Portal.Root>}
+      {isMounted && <Portal.Root container={targetDocument?.body}>{portalContent}</Portal.Root>}
     </>
   );
 };

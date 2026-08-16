@@ -1,9 +1,61 @@
-import React, { ReactNode, useRef } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AccordionThemeSlice, AccordionSliceState } from './AccordionSlice';
 import { useStableId } from '../shared/useStableId';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+
+const ACCORDION_STYLE_ID = 'toolcrib-accordion-styles';
+
+// Same rationale as Toast's injectToastAnimations(): the expand/collapse
+// animation needs to play a *different* keyframe depending on
+// `[data-state="open"/"closed"]`, which an inline `style.animation` can't
+// express (its value doesn't change between renders just because a
+// data-attribute did, so the browser never restarts it) — only a real
+// stylesheet rule can react to the attribute change. This used to live
+// only in the demo app's own index.css, which worked for the demo but left
+// any other consumer with an Accordion whose content panel never actually
+// animated (no @keyframes anywhere) and no hover/chevron-rotation styling
+// either.
+function injectAccordionStyles(targetDocument?: Document): void {
+  injectGlobalStyle(
+    ACCORDION_STYLE_ID,
+    `
+    @keyframes ai-accordion-slide-down {
+      from { height: 0; opacity: 0; transform: translateY(-0.25rem); }
+      to { height: var(--radix-accordion-content-height); opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ai-accordion-slide-up {
+      from { height: var(--radix-accordion-content-height); opacity: 1; transform: translateY(0); }
+      to { height: 0; opacity: 0; transform: translateY(-0.25rem); }
+    }
+    .ai-accordion-content {
+      overflow: hidden;
+    }
+    .ai-accordion-content[data-state="open"] {
+      animation: var(--ai-accordion-animation, ai-accordion-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1));
+    }
+    .ai-accordion-content[data-state="closed"] {
+      animation: ai-accordion-slide-up 0.2s ease-out;
+    }
+    .ai-accordion-trigger:hover {
+      background: var(--ai-bg-surface, #ffffff) !important;
+      color: var(--ai-color-primary, #3b82f6) !important;
+    }
+    .ai-accordion-chevron {
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      display: inline-block;
+    }
+    .ai-accordion-trigger[data-state="open"] .ai-accordion-chevron {
+      transform: rotate(180deg);
+      color: var(--ai-color-primary, #3b82f6);
+    }
+    `,
+    targetDocument
+  );
+}
 
 /** Data shape for each item in a data-driven `<Accordion>`. */
 export interface AccordionItemData {
@@ -53,6 +105,10 @@ export const Accordion: React.FC<AccordionProps> = ({
 }) => {
   const id = useStableId(propId, 'accordion');
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectAccordionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Tracks which item values are currently open so onValueChange can emit
   // one accordion:opened/closed per item that actually changed state —
@@ -130,6 +186,7 @@ export const Accordion: React.FC<AccordionProps> = ({
 
           <AccordionPrimitive.Content
             className="ai-accordion-content"
+            data-testid={`accordion-content-${item.value}`}
             style={{
               padding: 'var(--ai-padding-xl, 1rem 1.125rem)',
               fontSize: '0.875rem',

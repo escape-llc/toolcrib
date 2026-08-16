@@ -6,6 +6,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { SelectThemeSlice, SelectSliceState } from './SelectSlice';
 
@@ -62,9 +63,10 @@ export const Select: React.FC<SelectProps> = ({
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
 
   // Without this, a Select's name is never added to the form's `values`
   // object until the user actually picks something — and handleSubmit's
@@ -128,7 +130,7 @@ export const Select: React.FC<SelectProps> = ({
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
 
-      <SelectPrimitive.Portal>
+      <SelectPrimitive.Portal container={targetDocument?.body}>
         {/* Content portals to a different DOM location than Trigger above
             (see this file's comment near `overrides` — CSS custom
             properties only inherit through the real DOM tree, not the

@@ -5,6 +5,7 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { CollapsibleThemeSlice, CollapsibleSliceState } from './CollapsibleSlice';
 
 /**
@@ -49,9 +50,10 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 }) => {
   const id = useStableId(propId, 'collapsible');
   const collapsibleVars = getSparseVariables(CollapsibleThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 

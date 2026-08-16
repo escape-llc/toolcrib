@@ -7,6 +7,7 @@ import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
 import { AlertDialogThemeSlice, AlertDialogSliceState } from './AlertDialogSlice';
@@ -85,9 +86,10 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   overrides,
 }) => {
   const id = useStableId(propId, 'alertdialog');
+  const targetDocument = useTargetDocument();
   useEffect(() => {
-    injectInteractionStyles();
-  }, []);
+    injectInteractionStyles(targetDocument);
+  }, [targetDocument]);
   const { vars: alertDialogVars } = useSliceOverrides(AlertDialogThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -124,7 +126,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
         </AlertDialogPrimitive.Trigger>
       )}
 
-      <AlertDialogPrimitive.Portal>
+      <AlertDialogPrimitive.Portal container={targetDocument?.body}>
         <AlertDialogPrimitive.Overlay
           style={{
             position: 'fixed',
@@ -142,6 +144,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
         >
           <AlertDialogPrimitive.Content
             data-testid="alertdialog-container"
+            className="ai-focus-ring"
             style={{
               background: 'var(--ai-bg-surface, #ffffff)',
               borderRadius: 'var(--ai-radius-lg, 0.75rem)',
