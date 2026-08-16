@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode, ReactElement, isValidElement, cloneElement } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, ReactNode, ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
@@ -184,7 +184,13 @@ export const Splitter: React.FC<SplitterProps> & {
     });
   }, [domainId, orientation, isVertical]);
 
-  useEffect(() => {
+  // useLayoutEffect, not useEffect — these window-level move/up listeners
+  // must be attached synchronously within the same commit as isDragging
+  // becoming true, not deferred until after paint. Same bug class found
+  // and fixed for SlideOut's Escape-key listener this session: a fast
+  // enough drag gesture's first pointermove could otherwise fire before a
+  // useEffect version had attached, dropping that first tick.
+  useLayoutEffect(() => {
     if (!isDragging) return;
     if (!containerRef.current) return;
 

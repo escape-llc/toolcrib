@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, ReactNode, ReactElement } from 'react';
+import React, { useState, useLayoutEffect, useRef, ReactNode, ReactElement } from 'react';
 import { Portal } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -7,6 +7,8 @@ import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useAnimatedMount } from '../../theme/useAnimatedMount';
+import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 
 /**
  * Props for the `<SlideOut>` drawer overlay.
@@ -66,25 +68,14 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  const [isMounted, setIsMounted] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (isOpen) {
-      setIsMounted(true);
-      setIsClosing(false);
-    } else if (isMounted) {
-      setIsClosing(true);
-      timer = setTimeout(() => {
-        setIsMounted(false);
-        setIsClosing(false);
-      }, 250);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isOpen]);
+  // Drives the drawer's mount lifecycle off a real exit-animation
+  // animationend rather than a guessed setTimeout duration — see
+  // useAnimatedMount's own doc comment for why: this component's previous
+  // hand-rolled setTimeout(..., 250) version could leave the drawer (and
+  // its still-click-blocking backdrop) stuck mounted indefinitely,
+  // reproduced directly via a Playwright sweep that got stuck exactly this
+  // way. finalizeClose is wired to the backdrop's onAnimationEnd below.
+  const { isMounted, isClosing, finalizeClose } = useAnimatedMount(isOpen);
 
   const toggle = (state?: boolean, fromBus = false) => {
     const nextState = state !== undefined ? state : !isOpen;
@@ -112,8 +103,17 @@ export const SlideOut: React.FC<SlideOutProps> = ({
     if (e.id === id) toggle(false, true);
   });
 
-  useEffect(() => {
+  // useLayoutEffect, not useEffect — this listener must be attached
+  // synchronously within the same commit as isOpen becoming true, not
+  // deferred until after the browser paints (useEffect's own timing).
+  // Reproduced directly: an Escape key dispatched with zero delay after
+  // the click that opens this drawer was silently swallowed 100% of the
+  // time (any wait ≥5ms worked fine) because the useEffect version hadn't
+  // attached its listener yet — a real, if narrow, race for any fast
+  // keyboard interaction, not just automated testing.
+  useLayoutEffect(() => {
     if (!isOpen) return;
+    const doc = targetDocument ?? document;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -121,11 +121,12 @@ export const SlideOut: React.FC<SlideOutProps> = ({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    doc.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      doc.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, targetDocument]);
 
   const resolvedWidth = propWidth || 'var(--ai-slideout-width, 23.75rem)';
 
@@ -156,6 +157,9 @@ export const SlideOut: React.FC<SlideOutProps> = ({
     <div
       role="presentation"
       onClick={() => toggle(false)}
+      onAnimationEnd={e => {
+        if (e.animationName === 'ai-fade-out') finalizeClose();
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -230,10 +234,10 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   return (
     <>
       {trigger && (
-        // alignItems:'stretch' (the flexbox default) already stretches
+        // TRIGGER_WRAPPER_STYLE's alignItems:'stretch' already stretches
         // trigger to fill this wrapper's height on its own — no need to
         // cloneElement-inject height/alignSelf into it directly.
-        <div onClick={() => toggle()} style={{ display: 'inline-flex', alignItems: 'stretch', cursor: 'pointer' }}>
+        <div onClick={() => toggle()} style={TRIGGER_WRAPPER_STYLE}>
           {trigger}
         </div>
       )}

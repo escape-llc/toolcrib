@@ -16,6 +16,9 @@ import { Slider } from '../Form/Slider';
 import { Accordion } from '../Accordion/Accordion';
 import { Tooltip } from '../Tooltip/Tooltip';
 import { UIGroup } from '../UIGroup/UIGroup';
+import { Popup } from '../Overlay/Popup';
+import { SquareCornerOption } from '../Card/Card';
+import { Grid } from '../Layout/Grid';
 
 /** Per-command switches for the Save & Load Themes header toolbar — see `ThemeEditorProps.themeManagement`. */
 export interface ThemeManagementOptions {
@@ -202,6 +205,10 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(() => listSavedThemes());
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // "Save current theme" lives in a Popup (name field + OK/Cancel) now, not
+  // inline in the toolbar — controlled open state so OK/Cancel can close it
+  // programmatically instead of only ever light-dismissing.
+  const [isSavePopupOpen, setIsSavePopupOpen] = useState(false);
 
   const handleSaveCurrentTheme = () => {
     const trimmed = themeName.trim();
@@ -209,6 +216,12 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     saveThemeToLibrary(trimmed, captureThemeSnapshot(theme, trimmed));
     setThemeName('');
     setSavedThemes(listSavedThemes());
+    setIsSavePopupOpen(false);
+  };
+
+  const handleCancelSaveTheme = () => {
+    setThemeName('');
+    setIsSavePopupOpen(false);
   };
 
   const handleLoadSavedTheme = (id: string) => {
@@ -496,6 +509,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           max={24}
           value={typographyState.masterFontSize}
           onChange={val => setTypographyState({ masterFontSize: val })}
+          commitOnRelease
         />
       </div>
     </div>
@@ -1198,53 +1212,136 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   // pre-computing each section as an `xContent` variable) specifically so
   // it's easy to see it's just the `??` fallback for `themeManagementSlot`,
   // not tangled into the header's own wrapper/border chrome.
+  // UIGroup's own corner-squaring CSS only reaches its DIRECT children —
+  // every item below is wrapped in <Tooltip> (which inserts its own <span>
+  // between UIGroup and the real control, for unrelated height-stretch
+  // reasons — see Tooltip.tsx's own comment), so that automatic CSS can't
+  // reach through to square the actual Input/Button. Same root cause, same
+  // established fix, as this file's header trigger button (see its own
+  // comment): pass `squareCorners` explicitly instead of relying on the
+  // automatic mechanism. Built as a filtered array (not inline JSX) so the
+  // first/last position — and therefore which corners to square — is
+  // computed correctly regardless of which optional buttons are enabled.
+  const toolbarGroupItems: { key: string; node: (squareCorners: SquareCornerOption) => ReactNode }[] = [
+    ...(showPresets ? [{
+      key: 'presets',
+      node: (squareCorners: SquareCornerOption) => (
+        <Popup
+          trigger={
+            <Tooltip content="Theme presets">
+              <Button size="sm" variant="outline" squareCorners={squareCorners} aria-label="Theme presets">🎨</Button>
+            </Tooltip>
+          }
+        >
+          {/* Grid itself always renders width:'100%' (no style/className
+              prop — see AGENTS.md's StyleFree rule) — a plain wrapping div
+              is what actually constrains the popup to a compact width. */}
+          <div style={{ width: '15rem' }}>
+            <Grid columns={3} gap="sm">
+              {presetThemes.map(preset => (
+                // Emoji + first word only (e.g. "🔷 Tailwind (Default)" ->
+                // "🔷 Tailwind") for popup density — every bundled preset's
+                // name follows "<emoji> <Name> <descriptor/parenthetical>",
+                // so this holds uniformly without needing a separate short-
+                // label field. preset.name itself is untouched (still used
+                // as the saved/loaded theme's full display name elsewhere),
+                // this is purely a rendering choice for this dense grid. No
+                // Tooltip here — the shortened label already says almost
+                // exactly what the full name would, so a hover tooltip was
+                // pure redundant chrome, not genuinely added information.
+                <Button key={preset.id} size="sm" variant="outline" onClick={() => handleLoadPreset(preset)}>
+                  {preset.name.split(' ').slice(0, 2).join(' ')}
+                </Button>
+              ))}
+            </Grid>
+          </div>
+        </Popup>
+      ),
+    }] : []),
+    ...(showLibrary ? [{
+      key: 'save',
+      node: (squareCorners: SquareCornerOption) => (
+        <Popup
+          isOpen={isSavePopupOpen}
+          onOpenChange={open => { setIsSavePopupOpen(open); if (!open) setThemeName(''); }}
+          trigger={
+            <Tooltip content="Save current theme">
+              <Button size="sm" squareCorners={squareCorners} aria-label="Save current theme">💾</Button>
+            </Tooltip>
+          }
+        >
+          {/* Fixed 3-item shape (name field, OK, Cancel) every time this
+              opens — squareCorners hardcoded to each position rather than
+              computed from an array, unlike the outer toolbar group, since
+              there's nothing conditional about which of the three appear. */}
+          <UIGroup>
+            <div style={{ width: '10rem' }}>
+              <Input
+                placeholder="Theme name..."
+                value={themeName}
+                onChange={e => setThemeName(e.target.value)}
+                squareCorners="right"
+                autoFocus
+              />
+            </div>
+            <Tooltip content="Save">
+              <Button size="sm" squareCorners="all" aria-label="Save" disabled={!themeName.trim()} onClick={handleSaveCurrentTheme}>
+                ✅
+              </Button>
+            </Tooltip>
+            <Tooltip content="Cancel">
+              <Button size="sm" variant="outline" squareCorners="left" aria-label="Cancel" onClick={handleCancelSaveTheme}>
+                ❌
+              </Button>
+            </Tooltip>
+          </UIGroup>
+        </Popup>
+      ),
+    }] : []),
+    ...(showExport ? [{
+      key: 'export',
+      node: (squareCorners: SquareCornerOption) => (
+        <Tooltip content="Export theme">
+          <Button size="sm" variant="outline" squareCorners={squareCorners} aria-label="Export theme" onClick={handleDownloadTheme}>
+            ⬇️
+          </Button>
+        </Tooltip>
+      ),
+    }] : []),
+    ...(showImport ? [{
+      key: 'import',
+      node: (squareCorners: SquareCornerOption) => (
+        <>
+          <Tooltip content="Import theme">
+            <Button size="sm" variant="outline" squareCorners={squareCorners} aria-label="Import theme" onClick={() => fileInputRef.current?.click()}>
+              ⬆️
+            </Button>
+          </Tooltip>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleFileSelected}
+            style={{ display: 'none' }}
+          />
+        </>
+      ),
+    }] : []),
+  ];
+
   const defaultThemeManagementContent = (
     <>
-      {showPresets && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {presetThemes.map(preset => (
-            <Button key={preset.id} size="sm" variant="outline" onClick={() => handleLoadPreset(preset)}>
-              {preset.name}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {(showLibrary || showExport || showImport) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          {showLibrary && (
-            <>
-              <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
-                <Input
-                  placeholder="Theme name..."
-                  value={themeName}
-                  onChange={e => setThemeName(e.target.value)}
-                />
-              </div>
-              <Button size="sm" onClick={handleSaveCurrentTheme} disabled={!themeName.trim()}>
-                💾 Save
-              </Button>
-            </>
-          )}
-          {showExport && (
-            <Button size="sm" variant="outline" onClick={handleDownloadTheme}>
-              ⬇️ Export
-            </Button>
-          )}
-          {showImport && (
-            <>
-              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                ⬆️ Import
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json,.json"
-                onChange={handleFileSelected}
-                style={{ display: 'none' }}
-              />
-            </>
-          )}
+      {toolbarGroupItems.length > 0 && (
+        // UIGroup itself is inline-flex (shrinks to content) — this wrapper
+        // is what actually centers it within the toolbar's full-width row.
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <UIGroup>
+            {toolbarGroupItems.map((item, index) => {
+              const squareCorners: SquareCornerOption =
+                toolbarGroupItems.length === 1 ? 'none' : index === 0 ? 'right' : index === toolbarGroupItems.length - 1 ? 'left' : 'all';
+              return <React.Fragment key={item.key}>{item.node(squareCorners)}</React.Fragment>;
+            })}
+          </UIGroup>
         </div>
       )}
 

@@ -10,6 +10,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
+import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { PopupThemeSlice, PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
@@ -153,7 +154,15 @@ export const Popup: React.FC<PopupProps> = ({
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
       <PopoverPrimitive.Trigger asChild>
-        <div style={{ display: 'inline-block', cursor: 'pointer' }}>{renderedTrigger}</div>
+        {/* TRIGGER_WRAPPER_STYLE, not a hand-typed inline-block — this
+            component's own previous hand-typed copy used inline-block,
+            which never stretches a child to fill its own box, so a Popup
+            trigger nested inside a stretching flex parent (a <UIGroup>, a
+            taller sibling in a row) stayed at its own shorter natural
+            height instead of filling the space given to it — reported
+            directly, and the reason this is now a shared constant instead
+            of each component's own copy (see its own doc comment). */}
+        <div style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>

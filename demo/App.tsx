@@ -567,6 +567,7 @@ export const App: React.FC = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
+              gap: '0.5rem',
               padding: '0.5rem 0.875rem',
               background: 'var(--ai-bg-container, #f9fafb)',
               border: '0.0625rem solid var(--ai-border, #d1d5db)',
@@ -574,6 +575,20 @@ export const App: React.FC = () => {
               color: 'var(--ai-text-secondary, #6b7280)',
             }}
           >
+            <Tooltip content="Current theme base color">
+              <span
+                aria-label="Theme base color swatch"
+                style={{
+                  display: 'inline-block',
+                  width: '1rem',
+                  height: '1rem',
+                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                  border: '0.0625rem solid var(--ai-border, #d1d5db)',
+                  background: 'var(--ai-color-base)',
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
             <span>
               Harmony: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.harmonyMode}</strong> | Mode: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.isDarkMode ? 'Dark 🌙' : 'Light ☀️'}</strong> | Master Font: <strong style={{ color: 'var(--ai-text-primary)' }}>{typographyState.masterFontSize}px</strong>
             </span>
@@ -643,6 +658,62 @@ export const App: React.FC = () => {
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
+                    <Card>
+                      <Card.Header>🛡️ Why Toolcrib?</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          An AI generating UI code from scratch tends to hit the same handful of failure surfaces over and over — not because it doesn't know React, but because nothing structural is stopping it from reinventing the same broken wheel a different way each time. <code>Toolcrib</code> exists to put a real structural boundary at each one, without taking control away from you.
+                        </p>
+                        {/* StyleDomainProvider, not overrides.subtheme on each
+                            CardSimple individually — one ancestor setting
+                            gives the whole grid a consistent informational
+                            tint without repeating "subtheme: 'info'" six
+                            times, and (being Context-based, not CSS
+                            inheritance) it'd still reach a card even if one
+                            rendered through a portal. */}
+                        <StyleDomainProvider subtheme="info">
+                          <Grid columns={2} gap="sm">
+                          {[
+                            {
+                              icon: '🎨',
+                              title: 'Ad-hoc CSS drift',
+                              body: <>Hardcoded pixels, hex colors, and z-index values scattered across components make theming and consistency nearly impossible to maintain by hand. Every value in <code>Toolcrib</code> is <code>rem</code>-based and resolves through the HSV-derived CSS variable theme system, so one change at <code>:root</code> (or one preset swap) reaches every component at once.</>,
+                            },
+                            {
+                              icon: '🪟',
+                              title: 'Reinvented, subtly-broken overlays',
+                              body: <>A hand-rolled modal is easy to get 90% right and very easy to ship without a real focus trap, light-dismiss, or correct portal target. <code>Popup</code>, <code>Modal</code>, <code>SlideOut</code>, and <code>AlertDialog</code> wrap Radix UI primitives specifically so that 90% is handled once, correctly, instead of approximated per-component.</>,
+                            },
+                            {
+                              icon: '🔌',
+                              title: 'Cross-tree wiring hacks',
+                              body: <>Passing callbacks through five layers of props (or reaching for a global singleton) just to let two unrelated components talk is a common improvisation. The <code>aiBus</code> event bus (<code>aiBus.emit()</code> / <code>useAIEvent()</code>) is the one sanctioned escape hatch for that specific problem, so it doesn't need reinventing per feature.</>,
+                            },
+                            {
+                              icon: '♿',
+                              title: 'Silent accessibility gaps',
+                              body: <>A missing focus-visible ring or keyboard interaction is invisible in a quick visual check and only surfaces later, for a real keyboard/screen-reader user. Interactive states (hover, focus-visible, active) are injected systematically across every component from one shared stylesheet, not hand-added per instance.</>,
+                            },
+                            {
+                              icon: '👻',
+                              title: 'Hallucinated props and APIs',
+                              body: <>Guessing at a prop name that doesn't exist is a routine AI failure mode against an unfamiliar library. Full TypeScript coverage plus a generated component manifest (<code>ai-docs/component-manifest.json</code>) mean the real API surface is always mechanically derivable, never guessed at.</>,
+                            },
+                            {
+                              icon: '🔓',
+                              title: 'Losing control to a black box',
+                              body: <>The usual tradeoff for all of the above is an opaque, locked-down component library you can't see inside or diverge from. <code>Toolcrib</code> is vendored directly into your project via <code>toolcrib init</code> — every file is yours to read, patch, or fork — and the <code>overrides</code> prop plus per-instance style domains give you fine-grained control without ever reaching for a raw <code>style</code>/<code>className</code> escape hatch.</>,
+                            },
+                          ].map(item => (
+                            <CardSimple key={item.title} title={<>{item.icon} {item.title}</>} overrides={{ padding: 'compact' }}>
+                              <p style={{ margin: 0, fontSize: '0.8125rem' }}>{item.body}</p>
+                            </CardSimple>
+                          ))}
+                          </Grid>
+                        </StyleDomainProvider>
+                      </Card.Content>
+                    </Card>
+
                     <Grid columns={2} gap="lg">
                       <Card>
                         <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
@@ -677,7 +748,7 @@ export const App: React.FC = () => {
                     </Grid>
 
                     <Card>
-                      <Card.Header>📐 AI Schema & rem Scaling Engine</Card.Header>
+                      <Card.Header>📐 AI Schema, Color Theory & WCAG Enforcement</Card.Header>
                       <Card.Content>
                         <p style={{ marginTop: 0 }}>
                           In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
@@ -691,6 +762,17 @@ export const App: React.FC = () => {
   --ai-table-cell-padding: var(--ai-padding-sm);
 }`}
                         </pre>
+                        <p>
+                          A whole theme is generated from a <em>single</em> base HSV color plus a <strong>harmony mode</strong> — real color theory, not designer-picked swatches: <code>analogous</code> hues sit close together on the wheel for a cohesive look, <code>complementary</code>/<code>split-complementary</code> and <code>triadic</code> spread hues apart by a fixed geometric relationship for deliberate contrast. Pick a base color and a mode in the Theme Designer, and the entire primary/secondary/accent/quaternary palette — plus every semantic subtheme below — derives from that one decision.
+                        </p>
+                        <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                          <li><strong>Readable text is computed, not chosen.</strong> <code>pickReadableTextColor()</code> checks a real WCAG contrast ratio (the same relative-luminance formula from the spec, via <code>getHSVContrastRatio()</code>) against both pure black and pure white, and picks whichever wins — provably ≥4.5:1 against <em>any</em> background, so a vivid, high-luminance primary color never silently produces unreadable white-on-bright-fill text the way a hardcoded <code>color: white</code> would.</li>
+                          <li><strong>Themed text on a neutral surface is nudged, not guessed.</strong> <code>ensureWCAGContrast()</code> takes a foreground/background pair and iteratively adjusts Value (and, if needed, Saturation) — never Hue — until a target ratio is met, so secondary text stays recognizably "the theme's color" instead of being replaced by generic black or white.</li>
+                          <li><strong>Semantic subthemes (error/success/warning/info) generate their own accessible pairs</strong> — main/background/border/text/on-main — the same way, so a themed error banner is exactly as WCAG-compliant as the default palette, in every color a consumer picks.</li>
+                        </ul>
+                        <p style={{ marginBottom: 0 }}>
+                          The result: an AI (or a human) picking an arbitrary base color and harmony mode gets a full, internally-consistent, accessible palette for free — accessibility here is a property the color <em>math</em> guarantees, not a manual contrast-checker pass someone has to remember to run.
+                        </p>
                       </Card.Content>
                     </Card>
                   </VStack>

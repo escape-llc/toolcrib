@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
@@ -27,6 +27,25 @@ export interface SliderProps {
   onChange?: (value: number) => void;
   /** If true, the slider is non-interactive. @default false */
   disabled?: boolean;
+  /**
+   * If true, `onChange`/`slider:changed` only fire once, when the drag
+   * ends (or on a discrete keyboard step) — not continuously on every
+   * tick while dragging. The thumb still tracks the pointer smoothly
+   * either way (an internal buffer drives its visual position); this only
+   * changes when the *consumer* is notified. Opt-in, not the default —
+   * live per-tick updates are the right choice for most sliders (e.g. a
+   * real-time value preview), including most of the Theme Designer's own
+   * (color/timing values, which don't feed back into layout). It matters
+   * for a specific narrower case: a slider whose value feeds back into
+   * the page's own layout — the Theme Designer's Master Font Size above
+   * all, since every `rem` value in the whole UI derives from it —  where
+   * recalculating on every tick can resize or reposition the very slider
+   * being dragged out from under the pointer mid-gesture, not just waste
+   * a render. Deferring to release keeps the drag itself trackable
+   * regardless of what the eventual committed value ends up changing.
+   * @default false
+   */
+  commitOnRelease?: boolean;
   /** Per-instance overrides for track height and thumb size. */
   overrides?: Partial<SliderSliceState>;
 }
@@ -44,20 +63,42 @@ export const Slider: React.FC<SliderProps> = ({
   step = 1,
   onChange,
   disabled = false,
+  commitOnRelease = false,
   overrides,
 }) => {
-  const currentVal = value !== undefined ? value : defaultValue;
+  // A local buffer, not just `value ?? defaultValue` read directly, is
+  // what lets the thumb keep tracking the pointer smoothly during a drag
+  // in commitOnRelease mode: the *external* `value` prop only advances
+  // once the consumer's onChange fires (i.e. on release), so rendering
+  // straight from it would freeze the thumb at the pre-drag position for
+  // the whole gesture. Synced back to the external value below whenever
+  // it changes from outside (e.g. a programmatic reset), just not on
+  // every internal drag tick.
+  const [localValue, setLocalValue] = useState(value !== undefined ? value : defaultValue);
+  useEffect(() => {
+    if (value !== undefined) setLocalValue(value);
+  }, [value]);
+
+  const currentVal = commitOnRelease ? localValue : (value !== undefined ? value : defaultValue);
   const sliderVars = getSparseVariables(SliderThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
+
+  const commitValue = (newVal: number) => {
+    if (onChange) onChange(newVal);
+    aiBus.emit('slider:changed', { name, value: newVal });
+  };
 
   return (
     <SliderPrimitive.Root
       value={[currentVal]}
       onValueChange={(vals) => {
-        const newVal = vals[0];
-        if (onChange) onChange(newVal);
-        aiBus.emit('slider:changed', { name, value: newVal });
+        if (commitOnRelease) {
+          setLocalValue(vals[0]);
+        } else {
+          commitValue(vals[0]);
+        }
       }}
+      onValueCommit={commitOnRelease ? (vals) => commitValue(vals[0]) : undefined}
       min={min}
       max={max}
       step={step}

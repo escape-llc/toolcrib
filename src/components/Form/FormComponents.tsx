@@ -308,9 +308,11 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
   cornerRadiusMode?: CornerRadiusMode;
   /** Per-instance overrides for padding and border width. Shared with `<Textarea>`. */
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
+  /** Which corners to square off — e.g. inside a `<UIGroup>`. @default 'none' */
+  squareCorners?: SquareCornerOption;
 }
 
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, ...props }) => {
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();

@@ -9,6 +9,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { SubthemeName } from '../../theme/subtheme';
+import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, ModalSliceState } from './ModalSlice';
 
@@ -110,7 +111,7 @@ export const Modal: React.FC<ModalProps> & {
     <DialogPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
       {trigger && (
         <DialogPrimitive.Trigger asChild>
-          <div style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{trigger}</div>
+          <div style={TRIGGER_WRAPPER_STYLE}>{trigger}</div>
         </DialogPrimitive.Trigger>
       )}
 

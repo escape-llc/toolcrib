@@ -81,19 +81,25 @@ describe('ThemeEditor', () => {
     it('shows every Save & Load Themes command by default', () => {
       renderEditor();
 
-      expect(screen.getByText(/🔷 Tailwind \(Default\)/)).toBeInTheDocument(); // a bundled preset
-      expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument(); // the localStorage "save" field
-      expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /⬆️ Import/ })).toBeInTheDocument();
+      // Presets live behind a Popup trigger now (see ThemeEditor's own
+      // comment on why — UIGroup density), not shown as visible text
+      // directly; the trigger's own accessible name is what's checked.
+      expect(screen.getByRole('button', { name: 'Theme presets' })).toBeInTheDocument();
+      // The name field/OK/Cancel live inside the "Save current theme"
+      // Popup now, not inline in the toolbar — only the trigger is visible
+      // until it's opened (see the dedicated describe block below).
+      expect(screen.getByRole('button', { name: 'Save current theme' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Export theme' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Import theme' })).toBeInTheDocument();
     });
 
     it('hides the entire toolbar when themeManagement={false} — e.g. an app author shipping one fixed bundled theme', () => {
       renderEditor({ themeManagement: false });
 
-      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /⬇️ Export/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Theme presets' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Save current theme' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Export theme' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Import theme' })).not.toBeInTheDocument();
       // The rest of the editor (category groups) still renders normally.
       expect(screen.getByText(/Global Theme & Color System/)).toBeInTheDocument();
     });
@@ -101,10 +107,46 @@ describe('ThemeEditor', () => {
     it('locks out individual commands without affecting the others', () => {
       renderEditor({ themeManagement: { import: false, library: false } });
 
-      expect(screen.getByText(/🔷 Tailwind \(Default\)/)).toBeInTheDocument(); // presets still shown
-      expect(screen.getByRole('button', { name: /⬇️ Export/ })).toBeInTheDocument(); // export still shown
-      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument(); // library locked out
-      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument(); // import locked out
+      expect(screen.getByRole('button', { name: 'Theme presets' })).toBeInTheDocument(); // presets still shown
+      expect(screen.getByRole('button', { name: 'Export theme' })).toBeInTheDocument(); // export still shown
+      expect(screen.queryByRole('button', { name: 'Save current theme' })).not.toBeInTheDocument(); // library locked out
+      expect(screen.queryByRole('button', { name: 'Import theme' })).not.toBeInTheDocument(); // import locked out
+    });
+  });
+
+  describe('"Save current theme" popup', () => {
+    it('opens on trigger click, saves via OK, and closes itself afterward', () => {
+      renderEditor();
+
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument();
+
+      // OK stays disabled until a non-empty name is entered — same
+      // guard the old inline Save button had.
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'My Saved Theme' } });
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument(); // popup closed itself
+      expect(screen.getByRole('button', { name: 'My Saved Theme' })).toBeInTheDocument(); // now in the Saved list
+    });
+
+    it('discards the typed name and closes on Cancel, without saving anything', () => {
+      renderEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'Abandoned Theme' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Abandoned Theme' })).not.toBeInTheDocument();
+
+      // Reopening starts fresh — Cancel cleared the name, not just hid the popup.
+      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      expect(screen.getByPlaceholderText('Theme name...')).toHaveValue('');
     });
   });
 
@@ -118,10 +160,10 @@ describe('ThemeEditor', () => {
       });
 
       expect(screen.getByText('My Custom Theme Picker')).toBeInTheDocument();
-      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /⬇️ Export/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /⬆️ Import/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Theme presets' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Save current theme' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Export theme' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Import theme' })).not.toBeInTheDocument();
       // The rest of the editor still renders normally around the slot.
       expect(screen.getByText(/Global Theme & Color System/)).toBeInTheDocument();
     });
@@ -147,7 +189,7 @@ describe('ThemeEditor', () => {
       renderEditor({ themeManagement: false, themeManagementSlot: null });
 
       expect(screen.queryByTestId('theme-editor-toolbar')).not.toBeInTheDocument();
-      expect(screen.queryByText(/🔷 Tailwind \(Default\)/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Theme presets' })).not.toBeInTheDocument();
     });
   });
 });
