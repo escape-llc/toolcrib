@@ -91,12 +91,15 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
+| `<AccessibleIcon>` | — | `label` | Adds a screen-reader-only accessible name to a decorative icon element |
+| `<AspectRatio>` | — | `ratio` | Constrains content to a fixed width-to-height ratio |
 | `<Content>` | `.Grow` | `gap`, `marginMode`, `squareCorners` | Fills its container and establishes a flex-column layout domain for its children |
 | `<Grid>` | — | `columns`, `minColWidth`, `gap`, `marginMode`, `paddingMode` | CSS Grid responsive multi-column layout |
 | `<HStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Horizontal flex row layout primitive |
 | `<Separator>` | — | `orientation`, `decorative`, `overrides` | Themed visual divider between content sections |
-| `<Toolbar>` | `.Left`, `.Center`, `.Right` | `paddingMode`, `marginMode`, `cornerRadiusMode`, `overrides` | Horizontal action bar with left/center/right slot areas |
+| `<Toolbar>` | `.Left`, `.Center`, `.Right`, `.Button`, `.Separator` | `paddingMode`, `marginMode`, `cornerRadiusMode`, `orientation`, `overrides` | Horizontal action bar with left/center/right slot areas |
 | `<UIGroup>` | — | `orientation`, `borderRadius` | Merges adjacent elements into a single visual compound control |
+| `<VisuallyHidden>` | — | — | Hides content visually while keeping it announced to screen readers |
 | `<VStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Vertical flex column layout primitive |
 
 ### Containers
@@ -108,6 +111,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
 | `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled`, `overrides` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
 | `<DeferredContent>` | — | `estimatedHeight`, `onVisibilityChange` | Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this |
+| `<ScrollArea>` | — | `orientation`, `type`, `maxHeight`, `overrides` | Scrollable container with a themed, cross-browser custom scrollbar |
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
@@ -117,6 +121,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
 | `<ContextMenu>` | — | `id`, `items`, `overrides` | Right-click action menu, data-driven with separator support |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
+| `<HoverCard>` | — | `id`, `content`, `side`, `align`, `openDelay`, `closeDelay`, `overrides` | Hover-triggered preview card for rich, interactive content |
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<SlideOut>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
@@ -137,7 +142,10 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Button>` | — | — | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
+| `<Combobox>` | — | `name`, `placeholder`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
+| `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
+| `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |
 | `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `overrides` | Range input control built on Radix Slider |
@@ -312,7 +320,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[42]{name,payload}:
+[46]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -338,12 +346,16 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "error:boundary","{ componentName: string; error: string; stack?: string }"
   "tooltip:shown","{ id?: string; content: string }"
   "tooltip:hidden","{ id?: string }"
+  "hovercard:shown","{ id?: string }"
+  "hovercard:hidden","{ id?: string }"
   "accordion:opened","{ id?: string; itemValue: string }"
   "accordion:closed","{ id?: string; itemValue: string }"
   "menu:opened","{ id?: string }"
   "menu:closed","{ id?: string }"
   "menu:item_selected","{ id?: string; itemValue: string }"
   "select:changed","{ name?: string; value: string }"
+  "combobox:changed","{ name?: string; value: string | string[] }"
+  "fileupload:changed","{ name?: string; fileCount: number }"
   "slider:changed","{ name?: string; value: number }"
   "toggle:changed","{ name?: string; pressed: boolean }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"

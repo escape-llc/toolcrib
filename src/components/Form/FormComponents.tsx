@@ -13,9 +13,13 @@ import { FieldContext } from './FieldContext';
 import { ButtonThemeSlice, ButtonSliceState } from './ButtonSlice';
 import { InputThemeSlice, InputSliceState } from './InputSlice';
 import { ToggleControlThemeSlice, ToggleControlSliceState } from './ToggleControlSlice';
+import { Label } from './Label';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
+export * from './Label';
+export * from './Combobox';
+export * from './FileUpload';
 
 /**
  * Props for `<FormField>` — wraps a form control with label, error display, and helper text.
@@ -41,9 +45,9 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
     <FieldContext.Provider value={{ name }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
         {label && (
-          <label htmlFor={name} style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }}>
+          <Label htmlFor={name} overrides={{ weight: 'semibold' }}>
             {label}
-          </label>
+          </Label>
         )}
         {children}
         {error && (
@@ -408,7 +412,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   };
 
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+    <Label>
       <CheckboxPrimitive.Root
         id={name || undefined}
         checked={checked}
@@ -435,7 +439,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
       {label && <span>{label}</span>}
-    </label>
+    </Label>
   );
 };
 
@@ -480,7 +484,11 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   };
 
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+    // gap: 'spacious' restores this label's prior 0.625rem gap — wider than
+    // Checkbox's own wrapping label (which uses Label's 0.5rem default) —
+    // exactly matching what this component's own hand-rolled <label> used
+    // before both were consolidated onto the shared <Label> component.
+    <Label overrides={{ gap: 'spacious' }}>
       <SwitchPrimitive.Root
         id={name || undefined}
         checked={checked}
@@ -521,7 +529,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
         />
       </SwitchPrimitive.Root>
       {label && <span>{label}</span>}
-    </label>
+    </Label>
   );
 };
 

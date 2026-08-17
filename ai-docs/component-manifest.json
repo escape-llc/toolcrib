@@ -47,10 +47,13 @@
       "--ai-color-quaternary-text",
       "--ai-color-secondary",
       "--ai-color-secondary-text",
+      "--ai-combobox-input-padding",
+      "--ai-combobox-item-padding",
       "--ai-contextmenu-item-padding",
       "--ai-contextmenu-shadow",
       "--ai-dropdownmenu-item-padding",
       "--ai-dropdownmenu-shadow",
+      "--ai-fileupload-dropzone-padding",
       "--ai-focus-ring",
       "--ai-focus-ring-offset",
       "--ai-focus-ring-width",
@@ -62,8 +65,12 @@
       "--ai-font-weight-semibold",
       "--ai-hover-shadow",
       "--ai-hover-transform",
+      "--ai-hovercard-border",
+      "--ai-hovercard-shadow",
       "--ai-input-border-width",
       "--ai-input-padding",
+      "--ai-label-gap",
+      "--ai-label-weight",
       "--ai-layout-border-bottom-left-radius",
       "--ai-layout-border-bottom-right-radius",
       "--ai-layout-border-top-left-radius",
@@ -94,6 +101,7 @@
       "--ai-radius-md",
       "--ai-radius-sm",
       "--ai-radius-xl",
+      "--ai-scrollarea-thumb-size",
       "--ai-select-item-padding",
       "--ai-select-trigger-padding",
       "--ai-separator-thickness",
@@ -416,6 +424,14 @@
         "payload": "{ id?: string }"
       },
       {
+        "name": "hovercard:shown",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "hovercard:hidden",
+        "payload": "{ id?: string }"
+      },
+      {
         "name": "accordion:opened",
         "payload": "{ id?: string; itemValue: string }"
       },
@@ -438,6 +454,14 @@
       {
         "name": "select:changed",
         "payload": "{ name?: string; value: string }"
+      },
+      {
+        "name": "combobox:changed",
+        "payload": "{ name?: string; value: string | string[] }"
+      },
+      {
+        "name": "fileupload:changed",
+        "payload": "{ name?: string; fileCount: number }"
       },
       {
         "name": "slider:changed",
@@ -528,6 +552,19 @@
     ]
   },
   "components": [
+    {
+      "name": "AccessibleIcon",
+      "import": "import { AccessibleIcon } from '#toolcrib'",
+      "props": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "description": "Accessible name announced to screen readers, the way `alt` works for `<img>`."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Adds a screen-reader-only accessible name to a decorative icon element"
+    },
     {
       "name": "Accordion",
       "import": "import { Accordion } from '#toolcrib'",
@@ -626,6 +663,19 @@
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "category": "Containers",
       "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
+    },
+    {
+      "name": "AspectRatio",
+      "import": "import { AspectRatio } from '#toolcrib'",
+      "props": {
+        "ratio": {
+          "type": "number",
+          "default": "1",
+          "description": "Width-to-height ratio, e.g. `16 / 9` or `1`."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Constrains content to a fixed width-to-height ratio"
     },
     {
       "name": "Avatar",
@@ -757,6 +807,71 @@
       },
       "category": "Containers",
       "description": "Single expand/collapse content panel — see Accordion for a data-driven set of panels"
+    },
+    {
+      "name": "Combobox",
+      "import": "import { Combobox } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "placeholder": {
+          "type": "string",
+          "default": "'Search...'",
+          "description": "Placeholder text when empty."
+        },
+        "options": {
+          "type": "ComboboxOptionData[]",
+          "description": "Client-side option list, filtered locally by substring match against\n`label`. Omit when using `onSearch` for server-driven results instead."
+        },
+        "onSearch": {
+          "type": "(query: string) => Promise<ComboboxOptionData[]>",
+          "description": "Async search — called (debounced by `searchDebounceMs`) with the\ncurrent query whenever it changes. Takes over from `options` entirely\nwhen provided; results replace the listbox contents once resolved."
+        },
+        "searchDebounceMs": {
+          "type": "number",
+          "default": "250",
+          "description": "Debounce delay before calling `onSearch`."
+        },
+        "multiple": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allows selecting more than one option, rendered as removable chips.\nChanges the shape of `value`/`defaultValue`/`onChange` from `string` to\n`string[]`."
+        },
+        "value": {
+          "type": "string | string[]",
+          "description": "Controlled selected value — a string, or a string array when `multiple` is true."
+        },
+        "defaultValue": {
+          "type": "string | string[]",
+          "description": "Initial selected value (uncontrolled) — same shape as `value`."
+        },
+        "onChange": {
+          "type": "(value: string | string[]) => void",
+          "description": "Change handler. Receives the new value in the same shape as `value`."
+        },
+        "allowCustomValue": {
+          "type": "boolean",
+          "default": "false",
+          "description": "When true, text that doesn't match any option is committed as a\nfreeform value (or chip, when `multiple`) instead of being discarded."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the combobox is non-interactive."
+        },
+        "noResultsMessage": {
+          "type": "ReactNode",
+          "default": "'No results'",
+          "description": "Message shown when no options match."
+        },
+        "overrides": {
+          "type": "Partial<ComboboxSliceState>",
+          "description": "Per-instance overrides for input padding and item density."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context"
     },
     {
       "name": "Content",
@@ -915,6 +1030,51 @@
       "description": "Data-driven action menu with separator support"
     },
     {
+      "name": "FileUpload",
+      "import": "import { FileUpload } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "accept": {
+          "type": "string",
+          "description": "Native `accept` attribute, e.g. `'image/*'` or `'.pdf,.docx'`."
+        },
+        "multiple": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Allow selecting/dropping more than one file at once."
+        },
+        "maxSizeBytes": {
+          "type": "number",
+          "description": "Reject files larger than this, shown as a per-file error instead of starting an upload."
+        },
+        "maxFiles": {
+          "type": "number",
+          "description": "Cap on total accepted files. Extras dropped/selected past this are rejected."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the dropzone is non-interactive."
+        },
+        "onUpload": {
+          "type": "(file: File, onProgress: (percent: number) => void) => Promise<void>",
+          "description": "Upload transport — toolcrib has no opinion on the backend protocol, so\nthis is entirely consumer-supplied. Called once per accepted file;\nreport progress via the given callback (0-100). Omit to just collect\nfiles without uploading them (e.g. to upload them all together on a\nlater form submit instead)."
+        },
+        "onFilesChange": {
+          "type": "(files: FileUploadItem[]) => void",
+          "description": "Fired whenever the accepted file list changes (add, remove, or status change)."
+        },
+        "overrides": {
+          "type": "Partial<FileUploadSliceState>",
+          "description": "Per-instance override for dropzone padding density."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context"
+    },
+    {
       "name": "Form",
       "import": "import { Form, FormField, FormError, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider, SubmitButton, Button } from '#toolcrib'",
       "props": {
@@ -983,6 +1143,47 @@
       "description": "CSS Grid responsive multi-column layout"
     },
     {
+      "name": "HoverCard",
+      "import": "import { HoverCard } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting."
+        },
+        "content": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Rich content shown inside the card."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'bottom'",
+          "description": "Which side of the trigger the card appears on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'center'",
+          "description": "Alignment along the card's side axis."
+        },
+        "openDelay": {
+          "type": "number",
+          "default": "700",
+          "description": "Delay in milliseconds before the card opens on hover."
+        },
+        "closeDelay": {
+          "type": "number",
+          "default": "300",
+          "description": "Delay in milliseconds before the card closes after the pointer leaves."
+        },
+        "overrides": {
+          "type": "Partial<HoverCardSliceState>",
+          "description": "Per-instance overrides for shadow depth and border."
+        }
+      },
+      "category": "Overlays",
+      "description": "Hover-triggered preview card for rich, interactive content"
+    },
+    {
       "name": "HStack",
       "import": "import { HStack } from '#toolcrib'",
       "props": {
@@ -1021,6 +1222,18 @@
       },
       "category": "Layout Primitives",
       "description": "Horizontal flex row layout primitive"
+    },
+    {
+      "name": "Label",
+      "import": "import { Label } from '#toolcrib'",
+      "props": {
+        "overrides": {
+          "type": "Partial<LabelSliceState>",
+          "description": "Per-instance override for the label's font weight and gap (when wrapping a control plus its own text)."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Accessible label for a form control, associated via htmlFor or by wrapping it"
     },
     {
       "name": "Modal",
@@ -1189,6 +1402,32 @@
       },
       "category": "Form Controls",
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
+    },
+    {
+      "name": "ScrollArea",
+      "import": "import { ScrollArea } from '#toolcrib'",
+      "props": {
+        "orientation": {
+          "type": "'vertical' | 'horizontal' | 'both'",
+          "default": "'vertical'",
+          "description": "Which axis renders a scrollbar. `'both'` also renders the corner patch."
+        },
+        "type": {
+          "type": "'auto' | 'always' | 'scroll' | 'hover'",
+          "default": "'hover'",
+          "description": "When the scrollbar is visible — `'hover'` matches native OS scrollbar\nbehavior most closely."
+        },
+        "maxHeight": {
+          "type": "string",
+          "description": "Fixed height (e.g. `'20rem'`) for standalone use outside a flex domain.\nOmit to fill 100% of the parent instead, the same fill-by-default\nconvention as `<Content>`."
+        },
+        "overrides": {
+          "type": "Partial<ScrollAreaSliceState>",
+          "description": "Per-instance override for the scrollbar thumb's thickness."
+        }
+      },
+      "category": "Containers",
+      "description": "Scrollable container with a themed, cross-browser custom scrollbar"
     },
     {
       "name": "Select",
@@ -1534,7 +1773,9 @@
       "slots": [
         "Left",
         "Center",
-        "Right"
+        "Right",
+        "Button",
+        "Separator"
       ],
       "props": {
         "paddingMode": {
@@ -1549,11 +1790,23 @@
           "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
           "description": "Override corner radius using the theme radius token scale."
         },
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Arrow-key axis for the roving-tabindex group Radix's own `Toolbar.Root`\nestablishes. Only affects children rendered via `<Toolbar.Button>` —\narbitrary children (a plain `<Button>`, a `<Select>`, a `<Tooltip>`\ntrigger) never joined the group in the first place, so they keep normal\ntab order regardless of this setting."
+        },
         "overrides": {
           "type": "Partial<ToolbarSliceState>",
           "description": "Per-instance override for the gap within each slot (`Toolbar.Left`/`.Center`/`.Right`)."
         }
       },
+      "childComponents": [
+        "Toolbar.Left",
+        "Toolbar.Center",
+        "Toolbar.Right",
+        "Toolbar.Button",
+        "Toolbar.Separator"
+      ],
       "category": "Layout Primitives",
       "description": "Horizontal action bar with left/center/right slot areas"
     },
@@ -1610,6 +1863,13 @@
       },
       "category": "Layout Primitives",
       "description": "Merges adjacent elements into a single visual compound control"
+    },
+    {
+      "name": "VisuallyHidden",
+      "import": "import { VisuallyHidden } from '#toolcrib'",
+      "props": {},
+      "category": "Layout Primitives",
+      "description": "Hides content visually while keeping it announced to screen readers"
     },
     {
       "name": "VStack",
@@ -1730,6 +1990,22 @@
       "width": {
         "type": "string | number",
         "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      }
+    },
+    "ComboboxOptionData": {
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Display text for the option — also what's matched against the typed query for client-side filtering."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
       }
     },
     "RadioOption": {

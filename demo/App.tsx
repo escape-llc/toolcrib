@@ -51,12 +51,32 @@ import {
   Collapsible,
   AIErrorBoundary,
   DeferredContent,
+  VisuallyHidden,
+  AccessibleIcon,
+  Label,
+  ScrollArea,
+  HoverCard,
+  AspectRatio,
+  Combobox,
+  FileUpload,
 } from '#toolcrib';
+
+const COUNTRY_OPTIONS = [
+  { label: 'United States', value: 'us' },
+  { label: 'United Kingdom', value: 'uk' },
+  { label: 'Canada', value: 'ca' },
+  { label: 'Germany', value: 'de' },
+  { label: 'France', value: 'fr' },
+  { label: 'Japan', value: 'jp' },
+  { label: 'Australia', value: 'au' },
+  { label: 'Brazil', value: 'br' },
+];
 
 // Zod validation schema for Demo Form
 const userProfileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Please enter a valid email address'),
+  country: z.string().min(1, 'Please choose a country'),
   role: z.enum(['admin', 'editor', 'viewer'], { error: 'Role is required' }),
   contactPref: z.enum(['email', 'sms', 'phone'], { error: 'Select a contact preference' }),
   notifications: z.boolean(),
@@ -787,7 +807,7 @@ export const App: React.FC = () => {
                         <Form
                           id="profile-form"
                           schema={userProfileSchema}
-                          initialValues={{ username: '', email: '', role: 'editor', contactPref: 'email', notifications: true, agreeTerms: false }}
+                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', notifications: true, agreeTerms: false }}
                           onSubmit={values => {
                             addToast({ type: 'success', message: `User ${values.username} created successfully! (Contact: ${values.contactPref})` });
                           }}
@@ -798,6 +818,10 @@ export const App: React.FC = () => {
 
                           <FormField name="email" label="Email Address">
                             <Input type="email" placeholder="john@example.com" />
+                          </FormField>
+
+                          <FormField name="country" label="Country" helperText="Type to filter — no Radix primitive covers this, hand-built on Popover">
+                            <Combobox options={COUNTRY_OPTIONS} placeholder="Search countries..." />
                           </FormField>
 
                           <FormField name="role" label="Role Level">
@@ -1420,6 +1444,102 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
 
+                    {/* Section 4.5: Combobox — async search (distinct from
+                        the client-side-filtered Country field on the Form
+                        tab; this one simulates a real server round-trip)
+                        and the multiple-selection chip mode. */}
+                    <Card>
+                      <Card.Header>Combobox: Async Search & Multi-Select (`&lt;Combobox&gt;`)</Card.Header>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <VStack gap="sm">
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Async Server Search (`onSearch`)</div>
+                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over the same 250-user dataset the Data Table tab uses. No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
+                            </p>
+                            <Combobox
+                              placeholder="Search users..."
+                              searchDebounceMs={300}
+                              onSearch={async (query) => {
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                if (!query) return [];
+                                const q = query.toLowerCase();
+                                return dummyUsers
+                                  .filter(u => u.name.toLowerCase().includes(q))
+                                  .slice(0, 8)
+                                  .map(u => ({ label: `${u.name} (${u.email})`, value: String(u.id) }));
+                              }}
+                              onChange={(value) => {
+                                if (value) addToast({ type: 'info', message: `Selected user #${value}`, priority: 'low' });
+                              }}
+                            />
+                          </VStack>
+
+                          <VStack gap="sm">
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Multi-Select Tags (`multiple`)</div>
+                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                              Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip.
+                            </p>
+                            <Combobox
+                              multiple
+                              placeholder="Add skills..."
+                              defaultValue={['react', 'typescript']}
+                              options={[
+                                { label: 'React', value: 'react' },
+                                { label: 'TypeScript', value: 'typescript' },
+                                { label: 'Node.js', value: 'node' },
+                                { label: 'GraphQL', value: 'graphql' },
+                                { label: 'PostgreSQL', value: 'postgres' },
+                                { label: 'Docker', value: 'docker' },
+                              ]}
+                              onChange={(value) => {
+                                addToast({ type: 'info', message: `Skills: ${(value as string[]).join(', ') || '(none)'}`, priority: 'low' });
+                              }}
+                            />
+                          </VStack>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
+
+                    {/* Section 4.6: FileUpload — drag-and-drop with a
+                        simulated upload transport (staged progress via
+                        setTimeout, occasionally failing to demonstrate
+                        Retry), reusing <Progress> per file and <AspectRatio>
+                        for image thumbnails. */}
+                    <Card>
+                      <Card.Header>Drag-and-Drop File Upload (`&lt;FileUpload&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                          Drop a few images (or click to browse) — max 4 files, 2 MB each. The upload transport below is entirely simulated (staged progress ticks, ~20% chance of a failure to show the Retry action) since toolcrib takes no opinion on the backend protocol: <code>onUpload</code> is just a consumer-supplied <code>(file, onProgress) =&gt; Promise&lt;void&gt;</code>.
+                        </p>
+                        <div style={{ maxWidth: '28rem' }}>
+                          <FileUpload
+                            accept="image/*"
+                            maxFiles={4}
+                            maxSizeBytes={2 * 1024 * 1024}
+                            onUpload={(file, onProgress) =>
+                              new Promise<void>((resolve, reject) => {
+                                let pct = 0;
+                                const tick = () => {
+                                  pct += 20;
+                                  onProgress(Math.min(pct, 100));
+                                  if (pct < 100) {
+                                    setTimeout(tick, 250);
+                                  } else if (Math.random() < 0.2) {
+                                    reject(new Error('Simulated network error'));
+                                  } else {
+                                    addToast({ type: 'success', message: `${file.name} uploaded`, priority: 'low' });
+                                    resolve();
+                                  }
+                                };
+                                setTimeout(tick, 250);
+                              })
+                            }
+                          />
+                        </div>
+                      </Card.Content>
+                    </Card>
+
                     {/* Section 5: Error Boundaries & Deferred Rendering */}
                     <Card>
                       <Card.Header>Resilience & Off-Screen Rendering (`&lt;AIErrorBoundary&gt;`, `&lt;DeferredContent&gt;`)</Card.Header>
@@ -1472,6 +1592,105 @@ export const App: React.FC = () => {
                         </Grid>
                       </Card.Content>
                     </Card>
+
+                    {/* Section 6: Radix accessibility/layout utilities newly
+                        added to the toolkit — VisuallyHidden, AccessibleIcon,
+                        Label, ScrollArea */}
+                    <Card>
+                      <Card.Header>Accessibility, Scroll & Preview Utilities (`&lt;VisuallyHidden&gt;`, `&lt;AccessibleIcon&gt;`, `&lt;Label&gt;`, `&lt;ScrollArea&gt;`, `&lt;HoverCard&gt;`, `&lt;AspectRatio&gt;`)</Card.Header>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Accessible Name for a Decorative Icon (`&lt;AccessibleIcon&gt;`)</div>
+                              <HStack gap="sm" align="center">
+                                <AccessibleIcon label="Verified account">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai-subtheme-success, #10b981)" strokeWidth="2.5" aria-hidden="true">
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                </AccessibleIcon>
+                                <span style={{ fontSize: '0.8125rem' }}>Jane Doe</span>
+                              </HStack>
+                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                                The checkmark is purely decorative to a sighted user — <code>AccessibleIcon</code> marks it <code>aria-hidden</code> and gives screen readers the "Verified account" text instead, without an extra visible label crowding the row.
+                              </p>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Screen-Reader-Only Text (`&lt;VisuallyHidden&gt;`)</div>
+                              <HStack gap="sm" align="center">
+                                <span aria-hidden="true" style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--ai-subtheme-error, #ef4444)', display: 'inline-block' }} />
+                                <span style={{ fontSize: '0.8125rem' }}>3</span>
+                                <VisuallyHidden>3 unread notifications</VisuallyHidden>
+                              </HStack>
+                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                                The dot and "3" are enough visually; the hidden text fills in the meaning ("3 unread notifications") for anyone not reading the badge by eye.
+                              </p>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Rich Hover Preview (`&lt;HoverCard&gt;`)</div>
+                              <HoverCard
+                                id="demo-hovercard"
+                                openDelay={150}
+                                content={
+                                  <VStack gap="xs">
+                                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Jane Doe</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Senior Engineer · Joined 2022</div>
+                                    <Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Opened profile', priority: 'low' })}>View profile</Button>
+                                  </VStack>
+                                }
+                              >
+                                <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
+                              </HoverCard>
+                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                                Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down.
+                              </p>
+                            </div>
+                          </VStack>
+
+                          <VStack gap="md">
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Standalone Form Label (`&lt;Label&gt;`)</div>
+                              <Label htmlFor="demo-remember-me">
+                                <input id="demo-remember-me" type="checkbox" />
+                                <span>Remember me on this device</span>
+                              </Label>
+                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                                Same component <code>FormField</code>'s own label uses internally — clicking the text toggles the checkbox, without hand-rolling the wrapping/`htmlFor` association.
+                              </p>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Themed Custom Scrollbar (`&lt;ScrollArea&gt;`)</div>
+                              <ScrollArea maxHeight="8rem" overrides={{ thumbWidth: 'thick' }}>
+                                <VStack gap="xs">
+                                  {Array.from({ length: 20 }, (_, i) => (
+                                    <div key={i} style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)' }}>
+                                      Row {i + 1}
+                                    </div>
+                                  ))}
+                                </VStack>
+                              </ScrollArea>
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</div>
+                              <div style={{ maxWidth: '12rem' }}>
+                                <AspectRatio ratio={16 / 9}>
+                                  <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem' }}>
+                                    16:9
+                                  </div>
+                                </AspectRatio>
+                              </div>
+                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                                Stays 16:9 regardless of the parent's width — resize the window to see it hold, the way a video thumbnail or card image needs to.
+                              </p>
+                            </div>
+                          </VStack>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
                   </VStack>
                 </TabStrip.Panel>
               </Content.Grow>
@@ -1487,8 +1706,14 @@ export const App: React.FC = () => {
                     <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
                   </Toolbar.Left>
                   <Toolbar.Right>
+                    {/* Toolbar.Button (not a plain Button): joins the
+                        toolbar's roving-tabindex group — Left/Right arrow
+                        keys move focus between these two actions instead of
+                        each taking its own Tab stop. Still wrappable in
+                        <Tooltip> exactly like a plain Button, since
+                        Toolbar.Button forwards its ref. */}
                     <Tooltip content="Download the captured events below as newline-delimited JSON — boilerplate for the telemetry-forwarding pattern this panel and the error:boundary toast above both demonstrate live in-browser: swap this Blob download for a fetch()/fs.appendFile() call and the same shape ships events to a real backend instead">
-                      <Button
+                      <Toolbar.Button
                         size="sm"
                         variant="outline"
                         icon="⬇️"
@@ -1514,10 +1739,11 @@ export const App: React.FC = () => {
                         }}
                       >
                         Export JSONL
-                      </Button>
+                      </Toolbar.Button>
                     </Tooltip>
+                    <Toolbar.Separator />
                     <Tooltip content="Clear all recorded event log items from stream">
-                      <Button
+                      <Toolbar.Button
                         size="sm"
                         variant="ghost"
                         icon="🗑️"
@@ -1527,7 +1753,7 @@ export const App: React.FC = () => {
                         }}
                       >
                         Clear Log
-                      </Button>
+                      </Toolbar.Button>
                     </Tooltip>
                   </Toolbar.Right>
                 </Toolbar>

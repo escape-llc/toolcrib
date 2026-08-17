@@ -41,12 +41,16 @@ export interface AIEventMap {
   'error:boundary': { componentName: string; error: string; stack?: string };
   'tooltip:shown': { id?: string; content: string };
   'tooltip:hidden': { id?: string };
+  'hovercard:shown': { id?: string };
+  'hovercard:hidden': { id?: string };
   'accordion:opened': { id?: string; itemValue: string };
   'accordion:closed': { id?: string; itemValue: string };
   'menu:opened': { id?: string };
   'menu:closed': { id?: string };
   'menu:item_selected': { id?: string; itemValue: string };
   'select:changed': { name?: string; value: string };
+  'combobox:changed': { name?: string; value: string | string[] };
+  'fileupload:changed': { name?: string; fileCount: number };
   'slider:changed': { name?: string; value: number };
   'toggle:changed': { name?: string; pressed: boolean };
   'togglegroup:changed': { name?: string; value: string | string[] };

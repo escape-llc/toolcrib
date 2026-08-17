@@ -22,3 +22,7 @@ cli/integration-test/releases/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Curated visual reference (npm run generate-storyboard) — regenerated on
+# demand, not a pixel-diff regression baseline, not checked in.
+/storyboard/
