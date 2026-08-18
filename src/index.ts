@@ -53,6 +53,7 @@ export * from './components/DataTable/DataTable';
 export * from './components/DataTable/DataTableSlice';
 export * from './components/DropdownMenu/DropdownMenu';
 export * from './components/DropdownMenu/DropdownMenuSlice';
+export * from './components/EmptyState/EmptyState';
 export * from './components/ErrorBoundary/AIErrorBoundary';
 export * from './components/Form/ButtonSlice';
 export * from './components/Form/Combobox';

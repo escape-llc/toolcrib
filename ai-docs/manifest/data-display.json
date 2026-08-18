@@ -190,6 +190,20 @@
       "description": "Virtualized, sortable, paginated data table with sticky headers"
     },
     {
+      "name": "EmptyState",
+      "import": "import { EmptyState } from '#toolcrib'",
+      "slots": [
+        "Icon",
+        "Title",
+        "Description",
+        "Action"
+      ],
+      "props": {},
+      "constraints": "Only `<EmptyState.Title>` is expected — Icon/Description/Action are all optional",
+      "category": "Data Display",
+      "description": "Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>`"
+    },
+    {
       "name": "Progress",
       "import": "import { Progress } from '#toolcrib'",
       "props": {
