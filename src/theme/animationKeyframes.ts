@@ -11,6 +11,15 @@ const STYLE_ID = 'toolcrib-shared-keyframes';
  * entrance/exit animation ever played, silently (an `animation-name` with
  * no matching `@keyframes` isn't an error, it's just a no-op).
  *
+ * Also holds `ai-skeleton-shimmer`/`ai-spin` — `Skeleton`/`Spinner`'s
+ * continuous ambient loading animations. A different category from the
+ * entrance/exit set above (they never enter/exit, just loop for as long as
+ * they're mounted) and deliberately not tied to the `--ai-transition-*`
+ * scale from `theme/animation.ts`: that scale is tuned for 100–500ms
+ * discrete state-transitions, not a slow, continuous shimmer/spin loop —
+ * reusing it here would just make the loop uncomfortably fast, not save a
+ * real duplicate token family.
+ *
  * Called once, unconditionally, at the bottom of this module — not lazily
  * per-component like `injectInteractionStyles`/`injectToastAnimations`,
  * and deliberately not from `src/index.ts` either, even though that's the
@@ -83,6 +92,14 @@ export function injectSharedAnimationKeyframes(targetDocument?: Document): void 
     @keyframes ai-slide-out-bottom {
       from { transform: translateY(0); }
       to { transform: translateY(100%); }
+    }
+    @keyframes ai-skeleton-shimmer {
+      from { background-position: 100% 50%; }
+      to { background-position: 0% 50%; }
+    }
+    @keyframes ai-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
     `,
     targetDocument

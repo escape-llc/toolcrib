@@ -93,6 +93,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
 | Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
 | Fake per-row emphasis in `<DataTable>` via `column.render` (styling each cell individually to approximate a highlighted row) | Use `<DataTable rowSubtheme={(record) => ...}>` — classifies a row into `'error'` / `'success'` / `'warning'` / `'info'` and tints the actual row background/border, not a per-cell approximation |
+| Hand-roll a pulsing/shimmering loading placeholder `<div>`, or a spinning-border `<div>` for indeterminate loading | Use `<Skeleton shape="text"\|"circle"\|"rect">` and `<Spinner>` — both already animate off the shared keyframes, not a one-off duration |
 
 ---
 
@@ -158,6 +159,8 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
+| `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
+| `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
 ### Form Controls

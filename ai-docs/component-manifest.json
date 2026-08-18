@@ -1658,6 +1658,29 @@
       "description": "Themed visual divider between content sections"
     },
     {
+      "name": "Skeleton",
+      "import": "import { Skeleton } from '#toolcrib'",
+      "props": {
+        "shape": {
+          "type": "'text' | 'circle' | 'rect'",
+          "default": "'text'",
+          "description": "Shape primitive.\n- `'text'` — A single line of text, rounded, `1em`-ish tall.\n- `'circle'` — A circle (avatar-shaped placeholder).\n- `'rect'` — A rectangle with mild corner rounding (image/card placeholder)."
+        },
+        "width": {
+          "type": "string",
+          "default": "'100%' for `'text'`/`'rect'`, matches `height` for `'circle'`",
+          "description": "Width as a CSS value."
+        },
+        "height": {
+          "type": "string",
+          "default": "'1rem' for `'text'`, '100%' for `'rect'`, matches `width` for `'circle'`",
+          "description": "Height as a CSS value."
+        }
+      },
+      "category": "Data Display",
+      "description": "Shimmering loading placeholder in text/circle/rect shapes"
+    },
+    {
       "name": "Slider",
       "import": "import { Slider } from '#toolcrib'",
       "props": {
@@ -1710,6 +1733,23 @@
       },
       "category": "Form Controls",
       "description": "Range input control built on Radix Slider"
+    },
+    {
+      "name": "Spinner",
+      "import": "import { Spinner } from '#toolcrib'",
+      "props": {
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Spinner diameter."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then the theme's primary colour."
+        }
+      },
+      "category": "Data Display",
+      "description": "Indeterminate circular loading indicator, same subtheme colouring as `<Progress>`"
     },
     {
       "name": "Splitter",
