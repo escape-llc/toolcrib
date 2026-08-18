@@ -80,10 +80,17 @@ toolcrib.
 - **Post under "AI Session Summaries".** That category already exists on
   this repo's Discussions and is the intended home for this template's
   output. `Show and tell` fits a more polished, user-facing feature
-  announcement instead; `Announcements` is maintainer-only in tone. Check
-  `gh api graphql` against `repository.discussionCategories` if the
-  category list may have changed since this was written — don't assume
-  this list is still current.
+  announcement instead; `Announcements` is maintainer-only in tone.
+
+  Cached GraphQL node IDs (as of 2026-08-18, via `gh api graphql`) so a
+  posting session doesn't have to re-look these up every time:
+  - Repository (`escape-llc/toolcrib`): `R_kgDOTwhGaA`
+  - "AI Session Summaries" category: `DIC_kwDOTwhGaM4DDiVO`
+
+  These are stable as long as the repo/category aren't renamed or
+  recreated — if a `createDiscussion` mutation fails against them, re-fetch
+  via `repository.discussionCategories` rather than assuming the IDs above
+  are still current.
 - **Be transparent about authorship.** These are maintainer-authored (you
   prompting the agent, then posting) — let that read as what it is,
   genuine build-in-public notes, rather than implying unprompted outside
