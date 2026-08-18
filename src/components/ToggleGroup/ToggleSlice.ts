@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    toggle: Partial<ToggleSliceState>;
+  }
+}
+
 /** Shared by `<Toggle>` and `<ToggleGroup>` — both render the same button shape. */
 /** @barrelExport */
 export type TogglePadding = 'compact' | 'normal' | 'spacious';

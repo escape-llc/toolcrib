@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render } from '@testing-library/react';
-import { ThemeProvider } from '../theme/themeContext';
+import { render, renderHook } from '@testing-library/react';
+import { ThemeProvider, useTheme } from '../theme/themeContext';
 
 describe('ThemeProvider targetDocument', () => {
   afterEach(() => {
@@ -37,5 +37,34 @@ describe('ThemeProvider targetDocument', () => {
 
     expect(otherDoc.documentElement.style.getPropertyValue('--ai-master-font-size')).not.toBe('');
     expect(document.documentElement.style.getPropertyValue('--ai-master-font-size')).toBe('');
+  });
+});
+
+// Regression coverage for the slice-state consolidation: ThemeProviderProps
+// used to expose 28 separate `initial<X>State` props, one per registered
+// slice. This verifies the single `initialSliceStates` prop that replaced
+// them actually seeds each named slice's state, merged with that slice's
+// own defaults for any field the override didn't specify.
+describe('ThemeProvider initialSliceStates', () => {
+  it('seeds multiple slices from one prop, merging each with its own defaults', () => {
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ({ children }) => (
+        <ThemeProvider initialSliceStates={{ drawer: { width: 'lg' }, accordion: { variant: 'bordered' } }}>
+          {children}
+        </ThemeProvider>
+      ),
+    });
+
+    expect(result.current.drawerState.width).toBe('lg');
+    // Fields not named in the override still fall back to the slice's own default.
+    expect(result.current.drawerState.position).toBe('right');
+    expect(result.current.accordionState.variant).toBe('bordered');
+  });
+
+  it('leaves every slice at its own default when initialSliceStates is omitted', () => {
+    const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
+
+    expect(result.current.drawerState.width).toBe('md');
+    expect(result.current.accordionState.variant).toBe('cards');
   });
 });

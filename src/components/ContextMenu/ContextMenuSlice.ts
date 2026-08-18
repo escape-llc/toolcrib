@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    contextmenu: Partial<ContextMenuSliceState>;
+  }
+}
+
 /** Same shape as DropdownMenuSlice — ContextMenu shares DropdownMenu's visual structure entirely (see ContextMenu.tsx's own comment on reusing MenuItemData), kept as its own slice per the one-slice-per-component convention. */
 /** @barrelExport */
 export type ContextMenuShadowDepth = 'subtle' | 'elevated';

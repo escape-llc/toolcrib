@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    button: Partial<ButtonSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type ButtonFontWeight = 'normal' | 'semibold' | 'bold';
 export type ButtonIconGap = 'compact' | 'normal' | 'spacious';

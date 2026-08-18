@@ -1,5 +1,11 @@
 import { ThemeSlice } from './slice';
 
+declare module './sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    animation: Partial<AnimationSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type AnimationPreset = 'none' | 'subtle' | 'smooth' | 'snappy' | 'spring';
 export type ReducedMotionOption = 'auto' | 'always' | 'never';

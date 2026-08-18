@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    accordion: Partial<AccordionSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type AccordionHeaderPadding = 'compact' | 'normal' | 'spacious';
 export type AccordionItemGap = 'none' | 'compact' | 'normal' | 'spacious';

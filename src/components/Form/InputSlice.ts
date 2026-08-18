@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    input: Partial<InputSliceState>;
+  }
+}
+
 /** Shared by `<Input>` and `<Textarea>` — both are plain bordered text fields with the same visual knobs. */
 /** @barrelExport */
 export type InputPadding = 'compact' | 'normal' | 'spacious';

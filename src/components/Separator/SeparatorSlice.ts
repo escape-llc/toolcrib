@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    separator: Partial<SeparatorSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type SeparatorThickness = 'thin' | 'normal' | 'thick';
 

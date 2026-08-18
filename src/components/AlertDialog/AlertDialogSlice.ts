@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    alertdialog: Partial<AlertDialogSliceState>;
+  }
+}
+
 /** Same shape as ModalSlice — AlertDialog is structurally the same overlay, kept as its own slice per the one-slice-per-component convention rather than sharing Modal's. */
 /** @barrelExport */
 export type AlertDialogBackdropBlur = 'none' | 'subtle' | 'heavy';

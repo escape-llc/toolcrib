@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    card: Partial<CardSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type CardPadding = 'compact' | 'normal' | 'spacious';
 export type CardHeaderStyle = 'flush' | 'bordered' | 'subtle-bg';

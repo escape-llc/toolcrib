@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    select: Partial<SelectSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type SelectPadding = 'compact' | 'normal' | 'spacious';
 export type SelectItemDensity = 'compact' | 'normal';

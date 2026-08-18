@@ -40,6 +40,7 @@ import { ToolbarThemeSlice, ToolbarSliceState, defaultToolbarState } from '../co
 import { AppShellThemeSlice, AppShellSliceState, defaultAppShellState } from '../components/AppShell/AppShellSlice';
 import { TypographyThemeSlice, TypographySliceState, defaultTypographyState } from './typography';
 import { globalThemeSliceRegistry } from './slice';
+import { ToolcribSliceStateMap } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
 import { injectGlobalStyle } from './injectGlobalStyle';
 import { injectSharedAnimationKeyframes } from './animationKeyframes';
@@ -182,34 +183,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export interface ThemeProviderProps {
   children: ReactNode;
   initialParameters?: Partial<ThemeParameters & { shadowMode?: ShadowMode }>;
-  initialTableState?: Partial<TableSliceState>;
-  initialAnimationState?: Partial<AnimationSliceState>;
-  initialTabState?: Partial<TabSliceState>;
-  initialDrawerState?: Partial<DrawerSliceState>;
-  initialAccordionState?: Partial<AccordionSliceState>;
-  initialCardState?: Partial<CardSliceState>;
-  initialTooltipState?: Partial<TooltipSliceState>;
-  initialButtonState?: Partial<ButtonSliceState>;
-  initialInputState?: Partial<InputSliceState>;
-  initialToggleControlState?: Partial<ToggleControlSliceState>;
-  initialSelectState?: Partial<SelectSliceState>;
-  initialRadioGroupState?: Partial<RadioGroupSliceState>;
-  initialSliderState?: Partial<SliderSliceState>;
-  initialModalState?: Partial<ModalSliceState>;
-  initialAlertDialogState?: Partial<AlertDialogSliceState>;
-  initialPopupState?: Partial<PopupSliceState>;
-  initialToastState?: Partial<ToastSliceState>;
-  initialDropdownMenuState?: Partial<DropdownMenuSliceState>;
-  initialContextMenuState?: Partial<ContextMenuSliceState>;
-  initialProgressState?: Partial<ProgressSliceState>;
-  initialSeparatorState?: Partial<SeparatorSliceState>;
-  initialAvatarState?: Partial<AvatarSliceState>;
-  initialToggleState?: Partial<ToggleSliceState>;
-  initialCollapsibleState?: Partial<CollapsibleSliceState>;
-  initialUIGroupState?: Partial<UIGroupSliceState>;
-  initialToolbarState?: Partial<ToolbarSliceState>;
-  initialAppShellState?: Partial<AppShellSliceState>;
-  initialTypographyState?: Partial<TypographySliceState>;
+  /**
+   * Per-slice initial overrides, keyed by each slice's own `id` (`table`,
+   * `drawer`, `accordion`, ...). Replaces what used to be 28 separate
+   * `initial<X>State` props — one per registered slice, hand-maintained on
+   * this interface, on `ThemeProvider`'s destructured params, and on eight
+   * other repetition sites throughout this file and `themePersistence.ts`.
+   * `ToolcribSliceStateMap` (`./sliceStateMap`) is built via TypeScript
+   * declaration merging: each slice's own file contributes its own entry
+   * (see `DrawerSlice.ts` for the pattern), so a new component's slice file
+   * is the only place that needs touching to plug into this prop — nothing
+   * shared ever needs editing again. Excludes `padding`/`margin`/`radius`/
+   * `shadow`, which stay driven by `initialParameters` above — a distinct,
+   * pre-existing category (global HSV/spacing/corner-radius parameters),
+   * not a per-component override slice.
+   */
+  initialSliceStates?: Partial<ToolcribSliceStateMap>;
   /**
    * The `Document` whose `<html>` element gets this provider's CSS custom
    * properties. Defaults to the global `document` — correct for the
@@ -229,36 +218,45 @@ export interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
   initialParameters,
-  initialTableState,
-  initialAnimationState,
-  initialTabState,
-  initialDrawerState,
-  initialAccordionState,
-  initialCardState,
-  initialTooltipState,
-  initialButtonState,
-  initialInputState,
-  initialToggleControlState,
-  initialSelectState,
-  initialRadioGroupState,
-  initialSliderState,
-  initialModalState,
-  initialAlertDialogState,
-  initialPopupState,
-  initialToastState,
-  initialDropdownMenuState,
-  initialContextMenuState,
-  initialProgressState,
-  initialSeparatorState,
-  initialAvatarState,
-  initialToggleState,
-  initialCollapsibleState,
-  initialUIGroupState,
-  initialToolbarState,
-  initialAppShellState,
-  initialTypographyState,
+  initialSliceStates,
   targetDocument,
 }) => {
+  // Unpacked once into the same local names the rest of this function
+  // already used pre-consolidation, so nothing below this block (the 28
+  // useState calls, the cssVariables memo, the setters, the context value)
+  // needs to change for this prop collapse -- see the theme-slice
+  // consolidation write-up for why this is deliberately staged this way.
+  const {
+    table: initialTableState,
+    animation: initialAnimationState,
+    tab: initialTabState,
+    drawer: initialDrawerState,
+    accordion: initialAccordionState,
+    card: initialCardState,
+    tooltip: initialTooltipState,
+    button: initialButtonState,
+    input: initialInputState,
+    togglecontrol: initialToggleControlState,
+    select: initialSelectState,
+    radiogroup: initialRadioGroupState,
+    slider: initialSliderState,
+    modal: initialModalState,
+    alertdialog: initialAlertDialogState,
+    popup: initialPopupState,
+    toast: initialToastState,
+    dropdownmenu: initialDropdownMenuState,
+    contextmenu: initialContextMenuState,
+    progress: initialProgressState,
+    separator: initialSeparatorState,
+    avatar: initialAvatarState,
+    toggle: initialToggleState,
+    collapsible: initialCollapsibleState,
+    uigroup: initialUIGroupState,
+    toolbar: initialToolbarState,
+    appshell: initialAppShellState,
+    typography: initialTypographyState,
+  } = initialSliceStates ?? {};
+
   const [parameters, setParameters] = useState<ThemeParameters & { shadowMode?: ShadowMode }>({
     ...defaultParameters,
     ...initialParameters,

@@ -1,5 +1,11 @@
 import { ThemeSlice } from './slice';
 
+declare module './sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    typography: Partial<TypographySliceState>;
+  }
+}
+
 /** @barrelExport */
 export type FontFamilyPreset = 'system' | 'serif' | 'monospace';
 

@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    radiogroup: Partial<RadioGroupSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type RadioGroupGap = 'compact' | 'normal' | 'spacious';
 export type RadioGroupDotSize = 'sm' | 'md' | 'lg';

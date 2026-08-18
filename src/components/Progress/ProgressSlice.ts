@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    progress: Partial<ProgressSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type ProgressTrackRadius = 'sharp' | 'rounded' | 'pill';
 

@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    dropdownmenu: Partial<DropdownMenuSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type DropdownMenuShadowDepth = 'subtle' | 'elevated';
 export type DropdownMenuItemDensity = 'compact' | 'normal';

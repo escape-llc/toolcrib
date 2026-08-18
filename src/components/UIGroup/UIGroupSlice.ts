@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    uigroup: Partial<UIGroupSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type UIGroupOverlap = 'thin' | 'normal';
 

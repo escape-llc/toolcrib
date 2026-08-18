@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    tooltip: Partial<TooltipSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type TooltipTheme = 'dark' | 'light' | 'accent';
 export type TooltipSize = 'sm' | 'md';

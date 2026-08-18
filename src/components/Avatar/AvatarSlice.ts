@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    avatar: Partial<AvatarSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type AvatarShape = 'circle' | 'rounded-square' | 'square';
 

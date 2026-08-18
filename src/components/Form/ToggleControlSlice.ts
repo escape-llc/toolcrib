@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    togglecontrol: Partial<ToggleControlSliceState>;
+  }
+}
+
 /** Shared by `<Checkbox>` and `<Switch>` — both are small bounded toggle controls sized off the same scale. */
 /** @barrelExport */
 export type ToggleControlSize = 'sm' | 'md' | 'lg';

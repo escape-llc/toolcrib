@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    slider: Partial<SliderSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type SliderTrackHeight = 'thin' | 'normal' | 'thick';
 export type SliderThumbSize = 'sm' | 'md' | 'lg';

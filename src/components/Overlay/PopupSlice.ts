@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    popup: Partial<PopupSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type PopupShadowDepth = 'subtle' | 'elevated';
 export type PopupBorderStyle = 'bordered' | 'borderless';

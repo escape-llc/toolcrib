@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    collapsible: Partial<CollapsibleSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type CollapsiblePadding = 'compact' | 'normal' | 'spacious';
 

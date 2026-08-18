@@ -11,6 +11,7 @@ export * from './theme/radius';
 export * from './theme/safeProps';
 export * from './theme/shadow';
 export * from './theme/slice';
+export * from './theme/sliceStateMap';
 export * from './theme/subtheme';
 export * from './theme/targetDocumentContext';
 export * from './theme/themeContext';

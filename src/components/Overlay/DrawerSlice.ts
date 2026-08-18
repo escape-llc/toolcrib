@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    drawer: Partial<DrawerSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type DrawerWidth = 'sm' | 'md' | 'lg' | '25vw' | '33vw' | '50vw' | '75vw' | 'full';
 export type DrawerPosition = 'right' | 'left' | 'top' | 'bottom';

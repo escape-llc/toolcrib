@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    appshell: Partial<AppShellSliceState>;
+  }
+}
+
 /**
  * AppShell.Header/.Main already referenced `--ai-appshell-header-padding`/
  * `--ai-appshell-main-padding` as CSS var fallbacks, but nothing ever

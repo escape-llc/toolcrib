@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    table: Partial<TableSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type TableDensity = 'compact' | 'normal' | 'spacious';
 export type TableBorderStyle = 'grid' | 'horizontal' | 'none';

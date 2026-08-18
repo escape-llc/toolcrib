@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    modal: Partial<ModalSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type ModalBackdropBlur = 'none' | 'subtle' | 'heavy';
 export type ModalOverlayDarkness = 'light' | 'normal' | 'dark';

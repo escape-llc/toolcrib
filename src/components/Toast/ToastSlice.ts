@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    toast: Partial<ToastSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type ToastShadowDepth = 'subtle' | 'elevated';
 export type ToastAccentStyle = 'stripe' | 'border-only';

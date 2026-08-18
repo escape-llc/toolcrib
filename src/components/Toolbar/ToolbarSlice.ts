@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    toolbar: Partial<ToolbarSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type ToolbarSlotGap = 'compact' | 'normal' | 'spacious';
 

@@ -1,5 +1,11 @@
 import { ThemeSlice } from '../../theme/slice';
 
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    tab: Partial<TabSliceState>;
+  }
+}
+
 /** @barrelExport */
 export type TabVariant = 'pills' | 'underline' | 'cards' | 'segment';
 export type TabSize = 'sm' | 'md' | 'lg';
