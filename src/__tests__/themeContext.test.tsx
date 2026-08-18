@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, renderHook } from '@testing-library/react';
+import { render, renderHook, act } from '@testing-library/react';
 import { ThemeProvider, useTheme } from '../theme/themeContext';
 
 describe('ThemeProvider targetDocument', () => {
@@ -55,16 +55,38 @@ describe('ThemeProvider initialSliceStates', () => {
       ),
     });
 
-    expect(result.current.drawerState.width).toBe('lg');
+    expect(result.current.sliceStates.drawer.width).toBe('lg');
     // Fields not named in the override still fall back to the slice's own default.
-    expect(result.current.drawerState.position).toBe('right');
-    expect(result.current.accordionState.variant).toBe('bordered');
+    expect(result.current.sliceStates.drawer.position).toBe('right');
+    expect(result.current.sliceStates.accordion.variant).toBe('bordered');
   });
 
   it('leaves every slice at its own default when initialSliceStates is omitted', () => {
     const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
 
-    expect(result.current.drawerState.width).toBe('md');
-    expect(result.current.accordionState.variant).toBe('cards');
+    expect(result.current.sliceStates.drawer.width).toBe('md');
+    expect(result.current.sliceStates.accordion.variant).toBe('cards');
+  });
+});
+
+// Phase 2 regression coverage: ThemeContextType used to expose 28
+// separately-named fields (tableState, drawerState, ...) each with its own
+// hand-written setter. Both collapsed into one sliceStates record + one
+// generic setSliceState -- this verifies the generic setter actually
+// updates the right slice, merges with (rather than replacing) that
+// slice's other fields, and leaves every other slice untouched.
+describe('ThemeProvider setSliceState', () => {
+  it('patches one named slice, merging with its other fields, without touching any other slice', () => {
+    const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
+
+    act(() => {
+      result.current.setSliceState('drawer', { width: 'lg' });
+    });
+
+    expect(result.current.sliceStates.drawer.width).toBe('lg');
+    // Untouched fields on the same slice survive the patch.
+    expect(result.current.sliceStates.drawer.position).toBe('right');
+    // A different slice is completely unaffected.
+    expect(result.current.sliceStates.accordion.variant).toBe('cards');
   });
 });

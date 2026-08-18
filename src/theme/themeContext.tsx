@@ -11,36 +11,36 @@ import { PaddingMode, PaddingThemeSlice } from './padding';
 import { MarginMode, MarginThemeSlice } from './margin';
 import { CornerRadiusMode, RadiusThemeSlice } from './radius';
 import { ShadowMode, ShadowThemeSlice } from './shadow';
-import { DataTableThemeSlice, TableSliceState } from '../components/DataTable/DataTableSlice';
-import { AnimationThemeSlice, AnimationSliceState, defaultAnimationState } from './animation';
-import { TabThemeSlice, TabSliceState, defaultTabState } from '../components/TabStrip/TabSlice';
-import { DrawerThemeSlice, DrawerSliceState, defaultDrawerState } from '../components/Overlay/DrawerSlice';
-import { AccordionThemeSlice, AccordionSliceState, defaultAccordionState } from '../components/Accordion/AccordionSlice';
-import { CardThemeSlice, CardSliceState, defaultCardState } from '../components/Card/CardSlice';
-import { TooltipThemeSlice, TooltipSliceState, defaultTooltipState } from '../components/Tooltip/TooltipSlice';
-import { ButtonThemeSlice, ButtonSliceState, defaultButtonState } from '../components/Form/ButtonSlice';
-import { InputThemeSlice, InputSliceState, defaultInputState } from '../components/Form/InputSlice';
-import { ToggleControlThemeSlice, ToggleControlSliceState, defaultToggleControlState } from '../components/Form/ToggleControlSlice';
-import { SelectThemeSlice, SelectSliceState, defaultSelectState } from '../components/Form/SelectSlice';
-import { RadioGroupThemeSlice, RadioGroupSliceState, defaultRadioGroupState } from '../components/Form/RadioGroupSlice';
-import { SliderThemeSlice, SliderSliceState, defaultSliderState } from '../components/Form/SliderSlice';
-import { ModalThemeSlice, ModalSliceState, defaultModalState } from '../components/Overlay/ModalSlice';
-import { AlertDialogThemeSlice, AlertDialogSliceState, defaultAlertDialogState } from '../components/AlertDialog/AlertDialogSlice';
-import { PopupThemeSlice, PopupSliceState, defaultPopupState } from '../components/Overlay/PopupSlice';
-import { ToastThemeSlice, ToastSliceState, defaultToastState } from '../components/Toast/ToastSlice';
-import { DropdownMenuThemeSlice, DropdownMenuSliceState, defaultDropdownMenuState } from '../components/DropdownMenu/DropdownMenuSlice';
-import { ContextMenuThemeSlice, ContextMenuSliceState, defaultContextMenuState } from '../components/ContextMenu/ContextMenuSlice';
-import { ProgressThemeSlice, ProgressSliceState, defaultProgressState } from '../components/Progress/ProgressSlice';
-import { SeparatorThemeSlice, SeparatorSliceState, defaultSeparatorState } from '../components/Separator/SeparatorSlice';
-import { AvatarThemeSlice, AvatarSliceState, defaultAvatarState } from '../components/Avatar/AvatarSlice';
-import { ToggleThemeSlice, ToggleSliceState, defaultToggleState } from '../components/ToggleGroup/ToggleSlice';
-import { CollapsibleThemeSlice, CollapsibleSliceState, defaultCollapsibleState } from '../components/Collapsible/CollapsibleSlice';
-import { UIGroupThemeSlice, UIGroupSliceState, defaultUIGroupState } from '../components/UIGroup/UIGroupSlice';
-import { ToolbarThemeSlice, ToolbarSliceState, defaultToolbarState } from '../components/Toolbar/ToolbarSlice';
-import { AppShellThemeSlice, AppShellSliceState, defaultAppShellState } from '../components/AppShell/AppShellSlice';
-import { TypographyThemeSlice, TypographySliceState, defaultTypographyState } from './typography';
+import { DataTableThemeSlice } from '../components/DataTable/DataTableSlice';
+import { AnimationThemeSlice } from './animation';
+import { TabThemeSlice } from '../components/TabStrip/TabSlice';
+import { DrawerThemeSlice } from '../components/Overlay/DrawerSlice';
+import { AccordionThemeSlice } from '../components/Accordion/AccordionSlice';
+import { CardThemeSlice } from '../components/Card/CardSlice';
+import { TooltipThemeSlice } from '../components/Tooltip/TooltipSlice';
+import { ButtonThemeSlice } from '../components/Form/ButtonSlice';
+import { InputThemeSlice } from '../components/Form/InputSlice';
+import { ToggleControlThemeSlice } from '../components/Form/ToggleControlSlice';
+import { SelectThemeSlice } from '../components/Form/SelectSlice';
+import { RadioGroupThemeSlice } from '../components/Form/RadioGroupSlice';
+import { SliderThemeSlice } from '../components/Form/SliderSlice';
+import { ModalThemeSlice } from '../components/Overlay/ModalSlice';
+import { AlertDialogThemeSlice } from '../components/AlertDialog/AlertDialogSlice';
+import { PopupThemeSlice } from '../components/Overlay/PopupSlice';
+import { ToastThemeSlice } from '../components/Toast/ToastSlice';
+import { DropdownMenuThemeSlice } from '../components/DropdownMenu/DropdownMenuSlice';
+import { ContextMenuThemeSlice } from '../components/ContextMenu/ContextMenuSlice';
+import { ProgressThemeSlice } from '../components/Progress/ProgressSlice';
+import { SeparatorThemeSlice } from '../components/Separator/SeparatorSlice';
+import { AvatarThemeSlice } from '../components/Avatar/AvatarSlice';
+import { ToggleThemeSlice } from '../components/ToggleGroup/ToggleSlice';
+import { CollapsibleThemeSlice } from '../components/Collapsible/CollapsibleSlice';
+import { UIGroupThemeSlice } from '../components/UIGroup/UIGroupSlice';
+import { ToolbarThemeSlice } from '../components/Toolbar/ToolbarSlice';
+import { AppShellThemeSlice } from '../components/AppShell/AppShellSlice';
+import { TypographyThemeSlice } from './typography';
 import { globalThemeSliceRegistry } from './slice';
-import { ToolcribSliceStateMap } from './sliceStateMap';
+import { ToolcribSliceStateMap, ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
 import { injectGlobalStyle } from './injectGlobalStyle';
 import { injectSharedAnimationKeyframes } from './animationKeyframes';
@@ -83,34 +83,17 @@ globalThemeSliceRegistry.register(TypographyThemeSlice);
 /** @barrelExport */
 export interface ThemeContextType {
   parameters: ThemeParameters & { shadowMode?: ShadowMode };
-  tableState: TableSliceState;
-  animationState: AnimationSliceState;
-  tabState: TabSliceState;
-  drawerState: DrawerSliceState;
-  accordionState: AccordionSliceState;
-  cardState: CardSliceState;
-  tooltipState: TooltipSliceState;
-  buttonState: ButtonSliceState;
-  inputState: InputSliceState;
-  toggleControlState: ToggleControlSliceState;
-  selectState: SelectSliceState;
-  radioGroupState: RadioGroupSliceState;
-  sliderState: SliderSliceState;
-  modalState: ModalSliceState;
-  alertDialogState: AlertDialogSliceState;
-  popupState: PopupSliceState;
-  toastState: ToastSliceState;
-  dropdownMenuState: DropdownMenuSliceState;
-  contextMenuState: ContextMenuSliceState;
-  progressState: ProgressSliceState;
-  separatorState: SeparatorSliceState;
-  avatarState: AvatarSliceState;
-  toggleState: ToggleSliceState;
-  collapsibleState: CollapsibleSliceState;
-  uiGroupState: UIGroupSliceState;
-  toolbarState: ToolbarSliceState;
-  appShellState: AppShellSliceState;
-  typographyState: TypographySliceState;
+  /**
+   * Every registered slice's live, complete state, keyed by the slice's own
+   * `id` -- `sliceStates.drawer`, `sliceStates.accordion`, etc. Replaces
+   * what used to be 28 separately-named fields (`tableState`, `drawerState`,
+   * ...) on this interface, each with its own hand-written setter below.
+   * Still fully typed per key via `ToolcribSliceStates` (`./sliceStateMap`,
+   * itself derived from the same declaration-merged map `initialSliceStates`
+   * uses) -- `theme.sliceStates.drawer.width` autocompletes and rejects a
+   * wrong field name exactly as `theme.drawerState.width` used to.
+   */
+  sliceStates: ToolcribSliceStates;
   palette: GeneratedPalette;
   cssVariables: Record<string, string>;
   setBaseColor: (color: HSVColor) => void;
@@ -122,34 +105,15 @@ export interface ThemeContextType {
   setMarginMode: (mode: MarginMode) => void;
   setCornerRadiusMode: (mode: CornerRadiusMode) => void;
   setShadowMode: (mode: ShadowMode) => void;
-  setTableState: (state: Partial<TableSliceState>) => void;
-  setAnimationState: (state: Partial<AnimationSliceState>) => void;
-  setTabState: (state: Partial<TabSliceState>) => void;
-  setDrawerState: (state: Partial<DrawerSliceState>) => void;
-  setAccordionState: (state: Partial<AccordionSliceState>) => void;
-  setCardState: (state: Partial<CardSliceState>) => void;
-  setTooltipState: (state: Partial<TooltipSliceState>) => void;
-  setButtonState: (state: Partial<ButtonSliceState>) => void;
-  setInputState: (state: Partial<InputSliceState>) => void;
-  setToggleControlState: (state: Partial<ToggleControlSliceState>) => void;
-  setSelectState: (state: Partial<SelectSliceState>) => void;
-  setRadioGroupState: (state: Partial<RadioGroupSliceState>) => void;
-  setSliderState: (state: Partial<SliderSliceState>) => void;
-  setModalState: (state: Partial<ModalSliceState>) => void;
-  setAlertDialogState: (state: Partial<AlertDialogSliceState>) => void;
-  setPopupState: (state: Partial<PopupSliceState>) => void;
-  setToastState: (state: Partial<ToastSliceState>) => void;
-  setDropdownMenuState: (state: Partial<DropdownMenuSliceState>) => void;
-  setContextMenuState: (state: Partial<ContextMenuSliceState>) => void;
-  setProgressState: (state: Partial<ProgressSliceState>) => void;
-  setSeparatorState: (state: Partial<SeparatorSliceState>) => void;
-  setAvatarState: (state: Partial<AvatarSliceState>) => void;
-  setToggleState: (state: Partial<ToggleSliceState>) => void;
-  setCollapsibleState: (state: Partial<CollapsibleSliceState>) => void;
-  setUIGroupState: (state: Partial<UIGroupSliceState>) => void;
-  setToolbarState: (state: Partial<ToolbarSliceState>) => void;
-  setAppShellState: (state: Partial<AppShellSliceState>) => void;
-  setTypographyState: (state: Partial<TypographySliceState>) => void;
+  /**
+   * Replaces the 28 separately-named `set<X>State` setters. Generic over
+   * `id`, but not over `any`: `K` is inferred from the literal `id` passed
+   * in, so `setSliceState('drawer', { width: 'lg' })` only accepts fields
+   * that actually exist on `DrawerSliceState`, and a typo in either the id
+   * or a field name is a compile error, same safety the 28 individual
+   * setters used to provide.
+   */
+  setSliceState: <K extends keyof ToolcribSliceStateMap>(id: K, patch: Partial<ToolcribSliceStates[K]>) => void;
   toggleDarkMode: () => void;
   setDarkMode: (isDark: boolean) => void;
 }
@@ -172,11 +136,12 @@ const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
   isDarkMode: false,
 };
 
-const defaultTableState: TableSliceState = {
-  density: 'normal',
-  borderStyle: 'horizontal',
-  striped: true,
-};
+// These four slices are driven by `parameters`/`initialParameters` instead
+// of `sliceStates`/`initialSliceStates` -- a distinct, pre-existing
+// category (global HSV/spacing/corner-radius parameters), not a
+// per-component override slice. Excluded here, and from
+// `ToolcribSliceStateMap` (see sliceStateMap.ts), for the same reason.
+const PARAMETER_DRIVEN_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow']);
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -221,185 +186,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialSliceStates,
   targetDocument,
 }) => {
-  // Unpacked once into the same local names the rest of this function
-  // already used pre-consolidation, so nothing below this block (the 28
-  // useState calls, the cssVariables memo, the setters, the context value)
-  // needs to change for this prop collapse -- see the theme-slice
-  // consolidation write-up for why this is deliberately staged this way.
-  const {
-    table: initialTableState,
-    animation: initialAnimationState,
-    tab: initialTabState,
-    drawer: initialDrawerState,
-    accordion: initialAccordionState,
-    card: initialCardState,
-    tooltip: initialTooltipState,
-    button: initialButtonState,
-    input: initialInputState,
-    togglecontrol: initialToggleControlState,
-    select: initialSelectState,
-    radiogroup: initialRadioGroupState,
-    slider: initialSliderState,
-    modal: initialModalState,
-    alertdialog: initialAlertDialogState,
-    popup: initialPopupState,
-    toast: initialToastState,
-    dropdownmenu: initialDropdownMenuState,
-    contextmenu: initialContextMenuState,
-    progress: initialProgressState,
-    separator: initialSeparatorState,
-    avatar: initialAvatarState,
-    toggle: initialToggleState,
-    collapsible: initialCollapsibleState,
-    uigroup: initialUIGroupState,
-    toolbar: initialToolbarState,
-    appshell: initialAppShellState,
-    typography: initialTypographyState,
-  } = initialSliceStates ?? {};
-
   const [parameters, setParameters] = useState<ThemeParameters & { shadowMode?: ShadowMode }>({
     ...defaultParameters,
     ...initialParameters,
   });
 
-  const [tableState, setTableStateInternal] = useState<TableSliceState>({
-    ...defaultTableState,
-    ...initialTableState,
-  });
-
-  const [animationState, setAnimationStateInternal] = useState<AnimationSliceState>({
-    ...defaultAnimationState,
-    ...initialAnimationState,
-  });
-
-  const [tabState, setTabStateInternal] = useState<TabSliceState>({
-    ...defaultTabState,
-    ...initialTabState,
-  });
-
-  const [drawerState, setDrawerStateInternal] = useState<DrawerSliceState>({
-    ...defaultDrawerState,
-    ...initialDrawerState,
-  });
-
-  const [accordionState, setAccordionStateInternal] = useState<AccordionSliceState>({
-    ...defaultAccordionState,
-    ...initialAccordionState,
-  });
-
-  const [cardState, setCardStateInternal] = useState<CardSliceState>({
-    ...defaultCardState,
-    ...initialCardState,
-  });
-
-  const [tooltipState, setTooltipStateInternal] = useState<TooltipSliceState>({
-    ...defaultTooltipState,
-    ...initialTooltipState,
-  });
-
-  const [buttonState, setButtonStateInternal] = useState<ButtonSliceState>({
-    ...defaultButtonState,
-    ...initialButtonState,
-  });
-
-  const [inputState, setInputStateInternal] = useState<InputSliceState>({
-    ...defaultInputState,
-    ...initialInputState,
-  });
-
-  const [toggleControlState, setToggleControlStateInternal] = useState<ToggleControlSliceState>({
-    ...defaultToggleControlState,
-    ...initialToggleControlState,
-  });
-
-  const [selectState, setSelectStateInternal] = useState<SelectSliceState>({
-    ...defaultSelectState,
-    ...initialSelectState,
-  });
-
-  const [radioGroupState, setRadioGroupStateInternal] = useState<RadioGroupSliceState>({
-    ...defaultRadioGroupState,
-    ...initialRadioGroupState,
-  });
-
-  const [sliderState, setSliderStateInternal] = useState<SliderSliceState>({
-    ...defaultSliderState,
-    ...initialSliderState,
-  });
-
-  const [modalState, setModalStateInternal] = useState<ModalSliceState>({
-    ...defaultModalState,
-    ...initialModalState,
-  });
-
-  const [alertDialogState, setAlertDialogStateInternal] = useState<AlertDialogSliceState>({
-    ...defaultAlertDialogState,
-    ...initialAlertDialogState,
-  });
-
-  const [popupState, setPopupStateInternal] = useState<PopupSliceState>({
-    ...defaultPopupState,
-    ...initialPopupState,
-  });
-
-  const [toastState, setToastStateInternal] = useState<ToastSliceState>({
-    ...defaultToastState,
-    ...initialToastState,
-  });
-
-  const [dropdownMenuState, setDropdownMenuStateInternal] = useState<DropdownMenuSliceState>({
-    ...defaultDropdownMenuState,
-    ...initialDropdownMenuState,
-  });
-
-  const [contextMenuState, setContextMenuStateInternal] = useState<ContextMenuSliceState>({
-    ...defaultContextMenuState,
-    ...initialContextMenuState,
-  });
-
-  const [progressState, setProgressStateInternal] = useState<ProgressSliceState>({
-    ...defaultProgressState,
-    ...initialProgressState,
-  });
-
-  const [separatorState, setSeparatorStateInternal] = useState<SeparatorSliceState>({
-    ...defaultSeparatorState,
-    ...initialSeparatorState,
-  });
-
-  const [avatarState, setAvatarStateInternal] = useState<AvatarSliceState>({
-    ...defaultAvatarState,
-    ...initialAvatarState,
-  });
-
-  const [toggleState, setToggleStateInternal] = useState<ToggleSliceState>({
-    ...defaultToggleState,
-    ...initialToggleState,
-  });
-
-  const [collapsibleState, setCollapsibleStateInternal] = useState<CollapsibleSliceState>({
-    ...defaultCollapsibleState,
-    ...initialCollapsibleState,
-  });
-
-  const [uiGroupState, setUIGroupStateInternal] = useState<UIGroupSliceState>({
-    ...defaultUIGroupState,
-    ...initialUIGroupState,
-  });
-
-  const [toolbarState, setToolbarStateInternal] = useState<ToolbarSliceState>({
-    ...defaultToolbarState,
-    ...initialToolbarState,
-  });
-
-  const [appShellState, setAppShellStateInternal] = useState<AppShellSliceState>({
-    ...defaultAppShellState,
-    ...initialAppShellState,
-  });
-
-  const [typographyState, setTypographyStateInternal] = useState<TypographySliceState>({
-    ...defaultTypographyState,
-    ...initialTypographyState,
+  // One state object for every registered slice except the four
+  // parameter-driven ones, seeded by looping the registry and merging each
+  // slice's own `defaultState` with `initialSliceStates`'s matching entry
+  // (if any) -- replaces what used to be 28 separate useState calls, each
+  // hand-importing its own `default<X>State` constant. The lazy initializer
+  // form (a function, not a plain object) means this loop only ever runs
+  // once, on mount, same cost as the 28 individual useState calls it
+  // replaces.
+  const [sliceStates, setSliceStatesInternal] = useState<ToolcribSliceStates>(() => {
+    const initial = {} as Record<string, unknown>;
+    for (const slice of globalThemeSliceRegistry.getAll()) {
+      if (PARAMETER_DRIVEN_SLICE_IDS.has(slice.id)) continue;
+      const override = (initialSliceStates as Record<string, unknown> | undefined)?.[slice.id];
+      initial[slice.id] = { ...slice.defaultState, ...(override as object | undefined) };
+    }
+    return initial as ToolcribSliceStates;
   });
 
   const palette = useMemo(() => {
@@ -418,68 +225,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       margin: parameters.marginMode,
       radius: parameters.cornerRadiusMode,
       shadow: parameters.shadowMode,
-      table: tableState,
-      animation: animationState,
-      tab: tabState,
-      drawer: drawerState,
-      accordion: accordionState,
-      card: cardState,
-      tooltip: tooltipState,
-      button: buttonState,
-      input: inputState,
-      togglecontrol: toggleControlState,
-      select: selectState,
-      radiogroup: radioGroupState,
-      slider: sliderState,
-      modal: modalState,
-      alertdialog: alertDialogState,
-      popup: popupState,
-      toast: toastState,
-      dropdownmenu: dropdownMenuState,
-      contextmenu: contextMenuState,
-      progress: progressState,
-      separator: separatorState,
-      avatar: avatarState,
-      toggle: toggleState,
-      collapsible: collapsibleState,
-      uigroup: uiGroupState,
-      toolbar: toolbarState,
-      appshell: appShellState,
-      typography: typographyState,
+      ...sliceStates,
     });
     return { ...baseVars, ...sliceVars };
-  }, [
-    palette,
-    parameters,
-    tableState,
-    animationState,
-    tabState,
-    drawerState,
-    accordionState,
-    cardState,
-    tooltipState,
-    buttonState,
-    inputState,
-    toggleControlState,
-    selectState,
-    radioGroupState,
-    sliderState,
-    modalState,
-    alertDialogState,
-    popupState,
-    toastState,
-    dropdownMenuState,
-    contextMenuState,
-    progressState,
-    separatorState,
-    avatarState,
-    toggleState,
-    collapsibleState,
-    uiGroupState,
-    toolbarState,
-    appShellState,
-    typographyState,
-  ]);
+  }, [palette, parameters, sliceStates]);
 
   // Inject CSS variables into root document element
   useEffect(() => {
@@ -538,67 +287,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setMarginMode = (marginMode: MarginMode) => setParameters(p => ({ ...p, marginMode }));
   const setCornerRadiusMode = (cornerRadiusMode: CornerRadiusMode) => setParameters(p => ({ ...p, cornerRadiusMode }));
   const setShadowMode = (shadowMode: ShadowMode) => setParameters(p => ({ ...p, shadowMode }));
-  const setTableState = (update: Partial<TableSliceState>) => setTableStateInternal(prev => ({ ...prev, ...update }));
-  const setAnimationState = (update: Partial<AnimationSliceState>) => setAnimationStateInternal(prev => ({ ...prev, ...update }));
-  const setTabState = (update: Partial<TabSliceState>) => setTabStateInternal(prev => ({ ...prev, ...update }));
-  const setDrawerState = (update: Partial<DrawerSliceState>) => setDrawerStateInternal(prev => ({ ...prev, ...update }));
-  const setAccordionState = (update: Partial<AccordionSliceState>) => setAccordionStateInternal(prev => ({ ...prev, ...update }));
-  const setCardState = (update: Partial<CardSliceState>) => setCardStateInternal(prev => ({ ...prev, ...update }));
-  const setTooltipState = (update: Partial<TooltipSliceState>) => setTooltipStateInternal(prev => ({ ...prev, ...update }));
-  const setButtonState = (update: Partial<ButtonSliceState>) => setButtonStateInternal(prev => ({ ...prev, ...update }));
-  const setInputState = (update: Partial<InputSliceState>) => setInputStateInternal(prev => ({ ...prev, ...update }));
-  const setToggleControlState = (update: Partial<ToggleControlSliceState>) => setToggleControlStateInternal(prev => ({ ...prev, ...update }));
-  const setSelectState = (update: Partial<SelectSliceState>) => setSelectStateInternal(prev => ({ ...prev, ...update }));
-  const setRadioGroupState = (update: Partial<RadioGroupSliceState>) => setRadioGroupStateInternal(prev => ({ ...prev, ...update }));
-  const setSliderState = (update: Partial<SliderSliceState>) => setSliderStateInternal(prev => ({ ...prev, ...update }));
-  const setModalState = (update: Partial<ModalSliceState>) => setModalStateInternal(prev => ({ ...prev, ...update }));
-  const setAlertDialogState = (update: Partial<AlertDialogSliceState>) => setAlertDialogStateInternal(prev => ({ ...prev, ...update }));
-  const setPopupState = (update: Partial<PopupSliceState>) => setPopupStateInternal(prev => ({ ...prev, ...update }));
-  const setToastState = (update: Partial<ToastSliceState>) => setToastStateInternal(prev => ({ ...prev, ...update }));
-  const setDropdownMenuState = (update: Partial<DropdownMenuSliceState>) => setDropdownMenuStateInternal(prev => ({ ...prev, ...update }));
-  const setContextMenuState = (update: Partial<ContextMenuSliceState>) => setContextMenuStateInternal(prev => ({ ...prev, ...update }));
-  const setProgressState = (update: Partial<ProgressSliceState>) => setProgressStateInternal(prev => ({ ...prev, ...update }));
-  const setSeparatorState = (update: Partial<SeparatorSliceState>) => setSeparatorStateInternal(prev => ({ ...prev, ...update }));
-  const setAvatarState = (update: Partial<AvatarSliceState>) => setAvatarStateInternal(prev => ({ ...prev, ...update }));
-  const setToggleState = (update: Partial<ToggleSliceState>) => setToggleStateInternal(prev => ({ ...prev, ...update }));
-  const setCollapsibleState = (update: Partial<CollapsibleSliceState>) => setCollapsibleStateInternal(prev => ({ ...prev, ...update }));
-  const setUIGroupState = (update: Partial<UIGroupSliceState>) => setUIGroupStateInternal(prev => ({ ...prev, ...update }));
-  const setToolbarState = (update: Partial<ToolbarSliceState>) => setToolbarStateInternal(prev => ({ ...prev, ...update }));
-  const setAppShellState = (update: Partial<AppShellSliceState>) => setAppShellStateInternal(prev => ({ ...prev, ...update }));
-  const setTypographyState = (update: Partial<TypographySliceState>) => setTypographyStateInternal(prev => ({ ...prev, ...update }));
+
+  // Immutable by construction -- both the outer object and the touched
+  // slice's own value are replaced, never mutated in place. This matters
+  // more here than it did with 28 separate useState calls: cssVariables'
+  // useMemo above now depends on this single `sliceStates` object by
+  // reference, so an in-place mutation would silently stop triggering a
+  // recompute instead of just one field lagging.
+  const setSliceState = <K extends keyof ToolcribSliceStateMap>(id: K, patch: Partial<ToolcribSliceStates[K]>) => {
+    setSliceStatesInternal(prev => ({
+      ...prev,
+      [id]: { ...prev[id], ...patch },
+    }));
+  };
+
   const toggleDarkMode = () => setParameters(p => ({ ...p, isDarkMode: !p.isDarkMode }));
   const setDarkMode = (isDarkMode: boolean) => setParameters(p => ({ ...p, isDarkMode }));
 
   const value: ThemeContextType = {
     parameters,
-    tableState,
-    animationState,
-    tabState,
-    drawerState,
-    accordionState,
-    cardState,
-    tooltipState,
-    buttonState,
-    inputState,
-    toggleControlState,
-    selectState,
-    radioGroupState,
-    sliderState,
-    modalState,
-    alertDialogState,
-    popupState,
-    toastState,
-    dropdownMenuState,
-    contextMenuState,
-    progressState,
-    separatorState,
-    avatarState,
-    toggleState,
-    collapsibleState,
-    uiGroupState,
-    toolbarState,
-    appShellState,
-    typographyState,
+    sliceStates,
     palette,
     cssVariables,
     setBaseColor,
@@ -610,34 +318,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setMarginMode,
     setCornerRadiusMode,
     setShadowMode,
-    setTableState,
-    setAnimationState,
-    setTabState,
-    setDrawerState,
-    setAccordionState,
-    setCardState,
-    setTooltipState,
-    setButtonState,
-    setInputState,
-    setToggleControlState,
-    setSelectState,
-    setRadioGroupState,
-    setSliderState,
-    setModalState,
-    setAlertDialogState,
-    setPopupState,
-    setToastState,
-    setDropdownMenuState,
-    setContextMenuState,
-    setProgressState,
-    setSeparatorState,
-    setAvatarState,
-    setToggleState,
-    setCollapsibleState,
-    setUIGroupState,
-    setToolbarState,
-    setAppShellState,
-    setTypographyState,
+    setSliceState,
     toggleDarkMode,
     setDarkMode,
   };

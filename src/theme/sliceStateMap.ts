@@ -20,3 +20,18 @@
 
 /** @barrelExport */
 export interface ToolcribSliceStateMap {}
+
+/**
+ * The live, fully-populated counterpart to `ToolcribSliceStateMap` above --
+ * every registered slice's *complete* state (not the partial overrides
+ * `initialSliceStates`/a theme snapshot may specify), the exact shape
+ * `ThemeContextType.sliceStates` exposes at runtime and `setSliceState`
+ * accepts a `Partial` patch against. Derived with a mapped type from the
+ * same declaration-merged interface, so there is exactly one source of
+ * truth for which slices exist and what their state shapes are -- adding a
+ * slice's `declare module` entry above is still the only thing a new
+ * component ever needs to do to participate in both.
+ */
+export type ToolcribSliceStates = {
+  [K in keyof ToolcribSliceStateMap]: Required<ToolcribSliceStateMap[K]>;
+};

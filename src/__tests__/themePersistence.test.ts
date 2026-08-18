@@ -17,7 +17,7 @@ describe('isThemeSnapshotLike', () => {
       isThemeSnapshotLike({
         schemaVersion: 1,
         parameters: { baseColor: { h: 1, s: 2, v: 3 } },
-        tableState: { density: 'compact' },
+        sliceStates: { table: { density: 'compact' } },
       })
     ).toBe(true);
   });
@@ -36,7 +36,8 @@ describe('isThemeSnapshotLike', () => {
   });
 
   it('rejects a known field that is present but not an object', () => {
-    expect(isThemeSnapshotLike({ schemaVersion: 1, tableState: 'not an object' })).toBe(false);
+    expect(isThemeSnapshotLike({ schemaVersion: 1, sliceStates: { table: 'not an object' } })).toBe(false);
+    expect(isThemeSnapshotLike({ schemaVersion: 1, sliceStates: 'nope' })).toBe(false);
     expect(isThemeSnapshotLike({ schemaVersion: 1, parameters: 'nope' })).toBe(false);
   });
 });
@@ -47,18 +48,18 @@ describe('captureThemeSnapshot / applyThemeSnapshot round trip', () => {
 
     act(() => {
       result.current.setBaseColor({ h: 42, s: 60, v: 70 });
-      result.current.setTableState({ density: 'compact' });
+      result.current.setSliceState('table', { density: 'compact' });
     });
 
     const snapshot = captureThemeSnapshot(result.current, 'My Theme');
     expect(snapshot.schemaVersion).toBe(1);
     expect(snapshot.name).toBe('My Theme');
     expect(snapshot.parameters?.baseColor).toEqual({ h: 42, s: 60, v: 70 });
-    expect(snapshot.tableState?.density).toBe('compact');
+    expect(snapshot.sliceStates?.table?.density).toBe('compact');
 
     act(() => {
       result.current.setBaseColor({ h: 0, s: 0, v: 0 });
-      result.current.setTableState({ density: 'spacious' });
+      result.current.setSliceState('table', { density: 'spacious' });
     });
     expect(result.current.parameters.baseColor).toEqual({ h: 0, s: 0, v: 0 });
 
@@ -67,14 +68,14 @@ describe('captureThemeSnapshot / applyThemeSnapshot round trip', () => {
     });
 
     expect(result.current.parameters.baseColor).toEqual({ h: 42, s: 60, v: 70 });
-    expect(result.current.tableState.density).toBe('compact');
+    expect(result.current.sliceStates.table.density).toBe('compact');
   });
 
   it('a partial snapshot (e.g. a preset with only parameters) leaves other slice states untouched', () => {
     const { result } = renderTheme();
 
     act(() => {
-      result.current.setTableState({ density: 'compact' });
+      result.current.setSliceState('table', { density: 'compact' });
     });
 
     act(() => {
@@ -85,7 +86,25 @@ describe('captureThemeSnapshot / applyThemeSnapshot round trip', () => {
     });
 
     expect(result.current.parameters.baseColor).toEqual({ h: 200, s: 50, v: 50 });
-    expect(result.current.tableState.density).toBe('compact'); // untouched by the partial snapshot
+    expect(result.current.sliceStates.table.density).toBe('compact'); // untouched by the partial snapshot
+  });
+
+  it('a snapshot naming only one slice leaves every other slice untouched', () => {
+    const { result } = renderTheme();
+
+    act(() => {
+      result.current.setSliceState('accordion', { variant: 'ghost' });
+    });
+
+    act(() => {
+      applyThemeSnapshot(result.current, {
+        schemaVersion: 1,
+        sliceStates: { table: { density: 'compact' } },
+      });
+    });
+
+    expect(result.current.sliceStates.table.density).toBe('compact');
+    expect(result.current.sliceStates.accordion.variant).toBe('ghost'); // untouched, not named in the snapshot
   });
 
   it('applying an empty snapshot changes nothing', () => {

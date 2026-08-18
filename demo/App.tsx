@@ -460,7 +460,8 @@ const Flaky: React.FC<{ triggerKey: number }> = ({ triggerKey }) => {
 };
 
 export const App: React.FC = () => {
-  const { parameters, typographyState } = useTheme();
+  const { parameters, sliceStates } = useTheme();
+  const typographyState = sliceStates.typography;
   const { addToast, setAnchor } = useToast();
 
   // No `activeTab` useState here anymore: <TabStrip id="main-demo"> manages

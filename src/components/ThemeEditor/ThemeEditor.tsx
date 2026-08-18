@@ -134,64 +134,78 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     setMarginMode,
     setCornerRadiusMode,
     setShadowMode,
-    tableState,
-    setTableState,
-    animationState,
-    setAnimationState,
-    tabState,
-    setTabState,
-    drawerState,
-    setDrawerState,
-    accordionState,
-    setAccordionState,
-    cardState,
-    setCardState,
-    tooltipState,
-    setTooltipState,
-    buttonState,
-    setButtonState,
-    inputState,
-    setInputState,
-    toggleControlState,
-    setToggleControlState,
-    selectState,
-    setSelectState,
-    radioGroupState,
-    setRadioGroupState,
-    sliderState,
-    setSliderState,
-    modalState,
-    setModalState,
-    alertDialogState,
-    setAlertDialogState,
-    popupState,
-    setPopupState,
-    toastState,
-    setToastState,
-    dropdownMenuState,
-    setDropdownMenuState,
-    contextMenuState,
-    setContextMenuState,
-    progressState,
-    setProgressState,
-    separatorState,
-    setSeparatorState,
-    avatarState,
-    setAvatarState,
-    toggleState,
-    setToggleState,
-    collapsibleState,
-    setCollapsibleState,
-    uiGroupState,
-    setUIGroupState,
-    toolbarState,
-    setToolbarState,
-    appShellState,
-    setAppShellState,
-    typographyState,
-    setTypographyState,
+    sliceStates,
+    setSliceState,
     toggleDarkMode,
   } = useTheme();
+
+  // Thin per-slice adapter, mirroring the same staging ThemeProvider itself
+  // used for its own prop collapse: every control block below still reads/
+  // writes the same `<x>State`/`set<X>State` local names it always has, so
+  // this consolidation change is isolated to this one block instead of
+  // rippling through the ~30 hand-written control blocks further down.
+  // Each setter stays fully typed -- `Partial<typeof xState>` ties it to
+  // that exact slice's own state shape, the same safety
+  // `theme.setXState(...)` used to provide directly. Phase 3 (per-slice
+  // `renderEditorControl`, replacing this file's hand-written blocks
+  // wholesale) is the eventual, separate removal of this adapter -- not
+  // part of this change.
+  const tableState = sliceStates.table;
+  const setTableState = (patch: Partial<typeof tableState>) => setSliceState('table', patch);
+  const animationState = sliceStates.animation;
+  const setAnimationState = (patch: Partial<typeof animationState>) => setSliceState('animation', patch);
+  const tabState = sliceStates.tab;
+  const setTabState = (patch: Partial<typeof tabState>) => setSliceState('tab', patch);
+  const drawerState = sliceStates.drawer;
+  const setDrawerState = (patch: Partial<typeof drawerState>) => setSliceState('drawer', patch);
+  const accordionState = sliceStates.accordion;
+  const setAccordionState = (patch: Partial<typeof accordionState>) => setSliceState('accordion', patch);
+  const cardState = sliceStates.card;
+  const setCardState = (patch: Partial<typeof cardState>) => setSliceState('card', patch);
+  const tooltipState = sliceStates.tooltip;
+  const setTooltipState = (patch: Partial<typeof tooltipState>) => setSliceState('tooltip', patch);
+  const buttonState = sliceStates.button;
+  const setButtonState = (patch: Partial<typeof buttonState>) => setSliceState('button', patch);
+  const inputState = sliceStates.input;
+  const setInputState = (patch: Partial<typeof inputState>) => setSliceState('input', patch);
+  const toggleControlState = sliceStates.togglecontrol;
+  const setToggleControlState = (patch: Partial<typeof toggleControlState>) => setSliceState('togglecontrol', patch);
+  const selectState = sliceStates.select;
+  const setSelectState = (patch: Partial<typeof selectState>) => setSliceState('select', patch);
+  const radioGroupState = sliceStates.radiogroup;
+  const setRadioGroupState = (patch: Partial<typeof radioGroupState>) => setSliceState('radiogroup', patch);
+  const sliderState = sliceStates.slider;
+  const setSliderState = (patch: Partial<typeof sliderState>) => setSliceState('slider', patch);
+  const modalState = sliceStates.modal;
+  const setModalState = (patch: Partial<typeof modalState>) => setSliceState('modal', patch);
+  const alertDialogState = sliceStates.alertdialog;
+  const setAlertDialogState = (patch: Partial<typeof alertDialogState>) => setSliceState('alertdialog', patch);
+  const popupState = sliceStates.popup;
+  const setPopupState = (patch: Partial<typeof popupState>) => setSliceState('popup', patch);
+  const toastState = sliceStates.toast;
+  const setToastState = (patch: Partial<typeof toastState>) => setSliceState('toast', patch);
+  const dropdownMenuState = sliceStates.dropdownmenu;
+  const setDropdownMenuState = (patch: Partial<typeof dropdownMenuState>) => setSliceState('dropdownmenu', patch);
+  const contextMenuState = sliceStates.contextmenu;
+  const setContextMenuState = (patch: Partial<typeof contextMenuState>) => setSliceState('contextmenu', patch);
+  const progressState = sliceStates.progress;
+  const setProgressState = (patch: Partial<typeof progressState>) => setSliceState('progress', patch);
+  const separatorState = sliceStates.separator;
+  const setSeparatorState = (patch: Partial<typeof separatorState>) => setSliceState('separator', patch);
+  const avatarState = sliceStates.avatar;
+  const setAvatarState = (patch: Partial<typeof avatarState>) => setSliceState('avatar', patch);
+  const toggleState = sliceStates.toggle;
+  const setToggleState = (patch: Partial<typeof toggleState>) => setSliceState('toggle', patch);
+  const collapsibleState = sliceStates.collapsible;
+  const setCollapsibleState = (patch: Partial<typeof collapsibleState>) => setSliceState('collapsible', patch);
+  const uiGroupState = sliceStates.uigroup;
+  const setUIGroupState = (patch: Partial<typeof uiGroupState>) => setSliceState('uigroup', patch);
+  const toolbarState = sliceStates.toolbar;
+  const setToolbarState = (patch: Partial<typeof toolbarState>) => setSliceState('toolbar', patch);
+  const appShellState = sliceStates.appshell;
+  const setAppShellState = (patch: Partial<typeof appShellState>) => setSliceState('appshell', patch);
+  const typographyState = sliceStates.typography;
+  const setTypographyState = (patch: Partial<typeof typographyState>) => setSliceState('typography', patch);
 
   // --- Save & Load Themes (header toolbar, not buried at the bottom) ---
   // Three independent sources feed the same applyThemeSnapshot(theme, ...)
