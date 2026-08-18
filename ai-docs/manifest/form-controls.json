@@ -171,6 +171,46 @@
       "description": "Accessible label for a form control, associated via htmlFor or by wrapping it"
     },
     {
+      "name": "Pagination",
+      "import": "import { Pagination } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for `pagination:changed` event bus payloads. Auto-generated if omitted."
+        },
+        "totalItems": {
+          "type": "number",
+          "required": true,
+          "description": "Total number of items being paged across (not the number of pages)."
+        },
+        "pageSize": {
+          "type": "number",
+          "default": "10",
+          "description": "Items per page."
+        },
+        "page": {
+          "type": "number",
+          "description": "Controlled current page (1-indexed). Pass a value to drive paging from\nparent state instead of letting `<Pagination>` manage it internally.\nOmit for the common uncontrolled case; `defaultPage` seeds that\ninternal state instead."
+        },
+        "defaultPage": {
+          "type": "number",
+          "default": "1",
+          "description": "Initial page when uncontrolled (`page` omitted)."
+        },
+        "onPageChange": {
+          "type": "(page: number) => void",
+          "description": "Called whenever the page changes, whether controlled or uncontrolled."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'sm'",
+          "description": "Size of the page/nav buttons, passed straight through to the underlying `<Button>`s."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>`"
+    },
+    {
       "name": "RadioGroup",
       "import": "import { RadioGroup } from '#toolcrib'",
       "slots": [

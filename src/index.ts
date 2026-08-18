@@ -85,6 +85,7 @@ export * from './components/Overlay/Modal';
 export * from './components/Overlay/ModalSlice';
 export * from './components/Overlay/Popup';
 export * from './components/Overlay/PopupSlice';
+export * from './components/Pagination/Pagination';
 export * from './components/Progress/Progress';
 export * from './components/Progress/ProgressSlice';
 export * from './components/ScrollArea/ScrollArea';

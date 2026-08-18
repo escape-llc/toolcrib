@@ -82,6 +82,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | ❌ Don't | ✅ Do Instead |
 |:---|:---|
 | Manually wire `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` at the app root | Use `<ToolcribProvider>` — composes all three in the correct order, so there's no separate `<ToastContainer>` to forget (see §1) |
+| Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
 | Manually manage overlay open/close with `useState` | Let `<Modal>`, `<Drawer>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
 | Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'` |
 | Use `px` units for spacing, borders, radii | Use `rem` values. Only `--ai-master-font-size` is in `px` |

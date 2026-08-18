@@ -82,6 +82,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | ❌ Don't | ✅ Do Instead |
 |:---|:---|
 | Manually wire `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` at the app root | Use `<ToolcribProvider>` — composes all three in the correct order, so there's no separate `<ToastContainer>` to forget (see §1) |
+| Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
 | Manually manage overlay open/close with `useState` | Let `<Modal>`, `<Drawer>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
 | Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'` |
 | Use `px` units for spacing, borders, radii | Use `rem` values. Only `--ai-master-font-size` is in `px` |
@@ -168,6 +169,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
+| `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |
 | `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `overrides` | Range input control built on Radix Slider |
@@ -342,7 +344,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[46]{name,payload}:
+[47]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -385,6 +387,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
   "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"
+  "pagination:changed","{ id?: string; page: number; pageSize: number }"
   "datatable:row_clicked","{ id?: string; index: number }"
   "log:cleared","{ timestamp: string }"
   "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"

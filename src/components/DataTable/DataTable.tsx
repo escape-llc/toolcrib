@@ -6,6 +6,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, SubthemeName, SubthemeColors } from '../../theme/subtheme';
 import { useStableId } from '../shared/useStableId';
+import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
@@ -227,11 +228,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const sortKey = isSortControlled ? controlledSortKey : internalSortKey;
   const sortDirection = isSortControlled ? controlledSortDirection ?? 'asc' : internalSortDirection;
 
-  const [internalPage, setInternalPage] = useState(defaultPage ?? 1);
-  const isPageControlled = controlledPage !== undefined;
-  const currentPage = isPageControlled ? controlledPage : internalPage;
-
   const [pageSize, setPageSize] = useState(initialPageSize);
+  // usePagination's own onPageChange closure runs synchronously inside
+  // whatever event handler called goToPage — including the page-size
+  // select's handler below, which changes pageSize and resets to page 1 in
+  // the same event. `setPageSize` is async (doesn't update the `pageSize`
+  // closure variable until the next render), so without this ref the emitted
+  // `datatable:paginated` payload would report the *old* pageSize for that
+  // one case. Kept in sync every render; the page-size handler additionally
+  // writes it synchronously before calling goToPage, so it's always current
+  // by the time onPageChange reads it, regardless of React's batching.
+  const pageSizeRef = useRef(pageSize);
+  pageSizeRef.current = pageSize;
   const [scrollTop, setScrollTop] = useState(0);
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -241,32 +249,6 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // onScroll below) via these two refs.
   const latestScrollTopRef = useRef(0);
   const scrollRafRef = useRef<number | null>(null);
-
-  // Nothing previously reset scrollTop (state or the real DOM scroll
-  // position) when the page changed — scrolling deep into page 1, then
-  // paging forward, left the virtualization window (startIndex/endIndex
-  // below) computed from a scroll offset that belonged to a completely
-  // different page's row count, which could render as an apparently empty
-  // table until the user manually scrolled back up. Sorting reorders the
-  // current page's rows exactly the same way pagination does, so it has to
-  // reset the window too — sortKey/sortDirection are included below for
-  // that reason, not left out as an oversight.
-  //
-  // Also cancels any in-flight scroll rAF and clears latestScrollTopRef:
-  // without this, a scroll on the *old* page that was still waiting for its
-  // throttled frame when the page/sort changed would fire after this reset,
-  // calling setScrollTop with the stale pre-change offset and silently
-  // undoing the reset above — reintroducing the exact blank-table bug this
-  // effect exists to prevent.
-  useEffect(() => {
-    if (scrollRafRef.current !== null) {
-      cancelAnimationFrame(scrollRafRef.current);
-      scrollRafRef.current = null;
-    }
-    latestScrollTopRef.current = 0;
-    setScrollTop(0);
-    if (bodyRef.current) bodyRef.current.scrollTop = 0;
-  }, [currentPage, pageSize, sortKey, sortDirection]);
 
   // 1. Sorting
   const sortedData = useMemo(() => {
@@ -301,31 +283,49 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     });
   }, [data, sortKey, sortDirection, columns]);
 
-  // 2. Pagination — skipped entirely when `pagination` is false, in which
-  // case `paginatedData` below is the full sorted array and step 3's
-  // virtualization windows across all of it instead of one page at a time.
-  const totalPages = pagination ? Math.max(1, Math.ceil(sortedData.length / pageSize)) : 1;
-  const validCurrentPage = pagination ? Math.min(currentPage, totalPages) : 1;
+  // 2. Pagination — page-index math shared with <Pagination> via the
+  // usePagination hook (src/components/shared/usePagination.ts), so there's
+  // exactly one page-clamping/controlled-state implementation, not two that
+  // can drift. `paginatedData` below still short-circuits entirely when
+  // `pagination` is false, same as before this hook existed — step 3's
+  // virtualization then windows across the whole sorted array instead of
+  // one page at a time.
+  const { currentPage: validCurrentPage, totalPages, goToPage: paginationGoToPage } = usePagination({
+    totalItems: sortedData.length,
+    pageSize,
+    page: controlledPage,
+    defaultPage,
+    onPageChange: page => {
+      onPageChange?.(page);
+      aiBus.emit('datatable:paginated', { id, page, pageSize: pageSizeRef.current });
+    },
+  });
 
-  // `validCurrentPage` above only ever clamps the *derived, render-only*
-  // value used for display — it never wrote the clamp back into the
-  // `currentPage` state itself. That's fine while `data` only shrinks (the
-  // label and Previous/Next both correctly read off validCurrentPage), but
-  // if the caller's `data` prop later grows back (e.g. a search/filter box
-  // above this table gets cleared), `currentPage` was still silently
-  // sitting at whatever stale, out-of-range page it was on before the
-  // shrink, and the table would jump straight back to it — confirmed via a
-  // real render sequence (50 rows → navigate to page 5 → filter down to 5
-  // rows, correctly shows "1 / 1" → clear the filter back to 50 rows →
-  // silently jumps to "5 / 5" instead of staying on the page the user was
-  // just looking at). Syncing the actual state here, once, whenever
-  // `totalPages` changes is what makes the earlier clamp durable instead of
-  // cosmetic. Skipped when the page is controlled — that state is the
-  // parent's to own, not something this effect can write back into.
+  // Nothing previously reset scrollTop (state or the real DOM scroll
+  // position) when the page changed — scrolling deep into page 1, then
+  // paging forward, left the virtualization window (startIndex/endIndex
+  // below) computed from a scroll offset that belonged to a completely
+  // different page's row count, which could render as an apparently empty
+  // table until the user manually scrolled back up. Sorting reorders the
+  // current page's rows exactly the same way pagination does, so it has to
+  // reset the window too — sortKey/sortDirection are included below for
+  // that reason, not left out as an oversight.
+  //
+  // Also cancels any in-flight scroll rAF and clears latestScrollTopRef:
+  // without this, a scroll on the *old* page that was still waiting for its
+  // throttled frame when the page/sort changed would fire after this reset,
+  // calling setScrollTop with the stale pre-change offset and silently
+  // undoing the reset above — reintroducing the exact blank-table bug this
+  // effect exists to prevent.
   useEffect(() => {
-    if (isPageControlled) return;
-    setInternalPage(p => Math.min(p, totalPages));
-  }, [totalPages, isPageControlled]);
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
+    }
+    latestScrollTopRef.current = 0;
+    setScrollTop(0);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [validCurrentPage, pageSize, sortKey, sortDirection]);
 
   const paginatedData = useMemo(() => {
     if (!pagination) return sortedData;
@@ -378,13 +378,6 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     }
     onSortChange?.(newKey, newDirection);
     aiBus.emit('datatable:sorted', { id, key: newKey, direction: newDirection });
-  };
-
-  const goToPage = (page: number) => {
-    const clamped = Math.max(1, Math.min(page, totalPages));
-    if (!isPageControlled) setInternalPage(clamped);
-    onPageChange?.(clamped);
-    aiBus.emit('datatable:paginated', { id, page: clamped, pageSize });
   };
 
   // Raw scroll events can fire far faster than one per frame; setting
@@ -600,10 +593,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               value={pageSize}
               onChange={e => {
                 const newSize = Number(e.target.value);
+                // Write the ref before setPageSize/goToPage -- see
+                // pageSizeRef's own comment on why: goToPage's onPageChange
+                // callback runs synchronously, before setPageSize's async
+                // update reaches the `pageSize` closure variable.
+                pageSizeRef.current = newSize;
                 setPageSize(newSize);
-                if (!isPageControlled) setInternalPage(1);
-                onPageChange?.(1);
-                aiBus.emit('datatable:paginated', { id, page: 1, pageSize: newSize });
+                paginationGoToPage(1);
               }}
               className="ai-btn"
               style={{
@@ -624,7 +620,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </select>
 
             <button
-              onClick={() => goToPage(validCurrentPage - 1)}
+              onClick={() => paginationGoToPage(validCurrentPage - 1)}
               disabled={validCurrentPage === 1}
               aria-label="Previous page"
               className="ai-btn"
@@ -656,7 +652,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </span>
 
             <button
-              onClick={() => goToPage(validCurrentPage + 1)}
+              onClick={() => paginationGoToPage(validCurrentPage + 1)}
               disabled={validCurrentPage === totalPages}
               aria-label="Next page"
               className="ai-btn"

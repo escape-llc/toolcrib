@@ -58,6 +58,7 @@ export interface AIEventMap {
   'tab:changed': { id?: string; activeId: string; previousId?: string };
   'datatable:sorted': { id?: string; key: string | null; direction: 'asc' | 'desc' };
   'datatable:paginated': { id?: string; page: number; pageSize: number };
+  'pagination:changed': { id?: string; page: number; pageSize: number };
   'datatable:row_clicked': { id?: string; index: number };
   'log:cleared': { timestamp: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
