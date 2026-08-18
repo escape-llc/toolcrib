@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "toolcrib",
+  "version": "0.4.0",
+  "description": "Per-category slice of component-manifest.json's \"components\" array (category: Containers), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
+  "category": "Containers",
+  "components": [
+    {
+      "name": "AppShell",
+      "import": "import { AppShell } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Main"
+      ],
+      "props": {
+        "overrides": {
+          "type": "Partial<AppShellSliceState>",
+          "description": "Per-instance override for Header/Main padding density. Since AppShell is meant to render once, this mostly exists for consistency with other components — the global Theme Editor control is the more typical way to change this."
+        }
+      },
+      "constraints": "Intended to be rendered once, at the root of the component tree",
+      "category": "Containers",
+      "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
+    },
+    {
+      "name": "Card",
+      "import": "import { Card } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Content",
+        "Footer",
+        "Actions"
+      ],
+      "props": {
+        "layout": {
+          "type": "'default' | 'auto'",
+          "default": "'default'",
+          "description": "Layout mode. `'auto'` enables flex filling (height:100%, flex:1) and activates\nautomatic corner-squaring via layout domain context (e.g. inside a Splitter)."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "default": "undefined (no squaring)",
+          "description": "Override which corners are squared off. `'auto'` defers to layout domain context."
+        },
+        "overrides": {
+          "type": "CardOverrides",
+          "description": "Per-instance theme overrides (padding, header style, subtheme)."
+        }
+      },
+      "constraints": "For a long list/grid of many Cards (default, non-`auto` layout — content-sized, not flex-fill), wrap each Card in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones",
+      "category": "Containers",
+      "description": "Slot-based container with automatic layout domain corner squaring"
+    },
+    {
+      "name": "CardSimple",
+      "import": "import { CardSimple } from '#toolcrib'",
+      "props": {
+        "title": {
+          "type": "ReactNode",
+          "description": "Title text rendered in the header. Omit to skip the header entirely."
+        },
+        "subtitle": {
+          "type": "ReactNode",
+          "description": "Secondary text rendered next to the title in the header."
+        },
+        "footer": {
+          "type": "ReactNode",
+          "description": "Content rendered in the footer area. Omit to skip the footer."
+        },
+        "actions": {
+          "type": "ReactNode",
+          "description": "Action elements (e.g. buttons) rendered in the footer's right side."
+        }
+      },
+      "category": "Containers",
+      "description": "Token-saving shorthand for simple cards without slot composition"
+    },
+    {
+      "name": "Collapsible",
+      "import": "import { Collapsible } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Clickable header content that toggles the panel."
+        },
+        "defaultOpen": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial open state (uncontrolled)."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the panel opens or closes."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the trigger is non-interactive and the panel can't be toggled."
+        },
+        "overrides": {
+          "type": "Partial<CollapsibleSliceState>",
+          "description": "Per-instance override for header/content padding."
+        }
+      },
+      "category": "Containers",
+      "description": "Single expand/collapse content panel — see Accordion for a data-driven set of panels"
+    },
+    {
+      "name": "DeferredContent",
+      "import": "import { DeferredContent } from '#toolcrib'",
+      "props": {
+        "estimatedHeight": {
+          "type": "number",
+          "required": true,
+          "description": "Estimated height in pixels to reserve while this content's real size is\nunknown — before it's ever been rendered, or while the browser is\ncurrently skipping it. Only needs to be roughly right: browsers\nremember the actual last-rendered height and reuse it for every future\nskip (that's what the native `auto` keyword this component always\npasses to `contain-intrinsic-height` does), so a wrong guess here only\ncosts one approximate layout, on this element's very first render."
+        },
+        "onVisibilityChange": {
+          "type": "(state: ContentVisibilityState) => void",
+          "description": "Called when this content's rendering is skipped or resumed by the\nbrowser — e.g. to pause/resume an expensive child (a video, a live\nchart, a canvas animation) while it's off-screen. Optional: most\nchildren don't do continuous work and don't need this."
+        }
+      },
+      "category": "Containers",
+      "description": "Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this"
+    },
+    {
+      "name": "ScrollArea",
+      "import": "import { ScrollArea } from '#toolcrib'",
+      "props": {
+        "orientation": {
+          "type": "'vertical' | 'horizontal' | 'both'",
+          "default": "'vertical'",
+          "description": "Which axis renders a scrollbar. `'both'` also renders the corner patch."
+        },
+        "type": {
+          "type": "'auto' | 'always' | 'scroll' | 'hover'",
+          "default": "'hover'",
+          "description": "When the scrollbar is visible — `'hover'` matches native OS scrollbar\nbehavior most closely."
+        },
+        "maxHeight": {
+          "type": "string",
+          "description": "Fixed height (e.g. `'20rem'`) for standalone use outside a flex domain.\nOmit to fill 100% of the parent instead, the same fill-by-default\nconvention as `<Content>`."
+        },
+        "overrides": {
+          "type": "Partial<ScrollAreaSliceState>",
+          "description": "Per-instance override for the scrollbar thumb's thickness."
+        }
+      },
+      "category": "Containers",
+      "description": "Scrollable container with a themed, cross-browser custom scrollbar"
+    },
+    {
+      "name": "Splitter",
+      "import": "import { Splitter } from '#toolcrib'",
+      "slots": [
+        "Panel"
+      ],
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique domain identifier for layout context. Auto-generated if omitted."
+        },
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'vertical'",
+          "description": "Split direction. `'vertical'` = top/bottom panels, `'horizontal'` = left/right panels."
+        },
+        "initialSplit": {
+          "type": "number",
+          "default": "70",
+          "description": "Initial percentage allocated to the first (top/left) panel."
+        },
+        "minSize": {
+          "type": "number",
+          "default": "15",
+          "description": "Minimum percentage size for either panel to prevent collapsing."
+        }
+      },
+      "constraints": "Requires exactly 2 children",
+      "category": "Containers",
+      "description": "Resizable two-panel layout with automatic corner-squaring domain"
+    }
+  ],
+  "$defs": {
+    "CardOverrides": {
+      "subtheme": {
+        "type": "'error' | 'success' | 'warning' | 'info'"
+      }
+    }
+  }
+}

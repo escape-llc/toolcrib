@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "toolcrib",
+  "version": "0.4.0",
+  "description": "Per-category slice of component-manifest.json's \"components\" array (category: Layout Primitives), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
+  "category": "Layout Primitives",
+  "components": [
+    {
+      "name": "AccessibleIcon",
+      "import": "import { AccessibleIcon } from '#toolcrib'",
+      "props": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "description": "Accessible name announced to screen readers, the way `alt` works for `<img>`."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Adds a screen-reader-only accessible name to a decorative icon element"
+    },
+    {
+      "name": "AspectRatio",
+      "import": "import { AspectRatio } from '#toolcrib'",
+      "props": {
+        "ratio": {
+          "type": "number",
+          "default": "1",
+          "description": "Width-to-height ratio, e.g. `16 / 9` or `1`."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Constrains content to a fixed width-to-height ratio"
+    },
+    {
+      "name": "Content",
+      "import": "import { Content } from '#toolcrib'",
+      "slots": [
+        "Grow"
+      ],
+      "props": {
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'md'",
+          "description": "Gap between children. Named tokens map to theme spacing scale."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override margin/gap using the theme margin token scale."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override. `<Content>` always establishes a\nlayout domain (equivalent to `<Card layout=\"auto\">`), so it already\nconsults the nearest ancestor `<Splitter>`'s layout domain via\n`useCornerSquaring` automatically — set this only to override that\nwith a specific edge instead of deferring to the domain."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Fills its container and establishes a flex-column layout domain for its children"
+    },
+    {
+      "name": "Grid",
+      "import": "import { Grid } from '#toolcrib'",
+      "props": {
+        "columns": {
+          "type": "number | 'auto-fit' | 'auto-fill'",
+          "default": "2",
+          "description": "Number of columns, or `'auto-fit'` / `'auto-fill'` for responsive behaviour.\nWhen using auto modes, `minColWidth` controls the minimum column width."
+        },
+        "minColWidth": {
+          "type": "string",
+          "default": "'16rem'",
+          "description": "Minimum column width for auto-fit/auto-fill modes."
+        },
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between grid cells."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override margin/gap using the theme margin token scale."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "CSS Grid responsive multi-column layout"
+    },
+    {
+      "name": "HStack",
+      "import": "import { HStack } from '#toolcrib'",
+      "props": {
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between children. Named tokens map to theme spacing scale.\n`'gap'` uses the global `--ai-margin-gap` variable."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch'",
+          "default": "'stretch' (VStack) or 'center' (HStack)",
+          "description": "Cross-axis alignment."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between' | 'around'",
+          "default": "'start'",
+          "description": "Main-axis distribution."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override margin using the theme margin token scale (affects gap sizing)."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "wrap": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Horizontal flex row layout primitive"
+    },
+    {
+      "name": "Separator",
+      "import": "import { Separator } from '#toolcrib'",
+      "props": {
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Layout axis. `'horizontal'` divides stacked content; `'vertical'`\ndivides side-by-side content (needs a sizing/flex ancestor to be\nvisible, same as any 100%-height element)."
+        },
+        "decorative": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Purely presentational (true) vs. a semantic content boundary announced\nto assistive tech (false)."
+        },
+        "overrides": {
+          "type": "Partial<SeparatorSliceState>",
+          "description": "Per-instance override for line thickness."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Themed visual divider between content sections"
+    },
+    {
+      "name": "Toolbar",
+      "import": "import { Toolbar } from '#toolcrib'",
+      "slots": [
+        "Left",
+        "Center",
+        "Right",
+        "Button",
+        "Separator"
+      ],
+      "props": {
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override margin using the theme margin token scale (unused, reserved)."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Arrow-key axis for the roving-tabindex group Radix's own `Toolbar.Root`\nestablishes. Only affects children rendered via `<Toolbar.Button>` —\narbitrary children (a plain `<Button>`, a `<Select>`, a `<Tooltip>`\ntrigger) never joined the group in the first place, so they keep normal\ntab order regardless of this setting."
+        },
+        "overrides": {
+          "type": "Partial<ToolbarSliceState>",
+          "description": "Per-instance override for the gap within each slot (`Toolbar.Left`/`.Center`/`.Right`)."
+        }
+      },
+      "childComponents": [
+        "Toolbar.Left",
+        "Toolbar.Center",
+        "Toolbar.Right",
+        "Toolbar.Button",
+        "Toolbar.Separator"
+      ],
+      "category": "Layout Primitives",
+      "description": "Horizontal action bar with left/center/right slot areas"
+    },
+    {
+      "name": "UIGroup",
+      "import": "import { UIGroup } from '#toolcrib'",
+      "props": {
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Group layout direction.\n- `'horizontal'` — Children laid out in a row (default).\n- `'vertical'` — Children stacked vertically."
+        },
+        "borderRadius": {
+          "type": "string",
+          "default": "'var(--ai-radius-md, 0.375rem)'",
+          "description": "Override border radius for the outer corners."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Merges adjacent elements into a single visual compound control"
+    },
+    {
+      "name": "VisuallyHidden",
+      "import": "import { VisuallyHidden } from '#toolcrib'",
+      "props": {},
+      "category": "Layout Primitives",
+      "description": "Hides content visually while keeping it announced to screen readers"
+    },
+    {
+      "name": "VStack",
+      "import": "import { VStack } from '#toolcrib'",
+      "props": {
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'gap'",
+          "description": "Gap between children. Named tokens map to theme spacing scale.\n`'gap'` uses the global `--ai-margin-gap` variable."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch'",
+          "default": "'stretch' (VStack) or 'center' (HStack)",
+          "description": "Cross-axis alignment."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between' | 'around'",
+          "default": "'start'",
+          "description": "Main-axis distribution."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override margin using the theme margin token scale (affects gap sizing)."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "wrap": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allow children to wrap onto multiple lines instead of overflowing/shrinking."
+        }
+      },
+      "category": "Layout Primitives",
+      "description": "Vertical flex column layout primitive"
+    }
+  ]
+}

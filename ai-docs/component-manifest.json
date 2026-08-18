@@ -1952,6 +1952,16 @@
       "description": "Vertical flex column layout primitive"
     }
   ],
+  "manifestSplit": {
+    "note": "Full component detail is also available split by @manifestCategory under ai-docs/manifest/<slug>.json — smaller to load when only one category is needed.",
+    "categories": {
+      "Layout Primitives": "manifest/layout-primitives.json",
+      "Containers": "manifest/containers.json",
+      "Overlays": "manifest/overlays.json",
+      "Data Display": "manifest/data-display.json",
+      "Form Controls": "manifest/form-controls.json"
+    }
+  },
   "$defs": {
     "AccordionItemData": {
       "value": {

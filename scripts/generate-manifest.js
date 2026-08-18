@@ -46,15 +46,23 @@
  * component needs to show up here at all (`@manifest` is the load-bearing
  * one — no tag, no manifest entry, silently).
  *
+ * Also writes/checks a per-@manifestCategory split of `components`/`$defs`
+ * under ai-docs/manifest/<slug>.json — same data, scoped to one category,
+ * so an agent working in e.g. Data Display doesn't have to load every
+ * other category's prop detail just to check one component's exact type.
+ * Pure filtering over the same in-memory data above; no new source parsing.
+ *
  * Usage:
  *   node scripts/generate-manifest.js            # check mode (default) — exits 1 on drift
  *   node scripts/generate-manifest.js --check     # same, explicit
- *   node scripts/generate-manifest.js --write     # regenerate ai-docs/component-manifest.json in full
+ *   node scripts/generate-manifest.js --write     # regenerate component-manifest.json + the category split, in full
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import {
   ROOT,
+  VALID_CATEGORIES,
+  CATEGORY_SLUGS,
   generateZIndexScale,
   generateSupportedHarmonies,
   generateCssVariables,
@@ -67,6 +75,7 @@ import {
 } from './lib/extract.js';
 
 const MANIFEST_PATH = path.join(ROOT, 'ai-docs', 'component-manifest.json');
+const MANIFEST_SPLIT_DIR = path.join(ROOT, 'ai-docs', 'manifest');
 
 // Meta-descriptive text about the manifest document itself — not a
 // property of application source, so there's nothing to derive this from.
@@ -75,6 +84,56 @@ const MANIFEST_DESCRIPTION = 'AI-consumable component manifest for React UI tool
 // An architectural fact ("this toolkit computes color in HSV"), not a
 // value that lives at any single, extractable source location.
 const COLOR_SPACE = 'HSV';
+
+function categorySplitDescription(category) {
+  return (
+    `Per-category slice of component-manifest.json's "components" array (category: ${category}), ` +
+    `for on-demand detail without loading the full manifest. See component-manifest.json for ` +
+    `themeSystem/zIndexScale/eventBus and cross-category data.`
+  );
+}
+
+function buildManifestSplitPointer() {
+  return {
+    note:
+      'Full component detail is also available split by @manifestCategory under ai-docs/manifest/<slug>.json ' +
+      '— smaller to load when only one category is needed.',
+    categories: Object.fromEntries(VALID_CATEGORIES.map((c) => [c, `manifest/${CATEGORY_SLUGS[c]}.json`])),
+  };
+}
+
+/**
+ * Filter the root manifest's `components`/`$defs` down to one
+ * manifest-shaped object per category. A `$defs` entry is included in a
+ * category's file if its name appears anywhere (whole-word) in that
+ * category's own filtered components' serialized JSON — cheap and
+ * correct-by-construction (can never miss a real reference), at the small,
+ * accepted cost of occasionally over-including a def whose name happens to
+ * also appear in an unrelated prop's prose. A missed reference would be a
+ * real bug; a few stray extra bytes are not.
+ */
+function splitByCategory(manifest) {
+  const defs = manifest.$defs ?? {};
+  const result = {};
+  for (const category of VALID_CATEGORIES) {
+    const categoryComponents = manifest.components.filter((c) => c.category === category);
+    const categoryText = JSON.stringify(categoryComponents);
+    const categoryDefs = {};
+    for (const [defName, defBody] of Object.entries(defs)) {
+      if (new RegExp(`\\b${defName}\\b`).test(categoryText)) categoryDefs[defName] = defBody;
+    }
+    result[CATEGORY_SLUGS[category]] = {
+      $schema: SCHEMA_URL,
+      name: manifest.name,
+      version: manifest.version,
+      description: categorySplitDescription(category),
+      category,
+      components: categoryComponents,
+      ...(Object.keys(categoryDefs).length > 0 ? { $defs: categoryDefs } : {}),
+    };
+  }
+  return result;
+}
 
 function generateManifest() {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
@@ -103,6 +162,7 @@ function generateManifest() {
       helperMethods: generateHelperMethods(),
     },
     components,
+    manifestSplit: buildManifestSplitPointer(),
     ...(Object.keys(defs).length > 0 ? { $defs: defs } : {}),
   };
 }
@@ -110,26 +170,48 @@ function generateManifest() {
 function main() {
   const mode = process.argv.includes('--write') ? 'write' : 'check';
   const generated = generateManifest();
+  const categoryManifests = splitByCategory(generated);
+
+  const targets = [
+    { filePath: MANIFEST_PATH, data: generated, label: 'ai-docs/component-manifest.json' },
+    ...Object.entries(categoryManifests).map(([slug, data]) => ({
+      filePath: path.join(MANIFEST_SPLIT_DIR, `${slug}.json`),
+      data,
+      label: `ai-docs/manifest/${slug}.json`,
+    })),
+  ];
 
   if (mode === 'write') {
-    fs.writeFileSync(MANIFEST_PATH, JSON.stringify(generated, null, 2) + '\n');
+    fs.mkdirSync(MANIFEST_SPLIT_DIR, { recursive: true });
+    for (const target of targets) {
+      fs.writeFileSync(target.filePath, JSON.stringify(target.data, null, 2) + '\n');
+    }
     console.log(
-      `Wrote ai-docs/component-manifest.json: ${generated.components.length} component(s), ` +
-        `${generated.eventBus.channels.length} event channel(s), ${generated.eventBus.helperMethods.length} helper method(s), ` +
-        `${generated.themeSystem.cssVariables.length} CSS variable(s).`
+      `Wrote ${targets.length} manifest file(s) (component-manifest.json + ${Object.keys(categoryManifests).length} category split(s)): ` +
+        `${generated.components.length} component(s), ${generated.eventBus.channels.length} event channel(s), ` +
+        `${generated.eventBus.helperMethods.length} helper method(s), ${generated.themeSystem.cssVariables.length} CSS variable(s).`
     );
     return;
   }
 
-  const current = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
-  const a = JSON.stringify(current, null, 2);
-  const b = JSON.stringify(generated, null, 2);
-  if (a === b) {
-    console.log('component-manifest.json matches source exactly.');
+  const drifted = [];
+  for (const target of targets) {
+    if (!fs.existsSync(target.filePath)) {
+      drifted.push(`${target.label} (missing)`);
+      continue;
+    }
+    const current = JSON.parse(fs.readFileSync(target.filePath, 'utf-8'));
+    if (JSON.stringify(current, null, 2) !== JSON.stringify(target.data, null, 2)) {
+      drifted.push(target.label);
+    }
+  }
+
+  if (drifted.length === 0) {
+    console.log('component-manifest.json and its category split all match source exactly.');
     return;
   }
 
-  console.error('component-manifest.json drift detected — generated output differs from the committed file.');
+  console.error(`Manifest drift detected in ${drifted.length} file(s):\n  ${drifted.join('\n  ')}`);
   console.error(`Run 'node scripts/generate-manifest.js --write' to regenerate, then review the diff.`);
   process.exitCode = 1;
 }

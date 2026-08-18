@@ -101,4 +101,16 @@ describe('initCommand — instruction file targeting', () => {
 
     expect(patchFiles.some((f) => f.includes('AGENTS.md'))).toBe(true);
   });
+
+  it('also proposes a CLAUDE.md stub pointing at AGENTS.md when neither file existed yet, so Claude Code can discover it', async () => {
+    await initCommand({ version: 'latest', situation: 'new' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const patchFiles = fs.readdirSync(patchDir);
+    const claudePatchFile = patchFiles.find((f) => f.includes('CLAUDE.md'));
+
+    expect(claudePatchFile).toBeDefined();
+    const claudePatchContent = fs.readFileSync(path.join(patchDir, claudePatchFile), 'utf-8');
+    expect(claudePatchContent).toContain('@AGENTS.md');
+  });
 });

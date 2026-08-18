@@ -1,0 +1,70 @@
+# Worked Example: Composing `overrides` with `StyleDomainProvider`
+
+This is the mechanism CORE.md §9 introduces — this file walks through the
+part that's easy to get wrong: what happens when an **instance-level**
+`overrides` prop and an **ancestor-level** `<StyleDomainProvider>` both
+apply to the same component, and why `StyleDomainProvider` exists as a
+separate mechanism at all instead of just always using `overrides`.
+
+## The precedence rule
+
+Every migrated component resolves its subtheme the same way, via the
+shared `useSliceOverrides`/`useResolvedSubtheme` hooks:
+
+```
+instance's own overrides.subtheme
+  ?? nearest <StyleDomainProvider>'s subtheme
+  ?? undefined (no subtheme)
+```
+
+**Instance always wins.** A `<StyleDomainProvider>` sets a *default* for
+its whole subtree, not a forced value — any descendant that sets its own
+`overrides.subtheme` opts out of the domain's value, on a per-component
+basis, without needing to know the domain exists at all.
+
+## Concrete example: an error-flagged form section with one exception
+
+```tsx
+import { StyleDomainProvider, Card, Progress } from '#toolcrib';
+
+<StyleDomainProvider subtheme="error">
+  {/* No own subtheme set — inherits "error" from the domain. */}
+  <Card>
+    <Card.Header>Payment Details</Card.Header>
+    <Card.Content>Card number is invalid.</Card.Content>
+  </Card>
+
+  {/* Also inherits "error" — same mechanism, different component. */}
+  <Progress value={20} />
+
+  {/* Sets its own subtheme via `overrides` — this wins over the domain's
+      "error", even though it's nested inside the same provider. */}
+  <Card overrides={{ subtheme: 'success' }}>
+    <Card.Header>Shipping Address</Card.Header>
+    <Card.Content>Verified.</Card.Content>
+  </Card>
+</StyleDomainProvider>
+```
+
+Two real components confirm this is the same shared mechanism, not
+something `Card`-specific: `Card`'s `overrides` prop resolves to
+`CardOverrides`, and `Progress`'s own `subtheme` prop resolves to
+`'error' | 'success' | 'warning' | 'info'` — the identical `SubthemeName` union in both
+places, because both ultimately read from the same
+`theme/StyleDomainContext.tsx` + `theme/useSliceOverrides.ts` pair.
+
+## Why `StyleDomainProvider` isn't just "set a CSS variable on the wrapper"
+
+`<Modal>`, `<Popup>`, and `<SlideOut>` all render their content through a
+React portal to `document.body` — they are not physical DOM descendants of
+wherever they're written in JSX. CSS custom properties only cascade
+through the *real* DOM tree, so a `--ai-subtheme` variable set via inline
+`style` on a wrapping `<div>` would never reach content rendered inside one
+of those portals. React Context, by contrast, follows the *component*
+tree regardless of where a portal physically mounts its DOM — so
+`<StyleDomainProvider>` wrapping a `<Modal>` (even though the Modal's
+actual content renders elsewhere in the DOM) still works correctly. This
+is the reason there are two separate mechanisms (`overrides` as a prop,
+`StyleDomainProvider` as Context) instead of one — they solve two
+different propagation problems, and only one of them survives a portal
+boundary.

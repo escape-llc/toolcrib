@@ -45,11 +45,11 @@ function runDriftCheck(command: string): void {
 }
 
 describe('generated docs stay in sync with source', () => {
-  it('component-manifest.json has no drift', () => {
+  it('component-manifest.json (and its ai-docs/manifest/ category split) has no drift', () => {
     runDriftCheck('node scripts/generate-manifest.js --check');
   });
 
-  it('ai-docs/CORE.md has no drift', () => {
+  it('ai-docs/CORE.md and ai-docs/examples/ have no drift', () => {
     runDriftCheck('node scripts/generate-docs.js --check');
   });
 

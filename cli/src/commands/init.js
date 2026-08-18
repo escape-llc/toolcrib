@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { PendingChanges, joinPatchPath } from '../lib/patches.js';
 import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
-import { readJsonIfExists, readTextIfExists, proposeGitignore, proposeLockUpdate } from '../lib/project.js';
+import { readJsonIfExists, readTextIfExists, fileExists, proposeGitignore, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, DEFAULT_TARGET_FILE, KNOWN_TARGET_FILES, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
@@ -110,6 +110,9 @@ export async function initCommand(options) {
   const situationDocId = SITUATION_TO_DOC_ID[options.situation];
   const docIdsToWrite = situationDocId ? ['core', situationDocId] : ['core'];
 
+  const agentsFileExisted = fileExists(path.join(projectRoot, 'AGENTS.md'));
+  const claudeFileExisted = fileExists(path.join(projectRoot, 'CLAUDE.md'));
+
   const targetFile = resolveTargetFile(projectRoot);
   const agentsPath = path.join(projectRoot, targetFile);
   const originalAgentsContent = readTextIfExists(agentsPath);
@@ -120,6 +123,22 @@ export async function initCommand(options) {
   }
   if (proposedAgentsContent !== originalAgentsContent) {
     changes.propose(targetFile, originalAgentsContent, proposedAgentsContent, targetFile);
+  }
+
+  // 5b. Claude Code discovery: Claude Code reads CLAUDE.md by default, not
+  // AGENTS.md (this repo's own root CLAUDE.md is a one-line `@AGENTS.md`
+  // import for exactly that reason). resolveTargetFile() only falls back to
+  // AGENTS.md when NEITHER file existed yet — in that specific case, a
+  // Claude Code user would otherwise get instructions their own tool never
+  // discovers. Scoped strictly to that case: an existing AGENTS.md-only
+  // setup (even without a CLAUDE.md) reflects a choice already made and
+  // shouldn't be second-guessed uninvited. Staged as its own independent
+  // patch (see PendingChanges.propose), so a non-Claude-Code user can just
+  // delete that one patch file before `toolcrib apply` and keep everything
+  // else.
+  const claudeStubProposed = !agentsFileExisted && !claudeFileExisted && targetFile === 'AGENTS.md';
+  if (claudeStubProposed) {
+    changes.propose('CLAUDE.md', '', '@AGENTS.md\n', 'CLAUDE.md');
   }
 
   await release.cleanup();
@@ -141,9 +160,16 @@ export async function initCommand(options) {
       `track it. See ./toolcrib/ai-docs/NEW_APP.md / REFACTOR_APP.md.`
     : '';
 
+  const claudeStubNote = claudeStubProposed
+    ? `\n\nAlso staged a minimal CLAUDE.md (\`@AGENTS.md\`) since neither file existed yet — Claude Code reads ` +
+      `CLAUDE.md by default, not AGENTS.md, so this is what makes the staged instructions visible to it. Not ` +
+      `using Claude Code? Delete the CLAUDE.md patch under ./toolcrib-patches/ before running 'toolcrib apply' ` +
+      `and everything else still applies cleanly.`
+    : '';
+
   p.outro(
     `Review the patches in ./toolcrib-patches/, then run:\n` +
-      `  toolcrib apply${missingSituation}`
+      `  toolcrib apply${missingSituation}${claudeStubNote}`
   );
 }
 

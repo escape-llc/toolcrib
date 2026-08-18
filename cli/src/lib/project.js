@@ -33,6 +33,17 @@ export function readTextIfExists(filePath) {
 }
 
 /**
+ * True existence check, distinct from readTextIfExists's '' return value --
+ * that '' can't tell "the file doesn't exist" apart from "the file exists
+ * and is empty." Callers that specifically need the former (e.g. deciding
+ * whether to propose a brand-new file vs. one that just happens to be
+ * blank) should use this instead of `readTextIfExists(...) !== ''`.
+ */
+export function fileExists(filePath) {
+  return fs.existsSync(filePath);
+}
+
+/**
  * The ONLY thing persisted locally between CLI runs is the installed
  * version string — no cached hashes, no file-by-file state. Everything
  * else is recomputed on demand against the immutable release artifacts,

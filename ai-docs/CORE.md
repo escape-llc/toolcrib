@@ -8,6 +8,8 @@
 
 > **Two documents, two different jobs — load both.** This file is the source of truth for **rules, conventions, and behavior**: what's forbidden, why, and how the pieces fit together. **`component-manifest.json`** is the source of truth for **exact, enumerable data**: every component's full prop list with types/defaults/required flags, the complete `--ai-*` CSS variable list, the full event-channel/payload table, and the z-index scale. It's generated directly from source (`scripts/generate-manifest.js`) and kept in sync by a CI check — so it cannot go stale the way hand-maintained prose can. Where this file gives you a short pointer instead of a full table, that's intentional: **consult the manifest, don't guess or recall from memory.**
 
+> **Reading strategy for the Component Reference (§4) and the manifest.** §4's table already gives you every component's name, slots, and prop *names* — enough to pick the right component and call it correctly by convention. Read `component-manifest.json` (or its per-category split, next) only when §4 doesn't tell you enough: exact prop types, `@default` values, `required` flags, or slot-prop shapes. When you do, prefer the split file under `ai-docs/manifest/<category-slug>.json` for the category you're working in (e.g. `ai-docs/manifest/data-display.json` for `<DataTable>`) — same content as that category in `component-manifest.json`, a fraction of the size. `component-manifest.json` itself remains the single source of truth for the non-component-specific data (`themeSystem`, `zIndexScale`, `eventBus`) and for anything spanning more than one category at once. Worked examples for mechanisms with no prior in ordinary React/Radix training data — `overrides`+`StyleDomain` composition, the event bus's sticky-replay semantics, the z-index scale — live under `ai-docs/examples/`; read the relevant one before touching one of those mechanisms for the first time in a session.
+
 > **Import path.** After `toolcrib init` / `toolcrib apply`, the toolkit is vendored into `./toolcrib/` and wired to the `#toolcrib` subpath import via your `package.json`'s `"imports"` field — never `from 'toolcrib'` or a relative path. This is the one specifier that works identically from any file in your project, regardless of location or bundler:
 > ```tsx
 > import { Card, aiBus } from '#toolcrib';
@@ -85,9 +87,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 ## 4. Component Reference
 
-Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Props** lists every prop name, not full types/defaults/descriptions; consult the manifest for those. **Slots** are compound sub-components (`Card.Header`, etc.), `—` if none.
+Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Props** lists every prop name, not full types/defaults/descriptions; consult `component-manifest.json` or its per-category split under `ai-docs/manifest/` (see the callout above) for those. **Slots** are compound sub-components (`Card.Header`, etc.), `—` if none.
 
 ### Layout Primitives
+
+Full prop detail: `ai-docs/manifest/layout-primitives.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
@@ -104,6 +108,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 ### Containers
 
+Full prop detail: `ai-docs/manifest/containers.json`
+
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<AppShell>` | `.Header`, `.Main` | `overrides` | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
@@ -115,6 +121,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
+
+Full prop detail: `ai-docs/manifest/overlays.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
@@ -129,6 +137,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 
 ### Data Display
 
+Full prop detail: `ai-docs/manifest/data-display.json`
+
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
@@ -138,6 +148,8 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
 ### Form Controls
+
+Full prop detail: `ai-docs/manifest/form-controls.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|

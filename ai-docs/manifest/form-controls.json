@@ -1,0 +1,479 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "toolcrib",
+  "version": "0.4.0",
+  "description": "Per-category slice of component-manifest.json's \"components\" array (category: Form Controls), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
+  "category": "Form Controls",
+  "components": [
+    {
+      "name": "Button",
+      "import": "import { Button } from '#toolcrib'",
+      "category": "Form Controls",
+      "description": "Styled button with five variants, three sizes, subtheme colouring, and icon slots"
+    },
+    {
+      "name": "Combobox",
+      "import": "import { Combobox } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "placeholder": {
+          "type": "string",
+          "default": "'Search...'",
+          "description": "Placeholder text when empty."
+        },
+        "options": {
+          "type": "ComboboxOptionData[]",
+          "description": "Client-side option list, filtered locally by substring match against\n`label`. Omit when using `onSearch` for server-driven results instead."
+        },
+        "onSearch": {
+          "type": "(query: string) => Promise<ComboboxOptionData[]>",
+          "description": "Async search — called (debounced by `searchDebounceMs`) with the\ncurrent query whenever it changes. Takes over from `options` entirely\nwhen provided; results replace the listbox contents once resolved."
+        },
+        "searchDebounceMs": {
+          "type": "number",
+          "default": "250",
+          "description": "Debounce delay before calling `onSearch`."
+        },
+        "multiple": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Allows selecting more than one option, rendered as removable chips.\nChanges the shape of `value`/`defaultValue`/`onChange` from `string` to\n`string[]`."
+        },
+        "value": {
+          "type": "string | string[]",
+          "description": "Controlled selected value — a string, or a string array when `multiple` is true."
+        },
+        "defaultValue": {
+          "type": "string | string[]",
+          "description": "Initial selected value (uncontrolled) — same shape as `value`."
+        },
+        "onChange": {
+          "type": "(value: string | string[]) => void",
+          "description": "Change handler. Receives the new value in the same shape as `value`."
+        },
+        "allowCustomValue": {
+          "type": "boolean",
+          "default": "false",
+          "description": "When true, text that doesn't match any option is committed as a\nfreeform value (or chip, when `multiple`) instead of being discarded."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the combobox is non-interactive."
+        },
+        "noResultsMessage": {
+          "type": "ReactNode",
+          "default": "'No results'",
+          "description": "Message shown when no options match."
+        },
+        "overrides": {
+          "type": "Partial<ComboboxSliceState>",
+          "description": "Per-instance overrides for input padding and item density."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context"
+    },
+    {
+      "name": "FileUpload",
+      "import": "import { FileUpload } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "accept": {
+          "type": "string",
+          "description": "Native `accept` attribute, e.g. `'image/*'` or `'.pdf,.docx'`."
+        },
+        "multiple": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Allow selecting/dropping more than one file at once."
+        },
+        "maxSizeBytes": {
+          "type": "number",
+          "description": "Reject files larger than this, shown as a per-file error instead of starting an upload."
+        },
+        "maxFiles": {
+          "type": "number",
+          "description": "Cap on total accepted files. Extras dropped/selected past this are rejected."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the dropzone is non-interactive."
+        },
+        "onUpload": {
+          "type": "(file: File, onProgress: (percent: number) => void) => Promise<void>",
+          "description": "Upload transport — toolcrib has no opinion on the backend protocol, so\nthis is entirely consumer-supplied. Called once per accepted file;\nreport progress via the given callback (0-100). Omit to just collect\nfiles without uploading them (e.g. to upload them all together on a\nlater form submit instead)."
+        },
+        "onFilesChange": {
+          "type": "(files: FileUploadItem[]) => void",
+          "description": "Fired whenever the accepted file list changes (add, remove, or status change)."
+        },
+        "overrides": {
+          "type": "Partial<FileUploadSliceState>",
+          "description": "Per-instance override for dropzone padding density."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context"
+    },
+    {
+      "name": "Form",
+      "import": "import { Form, FormField, FormError, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider, SubmitButton, Button } from '#toolcrib'",
+      "props": {
+        "schema": {
+          "type": "ZodType<T>",
+          "description": "Zod schema for validation. Omit for unvalidated forms."
+        },
+        "initialValues": {
+          "type": "Partial<T>",
+          "description": "Initial field values. Fields not listed default to empty string."
+        },
+        "onSubmit": {
+          "type": "(values: T) => void | Promise<void>",
+          "description": "Called with validated values on successful submission."
+        },
+        "id": {
+          "type": "string",
+          "description": "Form element id attribute. Also used as `formId` in event bus payloads."
+        }
+      },
+      "childComponents": [
+        "FormField",
+        "FormError",
+        "Button",
+        "SubmitButton",
+        "Input",
+        "Select",
+        "Checkbox",
+        "Switch",
+        "Textarea",
+        "RadioGroup",
+        "Slider"
+      ],
+      "category": "Form Controls",
+      "description": "Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate"
+    },
+    {
+      "name": "Label",
+      "import": "import { Label } from '#toolcrib'",
+      "props": {
+        "overrides": {
+          "type": "Partial<LabelSliceState>",
+          "description": "Per-instance override for the label's font weight and gap (when wrapping a control plus its own text)."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Accessible label for a form control, associated via htmlFor or by wrapping it"
+    },
+    {
+      "name": "RadioGroup",
+      "import": "import { RadioGroup } from '#toolcrib'",
+      "slots": [
+        "Option"
+      ],
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "value": {
+          "type": "string",
+          "description": "Controlled selected value."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Initial selected value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string) => void",
+          "description": "Change handler. Receives the selected value string."
+        },
+        "options": {
+          "type": "RadioOption[]",
+          "description": "Data-driven options. Alternatively, use `children` with `<RadioGroup.Item>`."
+        },
+        "direction": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'vertical'",
+          "description": "Layout direction."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, all options are disabled."
+        },
+        "overrides": {
+          "type": "Partial<RadioGroupSliceState>",
+          "description": "Per-instance overrides for option spacing and radio dot size."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Single-select radio control bound to Form context, data-driven or compositional"
+    },
+    {
+      "name": "Select",
+      "import": "import { Select } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "placeholder": {
+          "type": "string",
+          "default": "'Select option...'",
+          "description": "Placeholder text when no value is selected."
+        },
+        "options": {
+          "type": "SelectOptionData[]",
+          "required": true,
+          "description": "Array of selectable options."
+        },
+        "value": {
+          "type": "string",
+          "description": "Controlled selected value."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Initial selected value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string) => void",
+          "description": "Change handler. Receives the selected value string."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the select is non-interactive."
+        },
+        "overrides": {
+          "type": "Partial<SelectSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for trigger padding and item density."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Dropdown select control bound to Form context, built on Radix Select"
+    },
+    {
+      "name": "Slider",
+      "import": "import { Slider } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Used in event bus payloads."
+        },
+        "value": {
+          "type": "number",
+          "description": "Controlled current value."
+        },
+        "defaultValue": {
+          "type": "number",
+          "default": "50",
+          "description": "Initial value (uncontrolled)."
+        },
+        "min": {
+          "type": "number",
+          "default": "0",
+          "description": "Minimum value."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Maximum value."
+        },
+        "step": {
+          "type": "number",
+          "default": "1",
+          "description": "Step increment."
+        },
+        "onChange": {
+          "type": "(value: number) => void",
+          "description": "Change handler. Receives the new numeric value."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, the slider is non-interactive."
+        },
+        "commitOnRelease": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, `onChange`/`slider:changed` only fire once, when the drag\nends (or on a discrete keyboard step) — not continuously on every\ntick while dragging. The thumb still tracks the pointer smoothly\neither way (an internal buffer drives its visual position); this only\nchanges when the *consumer* is notified. Opt-in, not the default —\nlive per-tick updates are the right choice for most sliders (e.g. a\nreal-time value preview), including most of the Theme Designer's own\n(color/timing values, which don't feed back into layout). It matters\nfor a specific narrower case: a slider whose value feeds back into\nthe page's own layout — the Theme Designer's Master Font Size above\nall, since every `rem` value in the whole UI derives from it —  where\nrecalculating on every tick can resize or reposition the very slider\nbeing dragged out from under the pointer mid-gesture, not just waste\na render. Deferring to release keeps the drag itself trackable\nregardless of what the eventual committed value ends up changing."
+        },
+        "overrides": {
+          "type": "Partial<SliderSliceState>",
+          "description": "Per-instance overrides for track height and thumb size."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Range input control built on Radix Slider"
+    },
+    {
+      "name": "ThemeEditor",
+      "import": "import { ThemeEditor } from '#toolcrib'",
+      "props": {
+        "themeManagement": {
+          "type": "boolean | ThemeManagementOptions",
+          "default": "true",
+          "description": "Controls which Save & Load Themes commands appear in the header\ntoolbar. Omit (or `true`) for everything enabled — the default. Pass\n`false` to hide the whole toolbar, or an options object to lock out\nspecific commands individually — e.g. an app author shipping a fixed\nbundled theme (via `<ThemeProvider initialParameters={...}>`) who\ndoesn't want end users overriding it with an imported file, or\npersisting their own local variant that outlives an intentional reset.\nIgnored when `themeManagementSlot` is given — see that prop."
+        },
+        "themeManagementSlot": {
+          "type": "ReactNode",
+          "description": "Replaces the entire built-in Save & Load Themes toolbar (presets,\nsave/load library, export/import) with your own UI, in the same\nheader position — for an app that wants different theme-selection/\npersistence UX than the bundled one (e.g. a picker styled to match a\nmarketing site, or backed by the app's own account system instead of\n`localStorage`). `themeManagement` is ignored while this is set: you\nown this area completely, all-or-nothing, rather than mixing built-in\nand custom pieces.\n\nNothing is threaded through as a render prop — every piece the\nbuilt-in toolbar itself is built from is already public API your own\nslot component can call directly: `presetThemes` (`theme/\npresetThemes.ts`) for the bundled swatches, `useTheme()` plus\n`captureThemeSnapshot`/`applyThemeSnapshot` (`theme/\nthemePersistence.ts`) to read/write the live theme, and `theme/\nthemeLibrary.ts`/`theme/themeFileTransfer.ts` for the same\nlocalStorage save/load and file export/import the default toolbar\nuses."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
+    },
+    {
+      "name": "Toggle",
+      "import": "import { Toggle } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Included in the emitted `toggle:changed` event payload."
+        },
+        "pressed": {
+          "type": "boolean",
+          "description": "Controlled pressed state."
+        },
+        "defaultPressed": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial pressed state (uncontrolled)."
+        },
+        "onPressedChange": {
+          "type": "(pressed: boolean) => void",
+          "description": "Change handler. Receives the new pressed state."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, the toggle is non-interactive."
+        },
+        "overrides": {
+          "type": "Partial<ToggleSliceState>",
+          "description": "Per-instance override for padding density. Shared with `<ToggleGroup>`."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)"
+    },
+    {
+      "name": "ToggleGroup",
+      "import": "import { ToggleGroup } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Included in the emitted `togglegroup:changed` event payload."
+        },
+        "type": {
+          "type": "'single' | 'multiple'",
+          "default": "'single'",
+          "description": "`'single'` allows zero or one selected option. `'multiple'` allows any combination."
+        },
+        "value": {
+          "type": "string | string[]",
+          "description": "Controlled selected value(s) — a string for `type=\"single\"`, a string array for `type=\"multiple\"`."
+        },
+        "defaultValue": {
+          "type": "string | string[]",
+          "description": "Initial selected value(s) (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string | string[]) => void",
+          "description": "Change handler. Receives the new value in the same shape as `value`."
+        },
+        "options": {
+          "type": "ToggleGroupOption[]",
+          "required": true,
+          "description": "Data-driven options rendered as connected buttons."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, every option is disabled."
+        },
+        "overrides": {
+          "type": "Partial<ToggleSliceState>",
+          "description": "Per-instance override for padding density. Shared with `<Toggle>`."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Connected button set for single or multiple selection, data-driven"
+    }
+  ],
+  "$defs": {
+    "ComboboxOptionData": {
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Display text for the option — also what's matched against the typed query for client-side filtering."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
+      }
+    },
+    "RadioOption": {
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label for this radio option."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this option is not selectable."
+      },
+      "helperText": {
+        "type": "ReactNode",
+        "description": "Additional help text below the option label."
+      }
+    },
+    "SelectOptionData": {
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display text for the option."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
+      }
+    },
+    "ToggleGroupOption": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique value for this option — appears in `value`/`togglegroup:changed`."
+      },
+      "label": {
+        "type": "ReactNode",
+        "description": "Display label."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this option is not selectable."
+      }
+    }
+  }
+}

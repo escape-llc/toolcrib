@@ -66,10 +66,10 @@ jobs:
       # if only one of these three fails, the step name says exactly which
       # generated file drifted without needing to open the test suite's own
       # (more verbose, now much clearer) output first.
-      - name: Check component-manifest.json matches source
+      - name: Check component-manifest.json (and its category split) matches source
         run: node scripts/generate-manifest.js --check
 
-      - name: Check ai-docs/CORE.md matches source
+      - name: Check ai-docs/CORE.md and ai-docs/examples/ match source
         run: node scripts/generate-docs.js --check
 
       - name: Check src/index.ts matches source

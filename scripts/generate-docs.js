@@ -32,10 +32,19 @@
  *    source-of-truth to derive it from, so it's authored directly in the
  *    .hbs file, not templated.
  *
+ * Also renders ai-docs/templates/examples/*.md.hbs into ai-docs/examples/
+ * — narrative walkthroughs of the toolkit's bespoke, no-training-data-prior
+ * mechanisms (overrides+StyleDomain composition, event bus sticky replay,
+ * the z-index scale). The prose is hand-authored (no source-of-truth to
+ * derive a "why" from), but each template interpolates the specific facts
+ * it quotes (a prop's type, an event's payload, a Z_INDEX value) from the
+ * same extract.js data as everything above, so a renamed prop/event/tier
+ * fails `--check` instead of silently leaving the example stale.
+ *
  * Usage:
  *   node scripts/generate-docs.js            # check mode (default) — exits 1 on drift
  *   node scripts/generate-docs.js --check     # same, explicit
- *   node scripts/generate-docs.js --write     # regenerate ai-docs/CORE.md in full
+ *   node scripts/generate-docs.js --write     # regenerate ai-docs/CORE.md + ai-docs/examples/*.md in full
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,11 +56,14 @@ import {
   generateEventChannels,
   generateComponents,
   VALID_CATEGORIES,
+  CATEGORY_SLUGS,
 } from './lib/extract.js';
 import { toToon } from './lib/toon.js';
 
 const TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'CORE.md.hbs');
 const CORE_MD_PATH = path.join(ROOT, 'ai-docs', 'CORE.md');
+const EXAMPLES_TEMPLATE_DIR = path.join(ROOT, 'ai-docs', 'templates', 'examples');
+const EXAMPLES_OUTPUT_DIR = path.join(ROOT, 'ai-docs', 'examples');
 
 // Authored "Used By" text per Z_INDEX tier — the tier/value columns are
 // generated, this prose isn't. Missing an entry here for a real tier is a
@@ -107,6 +119,7 @@ function assembleComponentsByCategory() {
   }));
   return VALID_CATEGORIES.map((category) => ({
     category,
+    slug: CATEGORY_SLUGS[category],
     components: rows.filter((r) => r.category === category),
   }));
 }
@@ -123,32 +136,94 @@ function assembleTemplateData() {
   };
 }
 
-function render() {
-  Handlebars.registerHelper('json', (data) => new Handlebars.SafeString(JSON.stringify(data, null, 2)));
-  Handlebars.registerHelper('toon', (rows) => new Handlebars.SafeString(toToon(rows)));
+// -------------------------------------------------------------------------
+// ai-docs/examples/ — one small, flat, named-field data object per
+// template, mirroring assembleZIndexRows/assembleEventChannelRows/
+// assembleComponentsByCategory's own shape above rather than passing raw
+// arrays into the template and reaching for Handlebars' generic `lookup`
+// helper. Each function pulls only the specific fact its example quotes.
+// -------------------------------------------------------------------------
 
-  const templateSource = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
+function assembleOverridesExampleFacts() {
+  const components = generateComponents();
+  const card = components.find((c) => c.name === 'Card');
+  const progress = components.find((c) => c.name === 'Progress');
+  return {
+    cardOverridesType: card.props.overrides.type,
+    progressSubthemeType: progress.props.subtheme.type,
+  };
+}
+
+function assembleEventBusExampleFacts() {
+  const tabChanged = generateEventChannels().find((c) => c.name === 'tab:changed');
+  return {
+    tabChangedPayload: tabChanged.payload,
+  };
+}
+
+function assembleZIndexExampleFacts() {
+  return {
+    zIndexModalValue: generateZIndexScale().MODAL,
+  };
+}
+
+// file: under ai-docs/templates/examples/, rendered to the same basename
+// (minus .hbs) under ai-docs/examples/. data: this template's own small
+// assembler from above — never the shared assembleTemplateData(), since
+// each example only needs a couple of specific facts, not everything
+// CORE.md renders.
+const EXAMPLE_TEMPLATES = [
+  { file: 'overrides-and-style-domains.md.hbs', data: assembleOverridesExampleFacts },
+  { file: 'event-bus-sticky-replay.md.hbs', data: assembleEventBusExampleFacts },
+  { file: 'z-index-scale.md.hbs', data: assembleZIndexExampleFacts },
+];
+
+function renderTemplate(templatePath, data) {
+  const templateSource = fs.readFileSync(templatePath, 'utf-8');
   const template = Handlebars.compile(templateSource, { noEscape: true });
-  return template(assembleTemplateData());
+  return template(data);
 }
 
 function main() {
+  Handlebars.registerHelper('json', (data) => new Handlebars.SafeString(JSON.stringify(data, null, 2)));
+  Handlebars.registerHelper('toon', (rows) => new Handlebars.SafeString(toToon(rows)));
+
   const mode = process.argv.includes('--write') ? 'write' : 'check';
-  const generated = render();
+
+  const targets = [
+    { filePath: CORE_MD_PATH, content: renderTemplate(TEMPLATE_PATH, assembleTemplateData()), label: 'ai-docs/CORE.md' },
+    ...EXAMPLE_TEMPLATES.map(({ file, data }) => ({
+      filePath: path.join(EXAMPLES_OUTPUT_DIR, file.replace(/\.hbs$/, '')),
+      content: renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data()),
+      label: `ai-docs/examples/${file.replace(/\.hbs$/, '')}`,
+    })),
+  ];
 
   if (mode === 'write') {
-    fs.writeFileSync(CORE_MD_PATH, generated);
-    console.log('Wrote ai-docs/CORE.md from ai-docs/templates/CORE.md.hbs.');
+    fs.mkdirSync(EXAMPLES_OUTPUT_DIR, { recursive: true });
+    for (const target of targets) {
+      fs.writeFileSync(target.filePath, target.content);
+    }
+    console.log(`Wrote ${targets.length} doc file(s): ai-docs/CORE.md + ${EXAMPLE_TEMPLATES.length} example(s) under ai-docs/examples/.`);
     return;
   }
 
-  const current = fs.readFileSync(CORE_MD_PATH, 'utf-8');
-  if (current === generated) {
-    console.log('ai-docs/CORE.md matches the template + source exactly.');
+  const drifted = [];
+  for (const target of targets) {
+    if (!fs.existsSync(target.filePath)) {
+      drifted.push(`${target.label} (missing)`);
+      continue;
+    }
+    const current = fs.readFileSync(target.filePath, 'utf-8');
+    if (current !== target.content) drifted.push(target.label);
+  }
+
+  if (drifted.length === 0) {
+    console.log('ai-docs/CORE.md and ai-docs/examples/ all match the templates + source exactly.');
     return;
   }
 
-  console.error('ai-docs/CORE.md drift detected — generated output differs from the committed file.');
+  console.error(`Doc drift detected in ${drifted.length} file(s):\n  ${drifted.join('\n  ')}`);
   console.error(`Run 'node scripts/generate-docs.js --write' to regenerate, then review the diff.`);
   process.exitCode = 1;
 }

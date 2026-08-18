@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "toolcrib",
+  "version": "0.4.0",
+  "description": "Per-category slice of component-manifest.json's \"components\" array (category: Overlays), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
+  "category": "Overlays",
+  "components": [
+    {
+      "name": "AlertDialog",
+      "import": "import { AlertDialog } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Body",
+        "Footer",
+        "Actions",
+        "Cancel",
+        "Action"
+      ],
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier used for event bus targeting (e.g. `aiBus.openAlertDialog('confirm-delete')`). Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that opens the dialog on click. Rendered inline; the dialog manages open/close state automatically."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the dialog opens or closes."
+        },
+        "width": {
+          "type": "string",
+          "default": "'25rem' (400px at 16px base)",
+          "description": "Width of the dialog panel."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.MODAL (200)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "default": "'Confirm Action'",
+          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden, matching `Modal`'s `ariaLabel` — set this\nexplicitly (typically matching your `AlertDialog.Header` text) for a\nmeaningful announcement."
+        },
+        "overrides": {
+          "type": "Partial<AlertDialogSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for backdrop blur and overlay darkness."
+        }
+      },
+      "category": "Overlays",
+      "description": "Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions"
+    },
+    {
+      "name": "ContextMenu",
+      "import": "import { ContextMenu } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "MenuItemData[]",
+          "required": true,
+          "description": "Array of menu items to render."
+        },
+        "overrides": {
+          "type": "Partial<ContextMenuSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and item density."
+        }
+      },
+      "category": "Overlays",
+      "description": "Right-click action menu, data-driven with separator support"
+    },
+    {
+      "name": "DropdownMenu",
+      "import": "import { DropdownMenu } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "required": true,
+          "description": "Trigger element that opens the menu on click."
+        },
+        "items": {
+          "type": "MenuItemData[]",
+          "required": true,
+          "description": "Array of menu items to render."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'bottom'",
+          "description": "Which side of the trigger the menu opens on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'start'",
+          "description": "Alignment along the menu's side axis."
+        },
+        "overrides": {
+          "type": "Partial<DropdownMenuSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and item density."
+        }
+      },
+      "category": "Overlays",
+      "description": "Data-driven action menu with separator support"
+    },
+    {
+      "name": "HoverCard",
+      "import": "import { HoverCard } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting."
+        },
+        "content": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Rich content shown inside the card."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'bottom'",
+          "description": "Which side of the trigger the card appears on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'center'",
+          "description": "Alignment along the card's side axis."
+        },
+        "openDelay": {
+          "type": "number",
+          "default": "700",
+          "description": "Delay in milliseconds before the card opens on hover."
+        },
+        "closeDelay": {
+          "type": "number",
+          "default": "300",
+          "description": "Delay in milliseconds before the card closes after the pointer leaves."
+        },
+        "overrides": {
+          "type": "Partial<HoverCardSliceState>",
+          "description": "Per-instance overrides for shadow depth and border."
+        }
+      },
+      "category": "Overlays",
+      "description": "Hover-triggered preview card for rich, interactive content"
+    },
+    {
+      "name": "Modal",
+      "import": "import { Modal } from '#toolcrib'",
+      "slots": [
+        "Header",
+        "Body",
+        "Footer",
+        "Actions",
+        "CloseButton"
+      ],
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier used for event bus targeting (e.g. `aiBus.openModal('my-modal')`). Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that opens the modal on click. Rendered inline; the modal manages open/close state automatically."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the modal opens or closes."
+        },
+        "width": {
+          "type": "string",
+          "default": "'31.25rem' (500px at 16px base)",
+          "description": "Width of the modal dialog panel."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.MODAL (200)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "default": "'Dialog'",
+          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<SlideOut title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
+        },
+        "overrides": {
+          "type": "Partial<ModalSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for backdrop blur and overlay darkness."
+        }
+      },
+      "category": "Overlays",
+      "description": "Dialog overlay with focus trap, backdrop, and slot composition"
+    },
+    {
+      "name": "Popup",
+      "import": "import { Popup } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "required": true,
+          "description": "Required trigger element. The popup anchors to this element."
+        },
+        "placement": {
+          "type": "'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'",
+          "default": "'bottom-start'",
+          "description": "Anchoring position relative to the trigger element."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the popup opens or closes."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.DROPDOWN (300)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DROPDOWN tier by default."
+        },
+        "overrides": {
+          "type": "Partial<PopupSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for shadow depth and border style."
+        }
+      },
+      "category": "Overlays",
+      "description": "Anchored popover with light dismiss and corner-squaring to trigger"
+    },
+    {
+      "name": "SlideOut",
+      "import": "import { SlideOut } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that toggles the drawer on click. Rendered inline."
+        },
+        "position": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'right'",
+          "description": "Which viewport edge the drawer slides in from."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the drawer opens or closes."
+        },
+        "title": {
+          "type": "ReactNode",
+          "default": "'Slide Out Panel'",
+          "description": "Title text rendered in the drawer header."
+        },
+        "width": {
+          "type": "string",
+          "default": "'var(--ai-slideout-width, 23.75rem)'",
+          "description": "Width of the drawer panel (for left/right positions)."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.DRAWER (100)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
+        }
+      },
+      "category": "Overlays",
+      "description": "Edge drawer overlay with backdrop blur and slide animation"
+    },
+    {
+      "name": "Tooltip",
+      "import": "import { Tooltip } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting."
+        },
+        "content": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Text or ReactNode rendered inside the tooltip bubble."
+        },
+        "side": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'top'",
+          "description": "Which side of the trigger the tooltip appears on."
+        },
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "default": "'center'",
+          "description": "Alignment along the tooltip's side axis."
+        },
+        "delayDuration": {
+          "type": "number",
+          "default": "200",
+          "description": "Delay in milliseconds before the tooltip appears on hover."
+        },
+        "overrides": {
+          "type": "Partial<TooltipSliceState>",
+          "description": "Per-instance overrides for theme (dark/light/accent) and size."
+        }
+      },
+      "category": "Overlays",
+      "description": "Hover/focus tooltip wrapping a child trigger element"
+    }
+  ],
+  "$defs": {
+    "MenuItemData": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string value emitted in the `menu:item_selected` event."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label rendered in the menu item."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the item is visually dimmed and not clickable."
+      },
+      "isSeparator": {
+        "type": "boolean",
+        "description": "If true, renders a horizontal separator line instead of a clickable item."
+      },
+      "onClick": {
+        "type": "() => void",
+        "description": "Click handler for this individual item."
+      }
+    }
+  }
+}

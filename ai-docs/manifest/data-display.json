@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "toolcrib",
+  "version": "0.4.0",
+  "description": "Per-category slice of component-manifest.json's \"components\" array (category: Data Display), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
+  "category": "Data Display",
+  "components": [
+    {
+      "name": "Accordion",
+      "import": "import { Accordion } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "AccordionItemData[]",
+          "required": true,
+          "description": "Array of items to render as accordion panels."
+        },
+        "type": {
+          "type": "'single' | 'multiple'",
+          "default": "'single'",
+          "description": "`'single'` allows only one panel open at a time. `'multiple'` allows any combination."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Value of the initially expanded panel (for `type='single'`)."
+        },
+        "overrides": {
+          "type": "Partial<AccordionSliceState>",
+          "description": "Per-instance overrides for header padding, item gap, variant, and panel animation."
+        }
+      },
+      "constraints": "For a long list of many items, wrap each item's `content` value in `<DeferredContent estimatedHeight={...}>` to defer off-screen ones (each item is content-sized, not flex-fill, so this is safe)",
+      "category": "Data Display",
+      "description": "Data-driven collapsible panel group with animations"
+    },
+    {
+      "name": "Avatar",
+      "import": "import { Avatar } from '#toolcrib'",
+      "props": {
+        "src": {
+          "type": "string",
+          "description": "Image URL. Falls back to `fallback` if omitted, loading, or failing to load."
+        },
+        "alt": {
+          "type": "string",
+          "description": "Accessible alt text for the image."
+        },
+        "fallback": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "Content shown while `src` is missing/loading/erroring — typically initials."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Diameter."
+        },
+        "fallbackDelayMs": {
+          "type": "number",
+          "description": "Delay in milliseconds before the fallback renders while the image is\nstill loading, avoiding a flash of fallback content for a fast-loading\nimage. Omitted by default — Radix's own `AvatarPrimitive.Fallback`\nrenders immediately with no artificial delay unless `delayMs` is\nexplicitly passed (confirmed in `@radix-ui/react-avatar`'s source:\nits `canRender` state starts `true` only when `delayMs === undefined`),\nso defaulting this to a nonzero value here would force every avatar\nwith no `src` — the common initials-only case — to sit blank for that\nlong before showing its fallback, for no benefit."
+        },
+        "overrides": {
+          "type": "Partial<AvatarSliceState>",
+          "description": "Per-instance override for the avatar's shape."
+        }
+      },
+      "category": "Data Display",
+      "description": "User/entity avatar image with automatic initials fallback"
+    },
+    {
+      "name": "DataTable",
+      "import": "import { DataTable } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Identifier included in this instance's `datatable:sorted`/\n`datatable:paginated`/`datatable:row_clicked` event bus payloads, so a\nlistener watching multiple tables can tell them apart. Auto-generated\nif omitted (still included in payloads either way) — unlike\n`Modal`/`Popup`/`Accordion`'s `id`, there's no bus-driven open/close\ncounterpart to target, so this exists purely for event attribution."
+        },
+        "data": {
+          "type": "T[]",
+          "required": true,
+          "description": "Array of data records to display."
+        },
+        "columns": {
+          "type": "Column<T>[]",
+          "required": true,
+          "description": "Column definitions controlling header, cell rendering, and sorting."
+        },
+        "pagination": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`pageSize`/`pageSizeOptions` are ignored in this mode."
+        },
+        "pageSize": {
+          "type": "number",
+          "default": "10",
+          "description": "Initial number of rows per page."
+        },
+        "pageSizeOptions": {
+          "type": "number[]",
+          "default": "[5, 10, 25, 50, 100]",
+          "description": "Options shown in the page-size dropdown."
+        },
+        "itemHeight": {
+          "type": "number",
+          "default": "44",
+          "description": "Height of each row in pixels (used for virtualization calculations)."
+        },
+        "containerHeight": {
+          "type": "number | 'auto'",
+          "default": "'auto'",
+          "description": "Container height. `'auto'` fills available space. A number sets a fixed pixel height."
+        },
+        "rowKey": {
+          "type": "(record: T, index: number) => string | number",
+          "description": "Custom row key extractor for React reconciliation. Defaults to array index."
+        },
+        "rowSubtheme": {
+          "type": "(record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined",
+          "description": "Styles a row. Return either:\n- One of the toolkit's four semantic subtheme names (`'error'` /\n  `'success'` / `'warning'` / `'info'`) — resolved via\n  `theme/subtheme.ts`'s `resolveSubtheme` into the same\n  WCAG-guaranteed colors used by `subtheme` on `Button`/`Progress`/\n  `Toast`. This is the common case: flagging a row (a failed job, a\n  pending invoice) with the toolkit's existing semantic vocabulary\n  instead of one-off colors.\n- A `Partial<SubthemeColors>` slice — `{ background?, border?, color?\n  }` (see `theme/subtheme.ts`) — for a custom row color the four\n  presets don't cover. Only the fields you set are applied; a field\n  left out falls back to that row's normal, unflagged appearance\n  (default zebra background / border / text color) rather than to\n  any preset. `resolveSubtheme(name)` returns this exact shape, so\n  `rowSubtheme={(r) => ({ ...resolveSubtheme('warning'), border:\n  myCustomBorder })}` composes a preset with a one-off override.\n\nEither form is applied to the row's background/border and to every\ncell's text color in it, and disables that row's zebra-striping so\nthe color stays legible. Return `undefined` for a row that shouldn't\nbe styled.\n\n`index` is the row's position within the *current page* (matching\n`rowKey`/`Column.render`'s `index`), not its position in the full\n`data` array — it resets to `0` at the top of every page. When\n`pagination` is false there's only one \"page\", so it's simply this\nrow's absolute index in the sorted dataset."
+        },
+        "onRowClick": {
+          "type": "(record: T, index: number) => void",
+          "description": "Called when a row is clicked. Every row click also emits\n`datatable:row_clicked` on the event bus regardless of whether this is\ngiven, so an AI agent observing the bus can see row interactions even\nin apps that don't wire up their own handler — this prop is for the\napp's own reaction (open a detail view, select the row, etc.). Rows\nonly show a pointer cursor when this is provided, so the visual\naffordance matches what's actually clickable."
+        },
+        "sortKey": {
+          "type": "string | null",
+          "description": "Controlled sort key. Pass a value (a column's `key`, or `null` for\nunsorted) to drive sorting from parent state — e.g. to persist it in\na URL — instead of letting `<DataTable>` manage it internally. Omit\nentirely for the common uncontrolled case; `defaultSortKey` seeds\nthat internal state instead."
+        },
+        "defaultSortKey": {
+          "type": "string | null",
+          "description": "Initial sort key when uncontrolled (`sortKey` omitted)."
+        },
+        "sortDirection": {
+          "type": "'asc' | 'desc'",
+          "default": "'asc'",
+          "description": "Controlled sort direction. Only meaningful alongside `sortKey`."
+        },
+        "defaultSortDirection": {
+          "type": "'asc' | 'desc'",
+          "default": "'asc'",
+          "description": "Initial sort direction when uncontrolled."
+        },
+        "onSortChange": {
+          "type": "(key: string | null, direction: 'asc' | 'desc') => void",
+          "description": "Called whenever sort changes, whether controlled or uncontrolled —\nmirrors `datatable:sorted`'s payload shape as direct props instead\nof a bus subscription. `key` is `null` when the cycle lands back on\nunsorted."
+        },
+        "page": {
+          "type": "number",
+          "description": "Controlled current page (1-indexed). Pass a value to drive paging\nfrom parent state instead of letting `<DataTable>` manage it\ninternally. Omit for the common uncontrolled case; `defaultPage`\nseeds that internal state instead. No effect when `pagination` is\nfalse."
+        },
+        "defaultPage": {
+          "type": "number",
+          "default": "1",
+          "description": "Initial page when uncontrolled (`page` omitted)."
+        },
+        "onPageChange": {
+          "type": "(page: number) => void",
+          "description": "Called whenever the page changes, whether controlled or uncontrolled."
+        },
+        "overrides": {
+          "type": "Partial<TableSliceState>",
+          "description": "Per-instance overrides for density, border style, and striping."
+        }
+      },
+      "category": "Data Display",
+      "description": "Virtualized, sortable, paginated data table with sticky headers"
+    },
+    {
+      "name": "Progress",
+      "import": "import { Progress } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier included in emitted `progress:changed` events."
+        },
+        "value": {
+          "type": "number",
+          "required": true,
+          "description": "Current progress value, between 0 and `max`."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Value representing 100% completion."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Bar thickness."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        },
+        "overrides": {
+          "type": "Partial<ProgressSliceState>",
+          "description": "Per-instance override for the track's corner shape."
+        }
+      },
+      "category": "Data Display",
+      "description": "Determinate progress bar"
+    },
+    {
+      "name": "TabStrip",
+      "import": "import { TabStrip } from '#toolcrib'",
+      "slots": [
+        "Tab",
+        "Panel"
+      ],
+      "slotProps": {
+        "Panel": {
+          "groupId": {
+            "type": "string",
+            "required": true,
+            "description": "The `id` of the `<TabStrip>` group this panel belongs to — must match\nthat TabStrip's own `id` exactly. This is the *only* link between them;\nthey don't need to share a DOM ancestor. Rendering this panel without\nits matching TabStrip mounted anywhere is valid — it just never\nreceives a `tab:changed` event, so it stays hidden."
+          },
+          "value": {
+            "type": "string",
+            "required": true,
+            "description": "The tab id (matching one of that TabStrip's `items`) this panel renders for."
+          }
+        }
+      },
+      "props": {
+        "id": {
+          "type": "string",
+          "required": true,
+          "description": "Identifies this tab group for event bus coordination — every\n`<TabStrip.Panel groupId={...}>` that should respond to this control\nmust use the exact same string. Required (not auto-generated) because,\nunlike a Modal's `id`, it has to be a stable value the panels — wherever\nthey're rendered — can reference independently."
+        },
+        "items": {
+          "type": "TabItem[]",
+          "required": true,
+          "description": "Array of tab definitions to render."
+        },
+        "activeId": {
+          "type": "string",
+          "description": "Controlled active tab id. Omit to let `<TabStrip>` manage its own\nstate internally — the common case, since panels never need it passed\ndown (they get it from the bus)."
+        },
+        "defaultActiveId": {
+          "type": "string",
+          "default": "items[0]?.id",
+          "description": "Initial active tab when uncontrolled."
+        },
+        "onChange": {
+          "type": "(id: string) => void",
+          "description": "Change callback for controlled usage (e.g. syncing with a router).\nCross-tree panels should not rely on this — they subscribe to\n`tab:changed` via `useAIEvent` instead, which fires regardless of\nwhether this component is controlled or self-managed."
+        },
+        "overrides": {
+          "type": "Partial<TabSliceState>",
+          "description": "Per-instance overrides for variant, size, active-tab colour, and panel transition."
+        }
+      },
+      "category": "Data Display",
+      "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
+    }
+  ],
+  "$defs": {
+    "AccordionItemData": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string key identifying this item (used for expand/collapse tracking)."
+      },
+      "title": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered in the clickable header trigger."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered in the collapsible body panel."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the item cannot be expanded or collapsed."
+      }
+    },
+    "Column": {
+      "key": {
+        "type": "(keyof T & string) | (string & {})",
+        "required": true,
+        "description": "Property key on the data record to read the cell value from, and\nthis column's identifier for sorting/React-key purposes. Typed\nagainst `T` — with a plain-string fallback preserved so this isn't a\nbreaking change for existing callers — so an editor/AI agent gets\nreal autocomplete instead of guessing a property name. Still\nrequired when `accessorFn` is given, as this column's stable id;\npick any string in that case, since the value itself comes from\n`accessorFn` instead."
+      },
+      "accessorFn": {
+        "type": "(record: T) => unknown",
+        "description": "Computed cell value for a column that isn't a direct property read\n(a concatenation, a derived/formatted field). Receives the full\nrecord and takes precedence over `record[key]` when given — this\ncolumn also participates in sorting through it."
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Header text for this column."
+      },
+      "render": {
+        "type": "(context: CellContext<T>) => ReactNode",
+        "description": "Custom cell renderer. Receives this cell's value/row/index as a single object."
+      },
+      "sortable": {
+        "type": "boolean",
+        "default": "false",
+        "description": "If true, clicking this column header toggles sorting."
+      },
+      "width": {
+        "type": "string | number",
+        "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      }
+    },
+    "TabItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this tab — used in `activeId` and `onChange`."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Label content rendered in the tab header."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the tab cannot be selected."
+      }
+    }
+  }
+}

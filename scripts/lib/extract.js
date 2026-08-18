@@ -29,6 +29,19 @@ export const MANUAL_IMPORT_OVERRIDES = {
 // silently-uncategorized or newly-invented group.
 export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 'Data Display', 'Form Controls'];
 
+// Filename-safe slug per category — used by generate-manifest.js to name
+// the per-category manifest split files, and by generate-docs.js to link
+// to them from CORE.md's Component Reference. Kept here, not in either
+// generator, so the two can't independently invent different slugs for the
+// same category.
+export const CATEGORY_SLUGS = {
+  'Layout Primitives': 'layout-primitives',
+  Containers: 'containers',
+  Overlays: 'overlays',
+  'Data Display': 'data-display',
+  'Form Controls': 'form-controls',
+};
+
 // -------------------------------------------------------------------------
 // Generic TS AST helpers
 // -------------------------------------------------------------------------

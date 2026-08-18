@@ -236,8 +236,14 @@ function main() {
     }
   }
 
-  // ai-docs/ ships as-is, whatever's actually there.
-  const aiDocFiles = listFilesRecursive(AI_DOCS_DIR);
+  // ai-docs/ ships as-is, whatever's actually there -- except ai-docs/templates/,
+  // the .hbs doc-generation source (CORE.md.hbs, examples/*.md.hbs). A
+  // consumer only ever needs the *rendered* output these produce
+  // (CORE.md, examples/*.md, already included below) and has no way to
+  // run scripts/generate-docs.js against them anyway (its scripts/-local
+  // toolchain and extract.js's source-scanning never ship) -- so the raw
+  // templates are pure unnecessary bundle size, not a usable asset.
+  const aiDocFiles = listFilesRecursive(AI_DOCS_DIR).filter((f) => !f.startsWith('templates/'));
   copyPreservingStructure(aiDocFiles, AI_DOCS_DIR, path.join(DIST, 'ai-docs'));
 
   const config = {
