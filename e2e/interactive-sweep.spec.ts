@@ -21,7 +21,7 @@ import { test, expect, Page } from '@playwright/test';
 const TABS = [
   '🚀 Overview & Architecture',
   '📝 Form & Zod Engine',
-  '🪟 Overlays (Popup / SlideOut / Modal)',
+  '🪟 Overlays (Popup / Drawer / Modal)',
   '🔔 Toast Subsystem',
   '📊 Virtualized Data Table',
   '📐 Common Layout Idioms',
@@ -29,10 +29,10 @@ const TABS = [
   '🧩 Component Showcase',
 ];
 
-// Radix closes basically everything (Modal, Popup, SlideOut, AlertDialog,
+// Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
 // DropdownMenu, ContextMenu, Select) on Escape — one key between clicks
 // keeps each interaction independent instead of compounding overlay state
-// into the next one. SlideOut in particular closes via its own JS timer
+// into the next one. Drawer in particular closes via its own JS timer
 // (250ms, matching its CSS animation duration) rather than a real
 // animationend, so its backdrop <div role="presentation"> — which blocks
 // clicks on anything behind it — stays in the DOM for that whole window

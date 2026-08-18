@@ -37,7 +37,7 @@ Nothing themed will render correctly, and `useToast()` / `aiBus.showToast()` wil
 Because this is a new project, there is no legacy CSS or duplicated overlay code to work around. Default to the strictest reading of `CORE.md`'s anti-pattern table from the first component you write:
 
 - Every panel is a `<Card>`, `<VStack>`/`<HStack>`, or `<Grid>` — never a bare `<div style={{padding: ...}}>`.
-- Every dialog/drawer/popover is `<Modal>` / `<SlideOut>` / `<Popup>` — never a hand-rolled `useState` + `position: fixed` pair.
+- Every dialog/drawer/popover is `<Modal>` / `<Drawer>` / `<Popup>` — never a hand-rolled `useState` + `position: fixed` pair.
 - Every form is a `<Form schema={...}>` — never manual `onChange`/`register()` wiring.
 - Cross-component actions (e.g. a table row's delete button opening a confirmation dialog elsewhere in the tree) go through `aiBus`, not props threaded down and callbacks threaded back up.
 

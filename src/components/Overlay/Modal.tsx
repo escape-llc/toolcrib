@@ -43,7 +43,7 @@ export interface ModalProps {
   zIndex?: number;
   /**
    * Accessible name announced by screen readers when the dialog opens.
-   * Always visually hidden — unlike `<SlideOut title>`, which is a visible
+   * Always visually hidden — unlike `<Drawer title>`, which is a visible
    * `ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s
    * visible text is decorative only and is not otherwise wired to the
    * dialog's accessible name, so set this explicitly (typically matching

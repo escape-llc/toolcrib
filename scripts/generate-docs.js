@@ -72,7 +72,7 @@ const Z_INDEX_USAGE = {
   BASE: 'Cards, Grids, Stacks, Accordion',
   STICKY: 'DataTable headers, sticky Toolbars',
   SPLITTER: 'Splitter resize handles',
-  DRAWER: 'SlideOut drawers, Theme Editor',
+  DRAWER: 'Drawer panels, Theme Editor',
   MODAL: 'Modal dialogs',
   DROPDOWN: 'Select dropdowns, Popup, DropdownMenu',
   TOOLTIP: 'Tooltip overlays',
@@ -86,7 +86,7 @@ const EVENT_NOTES = {
   'tab:changed':
     '`id` is the `<TabStrip id>` group identifier; sticky (see above), so a `<TabStrip.Panel>` mounted after this fires still gets the current value replayed to it',
   'error:boundary':
-    'emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<SlideOut>`) whenever a child throws during render',
+    'emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<Drawer>`) whenever a child throws during render',
 };
 
 function assembleZIndexRows() {

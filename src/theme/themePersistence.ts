@@ -22,7 +22,7 @@ type SnapshotStateKeys =
   | 'tableState'
   | 'animationState'
   | 'tabState'
-  | 'slideOutState'
+  | 'drawerState'
   | 'accordionState'
   | 'cardState'
   | 'tooltipState'
@@ -66,7 +66,7 @@ export interface ThemeSnapshot extends DeepPartialPick<ThemeContextType, Snapsho
 }
 
 const SLICE_KEYS: Exclude<SnapshotStateKeys, 'parameters'>[] = [
-  'tableState', 'animationState', 'tabState', 'slideOutState', 'accordionState',
+  'tableState', 'animationState', 'tabState', 'drawerState', 'accordionState',
   'cardState', 'tooltipState', 'buttonState', 'inputState', 'toggleControlState',
   'selectState', 'radioGroupState', 'sliderState', 'modalState', 'alertDialogState',
   'popupState', 'toastState', 'dropdownMenuState', 'contextMenuState', 'progressState',
@@ -104,7 +104,7 @@ export function captureThemeSnapshot(theme: ThemeContextType, name?: string): Th
     tableState: theme.tableState,
     animationState: theme.animationState,
     tabState: theme.tabState,
-    slideOutState: theme.slideOutState,
+    drawerState: theme.drawerState,
     accordionState: theme.accordionState,
     cardState: theme.cardState,
     tooltipState: theme.tooltipState,
@@ -157,7 +157,7 @@ export function applyThemeSnapshot(theme: ThemeContextType, snapshot: ThemeSnaps
   if (snapshot.tableState) theme.setTableState(snapshot.tableState);
   if (snapshot.animationState) theme.setAnimationState(snapshot.animationState);
   if (snapshot.tabState) theme.setTabState(snapshot.tabState);
-  if (snapshot.slideOutState) theme.setSlideOutState(snapshot.slideOutState);
+  if (snapshot.drawerState) theme.setDrawerState(snapshot.drawerState);
   if (snapshot.accordionState) theme.setAccordionState(snapshot.accordionState);
   if (snapshot.cardState) theme.setCardState(snapshot.cardState);
   if (snapshot.tooltipState) theme.setTooltipState(snapshot.tooltipState);

@@ -55,7 +55,7 @@ places, because both ultimately read from the same
 
 ## Why `StyleDomainProvider` isn't just "set a CSS variable on the wrapper"
 
-`<Modal>`, `<Popup>`, and `<SlideOut>` all render their content through a
+`<Modal>`, `<Popup>`, and `<Drawer>` all render their content through a
 React portal to `document.body` — they are not physical DOM descendants of
 wherever they're written in JSX. CSS custom properties only cascade
 through the *real* DOM tree, so a `--ai-subtheme` variable set via inline

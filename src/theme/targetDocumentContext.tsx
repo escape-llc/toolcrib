@@ -14,7 +14,7 @@ export const TargetDocumentContext = createContext<Document | undefined>(undefin
  * `undefined` target.
  *
  * Context-based for the same reason `StyleDomainContext` is (see that
- * file's own comment): `Modal`/`Popup`/`SlideOut`/`DropdownMenu`/
+ * file's own comment): `Modal`/`Popup`/`Drawer`/`DropdownMenu`/
  * `ContextMenu` all render their real content through a portal, so
  * nothing about a component's position in the *DOM* tree reliably says
  * which `Document` it's actually in — only React Context, which follows

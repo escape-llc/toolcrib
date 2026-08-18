@@ -22,7 +22,7 @@ export interface StyleDomainProviderProps extends StyleDomainInfo {
  * domain beats nothing).
  *
  * Deliberately Context-based, not CSS-variable inheritance: Modal, Popup,
- * and SlideOut all render their content through a portal to
+ * and Drawer all render their content through a portal to
  * `document.body`, and CSS custom properties only cascade through the
  * real DOM tree, not the React tree — a value set via inline style on an
  * ancestor in JSX would never reach portaled descendants. React Context

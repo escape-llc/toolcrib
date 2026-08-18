@@ -114,7 +114,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       >
         {/* No wrapper <span> — children passed straight through asChild.
             The previous version wrapped children in its own span (matching
-            Modal/Popup/SlideOut's own trigger-wrapper pattern) specifically
+            Modal/Popup/Drawer's own trigger-wrapper pattern) specifically
             to be a stretch-to-fill flex container for a height-constrained
             child; asChild removes the need for that entirely by making the
             child itself the *actual* rendered trigger element, with no

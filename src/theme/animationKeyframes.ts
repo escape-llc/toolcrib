@@ -4,7 +4,7 @@ const STYLE_ID = 'toolcrib-shared-keyframes';
 
 /**
  * The shared entrance/exit `@keyframes` referenced by `animation:` on
- * `Modal`/`AlertDialog`/`Popup`/`SlideOut`/`TabStrip.Panel` — these used to
+ * `Modal`/`AlertDialog`/`Popup`/`Drawer`/`TabStrip.Panel` — these used to
  * live only in the demo app's own `index.css`, which worked for the demo
  * but meant any other consumer got components with those `animation:`
  * properties pointing at keyframes that didn't exist anywhere, so no

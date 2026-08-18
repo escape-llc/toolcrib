@@ -12,7 +12,7 @@ import { CollapsibleThemeSlice, CollapsibleSliceState } from './CollapsibleSlice
  *
  * For a data-driven set of multiple panels, use `<Accordion>` instead —
  * this is for a single standalone disclosure (e.g. "Show more options"),
- * controllable via `aiBus` the same way `<Modal>`/`<SlideOut>` are.
+ * controllable via `aiBus` the same way `<Modal>`/`<Drawer>` are.
  */
 export interface CollapsibleProps {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Popup } from '../components/Overlay/Popup';
-import { SlideOut } from '../components/Overlay/SlideOut';
+import { Drawer } from '../components/Overlay/Drawer';
 import { Modal } from '../components/Overlay/Modal';
 import { Button } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
 
-describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () => {
+describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () => {
   it('opens and light-dismisses Popup on Escape key', () => {
     render(
       <Popup trigger={<Button>Open Popup</Button>}>
@@ -61,14 +61,14 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     expect(btn.style.borderBottomLeftRadius).toBe('var(--ai-radius-md)');
   });
 
-  it('renders SlideOut drawer and dismisses on close button click', async () => {
+  it('renders Drawer and dismisses on close button click', async () => {
     render(
-      <SlideOut title="Test Drawer" trigger={<Button>Open SlideOut</Button>}>
+      <Drawer title="Test Drawer" trigger={<Button>Open Drawer</Button>}>
         <div>Drawer Body</div>
-      </SlideOut>
+      </Drawer>
     );
 
-    fireEvent.click(screen.getByText('Open SlideOut'));
+    fireEvent.click(screen.getByText('Open Drawer'));
     expect(screen.getByText('Test Drawer')).toBeInTheDocument();
     expect(screen.getByText('Drawer Body')).toBeInTheDocument();
 
@@ -76,11 +76,11 @@ describe('Overlay Components (Popup, SlideOut, Modal) Extensive Test Suite', () 
     await waitFor(() => expect(screen.queryByText('Drawer Body')).not.toBeInTheDocument());
   });
 
-  it('renders SlideOut with corner radius according to placement position', () => {
+  it('renders Drawer with corner radius according to placement position', () => {
     render(
-      <SlideOut title="Right Drawer" position="right" isOpen={true}>
+      <Drawer title="Right Drawer" position="right" isOpen={true}>
         <div>Body</div>
-      </SlideOut>
+      </Drawer>
     );
 
     const dialog = screen.getByRole('dialog');

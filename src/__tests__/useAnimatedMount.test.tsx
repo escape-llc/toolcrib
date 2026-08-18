@@ -31,7 +31,7 @@ describe('useAnimatedMount', () => {
     rerender({ isOpen: false });
     // Regression: the component must stay mounted through the closing
     // phase — this is the entire point of the hook (see its own doc
-    // comment on the Toast/SlideOut bugs an immediate unmount caused).
+    // comment on the Toast/Drawer bugs an immediate unmount caused).
     expect(result.current.isMounted).toBe(true);
     expect(result.current.isClosing).toBe(true);
 

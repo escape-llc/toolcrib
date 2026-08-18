@@ -13,7 +13,7 @@ const MIN_HEALTHY_HEIGHT_PX = 250;
 const TABS = [
   '🚀 Overview & Architecture',
   '📝 Form & Zod Engine',
-  '🪟 Overlays (Popup / SlideOut / Modal)',
+  '🪟 Overlays (Popup / Drawer / Modal)',
   '🔔 Toast Subsystem',
   '📊 Virtualized Data Table',
   '📐 Common Layout Idioms',

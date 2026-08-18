@@ -38,7 +38,7 @@ describe('Strongly-Typed EventBus', () => {
     }));
   });
 
-  it('provides openPopup/closePopup helpers, matching the openModal/closeModal and openSlideOut/closeSlideOut pattern', () => {
+  it('provides openPopup/closePopup helpers, matching the openModal/closeModal and openDrawer/closeDrawer pattern', () => {
     const shown = vi.fn();
     const hidden = vi.fn();
     aiBus.on('popup:shown', shown);

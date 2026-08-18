@@ -12,7 +12,7 @@ import { aiBus } from '../eventBus/eventBus';
 
 // Components
 import { Modal } from '../components/Overlay/Modal';
-import { SlideOut } from '../components/Overlay/SlideOut';
+import { Drawer } from '../components/Overlay/Drawer';
 import { Popup } from '../components/Overlay/Popup';
 import { Tooltip } from '../components/Tooltip/Tooltip';
 import { Accordion } from '../components/Accordion/Accordion';
@@ -53,17 +53,17 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     });
   });
 
-  it('verifies SlideOut emits slideout:shown and slideout:hidden events', () => {
+  it('verifies Drawer emits drawer:shown and drawer:hidden events', () => {
     render(
-      <SlideOut id="test-slideout" title="Drawer" trigger={<Button>Open Drawer</Button>}>
+      <Drawer id="test-drawer" title="Drawer" trigger={<Button>Open Drawer</Button>}>
         <div>Drawer Content</div>
-      </SlideOut>
+      </Drawer>
     );
 
     fireEvent.click(screen.getByText('Open Drawer'));
     expect(trafficSpy).toHaveBeenCalledWith({
-      type: 'slideout:shown',
-      detail: expect.objectContaining({ id: 'test-slideout', position: 'right' }),
+      type: 'drawer:shown',
+      detail: expect.objectContaining({ id: 'test-drawer', position: 'right' }),
     });
   });
 

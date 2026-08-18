@@ -187,7 +187,7 @@ export const Splitter: React.FC<SplitterProps> & {
   // useLayoutEffect, not useEffect — these window-level move/up listeners
   // must be attached synchronously within the same commit as isDragging
   // becoming true, not deferred until after paint. Same bug class found
-  // and fixed for SlideOut's Escape-key listener this session: a fast
+  // and fixed for Drawer's Escape-key listener this session: a fast
   // enough drag gesture's first pointermove could otherwise fire before a
   // useEffect version had attached, dropping that first tick.
   useLayoutEffect(() => {

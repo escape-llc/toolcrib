@@ -7,14 +7,14 @@ import { Button } from '../Form/FormComponents';
 /**
  * Props for `<AIErrorBoundary>` — a React error boundary for overlay portals.
  *
- * @ai-hint This boundary is used internally by Modal and SlideOut to prevent
+ * @ai-hint This boundary is used internally by Modal and Drawer to prevent
  *          errors in portal content from crashing the entire React tree.
  *          You can also wrap any AI-generated section with it for resilience.
  */
 /** @barrelExport */
 export interface AIErrorBoundaryProps {
   children: ReactNode;
-  /** Unique name for error reporting (e.g. 'Modal', 'SlideOut'). */
+  /** Unique name for error reporting (e.g. 'Modal', 'Drawer'). */
   componentName?: string;
   /**
    * Custom fallback UI rendered when a child throws.
@@ -34,7 +34,7 @@ interface AIErrorBoundaryState {
  * Catches render errors in children and displays a graceful fallback instead of
  * crashing the entire page. Emits `error:boundary` on the event bus for observability.
  *
- * Used internally by `<Modal>` and `<SlideOut>` to protect the host application from
+ * Used internally by `<Modal>` and `<Drawer>` to protect the host application from
  * errors in AI-generated portal content.
  *
  * @example
@@ -66,7 +66,7 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
   componentDidMount(): void {
     // Class component, no useEffect — this is its equivalent "on mount"
     // hook, needed independently of whatever parent mounts it (Modal/
-    // SlideOut/AlertDialog already call this themselves, but this boundary
+    // Drawer/AlertDialog already call this themselves, but this boundary
     // is documented as usable standalone too, wrapping any AI-generated
     // section directly).
     this.lastInjectedDocument = this.context;

@@ -23,7 +23,7 @@ See `CORE.md` §1 for the full snippet (`ThemeProvider` + `ToastProvider` + `Toa
 
 Convert one screen or one component category at a time, starting wherever the pain that motivated adopting toolcrib is worst — usually the components explicitly called out in `CORE.md`'s anti-pattern table:
 
-1. **Duplicated overlay implementations first.** Grep for repeated `useState` pairs like `isOpen`/`setIsOpen` combined with `position: fixed` or a hand-rolled backdrop `<div>` — these are the most duplicated, least accessible custom code in most vibe-coded apps, and `<Modal>`/`<SlideOut>`/`<Popup>` replace them directly without touching surrounding logic.
+1. **Duplicated overlay implementations first.** Grep for repeated `useState` pairs like `isOpen`/`setIsOpen` combined with `position: fixed` or a hand-rolled backdrop `<div>` — these are the most duplicated, least accessible custom code in most vibe-coded apps, and `<Modal>`/`<Drawer>`/`<Popup>` replace them directly without touching surrounding logic.
 2. **New screens/features next.** Build anything new entirely in toolcrib components, even while older screens still use the legacy system. There's no requirement that the whole app adopt toolcrib atomically.
 3. **Existing screens last, and only if they're actively being touched.** Don't do a drive-by rewrite of a screen you weren't already changing — that's scope creep, not migration.
 
@@ -33,7 +33,7 @@ Search for these patterns as migration candidates — each maps directly to a `C
 
 - Hardcoded hex/rgb colors (`#3b82f6`, `rgb(...)`) → replace with the matching `var(--ai-*)` token once the component is under `<ThemeProvider>`.
 - `px` values in inline styles or CSS modules for spacing/radii → `rem`, or a toolcrib layout primitive (`<VStack gap>`, `<Card>`) that already resolves the right token.
-- Manual `z-index: 9999`-style overlay stacking → the `Z_INDEX` scale, once the overlay itself moves to `<Modal>`/`<Popup>`/`<SlideOut>`.
+- Manual `z-index: 9999`-style overlay stacking → the `Z_INDEX` scale, once the overlay itself moves to `<Modal>`/`<Popup>`/`<Drawer>`.
 - Prop-drilled `onClose`/`onOpen` callbacks passed through 3+ component layers → `aiBus.emit()` / `useAIEvent()`.
 - A `style`/`className` prop passed to a component you're converting to its toolcrib equivalent → that component's `overrides` prop, if it has theme-controlled axes covering what you needed (see `CORE.md` §9). This isn't optional during conversion the way the other migrations can be staged gradually — toolcrib components don't accept `style`/`className` at the type level at all, so you can't keep the old prop around as a stopgap while converting the rest of a component's structure.
 

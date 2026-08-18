@@ -22,9 +22,9 @@ export interface UseAnimatedMountResult {
  * `animationend`, not a guessed `setTimeout` duration — extracted after
  * that exact guessed-duration pattern caused two separate, real bugs this
  * session (Toast's exit animation never actually playing before removal;
- * SlideOut's drawer staying mounted — backdrop and all, still blocking
+ * Drawer's own panel staying mounted — backdrop and all, still blocking
  * clicks — after a `setTimeout(..., 250)` meant to match its own themeable
- * `--ai-slideout-duration` variable, which the constant could silently
+ * `--ai-drawer-duration` variable, which the constant could silently
  * drift from, or simply lose a race against React's own effect scheduling
  * under things like StrictMode's double-invoked effects). Both bugs were
  * fixed the same way: keep the component mounted through its exit
@@ -39,7 +39,7 @@ export interface UseAnimatedMountResult {
  * `Presence`, as long as the consumer keeps rendering it (see `Toast.tsx`'s
  * own comment on the one way that assumption broke). Reach for this hook
  * specifically for a hand-rolled overlay with no Radix primitive
- * underneath, the position `SlideOut` (built on the generic `Portal.Root`)
+ * underneath, the position `Drawer` (built on the generic `Portal.Root`)
  * was in.
  *
  * @param isOpen Whether the component should currently be open/visible.
@@ -55,10 +55,10 @@ export function useAnimatedMount(isOpen: boolean, backstopMs = 600): UseAnimated
   const closeFinalizedRef = useRef(false);
 
   // useLayoutEffect, not useEffect — same reasoning, and the same
-  // reproduced bug class, as SlideOut's own Escape-key listener (see that
+  // reproduced bug class, as Drawer's own Escape-key listener (see that
   // component's comment). Deferring this to a regular useEffect left a
   // real gap: a close triggered fast enough after open (a native-listener
-  // driven Escape press being the concrete repro — SlideOut's own listener
+  // driven Escape press being the concrete repro — Drawer's own listener
   // now attaches synchronously via useLayoutEffect, but this hook's
   // isMounted flip was still deferred) could have its `setIsOpen(false)`
   // render committed BEFORE this effect's `setIsMounted(true)` from the

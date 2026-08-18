@@ -11,7 +11,7 @@ export const Z_INDEX = {
   STICKY: 10,
   /** Resizable splitter handles */
   SPLITTER: 20,
-  /** SlideOut slide-over drawers (including Theme Designer) */
+  /** Drawer slide-over panels (including Theme Designer) */
   DRAWER: 100,
   /** Modal dialogs and alert popups */
   MODAL: 200,

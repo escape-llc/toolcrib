@@ -44,7 +44,7 @@ a:focus-visible {
   outline-offset: 0.125rem !important;
 }
 
-/* NOTE: the @keyframes for Modal/AlertDialog/Popup/SlideOut/TabStrip.Panel
+/* NOTE: the @keyframes for Modal/AlertDialog/Popup/Drawer/TabStrip.Panel
    (ai-fade-in, ai-scale-in, ai-slide-in/out-*) and for Accordion
    (ai-accordion-slide-down/up, .ai-accordion-* rules) used to live here.
    They're now self-injected by the library itself — see

@@ -99,7 +99,7 @@ function FieldRow({
 
 /**
  * @manifest Real-time HSV theme editor content — no overlay chrome of its own;
- * host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing.
+ * host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing.
  * @manifestCategory Form Controls
  */
 export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot }) => {
@@ -140,8 +140,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     setAnimationState,
     tabState,
     setTabState,
-    slideOutState,
-    setSlideOutState,
+    drawerState,
+    setDrawerState,
     accordionState,
     setAccordionState,
     cardState,
@@ -635,13 +635,13 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
 
   // ---- Overlays ----
 
-  const slideOutContent = (
+  const drawerContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <FieldRow
         label="Drawer Panel Width"
-        tooltip="Configures default width for SlideOut drawers"
-        value={slideOutState.width}
-        onChange={val => setSlideOutState({ width: val as any })}
+        tooltip="Configures default width for Drawer panels"
+        value={drawerState.width}
+        onChange={val => setDrawerState({ width: val as any })}
         options={[
           { label: 'Small (20rem / 320px)', value: 'sm' },
           { label: 'Medium (26rem / 416px)', value: 'md' },
@@ -655,8 +655,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       />
       <FieldRow
         label="Drawer Header Margin & Floating Mode"
-        value={slideOutState.headerMargin}
-        onChange={val => setSlideOutState({ headerMargin: val as any })}
+        value={drawerState.headerMargin}
+        onChange={val => setDrawerState({ headerMargin: val as any })}
         options={[
           { label: 'Flush Header (0 Margin)', value: 'none' },
           { label: 'Compact Gap (0.5rem Bottom Margin)', value: 'compact' },
@@ -667,8 +667,8 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       />
       <FieldRow
         label="Backdrop Glassmorphism Blur"
-        value={slideOutState.backdropBlur}
-        onChange={val => setSlideOutState({ backdropBlur: val as any })}
+        value={drawerState.backdropBlur}
+        onChange={val => setDrawerState({ backdropBlur: val as any })}
         options={[
           { label: 'Subtle Blur (2px)', value: 'subtle' },
           { label: 'Heavy Glass Blur (8px)', value: 'heavy' },
@@ -1167,7 +1167,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     <Accordion
       type="single"
       items={[
-        { value: 'slideout', title: '🪟 SlideOut Drawer', content: slideOutContent },
+        { value: 'drawer', title: '🪟 Drawer', content: drawerContent },
         { value: 'tooltip', title: '💬 Tooltip', content: tooltipSectionContent },
         { value: 'modal', title: '🪧 Modal', content: modalSectionContent },
         { value: 'alertdialog', title: '⚠️ Alert Dialog', content: alertDialogSectionContent },

@@ -54,7 +54,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
    useAIEvent('modal:shown', (e) => { /* auto-cleanup */ });
    ```
    **The decision rule:** the event bus solves "how does component A tell component B something, when B isn't A's child and passing a prop isn't an option" — a `<Modal>` opened by id from anywhere, `<TabStrip>`/`<TabStrip.Panel>` as unrelated siblings with no shared parent, a toast triggered from a click handler nowhere near the toast viewport. It is **not** a general substitute for React Context or props between a component and its own direct descendants — `<SubmitButton>` reading `isSubmitting` from its ancestor `<Form>` via context is the correct tool already, precisely because that *is* a direct-tree relationship with no mount-order race to solve. Reach for the bus when there's a real cross-tree problem; reach for context/props when there isn't, even if the toolkit's aiBus is sitting right there and looks like it would "also work."
-3. **NO Manual `useState` for Overlays.** `<Popup>`, `<SlideOut>`, and `<Modal>` manage open/close state internally or via `aiBus`.
+3. **NO Manual `useState` for Overlays.** `<Popup>`, `<Drawer>`, and `<Modal>` manage open/close state internally or via `aiBus`.
 4. **Schema-Driven Forms.** Pass a Zod schema — controls bind via context automatically:
    ```tsx
    <Form schema={z.object({ email: z.string().email() })} onSubmit={save}>
@@ -72,13 +72,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 | ❌ Don't | ✅ Do Instead |
 |:---|:---|
-| Manually manage overlay open/close with `useState` | Let `<Modal>`, `<SlideOut>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
+| Manually manage overlay open/close with `useState` | Let `<Modal>`, `<Drawer>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
 | Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'` |
 | Use `px` units for spacing, borders, radii | Use `rem` values. Only `--ai-master-font-size` is in `px` |
 | Hardcode colour values (hex, rgb) | Use CSS variables: `var(--ai-color-primary)`, `var(--ai-subtheme-error)` |
 | Prop-drill callbacks through component trees | Use `aiBus.emit()` / `useAIEvent()` for cross-tree communication |
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
-| Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<SlideOut>` — they handle anchoring, focus traps, backdrop, and light dismiss |
+| Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<Drawer>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
 | Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
 | Fake per-row emphasis in `<DataTable>` via `column.render` (styling each cell individually to approximate a highlighted row) | Use `<DataTable rowSubtheme={(record) => ...}>` — classifies a row into `'error'` / `'success'` / `'warning'` / `'info'` and tints the actual row background/border, not a per-cell approximation |
@@ -128,11 +128,11 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 |:---|:---|:---|:---|
 | `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
 | `<ContextMenu>` | — | `id`, `items`, `overrides` | Right-click action menu, data-driven with separator support |
+| `<Drawer>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
 | `<HoverCard>` | — | `id`, `content`, `side`, `align`, `openDelay`, `closeDelay`, `overrides` | Hover-triggered preview card for rich, interactive content |
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
-| `<SlideOut>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
 
 ### Data Display
@@ -162,11 +162,11 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Select>` | — | `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |
 | `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `overrides` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot` | Real-time HSV theme editor content — no overlay chrome of its own;
-host it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing. |
+host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing. |
 | `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
 | `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled`, `overrides` | Connected button set for single or multiple selection, data-driven |
 
-`<Modal ariaLabel>` and `<SlideOut title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `SlideOut.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
+`<Modal ariaLabel>` and `<Drawer title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `Drawer.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 
 ### Toast Subsystem
 
@@ -231,7 +231,7 @@ When a `<Card>` is placed inside a flex container (like a `<Splitter>` panel), s
 | `BASE` | 0 | Cards, Grids, Stacks, Accordion |
 | `STICKY` | 10 | DataTable headers, sticky Toolbars |
 | `SPLITTER` | 20 | Splitter resize handles |
-| `DRAWER` | 100 | SlideOut drawers, Theme Editor |
+| `DRAWER` | 100 | Drawer panels, Theme Editor |
 | `MODAL` | 200 | Modal dialogs |
 | `DROPDOWN` | 300 | Select dropdowns, Popup, DropdownMenu |
 | `TOOLTIP` | 400 | Tooltip overlays |
@@ -269,7 +269,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `slideout`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`.
 
 Register custom slices:
 ```tsx
@@ -319,7 +319,7 @@ import { StyleDomainProvider } from '#toolcrib';
 </StyleDomainProvider>
 ```
 
-This is Context-based on purpose, not CSS-variable inheritance — `<Modal>`, `<Popup>`, and `<SlideOut>` all render their content through a portal elsewhere in the DOM, and `<StyleDomainProvider>` still reaches them correctly because it follows the component tree, not DOM position.
+This is Context-based on purpose, not CSS-variable inheritance — `<Modal>`, `<Popup>`, and `<Drawer>` all render their content through a portal elsewhere in the DOM, and `<StyleDomainProvider>` still reaches them correctly because it follows the component tree, not DOM position.
 
 If neither `overrides` nor a style domain covers what you need, that's a real, intentional boundary — the toolkit trades some flexibility for keeping every visual decision theme-driven and AI-legible. There is no raw-style escape hatch on toolcrib components themselves.
 
@@ -339,8 +339,8 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "viewport:resized","{ width: number; height: number }"
   "popup:shown","{ id: string; targetId?: string; data?: any }"
   "popup:hidden","{ id: string }"
-  "slideout:shown","{ id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any }"
-  "slideout:hidden","{ id: string }"
+  "drawer:shown","{ id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any }"
+  "drawer:hidden","{ id: string }"
   "modal:shown","{ id: string; data?: any }"
   "modal:hidden","{ id: string }"
   "alertdialog:shown","{ id: string; data?: any }"
@@ -382,6 +382,6 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
 ```
 
 Notable payloads:
-- `error:boundary` — emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<SlideOut>`) whenever a child throws during render
+- `error:boundary` — emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<Drawer>`) whenever a child throws during render
 - `tab:changed` — `id` is the `<TabStrip id>` group identifier; sticky (see above), so a `<TabStrip.Panel>` mounted after this fires still gets the current value replayed to it
 

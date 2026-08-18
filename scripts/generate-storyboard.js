@@ -52,9 +52,9 @@ const CHECKPOINTS = [
     shots: ['User Profile Form (Zod 4 Validated Engine)', 'Form Architecture & Validation Features'],
   },
   {
-    tab: '🪟 Overlays (Popup / SlideOut / Modal)',
+    tab: '🪟 Overlays (Popup / Drawer / Modal)',
     slug: 'overlays',
-    shots: ['Popup Container (Popover)', 'SlideOut Drawer', 'Modal Dialog (Focus Trap)'],
+    shots: ['Popup Container (Popover)', 'Drawer', 'Modal Dialog (Focus Trap)'],
   },
   {
     tab: '🔔 Toast Subsystem',

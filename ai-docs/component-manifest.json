@@ -51,6 +51,12 @@
       "--ai-combobox-item-padding",
       "--ai-contextmenu-item-padding",
       "--ai-contextmenu-shadow",
+      "--ai-drawer-backdrop-blur",
+      "--ai-drawer-duration",
+      "--ai-drawer-easing",
+      "--ai-drawer-header-border-radius",
+      "--ai-drawer-header-margin",
+      "--ai-drawer-width",
       "--ai-dropdownmenu-item-padding",
       "--ai-dropdownmenu-shadow",
       "--ai-fileupload-dropzone-padding",
@@ -108,12 +114,6 @@
       "--ai-shadow-lg",
       "--ai-shadow-md",
       "--ai-shadow-sm",
-      "--ai-slideout-backdrop-blur",
-      "--ai-slideout-duration",
-      "--ai-slideout-easing",
-      "--ai-slideout-header-border-radius",
-      "--ai-slideout-header-margin",
-      "--ai-slideout-width",
       "--ai-slider-thumb-size",
       "--ai-slider-track-height",
       "--ai-subtheme-error",
@@ -208,8 +208,8 @@
         "name": "📑 Tab Group Panels & Variants"
       },
       {
-        "id": "slideout",
-        "name": "🪟 SlideOut Drawer & Retract Dynamics"
+        "id": "drawer",
+        "name": "🪟 Drawer & Retract Dynamics"
       },
       {
         "id": "accordion",
@@ -348,11 +348,11 @@
         "payload": "{ id: string }"
       },
       {
-        "name": "slideout:shown",
+        "name": "drawer:shown",
         "payload": "{ id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any }"
       },
       {
-        "name": "slideout:hidden",
+        "name": "drawer:hidden",
         "payload": "{ id: string }"
       },
       {
@@ -529,12 +529,12 @@
         "emits": "alertdialog:hidden"
       },
       {
-        "method": "aiBus.openSlideOut(id, position?, data?)",
-        "emits": "slideout:shown"
+        "method": "aiBus.openDrawer(id, position?, data?)",
+        "emits": "drawer:shown"
       },
       {
-        "method": "aiBus.closeSlideOut(id)",
-        "emits": "slideout:hidden"
+        "method": "aiBus.closeDrawer(id)",
+        "emits": "drawer:hidden"
       },
       {
         "method": "aiBus.openPopup(id, targetId?, data?)",
@@ -1034,6 +1034,50 @@
       "description": "Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this"
     },
     {
+      "name": "Drawer",
+      "import": "import { Drawer } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "trigger": {
+          "type": "ReactElement",
+          "description": "Element that toggles the drawer on click. Rendered inline."
+        },
+        "position": {
+          "type": "'top' | 'right' | 'bottom' | 'left'",
+          "default": "'right'",
+          "description": "Which viewport edge the drawer slides in from."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the drawer opens or closes."
+        },
+        "title": {
+          "type": "ReactNode",
+          "default": "'Drawer Panel'",
+          "description": "Title text rendered in the drawer header."
+        },
+        "width": {
+          "type": "string",
+          "default": "'var(--ai-drawer-width, 23.75rem)'",
+          "description": "Width of the drawer panel (for left/right positions)."
+        },
+        "zIndex": {
+          "type": "number",
+          "default": "Z_INDEX.DRAWER (100)",
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
+        }
+      },
+      "category": "Overlays",
+      "description": "Edge drawer overlay with backdrop blur and slide animation"
+    },
+    {
       "name": "DropdownMenu",
       "import": "import { DropdownMenu } from '#toolcrib'",
       "props": {
@@ -1315,7 +1359,7 @@
         "ariaLabel": {
           "type": "string",
           "default": "'Dialog'",
-          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<SlideOut title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
+          "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<Drawer title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
         },
         "overrides": {
           "type": "Partial<ModalSliceState> & { subtheme?: SubthemeName }",
@@ -1534,50 +1578,6 @@
       "description": "Themed visual divider between content sections"
     },
     {
-      "name": "SlideOut",
-      "import": "import { SlideOut } from '#toolcrib'",
-      "props": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
-        },
-        "trigger": {
-          "type": "ReactElement",
-          "description": "Element that toggles the drawer on click. Rendered inline."
-        },
-        "position": {
-          "type": "'top' | 'right' | 'bottom' | 'left'",
-          "default": "'right'",
-          "description": "Which viewport edge the drawer slides in from."
-        },
-        "isOpen": {
-          "type": "boolean",
-          "description": "Controlled open state. When provided, the component becomes fully controlled."
-        },
-        "onOpenChange": {
-          "type": "(open: boolean) => void",
-          "description": "Callback fired when the drawer opens or closes."
-        },
-        "title": {
-          "type": "ReactNode",
-          "default": "'Slide Out Panel'",
-          "description": "Title text rendered in the drawer header."
-        },
-        "width": {
-          "type": "string",
-          "default": "'var(--ai-slideout-width, 23.75rem)'",
-          "description": "Width of the drawer panel (for left/right positions)."
-        },
-        "zIndex": {
-          "type": "number",
-          "default": "Z_INDEX.DRAWER (100)",
-          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
-        }
-      },
-      "category": "Overlays",
-      "description": "Edge drawer overlay with backdrop blur and slide animation"
-    },
-    {
       "name": "Slider",
       "import": "import { Slider } from '#toolcrib'",
       "props": {
@@ -1730,7 +1730,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
+      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing."
     },
     {
       "name": "Toggle",

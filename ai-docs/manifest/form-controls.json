@@ -325,7 +325,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<SlideOut>` (or `<Modal>`/`<Popup>`) of your choosing."
+      "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing."
     },
     {
       "name": "Toggle",

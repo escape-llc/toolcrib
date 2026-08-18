@@ -11,12 +11,12 @@ import { useAnimatedMount } from '../../theme/useAnimatedMount';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 
 /**
- * Props for the `<SlideOut>` drawer overlay.
+ * Props for the `<Drawer>` edge overlay.
  *
  * Opens from an edge of the viewport with a backdrop. Supports event bus control
- * via `aiBus.openSlideOut(id)` / `aiBus.closeSlideOut(id)`.
+ * via `aiBus.openDrawer(id)` / `aiBus.closeDrawer(id)`.
  */
-export interface SlideOutProps {
+export interface DrawerProps {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Element that toggles the drawer on click. Rendered inline. */
@@ -32,11 +32,11 @@ export interface SlideOutProps {
   isOpen?: boolean;
   /** Callback fired when the drawer opens or closes. */
   onOpenChange?: (open: boolean) => void;
-  /** Title text rendered in the drawer header. @default 'Slide Out Panel' */
+  /** Title text rendered in the drawer header. @default 'Drawer Panel' */
   title?: ReactNode;
   /**
    * Width of the drawer panel (for left/right positions).
-   * @default 'var(--ai-slideout-width, 23.75rem)'
+   * @default 'var(--ai-drawer-width, 23.75rem)'
    */
   width?: string;
   /**
@@ -50,7 +50,7 @@ export interface SlideOutProps {
  * @manifest Edge drawer overlay with backdrop blur and slide animation
  * @manifestCategory Overlays
  */
-export const SlideOut: React.FC<SlideOutProps> = ({
+export const Drawer: React.FC<DrawerProps> = ({
   id: propId,
   trigger,
   children,
@@ -61,7 +61,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   width: propWidth,
   zIndex = Z_INDEX.DRAWER,
 }) => {
-  const id = useStableId(propId, 'slideout');
+  const id = useStableId(propId, 'drawer');
   const targetDocument = useTargetDocument();
   useInjectInteractionStyles();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -89,17 +89,17 @@ export const SlideOut: React.FC<SlideOutProps> = ({
     }
     if (!fromBus) {
       if (nextState) {
-        aiBus.emit('slideout:shown', { id, position });
+        aiBus.emit('drawer:shown', { id, position });
       } else {
-        aiBus.emit('slideout:hidden', { id });
+        aiBus.emit('drawer:hidden', { id });
       }
     }
   };
 
-  useAIEvent('slideout:shown', e => {
+  useAIEvent('drawer:shown', e => {
     if (e.id === id) toggle(true, true);
   });
-  useAIEvent('slideout:hidden', e => {
+  useAIEvent('drawer:hidden', e => {
     if (e.id === id) toggle(false, true);
   });
 
@@ -128,7 +128,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, targetDocument]);
 
-  const resolvedWidth = propWidth || 'var(--ai-slideout-width, 23.75rem)';
+  const resolvedWidth = propWidth || 'var(--ai-drawer-width, 23.75rem)';
 
   const getPositionStyles = (): React.CSSProperties => {
     const r = 'var(--ai-radius-lg, 0.75rem)';
@@ -146,12 +146,12 @@ export const SlideOut: React.FC<SlideOutProps> = ({
   };
 
   const backdropAnim = isClosing
-    ? 'ai-fade-out var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards'
-    : 'ai-fade-in var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards';
+    ? 'ai-fade-out var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards'
+    : 'ai-fade-in var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards';
 
   const drawerAnim = isClosing
-    ? `ai-slide-out-${position} var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards`
-    : `ai-slide-in-${position} var(--ai-slideout-duration, 250ms) var(--ai-slideout-easing, ease) forwards`;
+    ? `ai-slide-out-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`
+    : `ai-slide-in-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`;
 
   const portalContent = isMounted && (
     <div
@@ -165,7 +165,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
         inset: 0,
         zIndex: zIndex,
         background: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(var(--ai-slideout-backdrop-blur, 0.125rem))',
+        backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',
         display: 'flex',
         animation: backdropAnim,
       }}
@@ -197,14 +197,14 @@ export const SlideOut: React.FC<SlideOutProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
-            margin: 'var(--ai-slideout-header-margin, 0)',
-            borderRadius: 'var(--ai-slideout-header-border-radius, 0)',
+            margin: 'var(--ai-drawer-header-margin, 0)',
+            borderRadius: 'var(--ai-drawer-header-border-radius, 0)',
             borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
             background: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
-            {title || 'Slide Out Panel'}
+            {title || 'Drawer Panel'}
           </div>
           <button
             onClick={() => toggle(false)}
@@ -223,7 +223,7 @@ export const SlideOut: React.FC<SlideOutProps> = ({
         </div>
 
         <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
-          <AIErrorBoundary componentName="SlideOut">
+          <AIErrorBoundary componentName="Drawer">
             {children}
           </AIErrorBoundary>
         </div>

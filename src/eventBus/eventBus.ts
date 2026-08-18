@@ -22,8 +22,8 @@ export interface AIEventMap {
   'viewport:resized': { width: number; height: number };
   'popup:shown': { id: string; targetId?: string; data?: any };
   'popup:hidden': { id: string };
-  'slideout:shown': { id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any };
-  'slideout:hidden': { id: string };
+  'drawer:shown': { id: string; position?: 'top' | 'right' | 'bottom' | 'left'; data?: any };
+  'drawer:hidden': { id: string };
   'modal:shown': { id: string; data?: any };
   'modal:hidden': { id: string };
   'alertdialog:shown': { id: string; data?: any };
@@ -90,7 +90,7 @@ export type EventCallback<K extends EventKey> = (event: AIEventMap[K]) => void;
  * event, not to any particular publisher/subscriber pair.
  *
  * Replay is scoped per-entity: if the event payload has an `id` field
- * (most do — modal, popup, slideout, tab, toast, accordion, menu all key
+ * (most do — modal, popup, drawer, tab, toast, accordion, menu all key
  * off `id`), the last value is remembered separately for each `id`, and a
  * new subscriber is replayed the last value for *every* known `id`, same
  * as it would receive them as live events — its own filtering logic
@@ -216,12 +216,12 @@ class AIEventBus {
     this.emit('alertdialog:hidden', { id });
   }
 
-  openSlideOut(id: string, position: 'top' | 'right' | 'bottom' | 'left' = 'right', data?: any) {
-    this.emit('slideout:shown', { id, position, data });
+  openDrawer(id: string, position: 'top' | 'right' | 'bottom' | 'left' = 'right', data?: any) {
+    this.emit('drawer:shown', { id, position, data });
   }
 
-  closeSlideOut(id: string) {
-    this.emit('slideout:hidden', { id });
+  closeDrawer(id: string) {
+    this.emit('drawer:hidden', { id });
   }
 
   openPopup(id: string, targetId?: string, data?: any) {

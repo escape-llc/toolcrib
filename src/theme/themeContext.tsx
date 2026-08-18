@@ -14,7 +14,7 @@ import { ShadowMode, ShadowThemeSlice } from './shadow';
 import { DataTableThemeSlice, TableSliceState } from '../components/DataTable/DataTableSlice';
 import { AnimationThemeSlice, AnimationSliceState, defaultAnimationState } from './animation';
 import { TabThemeSlice, TabSliceState, defaultTabState } from '../components/TabStrip/TabSlice';
-import { SlideOutThemeSlice, SlideOutSliceState, defaultSlideOutState } from '../components/Overlay/SlideOutSlice';
+import { DrawerThemeSlice, DrawerSliceState, defaultDrawerState } from '../components/Overlay/DrawerSlice';
 import { AccordionThemeSlice, AccordionSliceState, defaultAccordionState } from '../components/Accordion/AccordionSlice';
 import { CardThemeSlice, CardSliceState, defaultCardState } from '../components/Card/CardSlice';
 import { TooltipThemeSlice, TooltipSliceState, defaultTooltipState } from '../components/Tooltip/TooltipSlice';
@@ -53,7 +53,7 @@ globalThemeSliceRegistry.register(ShadowThemeSlice);
 globalThemeSliceRegistry.register(DataTableThemeSlice);
 globalThemeSliceRegistry.register(AnimationThemeSlice);
 globalThemeSliceRegistry.register(TabThemeSlice);
-globalThemeSliceRegistry.register(SlideOutThemeSlice);
+globalThemeSliceRegistry.register(DrawerThemeSlice);
 globalThemeSliceRegistry.register(AccordionThemeSlice);
 globalThemeSliceRegistry.register(CardThemeSlice);
 globalThemeSliceRegistry.register(TooltipThemeSlice);
@@ -85,7 +85,7 @@ export interface ThemeContextType {
   tableState: TableSliceState;
   animationState: AnimationSliceState;
   tabState: TabSliceState;
-  slideOutState: SlideOutSliceState;
+  drawerState: DrawerSliceState;
   accordionState: AccordionSliceState;
   cardState: CardSliceState;
   tooltipState: TooltipSliceState;
@@ -124,7 +124,7 @@ export interface ThemeContextType {
   setTableState: (state: Partial<TableSliceState>) => void;
   setAnimationState: (state: Partial<AnimationSliceState>) => void;
   setTabState: (state: Partial<TabSliceState>) => void;
-  setSlideOutState: (state: Partial<SlideOutSliceState>) => void;
+  setDrawerState: (state: Partial<DrawerSliceState>) => void;
   setAccordionState: (state: Partial<AccordionSliceState>) => void;
   setCardState: (state: Partial<CardSliceState>) => void;
   setTooltipState: (state: Partial<TooltipSliceState>) => void;
@@ -185,7 +185,7 @@ export interface ThemeProviderProps {
   initialTableState?: Partial<TableSliceState>;
   initialAnimationState?: Partial<AnimationSliceState>;
   initialTabState?: Partial<TabSliceState>;
-  initialSlideOutState?: Partial<SlideOutSliceState>;
+  initialDrawerState?: Partial<DrawerSliceState>;
   initialAccordionState?: Partial<AccordionSliceState>;
   initialCardState?: Partial<CardSliceState>;
   initialTooltipState?: Partial<TooltipSliceState>;
@@ -232,7 +232,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialTableState,
   initialAnimationState,
   initialTabState,
-  initialSlideOutState,
+  initialDrawerState,
   initialAccordionState,
   initialCardState,
   initialTooltipState,
@@ -279,9 +279,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     ...initialTabState,
   });
 
-  const [slideOutState, setSlideOutStateInternal] = useState<SlideOutSliceState>({
-    ...defaultSlideOutState,
-    ...initialSlideOutState,
+  const [drawerState, setDrawerStateInternal] = useState<DrawerSliceState>({
+    ...defaultDrawerState,
+    ...initialDrawerState,
   });
 
   const [accordionState, setAccordionStateInternal] = useState<AccordionSliceState>({
@@ -423,7 +423,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       table: tableState,
       animation: animationState,
       tab: tabState,
-      slideout: slideOutState,
+      drawer: drawerState,
       accordion: accordionState,
       card: cardState,
       tooltip: tooltipState,
@@ -456,7 +456,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     tableState,
     animationState,
     tabState,
-    slideOutState,
+    drawerState,
     accordionState,
     cardState,
     tooltipState,
@@ -519,7 +519,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // call happens before any component (including this one) has rendered,
   // so it has no way to know about a `targetDocument` and only ever
   // reaches the global `document`. That's the right default (Modal/
-  // SlideOut/etc.'s entrance animations work with zero ThemeProvider
+  // Drawer/etc.'s entrance animations work with zero ThemeProvider
   // involvement), but it means the one case this component *does* know
   // about — a `targetDocument` pointing somewhere else entirely, e.g. an
   // <iframe>'s own document via ReactDOM.createPortal — would otherwise
@@ -543,7 +543,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setTableState = (update: Partial<TableSliceState>) => setTableStateInternal(prev => ({ ...prev, ...update }));
   const setAnimationState = (update: Partial<AnimationSliceState>) => setAnimationStateInternal(prev => ({ ...prev, ...update }));
   const setTabState = (update: Partial<TabSliceState>) => setTabStateInternal(prev => ({ ...prev, ...update }));
-  const setSlideOutState = (update: Partial<SlideOutSliceState>) => setSlideOutStateInternal(prev => ({ ...prev, ...update }));
+  const setDrawerState = (update: Partial<DrawerSliceState>) => setDrawerStateInternal(prev => ({ ...prev, ...update }));
   const setAccordionState = (update: Partial<AccordionSliceState>) => setAccordionStateInternal(prev => ({ ...prev, ...update }));
   const setCardState = (update: Partial<CardSliceState>) => setCardStateInternal(prev => ({ ...prev, ...update }));
   const setTooltipState = (update: Partial<TooltipSliceState>) => setTooltipStateInternal(prev => ({ ...prev, ...update }));
@@ -576,7 +576,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     tableState,
     animationState,
     tabState,
-    slideOutState,
+    drawerState,
     accordionState,
     cardState,
     tooltipState,
@@ -615,7 +615,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setTableState,
     setAnimationState,
     setTabState,
-    setSlideOutState,
+    setDrawerState,
     setAccordionState,
     setCardState,
     setTooltipState,

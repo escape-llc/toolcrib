@@ -19,7 +19,7 @@ import {
   SubmitButton,
   RadioGroup,
   Popup,
-  SlideOut,
+  Drawer,
   Modal,
   useToast,
   DataTable,
@@ -613,13 +613,13 @@ export const App: React.FC = () => {
               Harmony: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.harmonyMode}</strong> | Mode: <strong style={{ color: 'var(--ai-text-primary)' }}>{parameters.isDarkMode ? 'Dark 🌙' : 'Light ☀️'}</strong> | Master Font: <strong style={{ color: 'var(--ai-text-primary)' }}>{typographyState.masterFontSize}px</strong>
             </span>
           </div>
-          <SlideOut
+          <Drawer
             id="theme-editor-panel"
             title="🎨 OOTB Theme Designer"
             trigger={
               // squareCorners="left" set explicitly, not left to UIGroup's
               // usual automatic CSS: that CSS only reaches its own direct
-              // children, and this Button sits two wrappers deep (SlideOut's
+              // children, and this Button sits two wrappers deep (Drawer's
               // own trigger div, then Tooltip's own trigger span) — both
               // wrappers correctly stretch/report the squared radius
               // themselves (confirmed via a real browser run), but neither
@@ -632,7 +632,7 @@ export const App: React.FC = () => {
             width="26rem"
           >
             <ThemeEditor />
-          </SlideOut>
+          </Drawer>
         </UIGroup>
       </AppShell.Header>
 
@@ -654,7 +654,7 @@ export const App: React.FC = () => {
                 items={[
                   { id: 'overview', label: '🚀 Overview & Architecture' },
                   { id: 'form', label: '📝 Form & Zod Engine' },
-                  { id: 'overlays', label: '🪟 Overlays (Popup / SlideOut / Modal)' },
+                  { id: 'overlays', label: '🪟 Overlays (Popup / Drawer / Modal)' },
                   { id: 'toasts', label: '🔔 Toast Subsystem' },
                   { id: 'datatable', label: '📊 Virtualized Data Table' },
                   { id: 'layout', label: '📐 Common Layout Idioms' },
@@ -702,7 +702,7 @@ export const App: React.FC = () => {
                             {
                               icon: '🪟',
                               title: 'Reinvented, subtly-broken overlays',
-                              body: <>A hand-rolled modal is easy to get 90% right and very easy to ship without a real focus trap, light-dismiss, or correct portal target. <code>Popup</code>, <code>Modal</code>, <code>SlideOut</code>, and <code>AlertDialog</code> wrap Radix UI primitives specifically so that 90% is handled once, correctly, instead of approximated per-component.</>,
+                              body: <>A hand-rolled modal is easy to get 90% right and very easy to ship without a real focus trap, light-dismiss, or correct portal target. <code>Popup</code>, <code>Modal</code>, <code>Drawer</code>, and <code>AlertDialog</code> wrap Radix UI primitives specifically so that 90% is handled once, correctly, instead of approximated per-component.</>,
                             },
                             {
                               icon: '🔌',
@@ -908,17 +908,17 @@ export const App: React.FC = () => {
                     </Card>
 
                     <Card>
-                      <Card.Header>SlideOut Drawer</Card.Header>
+                      <Card.Header>Drawer</Card.Header>
                       <Card.Content>
                         <p style={{ marginTop: 0 }}>Side drawer sliding in from screen edge with backdrop and light dismiss.</p>
-                        <SlideOut
-                          id="demo-slideout"
+                        <Drawer
+                          id="demo-drawer"
                           title="Application Details Drawer"
-                          trigger={<Button variant="secondary">Open SlideOut Drawer</Button>}
+                          trigger={<Button variant="secondary">Open Drawer</Button>}
                         >
                           <p>This drawer is decoupled and easily controlled by AI.</p>
-                          <Button variant="danger" onClick={() => aiBus.closeSlideOut('demo-slideout')}>Close Drawer</Button>
-                        </SlideOut>
+                          <Button variant="danger" onClick={() => aiBus.closeDrawer('demo-drawer')}>Close Drawer</Button>
+                        </Drawer>
                       </Card.Content>
                     </Card>
 
@@ -1549,7 +1549,7 @@ export const App: React.FC = () => {
                             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</div>
                             <VStack gap="sm">
                               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                                Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>SlideOut</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
+                                Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>Drawer</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
                               </p>
                               <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md)' }}>
                                 <AIErrorBoundary componentName="ShowcaseWidget" fallback={(error, reset) => (
