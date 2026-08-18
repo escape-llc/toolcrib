@@ -6,6 +6,7 @@ import { readJsonIfExists, readLock, readTextIfExists } from '../lib/project.js'
 import { listVersions } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
 import { detectBundler } from '../lib/bundler.js';
+import { checkRootProviderWired } from '../lib/rootProvider.js';
 
 const TOOLKIT_DIR = './toolcrib';
 
@@ -227,6 +228,22 @@ export async function doctorCommand(options = {}) {
   const bundler = detectBundler(projectRoot, pkg);
   if (bundler?.note) {
     p.log.info(`Detected ${bundler.label} — ${bundler.note}`);
+  }
+
+  const rootProvider = checkRootProviderWired(projectRoot);
+  if (rootProvider.found) {
+    p.log.success(
+      rootProvider.via === 'ToolcribProvider'
+        ? 'Root providers: <ToolcribProvider> found.'
+        : 'Root providers: manual <ThemeProvider>/<ToastProvider>/<ToastContainer> composition found.'
+    );
+  } else {
+    p.log.warn(
+      "Root providers: couldn't find <ToolcribProvider> or a manual <ThemeProvider>/<ToastProvider>/<ToastContainer> " +
+        'composition anywhere under src/. Every toolcrib component throws or silently no-ops without one of these ' +
+        "wrapping your app root — see CORE.md §1. (Heuristic text scan — a false warning is possible if your root " +
+        'setup uses an unusual file layout or a re-exported alias; verify directly if you believe it\'s already wired.)'
+    );
   }
 
   p.outro('Done.');

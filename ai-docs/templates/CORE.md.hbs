@@ -21,22 +21,31 @@
 
 ## 1. Root Setup
 
-Three providers must wrap your app root exactly once — components will throw ("must be used within a ...Provider") or silently no-op without them:
+Wrap your app root in `<ToolcribProvider>` exactly once — components will throw ("must be used within a ...Provider") or silently no-op without it:
+
+```tsx
+import { ToolcribProvider } from '#toolcrib';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ToolcribProvider>
+    <App />
+  </ToolcribProvider>
+);
+```
+
+`ToolcribProvider` composes `ThemeProvider` > `ToastProvider` > your app + `ToastContainer`, in the one correct nesting order, so there's no separate `ToastContainer` to remember and no ordering to get wrong. (Omitting it used to be a common silent failure with manual wiring: `aiBus.showToast()` / `addToast()` still updated state and emitted bus events, but nothing appeared on screen.) Its own `theme`/`toast` props pass straight through to the underlying providers — `theme` takes everything `ThemeProvider` itself accepts (`initialParameters`, `initialSliceStates`, `targetDocument`), `toast` takes everything `ToastProvider` accepts (`defaultAnchor`).
+
+For advanced composition — interleaving with a Router, Redux, or an Auth context at a specific nesting depth — `ThemeProvider`, `ToastProvider`, and `ToastContainer` are still individually exported and can be wired by hand in whatever order your app needs:
 
 ```tsx
 import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <ThemeProvider>
-    <ToastProvider>
-      <App />
-      {/* ToastContainer renders the actual toast stack. Omitting it is a
-          common silent failure: aiBus.showToast() / addToast() still update
-          state and emit bus events, but nothing appears on screen. */}
-      <ToastContainer />
-    </ToastProvider>
-  </ThemeProvider>
-);
+<ThemeProvider>
+  <ToastProvider>
+    <App />
+    <ToastContainer />
+  </ToastProvider>
+</ThemeProvider>
 ```
 
 `ThemeProvider` injects the HSV-derived CSS variables at `:root` on mount — nothing themed will render correctly without it. `ToastProvider` + `ToastContainer` are independent of `ThemeProvider` but must both be present together (the provider holds state; the container renders it).
@@ -72,6 +81,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 | ❌ Don't | ✅ Do Instead |
 |:---|:---|
+| Manually wire `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` at the app root | Use `<ToolcribProvider>` — composes all three in the correct order, so there's no separate `<ToastContainer>` to forget (see §1) |
 | Manually manage overlay open/close with `useState` | Let `<Modal>`, `<Drawer>`, `<Popup>` manage state internally, or use `aiBus.openModal(id)` |
 | Hardcode `z-index` values | Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'` |
 | Use `px` units for spacing, borders, radii | Use `rem` values. Only `--ai-master-font-size` is in `px` |

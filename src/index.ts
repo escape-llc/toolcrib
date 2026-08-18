@@ -103,6 +103,7 @@ export * from './components/ToggleGroup/ToggleGroup';
 export * from './components/ToggleGroup/ToggleSlice';
 export * from './components/Toolbar/Toolbar';
 export * from './components/Toolbar/ToolbarSlice';
+export * from './components/ToolcribProvider/ToolcribProvider';
 export * from './components/Tooltip/Tooltip';
 export * from './components/Tooltip/TooltipSlice';
 export * from './components/UIGroup/UIGroup';
