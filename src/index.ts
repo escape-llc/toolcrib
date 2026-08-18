@@ -111,5 +111,7 @@ export * from './components/Toolbar/ToolbarSlice';
 export * from './components/ToolcribProvider/ToolcribProvider';
 export * from './components/Tooltip/Tooltip';
 export * from './components/Tooltip/TooltipSlice';
+export * from './components/Tree/Tree';
+export * from './components/Tree/TreeSlice';
 export * from './components/UIGroup/UIGroup';
 export * from './components/UIGroup/UIGroupSlice';

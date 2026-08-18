@@ -45,6 +45,8 @@ export interface AIEventMap {
   'hovercard:hidden': { id?: string };
   'accordion:opened': { id?: string; itemValue: string };
   'accordion:closed': { id?: string; itemValue: string };
+  'tree:expanded': { id?: string; itemId: string };
+  'tree:collapsed': { id?: string; itemId: string };
   'menu:opened': { id?: string };
   'menu:closed': { id?: string };
   'menu:item_selected': { id?: string; itemValue: string };

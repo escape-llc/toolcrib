@@ -330,6 +330,52 @@
       },
       "category": "Data Display",
       "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
+    },
+    {
+      "name": "Tree",
+      "import": "import { Tree } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for `tree:expanded`/`tree:collapsed` event bus payloads. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "TreeItemData[]",
+          "required": true,
+          "description": "Root-level nodes."
+        },
+        "expandedIds": {
+          "type": "string[]",
+          "description": "Controlled set of expanded node ids. Pass to drive expansion from parent state instead of managing it internally."
+        },
+        "defaultExpandedIds": {
+          "type": "string[]",
+          "description": "Initial expanded ids when uncontrolled (`expandedIds` omitted)."
+        },
+        "onExpandedChange": {
+          "type": "(expandedIds: string[]) => void",
+          "description": "Called whenever a node expands or collapses, whether controlled or uncontrolled."
+        },
+        "selectedId": {
+          "type": "string",
+          "description": "Controlled selected node id. Pass to drive selection from parent state instead of managing it internally."
+        },
+        "defaultSelectedId": {
+          "type": "string",
+          "description": "Initial selected id when uncontrolled (`selectedId` omitted)."
+        },
+        "onSelectChange": {
+          "type": "(id: string | undefined) => void",
+          "description": "Called whenever selection changes, whether controlled or uncontrolled."
+        },
+        "overrides": {
+          "type": "Partial<TreeSliceState>",
+          "description": "Per-instance overrides for indent and row spacing."
+        }
+      },
+      "constraints": "Rendered as a flat, single-level DOM list with `aria-level`/`aria-setsize`/`aria-posinset` conveying hierarchy (not nested `role=\"group\"` elements) — a WAI-ARIA-APG-accepted alternative that keeps each visible row independently wrappable in `<DeferredContent>` for large trees",
+      "category": "Data Display",
+      "description": "Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation"
     }
   ],
   "$defs": {
@@ -401,6 +447,22 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, the tab cannot be selected."
+      }
+    },
+    "TreeItemData": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string key identifying this node."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered for this node's row."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this node cannot be expanded, collapsed, or selected."
       }
     }
   }
