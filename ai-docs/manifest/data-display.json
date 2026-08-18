@@ -71,6 +71,27 @@
       "description": "User/entity avatar image with automatic initials fallback"
     },
     {
+      "name": "Badge",
+      "import": "import { Badge } from '#toolcrib'",
+      "props": {
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then a neutral grey."
+        },
+        "size": {
+          "type": "'sm' | 'md'",
+          "default": "'md'",
+          "description": "Badge size, controlling padding and font-size."
+        },
+        "icon": {
+          "type": "ReactNode",
+          "description": "Icon rendered before the label text."
+        }
+      },
+      "category": "Data Display",
+      "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`"
+    },
+    {
       "name": "DataTable",
       "import": "import { DataTable } from '#toolcrib'",
       "props": {
