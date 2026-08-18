@@ -534,7 +534,7 @@ export const App: React.FC = () => {
       title: 'Status',
       width: 110,
       sortable: true,
-      render: (val) => (
+      render: ({ value: val }) => (
         <span
           style={{
             padding: '0.2rem 0.5rem',
@@ -546,7 +546,7 @@ export const App: React.FC = () => {
             border: `0.0625rem solid ${val === 'Active' ? 'var(--ai-subtheme-success-border)' : val === 'Pending' ? 'var(--ai-subtheme-warning-border)' : 'var(--ai-subtheme-error-border)'}`,
           }}
         >
-          {val}
+          {val as string}
         </span>
       ),
     },

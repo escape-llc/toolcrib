@@ -231,6 +231,92 @@ describe('DataTable Virtualized Component', () => {
     unsub();
   });
 
+  it('supports a controlled sortKey/sortDirection, calling onSortChange instead of managing its own state', () => {
+    const onSortChange = vi.fn();
+    const { rerender } = render(
+      <DataTable data={testData} columns={testColumns} pageSize={10} sortKey="id" sortDirection="asc" onSortChange={onSortChange} />
+    );
+
+    // The header already reflects the controlled sort (ascending).
+    expect(screen.getByText('▲')).toBeInTheDocument();
+
+    // Clicking cycles asc -> desc, but since this is controlled, the
+    // component doesn't apply that itself — it only reports it upward.
+    fireEvent.click(screen.getByText('ID'));
+    expect(onSortChange).toHaveBeenLastCalledWith('id', 'desc');
+    expect(screen.getByText('▲')).toBeInTheDocument();
+
+    // Once the parent actually updates the controlled props, the
+    // component reflects that new state.
+    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} sortKey="id" sortDirection="desc" onSortChange={onSortChange} />);
+    expect(screen.getByText('▼')).toBeInTheDocument();
+  });
+
+  it('supports a controlled page, calling onPageChange instead of managing its own state', () => {
+    const onPageChange = vi.fn();
+    const { rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} page={2} onPageChange={onPageChange} />);
+
+    expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Next page'));
+    expect(onPageChange).toHaveBeenLastCalledWith(3);
+    // Still on page 2 — the parent hasn't re-rendered with the new page yet.
+    expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
+
+    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} page={3} onPageChange={onPageChange} />);
+    expect(screen.getByText('Showing 21 to 30 of 50 entries')).toBeInTheDocument();
+  });
+
+  it('resolves a computed column via accessorFn and passes value/row/index as one object to render', () => {
+    const renderSpy = vi.fn((ctx: { value: unknown; row: TestItem; index: number }) => <>{ctx.value as string}</>);
+    const computedColumns: Column<TestItem>[] = [
+      { key: 'id', title: 'ID', sortable: true },
+      { key: 'upper', title: 'Upper', accessorFn: r => r.name.toUpperCase(), render: renderSpy },
+    ];
+
+    render(<DataTable data={testData} columns={computedColumns} pageSize={10} />);
+
+    expect(screen.getByText('ITEM 1')).toBeInTheDocument();
+    expect(renderSpy).toHaveBeenCalledWith({ value: 'ITEM 1', row: testData[0], index: 0 });
+  });
+
+  it('sorts by a computed accessorFn column instead of a direct property read', () => {
+    interface ScoredItem {
+      id: number;
+      first: string;
+      last: string;
+    }
+    const people: ScoredItem[] = [
+      { id: 1, first: 'Charlie', last: 'Zulu' },
+      { id: 2, first: 'Alice', last: 'Yankee' },
+      { id: 3, first: 'Bob', last: 'Xray' },
+    ];
+    const nameColumns: Column<ScoredItem>[] = [
+      { key: 'fullName', title: 'Full Name', sortable: true, accessorFn: r => `${r.first} ${r.last}` },
+    ];
+
+    render(<DataTable data={people} columns={nameColumns} pageSize={10} />);
+    fireEvent.click(screen.getByText('Full Name'));
+
+    const dataRows = screen.getAllByRole('row').slice(1);
+    expect(dataRows.map(row => row.textContent)).toEqual(['Alice Yankee', 'Bob Xray', 'Charlie Zulu']);
+  });
+
+  it('virtualizes across the full dataset instead of the current page when pagination is disabled', async () => {
+    const { container } = render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} itemHeight={44} />);
+
+    // No pagination footer at all in this mode.
+    expect(screen.queryByLabelText('Next page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Showing/)).not.toBeInTheDocument();
+
+    const table = container.querySelector('table');
+    const scrollBody = table?.parentElement as HTMLElement;
+    fireEvent.scroll(scrollBody, { target: { scrollTop: 50 * 44 } });
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    expect(screen.getByText('Item 50')).toBeInTheDocument();
+  });
+
   it('emits datatable:row_clicked and calls onRowClick, showing a pointer cursor only when onRowClick is given', () => {
     const rowClickedFn = vi.fn();
     const onRowClick = vi.fn();

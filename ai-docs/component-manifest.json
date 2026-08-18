@@ -936,6 +936,11 @@
           "required": true,
           "description": "Column definitions controlling header, cell rendering, and sorting."
         },
+        "pagination": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`pageSize`/`pageSizeOptions` are ignored in this mode."
+        },
         "pageSize": {
           "type": "number",
           "default": "10",
@@ -962,11 +967,46 @@
         },
         "rowSubtheme": {
           "type": "(record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined",
-          "description": "Styles a row. Return either:\n- One of the toolkit's four semantic subtheme names (`'error'` /\n  `'success'` / `'warning'` / `'info'`) — resolved via\n  `theme/subtheme.ts`'s `resolveSubtheme` into the same\n  WCAG-guaranteed colors used by `subtheme` on `Button`/`Progress`/\n  `Toast`. This is the common case: flagging a row (a failed job, a\n  pending invoice) with the toolkit's existing semantic vocabulary\n  instead of one-off colors.\n- A `Partial<SubthemeColors>` slice — `{ background?, border?, color?\n  }` (see `theme/subtheme.ts`) — for a custom row color the four\n  presets don't cover. Only the fields you set are applied; a field\n  left out falls back to that row's normal, unflagged appearance\n  (default zebra background / border / text color) rather than to\n  any preset. `resolveSubtheme(name)` returns this exact shape, so\n  `rowSubtheme={(r) => ({ ...resolveSubtheme('warning'), border:\n  myCustomBorder })}` composes a preset with a one-off override.\n\nEither form is applied to the row's background/border and to every\ncell's text color in it, and disables that row's zebra-striping so\nthe color stays legible. Return `undefined` for a row that shouldn't\nbe styled.\n\n`index` is the row's position within the *current page* (matching\n`rowKey`/`Column.render`'s `index`), not its position in the full\n`data` array — it resets to `0` at the top of every page."
+          "description": "Styles a row. Return either:\n- One of the toolkit's four semantic subtheme names (`'error'` /\n  `'success'` / `'warning'` / `'info'`) — resolved via\n  `theme/subtheme.ts`'s `resolveSubtheme` into the same\n  WCAG-guaranteed colors used by `subtheme` on `Button`/`Progress`/\n  `Toast`. This is the common case: flagging a row (a failed job, a\n  pending invoice) with the toolkit's existing semantic vocabulary\n  instead of one-off colors.\n- A `Partial<SubthemeColors>` slice — `{ background?, border?, color?\n  }` (see `theme/subtheme.ts`) — for a custom row color the four\n  presets don't cover. Only the fields you set are applied; a field\n  left out falls back to that row's normal, unflagged appearance\n  (default zebra background / border / text color) rather than to\n  any preset. `resolveSubtheme(name)` returns this exact shape, so\n  `rowSubtheme={(r) => ({ ...resolveSubtheme('warning'), border:\n  myCustomBorder })}` composes a preset with a one-off override.\n\nEither form is applied to the row's background/border and to every\ncell's text color in it, and disables that row's zebra-striping so\nthe color stays legible. Return `undefined` for a row that shouldn't\nbe styled.\n\n`index` is the row's position within the *current page* (matching\n`rowKey`/`Column.render`'s `index`), not its position in the full\n`data` array — it resets to `0` at the top of every page. When\n`pagination` is false there's only one \"page\", so it's simply this\nrow's absolute index in the sorted dataset."
         },
         "onRowClick": {
           "type": "(record: T, index: number) => void",
           "description": "Called when a row is clicked. Every row click also emits\n`datatable:row_clicked` on the event bus regardless of whether this is\ngiven, so an AI agent observing the bus can see row interactions even\nin apps that don't wire up their own handler — this prop is for the\napp's own reaction (open a detail view, select the row, etc.). Rows\nonly show a pointer cursor when this is provided, so the visual\naffordance matches what's actually clickable."
+        },
+        "sortKey": {
+          "type": "string | null",
+          "description": "Controlled sort key. Pass a value (a column's `key`, or `null` for\nunsorted) to drive sorting from parent state — e.g. to persist it in\na URL — instead of letting `<DataTable>` manage it internally. Omit\nentirely for the common uncontrolled case; `defaultSortKey` seeds\nthat internal state instead."
+        },
+        "defaultSortKey": {
+          "type": "string | null",
+          "description": "Initial sort key when uncontrolled (`sortKey` omitted)."
+        },
+        "sortDirection": {
+          "type": "'asc' | 'desc'",
+          "default": "'asc'",
+          "description": "Controlled sort direction. Only meaningful alongside `sortKey`."
+        },
+        "defaultSortDirection": {
+          "type": "'asc' | 'desc'",
+          "default": "'asc'",
+          "description": "Initial sort direction when uncontrolled."
+        },
+        "onSortChange": {
+          "type": "(key: string | null, direction: 'asc' | 'desc') => void",
+          "description": "Called whenever sort changes, whether controlled or uncontrolled —\nmirrors `datatable:sorted`'s payload shape as direct props instead\nof a bus subscription. `key` is `null` when the cycle lands back on\nunsorted."
+        },
+        "page": {
+          "type": "number",
+          "description": "Controlled current page (1-indexed). Pass a value to drive paging\nfrom parent state instead of letting `<DataTable>` manage it\ninternally. Omit for the common uncontrolled case; `defaultPage`\nseeds that internal state instead. No effect when `pagination` is\nfalse."
+        },
+        "defaultPage": {
+          "type": "number",
+          "default": "1",
+          "description": "Initial page when uncontrolled (`page` omitted)."
+        },
+        "onPageChange": {
+          "type": "(page: number) => void",
+          "description": "Called whenever the page changes, whether controlled or uncontrolled."
         },
         "overrides": {
           "type": "Partial<TableSliceState>",
@@ -1969,9 +2009,13 @@
     },
     "Column": {
       "key": {
-        "type": "string",
+        "type": "(keyof T & string) | (string & {})",
         "required": true,
-        "description": "Property key on the data record to read the cell value from."
+        "description": "Property key on the data record to read the cell value from, and\nthis column's identifier for sorting/React-key purposes. Typed\nagainst `T` — with a plain-string fallback preserved so this isn't a\nbreaking change for existing callers — so an editor/AI agent gets\nreal autocomplete instead of guessing a property name. Still\nrequired when `accessorFn` is given, as this column's stable id;\npick any string in that case, since the value itself comes from\n`accessorFn` instead."
+      },
+      "accessorFn": {
+        "type": "(record: T) => unknown",
+        "description": "Computed cell value for a column that isn't a direct property read\n(a concatenation, a derived/formatted field). Receives the full\nrecord and takes precedence over `record[key]` when given — this\ncolumn also participates in sorting through it."
       },
       "title": {
         "type": "string",
@@ -1979,8 +2023,8 @@
         "description": "Header text for this column."
       },
       "render": {
-        "type": "(value: any, record: T, index: number) => ReactNode",
-        "description": "Custom cell renderer. Receives the cell value, full record, and row index."
+        "type": "(context: CellContext<T>) => ReactNode",
+        "description": "Custom cell renderer. Receives this cell's value/row/index as a single object."
       },
       "sortable": {
         "type": "boolean",

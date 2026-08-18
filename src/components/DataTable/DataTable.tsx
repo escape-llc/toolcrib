@@ -9,14 +9,44 @@ import { useStableId } from '../shared/useStableId';
 import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
 
+/** Argument passed to a `Column.render` callback for one cell. */
+export interface CellContext<T = any> {
+  /** This cell's resolved value — from `accessorFn` if given, else `record[key]`. */
+  value: unknown;
+  /** The full data record for this cell's row. */
+  row: T;
+  /**
+   * This row's index — matches `rowKey`/`rowSubtheme`/`onRowClick`'s
+   * `index` exactly (see `rowSubtheme`'s doc for its page-relative vs.
+   * absolute distinction, which applies here too).
+   */
+  index: number;
+}
+
 /** Column definition for `<DataTable>`. */
 export interface Column<T = any> {
-  /** Property key on the data record to read the cell value from. */
-  key: string;
+  /**
+   * Property key on the data record to read the cell value from, and
+   * this column's identifier for sorting/React-key purposes. Typed
+   * against `T` — with a plain-string fallback preserved so this isn't a
+   * breaking change for existing callers — so an editor/AI agent gets
+   * real autocomplete instead of guessing a property name. Still
+   * required when `accessorFn` is given, as this column's stable id;
+   * pick any string in that case, since the value itself comes from
+   * `accessorFn` instead.
+   */
+  key: (keyof T & string) | (string & {});
+  /**
+   * Computed cell value for a column that isn't a direct property read
+   * (a concatenation, a derived/formatted field). Receives the full
+   * record and takes precedence over `record[key]` when given — this
+   * column also participates in sorting through it.
+   */
+  accessorFn?: (record: T) => unknown;
   /** Header text for this column. */
   title: string;
-  /** Custom cell renderer. Receives the cell value, full record, and row index. */
-  render?: (value: any, record: T, index: number) => ReactNode;
+  /** Custom cell renderer. Receives this cell's value/row/index as a single object. */
+  render?: (context: CellContext<T>) => ReactNode;
   /** If true, clicking this column header toggles sorting. @default false */
   sortable?: boolean;
   /** Column width as CSS value (e.g. `'12rem'`) or number (px). */
@@ -42,6 +72,15 @@ export interface DataTableProps<T = any> {
   data: T[];
   /** Column definitions controlling header, cell rendering, and sorting. */
   columns: Column<T>[];
+  /**
+   * Renders a page-at-a-time with Prev/Next controls when true (the
+   * default). Set to false to virtualize across the *entire* sorted
+   * dataset instead — no pagination footer, no page slicing — the
+   * better fit once a dataset is too large to page through usefully.
+   * `pageSize`/`pageSizeOptions` are ignored in this mode.
+   * @default true
+   */
+  pagination?: boolean;
   /**
    * Initial number of rows per page.
    * @default 10
@@ -89,7 +128,9 @@ export interface DataTableProps<T = any> {
    *
    * `index` is the row's position within the *current page* (matching
    * `rowKey`/`Column.render`'s `index`), not its position in the full
-   * `data` array — it resets to `0` at the top of every page.
+   * `data` array — it resets to `0` at the top of every page. When
+   * `pagination` is false there's only one "page", so it's simply this
+   * row's absolute index in the sorted dataset.
    */
   rowSubtheme?: (record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined;
   /**
@@ -102,6 +143,39 @@ export interface DataTableProps<T = any> {
    * affordance matches what's actually clickable.
    */
   onRowClick?: (record: T, index: number) => void;
+  /**
+   * Controlled sort key. Pass a value (a column's `key`, or `null` for
+   * unsorted) to drive sorting from parent state — e.g. to persist it in
+   * a URL — instead of letting `<DataTable>` manage it internally. Omit
+   * entirely for the common uncontrolled case; `defaultSortKey` seeds
+   * that internal state instead.
+   */
+  sortKey?: string | null;
+  /** Initial sort key when uncontrolled (`sortKey` omitted). */
+  defaultSortKey?: string | null;
+  /** Controlled sort direction. Only meaningful alongside `sortKey`. @default 'asc' */
+  sortDirection?: 'asc' | 'desc';
+  /** Initial sort direction when uncontrolled. @default 'asc' */
+  defaultSortDirection?: 'asc' | 'desc';
+  /**
+   * Called whenever sort changes, whether controlled or uncontrolled —
+   * mirrors `datatable:sorted`'s payload shape as direct props instead
+   * of a bus subscription. `key` is `null` when the cycle lands back on
+   * unsorted.
+   */
+  onSortChange?: (key: string | null, direction: 'asc' | 'desc') => void;
+  /**
+   * Controlled current page (1-indexed). Pass a value to drive paging
+   * from parent state instead of letting `<DataTable>` manage it
+   * internally. Omit for the common uncontrolled case; `defaultPage`
+   * seeds that internal state instead. No effect when `pagination` is
+   * false.
+   */
+  page?: number;
+  /** Initial page when uncontrolled (`page` omitted). @default 1 */
+  defaultPage?: number;
+  /** Called whenever the page changes, whether controlled or uncontrolled. */
+  onPageChange?: (page: number) => void;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
 }
@@ -114,6 +188,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   id: propId,
   data,
   columns,
+  pagination = true,
   pageSize: initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50, 100],
   itemHeight = 44,
@@ -121,6 +196,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   rowKey,
   rowSubtheme,
   onRowClick,
+  sortKey: controlledSortKey,
+  defaultSortKey,
+  sortDirection: controlledSortDirection,
+  defaultSortDirection,
+  onSortChange,
+  page: controlledPage,
+  defaultPage,
+  onPageChange,
   overrides,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
@@ -132,10 +215,23 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // 'none' }}` instead of always drawing a border regardless.
   const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
   useInjectInteractionStyles();
-  const [currentPage, setCurrentPage] = useState(1);
+
+  // Sort and page each follow the same controlled/uncontrolled split as
+  // TabStrip's activeId: a prop of `undefined` means "manage it
+  // internally" (seeded from the matching `default*` prop), anything else
+  // means the parent owns that state and this component only ever reads
+  // it back through the resolved `sortKey`/`currentPage` below.
+  const [internalSortKey, setInternalSortKey] = useState<string | null>(defaultSortKey ?? null);
+  const [internalSortDirection, setInternalSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection ?? 'asc');
+  const isSortControlled = controlledSortKey !== undefined;
+  const sortKey = isSortControlled ? controlledSortKey : internalSortKey;
+  const sortDirection = isSortControlled ? controlledSortDirection ?? 'asc' : internalSortDirection;
+
+  const [internalPage, setInternalPage] = useState(defaultPage ?? 1);
+  const isPageControlled = controlledPage !== undefined;
+  const currentPage = isPageControlled ? controlledPage : internalPage;
+
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [scrollTop, setScrollTop] = useState(0);
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -175,9 +271,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // 1. Sorting
   const sortedData = useMemo(() => {
     if (!sortKey) return data;
+    // A column with `accessorFn` sorts by its computed value instead of a
+    // direct `record[sortKey]` read — the same function that produces its
+    // cell value.
+    const sortColumn = columns.find(c => c.key === sortKey);
+    const getValue = (record: T): unknown => (sortColumn?.accessorFn ? sortColumn.accessorFn(record) : record[sortKey]);
     return [...data].sort((a, b) => {
-      const valA = a[sortKey];
-      const valB = b[sortKey];
+      const valA = getValue(a);
+      const valB = getValue(b);
       if (valA === valB) return 0;
       if (valA == null) return 1;
       if (valB == null) return -1;
@@ -198,11 +299,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortKey, sortDirection]);
+  }, [data, sortKey, sortDirection, columns]);
 
-  // 2. Pagination
-  const totalPages = Math.max(1, Math.ceil(sortedData.length / pageSize));
-  const validCurrentPage = Math.min(currentPage, totalPages);
+  // 2. Pagination — skipped entirely when `pagination` is false, in which
+  // case `paginatedData` below is the full sorted array and step 3's
+  // virtualization windows across all of it instead of one page at a time.
+  const totalPages = pagination ? Math.max(1, Math.ceil(sortedData.length / pageSize)) : 1;
+  const validCurrentPage = pagination ? Math.min(currentPage, totalPages) : 1;
 
   // `validCurrentPage` above only ever clamps the *derived, render-only*
   // value used for display — it never wrote the clamp back into the
@@ -217,15 +320,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // silently jumps to "5 / 5" instead of staying on the page the user was
   // just looking at). Syncing the actual state here, once, whenever
   // `totalPages` changes is what makes the earlier clamp durable instead of
-  // cosmetic.
+  // cosmetic. Skipped when the page is controlled — that state is the
+  // parent's to own, not something this effect can write back into.
   useEffect(() => {
-    setCurrentPage(p => Math.min(p, totalPages));
-  }, [totalPages]);
+    if (isPageControlled) return;
+    setInternalPage(p => Math.min(p, totalPages));
+  }, [totalPages, isPageControlled]);
 
   const paginatedData = useMemo(() => {
+    if (!pagination) return sortedData;
     const start = (validCurrentPage - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);
-  }, [sortedData, validCurrentPage, pageSize]);
+  }, [sortedData, validCurrentPage, pageSize, pagination]);
 
   // 3. Virtualization within current page view & adaptive height
   const totalItems = paginatedData.length;
@@ -266,14 +372,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       newKey = key;
       newDirection = 'asc';
     }
-    setSortKey(newKey);
-    setSortDirection(newDirection);
+    if (!isSortControlled) {
+      setInternalSortKey(newKey);
+      setInternalSortDirection(newDirection);
+    }
+    onSortChange?.(newKey, newDirection);
     aiBus.emit('datatable:sorted', { id, key: newKey, direction: newDirection });
   };
 
   const goToPage = (page: number) => {
     const clamped = Math.max(1, Math.min(page, totalPages));
-    setCurrentPage(clamped);
+    if (!isPageControlled) setInternalPage(clamped);
+    onPageChange?.(clamped);
     aiBus.emit('datatable:paginated', { id, page: clamped, pageSize });
   };
 
@@ -429,7 +539,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   }}
                 >
                   {columns.map(col => {
-                    const value = record[col.key];
+                    const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
                     return (
                       <td
                         key={col.key}
@@ -442,7 +552,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           borderRight: 'var(--ai-table-border, none)',
                         }}
                       >
-                        {col.render ? col.render(value, record, actualIndex) : String(value ?? '')}
+                        {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
                       </td>
                     );
                   })}
@@ -460,7 +570,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         </table>
       </div>
 
-      {/* Pagination Footer */}
+      {/* Pagination Footer — omitted entirely when `pagination` is false,
+          since there's no page concept to show controls for; the table
+          above is already virtualizing across the full dataset in that
+          mode. */}
+      {pagination && (
       <div
         style={{
           display: 'flex',
@@ -487,7 +601,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               onChange={e => {
                 const newSize = Number(e.target.value);
                 setPageSize(newSize);
-                setCurrentPage(1);
+                if (!isPageControlled) setInternalPage(1);
+                onPageChange?.(1);
                 aiBus.emit('datatable:paginated', { id, page: 1, pageSize: newSize });
               }}
               className="ai-btn"
@@ -561,6 +676,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           </UIGroup>
         </div>
       </div>
+      )}
     </div>
   );
 }

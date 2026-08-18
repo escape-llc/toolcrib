@@ -133,7 +133,7 @@ Generated from `component-manifest.json` (`@manifestCategory`-grouped) — **Pro
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
 | `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
-| `<DataTable>` | — | `id`, `data`, `columns`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
+| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 
