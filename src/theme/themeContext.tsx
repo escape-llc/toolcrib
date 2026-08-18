@@ -40,6 +40,7 @@ import { ToolbarThemeSlice } from '../components/Toolbar/ToolbarSlice';
 import { AppShellThemeSlice } from '../components/AppShell/AppShellSlice';
 import { TypographyThemeSlice } from './typography';
 import { TreeThemeSlice } from '../components/Tree/TreeSlice';
+import { RatingThemeSlice } from '../components/Rating/RatingSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { ToolcribSliceStateMap, ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
@@ -81,6 +82,7 @@ globalThemeSliceRegistry.register(ToolbarThemeSlice);
 globalThemeSliceRegistry.register(AppShellThemeSlice);
 globalThemeSliceRegistry.register(TypographyThemeSlice);
 globalThemeSliceRegistry.register(TreeThemeSlice);
+globalThemeSliceRegistry.register(RatingThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {

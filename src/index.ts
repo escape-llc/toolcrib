@@ -90,6 +90,8 @@ export * from './components/Overlay/PopupSlice';
 export * from './components/Pagination/Pagination';
 export * from './components/Progress/Progress';
 export * from './components/Progress/ProgressSlice';
+export * from './components/Rating/Rating';
+export * from './components/Rating/RatingSlice';
 export * from './components/ScrollArea/ScrollArea';
 export * from './components/ScrollArea/ScrollAreaSlice';
 export * from './components/Separator/Separator';

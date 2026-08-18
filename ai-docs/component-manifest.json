@@ -108,6 +108,8 @@
       "--ai-radius-md",
       "--ai-radius-sm",
       "--ai-radius-xl",
+      "--ai-rating-gap",
+      "--ai-rating-icon-size",
       "--ai-scrollarea-thumb-size",
       "--ai-select-item-padding",
       "--ai-select-trigger-padding",
@@ -313,6 +315,10 @@
       {
         "id": "tree",
         "name": "🌳 Tree Indent & Row Spacing"
+      },
+      {
+        "id": "rating",
+        "name": "⭐ Rating Icon Size & Gap"
       }
     ]
   },
@@ -485,6 +491,10 @@
       {
         "name": "toggle:changed",
         "payload": "{ name?: string; pressed: boolean }"
+      },
+      {
+        "name": "rating:changed",
+        "payload": "{ name?: string; value: number }"
       },
       {
         "name": "togglegroup:changed",
@@ -1580,6 +1590,50 @@
       },
       "category": "Form Controls",
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
+    },
+    {
+      "name": "Rating",
+      "import": "import { Rating } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name included in emitted `rating:changed` events."
+        },
+        "value": {
+          "type": "number",
+          "description": "Controlled value."
+        },
+        "defaultValue": {
+          "type": "number",
+          "default": "0",
+          "description": "Initial value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: number) => void",
+          "description": "Change handler. Receives the newly selected whole-number rating. Not called in `readOnly` mode."
+        },
+        "max": {
+          "type": "number",
+          "default": "5",
+          "description": "Number of icons."
+        },
+        "icon": {
+          "type": "ReactNode",
+          "default": "a star glyph",
+          "description": "Icon rendered for a filled position."
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Renders a non-interactive display instead of a collecting control —\nfor showing an existing (possibly fractional, e.g. an average) rating\nrather than gathering one. `value` may be fractional in this mode; the\nicon at a fractional position renders partially filled."
+        },
+        "overrides": {
+          "type": "Partial<RatingSliceState>",
+          "description": "Per-instance overrides for icon size and gap."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Star rating control built on Radix RadioGroup, or a read-only fractional-fill display"
     },
     {
       "name": "ScrollArea",

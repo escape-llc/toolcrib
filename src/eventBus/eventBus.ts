@@ -55,6 +55,7 @@ export interface AIEventMap {
   'fileupload:changed': { name?: string; fileCount: number };
   'slider:changed': { name?: string; value: number };
   'toggle:changed': { name?: string; pressed: boolean };
+  'rating:changed': { name?: string; value: number };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
