@@ -26,3 +26,6 @@ cli/integration-test/releases/
 # Curated visual reference (npm run generate-storyboard) — regenerated on
 # demand, not a pixel-diff regression baseline, not checked in.
 /storyboard/
+
+# temp folder for in-flight plans from other AI sessions
+.plans/
