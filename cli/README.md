@@ -141,6 +141,16 @@ anything. It reports:
   needs a `'use client'` directive, since Next's App Router treats
   components as server-only by default.
 
+**`--reprint-managed-block [docId]`** re-prints the current managed block(s)
+to stdout instead of running the checks above — for re-injecting the
+primer into an agent session that's lost it to context compaction,
+without starting a new session:
+
+```bash
+toolcrib doctor --reprint-managed-block          # every block found
+toolcrib doctor --reprint-managed-block core     # just one docId
+```
+
 ### `toolcrib merge`
 
 Stages an upgrade from your currently installed version to another.

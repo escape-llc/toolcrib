@@ -93,13 +93,68 @@ export async function checkManagedBlocks(projectRoot, installedRelease) {
 }
 
 /**
+ * Every managed block currently sitting in AGENTS.md/CLAUDE.md, available
+ * to reprint on demand — no network access, no lockfile requirement, just
+ * `listManagedBlocks` over whatever's already on disk. `docIdFilter`
+ * narrows to one docId; omitted, every block found across both files is
+ * returned. Doesn't validate `docIdFilter` against MANAGED_DOCS itself —
+ * an unrecognized filter here would just silently produce `[]`, the wrong
+ * failure mode for a typo'd docId, so that check lives in the caller.
+ */
+export function listReprintableBlocks(projectRoot, docIdFilter) {
+  const results = [];
+  for (const targetFile of KNOWN_TARGET_FILES) {
+    const content = readTextIfExists(path.join(projectRoot, targetFile));
+    if (!content) continue;
+    for (const block of listManagedBlocks(content)) {
+      if (docIdFilter && block.docId !== docIdFilter) continue;
+      results.push({ targetFile, ...block });
+    }
+  }
+  return results;
+}
+
+/**
  * Reports drift without staging any patches — a read-only diagnostic.
  * "No drift" here answers a different question than "are you on the
  * latest version," which is checked separately below; the two are
  * deliberately not conflated (see design notes).
  */
-export async function doctorCommand() {
+export async function doctorCommand(options = {}) {
   const projectRoot = process.cwd();
+
+  // Reprint mode is a different question entirely from everything below —
+  // "what's the current managed-block content" rather than "has anything
+  // drifted" — so it branches before p.intro/readLock and skips both.
+  // Left entirely clack-free (no p.log, no intro/outro): the block content
+  // is meant to be re-fed into an agent's context, and clack's per-line
+  // `│` decoration would corrupt copy/paste of multi-line Markdown: kept
+  // the whole branch undecorated rather than just the payload lines, so
+  // there's no orphaned p.log message with no intro/outro frame around it.
+  if (options.reprintManagedBlock !== undefined) {
+    const docIdFilter = options.reprintManagedBlock === true ? undefined : options.reprintManagedBlock;
+    if (docIdFilter !== undefined && !MANAGED_DOCS[docIdFilter]) {
+      console.error(`Unknown docId "${docIdFilter}" — expected one of: ${Object.keys(MANAGED_DOCS).join(', ')}`);
+      process.exitCode = 1;
+      return;
+    }
+    const blocks = listReprintableBlocks(projectRoot, docIdFilter);
+    if (blocks.length === 0) {
+      console.warn(
+        docIdFilter
+          ? `No managed block "${docIdFilter}" found in AGENTS.md/CLAUDE.md.`
+          : 'No managed blocks found in AGENTS.md/CLAUDE.md — nothing to reprint.'
+      );
+      return;
+    }
+    for (const block of blocks) {
+      console.log(`--- ${block.targetFile}: managed block "${block.docId}" (v${block.version}) ---`);
+      console.log(block.content);
+      console.log('');
+    }
+    return;
+  }
+
   p.intro('toolcrib doctor');
 
   const lock = readLock(projectRoot);

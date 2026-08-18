@@ -61,8 +61,12 @@ program
 program
   .command('doctor')
   .description('Check installed files for local drift and available updates (read-only)')
-  .action(async () => {
-    await doctorCommand().catch(fail);
+  .option(
+    '--reprint-managed-block [docId]',
+    're-print the current managed block(s) to stdout, for re-injecting into an agent session that lost the primer to context compaction; optionally scope to one docId (core/new-app/refactor-app)'
+  )
+  .action(async (options) => {
+    await doctorCommand(options).catch(fail);
   });
 
 program

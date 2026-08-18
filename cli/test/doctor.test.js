@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { checkManagedBlocks, checkImportsCompatibility } from '../src/commands/doctor.js';
+import { checkManagedBlocks, checkImportsCompatibility, listReprintableBlocks } from '../src/commands/doctor.js';
 import { buildManagedBlock } from '../src/lib/managedDocs.js';
 
 /**
@@ -100,6 +100,56 @@ describe('checkManagedBlocks', () => {
     fs.writeFileSync(agentsPath, buildManagedBlock('core', '2.0.0', docContent));
     const messages = await checkManagedBlocks(tmpDir, release);
     expect(messages).toEqual([]); // same version, same content — nothing to report
+  });
+});
+
+describe('listReprintableBlocks', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns nothing when there is no AGENTS.md/CLAUDE.md at all', () => {
+    expect(listReprintableBlocks(tmpDir)).toEqual([]);
+  });
+
+  it('returns a block found in AGENTS.md, labeled with its target file', () => {
+    fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules.\n'));
+
+    const blocks = listReprintableBlocks(tmpDir);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({ targetFile: 'AGENTS.md', docId: 'core', version: '1.0.0', content: 'Core rules.' });
+  });
+
+  it('returns nothing when filtered to a docId that is not present', () => {
+    fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules.\n'));
+
+    expect(listReprintableBlocks(tmpDir, 'new-app')).toEqual([]);
+  });
+
+  it('filters to just the matching docId when multiple blocks are present in the same file', () => {
+    let content = buildManagedBlock('core', '1.0.0', 'Core rules.\n');
+    content += '\n' + buildManagedBlock('new-app', '1.0.0', 'New app guide.\n');
+    fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), content);
+
+    const blocks = listReprintableBlocks(tmpDir, 'new-app');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({ docId: 'new-app', content: 'New app guide.' });
+  });
+
+  it('returns blocks from both AGENTS.md and CLAUDE.md, each labeled with its own target file', () => {
+    fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules.\n'));
+    fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), buildManagedBlock('refactor-app', '1.0.0', 'Refactor guide.\n'));
+
+    const blocks = listReprintableBlocks(tmpDir);
+    expect(blocks).toHaveLength(2);
+    expect(blocks.find((b) => b.docId === 'core')).toMatchObject({ targetFile: 'AGENTS.md' });
+    expect(blocks.find((b) => b.docId === 'refactor-app')).toMatchObject({ targetFile: 'CLAUDE.md' });
   });
 });
 
