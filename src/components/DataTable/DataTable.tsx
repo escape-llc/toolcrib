@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, ReactNode } from 'react';
+import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
+import { Toolbar } from '../Toolbar/Toolbar';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -177,6 +179,40 @@ export interface DataTableProps<T = any> {
   defaultPage?: number;
   /** Called whenever the page changes, whether controlled or uncontrolled. */
   onPageChange?: (page: number) => void;
+  /**
+   * Adds a checkbox selection column and a bulk-action bar. Greenfield —
+   * there is no selection model on `<DataTable>` without this.
+   * @default false
+   */
+  selectable?: boolean;
+  /**
+   * Controlled set of selected row keys (matching whatever `rowKey`
+   * resolves to, stringified). Pass to drive selection from parent state
+   * instead of letting `<DataTable>` manage it internally. Omit for the
+   * common uncontrolled case; `defaultSelectedKeys` seeds that internal
+   * state instead.
+   *
+   * Selection persists across pages — a `Set` of keys held regardless of
+   * `page`, not reset per page — since "select N of M rows, filtered
+   * across pages" is the realistic case a bulk-action bar exists for.
+   * This is correct out of the box only with a real, stable `rowKey`
+   * (e.g. `record => record.id`); the default index-based fallback key is
+   * only unique *within the current dataset order*, so it survives simple
+   * pagination but not a re-sort or a data mutation, the same inherent
+   * limitation `rowKey`'s own index-based fallback already has elsewhere.
+   */
+  selectedKeys?: string[];
+  /** Initial selected keys when uncontrolled (`selectedKeys` omitted). */
+  defaultSelectedKeys?: string[];
+  /** Called whenever selection changes, whether controlled or uncontrolled. */
+  onSelectionChange?: (selectedKeys: string[]) => void;
+  /**
+   * Renders the action buttons in the bulk-action `<Toolbar>` that appears
+   * once at least one row is selected — the selection-count label is
+   * already provided; this renders only the actions themselves (e.g.
+   * "Delete", "Export"), receiving the current selection to act on.
+   */
+  renderBulkActions?: (selectedKeys: string[]) => ReactNode;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
 }
@@ -205,6 +241,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   page: controlledPage,
   defaultPage,
   onPageChange,
+  selectable = false,
+  selectedKeys: controlledSelectedKeys,
+  defaultSelectedKeys,
+  onSelectionChange,
+  renderBulkActions,
   overrides,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
@@ -333,6 +374,55 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, validCurrentPage, pageSize, pagination]);
 
+  // Row selection. `pageOffset` is 0 when pagination is disabled
+  // (`paginatedData` is already the full sorted array in that case, so its
+  // own index is already dataset-absolute) and the current page's starting
+  // offset otherwise -- used only for the index-based selection-key
+  // fallback below, entirely separate from `rowKey`'s own existing
+  // page-relative index contract (`actualIndex` in the row-render loop),
+  // which this doesn't change.
+  const pageOffset = pagination ? (validCurrentPage - 1) * pageSize : 0;
+  const getSelectionKey = (record: T, pageRelativeIndex: number): string =>
+    rowKey ? String(rowKey(record, pageRelativeIndex)) : String(pageOffset + pageRelativeIndex);
+
+  const [internalSelectedKeys, setInternalSelectedKeys] = useState<Set<string>>(
+    () => new Set(defaultSelectedKeys ?? [])
+  );
+  const isSelectionControlled = controlledSelectedKeys !== undefined;
+  const selectedKeySet = isSelectionControlled ? new Set(controlledSelectedKeys) : internalSelectedKeys;
+
+  const updateSelection = (next: Set<string>) => {
+    if (!isSelectionControlled) setInternalSelectedKeys(next);
+    const arr = Array.from(next);
+    onSelectionChange?.(arr);
+    aiBus.emit('datatable:selection_changed', { id, selectedKeys: arr });
+  };
+
+  const toggleRowSelected = (key: string) => {
+    const next = new Set(selectedKeySet);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    updateSelection(next);
+  };
+
+  // Scoped to the *current page* only, per the doc's own spec -- "some but
+  // not all of the current page selected" -- even though `selectedKeySet`
+  // itself holds keys from any page (selection persists across pages).
+  const currentPageKeys = useMemo(
+    () => (selectable ? paginatedData.map((record, i) => getSelectionKey(record, i)) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectable, paginatedData, rowKey, pageOffset]
+  );
+  const allOnPageSelected = selectable && currentPageKeys.length > 0 && currentPageKeys.every(k => selectedKeySet.has(k));
+  const someOnPageSelected = selectable && !allOnPageSelected && currentPageKeys.some(k => selectedKeySet.has(k));
+
+  const toggleSelectAllOnPage = () => {
+    const next = new Set(selectedKeySet);
+    if (allOnPageSelected) currentPageKeys.forEach(k => next.delete(k));
+    else currentPageKeys.forEach(k => next.add(k));
+    updateSelection(next);
+  };
+
   // 3. Virtualization within current page view & adaptive height
   const totalItems = paginatedData.length;
   // Fallback used both for virtualization math and as this component's own
@@ -422,6 +512,20 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ...vars,
       }}
     >
+      {/* Bulk Action Bar — appears once at least one row is selected, across any page. */}
+      {selectable && selectedKeySet.size > 0 && (
+        <div style={{ borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
+          <Toolbar>
+            <Toolbar.Left>
+              <span style={{ fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-primary, #111827)' }}>
+                {selectedKeySet.size} selected
+              </span>
+            </Toolbar.Left>
+            <Toolbar.Right>{renderBulkActions?.(Array.from(selectedKeySet))}</Toolbar.Right>
+          </Toolbar>
+        </div>
+      )}
+
       {/* Scrollable Virtualized Body (Fills parent flex box when containerHeight="auto") */}
       <div
         ref={bodyRef}
@@ -455,6 +559,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           }}
         >
           <colgroup>
+            {selectable && <col style={{ width: '2.75rem' }} />}
             {columns.map(col => (
               <col key={col.key} style={{ width: col.width ? (typeof col.width === 'number' ? `${col.width}px` : col.width) : undefined }} />
             ))}
@@ -471,6 +576,35 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             }}
           >
             <tr>
+              {selectable && (
+                <th style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))', width: '2.75rem' }}>
+                  <CheckboxPrimitive.Root
+                    checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
+                    onCheckedChange={toggleSelectAllOnPage}
+                    aria-label="Select all rows on this page"
+                    className="ai-focus-ring"
+                    style={{
+                      all: 'unset',
+                      width: '1.125rem',
+                      height: '1.125rem',
+                      borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                      border: `0.0625rem solid ${allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                      background: allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <CheckboxPrimitive.Indicator
+                      style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                    >
+                      {allOnPageSelected ? '✓' : '−'}
+                    </CheckboxPrimitive.Indicator>
+                  </CheckboxPrimitive.Root>
+                </th>
+              )}
               {columns.map(col => (
                 <th
                   key={col.key}
@@ -499,7 +633,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           <tbody>
             {startIndex > 0 && (
               <tr>
-                <td colSpan={columns.length} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
+                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
               </tr>
             )}
 
@@ -510,6 +644,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               const subtheme = rowSubtheme?.(record, actualIndex);
               const subthemeColors: Partial<SubthemeColors> | null =
                 typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
+              const selectionKey = selectable ? getSelectionKey(record, actualIndex) : null;
+              const isRowSelected = selectionKey !== null && selectedKeySet.has(selectionKey);
               return (
                 <tr
                   key={key}
@@ -525,12 +661,46 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         ? 'none'
                         : `0.0625rem dashed ${subthemeColors.border}`
                       : '0.0625rem solid var(--ai-border, #f3f4f6)',
-                    background: subthemeColors?.background
+                    background: isRowSelected
+                      ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.08))'
+                      : subthemeColors?.background
                       ? subthemeColors.background
                       : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
                     transition: 'background 0.15s ease',
                   }}
                 >
+                  {selectable && selectionKey !== null && (
+                    <td
+                      style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <CheckboxPrimitive.Root
+                        checked={isRowSelected}
+                        onCheckedChange={() => toggleRowSelected(selectionKey)}
+                        aria-label={`Select row ${actualIndex + 1}`}
+                        className="ai-focus-ring"
+                        style={{
+                          all: 'unset',
+                          width: '1.125rem',
+                          height: '1.125rem',
+                          borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                          border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                          background: isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <CheckboxPrimitive.Indicator
+                          style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                        >
+                          ✓
+                        </CheckboxPrimitive.Indicator>
+                      </CheckboxPrimitive.Root>
+                    </td>
+                  )}
                   {columns.map(col => {
                     const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
                     return (
@@ -556,7 +726,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             {/* Virtual Spacer Bottom */}
             {endIndex < totalItems && (
               <tr>
-                <td colSpan={columns.length} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
+                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
               </tr>
             )}
           </tbody>

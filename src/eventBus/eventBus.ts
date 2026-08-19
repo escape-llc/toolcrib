@@ -62,6 +62,7 @@ export interface AIEventMap {
   'stepper:changed': { id?: string; activeIndex: number; previousIndex?: number };
   'datatable:sorted': { id?: string; key: string | null; direction: 'asc' | 'desc' };
   'datatable:paginated': { id?: string; page: number; pageSize: number };
+  'datatable:selection_changed': { id?: string; selectedKeys: string[] };
   'pagination:changed': { id?: string; page: number; pageSize: number };
   'datatable:row_clicked': { id?: string; index: number };
   'log:cleared': { timestamp: string };

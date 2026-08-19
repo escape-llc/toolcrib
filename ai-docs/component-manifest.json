@@ -535,6 +535,10 @@
         "payload": "{ id?: string; page: number; pageSize: number }"
       },
       {
+        "name": "datatable:selection_changed",
+        "payload": "{ id?: string; selectedKeys: string[] }"
+      },
+      {
         "name": "pagination:changed",
         "payload": "{ id?: string; page: number; pageSize: number }"
       },
@@ -1081,6 +1085,27 @@
         "onPageChange": {
           "type": "(page: number) => void",
           "description": "Called whenever the page changes, whether controlled or uncontrolled."
+        },
+        "selectable": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Adds a checkbox selection column and a bulk-action bar. Greenfield —\nthere is no selection model on `<DataTable>` without this."
+        },
+        "selectedKeys": {
+          "type": "string[]",
+          "description": "Controlled set of selected row keys (matching whatever `rowKey`\nresolves to, stringified). Pass to drive selection from parent state\ninstead of letting `<DataTable>` manage it internally. Omit for the\ncommon uncontrolled case; `defaultSelectedKeys` seeds that internal\nstate instead.\n\nSelection persists across pages — a `Set` of keys held regardless of\n`page`, not reset per page — since \"select N of M rows, filtered\nacross pages\" is the realistic case a bulk-action bar exists for.\nThis is correct out of the box only with a real, stable `rowKey`\n(e.g. `record => record.id`); the default index-based fallback key is\nonly unique *within the current dataset order*, so it survives simple\npagination but not a re-sort or a data mutation, the same inherent\nlimitation `rowKey`'s own index-based fallback already has elsewhere."
+        },
+        "defaultSelectedKeys": {
+          "type": "string[]",
+          "description": "Initial selected keys when uncontrolled (`selectedKeys` omitted)."
+        },
+        "onSelectionChange": {
+          "type": "(selectedKeys: string[]) => void",
+          "description": "Called whenever selection changes, whether controlled or uncontrolled."
+        },
+        "renderBulkActions": {
+          "type": "(selectedKeys: string[]) => ReactNode",
+          "description": "Renders the action buttons in the bulk-action `<Toolbar>` that appears\nonce at least one row is selected — the selection-count label is\nalready provided; this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
         },
         "overrides": {
           "type": "Partial<TableSliceState>",

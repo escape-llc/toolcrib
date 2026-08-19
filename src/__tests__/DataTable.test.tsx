@@ -338,4 +338,146 @@ describe('DataTable Virtualized Component', () => {
 
     unsub();
   });
+
+  describe('row selection', () => {
+    it('renders no selection checkboxes when selectable is false (the default)', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+    });
+
+    it('selects a row via its checkbox and calls onSelectionChange', () => {
+      const onSelectionChange = vi.fn();
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          onSelectionChange={onSelectionChange}
+        />
+      );
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(onSelectionChange).toHaveBeenCalledWith(['1']);
+    });
+
+    it('clicking a row checkbox does not also trigger onRowClick', () => {
+      const onRowClick = vi.fn();
+      render(
+        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable onRowClick={onRowClick} />
+      );
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(onRowClick).not.toHaveBeenCalled();
+    });
+
+    it('the header checkbox reflects unchecked/indeterminate/checked for the current page only', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      const headerCheckbox = screen.getByLabelText('Select all rows on this page');
+      expect(headerCheckbox).toHaveAttribute('data-state', 'unchecked');
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(headerCheckbox).toHaveAttribute('data-state', 'indeterminate');
+
+      for (let i = 1; i <= 10; i++) {
+        fireEvent.click(screen.getByLabelText(`Select row ${i}`));
+      }
+      // Row 1 was already selected -- clicking it again above toggled it off, so re-select it.
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(headerCheckbox).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('the header checkbox selects/deselects every row on the current page at once', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      fireEvent.click(screen.getByLabelText('Select all rows on this page'));
+      for (let i = 1; i <= 10; i++) {
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'checked');
+      }
+
+      fireEvent.click(screen.getByLabelText('Select all rows on this page'));
+      for (let i = 1; i <= 10; i++) {
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'unchecked');
+      }
+    });
+
+    // The doc's own acceptance bar for this item: proves selection actually
+    // persists across pages, not just that the feature was decided that way.
+    it('persists selection across pages — selecting a row, changing page, then returning shows it still checked', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+
+      fireEvent.click(screen.getByLabelText('Next page'));
+      // "Select row 1" is a page-relative label (matching rowSubtheme's own
+      // documented index convention), so it's reused here for a *different*
+      // underlying record (page 2's first row, id 11) -- confirm that one
+      // shows unchecked, proving selection tracks real row identity via
+      // rowKey, not display position.
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+
+      fireEvent.click(screen.getByLabelText('Previous page'));
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('supports a controlled selectedKeys, calling onSelectionChange instead of managing its own state', () => {
+      const onSelectionChange = vi.fn();
+      const { rerender } = render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          selectedKeys={['1']}
+          onSelectionChange={onSelectionChange}
+        />
+      );
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+
+      fireEvent.click(screen.getByLabelText('Select row 2'));
+      expect(onSelectionChange).toHaveBeenCalledWith(['1', '2']);
+      // Still only row 1 checked -- the parent hasn't re-rendered with the new selection yet.
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'unchecked');
+
+      rerender(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          selectedKeys={['1', '2']}
+          onSelectionChange={onSelectionChange}
+        />
+      );
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('emits datatable:selection_changed', () => {
+      const changedFn = vi.fn();
+      const unsub = aiBus.on('datatable:selection_changed', changedFn);
+      render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(changedFn).toHaveBeenLastCalledWith({ id: 'my-table', selectedKeys: ['1'] });
+      unsub();
+    });
+
+    it('shows the bulk action bar with a selection count only once at least one row is selected, rendering the consumer-supplied actions', () => {
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          renderBulkActions={keys => <button>{`Delete ${keys.length}`}</button>}
+        />
+      );
+      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Delete 1' })).toBeInTheDocument();
+    });
+  });
 });

@@ -98,6 +98,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
 | Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<AppShell layout="sidebar-left"\|"sidebar-right">` + `<AppShell.Sidebar>` + `<Sidebar>` — active-item, icon-only collapse, and the correct divider border side all come for free |
 | Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
+| Hand-roll `<DataTable>` row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic) | Use `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` — the checkbox column, 3-state header checkbox, and cross-page persistence all come built in |
 
 ---
 
@@ -161,7 +162,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
 | `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
 | `<Badge>` | — | `subtheme`, `size`, `icon` | Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>` |
-| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
+| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `renderBulkActions`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
@@ -357,7 +358,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[51]{name,payload}:
+[52]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -404,6 +405,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "stepper:changed","{ id?: string; activeIndex: number; previousIndex?: number }"
   "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"
+  "datatable:selection_changed","{ id?: string; selectedKeys: string[] }"
   "pagination:changed","{ id?: string; page: number; pageSize: number }"
   "datatable:row_clicked","{ id?: string; index: number }"
   "log:cleared","{ timestamp: string }"
