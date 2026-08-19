@@ -285,6 +285,36 @@
       "description": "Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection"
     },
     {
+      "name": "Gallery",
+      "import": "import { Gallery } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting (forwarded to the internal `<Viewer>`). Auto-generated if omitted."
+        },
+        "items": {
+          "type": "GalleryItem[]",
+          "required": true,
+          "description": "Array of items to render."
+        },
+        "columns": {
+          "type": "number | 'auto-fit' | 'auto-fill'",
+          "default": "'auto-fit'",
+          "description": "Number of columns, or `'auto-fit'`/`'auto-fill'` for responsive\nbehaviour — passed straight through to `<Grid>`'s own prop."
+        },
+        "onItemClick": {
+          "type": "(item: GalleryItem, index: number) => void",
+          "description": "Custom click handler, called instead of the default \"open in\n`<Viewer>`\" behaviour. Use this to host `<ViewerContent>` in a\n`<Drawer>`/`<Popup>`/anywhere else of your own choosing — `<Gallery>`\nitself doesn't need to know or care which shell you pick."
+        },
+        "overrides": {
+          "type": "Partial<GallerySliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for thumbnail aspect ratio."
+        }
+      },
+      "category": "Data Display",
+      "description": "Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default"
+    },
+    {
       "name": "Progress",
       "import": "import { Progress } from '#toolcrib'",
       "props": {
@@ -563,6 +593,31 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, the item cannot be selected."
+      }
+    },
+    "GalleryItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this item."
+      },
+      "thumbnailSrc": {
+        "type": "string",
+        "required": true,
+        "description": "Thumbnail image source shown in the grid."
+      },
+      "fullSrc": {
+        "type": "string",
+        "required": true,
+        "description": "Full-resolution image source opened in the `<Viewer>` (or passed to `onItemClick`)."
+      },
+      "alt": {
+        "type": "string",
+        "description": "Alt text, used for both the thumbnail and the full-resolution image."
+      },
+      "caption": {
+        "type": "ReactNode",
+        "description": "Optional caption shown in the `<Viewer>` for this item."
       }
     },
     "StepperStepData": {

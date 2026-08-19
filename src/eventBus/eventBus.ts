@@ -67,6 +67,7 @@ export interface AIEventMap {
   'progress:changed': { id?: string; value: number; max: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
   'filmstrip:changed': { id?: string; activeId: string; previousId?: string };
+  /** Also emitted by `<Gallery>`'s internal `<Viewer>`, sharing that Gallery's own `id`. */
   'viewer:item_changed': { id?: string; activeIndex: number };
   'viewer:shown': { id?: string };
   'viewer:hidden': { id?: string };
