@@ -30,6 +30,7 @@
       "--ai-bg-primary",
       "--ai-bg-surface",
       "--ai-border",
+      "--ai-breadcrumb-gap",
       "--ai-btn-bg",
       "--ai-button-font-weight",
       "--ai-button-hover-amount",
@@ -339,6 +340,10 @@
       {
         "id": "datepicker",
         "name": "📅 Date Picker Grid Cell Size"
+      },
+      {
+        "id": "breadcrumb",
+        "name": "🍞 Breadcrumb Item Gap"
       }
     ]
   },
@@ -806,6 +811,27 @@
       },
       "category": "Data Display",
       "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`"
+    },
+    {
+      "name": "Breadcrumb",
+      "import": "import { Breadcrumb } from '#toolcrib'",
+      "slots": [
+        "Item",
+        "Separator"
+      ],
+      "props": {
+        "separator": {
+          "type": "ReactNode",
+          "default": "`<Breadcrumb.Separator />` (a \"›\" glyph)",
+          "description": "Separator rendered between items."
+        },
+        "overrides": {
+          "type": "Partial<BreadcrumbSliceState>",
+          "description": "Per-instance override for item gap."
+        }
+      },
+      "category": "Data Display",
+      "description": "Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow"
     },
     {
       "name": "Button",

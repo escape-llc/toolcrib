@@ -42,6 +42,8 @@ export * from './components/AppShell/AppShellSlice';
 export * from './components/Avatar/Avatar';
 export * from './components/Avatar/AvatarSlice';
 export * from './components/Badge/Badge';
+export * from './components/Breadcrumb/Breadcrumb';
+export * from './components/Breadcrumb/BreadcrumbSlice';
 export * from './components/Card/Card';
 export * from './components/Card/CardSimple';
 export * from './components/Card/CardSlice';

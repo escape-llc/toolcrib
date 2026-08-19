@@ -44,6 +44,7 @@ import { RatingThemeSlice } from '../components/Rating/RatingSlice';
 import { SidebarThemeSlice } from '../components/Sidebar/SidebarSlice';
 import { StepperThemeSlice } from '../components/Stepper/StepperSlice';
 import { DatePickerThemeSlice } from '../components/DatePicker/DatePickerSlice';
+import { BreadcrumbThemeSlice } from '../components/Breadcrumb/BreadcrumbSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { ToolcribSliceStateMap, ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
@@ -89,6 +90,7 @@ globalThemeSliceRegistry.register(RatingThemeSlice);
 globalThemeSliceRegistry.register(SidebarThemeSlice);
 globalThemeSliceRegistry.register(StepperThemeSlice);
 globalThemeSliceRegistry.register(DatePickerThemeSlice);
+globalThemeSliceRegistry.register(BreadcrumbThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {

@@ -92,6 +92,27 @@
       "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`"
     },
     {
+      "name": "Breadcrumb",
+      "import": "import { Breadcrumb } from '#toolcrib'",
+      "slots": [
+        "Item",
+        "Separator"
+      ],
+      "props": {
+        "separator": {
+          "type": "ReactNode",
+          "default": "`<Breadcrumb.Separator />` (a \"›\" glyph)",
+          "description": "Separator rendered between items."
+        },
+        "overrides": {
+          "type": "Partial<BreadcrumbSliceState>",
+          "description": "Per-instance override for item gap."
+        }
+      },
+      "category": "Data Display",
+      "description": "Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow"
+    },
+    {
       "name": "DataTable",
       "import": "import { DataTable } from '#toolcrib'",
       "props": {
