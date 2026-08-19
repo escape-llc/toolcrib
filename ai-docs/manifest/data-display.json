@@ -279,6 +279,41 @@
       "description": "Indeterminate circular loading indicator, same subtheme colouring as `<Progress>`"
     },
     {
+      "name": "Stepper",
+      "import": "import { Stepper } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for `stepper:changed` event bus payloads. Auto-generated if omitted."
+        },
+        "steps": {
+          "type": "StepperStepData[]",
+          "required": true,
+          "description": "Steps to render, in order."
+        },
+        "activeIndex": {
+          "type": "number",
+          "description": "Controlled active step index."
+        },
+        "defaultActiveIndex": {
+          "type": "number",
+          "default": "0",
+          "description": "Initial active step index when uncontrolled."
+        },
+        "onActiveIndexChange": {
+          "type": "(index: number) => void",
+          "description": "Called whenever the active step changes, whether controlled or uncontrolled."
+        },
+        "overrides": {
+          "type": "Partial<StepperSliceState>",
+          "description": "Per-instance override for indicator/label size."
+        }
+      },
+      "constraints": "Forward navigation past a step with `formId` set is blocked until that step's `<Form>` reports `isValid: true`",
+      "category": "Data Display",
+      "description": "Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating"
+    },
+    {
       "name": "TabStrip",
       "import": "import { TabStrip } from '#toolcrib'",
       "slots": [
@@ -427,6 +462,31 @@
       "width": {
         "type": "string | number",
         "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      }
+    },
+    "StepperStepData": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique key for this step."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Label rendered next to this step's number/checkmark indicator."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered for this step."
+      },
+      "formId": {
+        "type": "string",
+        "description": "If given, forward navigation past this step is blocked until a\n`<Form id={formId}>` somewhere in `content` reports `isValid: true`\nover the event bus (`form:validated`). Omit for a step with no form to\ngate on (e.g. a pure informational/review step)."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this step can never be navigated to directly (still counts toward the linear sequence)."
       }
     },
     "TabItem": {

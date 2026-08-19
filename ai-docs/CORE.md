@@ -97,6 +97,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation | Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free |
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
 | Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<AppShell layout="sidebar-left"\|"sidebar-right">` + `<AppShell.Sidebar>` + `<Sidebar>` — active-item, icon-only collapse, and the correct divider border side all come for free |
+| Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
 
 ---
 
@@ -165,6 +166,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
 | `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
+| `<Stepper>` | — | `id`, `steps`, `activeIndex`, `defaultActiveIndex`, `onActiveIndexChange`, `overrides` | Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 | `<Tree>` | — | `id`, `items`, `expandedIds`, `defaultExpandedIds`, `onExpandedChange`, `selectedId`, `defaultSelectedId`, `onSelectChange`, `overrides` | Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation |
 
@@ -292,7 +294,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`.
 
 Register custom slices:
 ```tsx
@@ -355,7 +357,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[50]{name,payload}:
+[51]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -399,6 +401,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
+  "stepper:changed","{ id?: string; activeIndex: number; previousIndex?: number }"
   "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"
   "pagination:changed","{ id?: string; page: number; pageSize: number }"

@@ -43,6 +43,7 @@
       "--ai-color-accent",
       "--ai-color-accent-text",
       "--ai-color-base",
+      "--ai-color-on-primary",
       "--ai-color-primary",
       "--ai-color-primary-text",
       "--ai-color-quaternary",
@@ -122,6 +123,8 @@
       "--ai-sidebar-item-gap",
       "--ai-slider-thumb-size",
       "--ai-slider-track-height",
+      "--ai-stepper-font-size",
+      "--ai-stepper-indicator-size",
       "--ai-subtheme-error",
       "--ai-subtheme-error-bg",
       "--ai-subtheme-error-border",
@@ -326,6 +329,10 @@
       {
         "id": "sidebar",
         "name": "🧭 Sidebar Nav Item Spacing"
+      },
+      {
+        "id": "stepper",
+        "name": "🔢 Stepper Indicator Size"
       }
     ]
   },
@@ -514,6 +521,10 @@
       {
         "name": "tab:changed",
         "payload": "{ id?: string; activeId: string; previousId?: string }"
+      },
+      {
+        "name": "stepper:changed",
+        "payload": "{ id?: string; activeIndex: number; previousIndex?: number }"
       },
       {
         "name": "datatable:sorted",
@@ -1902,6 +1913,41 @@
       "description": "Resizable two-panel layout with automatic corner-squaring domain"
     },
     {
+      "name": "Stepper",
+      "import": "import { Stepper } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for `stepper:changed` event bus payloads. Auto-generated if omitted."
+        },
+        "steps": {
+          "type": "StepperStepData[]",
+          "required": true,
+          "description": "Steps to render, in order."
+        },
+        "activeIndex": {
+          "type": "number",
+          "description": "Controlled active step index."
+        },
+        "defaultActiveIndex": {
+          "type": "number",
+          "default": "0",
+          "description": "Initial active step index when uncontrolled."
+        },
+        "onActiveIndexChange": {
+          "type": "(index: number) => void",
+          "description": "Called whenever the active step changes, whether controlled or uncontrolled."
+        },
+        "overrides": {
+          "type": "Partial<StepperSliceState>",
+          "description": "Per-instance override for indicator/label size."
+        }
+      },
+      "constraints": "Forward navigation past a step with `formId` set is blocked until that step's `<Form>` reports `isValid: true`",
+      "category": "Data Display",
+      "description": "Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating"
+    },
+    {
       "name": "TabStrip",
       "import": "import { TabStrip } from '#toolcrib'",
       "slots": [
@@ -2405,6 +2451,31 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, this item is not selectable."
+      }
+    },
+    "StepperStepData": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique key for this step."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Label rendered next to this step's number/checkmark indicator."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Content rendered for this step."
+      },
+      "formId": {
+        "type": "string",
+        "description": "If given, forward navigation past this step is blocked until a\n`<Form id={formId}>` somewhere in `content` reports `isValid: true`\nover the event bus (`form:validated`). Omit for a step with no form to\ngate on (e.g. a pure informational/review step)."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this step can never be navigated to directly (still counts toward the linear sequence)."
       }
     },
     "TabItem": {

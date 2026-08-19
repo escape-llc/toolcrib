@@ -102,6 +102,8 @@ export * from './components/Skeleton/Skeleton';
 export * from './components/Spinner/Spinner';
 export * from './components/Splitter/LayoutDomainContext';
 export * from './components/Splitter/Splitter';
+export * from './components/Stepper/Stepper';
+export * from './components/Stepper/StepperSlice';
 export * from './components/TabStrip/TabSlice';
 export * from './components/TabStrip/TabStrip';
 export * from './components/ThemeEditor/ThemeEditor';
