@@ -37,6 +37,13 @@ export interface ModalProps {
    */
   width?: string;
   /**
+   * Height of the modal dialog panel. Omit to size to content (the common
+   * case) — set this for content that needs to fill a fixed amount of
+   * space rather than shrink-to-fit, e.g. `<Viewer>`'s fullscreen-ish
+   * lightbox.
+   */
+  height?: string;
+  /**
    * Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default.
    * @default Z_INDEX.MODAL (200)
    */
@@ -72,6 +79,7 @@ export const Modal: React.FC<ModalProps> & {
   isOpen: externalIsOpen,
   onOpenChange,
   width = '31.25rem',
+  height,
   zIndex = Z_INDEX.MODAL,
   ariaLabel = 'Dialog',
   overrides,
@@ -141,6 +149,7 @@ export const Modal: React.FC<ModalProps> & {
               border: '0.0625rem solid var(--ai-border, #e5e7eb)',
               boxShadow: '0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3)',
               width,
+              height,
               maxWidth: '90vw',
               maxHeight: '90vh',
               display: 'flex',

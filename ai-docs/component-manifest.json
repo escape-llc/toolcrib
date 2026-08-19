@@ -192,7 +192,10 @@
       "--ai-transition-slow",
       "--ai-tree-indent",
       "--ai-tree-item-gap",
-      "--ai-uigroup-overlap"
+      "--ai-uigroup-overlap",
+      "--ai-viewer-caption-bg",
+      "--ai-viewer-caption-color",
+      "--ai-viewer-nav-button-size"
     ],
     "slices": [
       {
@@ -566,6 +569,18 @@
       {
         "name": "filmstrip:changed",
         "payload": "{ id?: string; activeId: string; previousId?: string }"
+      },
+      {
+        "name": "viewer:item_changed",
+        "payload": "{ id?: string; activeIndex: number }"
+      },
+      {
+        "name": "viewer:shown",
+        "payload": "{ id?: string }"
+      },
+      {
+        "name": "viewer:hidden",
+        "payload": "{ id?: string }"
       },
       {
         "name": "stepper:changed",
@@ -1706,6 +1721,10 @@
           "default": "'31.25rem' (500px at 16px base)",
           "description": "Width of the modal dialog panel."
         },
+        "height": {
+          "type": "string",
+          "description": "Height of the modal dialog panel. Omit to size to content (the common\ncase) — set this for content that needs to fill a fixed amount of\nspace rather than shrink-to-fit, e.g. `<Viewer>`'s fullscreen-ish\nlightbox."
+        },
         "zIndex": {
           "type": "number",
           "default": "Z_INDEX.MODAL (200)",
@@ -2549,6 +2568,60 @@
       "description": "Merges adjacent elements into a single visual compound control"
     },
     {
+      "name": "Viewer",
+      "import": "import { Viewer } from '#toolcrib'",
+      "props": {
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the viewer opens or closes."
+        }
+      },
+      "category": "Overlays",
+      "description": "Fullscreen media lightbox — composes ViewerContent inside Modal"
+    },
+    {
+      "name": "ViewerContent",
+      "import": "import { ViewerContent } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "ViewerItem[]",
+          "required": true,
+          "description": "Array of media items to display."
+        },
+        "activeIndex": {
+          "type": "number",
+          "description": "Controlled active item index. Omit to let `<ViewerContent>` manage its own state internally."
+        },
+        "defaultActiveIndex": {
+          "type": "number",
+          "default": "0",
+          "description": "Initial active index when uncontrolled."
+        },
+        "onIndexChange": {
+          "type": "(index: number) => void",
+          "description": "Change callback fired whenever the active item changes, controlled or not."
+        },
+        "onClose": {
+          "type": "() => void",
+          "description": "When provided, renders a close affordance (an in-content close button)\nthat calls this on click. Omit entirely for a standalone/inline embed\nwith nothing to close. `<Viewer>` wires this to `<Modal>`'s own\n`onOpenChange`; `ViewerContent` itself never listens for Escape — that's\nthe host's job, not content's."
+        },
+        "overrides": {
+          "type": "Partial<ViewerSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for nav button size and caption placement."
+        }
+      },
+      "category": "Overlays",
+      "description": "Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing"
+    },
+    {
       "name": "VisuallyHidden",
       "import": "import { VisuallyHidden } from '#toolcrib'",
       "props": {},
@@ -2896,6 +2969,26 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, this node cannot be expanded, collapsed, or selected."
+      }
+    },
+    "ViewerItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this item."
+      },
+      "src": {
+        "type": "string",
+        "required": true,
+        "description": "Full-resolution image source."
+      },
+      "alt": {
+        "type": "string",
+        "description": "Alt text for the image."
+      },
+      "caption": {
+        "type": "React.ReactNode",
+        "description": "Optional caption rendered below (or over, per `overrides.captionPosition`) the media."
       }
     }
   }

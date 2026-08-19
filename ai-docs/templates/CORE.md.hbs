@@ -103,6 +103,8 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
 | Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
+| Build a bespoke fullscreen image lightbox, independent of `<Modal>` | Use `<Viewer>` — composes `<ViewerContent>` inside `<Modal>` automatically; nested inside another `<Modal>`, Escape closes only the `<Viewer>`, not the parent |
+| Weld a media viewer's zoom/pan/nav content directly to one specific overlay component | Use `<ViewerContent>` on its own — zero overlay chrome of its own, host it inside `<Modal>` (`<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline |
 
 ---
 

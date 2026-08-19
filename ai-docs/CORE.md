@@ -103,6 +103,8 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
 | Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
+| Build a bespoke fullscreen image lightbox, independent of `<Modal>` | Use `<Viewer>` — composes `<ViewerContent>` inside `<Modal>` automatically; nested inside another `<Modal>`, Escape closes only the `<Viewer>`, not the parent |
+| Weld a media viewer's zoom/pan/nav content directly to one specific overlay component | Use `<ViewerContent>` on its own — zero overlay chrome of its own, host it inside `<Modal>` (`<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline |
 
 ---
 
@@ -154,9 +156,11 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 | `<Drawer>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
 | `<HoverCard>` | — | `id`, `content`, `side`, `align`, `openDelay`, `closeDelay`, `overrides` | Hover-triggered preview card for rich, interactive content |
-| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
+| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `height`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
+| `<Viewer>` | — | `isOpen`, `onOpenChange` | Fullscreen media lightbox — composes ViewerContent inside Modal |
+| `<ViewerContent>` | — | `id`, `items`, `activeIndex`, `defaultActiveIndex`, `onIndexChange`, `onClose`, `overrides` | Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing |
 
 ### Data Display
 
@@ -368,7 +372,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[60]{name,payload}:
+[63]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -420,6 +424,9 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
   "filmstrip:changed","{ id?: string; activeId: string; previousId?: string }"
+  "viewer:item_changed","{ id?: string; activeIndex: number }"
+  "viewer:shown","{ id?: string }"
+  "viewer:hidden","{ id?: string }"
   "stepper:changed","{ id?: string; activeIndex: number; previousIndex?: number }"
   "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"
