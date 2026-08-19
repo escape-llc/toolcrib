@@ -102,6 +102,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll date-picker calendar math, or pass a raw JS `Date` into `<DatePicker>`/`<Calendar>`/`<TimeField>` | Use `<DatePicker>`/`<Calendar>`/`<TimeField>` with `@internationalized/date` values (`CalendarDate`/`Time`) — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
+| Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
 
 ---
 

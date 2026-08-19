@@ -102,6 +102,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll date-picker calendar math, or pass a raw JS `Date` into `<DatePicker>`/`<Calendar>`/`<TimeField>` | Use `<DatePicker>`/`<Calendar>`/`<TimeField>` with `@internationalized/date` values (`CalendarDate`/`Time`) — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
+| Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
 
 ---
 
@@ -169,6 +170,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Breadcrumb>` | `.Item`, `.Separator` | `separator`, `overrides` | Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow |
 | `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `renderBulkActions`, `overrides` | Virtualized, sortable, paginated data table with sticky headers |
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
+| `<Filmstrip>` | — | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `thumbnailSize`, `overrides` | Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
 | `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
@@ -366,7 +368,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[59]{name,payload}:
+[60]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -417,6 +419,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"
+  "filmstrip:changed","{ id?: string; activeId: string; previousId?: string }"
   "stepper:changed","{ id?: string; activeIndex: number; previousIndex?: number }"
   "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"

@@ -246,6 +246,45 @@
       "description": "Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>`"
     },
     {
+      "name": "Filmstrip",
+      "import": "import { Filmstrip } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "FilmstripItem[]",
+          "required": true,
+          "description": "Array of thumbnail definitions to render."
+        },
+        "activeId": {
+          "type": "string",
+          "description": "Controlled active item id. Omit to let `<Filmstrip>` manage its own state internally."
+        },
+        "defaultActiveId": {
+          "type": "string",
+          "default": "items[0]?.id",
+          "description": "Initial active item when uncontrolled."
+        },
+        "onChange": {
+          "type": "(id: string) => void",
+          "description": "Change callback fired whenever the active item changes, controlled or not."
+        },
+        "thumbnailSize": {
+          "type": "string",
+          "default": "'4rem'",
+          "description": "Width/height of each thumbnail slot."
+        },
+        "overrides": {
+          "type": "Partial<TabSliceState>",
+          "description": "Per-instance overrides for the active-item indicator. Reuses\n`<TabStrip>`'s own registered `ThemeSlice` (its active-indicator\ntokens — `variant`/`size` are ignored here) rather than a second,\nparallel slice, so a filmstrip's active-thumbnail ring always matches\nthe app's tab styling."
+        }
+      },
+      "category": "Data Display",
+      "description": "Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection"
+    },
+    {
       "name": "Progress",
       "import": "import { Progress } from '#toolcrib'",
       "props": {
@@ -504,6 +543,26 @@
       "width": {
         "type": "string | number",
         "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      }
+    },
+    "FilmstripItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this item — used in `activeId` and `onChange`."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Thumbnail content rendered in the strip, e.g. an `<img>`."
+      },
+      "label": {
+        "type": "string",
+        "description": "Accessible label for this item, e.g. `\"Photo 3 of 12\"`."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the item cannot be selected."
       }
     },
     "StepperStepData": {

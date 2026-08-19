@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { Tabs as TabsPrimitive } from 'radix-ui';
-import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { useScrollOverflow } from '../shared/useScrollOverflow';
 import { TabThemeSlice, TabSliceState } from './TabSlice';
 
 /** Data shape for each tab in a `<TabStrip>`. */
@@ -73,8 +73,7 @@ export const TabStrip: React.FC<TabStripProps> & {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
   useInjectInteractionStyles();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const { canScrollLeft, canScrollRight, scrollBy } = useScrollOverflow(scrollContainerRef, [items]);
 
   const [internalActiveId, setInternalActiveId] = useState(defaultActiveId ?? items[0]?.id ?? '');
   const isControlled = controlledActiveId !== undefined;
@@ -116,36 +115,6 @@ export const TabStrip: React.FC<TabStripProps> & {
     if (nextId !== previousIdRef.current) {
       aiBus.emit('tab:changed', { id: groupId, activeId: nextId, previousId: previousIdRef.current });
       previousIdRef.current = nextId;
-    }
-  };
-
-  const { width } = useAdaptiveSize(scrollContainerRef);
-
-  const checkScroll = () => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 2);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
-  };
-
-  useEffect(() => {
-    checkScroll();
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const handleScroll = () => checkScroll();
-    el.addEventListener('scroll', handleScroll);
-
-    return () => {
-      el.removeEventListener('scroll', handleScroll);
-    };
-  }, [items, width]);
-
-  const scrollBy = (delta: number) => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: delta, behavior: 'smooth' });
     }
   };
 

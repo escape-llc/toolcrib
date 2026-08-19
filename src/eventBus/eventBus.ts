@@ -66,6 +66,7 @@ export interface AIEventMap {
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
+  'filmstrip:changed': { id?: string; activeId: string; previousId?: string };
   'stepper:changed': { id?: string; activeIndex: number; previousIndex?: number };
   'datatable:sorted': { id?: string; key: string | null; direction: 'asc' | 'desc' };
   'datatable:paginated': { id?: string; page: number; pageSize: number };
