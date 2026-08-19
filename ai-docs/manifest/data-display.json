@@ -113,6 +113,40 @@
       "description": "Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow"
     },
     {
+      "name": "Carousel",
+      "import": "import { Carousel } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "slides": {
+          "type": "CarouselSlideItem[]",
+          "required": true,
+          "description": "Array of slides to render."
+        },
+        "loop": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Whether the carousel wraps from the last slide back to the first (and\nvice versa) instead of stopping at the ends."
+        },
+        "autoplay": {
+          "type": "{ delayMs: number }",
+          "description": "When provided, automatically advances to the next slide every `delayMs`. Omit for no autoplay."
+        },
+        "onSlideChange": {
+          "type": "(index: number) => void",
+          "description": "Change callback fired whenever the active slide changes, from drag, arrow click, dot click, or autoplay."
+        },
+        "overrides": {
+          "type": "Partial<CarouselSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for arrow size, dot size/colour, and slide gap."
+        }
+      },
+      "category": "Data Display",
+      "description": "Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators"
+    },
+    {
       "name": "DataTable",
       "import": "import { DataTable } from '#toolcrib'",
       "props": {
@@ -544,6 +578,18 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, the item cannot be expanded or collapsed."
+      }
+    },
+    "CarouselSlideItem": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this slide."
+      },
+      "content": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Slide content — any renderable element (an image, a card, arbitrary markup)."
       }
     },
     "Column": {

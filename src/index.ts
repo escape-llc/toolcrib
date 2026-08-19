@@ -47,6 +47,8 @@ export * from './components/Breadcrumb/BreadcrumbSlice';
 export * from './components/Card/Card';
 export * from './components/Card/CardSimple';
 export * from './components/Card/CardSlice';
+export * from './components/Carousel/Carousel';
+export * from './components/Carousel/CarouselSlice';
 export * from './components/Collapsible/Collapsible';
 export * from './components/Collapsible/CollapsibleSlice';
 export * from './components/CommandPalette/CommandPalette';

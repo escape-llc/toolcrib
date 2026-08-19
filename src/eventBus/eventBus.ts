@@ -65,6 +65,7 @@ export interface AIEventMap {
   'timefield:changed': { name?: string; value: string | null };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
+  'carousel:changed': { id?: string; activeIndex: number; previousIndex?: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
   'filmstrip:changed': { id?: string; activeId: string; previousId?: string };
   /** Also emitted by `<Gallery>`'s internal `<Viewer>`, sharing that Gallery's own `id`. */
