@@ -43,6 +43,7 @@ import { TreeThemeSlice } from '../components/Tree/TreeSlice';
 import { RatingThemeSlice } from '../components/Rating/RatingSlice';
 import { SidebarThemeSlice } from '../components/Sidebar/SidebarSlice';
 import { StepperThemeSlice } from '../components/Stepper/StepperSlice';
+import { DatePickerThemeSlice } from '../components/DatePicker/DatePickerSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { ToolcribSliceStateMap, ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
@@ -87,6 +88,7 @@ globalThemeSliceRegistry.register(TreeThemeSlice);
 globalThemeSliceRegistry.register(RatingThemeSlice);
 globalThemeSliceRegistry.register(SidebarThemeSlice);
 globalThemeSliceRegistry.register(StepperThemeSlice);
+globalThemeSliceRegistry.register(DatePickerThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {

@@ -12,6 +12,51 @@
       "description": "Styled button with five variants, three sizes, subtheme colouring, and icon slots"
     },
     {
+      "name": "Calendar",
+      "import": "import { Calendar } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name included in emitted `calendar:changed` events."
+        },
+        "value": {
+          "type": "CalendarDate | null",
+          "description": "Controlled selected date, as an `@internationalized/date` `CalendarDate`\n-- never a raw JS `Date` at this boundary. Convert to/from a plain\n`Date` at your own call site if your backend needs one."
+        },
+        "defaultValue": {
+          "type": "CalendarDate | null",
+          "description": "Initial selected date (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: CalendarDate) => void",
+          "description": "Change handler. Receives the newly selected date."
+        },
+        "minValue": {
+          "type": "CalendarDate",
+          "description": "Earliest selectable date, inclusive."
+        },
+        "maxValue": {
+          "type": "CalendarDate",
+          "description": "Latest selectable date, inclusive."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the whole calendar is non-interactive."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag controlling month/day names, week start day, and\ndate-grid layout. Fixed, not browser-auto-detected -- see\n`<TimeField>`'s own doc for why an explicit default (not just a\nprovider's presence) is what actually prevents an SSR hydration\nmismatch."
+        },
+        "overrides": {
+          "type": "Partial<DatePickerSliceState>",
+          "description": "Per-instance override for grid cell size."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Month grid for selecting a single date, built on React Aria Components"
+    },
+    {
       "name": "Combobox",
       "import": "import { Combobox } from '#toolcrib'",
       "props": {
@@ -75,6 +120,55 @@
       },
       "category": "Form Controls",
       "description": "Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context"
+    },
+    {
+      "name": "DatePicker",
+      "import": "import { DatePicker } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label rendered above the field."
+        },
+        "value": {
+          "type": "CalendarDate | null",
+          "description": "Controlled value, as an `@internationalized/date` `CalendarDate` --\nnever a raw JS `Date` at this boundary. Convert to/from a plain `Date`\nat your own call site if your backend needs one."
+        },
+        "defaultValue": {
+          "type": "CalendarDate | null",
+          "description": "Initial value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: CalendarDate | null) => void",
+          "description": "Change handler. Receives the newly selected date, or `null` if cleared."
+        },
+        "minValue": {
+          "type": "CalendarDate",
+          "description": "Earliest selectable date, inclusive."
+        },
+        "maxValue": {
+          "type": "CalendarDate",
+          "description": "Latest selectable date, inclusive."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the field is non-interactive."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag. Fixed, not browser-auto-detected -- see\n`<TimeField>`'s own doc for why an explicit default (not just a\nprovider's presence) is what actually prevents an SSR hydration\nmismatch."
+        },
+        "overrides": {
+          "type": "Partial<DatePickerSliceState>",
+          "description": "Per-instance override for the calendar popover's grid cell size."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components"
     },
     {
       "name": "FileUpload",
@@ -410,6 +504,52 @@
       },
       "category": "Form Controls",
       "description": "Real-time HSV theme editor content — no overlay chrome of its own;\nhost it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing."
+    },
+    {
+      "name": "TimeField",
+      "import": "import { TimeField } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label rendered above the input."
+        },
+        "value": {
+          "type": "Time | null",
+          "description": "Controlled value, as an `@internationalized/date` `Time` -- never a raw\nJS `Date` at this boundary (timezone/DST correctness is exactly what\nthat type exists to guarantee). Convert to/from a plain `Date` at your\nown call site if your backend needs one."
+        },
+        "defaultValue": {
+          "type": "Time | null",
+          "description": "Initial value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: Time | null) => void",
+          "description": "Change handler. Receives the new `Time`, or `null` if cleared."
+        },
+        "granularity": {
+          "type": "'hour' | 'minute' | 'second'",
+          "default": "'minute'",
+          "description": "Smallest displayed unit."
+        },
+        "hourCycle": {
+          "type": "12 | 24",
+          "description": "12-hour vs. 24-hour display. Defaults to the active locale's own convention."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the field is non-interactive."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag controlling segment order and hour-cycle default.\nFixed, not browser-auto-detected -- an explicit default is what\nprevents an SSR hydration mismatch (server and client disagreeing),\nnot the presence of a provider by itself."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components"
     },
     {
       "name": "Toggle",

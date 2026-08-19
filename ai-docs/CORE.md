@@ -99,6 +99,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<AppShell layout="sidebar-left"\|"sidebar-right">` + `<AppShell.Sidebar>` + `<Sidebar>` — active-item, icon-only collapse, and the correct divider border side all come for free |
 | Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
 | Hand-roll `<DataTable>` row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic) | Use `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` — the checkbox column, 3-state header checkbox, and cross-page persistence all come built in |
+| Hand-roll date-picker calendar math, or pass a raw JS `Date` into `<DatePicker>`/`<Calendar>`/`<TimeField>` | Use `<DatePicker>`/`<Calendar>`/`<TimeField>` with `@internationalized/date` values (`CalendarDate`/`Time`) — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
 
 ---
 
@@ -178,7 +179,9 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Button>` | — | — | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
+| `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Month grid for selecting a single date, built on React Aria Components |
 | `<Combobox>` | — | `name`, `placeholder`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
+| `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |
 | `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
@@ -189,6 +192,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Slider>` | — | `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `overrides` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot` | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing. |
+| `<TimeField>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `granularity`, `hourCycle`, `isDisabled`, `locale` | Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components |
 | `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
 | `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled`, `overrides` | Connected button set for single or multiple selection, data-driven |
 
@@ -295,7 +299,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`.
 
 Register custom slices:
 ```tsx
@@ -358,7 +362,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[52]{name,payload}:
+[55]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -399,6 +403,9 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "slider:changed","{ name?: string; value: number }"
   "toggle:changed","{ name?: string; pressed: boolean }"
   "rating:changed","{ name?: string; value: number }"
+  "datepicker:changed","{ name?: string; value: string | null }"
+  "calendar:changed","{ name?: string; value: string | null }"
+  "timefield:changed","{ name?: string; value: string | null }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "tab:changed","{ id?: string; activeId: string; previousId?: string }"

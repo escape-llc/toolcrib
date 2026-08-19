@@ -56,6 +56,9 @@ export interface AIEventMap {
   'slider:changed': { name?: string; value: number };
   'toggle:changed': { name?: string; pressed: boolean };
   'rating:changed': { name?: string; value: number };
+  'datepicker:changed': { name?: string; value: string | null };
+  'calendar:changed': { name?: string; value: string | null };
+  'timefield:changed': { name?: string; value: string | null };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
   'tab:changed': { id?: string; activeId: string; previousId?: string };
