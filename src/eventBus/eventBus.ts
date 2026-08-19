@@ -50,6 +50,10 @@ export interface AIEventMap {
   'menu:opened': { id?: string };
   'menu:closed': { id?: string };
   'menu:item_selected': { id?: string; itemValue: string };
+  'commandpalette:open': { id?: string };
+  'commandpalette:shown': { id?: string };
+  'commandpalette:hidden': { id?: string };
+  'commandpalette:item_selected': { id?: string; itemValue: string };
   'select:changed': { name?: string; value: string };
   'combobox:changed': { name?: string; value: string | string[] };
   'fileupload:changed': { name?: string; fileCount: number };
@@ -231,6 +235,10 @@ class AIEventBus {
 
   closeDrawer(id: string) {
     this.emit('drawer:hidden', { id });
+  }
+
+  openCommandPalette(id?: string) {
+    this.emit('commandpalette:open', { id });
   }
 
   openPopup(id: string, targetId?: string, data?: any) {

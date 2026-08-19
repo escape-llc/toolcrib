@@ -49,6 +49,8 @@ export * from './components/Card/CardSimple';
 export * from './components/Card/CardSlice';
 export * from './components/Collapsible/Collapsible';
 export * from './components/Collapsible/CollapsibleSlice';
+export * from './components/CommandPalette/CommandPalette';
+export * from './components/CommandPalette/CommandPaletteSlice';
 export * from './components/ContextMenu/ContextMenu';
 export * from './components/ContextMenu/ContextMenuSlice';
 export * from './components/DataTable/DataTable';

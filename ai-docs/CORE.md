@@ -101,6 +101,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll `<DataTable>` row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic) | Use `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` — the checkbox column, 3-state header checkbox, and cross-page persistence all come built in |
 | Hand-roll date-picker calendar math, or pass a raw JS `Date` into `<DatePicker>`/`<Calendar>`/`<TimeField>` | Use `<DatePicker>`/`<Calendar>`/`<TimeField>` with `@internationalized/date` values (`CalendarDate`/`Time`) — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
+| Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
 
 ---
 
@@ -147,6 +148,7 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
+| `<CommandPalette>` | — | `id`, `items`, `placeholder`, `emptyMessage`, `isOpen`, `onOpenChange`, `overrides` | Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted inside the toolkit's own Modal |
 | `<ContextMenu>` | — | `id`, `items`, `overrides` | Right-click action menu, data-driven with separator support |
 | `<Drawer>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
@@ -364,7 +366,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[55]{name,payload}:
+[59]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -399,6 +401,10 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "menu:opened","{ id?: string }"
   "menu:closed","{ id?: string }"
   "menu:item_selected","{ id?: string; itemValue: string }"
+  "commandpalette:open","{ id?: string }"
+  "commandpalette:shown","{ id?: string }"
+  "commandpalette:hidden","{ id?: string }"
+  "commandpalette:item_selected","{ id?: string; itemValue: string }"
   "select:changed","{ name?: string; value: string }"
   "combobox:changed","{ name?: string; value: string | string[] }"
   "fileupload:changed","{ name?: string; fileCount: number }"

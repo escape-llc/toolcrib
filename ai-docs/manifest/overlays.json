@@ -57,6 +57,45 @@
       "description": "Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions"
     },
     {
+      "name": "CommandPalette",
+      "import": "import { CommandPalette } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for event bus targeting. Auto-generated if omitted."
+        },
+        "items": {
+          "type": "CommandPaletteItemData[]",
+          "required": true,
+          "description": "Array of items to render, fuzzy-filtered by `cmdk` as the user types."
+        },
+        "placeholder": {
+          "type": "string",
+          "default": "'Type a command or search...'",
+          "description": "Input placeholder text."
+        },
+        "emptyMessage": {
+          "type": "ReactNode",
+          "default": "'No results found.'",
+          "description": "Content shown when no item matches the current search."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Controlled open state. When provided, the component becomes fully controlled."
+        },
+        "onOpenChange": {
+          "type": "(open: boolean) => void",
+          "description": "Callback fired when the palette opens or closes."
+        },
+        "overrides": {
+          "type": "Partial<CommandPaletteSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for item density and max list height."
+        }
+      },
+      "category": "Overlays",
+      "description": "Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted inside the toolkit's own Modal"
+    },
+    {
       "name": "ContextMenu",
       "import": "import { ContextMenu } from '#toolcrib'",
       "props": {
@@ -325,6 +364,38 @@
     }
   ],
   "$defs": {
+    "CommandPaletteItemData": {
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Unique string value emitted in the `commandpalette:item_selected` event, and used by `cmdk` for filtering/selection identity."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label rendered in the item."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Optional icon rendered before the label."
+      },
+      "shortcut": {
+        "type": "string",
+        "description": "Optional keyboard shortcut display, e.g. `'⌘S'`. Purely visual — does not register the shortcut itself."
+      },
+      "group": {
+        "type": "string",
+        "description": "Optional group heading this item is rendered under. Items sharing the same `group` are rendered together."
+      },
+      "keywords": {
+        "type": "string[]",
+        "description": "Additional terms `cmdk`'s fuzzy filter should match against, beyond `label`'s own text."
+      },
+      "onSelect": {
+        "type": "() => void",
+        "description": "Handler invoked when this item is selected via click or keyboard."
+      }
+    },
     "MenuItemData": {
       "value": {
         "type": "string",
