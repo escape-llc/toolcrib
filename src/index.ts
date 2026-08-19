@@ -96,6 +96,8 @@ export * from './components/ScrollArea/ScrollArea';
 export * from './components/ScrollArea/ScrollAreaSlice';
 export * from './components/Separator/Separator';
 export * from './components/Separator/SeparatorSlice';
+export * from './components/Sidebar/Sidebar';
+export * from './components/Sidebar/SidebarSlice';
 export * from './components/Skeleton/Skeleton';
 export * from './components/Spinner/Spinner';
 export * from './components/Splitter/LayoutDomainContext';

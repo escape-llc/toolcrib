@@ -10,17 +10,23 @@
       "import": "import { AppShell } from '#toolcrib'",
       "slots": [
         "Header",
-        "Main"
+        "Main",
+        "Sidebar"
       ],
       "props": {
+        "layout": {
+          "type": "'default' | 'sidebar-left' | 'sidebar-right'",
+          "default": "'default'",
+          "description": "`'default'` stacks children vertically (the original behavior).\n`'sidebar-left'`/`'sidebar-right'` separate out `AppShell.Header` (if\npresent, stays full-width on top) and lay out everything else —\n`AppShell.Sidebar` and `AppShell.Main`, written in either order — as a\nrow, with the sidebar on the named side."
+        },
         "overrides": {
           "type": "Partial<AppShellSliceState>",
-          "description": "Per-instance override for Header/Main padding density. Since AppShell is meant to render once, this mostly exists for consistency with other components — the global Theme Editor control is the more typical way to change this."
+          "description": "Per-instance override for Header/Main/Sidebar padding density. Since AppShell is meant to render once, this mostly exists for consistency with other components — the global Theme Editor control is the more typical way to change this."
         }
       },
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "category": "Containers",
-      "description": "Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app"
+      "description": "Full-viewport root layout frame with Header, Sidebar, and Main slots — the top-level wrapper for an entire app"
     },
     {
       "name": "Card",
@@ -157,6 +163,44 @@
       "description": "Scrollable container with a themed, cross-browser custom scrollbar"
     },
     {
+      "name": "Sidebar",
+      "import": "import { Sidebar } from '#toolcrib'",
+      "props": {
+        "items": {
+          "type": "SidebarItemData[]",
+          "required": true,
+          "description": "Nav items to render."
+        },
+        "activeId": {
+          "type": "string",
+          "description": "Currently active item id — renders with `aria-current=\"page\"`."
+        },
+        "onItemClick": {
+          "type": "(id: string) => void",
+          "description": "Called when an item is clicked, with that item's id."
+        },
+        "collapsed": {
+          "type": "boolean",
+          "description": "Controlled collapsed (icon-only) state. Omit to let `<Sidebar>` manage it internally via its own built-in toggle button."
+        },
+        "defaultCollapsed": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial collapsed state when uncontrolled (`collapsed` omitted)."
+        },
+        "onCollapsedChange": {
+          "type": "(collapsed: boolean) => void",
+          "description": "Called whenever collapsed state changes, whether controlled or uncontrolled."
+        },
+        "overrides": {
+          "type": "Partial<SidebarSliceState>",
+          "description": "Per-instance override for nav item spacing."
+        }
+      },
+      "category": "Containers",
+      "description": "Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode"
+    },
+    {
       "name": "Splitter",
       "import": "import { Splitter } from '#toolcrib'",
       "slots": [
@@ -192,6 +236,30 @@
     "CardOverrides": {
       "subtheme": {
         "type": "'error' | 'success' | 'warning' | 'info'"
+      }
+    },
+    "SidebarItemData": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique key for this item, and the value reported via `activeId`/`onItemClick`."
+      },
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Label text — hidden (not just visually truncated) while the sidebar is collapsed, so only `icon` remains."
+      },
+      "icon": {
+        "type": "ReactNode",
+        "description": "Icon rendered before the label. Still shown, alone, in collapsed mode — the only thing collapsed mode has room for."
+      },
+      "href": {
+        "type": "string",
+        "description": "Href for this item's link. Omit for a JS-driven item (`onClick`/`onItemClick` only)."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this item is not selectable."
       }
     }
   }

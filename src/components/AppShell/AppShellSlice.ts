@@ -22,16 +22,18 @@ export interface AppShellSliceState {
 export interface AppShellCSSVariables extends Record<string, string> {
   '--ai-appshell-header-padding': string;
   '--ai-appshell-main-padding': string;
+  '--ai-appshell-sidebar-padding': string;
+  '--ai-appshell-sidebar-width': string;
 }
 
 export const defaultAppShellState: AppShellSliceState = {
   density: 'normal',
 };
 
-const densityMap: Record<AppShellDensity, { header: string; main: string }> = {
-  compact: { header: '0.5rem 1rem', main: '0.75rem' },
-  normal: { header: '0.75rem 1.5rem', main: '1rem' },
-  spacious: { header: '1.125rem 2rem', main: '1.5rem' },
+const densityMap: Record<AppShellDensity, { header: string; main: string; sidebarPadding: string; sidebarWidth: string }> = {
+  compact: { header: '0.5rem 1rem', main: '0.75rem', sidebarPadding: '0.75rem 0.5rem', sidebarWidth: '13rem' },
+  normal: { header: '0.75rem 1.5rem', main: '1rem', sidebarPadding: '1rem 0.75rem', sidebarWidth: '16rem' },
+  spacious: { header: '1.125rem 2rem', main: '1.5rem', sidebarPadding: '1.5rem 1rem', sidebarWidth: '18rem' },
 };
 
 export function getAppShellVariables(state: AppShellSliceState = defaultAppShellState): AppShellCSSVariables {
@@ -39,6 +41,8 @@ export function getAppShellVariables(state: AppShellSliceState = defaultAppShell
   return {
     '--ai-appshell-header-padding': values.header,
     '--ai-appshell-main-padding': values.main,
+    '--ai-appshell-sidebar-padding': values.sidebarPadding,
+    '--ai-appshell-sidebar-width': values.sidebarWidth,
   };
 }
 
@@ -49,6 +53,11 @@ export const AppShellThemeSlice: ThemeSlice<AppShellSliceState, AppShellCSSVaria
   defaultState: defaultAppShellState,
   getCSSVariables: getAppShellVariables,
   fieldVars: {
-    density: ['--ai-appshell-header-padding', '--ai-appshell-main-padding'],
+    density: [
+      '--ai-appshell-header-padding',
+      '--ai-appshell-main-padding',
+      '--ai-appshell-sidebar-padding',
+      '--ai-appshell-sidebar-width',
+    ],
   },
 };

@@ -96,6 +96,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Hand-roll a pulsing/shimmering loading placeholder `<div>`, or a spinning-border `<div>` for indeterminate loading | Use `<Skeleton shape="text"\|"circle"\|"rect">` and `<Spinner>` — both already animate off the shared keyframes, not a one-off duration |
 | Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation | Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free |
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
+| Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<AppShell layout="sidebar-left"\|"sidebar-right">` + `<AppShell.Sidebar>` + `<Sidebar>` — active-item, icon-only collapse, and the correct divider border side all come for free |
 
 ---
 
@@ -126,12 +127,13 @@ Full prop detail: `ai-docs/manifest/containers.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<AppShell>` | `.Header`, `.Main` | `overrides` | Full-viewport root layout frame with Header and Main slots — the top-level wrapper for an entire app |
+| `<AppShell>` | `.Header`, `.Main`, `.Sidebar` | `layout`, `overrides` | Full-viewport root layout frame with Header, Sidebar, and Main slots — the top-level wrapper for an entire app |
 | `<Card>` | `.Header`, `.Content`, `.Footer`, `.Actions` | `layout`, `squareCorners`, `overrides` | Slot-based container with automatic layout domain corner squaring |
 | `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
 | `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled`, `overrides` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
 | `<DeferredContent>` | — | `estimatedHeight`, `onVisibilityChange` | Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this |
 | `<ScrollArea>` | — | `orientation`, `type`, `maxHeight`, `overrides` | Scrollable container with a themed, cross-browser custom scrollbar |
+| `<Sidebar>` | — | `items`, `activeId`, `onItemClick`, `collapsed`, `defaultCollapsed`, `onCollapsedChange`, `overrides` | Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode |
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
@@ -290,7 +292,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`.
 
 Register custom slices:
 ```tsx
