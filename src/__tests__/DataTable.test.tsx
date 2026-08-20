@@ -53,11 +53,46 @@ describe('DataTable Virtualized Component', () => {
     // to 0 — rows rendered correctly in the DOM, just clipped inside an
     // invisible 0-height scroll container. See DataTable.tsx's
     // AUTO_HEIGHT_FALLBACK_PX comment for the full mechanism.
+    //
+    // The floor lives on the outer wrapper only, not the scroll body
+    // (bodyRef) — see the scroll body's own minHeight comment for why: the
+    // scroll body used to carry this same floor, which meant it competed
+    // for space independently of the pagination footer's own needs and
+    // could push the footer outside the outer wrapper's visible bounds
+    // whenever the floor was what actually sized the component (confirmed
+    // via a real browser run). The scroll body is the one part that's
+    // meant to shrink to absorb a tight allocation; the outer wrapper's
+    // own floor is what guarantees the *whole* component (header, body,
+    // footer together) still renders usefully when its ancestor gives it
+    // nothing at all.
     const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
-    expect(scrollBody.style.minHeight).not.toBe('0px');
-    expect(scrollBody.style.minHeight).not.toBe('');
+    const outerWrapper = scrollBody.parentElement as HTMLElement;
+    expect(scrollBody.style.minHeight).toBe('0px');
+    expect(outerWrapper.style.minHeight).not.toBe('0px');
+    expect(outerWrapper.style.minHeight).not.toBe('');
+  });
+
+  it('never lets the pagination footer be pushed outside the outer wrapper, even when the auto-height floor is what sizes the component', () => {
+    // Regression test for the bug the comment above describes concretely:
+    // stub the outer wrapper down to exactly the AUTO_HEIGHT_FALLBACK_PX
+    // floor (350px) — the scenario where the floor itself, not a generous
+    // real ancestor, is what determines the component's rendered size —
+    // and confirm the footer's own bottom edge never extends past the
+    // wrapper's. jsdom doesn't run real flex layout, so this asserts the
+    // CSS contract directly (scroll body has no competing floor of its
+    // own; footer and bulk-bar both keep `flex: '0 0 auto'`, i.e. never
+    // shrink) rather than measured pixel geometry — the same "assert the
+    // CSS a real browser will resolve" approach the rest of this file's
+    // height-related tests already use.
+    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    const table = container.querySelector('table');
+    const scrollBody = table?.parentElement as HTMLElement;
+    const footer = scrollBody.nextElementSibling as HTMLElement;
+    expect(scrollBody.style.flex).toBe('1 1 0px');
+    expect(scrollBody.style.minHeight).toBe('0px');
+    expect(footer.style.flex).toBe('0 0 auto');
   });
 
   it('leaves minHeight unset (0) when a fixed containerHeight is given', () => {

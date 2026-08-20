@@ -533,7 +533,26 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         style={{
           height: typeof containerHeight === 'number' ? `${containerHeight}px` : undefined,
           flex: isAutoHeight ? '1 1 0px' : undefined,
-          minHeight: isAutoHeight ? `${AUTO_HEIGHT_FALLBACK_PX}px` : 0,
+          // Deliberately NOT AUTO_HEIGHT_FALLBACK_PX here, even in auto-height
+          // mode — always a true `0`. This div's own min-height used to carry
+          // the same 350px floor as the outer wrapper below, which meant it
+          // competed for space independently of the bulk-action bar/pagination
+          // footer's own needs: whenever the outer wrapper's real rendered
+          // size landed at (or near) that 350px floor itself — an entirely
+          // normal amount of real screen space, not just a contrived edge
+          // case — this div still demanded a *full* 350px on top of whatever
+          // the footer needed, so the combined content overflowed the outer
+          // wrapper's own box and the footer (last in DOM order) got clipped
+          // by its `overflow: hidden`, cut off outside the visible area
+          // rather than shrinking gracefully. Confirmed via a real browser
+          // run, computed heights inspected at every ancestor level. The
+          // outer wrapper's own min-height (below) is the single place the
+          // floor is enforced now — bulk bar and footer both already carry
+          // `flex: '0 0 auto'` (never shrink below their natural size), so
+          // this scroll body is the only participant left to absorb whatever
+          // height the floor leaves over, however little that ends up being,
+          // rather than fighting the footer for space it doesn't actually have.
+          minHeight: 0,
           overflowY: 'auto',
           position: 'relative',
           width: '100%',
