@@ -1353,30 +1353,6 @@ export const App: React.FC = () => {
                       />
                     </Card.Content>
                   </Card>
-
-                  {/* Standalone <Pagination> — DataTable above uses the same
-                      usePagination hook internally for its own paging, but
-                      this instance demonstrates the component on its own,
-                      decoupled from any table. A plain wrapper div (not
-                      <VStack>) supplies the top margin, for the same reason
-                      this isn't wrapped together with the table above. */}
-                  <div style={{ marginTop: 'var(--ai-margin-lg, 1.25rem)', flexShrink: 0 }}>
-                    <Card>
-                      <Card.Header>Standalone Pagination (`&lt;Pagination&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
-                        </p>
-                        <Pagination
-                          totalItems={137}
-                          pageSize={10}
-                          page={paginationPage}
-                          onPageChange={page => setPaginationPage(page)}
-                        />
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
-                      </Card.Content>
-                    </Card>
-                  </div>
                 </TabStrip.Panel>
 
                 {/* Tab 6: Navigation & Structure */}
@@ -1443,6 +1419,37 @@ export const App: React.FC = () => {
                           Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
                         </p>
                         <Stepper steps={STEPPER_STEPS} />
+                      </Card.Content>
+                    </Card>
+
+                    {/* Moved here from the Data Table tab: that tab's own
+                        <DataTable containerHeight="auto"> needs to flex-fill
+                        essentially all of its Splitter panel's height to show
+                        a useful number of rows — a second, fixed-height Card
+                        as a flexShrink:0 sibling there permanently squeezed
+                        DataTable's real available space down to less than its
+                        own AUTO_HEIGHT_FALLBACK_PX floor, so the floor forced
+                        DataTable taller than that shrunken allocation and it
+                        overflowed/clipped against Card.Content's own
+                        overflow:hidden (confirmed via a real browser run,
+                        computed heights inspected at every ancestor level).
+                        This tab's plain VStack has no such height budget to
+                        protect, and pagination fits its own navigation theme
+                        better here than as an unrelated aside next to the
+                        data table anyway. */}
+                    <Card>
+                      <Card.Header>Standalone Pagination (`&lt;Pagination&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
+                        </p>
+                        <Pagination
+                          totalItems={137}
+                          pageSize={10}
+                          page={paginationPage}
+                          onPageChange={page => setPaginationPage(page)}
+                        />
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
                       </Card.Content>
                     </Card>
                   </VStack>
