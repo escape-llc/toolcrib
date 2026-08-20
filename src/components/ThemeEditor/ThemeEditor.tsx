@@ -1,4 +1,4 @@
-import React, { type ReactNode, useState, useRef } from 'react';
+import React, { type ReactNode, useId, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { type HarmonyMode } from '../../theme/harmonies';
 import { type PaddingMode } from '../../theme/padding';
@@ -82,17 +82,22 @@ function FieldRow({
   onChange: (val: string) => void;
   options: { label: string; value: string }[];
 }) {
+  // useId (not a hand-rolled counter/name prop) since FieldRow has ~50 call
+  // sites across this file, none of which pass anything identifying the
+  // field today — generating the id internally means the label/Select
+  // association fix doesn't require touching every call site individually.
+  const id = useId();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <label style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem' }}>{label}</label>
+        <label htmlFor={id} style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem' }}>{label}</label>
         {tooltip && (
           <Tooltip content={tooltip}>
             <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
           </Tooltip>
         )}
       </div>
-      <Select value={value} onChange={val => onChange(val)} options={options} />
+      <Select id={id} value={value} onChange={val => onChange(val)} options={options} />
     </div>
   );
 }

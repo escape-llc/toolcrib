@@ -77,6 +77,23 @@ describe('ThemeEditor', () => {
     expect(screen.getByText('Medium (Standard Padding & Font)')).toBeInTheDocument();
   });
 
+  it('regression: FieldRow labels are associated with their Select via a matching htmlFor/id (previously unassociated)', () => {
+    // FieldRow rendered a bare <label> with no htmlFor next to a Select
+    // with no id — every one of its ~50 call sites across this file had no
+    // programmatic label association at all. useId() inside FieldRow now
+    // generates a shared id for both, with no per-call-site change needed.
+    renderEditor();
+    fireEvent.click(screen.getByText(/Density, Spacing & Elevation/));
+
+    const label = screen.getByText('Global Padding Mode');
+    const labelFor = label.getAttribute('for');
+    expect(labelFor).toBeTruthy();
+
+    const associatedControl = document.getElementById(labelFor!);
+    expect(associatedControl).not.toBeNull();
+    expect(associatedControl).toHaveAttribute('role', 'combobox');
+  });
+
   describe('themeManagement lockout prop', () => {
     it('shows every Save & Load Themes command by default', () => {
       renderEditor();
