@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { FieldContext } from './FieldContext';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 
 /**
@@ -11,7 +12,9 @@ import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
  * Emits `slider:changed` events on the event bus.
  */
 export interface SliderProps {
-  /** Field name. Used in event bus payloads. */
+  /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
+  id?: string;
+  /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
   name?: string;
   /** Controlled current value. */
   value?: number;
@@ -46,6 +49,13 @@ export interface SliderProps {
    * @default false
    */
   commitOnRelease?: boolean;
+  /**
+   * Accessible name announced by screen readers. Only needed when this
+   * `Slider` isn't inside a `<FormField label="...">` — the `<label
+   * htmlFor>` that renders provides the accessible name already in that
+   * case, the same way it does for `Input`/`Select`/`Combobox`.
+   */
+  ariaLabel?: string;
   /** Per-instance overrides for track height and thumb size. */
   overrides?: Partial<SliderSliceState>;
 }
@@ -55,7 +65,8 @@ export interface SliderProps {
  * @manifestCategory Form Controls
  */
 export const Slider: React.FC<SliderProps> = ({
-  name,
+  id,
+  name: propName,
   value,
   defaultValue = 50,
   min = 0,
@@ -64,8 +75,12 @@ export const Slider: React.FC<SliderProps> = ({
   onChange,
   disabled = false,
   commitOnRelease = false,
+  ariaLabel,
   overrides,
 }) => {
+  const fieldCtx = useContext(FieldContext);
+  const name = propName || fieldCtx.name || '';
+  const effectiveId = id ?? (name || undefined);
   // A local buffer, not just `value ?? defaultValue` read directly, is
   // what lets the thumb keep tracking the pointer smoothly during a drag
   // in commitOnRelease mode: the *external* `value` prop only advances
@@ -135,6 +150,8 @@ export const Slider: React.FC<SliderProps> = ({
         />
       </SliderPrimitive.Track>
       <SliderPrimitive.Thumb
+        id={effectiveId}
+        aria-label={ariaLabel}
         className="ai-focus-ring"
         style={{
           display: 'block',
