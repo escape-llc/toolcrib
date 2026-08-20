@@ -605,27 +605,45 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   </CheckboxPrimitive.Root>
                 </th>
               )}
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  onClick={() => col.sortable !== false && handleSort(col.key)}
-                  style={{
-                    padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
-                    fontWeight: 'var(--ai-font-weight-semibold, 600)',
-                    color: 'var(--ai-text-primary, #111827)',
-                    cursor: col.sortable !== false ? 'pointer' : 'default',
-                    userSelect: 'none',
-                    width: col.width,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    {col.title}
-                    {col.sortable !== false && sortKey === col.key && (
-                      <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                    )}
-                  </div>
-                </th>
-              ))}
+              {columns.map(col => {
+                const isSortable = col.sortable === true;
+                return (
+                  <th
+                    key={col.key}
+                    onClick={() => isSortable && handleSort(col.key)}
+                    onKeyDown={e => {
+                      if (!isSortable) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSort(col.key);
+                      }
+                    }}
+                    tabIndex={isSortable ? 0 : undefined}
+                    aria-sort={
+                      isSortable
+                        ? sortKey === col.key
+                          ? sortDirection === 'asc' ? 'ascending' : 'descending'
+                          : 'none'
+                        : undefined
+                    }
+                    style={{
+                      padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
+                      fontWeight: 'var(--ai-font-weight-semibold, 600)',
+                      color: 'var(--ai-text-primary, #111827)',
+                      cursor: isSortable ? 'pointer' : 'default',
+                      userSelect: 'none',
+                      width: col.width,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      {col.title}
+                      {isSortable && sortKey === col.key && (
+                        <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 

@@ -480,4 +480,46 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByRole('button', { name: 'Delete 1' })).toBeInTheDocument();
     });
   });
+
+  describe('regression: sortable headers were mouse-only with no aria-sort, and sortable defaulted to true', () => {
+    // Headers had no tabIndex/onKeyDown, so a sortable column could only be
+    // triggered by a mouse click, and every header (sortable or not) had
+    // aria-sort: null regardless of state. Separately, every check used
+    // `col.sortable !== false`, so an omitted `sortable` key (undefined)
+    // evaluated true and sorted a column that never opted in — contradicting
+    // the JSDoc's own `@default false`.
+    const nonSortableColumns: Column<TestItem>[] = [
+      { key: 'id', title: 'ID', sortable: true },
+      { key: 'actions', title: 'Actions' }, // sortable omitted entirely
+    ];
+
+    it('does not treat an omitted sortable key as sortable', () => {
+      const sortedFn = vi.fn();
+      const unsub = aiBus.on('datatable:sorted', sortedFn);
+      render(<DataTable data={testData} columns={nonSortableColumns} pageSize={10} />);
+
+      const actionsHeader = screen.getByText('Actions').closest('th')!;
+      expect(actionsHeader).toHaveStyle({ cursor: 'default' });
+      expect(actionsHeader).not.toHaveAttribute('tabindex');
+      expect(actionsHeader).not.toHaveAttribute('aria-sort');
+
+      fireEvent.click(actionsHeader);
+      expect(sortedFn).not.toHaveBeenCalledWith(expect.objectContaining({ key: 'actions' }));
+      unsub();
+    });
+
+    it('makes a sortable header keyboard-focusable and Enter-activatable, updating aria-sort', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const idHeader = screen.getByText('ID').closest('th')!;
+
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveAttribute('aria-sort', 'none');
+
+      fireEvent.keyDown(idHeader, { key: 'Enter' });
+      expect(idHeader).toHaveAttribute('aria-sort', 'ascending');
+
+      fireEvent.keyDown(idHeader, { key: 'Enter' });
+      expect(idHeader).toHaveAttribute('aria-sort', 'descending');
+    });
+  });
 });
