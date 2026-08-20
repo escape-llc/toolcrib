@@ -314,9 +314,33 @@ export const Splitter: React.FC<SplitterProps> & {
       <div
         role="separator"
         aria-orientation={orientation}
+        aria-valuenow={Math.round(split)}
+        aria-valuemin={minSize}
+        aria-valuemax={100 - minSize}
+        aria-label={isVertical ? 'Resize panels vertically' : 'Resize panels horizontally'}
+        tabIndex={0}
         onMouseDown={onHandleDown}
         onPointerDown={onHandleDown}
         onDoubleClick={() => setSplit(initialSplit)}
+        onKeyDown={e => {
+          const step = e.shiftKey ? 10 : 2;
+          const forwardKey = isVertical ? 'ArrowDown' : 'ArrowRight';
+          const backwardKey = isVertical ? 'ArrowUp' : 'ArrowLeft';
+          if (e.key === forwardKey) {
+            e.preventDefault();
+            setSplit(s => Math.max(minSize, Math.min(100 - minSize, s + step)));
+          } else if (e.key === backwardKey) {
+            e.preventDefault();
+            setSplit(s => Math.max(minSize, Math.min(100 - minSize, s - step)));
+          } else if (e.key === 'Home') {
+            e.preventDefault();
+            setSplit(minSize);
+          } else if (e.key === 'End') {
+            e.preventDefault();
+            setSplit(100 - minSize);
+          }
+        }}
+        className="ai-focus-ring"
         style={{
           flex: '0 0 0.625rem',
           background: isDragging ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #e5e7eb)',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { Splitter } from '../components/Splitter/Splitter';
 
@@ -87,5 +87,62 @@ describe('Splitter Component & Corner Squaring', () => {
       </Splitter>
     );
     expect(render1).toBe(render2);
+  });
+
+  describe('regression: resize handle was mouse/pointer-drag only, unreachable by keyboard', () => {
+    // role="separator" + aria-orientation were already present, but with no
+    // tabIndex/onKeyDown/aria-valuenow the handle could never be reached or
+    // operated via keyboard at all, contradicting the WAI-ARIA APG Window
+    // Splitter pattern a "separator" role like this one implies.
+    it('is keyboard-focusable and exposes its current split as aria-valuenow/min/max', () => {
+      render(
+        <Splitter orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      expect(handle).toHaveAttribute('tabindex', '0');
+      expect(handle).toHaveAttribute('aria-valuenow', '60');
+      expect(handle).toHaveAttribute('aria-valuemin', '10');
+      expect(handle).toHaveAttribute('aria-valuemax', '90');
+    });
+
+    it('resizes via arrow keys, matching the drag orientation (ArrowDown/Up for vertical)', () => {
+      const { container } = render(
+        <Splitter orientation="vertical" initialSplit={60} minSize={10}>
+          <Splitter.Panel><div>Top</div></Splitter.Panel>
+          <Splitter.Panel><div>Bottom</div></Splitter.Panel>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      const firstPanel = container.querySelector('[data-ai-layout-slot="first"]') as HTMLElement;
+
+      fireEvent.keyDown(handle, { key: 'ArrowDown' });
+      expect(handle).toHaveAttribute('aria-valuenow', '62');
+      expect(firstPanel.style.flex).toContain('62%');
+
+      fireEvent.keyDown(handle, { key: 'ArrowUp' });
+      expect(handle).toHaveAttribute('aria-valuenow', '60');
+    });
+
+    it('resizes horizontally via ArrowLeft/ArrowRight and clamps to minSize/maxSize via Home/End', () => {
+      render(
+        <Splitter orientation="horizontal" initialSplit={50} minSize={20}>
+          <div>Left</div>
+          <div>Right</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+
+      fireEvent.keyDown(handle, { key: 'ArrowRight' });
+      expect(handle).toHaveAttribute('aria-valuenow', '52');
+
+      fireEvent.keyDown(handle, { key: 'End' });
+      expect(handle).toHaveAttribute('aria-valuenow', '80');
+
+      fireEvent.keyDown(handle, { key: 'Home' });
+      expect(handle).toHaveAttribute('aria-valuenow', '20');
+    });
   });
 });
