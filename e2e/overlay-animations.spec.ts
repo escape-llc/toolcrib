@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 
 test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('🪟 Overlays (Popup / Drawer / Modal)', { exact: true }).click();
+  await page.getByText('🪟 Overlays & Actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const modal = page.getByTestId('modal-container');

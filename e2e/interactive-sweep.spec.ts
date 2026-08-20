@@ -20,12 +20,12 @@ import { test, expect, Page } from '@playwright/test';
 
 const TABS = [
   '🚀 Overview & Architecture',
-  '📝 Form & Zod Engine',
-  '🪟 Overlays (Popup / Drawer / Modal)',
+  '📝 Forms & Zod Engine',
+  '🪟 Overlays & Actions',
   '🔔 Toast Subsystem',
-  '📊 Virtualized Data Table',
+  '📊 Data Table',
   '📐 Common Layout Idioms',
-  '🖼️ Wireframe Gallery',
+  '🗺️ Wireframe Gallery',
   '🧩 Component Showcase',
 ];
 
@@ -89,6 +89,15 @@ const EXPECTED_NOISE = [
 const isExpectedNoise = (text: string): boolean => EXPECTED_NOISE.some(re => re.test(text));
 
 test('no console errors while clicking through every interactive control on every tab', async ({ page }) => {
+  // Playwright's default 30s test timeout was enough when this sweep was
+  // written, but the demo's tab reorg (wiring every new component in)
+  // packed substantially more interactive content onto a single tab —
+  // Forms & Zod Engine now also carries the DatePicker/Calendar/TimeField/
+  // Rating showcase, whose inline Calendar grid alone adds ~35 button
+  // cells to click through. Measured at ~80s locally for the full 8-tab
+  // sweep with the current content; 120s leaves real margin for a slower
+  // CI runner without masking a genuine hang if one shows up later.
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on('console', msg => {
     if (msg.type() === 'error' && !isExpectedNoise(msg.text())) errors.push(msg.text());

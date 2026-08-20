@@ -12,12 +12,12 @@ const MIN_HEALTHY_HEIGHT_PX = 250;
 
 const TABS = [
   '🚀 Overview & Architecture',
-  '📝 Form & Zod Engine',
-  '🪟 Overlays (Popup / Drawer / Modal)',
+  '📝 Forms & Zod Engine',
+  '🪟 Overlays & Actions',
   '🔔 Toast Subsystem',
-  '📊 Virtualized Data Table',
+  '📊 Data Table',
   '📐 Common Layout Idioms',
-  '🖼️ Wireframe Gallery',
+  '🗺️ Wireframe Gallery',
   '🧩 Component Showcase',
 ];
 
