@@ -35,6 +35,8 @@ export interface ComboboxOptionData {
  * false/omitted, and a `string[]` when it's true.
  */
 export interface ComboboxProps {
+  /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
+  id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Placeholder text when empty. @default 'Search...' */
@@ -83,6 +85,7 @@ export interface ComboboxProps {
  * @manifestCategory Form Controls
  */
 export const Combobox: React.FC<ComboboxProps> = ({
+  id,
   name: propName,
   placeholder = 'Search...',
   options: staticOptions,
@@ -99,8 +102,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
+  const effectiveId = id ?? (fieldName || undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
   const targetDocument = useTargetDocument();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -358,11 +363,14 @@ export const Combobox: React.FC<ComboboxProps> = ({
             ))}
           <input
             ref={inputRef}
+            id={effectiveId}
             role="combobox"
             aria-expanded={open}
             aria-controls={listboxId}
             aria-autocomplete="list"
             aria-activedescendant={activeOptionId}
+            aria-invalid={isError || undefined}
+            aria-describedby={isError ? `${fieldName}-error` : undefined}
             autoComplete="off"
             disabled={disabled}
             placeholder={hasValue && multiple ? undefined : placeholder}

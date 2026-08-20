@@ -237,4 +237,43 @@ describe('Combobox Component — Form binding', () => {
     });
     expect(handleSubmit).not.toHaveBeenCalled();
   });
+
+  describe('regression: missing id broke FormField label association and ARIA error state', () => {
+    // Same root cause as Select's own fix: Combobox tracked fieldName/
+    // formContext already, but never used either for `id` or for
+    // isError/aria-invalid/aria-describedby.
+    it('gives the input an id matching the surrounding FormField label\'s htmlFor', () => {
+      render(
+        <FormField name="role" label="Role">
+          <Combobox options={options} onChange={vi.fn()} />
+        </FormField>
+      );
+
+      const input = screen.getByRole('combobox');
+      expect(input).toHaveAttribute('id', 'role');
+      expect(screen.getByText('Role')).toHaveAttribute('for', 'role');
+    });
+
+    it('sets aria-invalid and a resolving aria-describedby once touched and invalid', async () => {
+      const handleSubmit = vi.fn();
+      render(
+        <Form id="role-form-2" schema={roleSchema} onSubmit={handleSubmit}>
+          <FormField name="role" label="Role">
+            <Combobox options={options} />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        const input = screen.getByRole('combobox');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        const describedBy = input.getAttribute('aria-describedby');
+        expect(describedBy).toBe('role-error');
+        expect(document.getElementById(describedBy!)).toHaveTextContent('Please choose a role');
+      });
+    });
+  });
 });
