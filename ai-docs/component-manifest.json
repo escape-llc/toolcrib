@@ -1063,6 +1063,10 @@
       "name": "Combobox",
       "import": "import { Combobox } from '#toolcrib'",
       "props": {
+        "id": {
+          "type": "string",
+          "description": "Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control."
+        },
         "name": {
           "type": "string",
           "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
@@ -2048,6 +2052,10 @@
       "name": "Select",
       "import": "import { Select } from '#toolcrib'",
       "props": {
+        "id": {
+          "type": "string",
+          "description": "Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control."
+        },
         "name": {
           "type": "string",
           "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
@@ -2173,9 +2181,13 @@
       "name": "Slider",
       "import": "import { Slider } from '#toolcrib'",
       "props": {
+        "id": {
+          "type": "string",
+          "description": "Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control."
+        },
         "name": {
           "type": "string",
-          "description": "Field name. Used in event bus payloads."
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads."
         },
         "value": {
           "type": "number",
@@ -2214,6 +2226,10 @@
           "type": "boolean",
           "default": "false",
           "description": "If true, `onChange`/`slider:changed` only fire once, when the drag\nends (or on a discrete keyboard step) — not continuously on every\ntick while dragging. The thumb still tracks the pointer smoothly\neither way (an internal buffer drives its visual position); this only\nchanges when the *consumer* is notified. Opt-in, not the default —\nlive per-tick updates are the right choice for most sliders (e.g. a\nreal-time value preview), including most of the Theme Designer's own\n(color/timing values, which don't feed back into layout). It matters\nfor a specific narrower case: a slider whose value feeds back into\nthe page's own layout — the Theme Designer's Master Font Size above\nall, since every `rem` value in the whole UI derives from it —  where\nrecalculating on every tick can resize or reposition the very slider\nbeing dragged out from under the pointer mid-gesture, not just waste\na render. Deferring to release keeps the drag itself trackable\nregardless of what the eventual committed value ends up changing."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "description": "Accessible name announced by screen readers. Only needed when this\n`Slider` isn't inside a `<FormField label=\"...\">` — the `<label\nhtmlFor>` that renders provides the accessible name already in that\ncase, the same way it does for `Input`/`Select`/`Combobox`."
         },
         "overrides": {
           "type": "Partial<SliderSliceState>",
