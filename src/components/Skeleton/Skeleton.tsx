@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /** Props for the `<Skeleton>` loading placeholder. */
 export interface SkeletonProps extends StyleFreeAttributes<HTMLDivElement> {

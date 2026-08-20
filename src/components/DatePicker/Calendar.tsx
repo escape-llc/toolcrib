@@ -13,7 +13,7 @@ import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { DatePickerThemeSlice, DatePickerSliceState } from './DatePickerSlice';
+import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
 
 /** Props for the standalone `<Calendar>` month grid. */
 export interface CalendarProps {

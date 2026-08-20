@@ -1,7 +1,7 @@
 import React from 'react';
 import { Separator as SeparatorPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
-import { SeparatorThemeSlice, SeparatorSliceState } from './SeparatorSlice';
+import { SeparatorThemeSlice, type SeparatorSliceState } from './SeparatorSlice';
 
 /** Props for the `<Separator>` visual divider. */
 export interface SeparatorProps {

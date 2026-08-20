@@ -1,4 +1,4 @@
-import React, { ReactNode, useContext } from 'react';
+import React, { type ReactNode, useContext } from 'react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
@@ -7,8 +7,8 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
-import { SelectThemeSlice, SelectSliceState } from './SelectSlice';
+import { type SubthemeName } from '../../theme/subtheme';
+import { SelectThemeSlice, type SelectSliceState } from './SelectSlice';
 
 /** Data shape for each option in a `<Select>` dropdown. */
 export interface SelectOptionData {

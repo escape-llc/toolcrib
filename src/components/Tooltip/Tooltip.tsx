@@ -1,11 +1,11 @@
-import React, { ReactNode, ReactElement, useState, useEffect } from 'react';
+import React, { type ReactNode, type ReactElement, useState, useEffect } from 'react';
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
-import { TooltipThemeSlice, TooltipSliceState } from './TooltipSlice';
+import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
 
 const TOOLTIP_STYLE_ID = 'toolcrib-tooltip-animations';
 

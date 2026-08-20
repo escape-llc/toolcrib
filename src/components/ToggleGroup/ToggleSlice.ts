@@ -1,4 +1,4 @@
-import { ThemeSlice } from '../../theme/slice';
+import { type ThemeSlice } from '../../theme/slice';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {

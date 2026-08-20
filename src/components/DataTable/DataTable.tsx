@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Toolbar } from '../Toolbar/Toolbar';
@@ -6,11 +6,11 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { resolveSubtheme, SubthemeName, SubthemeColors } from '../../theme/subtheme';
+import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../theme/subtheme';
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
-import { DataTableThemeSlice, TableSliceState } from './DataTableSlice';
+import { DataTableThemeSlice, type TableSliceState } from './DataTableSlice';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {

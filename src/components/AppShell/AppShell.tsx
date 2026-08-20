@@ -1,8 +1,8 @@
-import React, { ReactNode, createContext, useContext } from 'react';
-import { PaddingMode, resolvePadding } from '../../theme/padding';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import React, { type ReactNode, createContext, useContext } from 'react';
+import { type PaddingMode, resolvePadding } from '../../theme/padding';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
-import { AppShellThemeSlice, AppShellSliceState } from './AppShellSlice';
+import { AppShellThemeSlice, type AppShellSliceState } from './AppShellSlice';
 
 // AppShell.Sidebar draws a divider border on the side facing AppShell.Main
 // -- which physical side that is depends entirely on the parent

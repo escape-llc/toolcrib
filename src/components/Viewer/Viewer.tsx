@@ -3,7 +3,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Modal } from '../Overlay/Modal';
-import { ViewerContent, ViewerContentProps } from './ViewerContent';
+import { ViewerContent, type ViewerContentProps } from './ViewerContent';
 
 /**
  * Props for `<Viewer>` — the fullscreen-lightbox convenience default.

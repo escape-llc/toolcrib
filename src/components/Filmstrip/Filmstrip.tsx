@@ -1,10 +1,10 @@
-import React, { useRef, useState, useEffect, ReactNode } from 'react';
+import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
 import { useStableId } from '../shared/useStableId';
-import { TabThemeSlice, TabSliceState } from '../TabStrip/TabSlice';
+import { TabThemeSlice, type TabSliceState } from '../TabStrip/TabSlice';
 
 /** Data shape for each thumbnail in a `<Filmstrip>`. */
 export interface FilmstripItem {

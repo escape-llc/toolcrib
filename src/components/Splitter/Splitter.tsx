@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, ReactNode, ReactElement, isValidElement, cloneElement } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, type ReactNode, type ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';

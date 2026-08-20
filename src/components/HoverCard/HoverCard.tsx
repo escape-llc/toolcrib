@@ -1,11 +1,11 @@
-import React, { ReactNode, ReactElement } from 'react';
+import React, { type ReactNode, type ReactElement } from 'react';
 import { HoverCard as HoverCardPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
-import { HoverCardThemeSlice, HoverCardSliceState } from './HoverCardSlice';
+import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice';
 
 /**
  * Props for the `<HoverCard>` hover-triggered preview card.

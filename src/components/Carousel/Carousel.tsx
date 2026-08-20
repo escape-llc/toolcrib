@@ -1,10 +1,10 @@
-import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { SubthemeName } from '../../theme/subtheme';
-import { CarouselThemeSlice, CarouselSliceState } from './CarouselSlice';
+import { type SubthemeName } from '../../theme/subtheme';
+import { CarouselThemeSlice, type CarouselSliceState } from './CarouselSlice';
 
 /** Data shape for each slide in a `<Carousel>`. */
 export interface CarouselSlideItem {

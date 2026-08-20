@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Tree, TreeItemData } from '../components/Tree/Tree';
+import { Tree, type TreeItemData } from '../components/Tree/Tree';
 import { aiBus } from '../eventBus/eventBus';
 
 const items: TreeItemData[] = [

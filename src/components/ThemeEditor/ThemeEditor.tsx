@@ -1,13 +1,13 @@
-import React, { ReactNode, useState, useRef } from 'react';
+import React, { type ReactNode, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
-import { HarmonyMode } from '../../theme/harmonies';
-import { PaddingMode } from '../../theme/padding';
-import { MarginMode } from '../../theme/margin';
-import { CornerRadiusMode } from '../../theme/radius';
-import { ShadowMode } from '../../theme/shadow';
+import { type HarmonyMode } from '../../theme/harmonies';
+import { type PaddingMode } from '../../theme/padding';
+import { type MarginMode } from '../../theme/margin';
+import { type CornerRadiusMode } from '../../theme/radius';
+import { type ShadowMode } from '../../theme/shadow';
 import { captureThemeSnapshot, applyThemeSnapshot } from '../../theme/themePersistence';
-import { presetThemes, PresetTheme } from '../../theme/presetThemes';
-import { listSavedThemes, saveThemeToLibrary, deleteThemeFromLibrary, getThemeFromLibrary, SavedTheme } from '../../theme/themeLibrary';
+import { presetThemes, type PresetTheme } from '../../theme/presetThemes';
+import { listSavedThemes, saveThemeToLibrary, deleteThemeFromLibrary, getThemeFromLibrary, type SavedTheme } from '../../theme/themeLibrary';
 import { downloadThemeSnapshot, readThemeSnapshotFromFile } from '../../theme/themeFileTransfer';
 import { Button } from '../Form/FormComponents';
 import { Input } from '../Form/FormComponents';
@@ -17,7 +17,7 @@ import { Accordion } from '../Accordion/Accordion';
 import { Tooltip } from '../Tooltip/Tooltip';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Popup } from '../Overlay/Popup';
-import { SquareCornerOption } from '../Card/Card';
+import { type SquareCornerOption } from '../Card/Card';
 import { Grid } from '../Layout/Grid';
 
 /** Per-command switches for the Save & Load Themes header toolbar — see `ThemeEditorProps.themeManagement`. */

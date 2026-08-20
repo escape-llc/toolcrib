@@ -1,4 +1,4 @@
-import { ThemeSnapshot } from './themePersistence';
+import { type ThemeSnapshot } from './themePersistence';
 
 /**
  * One of three independent theme *sources* (the others: themeLibrary.ts —

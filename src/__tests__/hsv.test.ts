@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getHSVLuminance, getHSVContrastRatio, ensureWCAGContrast, pickReadableTextColor, HSVColor } from '../theme/hsv';
+import { getHSVLuminance, getHSVContrastRatio, ensureWCAGContrast, pickReadableTextColor, type HSVColor } from '../theme/hsv';
 
 // Reference values are the well-known WCAG relative luminance figures for
 // pure white/black/red/green/blue (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) —

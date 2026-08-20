@@ -1,7 +1,7 @@
-import React, { ReactNode, useState } from 'react';
+import React, { type ReactNode, useState } from 'react';
 import { NavigationMenu as NavigationMenuPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
-import { SidebarThemeSlice, SidebarSliceState } from './SidebarSlice';
+import { SidebarThemeSlice, type SidebarSliceState } from './SidebarSlice';
 
 /** Data shape for each nav item in a `<Sidebar>`. */
 export interface SidebarItemData {

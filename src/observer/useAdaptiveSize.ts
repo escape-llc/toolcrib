@@ -1,5 +1,5 @@
-import { useState, useEffect, RefObject } from 'react';
-import { observerManager, ObservedElementConfig } from './observerManager';
+import { useState, useEffect, type RefObject } from 'react';
+import { observerManager, type ObservedElementConfig } from './observerManager';
 import { useAIEvent } from '../eventBus/useAIEvent';
 
 /** @barrelExport */

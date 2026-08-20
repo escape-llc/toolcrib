@@ -1,6 +1,6 @@
-import React, { ReactNode } from 'react';
-import { ThemeProvider, ThemeProviderProps } from '../../theme/themeContext';
-import { ToastProvider, ToastProviderProps } from '../Toast/ToastContext';
+import React, { type ReactNode } from 'react';
+import { ThemeProvider, type ThemeProviderProps } from '../../theme/themeContext';
+import { ToastProvider, type ToastProviderProps } from '../Toast/ToastContext';
 import { ToastContainer } from '../Toast/Toast';
 
 export interface ToolcribProviderProps {

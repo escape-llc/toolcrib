@@ -1,4 +1,4 @@
-import { ThemeSlice } from '../../theme/slice';
+import { type ThemeSlice } from '../../theme/slice';
 
 /** @barrelExport */
 export type LabelWeight = 'normal' | 'medium' | 'semibold' | 'bold';

@@ -1,4 +1,4 @@
-import { CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 
 /**
  * The one correct shape for a size-transparent trigger wrapper — used

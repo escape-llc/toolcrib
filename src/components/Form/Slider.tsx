@@ -3,7 +3,7 @@ import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { SliderThemeSlice, SliderSliceState } from './SliderSlice';
+import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 
 /**
  * Props for the `<Slider>` range input control.

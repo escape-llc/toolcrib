@@ -1,8 +1,8 @@
-import React, { LabelHTMLAttributes } from 'react';
+import React, { type LabelHTMLAttributes } from 'react';
 import { Label as LabelPrimitive } from 'radix-ui';
-import { StyleFree, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFree, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
-import { LabelThemeSlice, LabelSliceState } from './LabelSlice';
+import { LabelThemeSlice, type LabelSliceState } from './LabelSlice';
 
 /** Props for the `<Label>` form control label. */
 export interface LabelProps extends StyleFree<LabelHTMLAttributes<HTMLLabelElement>> {

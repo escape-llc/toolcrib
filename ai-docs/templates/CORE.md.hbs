@@ -17,6 +17,8 @@
 
 > **All units are `rem`** (derived from `--ai-master-font-size` in `px`). Never hardcode `px` values.
 
+> **React version.** toolcrib supports **React 18.3+ and React 19.x** — whichever major this project is already scaffolded with (or gets scaffolded with) is fine as-is. Don't add a step to pin, downgrade, or upgrade React to some assumed "correct" version for toolcrib's sake; there isn't one. `toolcrib init`/`apply` only ever flags a real mismatch (e.g. React 16 or 17) as a dependency conflict requiring a decision — React 18 and 19 both resolve as compatible automatically. (Kept in sync with `PEER_DEPENDENCY_RANGE_OVERRIDES` in `scripts/build-release.js` — see that file if this ever needs to widen further, e.g. for a future React 20.)
+
 ---
 
 ## 1. Root Setup

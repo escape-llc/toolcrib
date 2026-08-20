@@ -39,6 +39,35 @@ describe('listVersions', () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
     await expect(listVersions()).rejects.toThrow(/404/);
   });
+
+  it('gives a specific, actionable message when the unauthenticated rate limit is exhausted', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      headers: {
+        get: (name) => ({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': '1780000000' })[name] ?? null,
+      },
+    });
+    await expect(listVersions()).rejects.toThrow(/rate limit/i);
+    await expect(listVersions()).rejects.toThrow(/--version/);
+  });
+
+  it('falls back to the generic message for a 403 that is not a rate-limit exhaustion', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      headers: { get: () => null },
+    });
+    await expect(listVersions()).rejects.toThrow(/403/);
+    await expect(listVersions()).rejects.not.toThrow(/rate limit/i);
+  });
+
+  it('does not throw a TypeError when the response has no headers object at all', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, statusText: 'Forbidden' });
+    await expect(listVersions()).rejects.toThrow(/403/);
+  });
 });
 
 describe('resolveVersion', () => {

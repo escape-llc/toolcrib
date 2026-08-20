@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
-import { resolveMargin, MarginMode } from '../../theme/margin';
-import { resolvePadding, PaddingMode } from '../../theme/padding';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import React, { type ReactNode } from 'react';
+import { resolveMargin, type MarginMode } from '../../theme/margin';
+import { resolvePadding, type PaddingMode } from '../../theme/padding';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for the `<Grid>` responsive multi-column layout container.

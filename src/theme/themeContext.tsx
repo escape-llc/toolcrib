@@ -1,16 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { HSVColor } from './hsv';
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
+import { type HSVColor } from './hsv';
 import {
-  HarmonyMode,
-  ThemeParameters,
-  GeneratedPalette,
+  type HarmonyMode,
+  type ThemeParameters,
+  type GeneratedPalette,
   generateHarmonyPalette,
   paletteToCSSVariables,
 } from './harmonies';
-import { PaddingMode, PaddingThemeSlice } from './padding';
-import { MarginMode, MarginThemeSlice } from './margin';
-import { CornerRadiusMode, RadiusThemeSlice } from './radius';
-import { ShadowMode, ShadowThemeSlice } from './shadow';
+import { type PaddingMode, PaddingThemeSlice } from './padding';
+import { type MarginMode, MarginThemeSlice } from './margin';
+import { type CornerRadiusMode, RadiusThemeSlice } from './radius';
+import { type ShadowMode, ShadowThemeSlice } from './shadow';
 import { DataTableThemeSlice } from '../components/DataTable/DataTableSlice';
 import { AnimationThemeSlice } from './animation';
 import { TabThemeSlice } from '../components/TabStrip/TabSlice';
@@ -46,7 +46,7 @@ import { StepperThemeSlice } from '../components/Stepper/StepperSlice';
 import { DatePickerThemeSlice } from '../components/DatePicker/DatePickerSlice';
 import { BreadcrumbThemeSlice } from '../components/Breadcrumb/BreadcrumbSlice';
 import { globalThemeSliceRegistry } from './slice';
-import { ToolcribSliceStateMap, ToolcribSliceStates } from './sliceStateMap';
+import { type ToolcribSliceStateMap, type ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
 import { injectGlobalStyle } from './injectGlobalStyle';
 import { injectSharedAnimationKeyframes } from './animationKeyframes';

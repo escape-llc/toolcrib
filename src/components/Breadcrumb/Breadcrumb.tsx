@@ -1,9 +1,9 @@
-import React, { ReactNode, ReactElement, useRef, useState, useEffect } from 'react';
+import React, { type ReactNode, type ReactElement, useRef, useState, useEffect } from 'react';
 import { Breadcrumbs as AriaBreadcrumbs, Breadcrumb as AriaBreadcrumb, Link as AriaLink } from 'react-aria-components/Breadcrumbs';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { DropdownMenu } from '../DropdownMenu/DropdownMenu';
 import { getSparseVariables } from '../../theme/slice';
-import { BreadcrumbThemeSlice, BreadcrumbSliceState } from './BreadcrumbSlice';
+import { BreadcrumbThemeSlice, type BreadcrumbSliceState } from './BreadcrumbSlice';
 
 /** Props for the `<Breadcrumb.Item>` slot. */
 export interface BreadcrumbItemProps {

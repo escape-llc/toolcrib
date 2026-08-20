@@ -46,6 +46,33 @@ export const CATEGORY_SLUGS = {
 // Generic TS AST helpers
 // -------------------------------------------------------------------------
 
+// Preflight: scripts/lib/extract.js depends on the classic TS Compiler API
+// (ts.createSourceFile, ts.ScriptTarget, ...), which TypeScript 7's package
+// export dropped entirely (reduced to { version, versionMajorMinor }) — see
+// root AGENTS.md's "TypeScript" section for the full story. scripts/ pins
+// its own typescript@6.0.3 in scripts/package.json specifically so this
+// works, but Node only resolves it from scripts/node_modules if that's
+// actually been installed — a fresh clone or a root-only `npm install`
+// leaves scripts/node_modules empty, and Node then falls back to whatever
+// `typescript` root has (currently 7.x), silently handing this module the
+// wrong version. Checked once at import time, right where the dependency is
+// actually used, so the failure points here instead of surfacing many
+// frames deep as a bare "Cannot read properties of undefined (reading
+// 'Latest')" the first time parse() runs.
+if (typeof ts.createSourceFile !== 'function' || !ts.ScriptTarget) {
+  throw new Error(
+    'scripts/lib/extract.js needs the classic TypeScript Compiler API ' +
+      '(ts.createSourceFile, ts.ScriptTarget), which is missing from the ' +
+      '"typescript" module Node just resolved. This almost always means ' +
+      'scripts/node_modules was never installed (or is stale) and Node ' +
+      'fell back to root\'s typescript@7.x, whose package export dropped ' +
+      'the classic API entirely.\n\n' +
+      'Fix: run `npm install` inside scripts/ (separately from root\'s own ' +
+      '`npm install`) — see root AGENTS.md\'s "TypeScript" section for why ' +
+      'these are two independent installs.'
+  );
+}
+
 export function parse(filePath) {
   // Normalize line endings up front so every downstream .getText()/.text
   // read from this source file is already \n-only, regardless of whether

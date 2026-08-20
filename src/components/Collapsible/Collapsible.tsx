@@ -1,11 +1,11 @@
-import React, { useState, ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { CollapsibleThemeSlice, CollapsibleSliceState } from './CollapsibleSlice';
+import { CollapsibleThemeSlice, type CollapsibleSliceState } from './CollapsibleSlice';
 
 /**
  * Props for the `<Collapsible>` single expand/collapse panel.

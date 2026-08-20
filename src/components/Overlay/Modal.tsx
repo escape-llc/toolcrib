@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement } from 'react';
+import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -8,10 +8,10 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { Button } from '../Form/FormComponents';
-import { ModalThemeSlice, ModalSliceState } from './ModalSlice';
+import { ModalThemeSlice, type ModalSliceState } from './ModalSlice';
 
 /**
  * Props for the `<Modal>` dialog overlay.

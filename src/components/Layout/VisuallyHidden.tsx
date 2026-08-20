@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { VisuallyHidden as VisuallyHiddenPrimitive } from 'radix-ui';
 
 /** Props for `<VisuallyHidden>`. */

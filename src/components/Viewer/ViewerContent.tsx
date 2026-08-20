@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { SubthemeName } from '../../theme/subtheme';
-import { ViewerThemeSlice, ViewerSliceState } from './ViewerSlice';
+import { type SubthemeName } from '../../theme/subtheme';
+import { ViewerThemeSlice, type ViewerSliceState } from './ViewerSlice';
 
 /** Data shape for each media item in a `<ViewerContent>`/`<Viewer>`. */
 export interface ViewerItem {

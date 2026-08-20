@@ -28,7 +28,24 @@ function main() {
   // Zip the *contents* of dist-release/, not the folder itself, so the
   // CLI's extraction lands files at the project root of the archive
   // (matches what src/lib/zip.js + release.js on the CLI side expect).
-  execFileSync('zip', ['-r', ZIP_PATH, '.'], { cwd: DIST, stdio: 'inherit' });
+  try {
+    execFileSync('zip', ['-r', ZIP_PATH, '.'], { cwd: DIST, stdio: 'inherit' });
+  } catch (err) {
+    // A missing `zip` binary (common on minimal/CI images — it isn't part
+    // of any Node install and many slim Docker bases don't include it)
+    // surfaces from execFileSync as a bare "spawnSync zip ENOENT", giving
+    // no indication it's the `zip` command specifically that's absent
+    // rather than some deeper failure in this script. Caught here so the
+    // real cause and fix are stated directly instead of a raw ENOENT.
+    if (err.code === 'ENOENT') {
+      throw new Error(
+        `'zip' command not found on PATH. Install it and re-run — e.g. ` +
+          `\`apt-get install -y zip\` (Debian/Ubuntu), \`apk add zip\` (Alpine), ` +
+          `or \`brew install zip\` (macOS).`
+      );
+    }
+    throw err;
+  }
 
   const zipBuffer = fs.readFileSync(ZIP_PATH);
   const hash = crypto.createHash('sha256').update(zipBuffer).digest('hex');

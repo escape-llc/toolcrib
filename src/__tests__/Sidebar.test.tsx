@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Sidebar, SidebarItemData } from '../components/Sidebar/Sidebar';
+import { Sidebar, type SidebarItemData } from '../components/Sidebar/Sidebar';
 
 const items: SidebarItemData[] = [
   { id: 'home', label: 'Home', icon: '🏠' },

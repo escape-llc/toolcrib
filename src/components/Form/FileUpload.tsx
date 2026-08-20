@@ -6,7 +6,7 @@ import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
-import { FileUploadThemeSlice, FileUploadSliceState } from './FileUploadSlice';
+import { FileUploadThemeSlice, type FileUploadSliceState } from './FileUploadSlice';
 
 /** A single file's upload lifecycle, tracked internally by `<FileUpload>`. */
 export interface FileUploadItem {

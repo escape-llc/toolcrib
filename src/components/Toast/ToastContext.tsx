@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useCallback, useRef } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 
 /** Toast urgency level. Higher priority toasts are displayed first. */
 /** @barrelExport */

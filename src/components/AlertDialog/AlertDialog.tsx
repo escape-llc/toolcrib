@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, ReactElement } from 'react';
+import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -8,9 +8,9 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
-import { AlertDialogThemeSlice, AlertDialogSliceState } from './AlertDialogSlice';
+import { AlertDialogThemeSlice, type AlertDialogSliceState } from './AlertDialogSlice';
 
 /**
  * Props for the `<AlertDialog>` blocking confirmation dialog.

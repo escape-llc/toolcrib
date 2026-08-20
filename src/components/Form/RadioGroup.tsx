@@ -1,10 +1,10 @@
-import React, { ReactNode, createContext, useContext } from 'react';
+import React, { type ReactNode, createContext, useContext } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { RadioGroupThemeSlice, RadioGroupSliceState } from './RadioGroupSlice';
+import { RadioGroupThemeSlice, type RadioGroupSliceState } from './RadioGroupSlice';
 
 /** Data shape for each option in a `<RadioGroup>`. */
 export interface RadioOption {

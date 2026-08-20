@@ -1,9 +1,9 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { RatingThemeSlice, RatingSliceState } from './RatingSlice';
+import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
 /** Props for the `<Rating>` star control. */
 export interface RatingProps {

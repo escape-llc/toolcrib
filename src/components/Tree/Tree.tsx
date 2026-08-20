@@ -1,9 +1,9 @@
-import React, { ReactNode, useState, useRef, useMemo, KeyboardEvent } from 'react';
+import React, { type ReactNode, useState, useRef, useMemo, type KeyboardEvent } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DeferredContent } from '../Layout/DeferredContent';
-import { TreeThemeSlice, TreeSliceState } from './TreeSlice';
+import { TreeThemeSlice, type TreeSliceState } from './TreeSlice';
 
 /** Data shape for each node in a data-driven `<Tree>`. */
 export interface TreeItemData {

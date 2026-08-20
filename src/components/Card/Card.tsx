@@ -1,10 +1,10 @@
-import React, { ReactNode } from 'react';
-import { PaddingMode, resolvePadding } from '../../theme/padding';
+import React, { type ReactNode } from 'react';
+import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
-import { CardThemeSlice, CardSliceState } from './CardSlice';
+import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { CardThemeSlice, type CardSliceState } from './CardSlice';
 
 /**
  * Controls which corners of a Card are squared off (border-radius: 0).

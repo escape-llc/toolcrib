@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { Card, CardProps } from './Card';
+import React, { type ReactNode } from 'react';
+import { Card, type CardProps } from './Card';
 
 /**
  * Props for `<CardSimple>` — a shorthand card that eliminates slot boilerplate.

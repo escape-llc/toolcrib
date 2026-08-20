@@ -22,6 +22,27 @@ export async function listVersions() {
   });
 
   if (!res.ok) {
+    // GitHub's unauthenticated rate limit (60/hr, shared across every caller
+    // on the same IP — e.g. a shared CI runner or sandbox) surfaces as a
+    // plain 403, indistinguishable from a real auth/network failure unless
+    // the response headers are inspected. Left as a generic error, this
+    // sends whoever/whatever hits it down a diagnostic path (checking
+    // headers, retrying with curl, poking at User-Agent) to rediscover a
+    // fix (`toolcrib init --version <x.y.z>`) that already exists and is
+    // documented — see CLI README. Checked here so the message states the
+    // real cause and the real fix directly, instead of a bare status code.
+    const remaining = res.status === 403 ? res.headers?.get?.('x-ratelimit-remaining') : null;
+    if (res.status === 403 && remaining === '0') {
+      const resetHeader = res.headers?.get?.('x-ratelimit-reset');
+      const resetAt = resetHeader ? new Date(Number(resetHeader) * 1000).toLocaleTimeString() : 'unknown';
+      throw new Error(
+        `GitHub's unauthenticated API rate limit (60 requests/hour, shared by IP) is exhausted — ` +
+          `resets around ${resetAt}. This only affects version *discovery* ("latest" resolution); it ` +
+          `does not affect release downloads themselves. Fix: run \`toolcrib init --version <x.y.z>\` ` +
+          `(or \`apply\`/\`merge\` with an explicit version) with a version you already know, which skips ` +
+          `this call entirely.`
+      );
+    }
     throw new Error(`Failed to fetch release list: ${res.status} ${res.statusText}`);
   }
 

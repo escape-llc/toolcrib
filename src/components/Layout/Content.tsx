@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
-import { MarginMode, resolveMargin } from '../../theme/margin';
-import { SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import React, { type ReactNode } from 'react';
+import { type MarginMode, resolveMargin } from '../../theme/margin';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props for `<Content>` — the flex-domain-establishing layout root.

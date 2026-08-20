@@ -1,8 +1,8 @@
-import React, { ReactNode, useEffect, useRef } from 'react';
+import React, { type ReactNode, useEffect, useRef } from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { AccordionThemeSlice, AccordionSliceState } from './AccordionSlice';
+import { AccordionThemeSlice, type AccordionSliceState } from './AccordionSlice';
 import { useStableId } from '../shared/useStableId';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';

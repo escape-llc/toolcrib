@@ -3,8 +3,8 @@ import { Progress as ProgressPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
-import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
-import { ProgressThemeSlice, ProgressSliceState } from './ProgressSlice';
+import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { ProgressThemeSlice, type ProgressSliceState } from './ProgressSlice';
 
 /**
  * Props for the `<Progress>` bar.

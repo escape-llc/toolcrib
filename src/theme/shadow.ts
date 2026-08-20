@@ -1,4 +1,4 @@
-import { ThemeSlice } from './slice';
+import { type ThemeSlice } from './slice';
 
 /** @barrelExport */
 export type ShadowMode = 'none' | 'subtle' | 'elevated' | 'glass';

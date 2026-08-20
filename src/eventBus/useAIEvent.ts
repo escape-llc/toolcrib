@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { aiBus, AIEventMap, EventKey, EventCallback } from './eventBus';
+import { aiBus, type AIEventMap, type EventKey, type EventCallback } from './eventBus';
 
 /**
  * Custom React hook for AI consumption.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { DataTable, Column } from '../components/DataTable/DataTable';
+import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { aiBus } from '../eventBus/eventBus';
 
 interface TestItem {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { z } from 'zod';
-import { Stepper, StepperStepData } from '../components/Stepper/Stepper';
+import { Stepper, type StepperStepData } from '../components/Stepper/Stepper';
 import { Form } from '../components/Form/FormContext';
 import { FormField, Input } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';

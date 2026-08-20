@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
-import { StyleFreeAttributes } from '../../theme/safeProps';
+import React, { type ReactNode } from 'react';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
-import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
+import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 
 /**
  * Props for the `<Badge>` label.

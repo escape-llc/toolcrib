@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { Avatar as AvatarPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
-import { AvatarThemeSlice, AvatarSliceState } from './AvatarSlice';
+import { AvatarThemeSlice, type AvatarSliceState } from './AvatarSlice';
 
 /** Props for the `<Avatar>` user/entity image with fallback. */
 export interface AvatarProps {

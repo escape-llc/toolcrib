@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
-import { ScrollAreaThemeSlice, ScrollAreaSliceState } from './ScrollAreaSlice';
+import { ScrollAreaThemeSlice, type ScrollAreaSliceState } from './ScrollAreaSlice';
 
 /** Props for the `<ScrollArea>` themed-scrollbar container. */
 export interface ScrollAreaProps {

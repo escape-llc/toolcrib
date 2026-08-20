@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ThemeSliceRegistry, ThemeSlice, getSparseVariables } from '../theme/slice';
+import { ThemeSliceRegistry, type ThemeSlice, getSparseVariables } from '../theme/slice';
 import { ShadowThemeSlice, getShadowVariables } from '../theme/shadow';
 import { MarginThemeSlice } from '../theme/margin';
 import { PaddingThemeSlice } from '../theme/padding';

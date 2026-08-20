@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { CommandPalette, CommandPaletteItemData } from '../components/CommandPalette/CommandPalette';
+import { CommandPalette, type CommandPaletteItemData } from '../components/CommandPalette/CommandPalette';
 import { aiBus } from '../eventBus/eventBus';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {

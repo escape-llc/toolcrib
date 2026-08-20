@@ -1,10 +1,10 @@
-import React, { ReactNode, useState, useRef, useEffect } from 'react';
+import React, { type ReactNode, useState, useRef, useEffect } from 'react';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
-import { StepperThemeSlice, StepperSliceState } from './StepperSlice';
+import { StepperThemeSlice, type StepperSliceState } from './StepperSlice';
 
 /** Data shape for each step in a `<Stepper>`. */
 export interface StepperStepData {

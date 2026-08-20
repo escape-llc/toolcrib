@@ -1,5 +1,5 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { SubthemeName } from './subtheme';
+import React, { createContext, useContext, type ReactNode } from 'react';
+import { type SubthemeName } from './subtheme';
 
 /** @barrelExport */
 export interface StyleDomainInfo {

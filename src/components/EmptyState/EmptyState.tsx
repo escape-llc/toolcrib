@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import React, { type ReactNode } from 'react';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /** Props for the root `<EmptyState>` container. */
 export interface EmptyStateProps extends StyleFreeAttributes<HTMLDivElement> {

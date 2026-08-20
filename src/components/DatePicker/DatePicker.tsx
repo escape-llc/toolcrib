@@ -1,4 +1,4 @@
-import React, { ReactNode, useContext } from 'react';
+import React, { type ReactNode, useContext } from 'react';
 import {
   DatePicker as AriaDatePicker,
   DatePickerStateContext,
@@ -16,7 +16,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { Popup } from '../Overlay/Popup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { Calendar } from './Calendar';
-import { DatePickerSliceState } from './DatePickerSlice';
+import { type DatePickerSliceState } from './DatePickerSlice';
 
 /** Props for the `<DatePicker>` field + calendar popover. */
 export interface DatePickerProps {

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Toast as ToastPrimitive } from 'radix-ui';
-import { ToastItem, useToast } from './ToastContext';
+import { type ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';

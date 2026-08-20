@@ -2,8 +2,8 @@
  * Toolcrib Strongly-Typed Event Bus
  * Facilitates cross-tree action dispatching without prop-drilling or component hierarchy restructuring.
  */
-import { ThemeParameters, GeneratedPalette } from '../theme/harmonies';
-import { SubthemeName } from '../theme/subtheme';
+import { type ThemeParameters, type GeneratedPalette } from '../theme/harmonies';
+import { type SubthemeName } from '../theme/subtheme';
 
 /** @barrelExport */
 export interface AIEventMap {

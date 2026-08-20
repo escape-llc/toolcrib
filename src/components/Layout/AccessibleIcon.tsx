@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { type ReactElement } from 'react';
 import { AccessibleIcon as AccessibleIconPrimitive } from 'radix-ui';
 
 /** Props for `<AccessibleIcon>`. */

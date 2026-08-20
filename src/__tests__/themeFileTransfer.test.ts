@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { downloadThemeSnapshot, readThemeSnapshotFromFile } from '../theme/themeFileTransfer';
-import { ThemeSnapshot } from '../theme/themePersistence';
+import { type ThemeSnapshot } from '../theme/themePersistence';
 
 const sampleSnapshot: ThemeSnapshot = { schemaVersion: 1, parameters: { baseColor: { h: 10, s: 20, v: 30 } } };
 

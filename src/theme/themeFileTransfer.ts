@@ -1,4 +1,4 @@
-import { ThemeSnapshot, isThemeSnapshotLike } from './themePersistence';
+import { type ThemeSnapshot, isThemeSnapshotLike } from './themePersistence';
 
 /**
  * One of three independent theme *sources* (the others: presetThemes.ts —

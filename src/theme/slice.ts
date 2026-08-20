@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 /**
  * Groups a slice under one of the Theme Editor's category sections —

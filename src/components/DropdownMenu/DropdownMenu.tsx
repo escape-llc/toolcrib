@@ -1,4 +1,4 @@
-import React, { ReactNode, ReactElement } from 'react';
+import React, { type ReactNode, type ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -6,8 +6,8 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
-import { DropdownMenuThemeSlice, DropdownMenuSliceState } from './DropdownMenuSlice';
+import { type SubthemeName } from '../../theme/subtheme';
+import { DropdownMenuThemeSlice, type DropdownMenuSliceState } from './DropdownMenuSlice';
 
 /** Data shape for each item in a `<DropdownMenu>`. */
 export interface MenuItemData {

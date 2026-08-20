@@ -1,4 +1,4 @@
-import React, { ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
@@ -7,7 +7,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { ComboboxThemeSlice, ComboboxSliceState } from './ComboboxSlice';
+import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 
 /** Data shape for each option in a `<Combobox>` listbox. */
 export interface ComboboxOptionData {

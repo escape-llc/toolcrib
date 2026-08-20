@@ -1,11 +1,11 @@
-import React, { ReactNode, useState } from 'react';
+import React, { type ReactNode, useState } from 'react';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 import { Grid } from '../Layout/Grid';
 import { DeferredContent } from '../Layout/DeferredContent';
 import { Viewer } from '../Viewer/Viewer';
-import { GalleryThemeSlice, GallerySliceState } from './GallerySlice';
+import { GalleryThemeSlice, type GallerySliceState } from './GallerySlice';
 
 /** Data shape for each item in a `<Gallery>`. */
 export interface GalleryItem {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, RefObject, DependencyList } from 'react';
+import { useState, useEffect, useCallback, type RefObject, type DependencyList } from 'react';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 
 /** @barrelExport */

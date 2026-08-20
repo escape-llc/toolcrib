@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { injectInteractionStyles } from '../../theme/interactionStyles';
 import { TargetDocumentContext } from '../../theme/targetDocumentContext';

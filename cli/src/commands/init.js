@@ -175,6 +175,14 @@ export async function initCommand(options) {
 
 function reportConflicts(depDecisions) {
   if (depDecisions.conflicts.length === 0) return;
+  // Matches doctor.js/merge.js: both set process.exitCode = 1 for their own
+  // "needs a human/AI decision" states. init.js previously didn't, which
+  // meant a real dependency conflict (e.g. a React major outside toolcrib's
+  // supported range) and a fully clean init were indistinguishable to
+  // anything checking the exit code — a script, CI step, or an agent
+  // deciding whether to proceed unattended. The warning text alone isn't
+  // enough if nothing downstream ever inspects stdout for it.
+  process.exitCode = 1;
   p.log.warn(
     `${depDecisions.conflicts.length} dependency conflict(s) — not staged, needs your decision:\n` +
       depDecisions.conflicts

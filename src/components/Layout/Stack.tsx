@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
-import { PaddingMode, resolvePadding } from '../../theme/padding';
-import { MarginMode, resolveMargin } from '../../theme/margin';
-import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import React, { type ReactNode } from 'react';
+import { type PaddingMode, resolvePadding } from '../../theme/padding';
+import { type MarginMode, resolveMargin } from '../../theme/margin';
+import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
  * Props shared by `<VStack>` and `<HStack>` layout containers.

@@ -114,3 +114,53 @@ describe('initCommand — instruction file targeting', () => {
     expect(claudePatchContent).toContain('@AGENTS.md');
   });
 });
+
+describe('initCommand — dependency conflict exit code', () => {
+  let tmpDir;
+  let originalCwd;
+  let originalExitCode;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-init-conflict-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+    vi.resetAllMocks();
+    fetchRelease.mockImplementation((v) =>
+      Promise.resolve(fakeRelease(v === 'latest' ? '1.0.0' : v, baseFiles(), { react: '^18.3.1 || ^19.0.0' }))
+    );
+    // process.exitCode is process-global state, not reset between tests by
+    // vitest itself — save/restore it explicitly so a conflict asserted in
+    // one test can't leak into the next test's assertion.
+    originalExitCode = process.exitCode;
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    process.exitCode = originalExitCode;
+  });
+
+  it('sets a non-zero exit code when a real dependency conflict is found — otherwise a caller checking $? cannot tell a conflicted init from a clean one', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'x', dependencies: { react: '^17.0.0' } }, null, 2) + '\n'
+    );
+    process.exitCode = 0;
+
+    await initCommand({ version: 'latest', situation: 'new' });
+
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('leaves the exit code untouched when the consumer\'s declared range is compatible (e.g. React 19)', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'x', dependencies: { react: '^19.0.0' } }, null, 2) + '\n'
+    );
+    process.exitCode = 0;
+
+    await initCommand({ version: 'latest', situation: 'new' });
+
+    expect(process.exitCode).toBe(0);
+  });
+});

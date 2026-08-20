@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { z } from 'zod';
+import { CalendarDate, Time } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
 import {
   useTheme,
@@ -23,7 +24,7 @@ import {
   Modal,
   useToast,
   DataTable,
-  Column,
+  type Column,
   TabStrip,
   UIGroup,
   Splitter,
@@ -59,6 +60,30 @@ import {
   AspectRatio,
   Combobox,
   FileUpload,
+  Pagination,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Spinner,
+  Tree,
+  type TreeItemData,
+  Rating,
+  Sidebar,
+  type SidebarItemData,
+  Stepper,
+  type StepperStepData,
+  DatePicker,
+  Calendar,
+  TimeField,
+  Breadcrumb,
+  CommandPalette,
+  type CommandPaletteItemData,
+  Carousel,
+  type CarouselSlideItem,
+  Filmstrip,
+  type FilmstripItem,
+  Gallery,
+  type GalleryItem,
 } from '#toolcrib';
 
 const COUNTRY_OPTIONS = [
@@ -101,6 +126,137 @@ const dummyUsers: DemoUser[] = Array.from({ length: 250 }, (_, i) => ({
   status: i % 4 === 0 ? 'Pending' : i % 5 === 0 ? 'Inactive' : 'Active',
   score: Math.floor(Math.random() * 100),
 }));
+
+// --- Media demo assets ------------------------------------------------------
+// Self-contained, inline SVG data URIs rather than an external image host —
+// same "isolated, no network dependency" philosophy as the wireframe gallery
+// below, just for photo-shaped content instead of layout structure.
+function demoImage(bg: string, label: string, w = 480, h = 320): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bg}"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="${Math.round(h / 8)}" fill="rgba(255,255,255,0.9)">${label}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+const MEDIA_PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#ec4899', '#6b7280'];
+
+const GALLERY_ITEMS: GalleryItem[] = Array.from({ length: 8 }, (_, i) => ({
+  id: `photo-${i + 1}`,
+  thumbnailSrc: demoImage(MEDIA_PALETTE[i % MEDIA_PALETTE.length], `#${i + 1}`, 300, 300),
+  fullSrc: demoImage(MEDIA_PALETTE[i % MEDIA_PALETTE.length], `Photo #${i + 1}`, 1200, 800),
+  alt: `Demo photo ${i + 1}`,
+  caption: `Demo photo ${i + 1} of ${8} — a placeholder image generated inline, not fetched from anywhere.`,
+}));
+
+const CAROUSEL_SLIDES: CarouselSlideItem[] = ['Welcome', 'Features', 'Pricing', 'Get Started'].map((label, i) => ({
+  id: `slide-${i}`,
+  content: (
+    <div
+      style={{
+        aspectRatio: '16 / 7',
+        borderRadius: 'var(--ai-radius-md, 0.375rem)',
+        background: MEDIA_PALETTE[i % MEDIA_PALETTE.length],
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontSize: '1.25rem',
+        fontWeight: 700,
+      }}
+    >
+      {label}
+    </div>
+  ),
+}));
+
+const FILMSTRIP_ITEMS: FilmstripItem[] = Array.from({ length: 10 }, (_, i) => ({
+  id: `frame-${i + 1}`,
+  label: `Frame ${i + 1}`,
+  content: (
+    <img
+      src={demoImage(MEDIA_PALETTE[i % MEDIA_PALETTE.length], String(i + 1), 100, 100)}
+      alt=""
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  ),
+}));
+
+// --- Navigation demo data ----------------------------------------------------
+const TREE_ITEMS: TreeItemData[] = [
+  {
+    id: 'src',
+    label: '📁 src',
+    children: [
+      {
+        id: 'components',
+        label: '📁 components',
+        children: [
+          { id: 'card-tsx', label: '📄 Card.tsx' },
+          { id: 'button-tsx', label: '📄 Button.tsx' },
+          { id: 'tree-tsx', label: '📄 Tree.tsx' },
+        ],
+      },
+      {
+        id: 'theme',
+        label: '📁 theme',
+        children: [
+          { id: 'theme-context-tsx', label: '📄 themeContext.tsx' },
+          { id: 'harmonies-ts', label: '📄 harmonies.ts' },
+        ],
+      },
+      { id: 'index-ts', label: '📄 index.ts' },
+    ],
+  },
+  {
+    id: 'demo',
+    label: '📁 demo',
+    children: [{ id: 'app-tsx', label: '📄 App.tsx' }],
+  },
+  { id: 'package-json', label: '📄 package.json' },
+  { id: 'readme-md', label: '📄 README.md', disabled: true },
+];
+
+const SIDEBAR_ITEMS: SidebarItemData[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+  { id: 'projects', label: 'Projects', icon: '📁' },
+  { id: 'team', label: 'Team', icon: '👥' },
+  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'settings', label: 'Settings', icon: '⚙️', disabled: true },
+];
+
+const STEPPER_STEPS: StepperStepData[] = [
+  {
+    id: 'account',
+    label: 'Account',
+    content: (
+      <p style={{ margin: 0 }}>
+        Step 1 of 3 — plain content, no <code>formId</code>. Forward navigation here is never blocked.
+      </p>
+    ),
+  },
+  {
+    id: 'profile',
+    label: 'Profile',
+    formId: 'stepper-profile-form',
+    content: (
+      <VStack gap="sm">
+        <p style={{ margin: 0 }}>
+          Step 2 of 3 — this step sets <code>formId="stepper-profile-form"</code>. The "Confirm" step stays
+          unreachable until the form below reports <code>isValid: true</code> at least once (type a display name
+          of 3+ characters).
+        </p>
+        <Form id="stepper-profile-form" schema={z.object({ displayName: z.string().min(3, 'At least 3 characters') })} initialValues={{ displayName: '' }} onSubmit={() => {}}>
+          <FormField name="displayName" label="Display Name">
+            <Input placeholder="e.g. Jane Doe" />
+          </FormField>
+        </Form>
+      </VStack>
+    ),
+  },
+  {
+    id: 'confirm',
+    label: 'Confirm',
+    content: <p style={{ margin: 0 }}>Step 3 of 3 — reachable only once the Profile step's form is valid.</p>,
+  },
+];
 
 // --- Layout Wireframe Gallery ---------------------------------------------
 // Each wireframe below is a self-contained HTML document rendered via
@@ -460,18 +616,70 @@ const Flaky: React.FC<{ triggerKey: number }> = ({ triggerKey }) => {
 };
 
 export const App: React.FC = () => {
-  const { parameters, sliceStates } = useTheme();
+  const { parameters, sliceStates, toggleDarkMode } = useTheme();
   const typographyState = sliceStates.typography;
   const { addToast, setAnchor } = useToast();
 
-  // No `activeTab` useState here anymore: <TabStrip id="main-demo"> manages
-  // its own active-tab state and broadcasts it on `aiBus`; each
-  // <TabStrip.Panel groupId="main-demo" value="..."> below listens for that
-  // independently. Control and content don't share a DOM ancestor, a
-  // prop, or state — see src/components/TabStrip/TabStrip.tsx.
+  // <TabStrip id="main-demo"> would happily manage this itself
+  // (uncontrolled) — it's promoted to controlled state here for exactly one
+  // reason: <CommandPalette>'s "Go to ..." items below need a way to switch
+  // tabs from a component with no ancestor/descendant relationship to the
+  // TabStrip. TabStrip still broadcasts `tab:changed` on `aiBus` the same
+  // way either way; this only adds the explicit React-level hook.
+  const [activeTab, setActiveTab] = useState('overview');
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
   const [progressValue, setProgressValue] = useState(45);
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
+  const [paginationPage, setPaginationPage] = useState(1);
+  const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
+  const [ratingValue, setRatingValue] = useState(4);
+  const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
+
+  // Data-driven for <CommandPalette> — grouped, each entry either jumps to
+  // a tab (closing over setActiveTab, the same controlled hook above) or
+  // fires a small cross-cutting action, demonstrating why a command palette
+  // is genuinely useful once an app has more than a couple of screens.
+  const commandPaletteItems: CommandPaletteItemData[] = [
+    ...[
+      { id: 'overview', label: 'Overview & Architecture' },
+      { id: 'forms', label: 'Forms & Zod Engine' },
+      { id: 'overlays', label: 'Overlays & Actions' },
+      { id: 'toasts', label: 'Toast Subsystem' },
+      { id: 'datatable', label: 'Data Table' },
+      { id: 'navigation', label: 'Navigation & Structure' },
+      { id: 'media', label: 'Media Gallery' },
+      { id: 'status', label: 'Feedback & Status' },
+      { id: 'layout', label: 'Common Layout Idioms' },
+      { id: 'wireframes', label: 'Wireframe Gallery' },
+      { id: 'showcase', label: 'Component Showcase' },
+    ].map(tab => ({
+      value: `goto-${tab.id}`,
+      label: tab.label,
+      group: 'Go to',
+      onSelect: () => setActiveTab(tab.id),
+    })),
+    {
+      value: 'toggle-dark-mode',
+      label: 'Toggle dark mode',
+      group: 'Actions',
+      icon: '🌙',
+      onSelect: toggleDarkMode,
+    },
+    {
+      value: 'fire-test-toast',
+      label: 'Fire a test toast',
+      group: 'Actions',
+      icon: '🔔',
+      onSelect: () => addToast({ type: 'info', message: 'Triggered from the Command Palette' }),
+    },
+    {
+      value: 'open-theme-designer',
+      label: 'Open Theme Designer',
+      group: 'Actions',
+      icon: '🎨',
+      onSelect: () => aiBus.openDrawer('theme-editor-panel'),
+    },
+  ];
 
   // Subscribe to ALL aiBus events for the live event monitor
   useAIEvent('*' as any, (event: any) => {
@@ -555,7 +763,14 @@ export const App: React.FC = () => {
   ];
 
   return (
-    <AppShell>
+    <>
+      {/* Mounted once, near the root — same "render it once, it works from
+          anywhere" shape as <ToastContainer>. Its own Cmd/Ctrl+K listener
+          registers itself on mount; items are the data-driven array built
+          above. Also directly openable via aiBus.openCommandPalette(id),
+          demonstrated by the button on the Overlays tab. */}
+      <CommandPalette id="global-command-palette" items={commandPaletteItems} />
+      <AppShell>
       {/* Top Header Bar */}
       <AppShell.Header>
         <HStack gap="sm">
@@ -651,15 +866,19 @@ export const App: React.FC = () => {
             <Content>
               <TabStrip
                 id="main-demo"
-                defaultActiveId="overview"
+                activeId={activeTab}
+                onChange={setActiveTab}
                 items={[
                   { id: 'overview', label: '🚀 Overview & Architecture' },
-                  { id: 'form', label: '📝 Form & Zod Engine' },
-                  { id: 'overlays', label: '🪟 Overlays (Popup / Drawer / Modal)' },
+                  { id: 'forms', label: '📝 Forms & Zod Engine' },
+                  { id: 'overlays', label: '🪟 Overlays & Actions' },
                   { id: 'toasts', label: '🔔 Toast Subsystem' },
-                  { id: 'datatable', label: '📊 Virtualized Data Table' },
+                  { id: 'datatable', label: '📊 Data Table' },
+                  { id: 'navigation', label: '🧭 Navigation & Structure' },
+                  { id: 'media', label: '🖼️ Media Gallery' },
+                  { id: 'status', label: '🎛️ Feedback & Status' },
                   { id: 'layout', label: '📐 Common Layout Idioms' },
-                  { id: 'wireframes', label: '🖼️ Wireframe Gallery' },
+                  { id: 'wireframes', label: '🗺️ Wireframe Gallery' },
                   { id: 'showcase', label: '🧩 Component Showcase' },
                 ]}
               />
@@ -799,8 +1018,8 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Tab 2: Form & Zod Engine */}
-                <TabStrip.Panel groupId="main-demo" value="form">
+                {/* Tab 2: Forms & Zod Engine */}
+                <TabStrip.Panel groupId="main-demo" value="forms">
                   <Grid columns={2} gap="lg">
                     <Card>
                       <Card.Header>User Profile Form (Zod 4 Validated Engine)</Card.Header>
@@ -885,6 +1104,64 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
                   </Grid>
+
+                  {/* Date/Time pickers and Rating live outside the Zod form
+                      above deliberately — standalone, uncontrolled-by-default
+                      demos of each control's own onChange, not one more field
+                      bolted onto an already-complete validated form. */}
+                  <Card overrides={{ padding: 'compact' }}>
+                    <Card.Header>Date, Time & Rating Inputs (`&lt;DatePicker&gt;`, `&lt;Calendar&gt;`, `&lt;TimeField&gt;`, `&lt;Rating&gt;`)</Card.Header>
+                    <Card.Content>
+                      <Grid columns={3} gap="lg">
+                        <VStack gap="sm">
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Popover Calendar (`&lt;DatePicker&gt;`)</div>
+                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                            Backed by <code>@internationalized/date</code>'s <code>CalendarDate</code>, not a raw JS <code>Date</code> — correct across timezones/DST by construction. Hosted in toolcrib's own <code>&lt;Popup&gt;</code>, not a react-aria-components popover.
+                          </p>
+                          <DatePicker
+                            name="demoMeetingDate"
+                            label="Meeting Date"
+                            defaultValue={new CalendarDate(2026, 3, 15)}
+                            onChange={value => addToast({ type: 'info', message: `Meeting date: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
+                          />
+                        </VStack>
+
+                        <VStack gap="sm">
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</div>
+                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                            <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot.
+                          </p>
+                          <Calendar
+                            defaultValue={new CalendarDate(2026, 3, 15)}
+                            onChange={value => addToast({ type: 'info', message: `Calendar date: ${value.toString()}`, priority: 'low' })}
+                          />
+                          <TimeField
+                            name="demoMeetingTime"
+                            label="Meeting Time"
+                            defaultValue={new Time(14, 30)}
+                            onChange={value => addToast({ type: 'info', message: `Meeting time: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
+                          />
+                        </VStack>
+
+                        <VStack gap="sm">
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Star Rating (`&lt;Rating&gt;`)</div>
+                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                            Built on Radix <code>RadioGroup</code> — real keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
+                          </p>
+                          <Rating
+                            name="demoRating"
+                            value={ratingValue}
+                            onChange={value => {
+                              setRatingValue(value);
+                              addToast({ type: 'info', message: `Rated ${value} of 5`, priority: 'low' });
+                            }}
+                          />
+                          <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Read-only (fractional fill):</div>
+                          <Rating readOnly value={3.5} />
+                        </VStack>
+                      </Grid>
+                    </Card.Content>
+                  </Card>
                 </TabStrip.Panel>
 
                 {/* Tab 3: Overlays */}
@@ -941,6 +1218,18 @@ export const App: React.FC = () => {
                             </Modal.Actions>
                           </Modal.Footer>
                         </Modal>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>Command Palette (`&lt;CommandPalette&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
+                        </p>
+                        <Button variant="outline" icon="⌘" onClick={() => aiBus.openCommandPalette('global-command-palette')}>
+                          Open Command Palette
+                        </Button>
                       </Card.Content>
                     </Card>
                   </Grid>
@@ -1003,6 +1292,16 @@ export const App: React.FC = () => {
 
                 {/* Tab 5: Virtualized Data Table */}
                 <TabStrip.Panel groupId="main-demo" value="datatable">
+                  {/* <Card layout="auto"> below must stay a *direct* flex
+                      child of this panel, not nested inside a <VStack> —
+                      VStack doesn't declare `flex` on its own root div, so
+                      an auto-layout descendant has nothing to grow against
+                      and collapses to a near-zero height instead of filling
+                      the panel (confirmed via a real browser run: the whole
+                      table silently vanished, leaving only the Pagination
+                      card below it). The Pagination card stays a sibling
+                      here, not wrapped together with the table, for the
+                      same reason. */}
                   <Card layout="auto">
                     <Card.Header>
                       <Toolbar>
@@ -1035,12 +1334,214 @@ export const App: React.FC = () => {
                             ? { background: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.4)', color: 'rgb(109, 40, 217)' }
                             : undefined
                         }
+                        selectable
+                        selectedKeys={selectedUserKeys}
+                        onSelectionChange={setSelectedUserKeys}
+                        renderBulkActions={keys => (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            icon="🗑️"
+                            onClick={() => {
+                              addToast({ type: 'warning', message: `Deleted ${keys.length} user(s) (simulated)`, priority: 'medium' });
+                              setSelectedUserKeys([]);
+                            }}
+                          >
+                            Delete Selected
+                          </Button>
+                        )}
                       />
                     </Card.Content>
                   </Card>
+
+                  {/* Standalone <Pagination> — DataTable above uses the same
+                      usePagination hook internally for its own paging, but
+                      this instance demonstrates the component on its own,
+                      decoupled from any table. A plain wrapper div (not
+                      <VStack>) supplies the top margin, for the same reason
+                      this isn't wrapped together with the table above. */}
+                  <div style={{ marginTop: 'var(--ai-margin-lg, 1.25rem)', flexShrink: 0 }}>
+                    <Card>
+                      <Card.Header>Standalone Pagination (`&lt;Pagination&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
+                        </p>
+                        <Pagination
+                          totalItems={137}
+                          pageSize={10}
+                          page={paginationPage}
+                          onPageChange={page => setPaginationPage(page)}
+                        />
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
+                      </Card.Content>
+                    </Card>
+                  </div>
                 </TabStrip.Panel>
 
-                {/* Tab 6: Common Layout Idioms (NEW) */}
+                {/* Tab 6: Navigation & Structure */}
+                <TabStrip.Panel groupId="main-demo" value="navigation">
+                  <VStack gap="lg">
+                    <Card>
+                      <Card.Header>Breadcrumb Trail (`&lt;Breadcrumb&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Wraps <code>react-aria-components</code>'s <code>Breadcrumbs</code>. Middle items collapse into a <code>&lt;DropdownMenu&gt;</code> automatically once the trail overflows its container — narrow the browser window to see it happen.
+                        </p>
+                        <Breadcrumb>
+                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Home', priority: 'low' })}>Home</Breadcrumb.Item>
+                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Products', priority: 'low' })}>Products</Breadcrumb.Item>
+                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Electronics', priority: 'low' })}>Electronics</Breadcrumb.Item>
+                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Laptops', priority: 'low' })}>Laptops</Breadcrumb.Item>
+                          <Breadcrumb.Item>Current Model</Breadcrumb.Item>
+                        </Breadcrumb>
+                      </Card.Content>
+                    </Card>
+
+                    <Grid columns={2} gap="lg">
+                      <Card>
+                        <Card.Header>Collapsible Nav Rail (`&lt;Sidebar&gt;`)</Card.Header>
+                        <Card.Content>
+                          <p style={{ marginTop: 0 }}>
+                            Typically placed inside <code>&lt;AppShell.Sidebar&gt;</code> — shown here in a bounded box so it doesn't restructure this whole demo's own root layout. Renders its own collapse toggle internally.
+                          </p>
+                          <div style={{ height: '14rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
+                            <Sidebar
+                              items={SIDEBAR_ITEMS}
+                              activeId={sidebarActiveId}
+                              onItemClick={id => setSidebarActiveId(id)}
+                            />
+                            <div style={{ flex: 1, padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                              Active: <strong style={{ color: 'var(--ai-text-primary)' }}>{SIDEBAR_ITEMS.find(i => i.id === sidebarActiveId)?.label}</strong>
+                            </div>
+                          </div>
+                        </Card.Content>
+                      </Card>
+
+                      <Card>
+                        <Card.Header>Hierarchical Tree (`&lt;Tree&gt;`)</Card.Header>
+                        <Card.Content>
+                          <p style={{ marginTop: 0 }}>
+                            Full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) comes for free — try clicking an item, then using the arrow keys.
+                          </p>
+                          <div style={{ height: '14rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', padding: '0.5rem' }}>
+                            <Tree
+                              items={TREE_ITEMS}
+                              defaultExpandedIds={['src', 'components']}
+                              defaultSelectedId="card-tsx"
+                              onSelectChange={id => id && addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
+                            />
+                          </div>
+                        </Card.Content>
+                      </Card>
+                    </Grid>
+
+                    <Card>
+                      <Card.Header>Multi-Step Wizard (`&lt;Stepper&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
+                        </p>
+                        <Stepper steps={STEPPER_STEPS} />
+                      </Card.Content>
+                    </Card>
+                  </VStack>
+                </TabStrip.Panel>
+
+                {/* Tab 7: Media Gallery */}
+                <TabStrip.Panel groupId="main-demo" value="media">
+                  <VStack gap="lg">
+                    <Card>
+                      <Card.Header>Swipeable Carousel (`&lt;Carousel&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Wraps <code>embla-carousel-react</code> — drag/swipe it directly, or use the arrows/dots. Looping, with a 4-second autoplay.
+                        </p>
+                        <Carousel slides={CAROUSEL_SLIDES} loop autoplay={{ delayMs: 4000 }} />
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>Thumbnail Strip (`&lt;Filmstrip&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Shares <code>&lt;TabStrip&gt;</code>'s own overflow-scroll detection and active-indicator theming — narrow the window to see the scroll arrows appear.
+                        </p>
+                        <Filmstrip
+                          items={FILMSTRIP_ITEMS}
+                          defaultActiveId={FILMSTRIP_ITEMS[0].id}
+                          onChange={id => addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
+                        />
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>Thumbnail Grid + Lightbox (`&lt;Gallery&gt;`, composing `&lt;Viewer&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Click any thumbnail to open the fullscreen <code>&lt;Viewer&gt;</code> lightbox (composes <code>&lt;ViewerContent&gt;</code> inside <code>&lt;Modal&gt;</code>) — arrow keys navigate, click the image to zoom, Escape closes only the viewer. Thumbnails defer via the same <code>&lt;DeferredContent&gt;</code> used elsewhere in this demo, not a second lazy-render mechanism.
+                        </p>
+                        <Gallery items={GALLERY_ITEMS} columns="auto-fit" />
+                      </Card.Content>
+                    </Card>
+                  </VStack>
+                </TabStrip.Panel>
+
+                {/* Tab 8: Feedback & Status */}
+                <TabStrip.Panel groupId="main-demo" value="status">
+                  <VStack gap="lg">
+                    <Grid columns={2} gap="lg">
+                      <Card>
+                        <Card.Header>Status Badges (`&lt;Badge&gt;`)</Card.Header>
+                        <Card.Content>
+                          <HStack gap="sm" wrap>
+                            <Badge subtheme="info">Info</Badge>
+                            <Badge subtheme="success">Active</Badge>
+                            <Badge subtheme="warning">Pending</Badge>
+                            <Badge subtheme="error">Failed</Badge>
+                            <Badge subtheme="success" icon="✓" size="sm">Verified</Badge>
+                          </HStack>
+                        </Card.Content>
+                      </Card>
+
+                      <Card>
+                        <Card.Header>Loading Indicators (`&lt;Skeleton&gt;`, `&lt;Spinner&gt;`)</Card.Header>
+                        <Card.Content>
+                          <VStack gap="sm">
+                            <HStack gap="sm" align="center">
+                              <Skeleton shape="circle" width="2.5rem" height="2.5rem" />
+                              <VStack gap="xs">
+                                <Skeleton shape="text" width="9rem" />
+                                <Skeleton shape="text" width="6rem" />
+                              </VStack>
+                            </HStack>
+                            <HStack gap="md" align="center">
+                              <Spinner size="sm" />
+                              <Spinner size="md" subtheme="info" />
+                              <Spinner size="lg" subtheme="success" />
+                            </HStack>
+                          </VStack>
+                        </Card.Content>
+                      </Card>
+                    </Grid>
+
+                    <Card>
+                      <Card.Header>No-Content Placeholder (`&lt;EmptyState&gt;`)</Card.Header>
+                      <Card.Content>
+                        <EmptyState>
+                          <EmptyState.Icon>📭</EmptyState.Icon>
+                          <EmptyState.Title>No results found</EmptyState.Title>
+                          <EmptyState.Description>Try adjusting your search or filters, or create a new record.</EmptyState.Description>
+                          <EmptyState.Action>
+                            <Button variant="primary" onClick={() => addToast({ type: 'info', message: 'Create new record clicked' })}>Create Record</Button>
+                          </EmptyState.Action>
+                        </EmptyState>
+                      </Card.Content>
+                    </Card>
+                  </VStack>
+                </TabStrip.Panel>
+
+                {/* Tab 9: Common Layout Idioms (NEW) */}
                 <TabStrip.Panel groupId="main-demo" value="layout">
                   <VStack gap="lg">
                     <Grid columns={2} gap="lg">
@@ -1114,7 +1615,7 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Tab 7: Layout Wireframe Gallery (NEW) */}
+                {/* Tab 10: Layout Wireframe Gallery */}
                 <TabStrip.Panel groupId="main-demo" value="wireframes">
                   <VStack gap="lg">
                     <Card>
@@ -1175,7 +1676,7 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Tab 8: Component Showcase */}
+                {/* Tab 11: Component Showcase */}
                 <TabStrip.Panel groupId="main-demo" value="showcase">
                   <VStack gap="lg">
                     {/* Section 1: Button Variants & Subthemes */}
@@ -1778,7 +2279,8 @@ export const App: React.FC = () => {
           </Splitter.Panel>
         </Splitter>
       </AppShell.Main>
-    </AppShell>
+      </AppShell>
+    </>
   );
 };
 

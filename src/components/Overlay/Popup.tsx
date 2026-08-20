@@ -1,17 +1,17 @@
-import React, { useState, ReactNode, ReactElement, cloneElement, isValidElement } from 'react';
+import React, { useState, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
-import { SquareCornerOption } from '../Card/Card';
+import { type SquareCornerOption } from '../Card/Card';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
-import { PopupThemeSlice, PopupSliceState } from './PopupSlice';
+import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';

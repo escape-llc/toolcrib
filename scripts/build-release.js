@@ -74,6 +74,38 @@ const COMPANION_PEER_DEPENDENCIES = {
   react: ['react-dom'],
 };
 
+// Widens a scan-derived peerDependency range beyond what rootPkg.dependencies
+// declares, for cases where the dev/build/test toolchain (still React 18 as
+// of this writing) is intentionally more conservative than what the vendored
+// source actually requires at runtime. Every entry here needs a reason:
+//  - react / react-dom: the vendored source (theme/, eventBus/, observer/,
+//    components/**) was audited on 2026-08-19 and contains none of the
+//    APIs removed or deprecated in React 19 (no ReactDOM.render/hydrate, no
+//    function-component defaultProps/propTypes, no string refs, no legacy
+//    contextTypes/getChildContext). Every runtime dependency the toolkit
+//    actually ships with (radix-ui, react-aria-components, cmdk,
+//    embla-carousel-react) already declares its own React 19-compatible
+//    peer range, so there is nothing downstream forcing React 18 either.
+//    The ^18.3.1 the scan would otherwise emit reflects only what CI
+//    currently builds/tests against, not a real runtime ceiling — so it's
+//    widened here rather than by bumping the dev dependency itself, which
+//    would require moving the whole toolchain (and its test/e2e suites) to
+//    19 in lockstep. Revisit (and prefer just bumping the dev dependency
+//    instead of this override) once the toolkit is built/tested against 19
+//    directly, so the scan-derived range and the override no longer diverge.
+//    Applied as a floor, not a replacement: unioned with whatever the scan
+//    derives, so if rootPkg.dependencies is ever bumped past what's listed
+//    here, the scanned range still wins for anything newer.
+//    Kept in sync with the "React version" note in
+//    ai-docs/templates/CORE.md.hbs (and its generated ai-docs/CORE.md) —
+//    that's the copy an AI scaffolding a consumer app actually reads, so a
+//    version bump here without a matching update there leaves the AI with
+//    no way to know the range widened.
+const PEER_DEPENDENCY_RANGE_OVERRIDES = {
+  react: '^18.3.1 || ^19.0.0',
+  'react-dom': '^18.3.1 || ^19.0.0',
+};
+
 function loadRootPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
 }
@@ -222,7 +254,15 @@ function main() {
 
   const peerDependencies = {};
   for (const pkg of requiredPackages) {
-    peerDependencies[pkg] = rootPkg.dependencies[pkg];
+    const scannedRange = rootPkg.dependencies[pkg];
+    const overrideRange = PEER_DEPENDENCY_RANGE_OVERRIDES[pkg];
+    // Union rather than replace: if rootPkg.dependencies is ever bumped past
+    // what the override lists (e.g. react moves to ^19 as the dev dependency
+    // itself), the scanned range is included either way instead of being
+    // silently narrowed back down by a stale override entry.
+    peerDependencies[pkg] = overrideRange && !overrideRange.includes(scannedRange)
+      ? `${scannedRange} || ${overrideRange}`
+      : (overrideRange || scannedRange);
   }
   // Add companions after the scan-derived set is final, keyed on whichever
   // trigger package actually ended up required — never invented out of

@@ -1,12 +1,12 @@
-import React, { ReactNode, createContext, useContext } from 'react';
+import React, { type ReactNode, createContext, useContext } from 'react';
 import { Toolbar as ToolbarPrimitive } from 'radix-ui';
-import { PaddingMode, resolvePadding } from '../../theme/padding';
-import { MarginMode } from '../../theme/margin';
-import { CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type PaddingMode, resolvePadding } from '../../theme/padding';
+import { type MarginMode } from '../../theme/margin';
+import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
-import { ToolbarThemeSlice, ToolbarSliceState } from './ToolbarSlice';
-import { Button, ButtonProps } from '../Form/FormComponents';
+import { ToolbarThemeSlice, type ToolbarSliceState } from './ToolbarSlice';
+import { Button, type ButtonProps } from '../Form/FormComponents';
 
 /**
  * Not exported — purely internal plumbing so `Toolbar.Left`/`.Center`/

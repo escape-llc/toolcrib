@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
-import { resolveSubtheme, SubthemeName } from '../../theme/subtheme';
+import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 
 /** Props for the `<Spinner>` indeterminate loading indicator. */
 export interface SpinnerProps extends StyleFreeAttributes<HTMLDivElement> {

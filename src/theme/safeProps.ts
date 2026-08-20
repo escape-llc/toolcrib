@@ -1,4 +1,4 @@
-import { HTMLAttributes } from 'react';
+import { type HTMLAttributes } from 'react';
 
 /**
  * Any props shape with `style`/`className` removed. Every migrated

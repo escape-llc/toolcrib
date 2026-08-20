@@ -1,14 +1,14 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
-import { MenuItemData } from '../DropdownMenu/DropdownMenu';
+import { type MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
-import { ContextMenuThemeSlice, ContextMenuSliceState } from './ContextMenuSlice';
+import { type SubthemeName } from '../../theme/subtheme';
+import { ContextMenuThemeSlice, type ContextMenuSliceState } from './ContextMenuSlice';
 
 /**
  * Props for the `<ContextMenu>` right-click action menu.

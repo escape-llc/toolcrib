@@ -23,7 +23,21 @@ function main() {
   }
 
   fs.rmSync(ZIP_PATH, { force: true });
-  execFileSync('zip', ['-r', ZIP_PATH, '.'], { cwd: DIST, stdio: 'inherit' });
+  try {
+    execFileSync('zip', ['-r', ZIP_PATH, '.'], { cwd: DIST, stdio: 'inherit' });
+  } catch (err) {
+    // See package-release.js's matching guard for the full rationale — a
+    // missing `zip` binary otherwise surfaces as a bare "spawnSync zip
+    // ENOENT" with no indication of the actual cause or fix.
+    if (err.code === 'ENOENT') {
+      throw new Error(
+        `'zip' command not found on PATH. Install it and re-run — e.g. ` +
+          `\`apt-get install -y zip\` (Debian/Ubuntu), \`apk add zip\` (Alpine), ` +
+          `or \`brew install zip\` (macOS).`
+      );
+    }
+    throw err;
+  }
 
   const zipBuffer = fs.readFileSync(ZIP_PATH);
   const hash = crypto.createHash('sha256').update(zipBuffer).digest('hex');

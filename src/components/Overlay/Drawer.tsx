@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useRef, ReactNode, ReactElement } from 'react';
+import React, { useState, useLayoutEffect, useRef, type ReactNode, type ReactElement } from 'react';
 import { Portal } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';

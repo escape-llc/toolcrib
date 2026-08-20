@@ -1,6 +1,6 @@
-import { ThemeSlice, getSparseVariables } from './slice';
+import { type ThemeSlice, getSparseVariables } from './slice';
 import { useStyleDomain } from './StyleDomainContext';
-import { SubthemeName } from './subtheme';
+import { type SubthemeName } from './subtheme';
 
 /** @barrelExport */
 export interface SliceOverridesResult<TVars extends Record<string, string>> {

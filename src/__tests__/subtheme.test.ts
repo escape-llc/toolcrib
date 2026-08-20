@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveSubtheme, SubthemeName } from '../theme/subtheme';
+import { resolveSubtheme, type SubthemeName } from '../theme/subtheme';
 
 describe('resolveSubtheme', () => {
   it('resolves the full variable family for a subtheme name', () => {

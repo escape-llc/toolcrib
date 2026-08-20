@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateHarmonyPalette, paletteToCSSVariables, ThemeParameters } from '../theme/harmonies';
+import { generateHarmonyPalette, paletteToCSSVariables, type ThemeParameters } from '../theme/harmonies';
 
 describe('Color Harmonies Engine', () => {
   const baseParams: ThemeParameters = {

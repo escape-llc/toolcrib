@@ -1,13 +1,13 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { type ReactNode, useEffect, useState } from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
 import { Modal } from '../Overlay/Modal';
-import { CommandPaletteThemeSlice, CommandPaletteSliceState } from './CommandPaletteSlice';
+import { CommandPaletteThemeSlice, type CommandPaletteSliceState } from './CommandPaletteSlice';
 
 /** Data shape for each item in a `<CommandPalette>`. */
 export interface CommandPaletteItemData {

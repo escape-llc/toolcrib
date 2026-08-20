@@ -1,5 +1,5 @@
 import {
-  HSVColor,
+  type HSVColor,
   normalizeHSV,
   shiftHue,
   adjustSaturation,
@@ -9,9 +9,9 @@ import {
   pickReadableTextColor,
 } from './hsv';
 
-import { PaddingMode, getPaddingVariables } from './padding';
-import { MarginMode, getMarginVariables } from './margin';
-import { CornerRadiusMode, getRadiusVariables } from './radius';
+import { type PaddingMode, getPaddingVariables } from './padding';
+import { type MarginMode, getMarginVariables } from './margin';
+import { type CornerRadiusMode, getRadiusVariables } from './radius';
 
 /** @barrelExport */
 export type HarmonyMode =
