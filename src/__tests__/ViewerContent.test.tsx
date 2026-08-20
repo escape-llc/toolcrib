@@ -78,12 +78,34 @@ describe('ViewerContent', () => {
   it('toggles zoom on image click', () => {
     render(<ViewerContent items={items} defaultActiveIndex={0} />);
     const img = screen.getByAltText('Photo A');
-    expect(img).toHaveStyle({ cursor: 'zoom-in' });
+    const zoomButton = screen.getByLabelText('Zoom in');
+    expect(zoomButton).toHaveStyle({ cursor: 'zoom-in' });
 
     fireEvent.click(img);
-    expect(img).toHaveStyle({ cursor: 'zoom-out' });
+    expect(screen.getByLabelText('Zoom out')).toHaveStyle({ cursor: 'zoom-out' });
 
     fireEvent.click(img);
-    expect(img).toHaveStyle({ cursor: 'zoom-in' });
+    expect(screen.getByLabelText('Zoom in')).toHaveStyle({ cursor: 'zoom-in' });
+  });
+
+  describe('regression: zoom toggle is keyboard-operable (mouse-only <img onClick> before this fix)', () => {
+    // The zoom control used to be a plain <img onClick>, which isn't
+    // natively focusable and has no keyboard-activation path at all -- Tab
+    // could never reach it, and there was no ARIA state exposing whether it
+    // was zoomed. Wrapping it in a real <button> gives Tab reachability,
+    // Enter/Space activation, and aria-pressed for free -- asserted here
+    // directly rather than assumed.
+    it('exposes the zoom toggle as a real, keyboard-reachable button with aria-pressed state', () => {
+      render(<ViewerContent items={items} defaultActiveIndex={0} />);
+      const zoomButton = screen.getByLabelText('Zoom in');
+
+      expect(zoomButton.tagName).toBe('BUTTON');
+      expect(zoomButton.tabIndex).toBe(0); // native <button>s are focusable by default, no explicit tabIndex needed
+      expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(zoomButton);
+
+      expect(screen.getByLabelText('Zoom out')).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 });

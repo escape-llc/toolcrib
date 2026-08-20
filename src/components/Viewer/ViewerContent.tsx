@@ -204,18 +204,31 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
           </button>
         )}
 
-        <img
-          src={activeItem.src}
-          alt={activeItem.alt ?? ''}
+        <button
+          type="button"
           onClick={() => setIsZoomed(z => !z)}
+          aria-label={isZoomed ? 'Zoom out' : 'Zoom in'}
+          aria-pressed={isZoomed}
+          className="ai-btn"
           style={{
-            maxWidth: isZoomed ? 'none' : '100%',
-            maxHeight: isZoomed ? 'none' : '100%',
-            objectFit: 'contain',
+            all: 'unset',
             cursor: isZoomed ? 'zoom-out' : 'zoom-in',
-            userSelect: 'none',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            display: 'flex',
           }}
-        />
+        >
+          <img
+            src={activeItem.src}
+            alt={activeItem.alt ?? ''}
+            style={{
+              maxWidth: isZoomed ? 'none' : '100%',
+              maxHeight: isZoomed ? 'none' : '100%',
+              objectFit: 'contain',
+              userSelect: 'none',
+            }}
+          />
+        </button>
 
         {canGoNext && (
           <button
