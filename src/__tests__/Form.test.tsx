@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import { Form } from '../components/Form/FormContext';
-import { FormField, Input, FormError, SubmitButton } from '../components/Form/FormComponents';
+import { FormField, Input, Textarea, FormError, SubmitButton } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
 
 const testSchema = z.object({
@@ -137,5 +137,54 @@ describe('Form & Zod Validation Engine', () => {
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'bo' } });
 
     expect(validatedSpy).toHaveBeenCalledWith({ formId: 'test-form', isValid: false });
+  });
+
+  describe('regression: validation errors were computed but never exposed via ARIA', () => {
+    // Input/Textarea already computed `isError` for border-color styling but
+    // never set aria-invalid/aria-describedby, and FormField's error <span>
+    // had no id for aria-describedby to point at — a screen reader user got
+    // no indication a field had failed validation at all.
+    it('sets aria-invalid and a resolving aria-describedby on Input once touched and invalid', async () => {
+      render(
+        <Form id="test-form" schema={testSchema} onSubmit={vi.fn()}>
+          <FormField name="username" label="Username">
+            <Input placeholder="Username" />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        const input = screen.getByPlaceholderText('Username');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        const describedBy = input.getAttribute('aria-describedby');
+        expect(describedBy).toBe('username-error');
+        expect(document.getElementById(describedBy!)).toHaveTextContent('Username must be at least 3 chars');
+      });
+    });
+
+    it('sets aria-invalid and a resolving aria-describedby on Textarea once touched and invalid', async () => {
+      const bioSchema = z.object({ bio: z.string().min(5, 'Bio is too short') });
+      render(
+        <Form id="bio-form" schema={bioSchema} onSubmit={vi.fn()}>
+          <FormField name="bio" label="Bio">
+            <Textarea placeholder="Bio" />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        const textarea = screen.getByPlaceholderText('Bio');
+        expect(textarea).toHaveAttribute('aria-invalid', 'true');
+        const describedBy = textarea.getAttribute('aria-describedby');
+        expect(describedBy).toBe('bio-error');
+        expect(document.getElementById(describedBy!)).toHaveTextContent('Bio is too short');
+      });
+    });
   });
 });

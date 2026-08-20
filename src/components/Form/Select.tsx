@@ -26,6 +26,8 @@ export interface SelectOptionData {
  * Binds to Form context via `name`. Emits `select:changed` on the event bus.
  */
 export interface SelectProps {
+  /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
+  id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Placeholder text when no value is selected. @default 'Select option...' */
@@ -49,6 +51,7 @@ export interface SelectProps {
  * @manifestCategory Form Controls
  */
 export const Select: React.FC<SelectProps> = ({
+  id,
   name: propName,
   placeholder = 'Select option...',
   options,
@@ -60,8 +63,10 @@ export const Select: React.FC<SelectProps> = ({
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
+  const effectiveId = id ?? (fieldName || undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   useInjectInteractionStyles();
@@ -102,6 +107,9 @@ export const Select: React.FC<SelectProps> = ({
       disabled={disabled}
     >
       <SelectPrimitive.Trigger
+        id={effectiveId}
+        aria-invalid={isError || undefined}
+        aria-describedby={isError ? `${fieldName}-error` : undefined}
         className="ai-btn ai-focus-ring"
         style={{
           display: 'inline-flex',

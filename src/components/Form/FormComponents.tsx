@@ -40,6 +40,7 @@ export interface FormFieldProps {
 export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children }) => {
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
+  const errorId = `${name}-error`;
 
   return (
     <FieldContext.Provider value={{ name }}>
@@ -51,7 +52,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
         )}
         {children}
         {error && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem' }}>
+          <span id={errorId} style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem' }}>
             {error}
           </span>
         )}
@@ -342,6 +343,8 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       name={name || undefined}
       type={type}
       value={value}
+      aria-invalid={isError || undefined}
+      aria-describedby={isError ? `${name}-error` : undefined}
       className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);
@@ -569,6 +572,8 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
       name={name || undefined}
       rows={rows}
       value={value}
+      aria-invalid={isError || undefined}
+      aria-describedby={isError ? `${name}-error` : undefined}
       className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);

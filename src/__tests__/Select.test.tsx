@@ -60,4 +60,46 @@ describe('Select Component', () => {
       expect(handleSubmit).not.toHaveBeenCalled();
     });
   });
+
+  describe('regression: missing id broke FormField label association and ARIA error state', () => {
+    // Select never exposed an `id` prop at all, so <FormField>'s
+    // <label htmlFor={name}> pointed at nothing, and isError/aria-invalid/
+    // aria-describedby were never computed or wired — unlike Input/Textarea,
+    // which already did both.
+    it('gives the trigger an id matching the surrounding FormField label\'s htmlFor', () => {
+      render(
+        <FormField name="role" label="Role">
+          <Select options={options} onChange={vi.fn()} />
+        </FormField>
+      );
+
+      const trigger = screen.getByRole('combobox');
+      expect(trigger).toHaveAttribute('id', 'role');
+      expect(screen.getByText('Role')).toHaveAttribute('for', 'role');
+    });
+
+    it('sets aria-invalid and a resolving aria-describedby once touched and invalid', async () => {
+      const roleSchema = z.object({ role: z.string().min(1, 'Please select a role') });
+      const handleSubmit = vi.fn();
+
+      render(
+        <Form id="role-form-2" schema={roleSchema} onSubmit={handleSubmit}>
+          <FormField name="role" label="Role">
+            <Select options={options} />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        const trigger = screen.getByRole('combobox');
+        expect(trigger).toHaveAttribute('aria-invalid', 'true');
+        const describedBy = trigger.getAttribute('aria-describedby');
+        expect(describedBy).toBe('role-error');
+        expect(document.getElementById(describedBy!)).toHaveTextContent('Please select a role');
+      });
+    });
+  });
 });
