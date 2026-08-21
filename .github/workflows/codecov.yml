@@ -19,6 +19,20 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm ci
+      # scripts/lib/extract.js has its own isolated devDependency (a pinned
+      # typescript@6.x, kept separate from root's own typescript@7.x — see
+      # root AGENTS.md's TypeScript section) that the root `npm ci` above
+      # doesn't install. This has to run BEFORE "Run tests and collect
+      # coverage" below, not after: src/__tests__/docsInSync.test.ts (part
+      # of that full suite) shells out to scripts/generate-*.js --check
+      # itself, and without scripts/node_modules already present, Node
+      # resolves `typescript` from root's own node_modules instead (7.x,
+      # whose reduced API surface is missing ts.ScriptTarget/
+      # createSourceFile). Same step ci.yml already has, for the same
+      # reason.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
       - name: Run tests and collect coverage
         run: npm run coverage:unit
       - name: Upload coverage to Codecov
