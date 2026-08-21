@@ -354,6 +354,42 @@
       {
         "id": "breadcrumb",
         "name": "🍞 Breadcrumb Item Gap"
+      },
+      {
+        "id": "carousel",
+        "name": "🎠 Carousel Arrows, Dots & Slide Gap"
+      },
+      {
+        "id": "combobox",
+        "name": "🔍 Combobox Padding & Item Density"
+      },
+      {
+        "id": "commandpalette",
+        "name": "⚙️ Command Palette Density & List Height"
+      },
+      {
+        "id": "fileUpload",
+        "name": "📤 File Upload Dropzone Density"
+      },
+      {
+        "id": "gallery",
+        "name": "🖼️ Gallery Thumbnail Aspect Ratio"
+      },
+      {
+        "id": "hoverCard",
+        "name": "🪧 Hover Card Shadow & Border"
+      },
+      {
+        "id": "label",
+        "name": "🏷️ Label Weight & Gap"
+      },
+      {
+        "id": "scrollArea",
+        "name": "📜 Scrollbar Width"
+      },
+      {
+        "id": "viewer",
+        "name": "🖼️ Viewer Nav Buttons & Caption"
       }
     ]
   },

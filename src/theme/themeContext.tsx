@@ -45,6 +45,15 @@ import { SidebarThemeSlice } from '../components/Sidebar/SidebarSlice';
 import { StepperThemeSlice } from '../components/Stepper/StepperSlice';
 import { DatePickerThemeSlice } from '../components/DatePicker/DatePickerSlice';
 import { BreadcrumbThemeSlice } from '../components/Breadcrumb/BreadcrumbSlice';
+import { CarouselThemeSlice } from '../components/Carousel/CarouselSlice';
+import { ComboboxThemeSlice } from '../components/Form/ComboboxSlice';
+import { CommandPaletteThemeSlice } from '../components/CommandPalette/CommandPaletteSlice';
+import { FileUploadThemeSlice } from '../components/Form/FileUploadSlice';
+import { GalleryThemeSlice } from '../components/Gallery/GallerySlice';
+import { HoverCardThemeSlice } from '../components/HoverCard/HoverCardSlice';
+import { LabelThemeSlice } from '../components/Form/LabelSlice';
+import { ScrollAreaThemeSlice } from '../components/ScrollArea/ScrollAreaSlice';
+import { ViewerThemeSlice } from '../components/Viewer/ViewerSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { type ToolcribSliceStateMap, type ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
@@ -91,6 +100,15 @@ globalThemeSliceRegistry.register(SidebarThemeSlice);
 globalThemeSliceRegistry.register(StepperThemeSlice);
 globalThemeSliceRegistry.register(DatePickerThemeSlice);
 globalThemeSliceRegistry.register(BreadcrumbThemeSlice);
+globalThemeSliceRegistry.register(CarouselThemeSlice);
+globalThemeSliceRegistry.register(ComboboxThemeSlice);
+globalThemeSliceRegistry.register(CommandPaletteThemeSlice);
+globalThemeSliceRegistry.register(FileUploadThemeSlice);
+globalThemeSliceRegistry.register(GalleryThemeSlice);
+globalThemeSliceRegistry.register(HoverCardThemeSlice);
+globalThemeSliceRegistry.register(LabelThemeSlice);
+globalThemeSliceRegistry.register(ScrollAreaThemeSlice);
+globalThemeSliceRegistry.register(ViewerThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {
