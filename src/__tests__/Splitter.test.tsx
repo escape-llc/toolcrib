@@ -157,4 +157,133 @@ describe('Splitter Component & Corner Squaring', () => {
       expect(handle).toHaveAttribute('aria-valuenow', '20');
     });
   });
+
+  it('logs a console error when given a child count other than 2', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <Splitter orientation="vertical">
+        {[<div key="only">Only Pane</div>] as any}
+      </Splitter>
+    );
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('requires exactly 2 children'));
+    consoleError.mockRestore();
+  });
+
+  it('double-clicking the handle resets the split back to initialSplit', () => {
+    render(
+      <Splitter orientation="vertical" initialSplit={60} minSize={10}>
+        <div>Top</div>
+        <div>Bottom</div>
+      </Splitter>
+    );
+    const handle = screen.getByRole('separator');
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(handle).toHaveAttribute('aria-valuenow', '62');
+
+    fireEvent.doubleClick(handle);
+    expect(handle).toHaveAttribute('aria-valuenow', '60');
+  });
+
+  describe('regression coverage: mouse/pointer drag resizing', () => {
+    it('dragging the handle (mousedown -> window mousemove -> window mouseup) resizes the vertical split and clears isDragging afterward', () => {
+      const { container } = render(
+        <Splitter orientation="vertical" initialSplit={50} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      const outer = container.firstElementChild as HTMLElement;
+      outer.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 100, bottom: 200, width: 100, height: 200, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.mouseDown(handle);
+      expect(handle.parentElement).not.toBeNull(); // dragging state now true — background switches to the "active" color
+      expect(outer.style.userSelect).toBe('none');
+
+      fireEvent.mouseMove(window, { clientY: 150 }); // 150/200 = 75%
+      expect(handle).toHaveAttribute('aria-valuenow', '75');
+
+      fireEvent.mouseUp(window);
+      expect(outer.style.userSelect).toBe('auto');
+
+      // A further move after mouseup shouldn't do anything — listeners were removed.
+      fireEvent.mouseMove(window, { clientY: 20 });
+      expect(handle).toHaveAttribute('aria-valuenow', '75');
+    });
+
+    it('dragging horizontally uses clientX/width instead of clientY/height', () => {
+      const { container } = render(
+        <Splitter orientation="horizontal" initialSplit={50} minSize={10}>
+          <div>Left</div>
+          <div>Right</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      const outer = container.firstElementChild as HTMLElement;
+      outer.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 200, bottom: 100, width: 200, height: 100, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.mouseDown(handle);
+      fireEvent.mouseMove(window, { clientX: 40 }); // 40/200 = 20%, clamped to minSize=10 -> stays 20
+      expect(handle).toHaveAttribute('aria-valuenow', '20');
+      fireEvent.mouseUp(window);
+    });
+  });
+
+  describe('regression coverage: Splitter.Panel explicit squareCorners overrides', () => {
+    it.each([
+      ['top', { borderTopLeftRadius: '0px', borderTopRightRadius: '0px' }],
+      ['bottom', { borderBottomLeftRadius: '0px', borderBottomRightRadius: '0px' }],
+      ['left', { borderTopLeftRadius: '0px', borderBottomLeftRadius: '0px' }],
+      ['right', { borderTopRightRadius: '0px', borderBottomRightRadius: '0px' }],
+    ] as const)('squareCorners="%s" squares exactly those two corners', (squareCorners, expectedStyle) => {
+      const { container } = render(
+        <Splitter.Panel squareCorners={squareCorners}>
+          <span>Content</span>
+        </Splitter.Panel>
+      );
+      const panel = container.firstElementChild as HTMLElement;
+      for (const [prop, value] of Object.entries(expectedStyle)) {
+        expect(panel.style[prop as any]).toBe(value);
+      }
+    });
+
+    it('squareCorners="none" applies no corner override at all', () => {
+      const { container } = render(
+        <Splitter.Panel squareCorners="none">
+          <span>Content</span>
+        </Splitter.Panel>
+      );
+      const panel = container.firstElementChild as HTMLElement;
+      expect(panel.style.borderTopLeftRadius).toBe('');
+      expect(panel.style.borderTopRightRadius).toBe('');
+      expect(panel.style.borderBottomLeftRadius).toBe('');
+      expect(panel.style.borderBottomRightRadius).toBe('');
+    });
+
+    it('injects width/boxSizing/radius directly into a plain DOM element child, but leaves a toolcrib/React component child alone', () => {
+      const CustomComponent = ({ label }: { label: string }) => <span>{label}</span>;
+      const { container } = render(
+        <Splitter.Panel squareCorners="top">
+          <div data-testid="plain-child" style={{ color: 'red' }}>Plain</div>
+          <CustomComponent label="Component Child" />
+        </Splitter.Panel>
+      );
+
+      const plainChild = screen.getByTestId('plain-child');
+      expect(plainChild.style.borderTopLeftRadius).toBe('0px');
+      expect(plainChild.style.width).toBe('100%');
+      expect(plainChild.style.color).toBe('red'); // original style preserved
+
+      // The component child renders untouched — no radius injected into it
+      // (it has no way to consult a `style` prop the way a plain DOM node
+      // does; see processDirectChild's own comment on why).
+      expect(screen.getByText('Component Child')).toBeInTheDocument();
+      expect(container.querySelector('span')?.style.borderTopLeftRadius).toBeFalsy();
+    });
+  });
 });

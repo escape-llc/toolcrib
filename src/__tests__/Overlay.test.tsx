@@ -130,6 +130,103 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.getByRole('dialog', { name: 'Delete confirmation' })).toBeInTheDocument();
   });
 
+  describe('regression coverage: Popup placement variants (bottom-end/top-start/top-end — only bottom-start was ever exercised)', () => {
+    it.each([
+      ['bottom-end', 'borderBottomRightRadius'],
+      ['top-start', 'borderTopLeftRadius'],
+      ['top-end', 'borderTopRightRadius'],
+    ] as const)('placement="%s" squares the %s corner on open, and reverts on close', (placement, radiusProp) => {
+      render(
+        <Popup placement={placement} trigger={<Button>Trigger</Button>}>
+          <div>Content</div>
+        </Popup>
+      );
+
+      const btn = screen.getByText('Trigger');
+      fireEvent.click(btn);
+      expect(btn.style[radiusProp]).toBe('0px');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(btn.style[radiusProp]).toBe('var(--ai-radius-md)');
+    });
+  });
+
+  it('a plain DOM element trigger (not a toolcrib component) gets its corner radius injected via a cloned style prop instead of squareCorners', () => {
+    render(
+      <Popup placement="bottom-start" trigger={<button style={{ color: 'red' }}>Plain Trigger</button>}>
+        <div>Content</div>
+      </Popup>
+    );
+
+    const btn = screen.getByText('Plain Trigger');
+    expect(btn.style.color).toBe('red'); // original style preserved
+    fireEvent.click(btn);
+    expect(btn.style.borderBottomLeftRadius).toBe('0px');
+  });
+
+  describe('regression coverage: Drawer edge positions (only "right" was ever exercised)', () => {
+    it.each([
+      ['left', 'borderTopRightRadius'],
+      ['top', 'borderBottomLeftRadius'],
+      ['bottom', 'borderTopLeftRadius'],
+    ] as const)('position="%s" applies the matching corner radius to the dialog panel', (position, radiusProp) => {
+      render(
+        <Drawer title="Positioned Drawer" position={position} isOpen={true}>
+          <div>Body</div>
+        </Drawer>
+      );
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style[radiusProp]).toBe('var(--ai-radius-lg, 0.75rem)');
+    });
+  });
+
+  it('Drawer closes on Escape key (not just the close button) and calls onOpenChange with the new state', () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Drawer title="Escape Drawer" trigger={<Button>Open</Button>} onOpenChange={onOpenChange}>
+        <div>Body</div>
+      </Drawer>
+    );
+
+    fireEvent.click(screen.getByText('Open'));
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('Drawer light-dismisses when the backdrop itself is clicked, but not when the dialog panel inside it is clicked', async () => {
+    render(
+      <Drawer title="Backdrop Drawer" trigger={<Button>Open</Button>}>
+        <div>Body</div>
+      </Drawer>
+    );
+
+    fireEvent.click(screen.getByText('Open'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Clicking inside the dialog panel stops propagation — shouldn't close.
+    fireEvent.click(screen.getByText('Body'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Clicking the backdrop itself (role="presentation") closes it.
+    fireEvent.click(screen.getByRole('presentation'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it("a drawer:hidden bus event for an already-closed drawer is a no-op (doesn't call onOpenChange again)", () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Drawer id="already-closed-drawer" title="Bus Drawer" isOpen={false} onOpenChange={onOpenChange}>
+        <div>Body</div>
+      </Drawer>
+    );
+
+    aiBus.emit('drawer:hidden', { id: 'already-closed-drawer' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it('responds to aiBus event dispatches for overlays', () => {
     const popupShownSpy = vi.fn();
     const unsub = aiBus.on('popup:shown', popupShownSpy);

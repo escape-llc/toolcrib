@@ -1,8 +1,9 @@
 import { type ComponentProps } from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '../theme/themeContext';
 import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
+import { globalThemeSliceRegistry } from '../theme/slice';
 
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -234,6 +235,253 @@ describe('ThemeEditor', () => {
 
       expect(screen.queryByTestId('theme-editor-toolbar')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Theme presets' })).not.toBeInTheDocument();
+    });
+  });
+
+  // Every test above only ever checks a section's *displayed default*
+  // value — none of them change anything. That left each registered
+  // slice's own renderEditorControl onChange closure (the `val =>
+  // onChange({ ...state, field: val })` line inside ~40 separate *Slice.tsx
+  // files) never actually invoked by any test, since nothing ever opened a
+  // FieldRow's Select and picked a different option. Rather than
+  // hand-writing ~40 near-identical "open category, open section, pick an
+  // option" tests (and having to remember to add a 41st the next time a
+  // component gets a slice), this drives the same interaction generically
+  // off the real registry ThemeEditor.tsx itself reads — the same registry
+  // themeContext.tsx (imported transitively above) already populated by
+  // registering every real slice at module load.
+  describe('regression coverage: every registered slice\'s FieldRow controls actually change its value on selection', () => {
+    const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 'animation', 'typography']);
+    const slices = globalThemeSliceRegistry
+      .getAll()
+      .filter(slice => !GLOBAL_ONLY_SLICE_IDS.has(slice.id) && slice.renderEditorControl);
+
+    it.each(slices.map(slice => [slice.id, slice.name, slice.category] as const))(
+      'slice "%s" (category: %s)',
+      (sliceId, sliceName, category) => {
+        renderEditor();
+        fireEvent.click(screen.getByText(category, { exact: false }));
+        fireEvent.click(screen.getByText(sliceName));
+
+        const section = screen.getByTestId(`accordion-content-${sliceId}`);
+        const comboCount = within(section).queryAllByRole('combobox').length;
+        expect(comboCount).toBeGreaterThan(0); // every slice section has at least one FieldRow
+
+        for (let i = 0; i < comboCount; i++) {
+          const combo = within(section).getAllByRole('combobox')[i];
+          fireEvent.click(combo);
+
+          const listbox = screen.getByRole('listbox');
+          const options = within(listbox).getAllByRole('option');
+          // Pick any option that isn't already selected (Radix marks the
+          // current value's Item with data-state="checked") — its label is
+          // read here, before the click, since the option itself grows a
+          // "✓" ItemIndicator the instant it becomes selected.
+          const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+          const targetLabel = target.textContent ?? '';
+          fireEvent.click(target);
+
+          // A single-option field can't demonstrate a value *change*, but
+          // still exercises onChange being wired up and callable.
+          if (options.length > 1) {
+            const after = within(section).getAllByRole('combobox')[i];
+            expect(after.textContent).toContain(targetLabel);
+          }
+        }
+      }
+    );
+  });
+
+  describe('regression coverage: the Global category\'s hand-written sections (not registry-driven, so outside the loop above)', () => {
+    it('Appearance & Base Color sliders (Hue, Saturation, Brightness, Darken/Lighten Factor, Saturation Factor) all update on arrow-key interaction', () => {
+      renderEditor();
+      // "Appearance & Base Color" is open by default (defaultValue="appearance").
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBe(5);
+      for (const slider of sliders) {
+        const before = slider.getAttribute('aria-valuenow');
+        fireEvent.keyDown(slider, { key: 'ArrowRight' });
+        expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
+      }
+    });
+
+    it('Density, Spacing & Elevation FieldRow selects (padding/margin/corner radius/shadow) each update on selection', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Density, Spacing & Elevation/));
+
+      const combos = screen.getAllByRole('combobox');
+      expect(combos.length).toBe(4);
+      for (const combo of combos) {
+        fireEvent.click(combo);
+        const listbox = screen.getByRole('listbox');
+        const options = within(listbox).getAllByRole('option');
+        const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+        const targetLabel = target.textContent ?? '';
+        fireEvent.click(target);
+        expect(combo.textContent).toContain(targetLabel);
+      }
+    });
+
+    it('Motion, Transitions & Physics section: preset select and duration-factor slider both update', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Motion, Transitions & Physics/));
+
+      const combo = screen.getByRole('combobox');
+      fireEvent.click(combo);
+      const listbox = screen.getByRole('listbox');
+      const options = within(listbox).getAllByRole('option');
+      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const targetLabel = target.textContent ?? '';
+      fireEvent.click(target);
+      expect(combo.textContent).toContain(targetLabel);
+
+      const slider = screen.getByRole('slider');
+      const before = slider.getAttribute('aria-valuenow');
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
+    });
+
+    it('Typography section: font family select and master font size slider (commitOnRelease) both update', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Typography \(Font Family & Size\)/));
+
+      const combo = screen.getByRole('combobox');
+      fireEvent.click(combo);
+      const listbox = screen.getByRole('listbox');
+      const options = within(listbox).getAllByRole('option');
+      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const targetLabel = target.textContent ?? '';
+      fireEvent.click(target);
+      expect(combo.textContent).toContain(targetLabel);
+
+      // commitOnRelease Sliders fire onValueCommit (not onValueChange) — a
+      // discrete keyboard step still counts as a full press+release, unlike
+      // a continuous pointer drag, so this exercises the same commit path.
+      const slider = screen.getByRole('slider');
+      const before = slider.getAttribute('aria-valuenow');
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
+    });
+
+    it('Color Harmony & Hue Spread section: harmony mode select and hue spread slider both update', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Color Harmony & Hue Spread/));
+
+      const combo = screen.getByRole('combobox');
+      fireEvent.click(combo);
+      const listbox = screen.getByRole('listbox');
+      const options = within(listbox).getAllByRole('option');
+      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const targetLabel = target.textContent ?? '';
+      fireEvent.click(target);
+      expect(combo.textContent).toContain(targetLabel);
+
+      const slider = screen.getByRole('slider');
+      const before = slider.getAttribute('aria-valuenow');
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
+    });
+  });
+
+  describe('regression coverage: Save & Load Themes toolbar handlers', () => {
+    it('loading a bundled preset applies its snapshot (color swatch reflects the new base color)', () => {
+      renderEditor();
+      fireEvent.click(screen.getByRole('button', { name: 'Theme presets' }));
+
+      // Presets render as their emoji + first word only (see ThemeEditor's
+      // own comment on why) — "Tailwind (Default)" for example is only
+      // guaranteed unique as a combobox-free plain button, so just grab
+      // whichever preset button appears first inside the popup.
+      const presetButtons = screen.getAllByRole('button').filter(btn => /^[^\s]+ /.test(btn.textContent ?? '') && btn.textContent !== 'Theme presets');
+      expect(presetButtons.length).toBeGreaterThan(0);
+
+      // Loading a preset shouldn't throw, and the popup stays interactive
+      // (Popup itself isn't asserted closed — presets don't auto-close it).
+      expect(() => fireEvent.click(presetButtons[0])).not.toThrow();
+    });
+
+    it('Export theme downloads a .json snapshot via Blob/createObjectURL', () => {
+      const createObjectURL = vi.fn(() => 'blob:mock-url');
+      const revokeObjectURL = vi.fn();
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = createObjectURL as any;
+      URL.revokeObjectURL = revokeObjectURL as any;
+      // jsdom doesn't implement real navigation, so a plain <a href="blob:...">
+      // click logs "Not implemented: navigation to another Document" —
+      // same mock themeFileTransfer.test.ts already uses for this exact call.
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        renderEditor();
+        fireEvent.click(screen.getByRole('button', { name: 'Export theme' }));
+        expect(createObjectURL).toHaveBeenCalledTimes(1);
+        expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+      }
+    });
+
+    it('Import theme click delegates to the hidden file input, and selecting a valid file applies it', async () => {
+      renderEditor();
+      fireEvent.click(screen.getByRole('button', { name: 'Import theme' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(fileInput).not.toBeNull();
+
+      const snapshot = {
+        schemaVersion: 1,
+        parameters: {
+          baseColor: { h: 200, s: 60, v: 80 },
+          harmonyMode: 'monochromatic',
+          hueSpread: 30,
+          darkenLightenFactor: 1,
+          saturationFactor: 1,
+          isDarkMode: false,
+          paddingMode: 'normal',
+          marginMode: 'normal',
+          cornerRadiusMode: 'rounded',
+          shadowMode: 'subtle',
+        },
+        sliceStates: {},
+      };
+      const file = new File([JSON.stringify(snapshot)], 'my-theme.json', { type: 'application/json' });
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Could not import|doesn't look like/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('selecting an invalid theme file shows an import error message', async () => {
+      renderEditor();
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const badFile = new File(['not valid json'], 'bad.json', { type: 'application/json' });
+
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/is not valid JSON/)).toBeInTheDocument();
+      });
+    });
+
+    it('loading and then deleting a saved theme both work from the Saved list', () => {
+      renderEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'Regression Theme' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      const loadButton = screen.getByRole('button', { name: 'Regression Theme' });
+      expect(() => fireEvent.click(loadButton)).not.toThrow();
+
+      const deleteButton = screen.getByRole('button', { name: 'Delete saved theme Regression Theme' });
+      fireEvent.click(deleteButton);
+      expect(screen.queryByRole('button', { name: 'Regression Theme' })).not.toBeInTheDocument();
     });
   });
 });

@@ -58,6 +58,32 @@ describe('TabStrip Component', () => {
     expect(screen.queryByText('Orphan Panel')).not.toBeInTheDocument();
   });
 
+  it('regression coverage: shows scroll buttons once the tab list overflows, and clicking them scrolls the list', () => {
+    render(<TabStrip id="overflow-demo" items={items} activeId="tab1" onChange={vi.fn()} />);
+
+    const tablist = screen.getByRole('tablist');
+    // jsdom never reports real layout, so scrollWidth/clientWidth default to
+    // 0/0 (no overflow) — this simulates a tab list wider than its visible
+    // box, matching useScrollOverflow's own real-browser detection.
+    Object.defineProperty(tablist, 'scrollWidth', { value: 400, configurable: true });
+    Object.defineProperty(tablist, 'clientWidth', { value: 100, configurable: true });
+    Object.defineProperty(tablist, 'scrollLeft', { value: 50, configurable: true });
+    tablist.scrollBy = vi.fn();
+
+    fireEvent.scroll(tablist);
+
+    const leftButton = screen.getByLabelText('Scroll tabs left');
+    const rightButton = screen.getByLabelText('Scroll tabs right');
+    expect(leftButton).toBeInTheDocument();
+    expect(rightButton).toBeInTheDocument();
+
+    fireEvent.click(leftButton);
+    expect(tablist.scrollBy).toHaveBeenCalledWith({ left: -180, behavior: 'smooth' });
+
+    fireEvent.click(rightButton);
+    expect(tablist.scrollBy).toHaveBeenCalledWith({ left: 180, behavior: 'smooth' });
+  });
+
   it('clears its sticky tab:changed entry on unmount (regression: unbounded sticky map for dynamically-created groups)', () => {
     const { unmount } = render(<TabStrip id="ephemeral-group" items={items} defaultActiveId="tab1" />);
     unmount();

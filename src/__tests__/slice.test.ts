@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ThemeSliceRegistry, type ThemeSlice, getSparseVariables } from '../theme/slice';
-import { ShadowThemeSlice, getShadowVariables } from '../theme/shadow';
+import { ShadowThemeSlice, getShadowVariables, resolveShadow } from '../theme/shadow';
 import { MarginThemeSlice } from '../theme/margin';
 import { PaddingThemeSlice } from '../theme/padding';
 
@@ -27,6 +27,23 @@ describe('Modular Theme Slice Engine', () => {
   it('generates correct shadow elevation variables', () => {
     const glassVars = getShadowVariables('glass');
     expect(glassVars['--ai-shadow-md']).toContain('rgba(31, 38, 135');
+  });
+
+  it('generates flat (no shadow) variables for the "none" mode', () => {
+    const noneVars = getShadowVariables('none');
+    expect(noneVars['--ai-shadow-sm']).toBe('none');
+    expect(noneVars['--ai-shadow-md']).toBe('none');
+    expect(noneVars['--ai-shadow-lg']).toBe('none');
+  });
+
+  describe('resolveShadow', () => {
+    it('falls back to the CSS custom property reference when no mode is given', () => {
+      expect(resolveShadow(undefined, 'lg')).toBe('var(--ai-shadow-lg)');
+    });
+
+    it('resolves the concrete value for a given mode and size', () => {
+      expect(resolveShadow('elevated', 'sm')).toBe(getShadowVariables('elevated')['--ai-shadow-sm']);
+    });
   });
 });
 

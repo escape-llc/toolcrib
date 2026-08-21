@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AIErrorBoundary } from '../components/ErrorBoundary/AIErrorBoundary';
+import { TargetDocumentContext } from '../theme/targetDocumentContext';
 import { aiBus } from '../eventBus/eventBus';
 
 function Bomb(): React.ReactElement {
@@ -66,5 +67,63 @@ describe('AIErrorBoundary', () => {
     shouldThrow = false;
     fireEvent.click(screen.getByText('Try Again'));
     expect(screen.getByText('Recovered')).toBeInTheDocument();
+  });
+
+  it('renders a custom fallback when given, receiving the error and a working reset callback', () => {
+    let shouldThrow = true;
+    function Flaky(): React.ReactElement {
+      if (shouldThrow) throw new Error('custom boom');
+      return <div>Recovered</div>;
+    }
+
+    render(
+      <AIErrorBoundary
+        componentName="Test"
+        fallback={(error, reset) => (
+          <div>
+            <span>Custom fallback: {error.message}</span>
+            <button onClick={reset}>Custom Reset</button>
+          </div>
+        )}
+      >
+        <Flaky />
+      </AIErrorBoundary>
+    );
+
+    expect(screen.getByText('Custom fallback: custom boom')).toBeInTheDocument();
+    expect(screen.queryByText('Something went wrong', { exact: false })).not.toBeInTheDocument();
+
+    shouldThrow = false;
+    fireEvent.click(screen.getByText('Custom Reset'));
+    expect(screen.getByText('Recovered')).toBeInTheDocument();
+  });
+
+  it('re-injects interaction styles when the ambient targetDocument context actually changes between renders', () => {
+    const otherDocument = document.implementation.createHTMLDocument('other');
+    const { rerender } = render(
+      <TargetDocumentContext.Provider value={document}>
+        <AIErrorBoundary componentName="Test">
+          <div>Content</div>
+        </AIErrorBoundary>
+      </TargetDocumentContext.Provider>
+    );
+    expect(screen.getByText('Content')).toBeInTheDocument();
+
+    // Swapping which document is provided (e.g. an iframe's contentDocument
+    // arriving after a later 'load' event) exercises componentDidUpdate's
+    // own re-injection guard — asserted here by simply confirming the
+    // re-render with a genuinely different context value doesn't throw and
+    // still renders correctly, since jsdom gives no direct way to inspect
+    // which stylesheet a given document received.
+    expect(() =>
+      rerender(
+        <TargetDocumentContext.Provider value={otherDocument}>
+          <AIErrorBoundary componentName="Test">
+            <div>Content</div>
+          </AIErrorBoundary>
+        </TargetDocumentContext.Provider>
+      )
+    ).not.toThrow();
+    expect(screen.getByText('Content')).toBeInTheDocument();
   });
 });

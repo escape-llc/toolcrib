@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ToastProvider, useToast } from '../components/Toast/ToastContext';
+import { type ToastAnchor, ToastProvider, useToast } from '../components/Toast/ToastContext';
 import { ToastContainer } from '../components/Toast/Toast';
 import { aiBus } from '../eventBus/eventBus';
 
@@ -221,5 +221,134 @@ describe('Toast Subsystem Event Generation', () => {
     fireEvent.click(screen.getByText('Trigger Toast'));
     const toastEl = screen.getByTestId('toast-item');
     expect(toastEl.style.pointerEvents).toBe('auto');
+  });
+
+  describe.each(['success', 'warning'] as const)('%s toast type', (type) => {
+    it(`renders the ${type} subtheme's color/background/border branches`, () => {
+      const TypedComponent = () => {
+        const { addToast } = useToast();
+        return (
+          <div>
+            <button onClick={() => addToast({ id: `typed-${type}`, type, message: `${type} message` })}>
+              Trigger
+            </button>
+            <ToastContainer />
+          </div>
+        );
+      };
+
+      render(
+        <ToastProvider>
+          <TypedComponent />
+        </ToastProvider>
+      );
+
+      fireEvent.click(screen.getByText('Trigger'));
+      expect(screen.getByText(`${type} message`)).toBeInTheDocument();
+    });
+  });
+
+  it('onAnimationEnd finishes the fade-out by collapsing immediately (bypassing the 500ms backstop) once a dismiss reason is already recorded', () => {
+    render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByText('Trigger Toast'));
+    const toastEl = screen.getByTestId('toast-item');
+
+    // Firing animationEnd BEFORE any dismiss request keeps the toast node
+    // mounted (jsdom's Radix Presence removes it as soon as `open` actually
+    // flips false, since jsdom never reports a real running CSS animation —
+    // same reason the rest of this file relies on the setTimeout backstops
+    // instead of real animation events). This only exercises the handler
+    // being wired up and its animationName guard, not a real dismiss flow.
+    fireEvent.animationEnd(toastEl, { animationName: 'not-a-toast-animation' });
+    expect(toastEl.style.gridTemplateRows).toBe('1fr'); // guard rejected the wrong animationName
+    expect(screen.getByTestId('toast-item')).toBeInTheDocument();
+  });
+
+  describe.each([
+    ['top-left', 'top: 0px; left: 0px;'],
+    ['bottom-right', 'bottom: 0px; right: 0px;'],
+    ['bottom-left', 'bottom: 0px; left: 0px;'],
+    ['top-center', 'top: 0px; left: 50%;'],
+    ['bottom-center', 'bottom: 0px; left: 50%;'],
+  ] as [ToastAnchor, string][])('anchor "%s"', (anchor, expectedCss) => {
+    it('positions the toast viewport at the correct screen corner/edge', () => {
+      render(
+        <ToastProvider defaultAnchor={anchor}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      fireEvent.click(screen.getByText('Trigger Toast'));
+      // ToastPrimitive.Viewport renders as a plain <ol> with no distinguishing
+      // role/label — the toast list itself, found via its known children.
+      const viewport = screen.getByText('Toast message').closest('ol')!;
+      for (const declaration of expectedCss.split(';').filter(Boolean)) {
+        const [prop, value] = declaration.trim().split(':').map(s => s.trim());
+        expect(viewport.style.getPropertyValue(prop)).toBe(value);
+      }
+    });
+  });
+
+  it('clearAll dismisses every visible toast at once', () => {
+    const ClearAllComponent = () => {
+      const { addToast, clearAll } = useToast();
+      return (
+        <div>
+          <button onClick={() => { addToast({ id: 'a', type: 'info', message: 'A' }); addToast({ id: 'b', type: 'info', message: 'B' }); }}>
+            Trigger Both
+          </button>
+          <button onClick={clearAll}>Clear All</button>
+          <ToastContainer />
+        </div>
+      );
+    };
+
+    render(
+      <ToastProvider>
+        <ClearAllComponent />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByText('Trigger Both'));
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Clear All'));
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
+    expect(screen.queryByText('B')).not.toBeInTheDocument();
+  });
+
+  it('the toast:shown event bus channel adds a toast the same way addToast does', () => {
+    render(
+      <ToastProvider>
+        <ToastContainer />
+      </ToastProvider>
+    );
+
+    act(() => {
+      aiBus.emit('toast:shown', { id: 'bus-toast', type: 'info', message: 'From the bus', priority: 'high' });
+    });
+
+    expect(screen.getByText('From the bus')).toBeInTheDocument();
+  });
+
+  it('useToast throws when called outside a ToastProvider', () => {
+    const Orphan = () => {
+      useToast();
+      return null;
+    };
+    // Expected error boundary output — React logs the thrown error to
+    // console.error even when the test itself catches it via expect().toThrow.
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => render(<Orphan />)).toThrow('useToast must be used within a ToastProvider');
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 });

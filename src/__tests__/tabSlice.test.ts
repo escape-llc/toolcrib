@@ -31,6 +31,35 @@ describe('TabThemeSlice Engine', () => {
     expect(vars['--ai-tab-panel-animation']).toContain('ai-scale-in');
   });
 
+  it('generates a bordered surface background for the cards variant', () => {
+    const vars = getTabVariables({
+      variant: 'cards',
+      size: 'sm',
+      activeSubtheme: 'secondary',
+      panelTransition: 'none',
+    });
+
+    expect(vars['--ai-tab-border-radius']).toContain('0 0');
+    expect(vars['--ai-tab-active-bg']).toBe('var(--ai-bg-surface, #ffffff)');
+    expect(vars['--ai-tab-active-border']).toBe('0.0625rem solid var(--ai-border, #e5e7eb)');
+    expect(vars['--ai-tab-active-color']).toBe('var(--ai-color-secondary, #64748b)');
+    expect(vars['--ai-tab-panel-animation']).toBe('none');
+  });
+
+  it('generates a borderless surface background for the segment variant', () => {
+    const vars = getTabVariables({
+      variant: 'segment',
+      size: 'md',
+      activeSubtheme: 'info',
+      panelTransition: 'fade',
+    });
+
+    expect(vars['--ai-tab-border-radius']).toBe('var(--ai-radius-sm, 0.25rem)');
+    expect(vars['--ai-tab-active-bg']).toBe('var(--ai-bg-surface, #ffffff)');
+    expect(vars['--ai-tab-active-border']).toBe('none');
+    expect(vars['--ai-tab-active-color']).toBe('var(--ai-subtheme-info, #0284c7)');
+  });
+
   it('exports correct ThemeSlice metadata', () => {
     expect(TabThemeSlice.id).toBe('tab');
     expect(TabThemeSlice.defaultState.variant).toBe('pills');

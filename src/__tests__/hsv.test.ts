@@ -1,10 +1,88 @@
 import { describe, it, expect } from 'vitest';
-import { getHSVLuminance, getHSVContrastRatio, ensureWCAGContrast, pickReadableTextColor, type HSVColor } from '../theme/hsv';
+import {
+  getHSVLuminance,
+  getHSVContrastRatio,
+  ensureWCAGContrast,
+  pickReadableTextColor,
+  normalizeHSV,
+  shiftHue,
+  adjustSaturation,
+  adjustValue,
+  applyDarkenLighten,
+  hsvToCSS,
+  hexToHSV,
+  type HSVColor,
+} from '../theme/hsv';
 
 // Reference values are the well-known WCAG relative luminance figures for
 // pure white/black/red/green/blue (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) —
 // e.g. pure red's luminance is exactly its own R-channel weight (0.2126)
 // since R=1, G=0, B=0 and R's linearized value at full intensity is 1.
+describe('normalizeHSV', () => {
+  it('wraps a negative hue into the 0-360 range', () => {
+    expect(normalizeHSV({ h: -30, s: 50, v: 50 })).toEqual({ h: 330, s: 50, v: 50 });
+  });
+
+  it('wraps a hue past 360 back into range', () => {
+    expect(normalizeHSV({ h: 400, s: 50, v: 50 })).toEqual({ h: 40, s: 50, v: 50 });
+  });
+
+  it('clamps saturation and value to 0-100', () => {
+    expect(normalizeHSV({ h: 10, s: 150, v: -20 })).toEqual({ h: 10, s: 100, v: 0 });
+  });
+});
+
+describe('shiftHue / adjustSaturation / adjustValue / applyDarkenLighten', () => {
+  it('shiftHue adds a delta and wraps', () => {
+    expect(shiftHue({ h: 350, s: 50, v: 50 }, 20)).toEqual({ h: 10, s: 50, v: 50 });
+  });
+
+  it('adjustSaturation scales by a factor, clamped', () => {
+    expect(adjustSaturation({ h: 0, s: 50, v: 50 }, 2)).toEqual({ h: 0, s: 100, v: 50 });
+  });
+
+  it('adjustValue scales by a factor, clamped', () => {
+    expect(adjustValue({ h: 0, s: 50, v: 50 }, 0.5)).toEqual({ h: 0, s: 50, v: 25 });
+  });
+
+  it('applyDarkenLighten is identical to adjustValue', () => {
+    expect(applyDarkenLighten({ h: 0, s: 50, v: 40 }, 1.5)).toEqual(adjustValue({ h: 0, s: 50, v: 40 }, 1.5));
+  });
+});
+
+describe('hsvToCSS', () => {
+  it('renders an opaque color as hsl(...)', () => {
+    expect(hsvToCSS({ h: 0, s: 0, v: 100 })).toBe('hsl(0, 0%, 100%)');
+  });
+
+  it('renders a translucent color as hsla(...) when alpha < 1', () => {
+    expect(hsvToCSS({ h: 210, s: 50, v: 50 }, 0.5)).toBe('hsla(210, 33%, 38%, 0.5)');
+  });
+});
+
+describe('hexToHSV', () => {
+  it('parses a 6-digit hex string', () => {
+    expect(hexToHSV('#ff0000')).toEqual({ h: 0, s: 100, v: 100 });
+  });
+
+  it('parses a shorthand 3-digit hex string', () => {
+    expect(hexToHSV('#f00')).toEqual({ h: 0, s: 100, v: 100 });
+  });
+
+  it('parses pure black (max channel is 0, so saturation is defined as 0 rather than dividing by zero)', () => {
+    expect(hexToHSV('#000000')).toEqual({ h: 0, s: 0, v: 0 });
+  });
+
+  it('parses green and blue correctly (exercises every branch of the max-channel switch)', () => {
+    expect(hexToHSV('#00ff00')).toEqual({ h: 120, s: 100, v: 100 });
+    expect(hexToHSV('#0000ff')).toEqual({ h: 240, s: 100, v: 100 });
+  });
+
+  it('parses a color with equal max/min channels (grayscale, d === 0) without a hue', () => {
+    expect(hexToHSV('#808080').s).toBe(0);
+  });
+});
+
 describe('getHSVLuminance (real WCAG relative luminance, not the HSV-Lightness approximation)', () => {
   it('white is 1.0, black is 0.0', () => {
     expect(getHSVLuminance({ h: 0, s: 0, v: 100 })).toBeCloseTo(1.0, 4);
