@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { aiBus } from '../eventBus/eventBus';
 
@@ -346,8 +346,15 @@ describe('DataTable Virtualized Component', () => {
 
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
+    // The scroll handler throttles to one setScrollTop per animation frame
+    // (see DataTable.tsx's own comment on why) — that frame's state update
+    // needs to be inside act() itself, not just awaited afterward, or React
+    // logs an "update not wrapped in act" warning even though the assertion
+    // below is otherwise correct.
     fireEvent.scroll(scrollBody, { target: { scrollTop: 50 * 44 } });
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    await act(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    });
 
     expect(screen.getByText('Item 50')).toBeInTheDocument();
   });

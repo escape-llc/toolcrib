@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Time } from '@internationalized/date';
 import { TimeField } from '../components/DatePicker/TimeField';
 import { aiBus } from '../eventBus/eventBus';
@@ -12,14 +12,19 @@ describe('TimeField', () => {
     expect(screen.getAllByRole('spinbutton').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders a controlled value into its segments', () => {
+  it('renders a controlled value into its segments', async () => {
     render(<TimeField name="startTime" value={new Time(14, 30)} />);
     const hour = screen.getAllByRole('spinbutton')[0];
     // 12-hour default locale display -- 14:30 is 2 PM.
     expect(hour).toHaveTextContent('2');
+    // react-aria-components' DateSegment/Group internals schedule their own
+    // follow-up state update on mount, landing on a microtask after this
+    // test's synchronous render/assertion block — flush it here so it
+    // doesn't leak an "update not wrapped in act" warning past this test.
+    await act(async () => {});
   });
 
-  it('calls onChange and emits timefield:changed when a segment is edited via the keyboard', () => {
+  it('calls onChange and emits timefield:changed when a segment is edited via the keyboard', async () => {
     const onChange = vi.fn();
     const changedFn = vi.fn();
     const unsub = aiBus.on('timefield:changed', changedFn);
@@ -33,6 +38,9 @@ describe('TimeField', () => {
     const emitted = onChange.mock.calls[0][0] as Time;
     expect(emitted.hour).toBe(10);
     expect(changedFn).toHaveBeenLastCalledWith({ name: 'startTime', value: emitted.toString() });
+
+    // Same react-aria-components internal-update flush as the test above.
+    await act(async () => {});
 
     unsub();
   });

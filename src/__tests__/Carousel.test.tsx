@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { Carousel } from '../components/Carousel/Carousel';
 import { aiBus } from '../eventBus/eventBus';
 
@@ -138,7 +138,14 @@ describe('Carousel', () => {
       render(<Carousel slides={slides} autoplay={{ delayMs: 1000 }} />);
       await vi.waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
 
-      vi.advanceTimersByTime(1000);
+      // The autoplay interval's callback calls the mocked scrollNext, which
+      // synchronously emits 'select' -> Carousel's onSelect -> several real
+      // setState calls — act() is what's needed around the fake-timer
+      // advance itself, not just an await afterward, since nothing else
+      // here is wrapping those updates.
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
       expect(mocks.scrollNext).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

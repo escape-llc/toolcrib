@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { z } from 'zod';
 import { FileUpload } from '../components/Form/FileUpload';
 import { Form } from '../components/Form/FormContext';
@@ -145,7 +145,12 @@ describe('FileUpload Component — upload transport', () => {
     expect(onUpload).toHaveBeenCalled();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
 
-    reportProgress(50);
+    // reportProgress is the raw onProgress callback the component passed
+    // to onUpload, called directly here rather than through fireEvent — it
+    // triggers a real setState inside FileUpload, so it needs act() around
+    // it same as any other state-updating call the testing library itself
+    // doesn't already wrap.
+    act(() => reportProgress(50));
     await waitFor(() => expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50'));
 
     (globalThis as any).__resolveUpload();

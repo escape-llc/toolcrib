@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { Splitter } from '../components/Splitter/Splitter';
@@ -74,6 +74,17 @@ describe('Splitter Component & Corner Squaring', () => {
     // independent renderToString() calls simulate exactly that: same
     // props, no shared client-side state between them, same output
     // expected.
+    // Splitter's drag-listener effect is deliberately useLayoutEffect, not
+    // useEffect (see Splitter.tsx's own comment: the window-level pointer
+    // listeners must attach synchronously in the same commit isDragging
+    // becomes true, or a fast enough drag's first pointermove can fire
+    // before a useEffect version has attached). React logs "useLayoutEffect
+    // does nothing on the server" for exactly that combination — expected
+    // and harmless for this test specifically, which only asserts on the
+    // static SSR markup (the layout domain id), never on drag behavior.
+    // Scoped to just these two calls so a real, unrelated console.error
+    // elsewhere in this file still fails the test normally.
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const render1 = renderToString(
       <Splitter orientation="vertical" initialSplit={60}>
         <div>a</div>
@@ -86,6 +97,7 @@ describe('Splitter Component & Corner Squaring', () => {
         <div>b</div>
       </Splitter>
     );
+    consoleError.mockRestore();
     expect(render1).toBe(render2);
   });
 
