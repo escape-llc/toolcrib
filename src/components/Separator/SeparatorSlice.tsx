@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -39,6 +40,18 @@ export const SeparatorThemeSlice: ThemeSlice<SeparatorSliceState, SeparatorCSSVa
   category: 'Layout Primitives',
   defaultState: defaultSeparatorState,
   getCSSVariables: getSeparatorVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Separator Thickness"
+      value={state.thickness}
+      onChange={val => onChange({ ...state, thickness: val as SeparatorThickness })}
+      options={[
+        { label: 'Thin (0.0625rem)', value: 'thin' },
+        { label: 'Normal (0.125rem)', value: 'normal' },
+        { label: 'Thick (0.1875rem)', value: 'thick' },
+      ]}
+    />
+  ),
   fieldVars: {
     thickness: ['--ai-separator-thickness'],
   },

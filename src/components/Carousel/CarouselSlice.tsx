@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -70,6 +71,51 @@ export const CarouselThemeSlice: ThemeSlice<CarouselSliceState, CarouselCSSVaria
   category: 'Data Display',
   defaultState: defaultCarouselState,
   getCSSVariables: getCarouselVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Carousel Arrow Size"
+        value={state.arrowSize}
+        onChange={val => onChange({ ...state, arrowSize: val as CarouselArrowSize })}
+        options={[
+          { label: 'Small (2rem)', value: 'sm' },
+          { label: 'Medium (2.75rem)', value: 'md' },
+          { label: 'Large (3.5rem)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Carousel Dot Size"
+        value={state.dotSize}
+        onChange={val => onChange({ ...state, dotSize: val as CarouselDotSize })}
+        options={[
+          { label: 'Small (0.375rem)', value: 'sm' },
+          { label: 'Medium (0.5rem)', value: 'md' },
+          { label: 'Large (0.75rem)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Carousel Active Dot Colour"
+        value={state.dotActiveSubtheme}
+        onChange={val => onChange({ ...state, dotActiveSubtheme: val as CarouselDotSubtheme })}
+        options={[
+          { label: 'Primary', value: 'primary' },
+          { label: 'Secondary', value: 'secondary' },
+          { label: 'Success', value: 'success' },
+          { label: 'Info', value: 'info' },
+        ]}
+      />
+      <FieldRow
+        label="Carousel Slide Gap"
+        value={state.slideGap}
+        onChange={val => onChange({ ...state, slideGap: val as 'sm' | 'md' | 'lg' })}
+        options={[
+          { label: 'Small (0.5rem)', value: 'sm' },
+          { label: 'Medium (1rem)', value: 'md' },
+          { label: 'Large (1.5rem)', value: 'lg' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     arrowSize: ['--ai-carousel-arrow-size'],
     dotSize: ['--ai-carousel-dot-size'],

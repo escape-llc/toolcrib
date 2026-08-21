@@ -1,4 +1,11 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
+
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    label: Partial<LabelSliceState>;
+  }
+}
 
 /** @barrelExport */
 export type LabelWeight = 'normal' | 'medium' | 'semibold' | 'bold';
@@ -57,6 +64,32 @@ export const LabelThemeSlice: ThemeSlice<LabelSliceState, LabelCSSVariables> = {
   category: 'Form Controls',
   defaultState: defaultLabelState,
   getCSSVariables: getLabelVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Label Font Weight"
+        value={state.weight}
+        onChange={val => onChange({ ...state, weight: val as LabelWeight })}
+        options={[
+          { label: 'Normal (400)', value: 'normal' },
+          { label: 'Medium (500)', value: 'medium' },
+          { label: 'Semibold (600)', value: 'semibold' },
+          { label: 'Bold (700)', value: 'bold' },
+        ]}
+      />
+      <FieldRow
+        label="Label Gap"
+        tooltip="Space between the label's own content and the control it wraps (e.g. Checkbox/Switch)"
+        value={state.gap}
+        onChange={val => onChange({ ...state, gap: val as LabelGap })}
+        options={[
+          { label: 'Compact (0.375rem)', value: 'compact' },
+          { label: 'Normal (0.5rem)', value: 'normal' },
+          { label: 'Spacious (0.625rem)', value: 'spacious' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     weight: ['--ai-label-weight'],
     gap: ['--ai-label-gap'],

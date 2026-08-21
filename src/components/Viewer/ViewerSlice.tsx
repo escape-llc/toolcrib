@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -48,6 +49,30 @@ export const ViewerThemeSlice: ThemeSlice<ViewerSliceState, ViewerCSSVariables> 
   category: 'Overlays',
   defaultState: defaultViewerState,
   getCSSVariables: getViewerVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Viewer Nav Button Size"
+        value={state.navButtonSize}
+        onChange={val => onChange({ ...state, navButtonSize: val as ViewerNavButtonSize })}
+        options={[
+          { label: 'Small (2rem)', value: 'sm' },
+          { label: 'Medium (2.75rem)', value: 'md' },
+          { label: 'Large (3.5rem)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Viewer Caption Style"
+        tooltip="'Contrast' adds a dark bar + light text, for viewers hosted over busy/light media"
+        value={state.captionStyle}
+        onChange={val => onChange({ ...state, captionStyle: val as ViewerCaptionStyle })}
+        options={[
+          { label: 'Plain (Flush With Surface)', value: 'plain' },
+          { label: 'Contrast (Dark Bar + Light Text)', value: 'contrast' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     navButtonSize: ['--ai-viewer-nav-button-size'],
     captionStyle: ['--ai-viewer-caption-bg', '--ai-viewer-caption-color'],

@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -43,6 +44,28 @@ export const PopupThemeSlice: ThemeSlice<PopupSliceState, PopupCSSVariables> = {
   category: 'Overlays',
   defaultState: defaultPopupState,
   getCSSVariables: getPopupVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Popup Shadow Depth"
+        value={state.shadowDepth}
+        onChange={val => onChange({ ...state, shadowDepth: val as PopupShadowDepth })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Popup Border Style"
+        value={state.borderStyle}
+        onChange={val => onChange({ ...state, borderStyle: val as PopupBorderStyle })}
+        options={[
+          { label: 'Bordered', value: 'bordered' },
+          { label: 'Borderless', value: 'borderless' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     shadowDepth: ['--ai-popup-shadow'],
     borderStyle: ['--ai-popup-border'],

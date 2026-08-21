@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -73,6 +74,31 @@ export const DataTableThemeSlice: ThemeSlice<TableSliceState> = {
     striped: true,
   },
   getCSSVariables: (state) => getTableVariables(state),
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Table Cell Density"
+        tooltip="Configures padding and row height across all Data Table instances"
+        value={state.density}
+        onChange={val => onChange({ ...state, density: val as TableDensity })}
+        options={[
+          { label: 'Compact (2.25rem Row Height & Tight Cell Padding)', value: 'compact' },
+          { label: 'Normal (2.75rem Row Height & Standard Cell Padding)', value: 'normal' },
+          { label: 'Spacious (3.5rem Row Height & Generous Cell Padding)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Grid Border Lines"
+        value={state.borderStyle}
+        onChange={val => onChange({ ...state, borderStyle: val as TableBorderStyle })}
+        options={[
+          { label: 'Horizontal Rows Only', value: 'horizontal' },
+          { label: 'Full Grid Borders', value: 'grid' },
+          { label: 'No Borders (Borderless)', value: 'none' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     density: ['--ai-table-cell-padding', '--ai-table-header-padding', '--ai-table-row-height'],
     borderStyle: ['--ai-table-border'],

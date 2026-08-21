@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -82,6 +83,42 @@ export const AccordionThemeSlice: ThemeSlice<AccordionSliceState, AccordionCSSVa
   category: 'Data Display',
   defaultState: defaultAccordionState,
   getCSSVariables: getAccordionVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Accordion Header Padding"
+        value={state.headerPadding}
+        onChange={val => onChange({ ...state, headerPadding: val as AccordionHeaderPadding })}
+        options={[
+          { label: 'Compact (0.5rem 0.75rem)', value: 'compact' },
+          { label: 'Normal (0.875rem 1.125rem)', value: 'normal' },
+          { label: 'Spacious (1.25rem 1.5rem)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Inter-Header Item Gap Margin"
+        value={state.itemGap}
+        onChange={val => onChange({ ...state, itemGap: val as AccordionItemGap })}
+        options={[
+          { label: 'None (Flush 0px Gap)', value: 'none' },
+          { label: 'Compact Gap (0.375rem Gap)', value: 'compact' },
+          { label: 'Normal Gap (0.75rem Gap)', value: 'normal' },
+          { label: 'Spacious Gap (1.25rem Gap)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Panel Transition & Animation Preset"
+        value={state.panelAnimation}
+        onChange={val => onChange({ ...state, panelAnimation: val as AccordionPanelAnimation })}
+        options={[
+          { label: 'Slide & Fade Down (Smooth 0.25s)', value: 'slide-fade' },
+          { label: 'Quick Expand (Snappy 0.2s)', value: 'expand' },
+          { label: 'Scale & Fade (Pop In)', value: 'scale-fade' },
+          { label: 'None (Instant Toggle)', value: 'none' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     headerPadding: ['--ai-accordion-header-padding'],
     itemGap: ['--ai-accordion-item-gap'],

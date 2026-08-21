@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -63,6 +64,18 @@ export const ToggleControlThemeSlice: ThemeSlice<ToggleControlSliceState, Toggle
   category: 'Form Controls',
   defaultState: defaultToggleControlState,
   getCSSVariables: getToggleControlVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Checkbox & Switch Size"
+      value={state.size}
+      onChange={val => onChange({ ...state, size: val as ToggleControlSize })}
+      options={[
+        { label: 'Small', value: 'sm' },
+        { label: 'Medium', value: 'md' },
+        { label: 'Large', value: 'lg' },
+      ]}
+    />
+  ),
   fieldVars: {
     size: [
       '--ai-togglecontrol-checkbox-size',

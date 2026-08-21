@@ -1,4 +1,11 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
+
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    scrollArea: Partial<ScrollAreaSliceState>;
+  }
+}
 
 /** @barrelExport */
 export type ScrollbarWidth = 'thin' | 'normal' | 'thick';
@@ -33,6 +40,18 @@ export const ScrollAreaThemeSlice: ThemeSlice<ScrollAreaSliceState, ScrollAreaCS
   category: 'Containers',
   defaultState: defaultScrollAreaState,
   getCSSVariables: getScrollAreaVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Scrollbar Width"
+      value={state.thumbWidth}
+      onChange={val => onChange({ ...state, thumbWidth: val as ScrollbarWidth })}
+      options={[
+        { label: 'Thin (0.375rem)', value: 'thin' },
+        { label: 'Normal (0.5rem)', value: 'normal' },
+        { label: 'Thick (0.75rem)', value: 'thick' },
+      ]}
+    />
+  ),
   fieldVars: {
     thumbWidth: ['--ai-scrollarea-thumb-size'],
   },

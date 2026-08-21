@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -50,6 +51,30 @@ export const SliderThemeSlice: ThemeSlice<SliderSliceState, SliderCSSVariables> 
   category: 'Form Controls',
   defaultState: defaultSliderState,
   getCSSVariables: getSliderVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Slider Track Height"
+        value={state.trackHeight}
+        onChange={val => onChange({ ...state, trackHeight: val as SliderTrackHeight })}
+        options={[
+          { label: 'Thin (0.25rem)', value: 'thin' },
+          { label: 'Normal (0.375rem)', value: 'normal' },
+          { label: 'Thick (0.5rem)', value: 'thick' },
+        ]}
+      />
+      <FieldRow
+        label="Slider Thumb Size"
+        value={state.thumbSize}
+        onChange={val => onChange({ ...state, thumbSize: val as SliderThumbSize })}
+        options={[
+          { label: 'Small', value: 'sm' },
+          { label: 'Medium', value: 'md' },
+          { label: 'Large', value: 'lg' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     trackHeight: ['--ai-slider-track-height'],
     thumbSize: ['--ai-slider-thumb-size'],

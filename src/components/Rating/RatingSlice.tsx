@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -50,6 +51,30 @@ export const RatingThemeSlice: ThemeSlice<RatingSliceState, RatingCSSVariables> 
   category: 'Form Controls',
   defaultState: defaultRatingState,
   getCSSVariables: getRatingVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Rating Icon Size"
+        value={state.iconSize}
+        onChange={val => onChange({ ...state, iconSize: val as RatingIconSize })}
+        options={[
+          { label: 'Small (1rem)', value: 'sm' },
+          { label: 'Medium (1.375rem)', value: 'md' },
+          { label: 'Large (1.75rem)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Rating Icon Gap"
+        value={state.gap}
+        onChange={val => onChange({ ...state, gap: val as RatingGap })}
+        options={[
+          { label: 'Compact (0.125rem)', value: 'compact' },
+          { label: 'Normal (0.25rem)', value: 'normal' },
+          { label: 'Spacious (0.5rem)', value: 'spacious' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     iconSize: ['--ai-rating-icon-size'],
     gap: ['--ai-rating-gap'],

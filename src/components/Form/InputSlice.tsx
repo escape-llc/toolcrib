@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -51,6 +52,30 @@ export const InputThemeSlice: ThemeSlice<InputSliceState, InputCSSVariables> = {
   category: 'Form Controls',
   defaultState: defaultInputState,
   getCSSVariables: getInputVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Input & Textarea Padding"
+        value={state.padding}
+        onChange={val => onChange({ ...state, padding: val as InputPadding })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Input & Textarea Border Width"
+        value={state.borderWidth}
+        onChange={val => onChange({ ...state, borderWidth: val as InputBorderWidth })}
+        options={[
+          { label: 'Thin (0.0625rem)', value: 'thin' },
+          { label: 'Normal (0.125rem)', value: 'normal' },
+          { label: 'Thick (0.1875rem)', value: 'thick' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     padding: ['--ai-input-padding'],
     borderWidth: ['--ai-input-border-width'],

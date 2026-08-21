@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -56,6 +57,30 @@ export const RadioGroupThemeSlice: ThemeSlice<RadioGroupSliceState, RadioGroupCS
   category: 'Form Controls',
   defaultState: defaultRadioGroupState,
   getCSSVariables: getRadioGroupVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Radio Group Gap"
+        value={state.gap}
+        onChange={val => onChange({ ...state, gap: val as RadioGroupGap })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Radio Dot Size"
+        value={state.dotSize}
+        onChange={val => onChange({ ...state, dotSize: val as RadioGroupDotSize })}
+        options={[
+          { label: 'Small', value: 'sm' },
+          { label: 'Medium', value: 'md' },
+          { label: 'Large', value: 'lg' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     gap: ['--ai-radiogroup-gap-horizontal', '--ai-radiogroup-gap-vertical'],
     dotSize: ['--ai-radiogroup-dot-size', '--ai-radiogroup-dot-inner-size'],

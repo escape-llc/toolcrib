@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -49,6 +50,29 @@ export const SelectThemeSlice: ThemeSlice<SelectSliceState, SelectCSSVariables> 
   category: 'Form Controls',
   defaultState: defaultSelectState,
   getCSSVariables: getSelectVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Select Trigger Padding"
+        value={state.padding}
+        onChange={val => onChange({ ...state, padding: val as SelectPadding })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Select Item Density"
+        value={state.itemDensity}
+        onChange={val => onChange({ ...state, itemDensity: val as SelectItemDensity })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     padding: ['--ai-select-trigger-padding'],
     itemDensity: ['--ai-select-item-padding'],

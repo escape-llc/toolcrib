@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -42,6 +43,18 @@ export const StepperThemeSlice: ThemeSlice<StepperSliceState, StepperCSSVariable
   category: 'Data Display',
   defaultState: defaultStepperState,
   getCSSVariables: getStepperVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Stepper Indicator Size"
+      value={state.size}
+      onChange={val => onChange({ ...state, size: val as StepperSize })}
+      options={[
+        { label: 'Small', value: 'sm' },
+        { label: 'Medium', value: 'md' },
+        { label: 'Large', value: 'lg' },
+      ]}
+    />
+  ),
   fieldVars: {
     size: ['--ai-stepper-indicator-size', '--ai-stepper-font-size'],
   },

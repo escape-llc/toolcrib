@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -102,6 +103,42 @@ export const TabThemeSlice: ThemeSlice<TabSliceState, TabCSSVariables> = {
   category: 'Data Display',
   defaultState: defaultTabState,
   getCSSVariables: getTabVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Tab Group Variant"
+        tooltip="Configures tab trigger visual styling across all TabStrip components"
+        value={state.variant}
+        onChange={val => onChange({ ...state, variant: val as TabVariant })}
+        options={[
+          { label: 'Pills (Rounded Pill Triggers)', value: 'pills' },
+          { label: 'Underline (Bottom Active Indicator)', value: 'underline' },
+          { label: 'Cards (Folder Tab Header Style)', value: 'cards' },
+          { label: 'Segment (Segmented Control)', value: 'segment' },
+        ]}
+      />
+      <FieldRow
+        label="Tab Density & Size"
+        value={state.size}
+        onChange={val => onChange({ ...state, size: val as TabSize })}
+        options={[
+          { label: 'Small (Compact Padding & 12px Font)', value: 'sm' },
+          { label: 'Medium (Standard Padding & 14px Font)', value: 'md' },
+          { label: 'Large (Spacious Padding & 16px Font)', value: 'lg' },
+        ]}
+      />
+      <FieldRow
+        label="Tab Panel Switch Animation"
+        value={state.panelTransition}
+        onChange={val => onChange({ ...state, panelTransition: val as TabPanelTransition })}
+        options={[
+          { label: 'Fade In (Smooth Dissolve Transition)', value: 'fade' },
+          { label: 'Scale & Fade (Pop & Scale Transition)', value: 'scale-fade' },
+          { label: 'None (Instant Panel Switching)', value: 'none' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     // variant and activeSubtheme both feed the "active tab" cluster —
     // e.g. the 'underline' variant's border colour is derived from

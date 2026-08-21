@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -50,6 +51,30 @@ export const TreeThemeSlice: ThemeSlice<TreeSliceState, TreeCSSVariables> = {
   category: 'Data Display',
   defaultState: defaultTreeState,
   getCSSVariables: getTreeVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Tree Indent"
+        value={state.indent}
+        onChange={val => onChange({ ...state, indent: val as TreeIndent })}
+        options={[
+          { label: 'Compact (1rem)', value: 'compact' },
+          { label: 'Normal (1.25rem)', value: 'normal' },
+          { label: 'Spacious (1.75rem)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Tree Row Gap"
+        value={state.itemGap}
+        onChange={val => onChange({ ...state, itemGap: val as TreeItemGap })}
+        options={[
+          { label: 'None (Flush)', value: 'none' },
+          { label: 'Compact (0.125rem)', value: 'compact' },
+          { label: 'Normal (0.25rem)', value: 'normal' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     indent: ['--ai-tree-indent'],
     itemGap: ['--ai-tree-item-gap'],

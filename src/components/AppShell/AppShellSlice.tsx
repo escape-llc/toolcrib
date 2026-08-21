@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -52,6 +53,19 @@ export const AppShellThemeSlice: ThemeSlice<AppShellSliceState, AppShellCSSVaria
   category: 'Containers',
   defaultState: defaultAppShellState,
   getCSSVariables: getAppShellVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="App Shell Header & Main Density"
+      tooltip="Since AppShell is meant to render once, this mostly exists for consistency with other components"
+      value={state.density}
+      onChange={val => onChange({ ...state, density: val as AppShellDensity })}
+      options={[
+        { label: 'Compact', value: 'compact' },
+        { label: 'Normal', value: 'normal' },
+        { label: 'Spacious', value: 'spacious' },
+      ]}
+    />
+  ),
   fieldVars: {
     density: [
       '--ai-appshell-header-padding',

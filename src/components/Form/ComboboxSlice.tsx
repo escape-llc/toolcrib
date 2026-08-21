@@ -1,4 +1,11 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
+
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    combobox: Partial<ComboboxSliceState>;
+  }
+}
 
 /** @barrelExport */
 export type ComboboxPadding = 'compact' | 'normal' | 'spacious';
@@ -43,6 +50,29 @@ export const ComboboxThemeSlice: ThemeSlice<ComboboxSliceState, ComboboxCSSVaria
   category: 'Form Controls',
   defaultState: defaultComboboxState,
   getCSSVariables: getComboboxVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Combobox Padding"
+        value={state.padding}
+        onChange={val => onChange({ ...state, padding: val as ComboboxPadding })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'Spacious', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Combobox Item Density"
+        value={state.itemDensity}
+        onChange={val => onChange({ ...state, itemDensity: val as ComboboxItemDensity })}
+        options={[
+          { label: 'Compact', value: 'compact' },
+          { label: 'Normal', value: 'normal' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     padding: ['--ai-combobox-input-padding'],
     itemDensity: ['--ai-combobox-item-padding'],

@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -59,6 +60,31 @@ export const CardThemeSlice: ThemeSlice<CardSliceState, CardCSSVariables> = {
   category: 'Containers',
   defaultState: defaultCardState,
   getCSSVariables: getCardVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Card Padding"
+        value={state.padding}
+        onChange={val => onChange({ ...state, padding: val as CardPadding })}
+        options={[
+          { label: 'Compact (0.75rem 1rem)', value: 'compact' },
+          { label: 'Normal (1.25rem 1.5rem)', value: 'normal' },
+          { label: 'Spacious (1.75rem 2.25rem)', value: 'spacious' },
+        ]}
+      />
+      <FieldRow
+        label="Card Header Style"
+        tooltip="Controls the header's background and bottom border across all Card components"
+        value={state.headerStyle}
+        onChange={val => onChange({ ...state, headerStyle: val as CardHeaderStyle })}
+        options={[
+          { label: 'Flush (No Border)', value: 'flush' },
+          { label: 'Bordered (Bottom Border)', value: 'bordered' },
+          { label: 'Subtle Background (Tinted Header)', value: 'subtle-bg' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     padding: ['--ai-card-padding', '--ai-card-header-padding'],
     headerStyle: ['--ai-card-header-bg', '--ai-card-header-border'],

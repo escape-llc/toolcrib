@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -50,6 +51,30 @@ export const ModalThemeSlice: ThemeSlice<ModalSliceState, ModalCSSVariables> = {
   category: 'Overlays',
   defaultState: defaultModalState,
   getCSSVariables: getModalVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Modal Backdrop Blur"
+        value={state.backdropBlur}
+        onChange={val => onChange({ ...state, backdropBlur: val as ModalBackdropBlur })}
+        options={[
+          { label: 'None', value: 'none' },
+          { label: 'Subtle (0.1875rem)', value: 'subtle' },
+          { label: 'Heavy (0.5rem)', value: 'heavy' },
+        ]}
+      />
+      <FieldRow
+        label="Modal Overlay Darkness"
+        value={state.overlayDarkness}
+        onChange={val => onChange({ ...state, overlayDarkness: val as ModalOverlayDarkness })}
+        options={[
+          { label: 'Light (30% Black)', value: 'light' },
+          { label: 'Normal (50% Black)', value: 'normal' },
+          { label: 'Dark (70% Black)', value: 'dark' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     backdropBlur: ['--ai-modal-backdrop-blur'],
     overlayDarkness: ['--ai-modal-overlay-bg'],

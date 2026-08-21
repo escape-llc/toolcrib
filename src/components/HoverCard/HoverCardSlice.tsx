@@ -1,4 +1,11 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
+
+declare module '../../theme/sliceStateMap' {
+  interface ToolcribSliceStateMap {
+    hoverCard: Partial<HoverCardSliceState>;
+  }
+}
 
 /** @barrelExport */
 export type HoverCardShadowDepth = 'subtle' | 'elevated';
@@ -37,6 +44,28 @@ export const HoverCardThemeSlice: ThemeSlice<HoverCardSliceState, HoverCardCSSVa
   category: 'Overlays',
   defaultState: defaultHoverCardState,
   getCSSVariables: getHoverCardVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Hover Card Shadow Depth"
+        value={state.shadowDepth}
+        onChange={val => onChange({ ...state, shadowDepth: val as HoverCardShadowDepth })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Hover Card Border Style"
+        value={state.borderStyle}
+        onChange={val => onChange({ ...state, borderStyle: val as HoverCardBorderStyle })}
+        options={[
+          { label: 'Bordered', value: 'bordered' },
+          { label: 'Borderless', value: 'borderless' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     shadowDepth: ['--ai-hovercard-shadow'],
     borderStyle: ['--ai-hovercard-border'],

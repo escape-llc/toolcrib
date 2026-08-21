@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -38,6 +39,18 @@ export const UIGroupThemeSlice: ThemeSlice<UIGroupSliceState, UIGroupCSSVariable
   category: 'Layout Primitives',
   defaultState: defaultUIGroupState,
   getCSSVariables: getUIGroupVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="UIGroup Border Overlap"
+      tooltip="Global only — this shared, singleton stylesheet has no per-instance scoping to override"
+      value={state.overlap}
+      onChange={val => onChange({ ...state, overlap: val as UIGroupOverlap })}
+      options={[
+        { label: 'Thin (-0.0625rem)', value: 'thin' },
+        { label: 'Normal (-0.125rem)', value: 'normal' },
+      ]}
+    />
+  ),
   fieldVars: {
     overlap: ['--ai-uigroup-overlap'],
   },

@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -43,6 +44,28 @@ export const ToastThemeSlice: ThemeSlice<ToastSliceState, ToastCSSVariables> = {
   category: 'Overlays',
   defaultState: defaultToastState,
   getCSSVariables: getToastVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Toast Shadow Depth"
+        value={state.shadowDepth}
+        onChange={val => onChange({ ...state, shadowDepth: val as ToastShadowDepth })}
+        options={[
+          { label: 'Subtle', value: 'subtle' },
+          { label: 'Elevated', value: 'elevated' },
+        ]}
+      />
+      <FieldRow
+        label="Toast Accent Style"
+        value={state.accentStyle}
+        onChange={val => onChange({ ...state, accentStyle: val as ToastAccentStyle })}
+        options={[
+          { label: 'Stripe (0.3125rem Accent Bar)', value: 'stripe' },
+          { label: 'Border Only (No Accent Bar)', value: 'border-only' },
+        ]}
+      />
+    </div>
+  ),
   fieldVars: {
     shadowDepth: ['--ai-toast-shadow'],
     accentStyle: ['--ai-toast-accent-width'],

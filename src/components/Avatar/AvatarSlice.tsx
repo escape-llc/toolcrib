@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -39,6 +40,18 @@ export const AvatarThemeSlice: ThemeSlice<AvatarSliceState, AvatarCSSVariables> 
   category: 'Data Display',
   defaultState: defaultAvatarState,
   getCSSVariables: getAvatarVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Avatar Shape"
+      value={state.shape}
+      onChange={val => onChange({ ...state, shape: val as AvatarShape })}
+      options={[
+        { label: 'Circle', value: 'circle' },
+        { label: 'Rounded Square', value: 'rounded-square' },
+        { label: 'Square', value: 'square' },
+      ]}
+    />
+  ),
   fieldVars: {
     shape: ['--ai-avatar-radius'],
   },

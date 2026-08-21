@@ -1,4 +1,6 @@
 import { type ThemeSlice } from './slice';
+import { FieldRow } from '../components/ThemeEditor/ThemeEditorFieldRow';
+import { Slider } from '../components/Form/Slider';
 
 declare module './sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -110,4 +112,34 @@ export const AnimationThemeSlice: ThemeSlice<AnimationSliceState, AnimationCSSVa
   category: 'Layout Primitives',
   defaultState: defaultAnimationState,
   getCSSVariables: getAnimationVariables,
+  renderEditorControl: (state, onChange) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+        label="Transition Physics Preset"
+        tooltip="Configures global easing curves and transition durations across all components"
+        value={state.preset}
+        onChange={val => onChange({ ...state, preset: val as AnimationPreset })}
+        options={[
+          { label: 'Smooth (Standard Easing Curve)', value: 'smooth' },
+          { label: 'Spring (Elastic Bouncy Physics)', value: 'spring' },
+          { label: 'Snappy (Fast Responsive Curves)', value: 'snappy' },
+          { label: 'Subtle (Gentle Slow Fades)', value: 'subtle' },
+          { label: 'None (Instant 0s Transitions)', value: 'none' },
+        ]}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+          <span>Motion Duration Factor</span>
+          <span>{state.speed}x</span>
+        </div>
+        <Slider
+          value={Math.round(state.speed * 100)}
+          min={50}
+          max={200}
+          step={25}
+          onChange={val => onChange({ ...state, speed: val / 100 })}
+        />
+      </div>
+    </div>
+  ),
 };

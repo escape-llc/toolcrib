@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -40,6 +41,19 @@ export const GalleryThemeSlice: ThemeSlice<GallerySliceState, GalleryCSSVariable
   category: 'Data Display',
   defaultState: defaultGalleryState,
   getCSSVariables: getGalleryVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Gallery Thumbnail Aspect Ratio"
+      value={state.thumbnailAspectRatio}
+      onChange={val => onChange({ ...state, thumbnailAspectRatio: val as GalleryThumbnailAspectRatio })}
+      options={[
+        { label: 'Square (1:1)', value: 'square' },
+        { label: 'Landscape (16:9)', value: 'landscape' },
+        { label: 'Portrait (3:4)', value: 'portrait' },
+        { label: 'Auto (Natural Image Ratio)', value: 'auto' },
+      ]}
+    />
+  ),
   fieldVars: {
     thumbnailAspectRatio: ['--ai-gallery-thumbnail-aspect-ratio'],
   },

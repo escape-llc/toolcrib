@@ -1,4 +1,5 @@
 import { type ThemeSlice } from '../../theme/slice';
+import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -42,6 +43,18 @@ export const DatePickerThemeSlice: ThemeSlice<DatePickerSliceState, DatePickerCS
   category: 'Form Controls',
   defaultState: defaultDatePickerState,
   getCSSVariables: getDatePickerVariables,
+  renderEditorControl: (state, onChange) => (
+    <FieldRow
+      label="Date Picker Grid Cell Size"
+      value={state.cellSize}
+      onChange={val => onChange({ ...state, cellSize: val as DatePickerCellSize })}
+      options={[
+        { label: 'Small', value: 'sm' },
+        { label: 'Medium', value: 'md' },
+        { label: 'Large', value: 'lg' },
+      ]}
+    />
+  ),
   fieldVars: {
     cellSize: ['--ai-datepicker-cell-size', '--ai-datepicker-popover-padding'],
   },
