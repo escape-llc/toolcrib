@@ -120,6 +120,7 @@ export * from './components/Stepper/StepperSlice';
 export * from './components/TabStrip/TabSlice';
 export * from './components/TabStrip/TabStrip';
 export * from './components/ThemeEditor/ThemeEditor';
+export * from './components/ThemeEditor/ThemeEditorFieldRow';
 export * from './components/Toast/Toast';
 export * from './components/Toast/ToastContext';
 export * from './components/Toast/ToastSlice';
