@@ -94,6 +94,33 @@ describe('ThemeEditor', () => {
     expect(associatedControl).toHaveAttribute('role', 'combobox');
   });
 
+  describe('regression: registered slices with no hand-written section were invisible in the Theme Editor', () => {
+    // Theme-slice-consolidation Phase 3: ThemeEditor used to only render a
+    // section for whichever ~26 slices someone had hand-added JSX for here.
+    // Every component added after that point (Carousel among them) was a
+    // real, registered ThemeSlice with zero way to adjust its global
+    // default theme — confirmed directly, not assumed, by diffing every
+    // registered slice id against what this file actually rendered. The
+    // generic per-category loop now surfaces every registered slice
+    // automatically; this test is what would have caught the gap.
+    it('surfaces a slice with no hand-written section (Carousel) under its own category, with working controls', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Data Display/));
+      fireEvent.click(screen.getByText(/Carousel/));
+
+      expect(screen.getByText('Medium (2.75rem)')).toBeInTheDocument(); // arrowSize default
+      expect(screen.getByText('Primary')).toBeInTheDocument(); // dotActiveSubtheme default
+    });
+
+    it('surfaces a slice with a free-form (non-enum) field as a preset FieldRow (CommandPalette maxListHeight)', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Overlays/));
+      fireEvent.click(screen.getByText(/Command Palette/));
+
+      expect(screen.getByText('Normal (21.875rem)')).toBeInTheDocument();
+    });
+  });
+
   describe('themeManagement lockout prop', () => {
     it('shows every Save & Load Themes command by default', () => {
       renderEditor();
