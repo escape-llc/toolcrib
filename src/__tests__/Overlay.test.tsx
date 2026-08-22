@@ -130,6 +130,27 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.getByRole('dialog', { name: 'Delete confirmation' })).toBeInTheDocument();
   });
 
+  it('defaults to vertically centered, but anchors near the top with align="top" (CommandPalette\'s VS Code-style placement)', () => {
+    const { rerender } = render(
+      <Modal trigger={<Button>Open Centered</Button>}>
+        <Modal.Body>Content</Modal.Body>
+      </Modal>
+    );
+    fireEvent.click(screen.getByText('Open Centered'));
+    const overlay = screen.getByTestId('modal-container').parentElement as HTMLElement;
+    expect(overlay.style.alignItems).toBe('center');
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    rerender(
+      <Modal trigger={<Button>Open Top</Button>} align="top">
+        <Modal.Body>Content</Modal.Body>
+      </Modal>
+    );
+    fireEvent.click(screen.getByText('Open Top'));
+    const topOverlay = screen.getByTestId('modal-container').parentElement as HTMLElement;
+    expect(topOverlay.style.alignItems).toBe('flex-start');
+  });
+
   describe('regression coverage: Popup placement variants (bottom-end/top-start/top-end — only bottom-start was ever exercised)', () => {
     it.each([
       ['bottom-end', 'borderBottomRightRadius'],

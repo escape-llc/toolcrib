@@ -59,7 +59,7 @@ export interface CommandPaletteProps {
 }
 
 /**
- * @manifest Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted inside the toolkit's own Modal
+ * @manifest Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement)
  * @manifestCategory Overlays
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -122,6 +122,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       onOpenChange={handleOpenChange}
       width="37.5rem"
       ariaLabel="Command palette"
+      align="top"
     >
       <CommandPrimitive
         label="Command palette"

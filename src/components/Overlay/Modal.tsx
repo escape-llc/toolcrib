@@ -58,6 +58,17 @@ export interface ModalProps {
    * @default 'Dialog'
    */
   ariaLabel?: string;
+  /**
+   * `'center'` (default) vertically centers the dialog, the standard
+   * confirm/form-dialog placement. `'top'` anchors it near the top of the
+   * viewport instead — a command palette or quick-switcher reads as a
+   * lighter, keyboard-driven overlay there (VS Code's Ctrl/Cmd+K palette is
+   * the reference point) rather than a dialog the user is expected to read
+   * top-to-bottom and dismiss. Same focus trap, backdrop, and Escape-to-
+   * close either way — only the position changes.
+   * @default 'center'
+   */
+  align?: 'center' | 'top';
   /** Per-instance overrides for backdrop blur and overlay darkness. */
   overrides?: Partial<ModalSliceState> & { subtheme?: SubthemeName };
 }
@@ -82,6 +93,7 @@ export const Modal: React.FC<ModalProps> & {
   height,
   zIndex = Z_INDEX.MODAL,
   ariaLabel = 'Dialog',
+  align = 'center',
   overrides,
 }) => {
   const id = useStableId(propId, 'modal');
@@ -132,9 +144,10 @@ export const Modal: React.FC<ModalProps> & {
             background: 'var(--ai-modal-overlay-bg, rgba(0, 0, 0, 0.5))',
             backdropFilter: 'blur(var(--ai-modal-backdrop-blur, 0.1875rem))',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: align === 'top' ? 'flex-start' : 'center',
             justifyContent: 'center',
             padding: 'var(--ai-padding-lg, 1.25rem)',
+            paddingTop: align === 'top' ? '10vh' : 'var(--ai-padding-lg, 1.25rem)',
             animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             ...modalVars,
           }}

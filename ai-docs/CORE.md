@@ -155,12 +155,12 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<AlertDialog>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.Cancel`, `.Action` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `zIndex`, `ariaLabel`, `overrides` | Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions |
-| `<CommandPalette>` | — | `id`, `items`, `placeholder`, `emptyMessage`, `isOpen`, `onOpenChange`, `overrides` | Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted inside the toolkit's own Modal |
+| `<CommandPalette>` | — | `id`, `items`, `placeholder`, `emptyMessage`, `isOpen`, `onOpenChange`, `overrides` | Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement) |
 | `<ContextMenu>` | — | `id`, `items`, `overrides` | Right-click action menu, data-driven with separator support |
 | `<Drawer>` | — | `id`, `trigger`, `position`, `isOpen`, `onOpenChange`, `title`, `width`, `zIndex` | Edge drawer overlay with backdrop blur and slide animation |
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
 | `<HoverCard>` | — | `id`, `content`, `side`, `align`, `openDelay`, `closeDelay`, `overrides` | Hover-triggered preview card for rich, interactive content |
-| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `height`, `zIndex`, `ariaLabel`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
+| `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `height`, `zIndex`, `ariaLabel`, `align`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
 | `<Viewer>` | — | `isOpen`, `onOpenChange` | Fullscreen media lightbox — composes ViewerContent inside Modal |

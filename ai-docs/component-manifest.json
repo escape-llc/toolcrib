@@ -1258,7 +1258,7 @@
         }
       },
       "category": "Overlays",
-      "description": "Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted inside the toolkit's own Modal"
+      "description": "Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement)"
     },
     {
       "name": "Content",
@@ -1992,6 +1992,11 @@
           "type": "string",
           "default": "'Dialog'",
           "description": "Accessible name announced by screen readers when the dialog opens.\nAlways visually hidden — unlike `<Drawer title>`, which is a visible\n`ReactNode` header, this is a screen-reader-only string. `Modal.Header`'s\nvisible text is decorative only and is not otherwise wired to the\ndialog's accessible name, so set this explicitly (typically matching\nyour `Modal.Header` text) for a meaningful announcement."
+        },
+        "align": {
+          "type": "'center' | 'top'",
+          "default": "'center'",
+          "description": "`'center'` (default) vertically centers the dialog, the standard\nconfirm/form-dialog placement. `'top'` anchors it near the top of the\nviewport instead — a command palette or quick-switcher reads as a\nlighter, keyboard-driven overlay there (VS Code's Ctrl/Cmd+K palette is\nthe reference point) rather than a dialog the user is expected to read\ntop-to-bottom and dismiss. Same focus trap, backdrop, and Escape-to-\nclose either way — only the position changes."
         },
         "overrides": {
           "type": "Partial<ModalSliceState> & { subtheme?: SubthemeName }",
