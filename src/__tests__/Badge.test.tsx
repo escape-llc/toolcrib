@@ -29,4 +29,11 @@ describe('Badge', () => {
     expect(screen.getByTestId('badge-icon')).toBeInTheDocument();
     expect(screen.getByText('Starred')).toBeInTheDocument();
   });
+
+  it('wraps the icon in a lineHeight:1 span, so a tall-glyph icon (e.g. a checkmark falling back to a different font) can\'t stretch the badge taller than an icon-less sibling (regression: "Verified" badge visibly taller than its size="md" siblings despite using size="sm")', () => {
+    render(<Badge icon="✓">Verified</Badge>);
+    const icon = screen.getByText('✓');
+    expect(icon.tagName).toBe('SPAN');
+    expect(icon.style.lineHeight).toBe('1');
+  });
 });

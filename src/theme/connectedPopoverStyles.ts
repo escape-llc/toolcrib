@@ -3,8 +3,15 @@ import { type SquareCornerOption } from '../components/Card/Card';
 
 /** @barrelExport */
 export type PopoverSide = 'top' | 'right' | 'bottom' | 'left';
-/** @barrelExport */
-export type PopoverAlign = 'start' | 'center' | 'end';
+/**
+ * `'stretch'` is for a popup sized to match the trigger exactly on the
+ * cross axis (e.g. `Combobox`'s listbox, `width:
+ * var(--radix-popover-trigger-width)`) — the whole connecting edge meets
+ * the trigger, not just one corner, so *both* corners on that edge square
+ * off. `'center'` still squares nothing (no single connecting corner).
+ * @barrelExport
+ */
+export type PopoverAlign = 'start' | 'center' | 'end' | 'stretch';
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -34,6 +41,23 @@ const TRIGGER_CORNER: Record<string, Corner> = {
   'right-end': 'bottom-right',
   'left-start': 'top-left',
   'left-end': 'bottom-left',
+};
+
+// align: 'stretch' -- both corners on the connecting edge, one lookup per
+// side rather than per side-align pair (align is irrelevant once the
+// popup spans the trigger's full cross-axis size).
+const STRETCH_POPUP_CORNERS: Record<PopoverSide, [Corner, Corner]> = {
+  bottom: ['top-left', 'top-right'],
+  top: ['bottom-left', 'bottom-right'],
+  right: ['top-left', 'bottom-left'],
+  left: ['top-right', 'bottom-right'],
+};
+
+const STRETCH_TRIGGER_CORNERS: Record<PopoverSide, [Corner, Corner]> = {
+  bottom: ['bottom-left', 'bottom-right'],
+  top: ['top-left', 'top-right'],
+  right: ['top-right', 'bottom-right'],
+  left: ['top-left', 'bottom-left'],
 };
 
 // A plain `Record<Corner, keyof CSSProperties>` plus dynamic indexed
@@ -84,9 +108,8 @@ export function computeCornerSquaring(
   isOpen: boolean,
   radius: string = 'var(--ai-radius-lg, 0.5rem)'
 ): CornerSquaringResult {
-  const key = `${side}-${align}`;
-  const popupCorner = POPUP_CORNER[key];
-  const triggerCorner = TRIGGER_CORNER[key];
+  const popupCorners: Corner[] = align === 'stretch' ? STRETCH_POPUP_CORNERS[side] : [POPUP_CORNER[`${side}-${align}`]].filter((c): c is Corner => Boolean(c));
+  const triggerCorners: Corner[] = align === 'stretch' ? STRETCH_TRIGGER_CORNERS[side] : [TRIGGER_CORNER[`${side}-${align}`]].filter((c): c is Corner => Boolean(c));
 
   const popupCornerStyle: React.CSSProperties = {
     borderTopLeftRadius: radius,
@@ -94,13 +117,13 @@ export function computeCornerSquaring(
     borderBottomLeftRadius: radius,
     borderBottomRightRadius: radius,
   };
-  if (popupCorner) {
-    setRadiusCorner(popupCornerStyle, popupCorner, 0);
+  for (const corner of popupCorners) {
+    setRadiusCorner(popupCornerStyle, corner, 0);
   }
 
   const triggerCornerStyle: React.CSSProperties = {};
-  if (triggerCorner) {
-    setRadiusCorner(triggerCornerStyle, triggerCorner, isOpen ? 0 : 'inherit');
+  for (const corner of triggerCorners) {
+    setRadiusCorner(triggerCornerStyle, corner, isOpen ? 0 : 'inherit');
   }
 
   return {
@@ -109,7 +132,7 @@ export function computeCornerSquaring(
     sideOffset: -1,
     popupCornerStyle,
     triggerCornerStyle,
-    triggerSquareCorners: triggerCorner && isOpen ? [triggerCorner] : 'none',
+    triggerSquareCorners: triggerCorners.length && isOpen ? triggerCorners : 'none',
   };
 }
 

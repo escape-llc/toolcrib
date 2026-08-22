@@ -46,7 +46,17 @@ export const Badge: React.FC<BadgeProps> = ({ subtheme: instanceSubtheme, size =
         color: colors?.color ?? 'var(--ai-text-secondary, #4b5563)',
       }}
     >
-      {icon}
+      {icon && (
+        // Same normalization Button's own icon slot already applies: a bare
+        // icon child (especially a symbol/emoji character, which often
+        // falls back to a different font with taller ascent/descent metrics
+        // than the surrounding text) can stretch this flex container's
+        // cross-axis size beyond what the badge's own font-size/padding
+        // would otherwise produce — reported directly ("Verified" badge
+        // taller than its size="md" siblings despite using size="sm").
+        // lineHeight: 1 clips the icon's own box to its content instead.
+        <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>{icon}</span>
+      )}
       {children}
     </span>
   );

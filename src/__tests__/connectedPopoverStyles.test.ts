@@ -63,6 +63,41 @@ describe('computeCornerSquaring', () => {
     const result = computeCornerSquaring('bottom', 'start', true, 'var(--ai-radius-md, 0.375rem)');
     expect(result.popupCornerStyle.borderTopRightRadius).toBe('var(--ai-radius-md, 0.375rem)');
   });
+
+  it('squares both corners on the connecting edge for align="stretch" (a popup sized to the trigger\'s full width, e.g. Combobox)', () => {
+    const result = computeCornerSquaring('bottom', 'stretch', true);
+    expect(result.popupCornerStyle.borderTopLeftRadius).toBe(0);
+    expect(result.popupCornerStyle.borderTopRightRadius).toBe(0);
+    expect(result.popupCornerStyle.borderBottomLeftRadius).not.toBe(0);
+    expect(result.popupCornerStyle.borderBottomRightRadius).not.toBe(0);
+    expect(result.triggerCornerStyle.borderBottomLeftRadius).toBe(0);
+    expect(result.triggerCornerStyle.borderBottomRightRadius).toBe(0);
+    expect(result.triggerSquareCorners).toEqual(['bottom-left', 'bottom-right']);
+  });
+
+  it('squares both corners on the connecting edge for align="stretch" on every side, not just bottom', () => {
+    expect(computeCornerSquaring('top', 'stretch', true).popupCornerStyle.borderBottomLeftRadius).toBe(0);
+    expect(computeCornerSquaring('top', 'stretch', true).popupCornerStyle.borderBottomRightRadius).toBe(0);
+    expect(computeCornerSquaring('top', 'stretch', true).triggerCornerStyle.borderTopLeftRadius).toBe(0);
+    expect(computeCornerSquaring('top', 'stretch', true).triggerCornerStyle.borderTopRightRadius).toBe(0);
+
+    expect(computeCornerSquaring('right', 'stretch', true).popupCornerStyle.borderTopLeftRadius).toBe(0);
+    expect(computeCornerSquaring('right', 'stretch', true).popupCornerStyle.borderBottomLeftRadius).toBe(0);
+    expect(computeCornerSquaring('right', 'stretch', true).triggerCornerStyle.borderTopRightRadius).toBe(0);
+    expect(computeCornerSquaring('right', 'stretch', true).triggerCornerStyle.borderBottomRightRadius).toBe(0);
+
+    expect(computeCornerSquaring('left', 'stretch', true).popupCornerStyle.borderTopRightRadius).toBe(0);
+    expect(computeCornerSquaring('left', 'stretch', true).popupCornerStyle.borderBottomRightRadius).toBe(0);
+    expect(computeCornerSquaring('left', 'stretch', true).triggerCornerStyle.borderTopLeftRadius).toBe(0);
+    expect(computeCornerSquaring('left', 'stretch', true).triggerCornerStyle.borderBottomLeftRadius).toBe(0);
+  });
+
+  it('gates align="stretch" trigger squaring on isOpen, same as the single-corner case', () => {
+    const closed = computeCornerSquaring('bottom', 'stretch', false);
+    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('inherit');
+    expect(closed.triggerCornerStyle.borderBottomRightRadius).toBe('inherit');
+    expect(closed.triggerSquareCorners).toBe('none');
+  });
 });
 
 describe('renderTriggerWithCornerSquaring', () => {

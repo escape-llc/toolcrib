@@ -110,6 +110,20 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
   const targetDocument = useTargetDocument();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Radix's non-modal Popover.Content only exempts clicks on
+  // context.triggerRef (populated by <Popover.Trigger>) from its own
+  // "interact outside -> dismiss" logic. Combobox deliberately uses
+  // <Popover.Anchor> instead of <Popover.Trigger> -- Trigger's built-in
+  // click-to-toggle would fight this component's own open-on-focus/typing
+  // behavior -- which leaves triggerRef permanently empty, so *every*
+  // interaction with the input (including the click that opens it) reads
+  // as "outside" and immediately closes the popover again. Reported
+  // directly as "clicking in does not display the list, it flashes
+  // briefly" -- confirmed via a real timeline trace (opens then closes
+  // ~11ms later, every time, regardless of sideOffset). This ref lets the
+  // onInteractOutside handler below exempt the anchor region itself, the
+  // same way Radix's own Trigger is exempted internally.
+  const anchorRef = useRef<HTMLDivElement>(null);
   useInjectInteractionStyles();
 
   const baseId = useId();
@@ -155,10 +169,14 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
 
-  // Always opens directly below, left-aligned to the input -- unlike
-  // DropdownMenu/Popup, side/align aren't configurable here, so this is
-  // computed once rather than threaded through as props.
-  const squaring = computeCornerSquaring('bottom', 'start', open && !disabled, 'var(--ai-radius-md, 0.375rem)');
+  // Always opens directly below the input, at the input's own width
+  // (`width: var(--radix-popover-trigger-width)` on Content below) -- so
+  // the whole bottom edge of the input meets the whole top edge of the
+  // listbox, not just one corner. align="stretch" squares both connecting
+  // corners on each side accordingly. Unlike DropdownMenu/Popup, side/align
+  // aren't configurable here, so this is computed once rather than
+  // threaded through as props.
+  const squaring = computeCornerSquaring('bottom', 'stretch', open && !disabled, 'var(--ai-radius-md, 0.375rem)');
 
   // External/Form-driven value changes (not from a selection made through
   // this input) resync the displayed text in single mode — e.g.
@@ -306,6 +324,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
     <PopoverPrimitive.Root open={open && !disabled} onOpenChange={setOpen}>
       <PopoverPrimitive.Anchor asChild>
         <div
+          ref={anchorRef}
           className="ai-focus-ring"
           onClick={() => inputRef.current?.focus()}
           style={{
@@ -388,6 +407,16 @@ export const Combobox: React.FC<ComboboxProps> = ({
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
+            // Selecting an option deliberately keeps DOM focus on the input
+            // (the option's own onMouseDown preventDefaults specifically so
+            // focus never moves) so typing immediately after a selection
+            // keeps working — but that also means a *second* click, to
+            // reopen the list for a fresh search, never fires a new native
+            // focus event (the input never actually lost focus in the DOM),
+            // so onFocus alone never reopens it. onClick covers that case
+            // too; harmless overlap with onFocus on a first click where the
+            // input wasn't already focused.
+            onClick={() => setOpen(true)}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             style={{
@@ -439,6 +468,17 @@ export const Combobox: React.FC<ComboboxProps> = ({
           // still needs suppressing explicitly.
           onOpenAutoFocus={e => e.preventDefault()}
           onCloseAutoFocus={e => e.preventDefault()}
+          // See anchorRef's own comment above: Radix's non-modal Content
+          // only recognizes a <Popover.Trigger> as exempt from "interact
+          // outside" dismissal, and this component uses Anchor instead, so
+          // every click/focus on the input read as outside and closed the
+          // popover the instant it opened. Exempting the anchor region here
+          // is the direct fix.
+          onInteractOutside={e => {
+            if (anchorRef.current?.contains(e.target as Node)) {
+              e.preventDefault();
+            }
+          }}
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             width: 'var(--radix-popover-trigger-width)',

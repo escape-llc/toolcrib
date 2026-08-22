@@ -10,7 +10,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
-import { computeCornerSquaring, renderTriggerWithCornerSquaring } from '../../theme/connectedPopoverStyles';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
@@ -96,7 +96,12 @@ export const Popup: React.FC<PopupProps> = ({
   // always supported, so it maps directly onto the shared side/align form
   // every corner-squared trigger+popup pair in the toolkit now computes
   // from (see connectedPopoverStyles.ts).
-  const [side, align] = placement.split('-') as [Parameters<typeof computeCornerSquaring>[0], Parameters<typeof computeCornerSquaring>[1]];
+  // Narrower than computeCornerSquaring's own PopoverAlign (which also
+  // allows 'center'/'stretch' for other callers, e.g. Combobox) because
+  // PopupPlacement itself only ever produces 'start'/'end' — keeping this
+  // narrow lets `align` below go straight to Radix's own Content prop
+  // (which only accepts 'start'|'center'|'end') with no cast.
+  const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
   const squaring = computeCornerSquaring(side, align, isOpen);
   const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring);
 
