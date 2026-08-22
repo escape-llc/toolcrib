@@ -109,6 +109,7 @@ const userProfileSchema = z.object({
   country: z.string().min(1, 'Please choose a country'),
   role: z.enum(['admin', 'editor', 'viewer'], { error: 'Role is required' }),
   contactPref: z.enum(['email', 'sms', 'phone'], { error: 'Select a contact preference' }),
+  startDate: z.instanceof(CalendarDate, { message: 'Please select a start date' }),
   notifications: z.boolean(),
   agreeTerms: z.boolean().refine(val => val === true, 'You must accept the terms'),
   bio: z.string().max(200, 'Bio cannot exceed 200 characters').optional(),
@@ -1035,7 +1036,7 @@ export const App: React.FC = () => {
                         <Form
                           id="profile-form"
                           schema={userProfileSchema}
-                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', notifications: true, agreeTerms: false }}
+                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', startDate: new CalendarDate(2026, 3, 15), notifications: true, agreeTerms: false }}
                           onSubmit={values => {
                             addToast({ type: 'success', message: `User ${values.username} created successfully! (Contact: ${values.contactPref})` });
                           }}
@@ -1072,6 +1073,10 @@ export const App: React.FC = () => {
                                 { label: 'Phone Call', value: 'phone' },
                               ]}
                             />
+                          </FormField>
+
+                          <FormField name="startDate" label="Start Date" helperText="Zod-validated via z.instanceof(CalendarDate) — the same DatePicker as the standalone demo below, now wired into this form's own validation and submit values">
+                            <DatePicker />
                           </FormField>
 
                           <FormField name="notifications">
@@ -1113,10 +1118,13 @@ export const App: React.FC = () => {
                     </Card>
                   </Grid>
 
-                  {/* Date/Time pickers and Rating live outside the Zod form
-                      above deliberately — standalone, uncontrolled-by-default
-                      demos of each control's own onChange, not one more field
-                      bolted onto an already-complete validated form. */}
+                  {/* Calendar/TimeField/Rating live outside the Zod form above
+                      deliberately — standalone, uncontrolled-by-default demos
+                      of each control's own onChange. DatePicker itself now
+                      appears twice: once wired into the form above (Zod-
+                      validated, part of the submitted values), and again here
+                      as its own standalone onChange demo — the same
+                      component, two different integration styles. */}
                   <Card overrides={{ padding: 'compact' }}>
                     <Card.Header>Date, Time & Rating Inputs (`&lt;DatePicker&gt;`, `&lt;Calendar&gt;`, `&lt;TimeField&gt;`, `&lt;Rating&gt;`)</Card.Header>
                     <Card.Content>
