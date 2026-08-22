@@ -52,6 +52,7 @@ export * from './components/Carousel/CarouselSlice';
 export * from './components/Chart/BarChart';
 export * from './components/Chart/ChartSlice';
 export * from './components/Chart/ChartTypes';
+export * from './components/Chart/Heatmap';
 export * from './components/Chart/LineChart';
 export * from './components/Chart/PieChart';
 export * from './components/Chart/Sparkline';

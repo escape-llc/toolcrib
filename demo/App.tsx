@@ -88,6 +88,7 @@ import {
   LineChart,
   PieChart,
   Sparkline,
+  Heatmap,
 } from '#toolcrib';
 
 const COUNTRY_OPTIONS = [
@@ -1439,6 +1440,26 @@ export const App: React.FC = () => {
                             { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
                             { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
                           ]}
+                        />
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>Support Tickets by Day &amp; Hour</Card.Header>
+                      <Card.Content>
+                        <Heatmap
+                          title="Support tickets by day and hour"
+                          width={980}
+                          rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
+                          columns={['9am', '11am', '1pm', '3pm', '5pm']}
+                          values={[
+                            [8, 14, 22, 18, 9],
+                            [6, 12, 19, 20, 11],
+                            [5, 10, 16, 15, 8],
+                            [9, 16, 24, 21, 12],
+                            [7, 11, 15, 13, 6],
+                          ]}
+                          formatValue={v => `${v} tickets`}
                         />
                       </Card.Content>
                     </Card>

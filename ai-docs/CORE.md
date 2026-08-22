@@ -182,6 +182,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
 | `<Filmstrip>` | — | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `thumbnailSize`, `overrides` | Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection |
 | `<Gallery>` | — | `id`, `items`, `columns`, `onItemClick`, `overrides` | Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default |
+| `<Heatmap>` | — | `columns`, `rows`, `values`, `width`, `height`, `title`, `formatValue` | Row/column magnitude grid with a theme-tracking sequential ramp |
 | `<LineChart>` | — | `categories`, `series`, `width`, `height`, `title`, `variant`, `legendPosition`, `overrides` | Multi-series line chart with a shared hover crosshair; `variant="area"` renders a stacked, filled area chart |
 | `<PieChart>` | — | `data`, `width`, `height`, `innerRadius`, `title`, `legendPosition` | Part-to-whole pie or donut chart |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |

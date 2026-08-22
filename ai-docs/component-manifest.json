@@ -1767,6 +1767,49 @@
       "description": "CSS Grid responsive multi-column layout"
     },
     {
+      "name": "Heatmap",
+      "import": "import { Heatmap } from '#toolcrib'",
+      "props": {
+        "columns": {
+          "type": "string[]",
+          "required": true,
+          "description": "Column labels, x-axis."
+        },
+        "rows": {
+          "type": "string[]",
+          "required": true,
+          "description": "Row labels, y-axis."
+        },
+        "values": {
+          "type": "number[][]",
+          "required": true,
+          "description": "Cell values, indexed `[rowIndex][columnIndex]`, same order as `rows`/`columns`."
+        },
+        "width": {
+          "type": "number",
+          "default": "480",
+          "description": "SVG width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": "280",
+          "description": "SVG height in pixels, including the axis band."
+        },
+        "title": {
+          "type": "string",
+          "default": "'Heatmap'",
+          "description": "Accessible name for the chart."
+        },
+        "formatValue": {
+          "type": "(value: number) => string",
+          "default": "String(value)",
+          "description": "Formats a cell's value for its tooltip/accessible label."
+        }
+      },
+      "category": "Data Display",
+      "description": "Row/column magnitude grid with a theme-tracking sequential ramp"
+    },
+    {
       "name": "HoverCard",
       "import": "import { HoverCard } from '#toolcrib'",
       "props": {
