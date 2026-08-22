@@ -1,10 +1,11 @@
-import React, { type ReactNode, type ReactElement } from 'react';
+import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, type DropdownMenuSliceState } from './DropdownMenuSlice';
@@ -68,10 +69,14 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   useInjectInteractionStyles();
+  const [isOpen, setIsOpen] = useState(false);
+  const squaring = computeCornerSquaring(side, align, isOpen, 'var(--ai-radius-md, 0.375rem)');
+  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring);
 
   return (
     <DropdownMenuPrimitive.Root
       onOpenChange={(open) => {
+        setIsOpen(open);
         if (open) {
           aiBus.emit('menu:opened', { id });
         } else {
@@ -80,20 +85,19 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       }}
     >
       <DropdownMenuPrimitive.Trigger asChild>
-        <div style={{ display: 'inline-block', cursor: 'pointer' }}>{trigger}</div>
+        <div style={{ display: 'inline-block', cursor: 'pointer' }}>{renderedTrigger}</div>
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
         <DropdownMenuPrimitive.Content
           side={side}
           align={align}
-          sideOffset={5}
+          sideOffset={squaring.sideOffset}
           className="ai-focus-ring"
           style={{
             zIndex: Z_INDEX.DROPDOWN,
             minWidth: '11.25rem',
             padding: 'var(--ai-padding-sm, 0.375rem)',
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
             boxShadow: 'var(--ai-dropdownmenu-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
@@ -104,6 +108,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             // Self-contained floating menu — see Modal.tsx's identical
             // reasoning.
             contain: 'content',
+            ...squaring.popupCornerStyle,
             ...menuVars,
           }}
         >

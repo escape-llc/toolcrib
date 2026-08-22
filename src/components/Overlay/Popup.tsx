@@ -1,9 +1,8 @@
-import React, { useState, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
+import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
-import { type SquareCornerOption } from '../Card/Card';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -11,6 +10,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring } from '../../theme/connectedPopoverStyles';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
@@ -91,65 +91,14 @@ export const Popup: React.FC<PopupProps> = ({
     if (e.id === id && isOpen) handleOpenChange(false, true);
   });
 
-  // Which corner of the trigger should flatten against the popup while
-  // open, expressed as the shared SquareCornerOption vocabulary
-  // (Card/Content/Button all understand it) rather than a raw style
-  // object — used for a trigger that's a toolcrib component (the common
-  // case, e.g. <Button>) and can consult this prop itself. A plain DOM
-  // element trigger can't consult a typed prop, so it still gets a
-  // directly-injected style patch — see renderedTrigger below.
-  const getTriggerSquareCorners = (): SquareCornerOption => {
-    if (!isOpen) return 'none';
-    switch (placement) {
-      case 'bottom-start': return ['bottom-left'];
-      case 'bottom-end': return ['bottom-right'];
-      case 'top-start': return ['top-left'];
-      case 'top-end': return ['top-right'];
-    }
-  };
-
-  const getTriggerCornerStyle = (): React.CSSProperties => {
-    switch (placement) {
-      case 'bottom-start': return { borderBottomLeftRadius: isOpen ? 0 : 'inherit' };
-      case 'bottom-end': return { borderBottomRightRadius: isOpen ? 0 : 'inherit' };
-      case 'top-start': return { borderTopLeftRadius: isOpen ? 0 : 'inherit' };
-      case 'top-end': return { borderTopRightRadius: isOpen ? 0 : 'inherit' };
-    }
-  };
-
-  const getPopupCornerStyle = (): React.CSSProperties => {
-    const r = 'var(--ai-radius-lg, 0.5rem)';
-    switch (placement) {
-      case 'bottom-start': return { borderRadius: `0 ${r} ${r} ${r}` };
-      case 'bottom-end': return { borderRadius: `${r} 0 ${r} ${r}` };
-      case 'top-start': return { borderRadius: `${r} ${r} ${r} 0` };
-      case 'top-end': return { borderRadius: `${r} ${r} 0 ${r}` };
-    }
-  };
-
-  const getRadixSideAndAlign = (): { side: 'top' | 'bottom'; align: 'start' | 'end' } => {
-    switch (placement) {
-      case 'bottom-start': return { side: 'bottom', align: 'start' };
-      case 'bottom-end': return { side: 'bottom', align: 'end' };
-      case 'top-start': return { side: 'top', align: 'start' };
-      case 'top-end': return { side: 'top', align: 'end' };
-    }
-  };
-
-  const { side, align } = getRadixSideAndAlign();
-  const typedTrigger = trigger as ReactElement<any>;
-  const isTriggerComponent = isValidElement(typedTrigger) && typeof typedTrigger.type !== 'string';
-  const renderedTrigger = !isValidElement(typedTrigger)
-    ? trigger
-    : isTriggerComponent
-    ? cloneElement(typedTrigger as ReactElement<any>, { squareCorners: getTriggerSquareCorners() })
-    : cloneElement(typedTrigger as ReactElement<any>, {
-        style: {
-          ...((typedTrigger.props as any).style || {}),
-          ...getTriggerCornerStyle(),
-          transition: 'border-radius 0.15s ease',
-        },
-      });
+  // `placement` is `'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'`
+  // -- exactly `${side}-${align}` for the two sides/aligns this prop has
+  // always supported, so it maps directly onto the shared side/align form
+  // every corner-squared trigger+popup pair in the toolkit now computes
+  // from (see connectedPopoverStyles.ts).
+  const [side, align] = placement.split('-') as [Parameters<typeof computeCornerSquaring>[0], Parameters<typeof computeCornerSquaring>[1]];
+  const squaring = computeCornerSquaring(side, align, isOpen);
+  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring);
 
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
@@ -169,7 +118,7 @@ export const Popup: React.FC<PopupProps> = ({
         <PopoverPrimitive.Content
           side={side}
           align={align}
-          sideOffset={-1}
+          sideOffset={squaring.sideOffset}
           className="ai-focus-ring"
           style={{
             zIndex,
@@ -183,7 +132,7 @@ export const Popup: React.FC<PopupProps> = ({
             // reasoning (this is already Radix-portaled to document.body,
             // so nothing inside needs to escape this box).
             contain: 'content',
-            ...getPopupCornerStyle(),
+            ...squaring.popupCornerStyle,
             ...popupVars,
           }}
         >

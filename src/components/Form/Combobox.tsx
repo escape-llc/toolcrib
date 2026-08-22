@@ -6,6 +6,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { computeCornerSquaring } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 
@@ -153,6 +154,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const [asyncOptions, setAsyncOptions] = useState<ComboboxOptionData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
+
+  // Always opens directly below, left-aligned to the input -- unlike
+  // DropdownMenu/Popup, side/align aren't configurable here, so this is
+  // computed once rather than threaded through as props.
+  const squaring = computeCornerSquaring('bottom', 'start', open && !disabled, 'var(--ai-radius-md, 0.375rem)');
 
   // External/Form-driven value changes (not from a selection made through
   // this input) resync the displayed text in single mode — e.g.
@@ -316,6 +322,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
             cursor: disabled ? 'not-allowed' : 'text',
             opacity: disabled ? 0.6 : 1,
             outline: 'none',
+            transition: 'border-radius 0.15s ease',
+            ...squaring.triggerCornerStyle,
             ...comboboxVars,
           }}
         >
@@ -421,7 +429,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
         <PopoverPrimitive.Content
           side="bottom"
           align="start"
-          sideOffset={4}
+          sideOffset={squaring.sideOffset}
           // The input must keep real DOM focus the whole time — the
           // listbox itself is never focused (options are plain, non-
           // focusable divs highlighted via aria-activedescendant), so any
@@ -435,10 +443,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
             zIndex: Z_INDEX.DROPDOWN,
             width: 'var(--radix-popover-trigger-width)',
             background: 'var(--ai-bg-surface, #ffffff)',
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
             boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
             overflow: 'hidden',
+            ...squaring.popupCornerStyle,
             ...comboboxVars,
           }}
         >

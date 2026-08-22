@@ -2,6 +2,7 @@
 export * from './theme/StyleDomainContext';
 export * from './theme/animation';
 export * from './theme/animationKeyframes';
+export * from './theme/connectedPopoverStyles';
 export * from './theme/harmonies';
 export * from './theme/hsv';
 export * from './theme/margin';
