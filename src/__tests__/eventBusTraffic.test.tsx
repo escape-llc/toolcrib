@@ -140,12 +140,15 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
   });
 
   it('verifies TabStrip emits tab:changed event, including its group id', () => {
-    const handleTabChange = vi.fn();
+    // Uncontrolled (defaultActiveId, no onChange) -- a controlled instance
+    // whose onChange never actually writes the new value back to the
+    // activeId prop wouldn't really change tabs at all (same contract as
+    // any other controlled React component), so it can't exercise "does an
+    // interaction change the active tab" the way this test intends to.
     render(
       <TabStrip
         id="traffic-tabs"
-        activeId="tab1"
-        onChange={handleTabChange}
+        defaultActiveId="tab1"
         items={[{ id: 'tab1', label: 'Tab 1' }, { id: 'tab2', label: 'Tab 2' }]}
       />
     );

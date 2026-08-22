@@ -80,29 +80,37 @@ export const TabStrip: React.FC<TabStripProps> & {
   const activeId = isControlled ? controlledActiveId : internalActiveId;
 
   // Broadcasts on mount (previousId undefined the first time) and on every
-  // subsequent change — this is the only thing that keeps a
-  // <TabStrip.Panel> elsewhere in sync, so it has to fire for the initial
-  // value too, not just changes. The change-broadcast lives directly in
-  // handleChange rather than in an effect watching the resolved `activeId`:
-  // in controlled mode, `activeId` is the parent's prop, which only
-  // changes if the parent re-renders in response to `onChange` — a click
-  // alone doesn't guarantee that (or even that the parent updates state
-  // synchronously), so an effect keyed on `activeId` can silently miss the
-  // click entirely. `tab:changed` is a sticky event (see eventBus.ts), so
-  // a <TabStrip.Panel> that subscribes after this fires still gets the
-  // current value replayed to it.
+  // subsequent change to the *resolved* activeId — this is the only thing
+  // that keeps a <TabStrip.Panel> elsewhere in sync, so it has to fire for
+  // the initial value too, not just changes. Keyed on activeId itself
+  // (not fired manually from handleChange) specifically so a *controlled*
+  // instance's activeId changing for any reason — a real click routed
+  // through onChange, or a parent updating its own state programmatically
+  // from somewhere else entirely (a <CommandPalette> "go to tab" command,
+  // a router) — still broadcasts. A version of this that only emitted from
+  // inside handleChange was reported directly: choosing a "go to tab"
+  // command re-highlighted the clicked tab (the prop change alone re-renders
+  // TabsPrimitive.Root correctly) but never switched the panel, since
+  // nothing had called handleChange to fire the broadcast. `tab:changed` is
+  // a sticky event (see eventBus.ts), so a <TabStrip.Panel> that subscribes
+  // after this fires still gets the current value replayed to it.
   const previousIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    aiBus.emit('tab:changed', { id: groupId, activeId, previousId: undefined });
+    aiBus.emit('tab:changed', { id: groupId, activeId, previousId: previousIdRef.current });
     previousIdRef.current = activeId;
-    // Evict this group's sticky entry on unmount. A statically-known,
-    // hand-chosen `id` (the common case) never needs this — the sticky map
-    // stays bounded by the small, fixed set of group ids the app defines.
-    // It matters when `id` is generated per dynamic instance (e.g. one
-    // <TabStrip> per row in a list), where every mount/unmount cycle would
-    // otherwise leave its id's entry behind forever. See eventBus.ts's
-    // clearSticky for why this is the owning component's call to make, not
-    // the bus's.
+  }, [groupId, activeId]);
+
+  // Evict this group's sticky entry on unmount, separately from the effect
+  // above — this one deliberately stays mount/unmount-only (empty deps), so
+  // it doesn't fire on every activeId change too. A statically-known,
+  // hand-chosen `id` (the common case) never needs this — the sticky map
+  // stays bounded by the small, fixed set of group ids the app defines. It
+  // matters when `id` is generated per dynamic instance (e.g. one
+  // <TabStrip> per row in a list), where every mount/unmount cycle would
+  // otherwise leave its id's entry behind forever. See eventBus.ts's
+  // clearSticky for why this is the owning component's call to make, not
+  // the bus's.
+  useEffect(() => {
     return () => {
       aiBus.clearSticky('tab:changed', groupId);
     };
@@ -112,10 +120,6 @@ export const TabStrip: React.FC<TabStripProps> & {
   const handleChange = (nextId: string) => {
     if (!isControlled) setInternalActiveId(nextId);
     onChange?.(nextId);
-    if (nextId !== previousIdRef.current) {
-      aiBus.emit('tab:changed', { id: groupId, activeId: nextId, previousId: previousIdRef.current });
-      previousIdRef.current = nextId;
-    }
   };
 
   return (

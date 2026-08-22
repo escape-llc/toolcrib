@@ -84,6 +84,36 @@ describe('TabStrip Component', () => {
     expect(tablist.scrollBy).toHaveBeenCalledWith({ left: 180, behavior: 'smooth' });
   });
 
+  it('activates the matching panel when a controlled activeId changes externally, not just from a click (regression: CommandPalette "go to tab" only highlighted the tab, never switched the panel)', async () => {
+    const { rerender } = render(
+      <div>
+        <TabStrip id="external-change-demo" items={items} activeId="tab1" onChange={vi.fn()} />
+        <div>
+          <TabStrip.Panel groupId="external-change-demo" value="tab1">Panel One Content</TabStrip.Panel>
+          <TabStrip.Panel groupId="external-change-demo" value="tab2">Panel Two Content</TabStrip.Panel>
+        </div>
+      </div>
+    );
+
+    await waitFor(() => expect(screen.getByText('Panel One Content')).toBeInTheDocument());
+
+    // Simulates a parent changing its own state from somewhere other than
+    // this TabStrip's own onChange -- e.g. a CommandPalette command -- by
+    // re-rendering with a new activeId directly, with no click involved.
+    rerender(
+      <div>
+        <TabStrip id="external-change-demo" items={items} activeId="tab2" onChange={vi.fn()} />
+        <div>
+          <TabStrip.Panel groupId="external-change-demo" value="tab1">Panel One Content</TabStrip.Panel>
+          <TabStrip.Panel groupId="external-change-demo" value="tab2">Panel Two Content</TabStrip.Panel>
+        </div>
+      </div>
+    );
+
+    await waitFor(() => expect(screen.getByText('Panel Two Content')).toBeInTheDocument());
+    expect(screen.queryByText('Panel One Content')).not.toBeInTheDocument();
+  });
+
   it('clears its sticky tab:changed entry on unmount (regression: unbounded sticky map for dynamically-created groups)', () => {
     const { unmount } = render(<TabStrip id="ephemeral-group" items={items} defaultActiveId="tab1" />);
     unmount();
