@@ -57,4 +57,14 @@ describe('Sidebar', () => {
     rerender(<Sidebar items={items} collapsed={true} onCollapsedChange={onCollapsedChange} />);
     expect(screen.queryByText('Home')).not.toBeInTheDocument();
   });
+
+  it('narrows its own root width when collapsed, instead of staying at 100% with only the items re-centering', () => {
+    const { container, rerender } = render(<Sidebar items={items} collapsed={false} />);
+    const root = container.querySelector('nav') as HTMLElement;
+    expect(root.style.width).toBe('100%');
+
+    rerender(<Sidebar items={items} collapsed={true} />);
+    expect(root.style.width).not.toBe('100%');
+    expect(root.style.width).toMatch(/rem$/);
+  });
 });

@@ -128,14 +128,21 @@ export const TabStrip: React.FC<TabStripProps> & {
         background: 'var(--ai-bg-container, #f9fafb)',
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
         border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-        padding: 'var(--ai-padding-xs, 0.25rem)',
+        // Vertical padding only -- horizontal breathing room now lives on
+        // the scrollable <TabsPrimitive.List> below instead, so the scroll
+        // buttons can sit flush against the frame's own left/right edges
+        // (full height, matching the frame's own corner radius) rather
+        // than floating as an inset chip inside a uniform padding box.
+        padding: 'var(--ai-padding-xs, 0.25rem) 0',
         position: 'relative',
         userSelect: 'none',
         maxWidth: '100%',
         ...vars,
       }}
     >
-      {/* Filmstrip Left Scroll Button */}
+      {/* Filmstrip Left Scroll Button -- flush against the frame's left
+          edge and full height, rounded only on the outer (left) corners
+          so it reads as attached to the frame, not a floating pill. */}
       {canScrollLeft && (
         <button
           onClick={() => scrollBy(-180)}
@@ -145,19 +152,18 @@ export const TabStrip: React.FC<TabStripProps> & {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            alignSelf: 'stretch',
             width: '1.75rem',
-            height: '1.75rem',
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
-            background: 'var(--ai-bg-surface, #ffffff)',
-            border: '0.0625rem solid var(--ai-border, #d1d5db)',
+            borderRadius: 'var(--ai-radius-lg, 0.5rem) 0 0 var(--ai-radius-lg, 0.5rem)',
+            background: 'transparent',
+            borderWidth: 0,
+            borderRight: '0.0625rem solid var(--ai-border, #d1d5db)',
             color: 'var(--ai-text-primary, #111827)',
             cursor: 'pointer',
             fontSize: '0.75rem',
-            marginRight: '0.25rem',
-            boxShadow: '0 0.0625rem 0.125rem rgba(0,0,0,0.05)',
             flexShrink: 0,
             zIndex: 2,
-            ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
+            ['--ai-btn-bg' as string]: 'var(--ai-bg-container, #f9fafb)',
           }}
         >
           ◀
@@ -178,6 +184,7 @@ export const TabStrip: React.FC<TabStripProps> & {
           msOverflowStyle: 'none',
           flex: 1,
           outline: 'none',
+          padding: '0 var(--ai-padding-xs, 0.25rem)',
         }}
       >
         {items.map((item, index) => {
@@ -254,7 +261,9 @@ export const TabStrip: React.FC<TabStripProps> & {
         })}
       </TabsPrimitive.List>
 
-      {/* Filmstrip Right Scroll Button */}
+      {/* Filmstrip Right Scroll Button -- mirrors the left one: flush
+          against the frame's right edge, full height, rounded only on
+          the outer (right) corners. */}
       {canScrollRight && (
         <button
           onClick={() => scrollBy(180)}
@@ -264,19 +273,18 @@ export const TabStrip: React.FC<TabStripProps> & {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            alignSelf: 'stretch',
             width: '1.75rem',
-            height: '1.75rem',
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
-            background: 'var(--ai-bg-surface, #ffffff)',
-            border: '0.0625rem solid var(--ai-border, #d1d5db)',
+            borderRadius: '0 var(--ai-radius-lg, 0.5rem) var(--ai-radius-lg, 0.5rem) 0',
+            background: 'transparent',
+            borderWidth: 0,
+            borderLeft: '0.0625rem solid var(--ai-border, #d1d5db)',
             color: 'var(--ai-text-primary, #111827)',
             cursor: 'pointer',
             fontSize: '0.75rem',
-            marginLeft: '0.25rem',
-            boxShadow: '0 0.0625rem 0.125rem rgba(0,0,0,0.05)',
             flexShrink: 0,
             zIndex: 2,
-            ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
+            ['--ai-btn-bg' as string]: 'var(--ai-bg-container, #f9fafb)',
           }}
         >
           ▶

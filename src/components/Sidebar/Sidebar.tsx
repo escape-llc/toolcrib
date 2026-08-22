@@ -35,6 +35,13 @@ export interface SidebarProps {
   overrides?: Partial<SidebarSliceState>;
 }
 
+// Icon + its padding (0.5rem each side, per the collapsed <Link> style
+// below) plus a little breathing room -- the width the rail actually
+// collapses to. Without an explicit width here the root stayed at
+// width: 100% even while collapsed, since only the items inside were
+// re-centering; the rail itself never got physically narrower.
+const COLLAPSED_WIDTH = '3.5rem';
+
 /**
  * @manifest Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode
  * @manifestCategory Containers
@@ -67,7 +74,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <NavigationMenuPrimitive.Root
       orientation="vertical"
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: collapsed ? COLLAPSED_WIDTH : '100%',
+        flexShrink: 0,
+        transition: 'width var(--ai-transition-normal, 0.2s ease)',
+      }}
     >
       <button
         type="button"
