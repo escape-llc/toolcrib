@@ -84,6 +84,10 @@ import {
   type FilmstripItem,
   Gallery,
   type GalleryItem,
+  BarChart,
+  LineChart,
+  PieChart,
+  Sparkline,
 } from '#toolcrib';
 
 const COUNTRY_OPTIONS = [
@@ -874,6 +878,7 @@ export const App: React.FC = () => {
                   { id: 'overlays', label: '🪟 Overlays & Actions' },
                   { id: 'toasts', label: '🔔 Toast Subsystem' },
                   { id: 'datatable', label: '📊 Data Table' },
+                  { id: 'charts', label: '📈 Charts' },
                   { id: 'navigation', label: '🧭 Navigation & Structure' },
                   { id: 'media', label: '🖼️ Media Gallery' },
                   { id: 'status', label: '🎛️ Feedback & Status' },
@@ -1353,6 +1358,148 @@ export const App: React.FC = () => {
                       />
                     </Card.Content>
                   </Card>
+                </TabStrip.Panel>
+
+                {/* Tab: Charts -- a fake "Acme Analytics" dashboard, purely
+                    to exercise BarChart/LineChart/PieChart together the way
+                    a real consumer app would compose them: a filter row, a
+                    stat-tile strip, then charts. Every number below is
+                    invented for the demo, not real data. */}
+                <TabStrip.Panel groupId="main-demo" value="charts">
+                  <VStack gap="lg">
+                    <Toolbar>
+                      <Toolbar.Left>
+                        <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
+                      </Toolbar.Left>
+                      <Toolbar.Right>
+                        <Badge icon="📅">Last 30 days</Badge>
+                        <Button size="sm" variant="outline" icon="⬇️" onClick={() => addToast({ type: 'info', message: 'Report exported!' })}>Export</Button>
+                      </Toolbar.Right>
+                    </Toolbar>
+
+                    <Grid columns={4} gap="md">
+                      {[
+                        { label: 'Revenue', value: '$2.02M', delta: '+12.4%', good: true, trend: [1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02] },
+                        { label: 'Active users', value: '8,420', delta: '+4.6%', good: true, trend: [7200, 7400, 7350, 7800, 8050, 8200, 8420] },
+                        { label: 'Conversion rate', value: '3.8%', delta: '-0.3%', good: false, trend: [4.3, 4.1, 4.2, 3.9, 4.0, 3.85, 3.8] },
+                        { label: 'Churn', value: '1.9%', delta: '-0.5%', good: true, trend: [2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9] },
+                      ].map(stat => (
+                        <Card key={stat.label}>
+                          <Card.Content>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{stat.label}</div>
+                            <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                              <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
+                              <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
+                            </div>
+                          </Card.Content>
+                        </Card>
+                      ))}
+                    </Grid>
+
+                    <Grid columns={2} gap="md">
+                      <Card>
+                        <Card.Header>Revenue vs. Cost by Quarter</Card.Header>
+                        <Card.Content>
+                          <BarChart
+                            title="Quarterly revenue vs. cost"
+                            categories={['Q1', 'Q2', 'Q3', 'Q4']}
+                            series={[
+                              { label: 'Revenue', values: [420, 510, 480, 610] },
+                              { label: 'Cost', values: [310, 340, 360, 390] },
+                            ]}
+                          />
+                        </Card.Content>
+                      </Card>
+
+                      <Card>
+                        <Card.Header>Signups Over Time</Card.Header>
+                        <Card.Content>
+                          <LineChart
+                            title="Weekly signups over time"
+                            categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+                            series={[
+                              { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+                              { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
+                            ]}
+                          />
+                        </Card.Content>
+                      </Card>
+                    </Grid>
+
+                    <Card>
+                      <Card.Header>Signups by Tier (Stacked Area)</Card.Header>
+                      <Card.Content>
+                        <LineChart
+                          title="Weekly signups by tier, stacked"
+                          variant="area"
+                          width={980}
+                          categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+                          series={[
+                            { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+                            { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
+                          ]}
+                        />
+                      </Card.Content>
+                    </Card>
+
+                    <Grid columns={2} gap="md">
+                      <Card>
+                        <Card.Header>Traffic by Source</Card.Header>
+                        <Card.Content>
+                          <PieChart
+                            title="Traffic by source"
+                            innerRadius={0.6}
+                            legendPosition="side"
+                            data={[
+                              { label: 'Organic search', value: 420 },
+                              { label: 'Direct', value: 210 },
+                              { label: 'Referral', value: 140 },
+                              { label: 'Social', value: 95 },
+                              { label: 'Email', value: 60 },
+                            ]}
+                          />
+                        </Card.Content>
+                      </Card>
+
+                      {/* The pie chart's table-view twin, per the toolkit's
+                          dataviz method -- every chart should have a
+                          WCAG-clean equivalent that doesn't depend on color
+                          to read the values. */}
+                      <Card>
+                        <Card.Header>Traffic by Source (table view)</Card.Header>
+                        <Card.Content>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Source</th>
+                                <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Sessions</th>
+                                <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Share</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                { label: 'Organic search', value: 420 },
+                                { label: 'Direct', value: 210 },
+                                { label: 'Referral', value: 140 },
+                                { label: 'Social', value: 95 },
+                                { label: 'Email', value: 60 },
+                              ].map(row => {
+                                const total = 420 + 210 + 140 + 95 + 60;
+                                return (
+                                  <tr key={row.label} style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                    <td style={{ padding: '0.375rem 0', color: 'var(--ai-text-primary)' }}>{row.label}</td>
+                                    <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.value.toLocaleString()}</td>
+                                    <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{((row.value / total) * 100).toFixed(1)}%</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </Card.Content>
+                      </Card>
+                    </Grid>
+                  </VStack>
                 </TabStrip.Panel>
 
                 {/* Tab 6: Navigation & Structure */}

@@ -41,4 +41,27 @@ describe('Color Harmonies Engine', () => {
     expect(vars['--ai-color-primary']).toBeDefined();
     expect(vars['--ai-subtheme-error']).toBeDefined();
   });
+
+  it('emits a fixed 8-slot chart categorical palette, independent of harmony mode', () => {
+    // Monochromatic collapses primary/secondary/accent onto one hue by
+    // definition -- the chart series palette must NOT do the same, or a
+    // consumer picking this harmony mode would silently break every
+    // chart's series-color separation.
+    const monoPalette = generateHarmonyPalette({ ...baseParams, harmonyMode: 'monochromatic' });
+    const vars = paletteToCSSVariables(monoPalette);
+
+    const seriesHexes = Array.from({ length: 8 }, (_, i) => vars[`--ai-chart-series-${i + 1}`]);
+    expect(seriesHexes.every(hex => typeof hex === 'string' && hex.length > 0)).toBe(true);
+    expect(new Set(seriesHexes).size).toBe(8);
+  });
+
+  it('swaps the chart palette for its dark-mode counterpart', () => {
+    const palette = generateHarmonyPalette(baseParams);
+    const lightVars = paletteToCSSVariables(palette, 'normal', 'rounded', 'normal', false);
+    const darkVars = paletteToCSSVariables(palette, 'normal', 'rounded', 'normal', true);
+
+    expect(lightVars['--ai-chart-series-1']).toBe('#2a78d6');
+    expect(darkVars['--ai-chart-series-1']).toBe('#3987e5');
+    expect(lightVars['--ai-chart-series-1']).not.toBe(darkVars['--ai-chart-series-1']);
+  });
 });

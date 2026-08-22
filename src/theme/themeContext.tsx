@@ -54,6 +54,7 @@ import { HoverCardThemeSlice } from '../components/HoverCard/HoverCardSlice';
 import { LabelThemeSlice } from '../components/Form/LabelSlice';
 import { ScrollAreaThemeSlice } from '../components/ScrollArea/ScrollAreaSlice';
 import { ViewerThemeSlice } from '../components/Viewer/ViewerSlice';
+import { ChartThemeSlice } from '../components/Chart/ChartSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { type ToolcribSliceStateMap, type ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
@@ -109,6 +110,7 @@ globalThemeSliceRegistry.register(HoverCardThemeSlice);
 globalThemeSliceRegistry.register(LabelThemeSlice);
 globalThemeSliceRegistry.register(ScrollAreaThemeSlice);
 globalThemeSliceRegistry.register(ViewerThemeSlice);
+globalThemeSliceRegistry.register(ChartThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {
@@ -248,7 +250,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       palette,
       parameters.paddingMode,
       parameters.cornerRadiusMode,
-      parameters.marginMode || 'normal'
+      parameters.marginMode || 'normal',
+      parameters.isDarkMode
     );
     const sliceVars = globalThemeSliceRegistry.computeAllVariables({
       padding: parameters.paddingMode,

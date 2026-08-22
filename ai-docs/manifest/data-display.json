@@ -92,6 +92,47 @@
       "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`"
     },
     {
+      "name": "BarChart",
+      "import": "import { BarChart } from '#toolcrib'",
+      "props": {
+        "categories": {
+          "type": "string[]",
+          "required": true,
+          "description": "X-axis category labels, one per data position."
+        },
+        "series": {
+          "type": "ChartSeries[]",
+          "required": true,
+          "description": "One or more series, each with one value per `categories` entry. A single series renders ungrouped bars and no legend."
+        },
+        "width": {
+          "type": "number",
+          "default": "480",
+          "description": "SVG width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": "280",
+          "description": "SVG height in pixels, including the axis band."
+        },
+        "title": {
+          "type": "string",
+          "default": "'Bar chart'",
+          "description": "Accessible name for the chart, and its visible caption when given."
+        },
+        "legendPosition": {
+          "type": "'bottom' | 'side'",
+          "description": "`'bottom'` (default) wraps the legend below the chart; `'side'` places it beside the chart, stacked vertically."
+        },
+        "overrides": {
+          "type": "Partial<ChartSliceState>",
+          "description": "Per-instance override for the chart's gridline visibility."
+        }
+      },
+      "category": "Data Display",
+      "description": "Grouped vertical bar chart for categorical comparisons"
+    },
+    {
       "name": "Breadcrumb",
       "import": "import { Breadcrumb } from '#toolcrib'",
       "slots": [
@@ -349,6 +390,86 @@
       "description": "Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default"
     },
     {
+      "name": "LineChart",
+      "import": "import { LineChart } from '#toolcrib'",
+      "props": {
+        "categories": {
+          "type": "string[]",
+          "required": true,
+          "description": "X-axis category labels, one per data position."
+        },
+        "series": {
+          "type": "ChartSeries[]",
+          "required": true,
+          "description": "One or more series, each with one value per `categories` entry. A single series renders one line and no legend."
+        },
+        "width": {
+          "type": "number",
+          "default": "480",
+          "description": "SVG width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": "280",
+          "description": "SVG height in pixels, including the axis band."
+        },
+        "title": {
+          "type": "string",
+          "default": "'Line chart'",
+          "description": "Accessible name for the chart, and its visible caption when given."
+        },
+        "variant": {
+          "type": "'line' | 'area'",
+          "description": "`'line'` (default) draws unfilled lines. `'area'` fills a soft wash (~10% opacity) under each line's band-edge; with 2+ series the bands stack (cumulative), matching the toolkit's dataviz method for part-to-whole-over-time."
+        },
+        "legendPosition": {
+          "type": "'bottom' | 'side'",
+          "description": "`'bottom'` (default) wraps the legend below the chart; `'side'` places it beside the chart, stacked vertically."
+        },
+        "overrides": {
+          "type": "Partial<ChartSliceState>",
+          "description": "Per-instance override for the chart's gridline visibility."
+        }
+      },
+      "category": "Data Display",
+      "description": "Multi-series line chart with a shared hover crosshair; `variant=\"area\"` renders a stacked, filled area chart"
+    },
+    {
+      "name": "PieChart",
+      "import": "import { PieChart } from '#toolcrib'",
+      "props": {
+        "data": {
+          "type": "PieChartDatum[]",
+          "required": true,
+          "description": "Slices to render. More than 8 are folded: the largest 7 keep their own slice, the rest merge into \"Other\" — a chart never generates a 9th categorical hue (see `chartColors.ts`)."
+        },
+        "width": {
+          "type": "number",
+          "default": "320",
+          "description": "SVG width and height in pixels — pie charts render square, so only the smaller of the two is used."
+        },
+        "height": {
+          "type": "number",
+          "default": "320"
+        },
+        "innerRadius": {
+          "type": "number",
+          "description": "Fraction of the outer radius left as a hole, for a donut. `0` (default) renders a full pie."
+        },
+        "title": {
+          "type": "string",
+          "default": "'Pie chart'",
+          "description": "Accessible name for the chart."
+        },
+        "legendPosition": {
+          "type": "'bottom' | 'side'",
+          "description": "`'bottom'` (default) wraps the legend below the ring; `'side'` places it beside the ring, stacked vertically — the more common layout for a donut."
+        }
+      },
+      "category": "Data Display",
+      "description": "Part-to-whole pie or donut chart"
+    },
+    {
       "name": "Progress",
       "import": "import { Progress } from '#toolcrib'",
       "props": {
@@ -405,6 +526,34 @@
       },
       "category": "Data Display",
       "description": "Shimmering loading placeholder in text/circle/rect shapes"
+    },
+    {
+      "name": "Sparkline",
+      "import": "import { Sparkline } from '#toolcrib'",
+      "props": {
+        "values": {
+          "type": "number[]",
+          "required": true,
+          "description": "Sequential values forming the trend line, oldest first."
+        },
+        "width": {
+          "type": "number",
+          "default": "80",
+          "description": "SVG width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": "24",
+          "description": "SVG height in pixels."
+        },
+        "title": {
+          "type": "string",
+          "default": "'Trend sparkline'",
+          "description": "Accessible name."
+        }
+      },
+      "category": "Data Display",
+      "description": "Minimal inline trend line for a stat tile"
     },
     {
       "name": "Spinner",
@@ -590,6 +739,28 @@
         "type": "ReactNode",
         "required": true,
         "description": "Slide content — any renderable element (an image, a card, arbitrary markup)."
+      }
+    },
+    "ChartSeries": {
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Series identity — the legend swatch label and tooltip row label."
+      },
+      "values": {
+        "type": "number[]",
+        "required": true,
+        "description": "One value per entry in the chart's `categories` array, same order."
+      }
+    },
+    "PieChartDatum": {
+      "label": {
+        "type": "string",
+        "required": true
+      },
+      "value": {
+        "type": "number",
+        "required": true
       }
     },
     "Column": {

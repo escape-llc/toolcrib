@@ -271,14 +271,61 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
 }
 
 /**
+ * Fixed 8-slot categorical palette for chart series identity — deliberately
+ * NOT derived from `generateHarmonyPalette`'s base/harmonyMode the way
+ * primary/secondary/accent/quaternary are. Those four can legitimately
+ * collapse onto the same hue (e.g. `harmonyMode: 'monochromatic'` is
+ * *defined* as one hue at different S/V), which would silently break a
+ * chart's colorblind-safe series separation the moment a consumer picked
+ * that harmony mode. Charts need slots whose separation holds regardless of
+ * the active theme, so — same precedent as `subThemes` below being fixed
+ * hue anchors rather than harmony-derived — this is a second, independent
+ * fixed anchor set: the validated default palette from the toolkit's own
+ * dataviz color-formula method (8 hues, fixed order, adjacent-pair CVD
+ * ΔE ≥ 8 / normal-vision ΔE ≥ 15 in both modes). Never reorder or
+ * regenerate per-theme; the order itself is the safety mechanism.
+ */
+// Each variable name is written as a fully static string literal (never a
+// loop or template literal) — scripts/lib/extract.js's manifest scanner
+// finds CSS variable names via a raw-text regex over the source, and
+// deliberately excludes anything followed by a trailing `-` to avoid
+// catching a truncated template-literal prefix (`--ai-margin-${key}`, see
+// that file's own comment). A computed key here would be invisible to the
+// manifest for the same reason. Same convention as getMarginVariables in
+// this directory's margin.ts.
+const CHART_SERIES_LIGHT: Record<string, string> = {
+  '--ai-chart-series-1': '#2a78d6', // blue
+  '--ai-chart-series-2': '#eb6834', // orange
+  '--ai-chart-series-3': '#1baf7a', // aqua
+  '--ai-chart-series-4': '#eda100', // yellow
+  '--ai-chart-series-5': '#e87ba4', // magenta
+  '--ai-chart-series-6': '#008300', // green
+  '--ai-chart-series-7': '#4a3aa7', // violet
+  '--ai-chart-series-8': '#e34948', // red
+};
+
+const CHART_SERIES_DARK: Record<string, string> = {
+  '--ai-chart-series-1': '#3987e5', // blue
+  '--ai-chart-series-2': '#d95926', // orange
+  '--ai-chart-series-3': '#199e70', // aqua
+  '--ai-chart-series-4': '#c98500', // yellow
+  '--ai-chart-series-5': '#d55181', // magenta
+  '--ai-chart-series-6': '#008300', // green
+  '--ai-chart-series-7': '#9085e9', // violet
+  '--ai-chart-series-8': '#e66767', // red
+};
+
+/**
  * Converts a generated palette into a map of CSS custom property names and CSS color/size values.
  */
 export function paletteToCSSVariables(
   palette: GeneratedPalette,
   paddingMode: PaddingMode = 'normal',
   cornerRadiusMode: CornerRadiusMode = 'rounded',
-  marginMode: MarginMode = 'normal'
+  marginMode: MarginMode = 'normal',
+  isDarkMode: boolean = false
 ): Record<string, string> {
+  const chartSeriesVars = isDarkMode ? CHART_SERIES_DARK : CHART_SERIES_LIGHT;
   const paddingVars = getPaddingVariables(paddingMode);
   const marginVars = getMarginVariables(marginMode);
   const radiusVars = getRadiusVariables(cornerRadiusMode);
@@ -346,5 +393,7 @@ export function paletteToCSSVariables(
     '--ai-subtheme-info-border': hsvToCSS(palette.subThemes.info.border),
     '--ai-subtheme-info-text': hsvToCSS(palette.subThemes.info.text),
     '--ai-subtheme-info-on-main': hsvToCSS(palette.subThemes.info.onMain),
+
+    ...chartSeriesVars,
   };
 }
