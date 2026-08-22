@@ -64,4 +64,13 @@ describe('BarChart', () => {
       expect(bar).toHaveAttribute('tabindex', '0');
     });
   });
+
+  it('renders an empty state instead of a broken chart when there is no data', () => {
+    const { container, rerender } = render(<BarChart categories={[]} series={[]} />);
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByText('No data to display')).toBeInTheDocument();
+
+    rerender(<BarChart categories={categories} series={[]} />);
+    expect(screen.getByText('No data to display')).toBeInTheDocument();
+  });
 });

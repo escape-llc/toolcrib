@@ -78,6 +78,12 @@ describe('LineChart', () => {
     expect(screen.getByRole('img', { name: /Quarterly revenue/ })).toBeInTheDocument();
   });
 
+  it('renders an empty state instead of a broken chart when there is no data', () => {
+    const { container } = render(<LineChart categories={[]} series={[]} />);
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByText('No data to display')).toBeInTheDocument();
+  });
+
   describe('variant="area"', () => {
     it('renders a fill plus an edge line per series', () => {
       const { container } = render(<LineChart categories={categories} series={twoSeries} variant="area" />);

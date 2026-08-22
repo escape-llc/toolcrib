@@ -548,6 +548,34 @@
       "description": "Determinate progress bar"
     },
     {
+      "name": "ScaleLegend",
+      "import": "import { ScaleLegend } from '#toolcrib'",
+      "props": {
+        "min": {
+          "type": "number",
+          "required": true,
+          "description": "Value at the light end of the ramp."
+        },
+        "max": {
+          "type": "number",
+          "required": true,
+          "description": "Value at the dark end of the ramp."
+        },
+        "formatValue": {
+          "type": "(value: number) => string",
+          "default": "String",
+          "description": "Formats the min/max labels."
+        },
+        "width": {
+          "type": "number",
+          "default": "160",
+          "description": "Gradient bar width in pixels."
+        }
+      },
+      "category": "Data Display",
+      "description": "Gradient legend for a sequential (magnitude) color-encoded chart"
+    },
+    {
       "name": "Skeleton",
       "import": "import { Skeleton } from '#toolcrib'",
       "props": {

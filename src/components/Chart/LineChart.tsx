@@ -10,6 +10,7 @@ import { getSparseVariables } from '../../theme/slice';
 import { ChartThemeSlice, type ChartSliceState } from './ChartSlice';
 import { ChartLegend } from './ChartLegend';
 import { ChartTooltip, type ChartTooltipRow } from './ChartTooltip';
+import { ChartEmptyState } from './ChartEmptyState';
 import { getSeriesColor } from './chartColors';
 import { type ChartSeries } from './ChartTypes';
 
@@ -130,18 +131,23 @@ export const LineChart: React.FC<LineChartProps> = ({
       ? `${categories[hoveredIndex]}: ${series.map(s => `${s.label} ${s.values[hoveredIndex] ?? 0}`).join(', ')}`
       : `${title}. Use arrow keys to explore data points.`;
 
+  if (categories.length === 0 || series.length === 0) {
+    return <ChartEmptyState width={width} height={height} />;
+  }
+
   return (
     <div style={{ position: 'relative', display: isSide ? 'inline-flex' : 'block', alignItems: isSide ? 'center' : undefined, gap: isSide ? '1.25rem' : undefined, ...chartVars }}>
       <svg width={width} height={height} role="graphics-document" aria-roledescription="line chart" aria-label={title}>
         <title>{title}</title>
         <Group left={MARGIN.left} top={MARGIN.top}>
-          <g style={{ opacity: 'var(--ai-chart-grid-opacity, 1)' } as React.CSSProperties}>
+          <g aria-hidden="true" style={{ opacity: 'var(--ai-chart-grid-opacity, 1)' } as React.CSSProperties}>
             {yScale.ticks(5).map((tick, i) => (
               <line key={i} x1={0} x2={innerWidth} y1={yScale(tick)} y2={yScale(tick)} stroke="var(--ai-border)" strokeWidth={1} />
             ))}
           </g>
           {hoveredIndex !== undefined && (
             <line
+              aria-hidden="true"
               x1={xScale(categories[hoveredIndex])}
               x2={xScale(categories[hoveredIndex])}
               y1={0}
@@ -161,7 +167,11 @@ export const LineChart: React.FC<LineChartProps> = ({
             // pre-variant behavior exactly (no regression).
             const topY = (i: number) => (isArea ? yScale(stackedBands[si][i].top) : yScale(s.values[i] ?? 0));
             return (
-              <Group key={s.label}>
+              // Purely visual -- the overlay `<rect role="img">` below is
+              // the sole accessible surface for this chart's data, so the
+              // marks themselves (fill, edge line, hover dot) carry no
+              // independent ARIA semantics of their own.
+              <Group key={s.label} aria-hidden="true">
                 {isArea && (
                   <Area
                     data={indices}

@@ -55,4 +55,10 @@ describe('PieChart', () => {
     fireEvent.blur(firstSlice);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
+
+  it('renders an empty state instead of a broken chart when there is no data', () => {
+    const { container } = render(<PieChart data={[]} />);
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByText('No data to display')).toBeInTheDocument();
+  });
 });

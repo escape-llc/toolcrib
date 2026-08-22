@@ -2239,6 +2239,34 @@
       "description": "Star rating control built on Radix RadioGroup, or a read-only fractional-fill display"
     },
     {
+      "name": "ScaleLegend",
+      "import": "import { ScaleLegend } from '#toolcrib'",
+      "props": {
+        "min": {
+          "type": "number",
+          "required": true,
+          "description": "Value at the light end of the ramp."
+        },
+        "max": {
+          "type": "number",
+          "required": true,
+          "description": "Value at the dark end of the ramp."
+        },
+        "formatValue": {
+          "type": "(value: number) => string",
+          "default": "String",
+          "description": "Formats the min/max labels."
+        },
+        "width": {
+          "type": "number",
+          "default": "160",
+          "description": "Gradient bar width in pixels."
+        }
+      },
+      "category": "Data Display",
+      "description": "Gradient legend for a sequential (magnitude) color-encoded chart"
+    },
+    {
       "name": "ScrollArea",
       "import": "import { ScrollArea } from '#toolcrib'",
       "props": {

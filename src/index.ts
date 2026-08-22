@@ -55,6 +55,7 @@ export * from './components/Chart/ChartTypes';
 export * from './components/Chart/Heatmap';
 export * from './components/Chart/LineChart';
 export * from './components/Chart/PieChart';
+export * from './components/Chart/ScaleLegend';
 export * from './components/Chart/Sparkline';
 export * from './components/Collapsible/Collapsible';
 export * from './components/Collapsible/CollapsibleSlice';

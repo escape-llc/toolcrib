@@ -639,6 +639,8 @@ export const App: React.FC = () => {
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
+  const [dashboardDateRange, setDashboardDateRange] = useState('30d');
+  const [dashboardDimension, setDashboardDimension] = useState('all');
 
   // Data-driven for <CommandPalette> — grouped, each entry either jumps to
   // a tab (closing over setActiveTab, the same controlled hook above) or
@@ -1373,9 +1375,52 @@ export const App: React.FC = () => {
                         <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
                       </Toolbar.Left>
                       <Toolbar.Right>
-                        <Badge icon="📅">Last 30 days</Badge>
                         <Button size="sm" variant="outline" icon="⬇️" onClick={() => addToast({ type: 'info', message: 'Report exported!' })}>Export</Button>
                       </Toolbar.Right>
+                    </Toolbar>
+
+                    {/* Filter row, above everything it scopes -- per the
+                        toolkit's dataviz method, filters are standard UI
+                        composed from existing form controls (not a chart
+                        component), date range first. Every chart/stat above
+                        stays static in this demo (there's no real backing
+                        data to refetch against), but the row demonstrates
+                        the intended composition and placement. */}
+                    <Toolbar>
+                      <Toolbar.Left>
+                        <div style={{ width: '10rem' }}>
+                          <VisuallyHidden>
+                            <Label htmlFor="dashboard-date-range">Date range</Label>
+                          </VisuallyHidden>
+                          <Select
+                            id="dashboard-date-range"
+                            value={dashboardDateRange}
+                            onChange={setDashboardDateRange}
+                            options={[
+                              { label: 'Today', value: 'today' },
+                              { label: 'Last 7 days', value: '7d' },
+                              { label: 'Last 30 days', value: '30d' },
+                              { label: 'Last 90 days', value: '90d' },
+                            ]}
+                          />
+                        </div>
+                        <div style={{ width: '10rem' }}>
+                          <VisuallyHidden>
+                            <Label htmlFor="dashboard-dimension">Channel</Label>
+                          </VisuallyHidden>
+                          <Select
+                            id="dashboard-dimension"
+                            value={dashboardDimension}
+                            onChange={setDashboardDimension}
+                            options={[
+                              { label: 'All channels', value: 'all' },
+                              { label: 'Organic search', value: 'organic' },
+                              { label: 'Paid', value: 'paid' },
+                              { label: 'Referral', value: 'referral' },
+                            ]}
+                          />
+                        </div>
+                      </Toolbar.Left>
                     </Toolbar>
 
                     <Grid columns={4} gap="md">

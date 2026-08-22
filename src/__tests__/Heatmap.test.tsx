@@ -59,4 +59,15 @@ describe('Heatmap', () => {
     fireEvent.blur(cell);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
+
+  it('renders a ScaleLegend covering the data\'s own min/max, formatted the same way as the tooltip', () => {
+    render(<Heatmap columns={columns} rows={rows} values={values} formatValue={v => `${v}h`} />);
+    expect(screen.getByRole('img', { name: 'Scale from 1h to 9h' })).toBeInTheDocument();
+  });
+
+  it('renders an empty state instead of a broken chart when there is no data', () => {
+    const { container } = render(<Heatmap columns={[]} rows={[]} values={[]} />);
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByText('No data to display')).toBeInTheDocument();
+  });
 });

@@ -4,6 +4,7 @@ import { Pie } from '@visx/shape';
 import { useTooltip } from '@visx/tooltip';
 import { ChartLegend } from './ChartLegend';
 import { ChartTooltip } from './ChartTooltip';
+import { ChartEmptyState } from './ChartEmptyState';
 import { getSeriesColor } from './chartColors';
 
 export interface PieChartDatum {
@@ -80,6 +81,10 @@ export const PieChart: React.FC<PieChartProps> = ({
   };
 
   const isSide = legendPosition === 'side';
+
+  if (data.length === 0) {
+    return <ChartEmptyState width={width} height={height} />;
+  }
 
   return (
     <div style={{ position: 'relative', display: isSide ? 'inline-flex' : 'block', alignItems: isSide ? 'center' : undefined, gap: isSide ? '1.25rem' : undefined }}>

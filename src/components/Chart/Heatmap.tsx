@@ -4,6 +4,9 @@ import { scaleBand } from '@visx/scale';
 import { AxisBottom, AxisLeft } from '@visx/axis';
 import { useTooltip } from '@visx/tooltip';
 import { ChartTooltip } from './ChartTooltip';
+import { ChartEmptyState } from './ChartEmptyState';
+import { ScaleLegend } from './ScaleLegend';
+import { sequentialColor } from './sequentialColor';
 
 export interface HeatmapProps {
   /** Column labels, x-axis. */
@@ -71,13 +74,16 @@ export const Heatmap: React.FC<HeatmapProps> = ({
   const cellColor = (value: number): string => {
     const span = maxValue - minValue;
     const normalized = span > 0 ? (value - minValue) / span : 0.5;
-    const pct = 10 + normalized * 90;
-    return `color-mix(in oklab, var(--ai-color-primary) ${pct}%, var(--ai-bg-surface))`;
+    return sequentialColor(normalized);
   };
 
   const handleHover = (row: string, col: string, value: number, cx: number, cy: number) => {
     showTooltip({ tooltipData: { row, col, value }, tooltipLeft: cx, tooltipTop: cy });
   };
+
+  if (rows.length === 0 || columns.length === 0) {
+    return <ChartEmptyState width={width} height={height} />;
+  }
 
   return (
     <div style={{ position: 'relative', width }}>
@@ -137,6 +143,9 @@ export const Heatmap: React.FC<HeatmapProps> = ({
           />
         </Group>
       </svg>
+      <div style={{ marginTop: '0.5rem', paddingLeft: MARGIN.left }}>
+        <ScaleLegend min={minValue} max={maxValue} formatValue={formatValue} />
+      </div>
       {tooltipOpen && tooltipData && tooltipLeft !== undefined && tooltipTop !== undefined && (
         <ChartTooltip
           left={tooltipLeft}

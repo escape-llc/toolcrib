@@ -186,6 +186,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<LineChart>` | — | `categories`, `series`, `width`, `height`, `title`, `variant`, `legendPosition`, `overrides` | Multi-series line chart with a shared hover crosshair; `variant="area"` renders a stacked, filled area chart |
 | `<PieChart>` | — | `data`, `width`, `height`, `innerRadius`, `title`, `legendPosition` | Part-to-whole pie or donut chart |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
+| `<ScaleLegend>` | — | `min`, `max`, `formatValue`, `width` | Gradient legend for a sequential (magnitude) color-encoded chart |
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
 | `<Sparkline>` | — | `values`, `width`, `height`, `title` | Minimal inline trend line for a stat tile |
 | `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
