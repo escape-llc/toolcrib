@@ -6,6 +6,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { resolveColorVariant } from '../../theme/colorVariant';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 
@@ -142,36 +143,14 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
     window.setTimeout(() => finalize(reason), 300);
   };
 
-  const getSubthemeColor = (type: ToastItem['type']): string => {
-    switch (type) {
-      case 'error': return 'var(--ai-subtheme-error, #ef4444)';
-      case 'success': return 'var(--ai-subtheme-success, #10b981)';
-      case 'warning': return 'var(--ai-subtheme-warning, #f59e0b)';
-      case 'info': default: return 'var(--ai-subtheme-info, #3b82f6)';
-    }
-  };
-
-  const getSubthemeBackground = (type: ToastItem['type']): string => {
-    switch (type) {
-      case 'error':
-        return 'linear-gradient(135deg, var(--ai-subtheme-error-bg, rgba(239, 68, 68, 0.12)) 0%, var(--ai-bg-surface, #ffffff) 100%)';
-      case 'success':
-        return 'linear-gradient(135deg, var(--ai-subtheme-success-bg, rgba(16, 185, 129, 0.12)) 0%, var(--ai-bg-surface, #ffffff) 100%)';
-      case 'warning':
-        return 'linear-gradient(135deg, var(--ai-subtheme-warning-bg, rgba(245, 158, 11, 0.12)) 0%, var(--ai-bg-surface, #ffffff) 100%)';
-      case 'info': default:
-        return 'linear-gradient(135deg, var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.12)) 0%, var(--ai-bg-surface, #ffffff) 100%)';
-    }
-  };
-
-  const getSubthemeBorder = (type: ToastItem['type']): string => {
-    switch (type) {
-      case 'error': return 'var(--ai-subtheme-error-border, rgba(239, 68, 68, 0.25))';
-      case 'success': return 'var(--ai-subtheme-success-border, rgba(16, 185, 129, 0.25))';
-      case 'warning': return 'var(--ai-subtheme-warning-border, rgba(245, 158, 11, 0.25))';
-      case 'info': default: return 'var(--ai-subtheme-info-border, rgba(59, 130, 246, 0.25))';
-    }
-  };
+  // Both always non-null: toast.type is always one of the 4 SubthemeName
+  // values, and resolveColorVariant only returns null when neither
+  // `subtheme` nor `variant` is given. Replaces this component's own
+  // previous hand-rolled 4-way switch per color (background/border/accent)
+  // -- the same shared resolver Badge's own subtheme/variant options build
+  // on, so both don't re-derive the same 4-color lookup independently.
+  const softColors = resolveColorVariant({ subtheme: toast.type })!;
+  const outlineColors = resolveColorVariant({ subtheme: toast.type, appearance: 'outline' })!;
 
   return (
     <ToastPrimitive.Root
@@ -216,10 +195,10 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         gridTemplateRows: isCollapsing ? '0fr' : '1fr',
         transition: 'grid-template-rows 0.2s ease',
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
-        background: getSubthemeBackground(toast.type),
+        background: `linear-gradient(135deg, ${softColors.background} 0%, var(--ai-bg-surface, #ffffff) 100%)`,
         color: 'var(--ai-text-primary, #111827)',
-        border: `0.0625rem solid ${getSubthemeBorder(toast.type)}`,
-        borderLeft: `var(--ai-toast-accent-width, 0.3125rem) solid ${getSubthemeColor(toast.type)}`,
+        border: `0.0625rem solid ${softColors.border}`,
+        borderLeft: `var(--ai-toast-accent-width, 0.3125rem) solid ${outlineColors.color}`,
         boxShadow: 'var(--ai-toast-shadow, 0 0.625rem 0.9375rem -0.1875rem rgba(0,0,0,0.12), 0 0.25rem 0.375rem -0.125rem rgba(0,0,0,0.06))',
         minWidth: '17.5rem',
         maxWidth: '26.25rem',
@@ -320,9 +299,9 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
                 style={{
                   padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)',
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  border: `0.0625rem solid ${getSubthemeColor(toast.type)}`,
+                  border: `0.0625rem solid ${outlineColors.color}`,
                   background: 'transparent',
-                  color: getSubthemeColor(toast.type),
+                  color: outlineColors.color,
                   fontSize: '0.75rem',
                   fontWeight: 'var(--ai-font-weight-semibold, 600)',
                   cursor: 'pointer',

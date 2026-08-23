@@ -1,7 +1,8 @@
 import React, { type ReactNode } from 'react';
 import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
-import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { type SubthemeName } from '../../theme/subtheme';
+import { resolveColorVariant, type ColorVariant, type Appearance } from '../../theme/colorVariant';
 import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
 
 /**
@@ -10,8 +11,12 @@ import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
  * Purely presentational — no internal state, no event bus emission.
  */
 export interface BadgeProps extends StyleFreeAttributes<HTMLSpanElement> {
-  /** Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then a neutral grey. */
+  /** Apply a subtheme colour (one of the 4 fixed status colors). Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then a neutral grey. Wins over `variant` if both are set. */
   subtheme?: SubthemeName;
+  /** Identity color from the harmony palette (`primary`/`secondary`) — for a branded/labeled badge that isn't a status indicator. Ignored if `subtheme` is set. */
+  variant?: ColorVariant;
+  /** Visual treatment for whichever color `subtheme`/`variant` resolves to. `'outline'` is the hollow style. @default 'soft' */
+  appearance?: Appearance;
   /** Badge size, controlling padding and font-size. @default 'md' */
   size?: 'sm' | 'md';
   /** Icon rendered before the label text. */
@@ -24,12 +29,12 @@ const SIZE_STYLES: Record<'sm' | 'md', React.CSSProperties> = {
 };
 
 /**
- * @manifest Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`
+ * @manifest Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`, plus identity-color `variant`s and `soft`/`solid`/`outline` appearances
  * @manifestCategory Data Display
  */
-export const Badge: React.FC<BadgeProps> = ({ subtheme: instanceSubtheme, size = 'md', icon, children, ...props }) => {
+export const Badge: React.FC<BadgeProps> = ({ subtheme: instanceSubtheme, variant, appearance = 'soft', size = 'md', icon, children, ...props }) => {
   const subtheme = useResolvedSubtheme(instanceSubtheme);
-  const colors = subtheme ? resolveSubtheme(subtheme) : undefined;
+  const colors = resolveColorVariant({ variant, appearance, subtheme });
 
   return (
     <span

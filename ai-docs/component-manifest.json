@@ -903,7 +903,16 @@
       "props": {
         "subtheme": {
           "type": "'error' | 'success' | 'warning' | 'info'",
-          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then a neutral grey."
+          "description": "Apply a subtheme colour (one of the 4 fixed status colors). Falls back to the nearest `<StyleDomainProvider>`'s if omitted, then a neutral grey. Wins over `variant` if both are set."
+        },
+        "variant": {
+          "type": "'primary' | 'secondary'",
+          "description": "Identity color from the harmony palette (`primary`/`secondary`) — for a branded/labeled badge that isn't a status indicator. Ignored if `subtheme` is set."
+        },
+        "appearance": {
+          "type": "'soft' | 'solid' | 'outline'",
+          "default": "'soft'",
+          "description": "Visual treatment for whichever color `subtheme`/`variant` resolves to. `'outline'` is the hollow style."
         },
         "size": {
           "type": "'sm' | 'md'",
@@ -916,7 +925,7 @@
         }
       },
       "category": "Data Display",
-      "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`"
+      "description": "Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`, plus identity-color `variant`s and `soft`/`solid`/`outline` appearances"
     },
     {
       "name": "BarChart",

@@ -1758,6 +1758,18 @@ export const App: React.FC = () => {
                               <Badge size="sm" icon="✓">Small + Icon</Badge>
                               <Badge size="md" icon="✓">Medium + Icon</Badge>
                             </HStack>
+                            {/* variant (identity color, for a branded/labeled
+                                badge that isn't a status) + appearance
+                                (soft/solid/outline "hollow" style) — both
+                                orthogonal to subtheme's own 4 status colors. */}
+                            <HStack gap="sm" wrap align="center">
+                              <Badge variant="primary">Primary</Badge>
+                              <Badge variant="secondary">Secondary</Badge>
+                              <Badge subtheme="success" appearance="solid">Solid</Badge>
+                              <Badge subtheme="warning" appearance="outline">Outline</Badge>
+                              <Badge variant="primary" appearance="solid">Solid Primary</Badge>
+                              <Badge variant="secondary" appearance="outline">Outline Secondary</Badge>
+                            </HStack>
                           </VStack>
                         </Card.Content>
                       </Card>

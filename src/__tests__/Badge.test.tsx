@@ -36,4 +36,31 @@ describe('Badge', () => {
     expect(icon.tagName).toBe('SPAN');
     expect(icon.style.lineHeight).toBe('1');
   });
+
+  it.each(['primary', 'secondary'] as const)('resolves the %s identity-color variant via the shared resolveColorVariant(), for a branded (non-status) badge', variant => {
+    render(<Badge variant={variant}>{variant}</Badge>);
+    const badge = screen.getByText(variant);
+    expect(badge.style.color).toBe(`var(--ai-color-${variant})`);
+  });
+
+  it('subtheme wins over variant when both are set', () => {
+    render(<Badge subtheme="success" variant="secondary">Both</Badge>);
+    const badge = screen.getByText('Both');
+    expect(badge.style.background).toBe('var(--ai-subtheme-success-bg)');
+  });
+
+  it('appearance="solid" fills the badge instead of the default soft tint', () => {
+    render(<Badge subtheme="error" appearance="solid">Failed</Badge>);
+    const badge = screen.getByText('Failed');
+    expect(badge.style.background).toBe('var(--ai-subtheme-error)');
+    expect(badge.style.color).toBe('var(--ai-subtheme-error-on-main)');
+  });
+
+  it('appearance="outline" renders a hollow badge — transparent background, colored border+text', () => {
+    render(<Badge subtheme="info" appearance="outline">Draft</Badge>);
+    const badge = screen.getByText('Draft');
+    expect(badge.style.background).toBe('transparent');
+    expect(badge.style.border).toContain('var(--ai-subtheme-info)');
+    expect(badge.style.color).toBe('var(--ai-subtheme-info)');
+  });
 });

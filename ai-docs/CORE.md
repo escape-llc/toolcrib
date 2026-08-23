@@ -174,7 +174,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 |:---|:---|:---|:---|
 | `<Accordion>` | — | `id`, `items`, `type`, `defaultValue`, `overrides` | Data-driven collapsible panel group with animations |
 | `<Avatar>` | — | `src`, `alt`, `fallback`, `size`, `fallbackDelayMs`, `overrides` | User/entity avatar image with automatic initials fallback |
-| `<Badge>` | — | `subtheme`, `size`, `icon` | Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>` |
+| `<Badge>` | — | `subtheme`, `variant`, `appearance`, `size`, `icon` | Small status/label pill with the same four semantic subthemes as `<Toast>`/`<DataTable rowSubtheme>`, plus identity-color `variant`s and `soft`/`solid`/`outline` appearances |
 | `<BarChart>` | — | `categories`, `series`, `width`, `height`, `title`, `legendPosition`, `overrides` | Grouped vertical bar chart for categorical comparisons |
 | `<Breadcrumb>` | `.Item`, `.Separator` | `separator`, `overrides` | Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow |
 | `<Carousel>` | — | `id`, `slides`, `loop`, `autoplay`, `onSlideChange`, `overrides` | Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators |
