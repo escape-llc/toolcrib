@@ -5,6 +5,7 @@ export * from './theme/animationKeyframes';
 export * from './theme/connectedPopoverStyles';
 export * from './theme/harmonies';
 export * from './theme/hsv';
+export * from './theme/iconWrapperStyle';
 export * from './theme/margin';
 export * from './theme/padding';
 export * from './theme/presetThemes';

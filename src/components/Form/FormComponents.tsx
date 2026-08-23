@@ -8,6 +8,7 @@ import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOver
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
@@ -272,13 +273,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       }}
     >
       {startIcon && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1em', lineHeight: 1 }}>
+        <span style={{ ...ICON_WRAPPER_STYLE, justifyContent: 'center', fontSize: '1.1em' }}>
           {startIcon}
         </span>
       )}
       {children}
       {trailingIcon && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1em', lineHeight: 1 }}>
+        <span style={{ ...ICON_WRAPPER_STYLE, justifyContent: 'center', fontSize: '1.1em' }}>
           {trailingIcon}
         </span>
       )}

@@ -1671,6 +1671,25 @@ export const App: React.FC = () => {
                           onPageChange={page => setPaginationPage(page)}
                         />
                         <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
+                        {/* size="md"/"lg" -- the row above only ever demonstrated
+                            the default size="sm". All three stay in sync since
+                            they're bound to the same controlled page state. */}
+                        <VStack gap="sm">
+                          <Pagination
+                            totalItems={137}
+                            pageSize={10}
+                            size="md"
+                            page={paginationPage}
+                            onPageChange={page => setPaginationPage(page)}
+                          />
+                          <Pagination
+                            totalItems={137}
+                            pageSize={10}
+                            size="lg"
+                            page={paginationPage}
+                            onPageChange={page => setPaginationPage(page)}
+                          />
+                        </VStack>
                       </Card.Content>
                     </Card>
                   </VStack>
@@ -1722,13 +1741,24 @@ export const App: React.FC = () => {
                       <Card>
                         <Card.Header>Status Badges (`&lt;Badge&gt;`)</Card.Header>
                         <Card.Content>
-                          <HStack gap="sm" wrap>
-                            <Badge subtheme="info">Info</Badge>
-                            <Badge subtheme="success">Active</Badge>
-                            <Badge subtheme="warning">Pending</Badge>
-                            <Badge subtheme="error">Failed</Badge>
-                            <Badge subtheme="success" icon="✓" size="sm">Verified</Badge>
-                          </HStack>
+                          <VStack gap="sm">
+                            <HStack gap="sm" wrap>
+                              <Badge subtheme="info">Info</Badge>
+                              <Badge subtheme="success">Active</Badge>
+                              <Badge subtheme="warning">Pending</Badge>
+                              <Badge subtheme="error">Failed</Badge>
+                              <Badge subtheme="success" icon="✓" size="sm">Verified</Badge>
+                            </HStack>
+                            {/* size="sm" vs. size="md", isolated from icon presence --
+                                the row above only ever paired size="sm" with an icon,
+                                so it couldn't demonstrate the two independently. */}
+                            <HStack gap="sm" wrap align="center">
+                              <Badge size="sm">Small</Badge>
+                              <Badge size="md">Medium</Badge>
+                              <Badge size="sm" icon="✓">Small + Icon</Badge>
+                              <Badge size="md" icon="✓">Medium + Icon</Badge>
+                            </HStack>
+                          </VStack>
                         </Card.Content>
                       </Card>
 
@@ -1911,16 +1941,25 @@ export const App: React.FC = () => {
                     <Card>
                       <Card.Header>Button Subsystem (Variants, Sub-Themes & Glyphs)</Card.Header>
                       <Card.Content>
-                        <HStack gap="sm" wrap>
-                          <Button variant="primary" icon="🚀" trailingIcon="➔" onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
-                          <Button variant="secondary" icon="⚙️" onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
-                          <Button variant="outline" icon="⚡" onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
-                          <Button variant="danger" icon="🗑️" onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
-                          <Button variant="ghost" icon="⭐" onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
-                          <Button subtheme="success" icon="✅" onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
-                          <Button subtheme="warning" icon="⚠️" onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
-                          <Button subtheme="info" icon="ℹ️" onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
-                        </HStack>
+                        <VStack gap="sm">
+                          <HStack gap="sm" wrap>
+                            <Button variant="primary" icon="🚀" trailingIcon="➔" onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
+                            <Button variant="secondary" icon="⚙️" onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
+                            <Button variant="outline" icon="⚡" onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
+                            <Button variant="danger" icon="🗑️" onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
+                            <Button variant="ghost" icon="⭐" onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
+                            <Button subtheme="success" icon="✅" onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
+                            <Button subtheme="warning" icon="⚠️" onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
+                            <Button subtheme="info" icon="ℹ️" onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
+                          </HStack>
+                          {/* size="sm"/"md"/"lg", isolated from variant/subtheme --
+                              nothing above demonstrated the size prop at all. */}
+                          <HStack gap="sm" wrap align="center">
+                            <Button size="sm" variant="outline">Small</Button>
+                            <Button size="md" variant="outline">Medium</Button>
+                            <Button size="lg" variant="outline">Large</Button>
+                          </HStack>
+                        </VStack>
                       </Card.Content>
                     </Card>
 
@@ -2114,13 +2153,19 @@ export const App: React.FC = () => {
                                   <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.max(0, v - 10))}>-10%</Button>
                                   <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.min(100, v + 10))}>+10%</Button>
                                 </UIGroup>
+                                {/* size="sm"/"md"/"lg" (bar thickness), isolated from the
+                                    interactive default-size bar above. */}
+                                <Progress value={progressValue} size="sm" />
+                                <Progress value={progressValue} size="md" />
+                                <Progress value={progressValue} size="lg" />
                               </VStack>
                             </div>
 
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>User Avatars with Fallback (`&lt;Avatar&gt;`)</div>
-                              <HStack gap="sm">
-                                <Avatar fallback="JD" alt="Jane Doe" />
+                              <HStack gap="sm" align="center">
+                                <Avatar fallback="XS" alt="Small avatar example" size="sm" />
+                                <Avatar fallback="JD" alt="Jane Doe" size="md" />
                                 <Avatar fallback="AS" alt="Alex Smith" size="lg" />
                                 <Separator orientation="vertical" decorative />
                                 <Avatar src="https://broken-image-url.example/none.png" fallback="404" alt="Broken image" />
