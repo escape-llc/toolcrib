@@ -200,7 +200,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
-| `<Button>` | — | — | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
+| `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Month grid for selecting a single date, built on React Aria Components |
 | `<Combobox>` | — | `id`, `name`, `placeholder`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
 | `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |

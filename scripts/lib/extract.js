@@ -412,6 +412,30 @@ function baseTypeName(typeNode) {
   return typeNode.getText();
 }
 
+/**
+ * `export const X = React.forwardRef<Elem, XProps>((props, ref) => ...)` (or
+ * a bare `forwardRef<...>` call) has no type annotation on the variable
+ * itself — its type comes from the call's own type arguments instead, so
+ * `propsInterfaceNameFromType(decl.type)` alone always misses it (`decl.type`
+ * is `undefined`). Found for real: `Button` (`FormComponents.tsx`) uses this
+ * exact shape and had a completely propless manifest entry as a result —
+ * `@manifest`/`@manifestCategory` still registered the component, but every
+ * prop (`variant`, `size`, `subtheme`, ...) was silently absent.
+ */
+function propsNameFromForwardRefInitializer(initializer) {
+  if (!initializer || !ts.isCallExpression(initializer)) return null;
+  const callee = initializer.expression;
+  const calleeName = ts.isPropertyAccessExpression(callee)
+    ? callee.name.text
+    : ts.isIdentifier(callee)
+      ? callee.text
+      : null;
+  if (calleeName !== 'forwardRef') return null;
+  const typeArgs = initializer.typeArguments;
+  if (!typeArgs || typeArgs.length < 2) return null;
+  return baseTypeName(typeArgs[1]);
+}
+
 /** `FormProps<T>` -> `FormProps` (strip generic type arguments for the interface lookup). */
 function unwrapGeneric(typeNode) {
   if (ts.isTypeReferenceNode(typeNode)) return ts.factory.createTypeReferenceNode(typeNode.typeName, undefined);
@@ -437,7 +461,7 @@ export function findComponentDeclarations(sourceFile) {
         if (!ts.isIdentifier(decl.name)) continue;
         found.push({
           name: decl.name.text,
-          propsName: propsInterfaceNameFromType(decl.type),
+          propsName: propsInterfaceNameFromType(decl.type) ?? propsNameFromForwardRefInitializer(decl.initializer),
           description: manifestDesc,
           constraints: jsDocTag(doc, 'manifestConstraints'),
           children: jsDocTag(doc, 'manifestChildren'),
@@ -620,8 +644,8 @@ function findPropsNameForIdentifier(sourceFile, identifierName) {
   ts.forEachChild(sourceFile, (node) => {
     if (propsName || !ts.isVariableStatement(node)) return;
     for (const decl of node.declarationList.declarations) {
-      if (ts.isIdentifier(decl.name) && decl.name.text === identifierName && decl.type) {
-        propsName = propsInterfaceNameFromType(decl.type);
+      if (ts.isIdentifier(decl.name) && decl.name.text === identifierName) {
+        propsName = propsInterfaceNameFromType(decl.type) ?? propsNameFromForwardRefInitializer(decl.initializer);
       }
     }
   });

@@ -8,6 +8,50 @@
     {
       "name": "Button",
       "import": "import { Button } from '#toolcrib'",
+      "props": {
+        "variant": {
+          "type": "'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'",
+          "default": "'primary'",
+          "description": "Visual style variant.\n- `'primary'` — Filled with primary colour.\n- `'secondary'` — Filled with secondary colour.\n- `'outline'` — Transparent with border.\n- `'danger'` — Filled with error colour.\n- `'ghost'` — No background or border."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Button size controlling padding and font-size."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "leadingIcon": {
+          "type": "ReactNode",
+          "description": "Icon rendered before the label text. Alias for `icon`."
+        },
+        "trailingIcon": {
+          "type": "ReactNode",
+          "description": "Icon rendered after the label text."
+        },
+        "icon": {
+          "type": "ReactNode",
+          "description": "Shorthand for `leadingIcon`."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a trigger button whose\ncorner needs to flatten against an open `<Popup>`/`<DropdownMenu>`.\nApplied after the button's own computed radius, so it wins."
+        },
+        "overrides": {
+          "type": "Partial<ButtonSliceState>",
+          "description": "Per-instance overrides for label weight and icon spacing. Separate from\n`subtheme` above (Button already resolves that itself via\n`useResolvedSubtheme`, unrelated to this slice's own two fields)."
+        }
+      },
       "category": "Form Controls",
       "description": "Styled button with five variants, three sizes, subtheme colouring, and icon slots"
     },
