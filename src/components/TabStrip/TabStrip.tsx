@@ -7,6 +7,8 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
 import { TabThemeSlice, type TabSliceState } from './TabSlice';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 /** Data shape for each tab in a `<TabStrip>`. */
 export interface TabItem {
@@ -354,9 +356,37 @@ export interface TabPanelProps extends StyleFreeAttributes<HTMLDivElement> {
  * ordering guarantee, and a panel could permanently miss the initial
  * broadcast depending on commit order.
  */
+const TAB_PANEL_STYLE_ID = 'toolcrib-tabstrip-panel-styles';
+
+// Panel's own direct children default to flex-shrink:1 (the CSS initial
+// value) like any flex item, which is wrong here specifically: when a
+// panel's combined content is taller than whatever space its own ancestor
+// gives it, the browser doesn't let that content overflow (and scroll,
+// via the scroll region further up the tree that already exists for
+// exactly this) -- it *shrinks* the children to fit instead, silently
+// crushing whichever one has the least intrinsic size resistance down to
+// a couple of pixels (found for real: a <Card> sitting after a much
+// taller sibling <Grid> rendered at 2px tall, its own content still
+// there in the DOM, just squeezed out of visibility). A scoped stylesheet
+// rule (this component's own children only, not a global reset) is the
+// fix, not an inline style -- Panel can't set `style` on arbitrary
+// `children`, only a CSS selector reaches them generically regardless of
+// what a consumer puts inside.
+function injectTabPanelStyles(targetDocument?: Document): void {
+  injectGlobalStyle(
+    TAB_PANEL_STYLE_ID,
+    `.ai-tabstrip-panel > * { flex-shrink: 0; }`,
+    targetDocument
+  );
+}
+
 export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ...props }) => {
   warnIfLegacyStyleProps(props, 'TabStrip.Panel');
   const [isActive, setIsActive] = useState(false);
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectTabPanelStyles(targetDocument);
+  }, [targetDocument]);
 
   useAIEvent('tab:changed', (event) => {
     if (event.id === groupId) setIsActive(event.activeId === value);
@@ -368,6 +398,7 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ..
     <div
       key={value}
       {...props}
+      className="ai-tabstrip-panel"
       style={{
         width: '100%',
         // Participates in a surrounding flex domain (e.g. <Content.Grow>)
