@@ -43,7 +43,7 @@ describe('ThemeEditor', () => {
     // item triggers (not necessarily their panel content) are already in
     // the DOM without needing an extra click.
     expect(screen.getByText(/Appearance & Base Color/)).toBeInTheDocument();
-    expect(screen.getByText(/Typography \(Font Family & Size\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Typography \(Font Family, Size & Line Height\)/)).toBeInTheDocument();
     expect(screen.getByText(/Density, Spacing & Elevation/)).toBeInTheDocument();
     expect(screen.getByText(/Motion, Transitions & Physics/)).toBeInTheDocument();
     expect(screen.getByText(/Color Harmony & Hue Spread/)).toBeInTheDocument();
@@ -343,7 +343,7 @@ describe('ThemeEditor', () => {
 
     it('Typography section: font family select and master font size slider (commitOnRelease) both update', () => {
       renderEditor();
-      fireEvent.click(screen.getByText(/Typography \(Font Family & Size\)/));
+      fireEvent.click(screen.getByText(/Typography \(Font Family, Size & Line Height\)/));
 
       const combo = screen.getByRole('combobox');
       fireEvent.click(combo);
@@ -357,7 +357,20 @@ describe('ThemeEditor', () => {
       // commitOnRelease Sliders fire onValueCommit (not onValueChange) — a
       // discrete keyboard step still counts as a full press+release, unlike
       // a continuous pointer drag, so this exercises the same commit path.
-      const slider = screen.getByRole('slider');
+      // Two sliders live in this section now (font size + line height) --
+      // disambiguate via the accessible name each Slider sets via its own
+      // ariaLabel prop.
+      const slider = screen.getByRole('slider', { name: 'Master Font Size' });
+      const before = slider.getAttribute('aria-valuenow');
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
+    });
+
+    it('Typography section: line height slider (commitOnRelease) updates independently of master font size', () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Typography \(Font Family, Size & Line Height\)/));
+
+      const slider = screen.getByRole('slider', { name: 'Line Height' });
       const before = slider.getAttribute('aria-valuenow');
       fireEvent.keyDown(slider, { key: 'ArrowRight' });
       expect(slider.getAttribute('aria-valuenow')).not.toBe(before);

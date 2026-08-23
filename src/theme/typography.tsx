@@ -15,16 +15,27 @@ export interface TypographySliceState {
   fontFamily: FontFamilyPreset;
   /** Base font size in px — controls all rem-based scaling throughout the toolkit. */
   masterFontSize: number;
+  /**
+   * Unitless line-height multiplier for body/prose text (e.g. `Card.Content`).
+   * Controls reading density — NOT a general-purpose line-height. Icon
+   * glyphs wrapped via `ICON_WRAPPER_STYLE` (`src/theme/iconWrapperStyle.ts`)
+   * deliberately stay hardcoded at `1` regardless of this value — that's a
+   * structural fix (clipping a fallback font's taller line box) not a
+   * density preference, and must not vary with it.
+   */
+  baseLineHeight: number;
 }
 
 export interface TypographyCSSVariables extends Record<string, string> {
   '--ai-font-family': string;
   '--ai-master-font-size': string;
+  '--ai-line-height': string;
 }
 
 export const defaultTypographyState: TypographySliceState = {
   fontFamily: 'system',
   masterFontSize: 16,
+  baseLineHeight: 1.5,
 };
 
 // 'system' matches the stack the demo previously hardcoded directly in its
@@ -40,12 +51,13 @@ export function getTypographyVariables(state: TypographySliceState = defaultTypo
   return {
     '--ai-font-family': fontFamilyMap[state.fontFamily] || fontFamilyMap.system,
     '--ai-master-font-size': `${state.masterFontSize}px`,
+    '--ai-line-height': `${state.baseLineHeight}`,
   };
 }
 
 export const TypographyThemeSlice: ThemeSlice<TypographySliceState, TypographyCSSVariables> = {
   id: 'typography',
-  name: '🔤 Typography (Font Family & Size)',
+  name: '🔤 Typography (Font Family, Size & Line Height)',
   category: 'Layout Primitives',
   defaultState: defaultTypographyState,
   getCSSVariables: getTypographyVariables,
@@ -68,10 +80,26 @@ export const TypographyThemeSlice: ThemeSlice<TypographySliceState, TypographyCS
           <span>{state.masterFontSize}px</span>
         </div>
         <Slider
+          ariaLabel="Master Font Size"
           min={12}
           max={24}
           value={state.masterFontSize}
           onChange={val => onChange({ ...state, masterFontSize: val })}
+          commitOnRelease
+        />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+          <span>Line Height (Text Density)</span>
+          <span>{state.baseLineHeight.toFixed(1)}</span>
+        </div>
+        <Slider
+          ariaLabel="Line Height"
+          min={1.2}
+          max={2}
+          step={0.1}
+          value={state.baseLineHeight}
+          onChange={val => onChange({ ...state, baseLineHeight: val })}
           commitOnRelease
         />
       </div>
@@ -80,5 +108,6 @@ export const TypographyThemeSlice: ThemeSlice<TypographySliceState, TypographyCS
   fieldVars: {
     fontFamily: ['--ai-font-family'],
     masterFontSize: ['--ai-master-font-size'],
+    baseLineHeight: ['--ai-line-height'],
   },
 };

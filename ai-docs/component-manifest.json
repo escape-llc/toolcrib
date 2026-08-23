@@ -106,6 +106,7 @@
       "--ai-layout-border-bottom-right-radius",
       "--ai-layout-border-top-left-radius",
       "--ai-layout-border-top-right-radius",
+      "--ai-line-height",
       "--ai-margin-gap",
       "--ai-margin-lg",
       "--ai-margin-md",
@@ -341,7 +342,7 @@
       },
       {
         "id": "typography",
-        "name": "🔤 Typography (Font Family & Size)"
+        "name": "🔤 Typography (Font Family, Size & Line Height)"
       },
       {
         "id": "tree",

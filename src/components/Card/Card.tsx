@@ -201,7 +201,7 @@ Card.Content = ({ children, paddingMode, layout = 'default', ...props }) => {
         padding: paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-card-padding, 1.25rem 1.5rem)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: '0.875rem',
-        lineHeight: '1.6',
+        lineHeight: 'var(--ai-line-height, 1.6)',
         flex: 1,
         ...(isAuto ? {
           display: 'flex',

@@ -486,7 +486,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       defaultValue="appearance"
       items={[
         { value: 'appearance', title: '🎨 Appearance & Base Color (HSV)', content: appearanceContent },
-        { value: 'typography', title: '🔤 Typography (Font Family & Size)', content: typographyContent },
+        { value: 'typography', title: '🔤 Typography (Font Family, Size & Line Height)', content: typographyContent },
         { value: 'density', title: '📐 Density, Spacing & Elevation', content: densityContent },
         { value: 'animation', title: '✨ Motion, Transitions & Physics', content: animationContent },
         { value: 'harmony', title: '🎼 Color Harmony & Hue Spread', content: harmonyContent },
