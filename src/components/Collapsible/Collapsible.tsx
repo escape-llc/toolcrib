@@ -115,15 +115,30 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 
       <CollapsiblePrimitive.Content
         style={{
-          padding: 'var(--ai-collapsible-content-padding, 1rem 1.125rem)',
-          fontSize: '0.875rem',
-          color: 'var(--ai-text-primary, #111827)',
-          // See Accordion.tsx's identical reasoning — isolates this
-          // panel's content without touching Radix's own height animation.
+          // No padding/font styling directly here, deliberately — this
+          // component has no CSS height animation today (no injected
+          // keyframes, no className), but IF one is ever added the same
+          // way Accordion's was, Radix's own [data-state]-driven height
+          // animation targets THIS element's `height`, and CSS floors a
+          // box's rendered height at its own padding+border sum regardless
+          // of box-sizing. Accordion had exactly this padding-on-the-
+          // animated-element structure, and it caused a real, measured
+          // discrete snap at the end of every collapse (see Accordion.tsx's
+          // own comment for the full mechanism). Keeping padding on the
+          // inner wrapper below instead means adding an animation here
+          // later won't silently reintroduce that bug.
           contain: 'content',
         }}
       >
-        {children}
+        <div
+          style={{
+            padding: 'var(--ai-collapsible-content-padding, 1rem 1.125rem)',
+            fontSize: '0.875rem',
+            color: 'var(--ai-text-primary, #111827)',
+          }}
+        >
+          {children}
+        </div>
       </CollapsiblePrimitive.Content>
     </CollapsiblePrimitive.Root>
   );
