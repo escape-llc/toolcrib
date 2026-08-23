@@ -101,9 +101,13 @@ const MAIN_SPLITTER_ID = 'main-demo-splitter';
 const MAIN_SPLITTER_INITIAL_SPLIT = 70;
 const MAIN_SPLITTER_MIN_SIZE = 15;
 
-// For the standalone <Listbox> demo below — label carries " — " so the
-// render slot can split it into a two-line name/role display, while label
-// itself stays the plain string the filter matches against.
+// A small, separate Acme Analytics roster for the standalone <Listbox>
+// demo below — deliberately not sliced from the 250-row `dummyUsers`
+// dataset, since it needs its own department labels ("Design",
+// "Engineering", "Product") for the render slot to split on, not
+// dummyUsers' Admin/Editor/Viewer access-role shape. label carries " — "
+// so the render slot can split it into a two-line name/role display,
+// while label itself stays the plain string the filter matches against.
 const TEAM_MEMBERS: ListboxOptionData[] = [
   { label: 'Ava Chen — Design', value: 'ava' },
   { label: 'Marcus Lee — Engineering', value: 'marcus' },
@@ -164,10 +168,14 @@ interface DemoUser {
   score: number;
 }
 
+// Backs the Data Table tab and the Combobox async search demo -- one
+// fictional company, "Acme Analytics" (the same name the Charts tab's
+// own dashboard already uses), rather than two disconnected sets of
+// anonymous placeholder data.
 const dummyUsers: DemoUser[] = Array.from({ length: 250 }, (_, i) => ({
   id: i + 1,
   name: `User ${i + 1}`,
-  email: `user${i + 1}@example.com`,
+  email: `user${i + 1}@acmeanalytics.io`,
   role: i % 3 === 0 ? 'Admin' : i % 2 === 0 ? 'Editor' : 'Viewer',
   status: i % 4 === 0 ? 'Pending' : i % 5 === 0 ? 'Inactive' : 'Active',
   score: Math.floor(Math.random() * 100),
@@ -1401,7 +1409,7 @@ export const App: React.FC = () => {
                     <Card.Header>
                       <Toolbar>
                         <Toolbar.Left>
-                          <span>Virtualized Data Table (250 Rows, Adaptive Rem Height)</span>
+                          <span>Acme Analytics — Team Directory (250 Rows, Adaptive Rem Height)</span>
                         </Toolbar.Left>
                         <Toolbar.Right>
                           <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
@@ -2352,7 +2360,7 @@ export const App: React.FC = () => {
                           <VStack gap="sm">
                             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Async Server Search (`onSearch`)</div>
                             <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over the same 250-user dataset the Data Table tab uses. No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
+                              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the Data Table tab uses). No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
                             </p>
                             <Combobox
                               placeholder="Search users..."
