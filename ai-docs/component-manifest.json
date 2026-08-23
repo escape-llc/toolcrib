@@ -16,6 +16,7 @@
       "--ai-accordion-animation",
       "--ai-accordion-border",
       "--ai-accordion-border-radius",
+      "--ai-accordion-close-animation",
       "--ai-accordion-header-padding",
       "--ai-accordion-item-gap",
       "--ai-active-transform",

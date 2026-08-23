@@ -4,7 +4,8 @@ const STYLE_ID = 'toolcrib-shared-keyframes';
 
 /**
  * The shared entrance/exit `@keyframes` referenced by `animation:` on
- * `Modal`/`AlertDialog`/`Popup`/`Drawer`/`TabStrip.Panel` — these used to
+ * `Modal`/`AlertDialog`/`Popup`/`Drawer`/`TabStrip.Panel`/`Accordion`
+ * (its `'scale-fade'` panel-animation preset) — these used to
  * live only in the demo app's own `index.css`, which worked for the demo
  * but meant any other consumer got components with those `animation:`
  * properties pointing at keyframes that didn't exist anywhere, so no
@@ -60,6 +61,10 @@ export function injectSharedAnimationKeyframes(targetDocument?: Document): void 
     @keyframes ai-scale-in {
       from { opacity: 0; transform: scale(0.92); }
       to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes ai-scale-out {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.92); }
     }
     @keyframes ai-slide-in-right {
       from { transform: translateX(100%); }

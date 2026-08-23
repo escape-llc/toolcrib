@@ -26,6 +26,7 @@ export interface AccordionCSSVariables extends Record<string, string> {
   '--ai-accordion-border-radius': string;
   '--ai-accordion-border': string;
   '--ai-accordion-animation': string;
+  '--ai-accordion-close-animation': string;
 }
 
 export const defaultAccordionState: AccordionSliceState = {
@@ -55,6 +56,21 @@ const animationMap: Record<AccordionPanelAnimation, string> = {
   'none': 'none',
 };
 
+// The close side of each preset — same duration/easing as the matching
+// open entry above (a real, measured discrete height-snap only disappears
+// once open/close genuinely mirror each other; a duration/easing mismatch
+// between them means the shrinking and growing panel don't track each
+// other frame-by-frame during a type="single" switch), and 'none' closes
+// instantly too, matching what its own "Instant Toggle" label promises —
+// previously every preset, including 'none', always used the same
+// hardcoded 0.2s slide-up regardless of which open preset was selected.
+const closeAnimationMap: Record<AccordionPanelAnimation, string> = {
+  'slide-fade': 'ai-accordion-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+  'expand': 'ai-accordion-slide-up 0.2s ease-out',
+  'scale-fade': 'ai-scale-out 0.2s ease-out',
+  'none': 'none',
+};
+
 export function getAccordionVariables(state: AccordionSliceState = defaultAccordionState): AccordionCSSVariables {
   const { headerPadding, itemGap, variant, panelAnimation = 'slide-fade' } = state;
 
@@ -74,6 +90,7 @@ export function getAccordionVariables(state: AccordionSliceState = defaultAccord
     '--ai-accordion-border-radius': borderRadius,
     '--ai-accordion-border': border,
     '--ai-accordion-animation': animationMap[panelAnimation] || animationMap['slide-fade'],
+    '--ai-accordion-close-animation': closeAnimationMap[panelAnimation] || closeAnimationMap['slide-fade'],
   };
 }
 
@@ -123,6 +140,6 @@ export const AccordionThemeSlice: ThemeSlice<AccordionSliceState, AccordionCSSVa
     headerPadding: ['--ai-accordion-header-padding'],
     itemGap: ['--ai-accordion-item-gap'],
     variant: ['--ai-accordion-border-radius', '--ai-accordion-border'],
-    panelAnimation: ['--ai-accordion-animation'],
+    panelAnimation: ['--ai-accordion-animation', '--ai-accordion-close-animation'],
   },
 };

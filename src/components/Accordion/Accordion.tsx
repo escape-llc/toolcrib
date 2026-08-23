@@ -38,7 +38,7 @@ function injectAccordionStyles(targetDocument?: Document): void {
       animation: var(--ai-accordion-animation, ai-accordion-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
     .ai-accordion-content[data-state="closed"] {
-      animation: ai-accordion-slide-up 0.2s ease-out;
+      animation: var(--ai-accordion-close-animation, ai-accordion-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
     .ai-accordion-trigger:hover {
       background: var(--ai-bg-surface, #ffffff) !important;
@@ -188,10 +188,21 @@ export const Accordion: React.FC<AccordionProps> = ({
             className="ai-accordion-content"
             data-testid={`accordion-content-${item.value}`}
             style={{
-              padding: 'var(--ai-padding-xl, 1rem 1.125rem)',
-              fontSize: '0.875rem',
-              color: 'var(--ai-text-primary, #111827)',
-              borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
+              // No padding/border/font styling here — this is the element
+              // whose `height` the injected keyframes above actually
+              // animate, and CSS floors a box's rendered height at its own
+              // padding+border sum regardless of box-sizing (the spec-
+              // defined "used height" clamp). With padding living here,
+              // the close animation visibly stalled at ~33px (its own
+              // padding+border-top) for the remainder of its 200ms
+              // duration, then snapped to a true 0 only when Radix's
+              // Presence unmounted the node on animationend — a discrete,
+              // non-animated jump, not part of the animation at all.
+              // Confirmed via a real per-frame height trace, not just
+              // reasoning about the CSS. Moving padding/border to the
+              // inner div below means THIS element has none of its own,
+              // so height:0 has no floor to stall on — it reaches a true
+              // 0 smoothly, by the time the animation itself ends.
               // Isolates each panel's content reflow from its sibling
               // panels during expand/collapse. Not `size` (that axis is
               // left alone), so Radix's own height-driving CSS var/
@@ -199,7 +210,16 @@ export const Accordion: React.FC<AccordionProps> = ({
               contain: 'content',
             }}
           >
-            {item.content}
+            <div
+              style={{
+                padding: 'var(--ai-padding-xl, 1rem 1.125rem)',
+                fontSize: '0.875rem',
+                color: 'var(--ai-text-primary, #111827)',
+                borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
+              }}
+            >
+              {item.content}
+            </div>
           </AccordionPrimitive.Content>
         </AccordionPrimitive.Item>
       ))}
