@@ -50,4 +50,15 @@ describe('TimeField', () => {
     const hour = screen.getAllByRole('spinbutton')[0];
     expect(hour).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('applies aria-label when no visible label is given -- the gap that let React Aria log its own "you must specify an aria-label" warning', () => {
+    render(<TimeField name="startTime" aria-label="Start time" />);
+    expect(document.querySelector('[aria-label="Start time"]')).toBeInTheDocument();
+    expect(screen.queryByText('Start time')).not.toBeInTheDocument(); // no visible <Label> rendered
+  });
+
+  it('ignores aria-label once a visible label is set, so the two can never disagree', () => {
+    render(<TimeField name="startTime" label="Start time" aria-label="Something else" />);
+    expect(document.querySelector('[aria-label="Something else"]')).not.toBeInTheDocument();
+  });
 });

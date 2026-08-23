@@ -53,6 +53,21 @@ export interface DatePickerProps {
   overrides?: Partial<DatePickerSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /**
+   * Accessible name for the field, for a caller that already shows a
+   * visible label some other way (e.g. `<FormField label="...">`'s own
+   * rendered label, which the field's composite date-segment structure
+   * can't associate via a plain `htmlFor` the way a single `<input id>`
+   * can) and doesn't want `label` above rendering a second, visually
+   * duplicate one. Ignored if `label` is set — that already supplies an
+   * accessible name via React Aria's own `<Label>`. Required for a
+   * meaningful accessible name unless `aria-labelledby` or `label` is
+   * given instead — without any of the three, React Aria's own
+   * `useDatePicker` warns and the field has none at all.
+   */
+  'aria-label'?: string;
+  /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
+  'aria-labelledby'?: string;
 }
 
 /**
@@ -153,6 +168,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   locale = 'en-US',
   overrides,
   size = 'md',
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -182,6 +199,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         maxValue={maxValue}
         isDisabled={isDisabled}
         shouldCloseOnSelect={false}
+        aria-label={!label ? ariaLabel : undefined}
+        aria-labelledby={!label ? ariaLabelledBy : undefined}
         className="ai-focus-ring"
       >
         {label && (

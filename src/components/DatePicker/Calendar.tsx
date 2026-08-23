@@ -49,6 +49,10 @@ export interface CalendarProps {
   overrides?: Partial<DatePickerSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control — maps onto the same scale as `overrides.cellSize` and scales the month heading's font size. @default 'md' */
   size?: ControlSize;
+  /** Accessible name for the calendar grid. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, React Aria's own `useCalendar` warns and the grid has none at all. */
+  'aria-label'?: string;
+  /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */
+  'aria-labelledby'?: string;
 }
 
 /**
@@ -66,6 +70,8 @@ export const Calendar: React.FC<CalendarProps> = ({
   locale = 'en-US',
   overrides,
   size = 'md',
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
 
@@ -83,6 +89,8 @@ export const Calendar: React.FC<CalendarProps> = ({
         minValue={minValue}
         maxValue={maxValue}
         isDisabled={isDisabled}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         style={{ width: 'fit-content', ...vars } as React.CSSProperties}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

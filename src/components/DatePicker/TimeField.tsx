@@ -46,6 +46,18 @@ export interface TimeFieldProps {
   locale?: string;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /**
+   * Accessible name for the field, for a caller that already shows a
+   * visible label some other way and doesn't want `label` above rendering
+   * a second, visually duplicate one — same reasoning as `<DatePicker>`'s
+   * own identical prop. Ignored if `label` is set. Required for a
+   * meaningful accessible name unless `aria-labelledby` or `label` is
+   * given instead — without any of the three, React Aria's own
+   * `useTimeField` warns and the field has none at all.
+   */
+  'aria-label'?: string;
+  /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
+  'aria-labelledby'?: string;
 }
 
 /**
@@ -63,6 +75,8 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   isDisabled = false,
   locale = 'en-US',
   size = 'md',
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -90,6 +104,8 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         granularity={granularity}
         hourCycle={hourCycle}
         isDisabled={isDisabled}
+        aria-label={!label ? ariaLabel : undefined}
+        aria-labelledby={!label ? ariaLabelledBy : undefined}
         className="ai-focus-ring"
       >
         {label && (

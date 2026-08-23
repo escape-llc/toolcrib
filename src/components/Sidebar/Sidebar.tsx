@@ -33,6 +33,10 @@ export interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   /** Per-instance override for nav item spacing. */
   overrides?: Partial<SidebarSliceState>;
+  /** Accessible name for the nav landmark. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, Radix's NavigationMenu warns and the landmark has none at all. */
+  'aria-label'?: string;
+  /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */
+  'aria-labelledby'?: string;
 }
 
 // Icon + its padding (0.5rem each side, per the collapsed <Link> style
@@ -54,6 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   defaultCollapsed = false,
   onCollapsedChange,
   overrides,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   // Same controlled/uncontrolled split as every other stateful component in
   // this toolkit -- but collapsed state is local UI state that manages
@@ -74,6 +80,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <NavigationMenuPrimitive.Root
       orientation="vertical"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       style={{
         display: 'flex',
         flexDirection: 'column',

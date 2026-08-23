@@ -58,6 +58,14 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Home')).not.toBeInTheDocument();
   });
 
+  it('applies aria-label/aria-labelledby to the nav landmark', () => {
+    const { container, rerender } = render(<Sidebar items={items} aria-label="Primary navigation" />);
+    expect(container.querySelector('nav')).toHaveAttribute('aria-label', 'Primary navigation');
+
+    rerender(<Sidebar items={items} aria-labelledby="sidebar-heading" />);
+    expect(container.querySelector('nav')).toHaveAttribute('aria-labelledby', 'sidebar-heading');
+  });
+
   it('narrows its own root width when collapsed, instead of staying at 100% with only the items re-centering', () => {
     const { container, rerender } = render(<Sidebar items={items} collapsed={false} />);
     const root = container.querySelector('nav') as HTMLElement;

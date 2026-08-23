@@ -972,6 +972,7 @@ export const App: React.FC = () => {
         <Sidebar
           items={NAV_GROUPS.map(g => ({ id: g.id, label: g.label, icon: g.icon }))}
           activeId={activeGroup.id}
+          aria-label="Primary navigation"
           onItemClick={groupId => {
             const group = NAV_GROUPS.find(g => g.id === groupId);
             if (group) setActiveTab(group.tabIds[0]);
@@ -1213,7 +1214,14 @@ export const App: React.FC = () => {
                           </FormField>
 
                           <FormField name="startDate" label="Start Date" helperText="Zod-validated via z.instanceof(CalendarDate) — the same DatePicker as the standalone demo below, now wired into this form's own validation and submit values">
-                            <DatePicker />
+                            {/* aria-label, not label -- FormField already
+                                renders "Start Date" visibly above; DatePicker's
+                                own `label` would render a second, visually
+                                duplicate one since its composite date-segment
+                                structure can't pick up FormField's plain
+                                htmlFor association the way a single <input id>
+                                can. */}
+                            <DatePicker aria-label="Start Date" />
                           </FormField>
 
                           <FormField name="notifications">
@@ -1285,6 +1293,7 @@ export const App: React.FC = () => {
                             <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot.
                           </p>
                           <Calendar
+                            aria-label="Appointment date"
                             defaultValue={new CalendarDate(2026, 3, 15)}
                             onChange={value => addToast({ type: 'info', message: `Calendar date: ${value.toString()}`, priority: 'low' })}
                           />
@@ -1743,6 +1752,7 @@ export const App: React.FC = () => {
                             <Sidebar
                               items={SIDEBAR_ITEMS}
                               activeId={sidebarActiveId}
+                              aria-label="Example navigation"
                               onItemClick={id => setSidebarActiveId(id)}
                             />
                             <div style={{ flex: 1, padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>

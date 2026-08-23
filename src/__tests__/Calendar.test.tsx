@@ -94,4 +94,12 @@ describe('Calendar', () => {
     expect(usFirstHeader).toBe('S');
     expect(gbFirstHeader).toBe('M');
   });
+
+  it('applies aria-label to the grid -- the gap that let React Aria log its own "you must specify an aria-label" warning', () => {
+    render(<Calendar name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} aria-label="Appointment date" />);
+    // React Aria's useCalendar appends the visible month/year to whatever
+    // label it's given (e.g. "Appointment date, March 2026"), so this
+    // matches the given text as a prefix rather than the exact string.
+    expect(document.querySelector('[aria-label^="Appointment date"]')).toBeInTheDocument();
+  });
 });
