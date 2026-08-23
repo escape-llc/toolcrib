@@ -1029,14 +1029,15 @@ export const App: React.FC = () => {
                         <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
                         <Card.Content>
                           <p style={{ marginTop: 0 }}>
-                            By wrapping Radix UI primitives (`radix-ui`), <code>Toolcrib</code> decouples robust WAI-ARIA accessibility, keyboard navigation, focus trapping, and light-dismiss from design system styling.
+                            An AI generating a dialog, a menu, or a set of tabs from scratch tends to get keyboard support, focus management, and ARIA roles roughly 90% right and ship it anyway — the missing 10% (a focus trap that doesn't quite trap, an escape key that doesn't close, a role that isn't announced) is invisible in a quick visual check and only shows up for a real keyboard or screen-reader user. <code>Toolcrib</code> doesn't re-solve that per component: it wraps Radix UI's unstyled primitives (`radix-ui`) once per interaction pattern and adds HSV theming, slots, and event bus dispatch on top, so every component built on the same primitive inherits the same correct behavior for free.
                           </p>
                           <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                            <li><strong>Dialog (`Modal`)</strong>: Full focus trap & background lockout.</li>
-                            <li><strong>Popover (`Popup`)</strong>: Trigger anchoring & escape dismiss.</li>
-                            <li><strong>Toast (`Toast`)</strong>: Priority queueing & sticky user actions.</li>
-                            <li><strong>Tabs (`TabStrip`)</strong>: Arrow key focus traversal.</li>
-                            <li><strong>RadioGroup, Checkbox, Switch</strong>: Accessible form controls.</li>
+                            <li><strong>Overlays</strong>: Dialog (<code>Modal</code>, <code>AlertDialog</code>), Popover (<code>Popup</code>; <code>Combobox</code>'s anchoring only), Portal (<code>Drawer</code>) — focus trap, background lockout, light-dismiss, and correct portal targeting, handled once instead of approximated per component.</li>
+                            <li><strong>Disclosure &amp; Structure</strong>: Accordion, Collapsible, Separator, ScrollArea, AspectRatio — expand/collapse and custom-scrollbar keyboard behavior with real ARIA roles, not a styled <code>&lt;div&gt;</code> pretending to be one.</li>
+                            <li><strong>Menus &amp; Navigation</strong>: DropdownMenu, ContextMenu, NavigationMenu (<code>Sidebar</code>), Tabs (<code>TabStrip</code>, <code>Stepper</code>), Toolbar — typeahead and arrow-key/roving-tabindex traversal for free.</li>
+                            <li><strong>Form Controls</strong>: RadioGroup (<code>RadioGroup</code>, <code>Rating</code>), Checkbox, Switch, Select, Slider, Toggle/ToggleGroup, Label — real <code>aria-checked</code>/<code>aria-valuenow</code> semantics, not a row of clickable spans.</li>
+                            <li><strong>Feedback &amp; Info</strong>: Toast, Tooltip, HoverCard, Progress, Avatar — priority queueing, hover/focus delay handling, determinate/indeterminate ARIA states.</li>
+                            <li><strong>Accessibility Utilities</strong>: VisuallyHidden, AccessibleIcon — screen-reader-only text and icon labeling with zero visual footprint.</li>
                           </ul>
                         </Card.Content>
                       </Card>
@@ -1056,6 +1057,23 @@ export const App: React.FC = () => {
                         </Card.Content>
                       </Card>
                     </Grid>
+
+                    <Card>
+                      <Card.Header>🎯 No Radix Primitive to Lean On — Hand-Built to the Same Standard</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <a href="https://www.w3.org/WAI/ARIA/apg/" target="_blank" rel="noreferrer">WAI-ARIA Authoring Practices Guide</a> patterns Radix itself implements internally, just written by hand instead of imported:
+                        </p>
+                        <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                          <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
+                          <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see the Component Showcase tab.</li>
+                          <li><strong><code>Filmstrip</code></strong> — real roving tabindex (exactly one <code>tabIndex=0</code> stop at a time, matching the APG's own composite-widget model) with Arrow/Home/End keyboard navigation, not a scrollable row of plain divs.</li>
+                        </ul>
+                        <p style={{ marginBottom: 0 }}>
+                          This same attention runs underneath every component regardless of whether Radix backs it: every interactive element gets a real <code>:focus-visible</code> ring from one shared, systematically-injected stylesheet (<code>injectInteractionStyles()</code>) rather than each component hand-adding its own — before this existed, several components reset the browser's default outline to nothing and never replaced it, a real WCAG 2.4.7 gap invisible in a quick visual pass and only caught by actually tabbing through the UI.
+                        </p>
+                      </Card.Content>
+                    </Card>
 
                     <Card>
                       <Card.Header>📐 AI Schema, Color Theory & WCAG Enforcement</Card.Header>
