@@ -970,6 +970,52 @@
       "description": "Grouped vertical bar chart for categorical comparisons"
     },
     {
+      "name": "Block",
+      "import": "import { Block } from '#toolcrib'",
+      "props": {
+        "background": {
+          "type": "'surface' | 'container' | 'primary' | 'transparent'",
+          "default": "'transparent'",
+          "description": "Background surface token."
+        },
+        "padding": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none'",
+          "default": "'none'",
+          "description": "Padding, using the same global padding token scale (`--ai-padding-*`) every other component's own padding resolves through."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Per-instance override for which padding density scale `padding` resolves against (compact/normal/spacious) — same `PaddingMode` every other component's own `paddingMode` prop uses."
+        },
+        "radius": {
+          "type": "'sm' | 'md' | 'lg' | 'xl' | 'none'",
+          "default": "'none'",
+          "description": "Corner radius, using the same global radius token scale (`--ai-radius-*`) every other component's own radius resolves through."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Per-instance override for which radius scale `radius` resolves against (sharp/subtle/rounded/pill) — same `CornerRadiusMode` every other component's own `cornerRadiusMode` prop uses."
+        },
+        "border": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Themed hairline border."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour to background/border/text. Falls back to the nearest `<StyleDomainProvider>`'s if omitted. Wins over `background` when resolved; only colors the border if `border` is also set."
+        },
+        "appearance": {
+          "type": "'soft' | 'solid' | 'outline'",
+          "default": "'soft'",
+          "description": "Visual treatment for `subtheme`'s color. Ignored unless a subtheme resolves."
+        }
+      },
+      "constraints": "Its own background/padding/radius/border props stay theme-driven by default; style/className layer on top rather than replacing them",
+      "category": "Layout Primitives",
+      "description": "Themed, stylable container `<div>` with subtheme colouring — the one deliberate exception to \"no style/className on toolcrib components\", for ad-hoc layout needs nothing else covers"
+    },
+    {
       "name": "Breadcrumb",
       "import": "import { Breadcrumb } from '#toolcrib'",
       "slots": [

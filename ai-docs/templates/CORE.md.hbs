@@ -75,7 +75,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
    ```
 5. **HSV Colour Space Only.** No RGB. All colours derive from CSS variables injected at `:root`.
 6. **`layout="auto"` for Flex Filling.** Set `layout="auto"` on `<Card>` (and `<Card.Content>`) to enable flex-fill behaviour inside Splitters and other flex containers. This also activates automatic corner-squaring.
-7. **NO `style`/`className` on Toolcrib Components.** No component in this toolkit accepts either prop — this is enforced by the type system, not just convention. Use `overrides` for per-instance theme control (§9) instead of ad hoc inline styles. `style`/`className` still work normally on your own plain HTML elements (`<div>`, `<span>`, ...) — the restriction is specifically the toolkit's own component API surface.
+7. **NO `style`/`className` on Toolcrib Components — one deliberate exception.** No component in this toolkit accepts either prop, enforced by the type system, not just convention — use `overrides` for per-instance theme control (§9) instead of ad hoc inline styles. The one exception is `<Block>`: a themed, stylable `<div>` for ad-hoc container/layout needs no curated component's own prop surface covers — its own `background`/`padding`/`radius`/`border` props default to theme CSS variables, so it doesn't fall back to un-themed raw styling. This doesn't preclude a genuinely plain `<div>` either — `style`/`className` always work normally on your own plain HTML elements (`<div>`, `<span>`, ...), theme-aware or not; `<Block>` is there for when the theme-aware defaults are actually what you want, not a replacement for every raw `<div>`. The restriction in this principle is specifically every other toolkit component's own API surface.
 
 ---
 
@@ -93,7 +93,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Create custom popup/modal/drawer components | Use the toolkit's `<Popup>`, `<Modal>`, `<Drawer>` — they handle anchoring, focus traps, backdrop, and light dismiss |
 | Use `position: fixed` with manual z-index | Use the overlay components — they portal correctly and use the Z_INDEX scale |
-| Pass `style=\{{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, wrap the component in your own plain `<div>` instead |
+| Pass `style=\{{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, a plain `<div>` is still fine — `<Block>` is the same escape hatch with theme-aware background/padding/radius/border defaults, worth reaching for when that awareness is what you actually want |
 | Fake per-row emphasis in `<DataTable>` via `column.render` (styling each cell individually to approximate a highlighted row) | Use `<DataTable rowSubtheme={(record) => ...}>` — classifies a row into `'error'` / `'success'` / `'warning'` / `'info'` and tints the actual row background/border, not a per-cell approximation |
 | Hand-roll a pulsing/shimmering loading placeholder `<div>`, or a spinning-border `<div>` for indeterminate loading | Use `<Skeleton shape="text"\|"circle"\|"rect">` and `<Spinner>` — both already animate off the shared keyframes, not a one-off duration |
 | Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation | Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free |
@@ -276,7 +276,7 @@ import { StyleDomainProvider } from '#toolcrib';
 
 This is Context-based on purpose, not CSS-variable inheritance — `<Modal>`, `<Popup>`, and `<Drawer>` all render their content through a portal elsewhere in the DOM, and `<StyleDomainProvider>` still reaches them correctly because it follows the component tree, not DOM position.
 
-If neither `overrides` nor a style domain covers what you need, that's a real, intentional boundary — the toolkit trades some flexibility for keeping every visual decision theme-driven and AI-legible. There is no raw-style escape hatch on toolcrib components themselves.
+If neither `overrides` nor a style domain covers what you need on a specific component, that's a real, intentional boundary on that component — the toolkit trades some flexibility for keeping most visual decisions theme-driven and AI-legible. A plain `<div>` (or any other raw HTML element) is always a fine way past that boundary — `style`/`className` never stopped working on your own markup, toolcrib components just don't expose them on their own props. `<Block>` (§2, principle 7) is there for when a themed `<div>` is specifically what you want: it accepts real `style`/`className` the same as any raw element, but its own `background`/`padding`/`radius`/`border` default to the same theme CSS variables every other component resolves through, so reaching for it doesn't mean falling back to un-themed raw styling.
 
 ---
 

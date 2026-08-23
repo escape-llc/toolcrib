@@ -38,6 +38,7 @@ import {
   HStack,
   Grid,
   Content,
+  Block,
   AppShell,
   StyleDomainProvider,
   aiBus,
@@ -1859,6 +1860,21 @@ export const App: React.FC = () => {
                         </Card.Content>
                       </Card>
                     </Grid>
+
+                    <Card>
+                      <Card.Header>Themed Container Divs (`&lt;Block&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          The one component that accepts real <code>style</code>/<code>className</code> — for ad-hoc layout needs the two <code>&lt;div&gt;</code>s above stand in for. Its own <code>background</code>/<code>padding</code>/<code>radius</code>/<code>border</code> stay theme-driven by default, and <code>subtheme</code> resolves the same way <code>&lt;Badge&gt;</code>'s does.
+                        </p>
+                        <HStack gap="md" wrap>
+                          <Block background="container" padding="md" radius="md">Container + padding + radius</Block>
+                          <Block background="surface" padding="md" radius="md" border>Surface + border</Block>
+                          <Block padding="md" radius="md" subtheme="success">Subtheme (soft)</Block>
+                          <Block padding="md" radius="md" subtheme="warning" appearance="solid">Subtheme (solid)</Block>
+                        </HStack>
+                      </Card.Content>
+                    </Card>
 
                     <Card>
                       <Card.Header>Action Toolbars with Slot Architecture (`&lt;Toolbar&gt;`)</Card.Header>

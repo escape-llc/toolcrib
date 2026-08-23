@@ -274,22 +274,41 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     aiBus.emit('theme:changed', { parameters, palette, cssVariables });
   }, [cssVariables, parameters, palette, targetDocument]);
 
-  // `--ai-font-family`/`--ai-master-font-size` above are written as CSS
-  // custom properties on :root, but a custom property alone does nothing
-  // — nothing actually *uses* `var(--ai-font-family)`/
-  // `var(--ai-master-font-size)` as a real `font-family`/`font-size`
-  // unless some rule references it. That rule used to live only in the
-  // demo app's own index.css; a real consumer got the variables updating
-  // correctly (visible via devtools) with zero visual effect anywhere,
-  // including on this toolkit's own `rem`-based sizing throughout every
-  // component, which can only ever scale via :root's actual resolved
-  // font-size (that's inherent to what `rem` means — no scoped rule can
-  // substitute for it). One rule, injected once per target document
-  // (typically once total — the common case is a single ThemeProvider).
+  // `--ai-font-family`/`--ai-master-font-size`/`--ai-text-primary` above are
+  // written as CSS custom properties on :root, but a custom property alone
+  // does nothing — nothing actually *uses* `var(--ai-font-family)`/
+  // `var(--ai-master-font-size)` as a real `font-family`/`font-size` unless
+  // some rule references it. That rule used to live only in the demo app's
+  // own index.css; a real consumer got the variables updating correctly
+  // (visible via devtools) with zero visual effect anywhere, including on
+  // this toolkit's own `rem`-based sizing throughout every component,
+  // which can only ever scale via :root's actual resolved font-size
+  // (that's inherent to what `rem` means — no scoped rule can substitute
+  // for it). One rule, injected once per target document (typically once
+  // total — the common case is a single ThemeProvider).
+  //
+  // `color` on :root is the same story for a different reason: unlike
+  // font-family/font-size, `color` genuinely *is* an inherited CSS
+  // property, so setting it here does make it ambient for every plain
+  // element in a consumer's own app, not just toolcrib's own components
+  // (which already resolve their own text color explicitly, same as
+  // every other themed value). Without this, a consumer's own hand-written
+  // `<div>` never picked up the theme's text color at all unless they
+  // separately set it themselves — asymmetric with font-family, which
+  // already worked this way, for no principled reason.
+  //
+  // `line-height` closes the same gap again: `--ai-line-height`
+  // (typography.tsx's `baseLineHeight`, exposed in the Theme Editor as
+  // "Line Height (Text Density)") is a real, inherited CSS property with
+  // its own theme control, but before this only `Card.Content` ever read
+  // `var(--ai-line-height)` explicitly — every other component's text, and
+  // any plain consumer markup, silently ignored it, so moving that slider
+  // had zero visible effect anywhere else despite reading as a global
+  // control. Ambient injection here is what actually makes it one.
   useEffect(() => {
     injectGlobalStyle(
       'toolcrib-typography-base',
-      `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); }`,
+      `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`,
       targetDocument
     );
   }, [targetDocument]);

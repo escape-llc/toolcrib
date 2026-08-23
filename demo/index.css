@@ -1,11 +1,15 @@
-/* font-family/font-size are deliberately not set here anymore — the
-   library now self-injects `:root { font-family: var(--ai-font-family,
-   ...); font-size: var(--ai-master-font-size, ...); }` itself (see
-   ThemeProvider's own effect in src/theme/themeContext.tsx), since those
-   two are what actually make the toolkit's typography theming (and its
-   `rem`-based sizing throughout) work at all — not a demo-only concern. */
+/* font-family/font-size/line-height/color are deliberately not set here
+   anymore — the library now self-injects `:root { font-family:
+   var(--ai-font-family, ...); font-size: var(--ai-master-font-size, ...);
+   line-height: var(--ai-line-height, ...); color: var(--ai-text-primary,
+   ...); }` itself (see ThemeProvider's own effect in
+   src/theme/themeContext.tsx), since all four are what actually make the
+   toolkit's typography/text-color theming (and font-size's own
+   `rem`-based sizing throughout) ambient for any plain element, not a
+   demo-only concern. `font-weight: 400` stays below — it matches the
+   browser's own UA default, so there was never a real gap to close there,
+   only redundancy worth leaving alone. */
 :root {
-  line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
 }

@@ -101,6 +101,7 @@ export * from './components/HoverCard/HoverCard';
 export * from './components/HoverCard/HoverCardSlice';
 export * from './components/Layout/AccessibleIcon';
 export * from './components/Layout/AspectRatio';
+export * from './components/Layout/Block';
 export * from './components/Layout/Content';
 export * from './components/Layout/DeferredContent';
 export * from './components/Layout/Grid';
