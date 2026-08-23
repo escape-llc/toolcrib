@@ -18,7 +18,7 @@ test('switching Font Family in the Theme Editor updates --ai-font-family and the
   expect(before.bodyFont).toContain('Inter');
 
   await page.getByRole('button', { name: 'Open Theme Designer' }).click();
-  await page.getByText('Typography (Font Family & Size)').click();
+  await page.getByText('Typography (Font Family, Size & Line Height)').click();
   await page.getByText('System (Inter / system-ui)').click();
   await page.getByText('Monospace (SF Mono / Consolas)').click();
 
@@ -44,7 +44,7 @@ test("changing Master Font Size updates --ai-master-font-size and the real compu
   expect(before).toBe(16);
 
   await page.getByRole('button', { name: 'Open Theme Designer' }).click();
-  await page.getByText('Typography (Font Family & Size)').click();
+  await page.getByText('Typography (Font Family, Size & Line Height)').click();
 
   // Scoped to the row containing the "Master Font Size" label rather than
   // page.getByRole('slider').first() — the panel also has HSV base-color
