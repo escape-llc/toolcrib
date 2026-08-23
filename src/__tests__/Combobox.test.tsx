@@ -135,16 +135,32 @@ describe('Combobox Component — client-side filtering', () => {
 });
 
 describe('Combobox Component — async search', () => {
-  it('debounces onSearch, shows a loading state, and replaces the listbox with results', async () => {
+  it('does not open the panel or call onSearch on mere focus/click — only once the debounced search actually fires (reported directly: focusing an async Combobox popped an empty panel open before anything was typed)', () => {
+    const onSearch = vi.fn().mockResolvedValue([{ label: 'Async Result', value: 'r1' }]);
+    render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+
+    fireEvent.focus(input);
+    fireEvent.click(input);
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it('debounces onSearch, only opening/showing a loading state once the search actually fires, then replaces the listbox with results', async () => {
     const onSearch = vi.fn().mockResolvedValue([{ label: 'Async Result', value: 'r1' }]);
     render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} />);
     const input = screen.getByRole('combobox');
 
     fireEvent.change(input, { target: { value: 'query' } });
-    expect(screen.getByText('Searching…')).toBeInTheDocument();
+    // Still closed immediately after typing -- the panel only opens once
+    // the debounce elapses and the search itself fires, not on every
+    // keystroke.
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Searching…')).not.toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByText('Async Result')).toBeInTheDocument());
     expect(onSearch).toHaveBeenCalledWith('query');
+    expect(input).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('ignores a stale response that resolves after a newer request', async () => {

@@ -172,6 +172,16 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const [asyncOptions, setAsyncOptions] = useState<ComboboxOptionData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
+  // Set in the input's own onChange, immediately before the setQuery that
+  // triggers the search effect below, and reset the moment that effect
+  // reads it — scopes "this query change came from the user typing" to
+  // exactly one render cycle. query also changes for reasons that are NOT
+  // the user typing (commitSelection sets it to the picked option's own
+  // label, handleClear resets it, the external-value resync effect above
+  // syncs it to the current selection) — none of those should schedule a
+  // new search or pop the panel back open, so the effect only proceeds
+  // when this ref is true.
+  const isUserTypingRef = useRef(false);
 
   // Always opens directly below the input, at the input's own width
   // (`width: var(--radix-popover-trigger-width)` on Content below) -- so
@@ -192,10 +202,18 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
   useEffect(() => {
     if (!onSearch) return;
-    if (!open) return;
+    // See isUserTypingRef's own comment — only a query change that came
+    // from the user actually typing schedules a search or (re)opens the
+    // panel. Reported directly: focusing an async Combobox popped the
+    // panel open immediately, showing "Searching…" (or empty results) for
+    // a query nobody typed yet — the panel should stay closed until a real
+    // search has actually fired.
+    if (!isUserTypingRef.current) return;
+    isUserTypingRef.current = false;
     const requestId = ++requestIdRef.current;
-    setLoading(true);
     const timer = setTimeout(() => {
+      setOpen(true);
+      setLoading(true);
       onSearch(query)
         .then(results => {
           // Stale-response guard: a fast typer can have an earlier, slower
@@ -214,7 +232,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
         });
     }, searchDebounceMs);
     return () => clearTimeout(timer);
-  }, [query, open, onSearch, searchDebounceMs]);
+  }, [query, onSearch, searchDebounceMs]);
 
   const filteredOptions = useMemo(() => {
     if (onSearch) return asyncOptions ?? [];
@@ -426,9 +444,22 @@ export const Combobox: React.FC<ComboboxProps> = ({
             value={query}
             onChange={e => {
               setQuery(e.target.value);
-              setOpen(true);
+              if (onSearch) {
+                // Async mode: don't open yet — the search effect above
+                // opens the panel once the debounced search actually
+                // fires, not on every keystroke (and never on mere focus,
+                // see onFocus/onClick below).
+                isUserTypingRef.current = true;
+              } else {
+                setOpen(true);
+              }
             }}
-            onFocus={() => setOpen(true)}
+            // Async mode never auto-opens from focus/click alone — only
+            // once the user actually types and a search fires (see the
+            // search effect above and its own comment). Client-side mode
+            // (a fixed `options` list, nothing to wait on) keeps opening
+            // immediately, unchanged.
+            onFocus={() => { if (!onSearch) setOpen(true); }}
             // Selecting an option deliberately keeps DOM focus on the input
             // (the option's own onMouseDown preventDefaults specifically so
             // focus never moves) so typing immediately after a selection
@@ -437,8 +468,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // focus event (the input never actually lost focus in the DOM),
             // so onFocus alone never reopens it. onClick covers that case
             // too; harmless overlap with onFocus on a first click where the
-            // input wasn't already focused.
-            onClick={() => setOpen(true)}
+            // input wasn't already focused. Same async-mode exemption as
+            // onFocus above.
+            onClick={() => { if (!onSearch) setOpen(true); }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             style={{
