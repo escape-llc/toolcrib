@@ -1233,11 +1233,11 @@
           "description": "Placeholder text when empty."
         },
         "options": {
-          "type": "ComboboxOptionData[]",
+          "type": "ListboxOptionData[]",
           "description": "Client-side option list, filtered locally by substring match against\n`label`. Omit when using `onSearch` for server-driven results instead."
         },
         "onSearch": {
-          "type": "(query: string) => Promise<ComboboxOptionData[]>",
+          "type": "(query: string) => Promise<ListboxOptionData[]>",
           "description": "Async search — called (debounced by `searchDebounceMs`) with the\ncurrent query whenever it changes. Takes over from `options` entirely\nwhen provided; results replace the listbox contents once resolved."
         },
         "searchDebounceMs": {
@@ -3379,6 +3379,26 @@
         "description": "If true, the item cannot be selected."
       }
     },
+    "ListboxOptionData": {
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Display text for the option, and the text any caller's own filtering matches against. Still rendered as-is when `render` is omitted."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
+      },
+      "render": {
+        "type": "(option: ListboxOptionData) => ReactNode",
+        "description": "Custom content for this option, overriding the plain `label` text render. `label` still applies to any caller's own text-based filtering — this only changes what's visually shown."
+      }
+    },
     "RadioOption": {
       "label": {
         "type": "ReactNode",
@@ -3438,26 +3458,6 @@
       "caption": {
         "type": "ReactNode",
         "description": "Optional caption shown in the `<Viewer>` for this item."
-      }
-    },
-    "ListboxOptionData": {
-      "label": {
-        "type": "string",
-        "required": true,
-        "description": "Display text for the option, and the text any caller's own filtering matches against. Still rendered as-is when `render` is omitted."
-      },
-      "value": {
-        "type": "string",
-        "required": true,
-        "description": "Value submitted/emitted when this option is selected."
-      },
-      "disabled": {
-        "type": "boolean",
-        "description": "If true, the option is visible but not selectable."
-      },
-      "render": {
-        "type": "(option: ListboxOptionData) => ReactNode",
-        "description": "Custom content for this option, overriding the plain `label` text render. `label` still applies to any caller's own text-based filtering — this only changes what's visually shown."
       }
     },
     "SidebarItemData": {

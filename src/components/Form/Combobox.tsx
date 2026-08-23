@@ -13,16 +13,6 @@ import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 
 /**
- * Data shape for each option in a `<Combobox>` listbox — literally
- * `ListboxOptionData` (same `label`/`value`/`disabled`/`render` shape,
- * same reasoning for why `label` stays a plain `string`: it's what
- * `Combobox`'s own client-side filter matches against). Kept as its own
- * named export since it predates the `Listbox` extraction and consumers
- * already import it by this name.
- */
-export type ComboboxOptionData = ListboxOptionData;
-
-/**
  * Props for the `<Combobox>` filterable text input + listbox.
  *
  * Binds to Form context via `name`, same as `<Select>`. Unlike `<Select>`,
@@ -48,13 +38,13 @@ export interface ComboboxProps {
    * Client-side option list, filtered locally by substring match against
    * `label`. Omit when using `onSearch` for server-driven results instead.
    */
-  options?: ComboboxOptionData[];
+  options?: ListboxOptionData[];
   /**
    * Async search — called (debounced by `searchDebounceMs`) with the
    * current query whenever it changes. Takes over from `options` entirely
    * when provided; results replace the listbox contents once resolved.
    */
-  onSearch?: (query: string) => Promise<ComboboxOptionData[]>;
+  onSearch?: (query: string) => Promise<ListboxOptionData[]>;
   /** Debounce delay before calling `onSearch`. @default 250 */
   searchDebounceMs?: number;
   /**
@@ -170,7 +160,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const [query, setQuery] = useState(multiple ? '' : labelFor(selectedValues[0] ?? ''));
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [asyncOptions, setAsyncOptions] = useState<ComboboxOptionData[] | null>(null);
+  const [asyncOptions, setAsyncOptions] = useState<ListboxOptionData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
   // Set in the input's own onChange, immediately before the setQuery that
@@ -258,7 +248,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
     }
   };
 
-  const commitSelection = (option: ComboboxOptionData) => {
+  const commitSelection = (option: ListboxOptionData) => {
     if (option.disabled) return;
     selectedLabelsRef.current.set(option.value, option.label);
 
