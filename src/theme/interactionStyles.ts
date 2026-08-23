@@ -33,6 +33,10 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  *   trigger, RadioGroup's dot, Checkbox, Switch). Same accessibility gap as
  *   above: all four previously reset `outline` to nothing (via an explicit
  *   `outline: 'none'` or `all: 'unset'`) with no replacement.
+ * - `.ai-focus-ring-within` — the `:focus-within` sibling of the above, for
+ *   a wrapper whose actual focusable element is a descendant rather than
+ *   itself (Combobox's own chip-row anchor around its `<input>`), where
+ *   `:focus-visible` on the wrapper would never match at all.
  * - `.ai-menu-item[data-highlighted]` — for Radix menu-style items
  *   (DropdownMenu.Item, ContextMenu.Item, Select.Item). Radix's own
  *   `data-highlighted` attribute already unifies mouse-hover and keyboard
@@ -88,6 +92,20 @@ export function injectInteractionStyles(targetDocument?: Document): void {
        via \`all: 'unset'\`, same effective result), so this needs !important
        on every one of them to actually win. */
     .ai-focus-ring:focus-visible {
+      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
+      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
+    }
+
+    /* .ai-focus-ring-within — for a wrapper whose real focusable element is
+       a descendant, not itself (Combobox's chip-row anchor around its own
+       <input>, e.g.) — :focus-visible never matches an element that's
+       never the actual focus target, so a plain .ai-focus-ring on a
+       wrapper like that is silently inert regardless of !important.
+       :focus-within is the correct selector there; outline draws outside
+       the wrapper's own border box, so it isn't obscured by ordinary
+       (non-positioned, non-elevated) content inside it the way a z-index
+       or overlap issue would be. */
+    .ai-focus-ring-within:focus-within {
       outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
       outline-offset: var(--ai-focus-ring-offset, 0.125rem);
     }

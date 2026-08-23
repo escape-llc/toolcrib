@@ -370,7 +370,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <PopoverPrimitive.Anchor asChild>
         <div
           ref={anchorRef}
-          className="ai-focus-ring"
+          className="ai-focus-ring-within"
           onClick={() => inputRef.current?.focus()}
           style={{
             display: 'flex',
@@ -498,11 +498,24 @@ export const Combobox: React.FC<ComboboxProps> = ({
               tabIndex={-1}
               style={{
                 flexShrink: 0,
-                background: 'transparent',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '1.125rem',
+                height: '1.125rem',
+                // A visible pill background, unlike each chip's own bare
+                // remove ✕ — the input's own flex-grow (below) pushes this
+                // button away from the chips whenever there's leftover row
+                // width, and with no container of its own it read as a
+                // stray, disconnected glyph rather than a real "clear all"
+                // control, easy to mistake for a rendering glitch
+                // (reported directly, from a real screenshot).
+                background: 'var(--ai-bg-container, #f3f4f6)',
                 border: 'none',
+                borderRadius: '9999px',
                 cursor: 'pointer',
                 color: 'var(--ai-text-secondary, #6b7280)',
-                fontSize: '0.75rem',
+                fontSize: '0.6875rem',
                 lineHeight: 1,
                 padding: 0,
               }}
