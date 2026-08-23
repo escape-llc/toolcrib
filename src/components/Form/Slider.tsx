@@ -94,7 +94,18 @@ export const Slider: React.FC<SliderProps> = ({
     if (value !== undefined) setLocalValue(value);
   }, [value]);
 
-  const currentVal = commitOnRelease ? localValue : (value !== undefined ? value : defaultValue);
+  // Uncontrolled (no `value` prop) always renders from `localValue` --
+  // controlled reads the external `value` directly UNLESS commitOnRelease
+  // is deferring it (see that prop's own doc comment: the external value
+  // only advances on release, so rendering straight from it mid-drag would
+  // freeze the thumb, which is exactly what `localValue` exists to avoid).
+  // Previously this read `defaultValue` (a fixed prop, never updated by a
+  // drag) instead of `localValue` for the uncontrolled + !commitOnRelease
+  // case -- the common case for a bare `<Slider defaultValue={...} />` --
+  // so the thumb never visually moved even though onChange/aiBus fired
+  // correctly on every tick (reported directly: "messages indicate the
+  // value is changing" but nothing on screen does).
+  const currentVal = commitOnRelease ? localValue : (value !== undefined ? value : localValue);
   const sliderVars = getSparseVariables(SliderThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
@@ -107,9 +118,11 @@ export const Slider: React.FC<SliderProps> = ({
     <SliderPrimitive.Root
       value={[currentVal]}
       onValueChange={(vals) => {
-        if (commitOnRelease) {
-          setLocalValue(vals[0]);
-        } else {
+        // Always kept in sync, live, regardless of commitOnRelease -- it's
+        // what the thumb's own position (currentVal, above) renders from
+        // in every uncontrolled/deferred-commit case.
+        setLocalValue(vals[0]);
+        if (!commitOnRelease) {
           commitValue(vals[0]);
         }
       }}

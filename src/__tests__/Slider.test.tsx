@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Slider } from '../components/Form/Slider';
 import { FormField } from '../components/Form/FormComponents';
 
@@ -20,6 +20,16 @@ describe('Slider Component', () => {
   it('renders a slider with the given value', () => {
     render(<Slider name="volume" value={40} onChange={vi.fn()} />);
     expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '40');
+  });
+
+  it('regression: an uncontrolled Slider (defaultValue only, default commitOnRelease) actually moves via keyboard instead of staying pinned at defaultValue', () => {
+    const onChange = vi.fn();
+    render(<Slider name="volume" defaultValue={50} onChange={onChange} />);
+    const thumb = screen.getByRole('slider');
+    thumb.focus();
+    fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+    expect(onChange).toHaveBeenCalledWith(51);
+    expect(thumb).toHaveAttribute('aria-valuenow', '51');
   });
 
   describe('regression: no id/aria-label meant no accessible name outside a FormField, and no FormField label association', () => {
