@@ -71,6 +71,24 @@ describe('Combobox Component — client-side filtering', () => {
     expect(onChange).toHaveBeenCalledWith('editor');
   });
 
+  it('scrolls the newly-active option into view on every arrow-key move, so it can\'t scroll past the listbox\'s visible viewport and "disappear" (reported directly)', () => {
+    const scrollIntoViewSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
+    render(<Combobox options={options} onChange={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' }); // opens, activeIndex stays 0 (Admin)
+    scrollIntoViewSpy.mockClear(); // only care about moves after the listbox is already open and mounted
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' }); // -> Editor
+    expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'nearest' });
+
+    scrollIntoViewSpy.mockClear();
+    fireEvent.keyDown(input, { key: 'ArrowUp' }); // -> back to Admin
+    expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'nearest' });
+
+    scrollIntoViewSpy.mockRestore();
+  });
+
   it('disables the input and never opens the listbox when disabled', () => {
     render(<Combobox options={options} onChange={vi.fn()} disabled />);
     const input = screen.getByRole('combobox') as HTMLInputElement;

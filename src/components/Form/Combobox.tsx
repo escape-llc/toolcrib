@@ -324,6 +324,24 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const activeOptionId = filteredOptions[activeIndex] ? `${baseId}-option-${activeIndex}` : undefined;
   const hasValue = selectedValues.length > 0;
 
+  // ArrowDown/ArrowUp/Home/End all move activeIndex, but the listbox itself
+  // never followed — options are plain, non-focusable divs (aria-
+  // activedescendant driven, see the input's own comment on why), so
+  // there's no native focus-follows-scroll behavior to rely on the way a
+  // real <select> or a focusable listbox item would get for free. Reported
+  // directly: arrowing down highlights the next option correctly, but once
+  // it scrolls past the visible listbox viewport the highlighted option
+  // just "disappears" instead of the list scrolling to keep it in view.
+  // scrollIntoView({ block: 'nearest' }) only scrolls the minimum distance
+  // needed to bring the option back into view (not a jump-to-center),
+  // matching native listbox keyboard-nav feel, and is a no-op when the
+  // option's already fully visible.
+  useEffect(() => {
+    if (!open || !activeOptionId) return;
+    const doc = targetDocument ?? document;
+    doc.getElementById(activeOptionId)?.scrollIntoView({ block: 'nearest' });
+  }, [activeOptionId, open, targetDocument]);
+
   return (
     <PopoverPrimitive.Root open={open && !disabled} onOpenChange={setOpen}>
       <PopoverPrimitive.Anchor asChild>
