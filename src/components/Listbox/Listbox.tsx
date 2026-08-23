@@ -69,6 +69,19 @@ export interface ListboxProps {
   itemPadding?: string;
   /** Control size, standardized with `<Button>` and every other sized control — drives the option row's font-size. @default 'md' */
   size?: ControlSize;
+  /**
+   * Accessible name for the listbox. Omit when a caller already establishes
+   * one via its own `aria-controls`/`aria-activedescendant` relationship
+   * from a labeled control (e.g. `Combobox`'s own input, itself named
+   * through a wrapping `<FormField label="...">` — the same convention
+   * every other Form control in this toolkit relies on rather than a
+   * standalone label prop of its own). Required for a meaningful
+   * accessible name in any other standalone use — a `<div role="listbox">`
+   * with neither this nor `aria-labelledby` has none at all.
+   */
+  'aria-label'?: string;
+  /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */
+  'aria-labelledby'?: string;
 }
 
 /**
@@ -88,11 +101,15 @@ export const Listbox: React.FC<ListboxProps> = ({
   multiSelectable = false,
   itemPadding = 'var(--ai-padding-sm, 0.4375rem 0.75rem)',
   size = 'md',
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   return (
     <div
       role="listbox"
       id={id}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       aria-multiselectable={multiSelectable || undefined}
       style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
     >

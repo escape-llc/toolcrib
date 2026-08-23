@@ -84,6 +84,17 @@ describe('Combobox Component — client-side filtering', () => {
     expect(onChange).toHaveBeenCalledWith('editor');
   });
 
+  it('Escape closes the listbox, per the WAI-ARIA APG Combobox pattern', () => {
+    render(<Combobox options={options} onChange={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' }); // opens
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('scrolls the newly-active option into view on every arrow-key move, so it can\'t scroll past the listbox\'s visible viewport and "disappear" (reported directly)', () => {
     const scrollIntoViewSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
     render(<Combobox options={options} onChange={vi.fn()} />);

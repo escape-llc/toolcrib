@@ -327,6 +327,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
       // Standard tag-input affordance: Backspace on an empty query removes
       // the most recently added chip instead of doing nothing.
       removeChip(selectedValues[selectedValues.length - 1]);
+    } else if (e.key === 'Escape' && open) {
+      // Required by the WAI-ARIA APG Combobox pattern: Escape closes the
+      // popup when it's open. stopPropagation so a single Escape press
+      // closes only this listbox, not also a parent Modal/Drawer the
+      // combobox happens to be nested in (which would otherwise see the
+      // same bubbling keydown and close itself too, in the same press).
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
     }
   };
 

@@ -70,10 +70,20 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
   useInjectInteractionStyles();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { canScrollLeft, canScrollRight, scrollBy } = useScrollOverflow(scrollContainerRef, [items]);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const [internalActiveId, setInternalActiveId] = useState(defaultActiveId ?? items[0]?.id ?? '');
   const isControlled = controlledActiveId !== undefined;
   const activeId = isControlled ? controlledActiveId : internalActiveId;
+  // Roving tabindex per the WAI-ARIA APG Listbox pattern: exactly one
+  // option is ever in the Tab order at a time (Arrow keys move among them
+  // instead), not every thumbnail individually — previously every <button>
+  // used its default tabIndex, so a keyboard user had to Tab through each
+  // one in turn instead of arrowing directly to the one they wanted, and
+  // no Arrow key handling existed at all. Falls back to the first enabled
+  // item if activeId doesn't match any current item (e.g. it was removed),
+  // so the strip is never entirely untabbable.
+  const rovingTabIndexId = items.some(it => it.id === activeId) ? activeId : items.find(it => !it.disabled)?.id;
 
   const previousIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -88,6 +98,39 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
     if (nextId !== previousIdRef.current) {
       aiBus.emit('filmstrip:changed', { id, activeId: nextId, previousId: previousIdRef.current });
       previousIdRef.current = nextId;
+    }
+  };
+
+  // Selection-follows-focus, matching RadioGroup's own arrow-key model
+  // (the common pattern for a single-select roving-tabindex widget) rather
+  // than a separate "move focus, then confirm" step — Arrow moves both the
+  // active item and real DOM focus together. Doesn't wrap past either end
+  // (an optional behavior per the APG pattern, not a required one) and
+  // skips disabled items so focus can never land on one.
+  const moveTo = (nextId: string) => {
+    handleChange(nextId);
+    itemRefs.current.get(nextId)?.focus();
+  };
+
+  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    const enabledIndices = items.reduce<number[]>((acc, it, i) => { if (!it.disabled) acc.push(i); return acc; }, []);
+    const posInEnabled = enabledIndices.indexOf(currentIndex);
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = enabledIndices[Math.min(posInEnabled + 1, enabledIndices.length - 1)];
+      if (next !== undefined) moveTo(items[next].id);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = enabledIndices[Math.max(posInEnabled - 1, 0)];
+      if (prev !== undefined) moveTo(items[prev].id);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      const first = enabledIndices[0];
+      if (first !== undefined) moveTo(items[first].id);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      const last = enabledIndices[enabledIndices.length - 1];
+      if (last !== undefined) moveTo(items[last].id);
     }
   };
 
@@ -145,17 +188,23 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
           outline: 'none',
         }}
       >
-        {items.map(item => {
+        {items.map((item, index) => {
           const isActive = item.id === activeId;
           return (
             <button
               key={item.id}
+              ref={el => {
+                if (el) itemRefs.current.set(item.id, el);
+                else itemRefs.current.delete(item.id);
+              }}
               type="button"
               role="option"
               aria-selected={isActive}
               aria-label={item.label}
               disabled={item.disabled}
+              tabIndex={item.id === rovingTabIndexId ? 0 : -1}
               onClick={() => !item.disabled && handleChange(item.id)}
+              onKeyDown={e => handleItemKeyDown(e, index)}
               className="ai-btn"
               style={{
                 display: 'flex',

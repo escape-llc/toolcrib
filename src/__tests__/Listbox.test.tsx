@@ -16,6 +16,11 @@ describe('Listbox', () => {
     expect(screen.getByText('Viewer')).toBeInTheDocument();
   });
 
+  it('supports aria-label/aria-labelledby for standalone use — no wrapping FormField convention applies here the way it does for other Form controls', () => {
+    render(<Listbox id="lb" options={options} onSelect={vi.fn()} aria-label="Choose a role" />);
+    expect(screen.getByRole('listbox', { name: 'Choose a role' })).toBeInTheDocument();
+  });
+
   it('derives each option\'s id from the listbox\'s own id, so a caller can predict it for aria-activedescendant', () => {
     render(<Listbox id="lb" options={options} onSelect={vi.fn()} />);
     expect(document.getElementById('lb-option-0')).toHaveTextContent('Admin');
