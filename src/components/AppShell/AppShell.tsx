@@ -219,7 +219,17 @@ AppShell.Sidebar = ({ children, paddingMode, ...props }) => {
         background: 'var(--ai-bg-surface)',
         borderRight: position === 'left' ? '0.0625rem solid var(--ai-border)' : undefined,
         borderLeft: position === 'right' ? '0.0625rem solid var(--ai-border)' : undefined,
-        padding: paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-appshell-sidebar-padding, 1rem 0.75rem)',
+        // Horizontal padding drops to 0 while collapsed, regardless of
+        // paddingMode -- the aside's own content-box width has to equal
+        // SIDEBAR_COLLAPSED_WIDTH exactly, matching the fixed collapsed
+        // width <Sidebar> itself renders at, or its normal horizontal
+        // padding eats into that fixed budget and the inner nav (still
+        // its own full COLLAPSED_WIDTH wide) overflows its now-narrower
+        // parent -- invisible before this component set overflowX to
+        // 'auto' (a barely-there scrollbar was the only sign), a hard
+        // right-edge crop on every icon once it became 'hidden' instead
+        // (reported directly, from a real screenshot).
+        padding: collapsed ? '1rem 0' : paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-appshell-sidebar-padding, 1rem 0.75rem)',
       }}
     >
       <SidebarCollapseContext.Provider value={contextValue}>{children}</SidebarCollapseContext.Provider>
