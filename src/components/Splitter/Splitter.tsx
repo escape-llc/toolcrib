@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, type ReactNode, type ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
+import { useAIEvent } from '../../eventBus/useAIEvent';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
@@ -70,7 +71,7 @@ export type SplitterOrientation = 'horizontal' | 'vertical';
  * Automatically creates a layout domain for corner-squaring adjacent children.
  */
 export interface SplitterProps {
-  /** Unique domain identifier for layout context. Auto-generated if omitted. */
+  /** Unique domain identifier for layout context, and the `id` a `splitter:split_changed` aiBus event must match to command this Splitter's split ratio externally. Auto-generated if omitted — pass an explicit value to target it predictably. */
   id?: string;
   /**
    * Split direction. `'vertical'` = top/bottom panels, `'horizontal'` = left/right panels.
@@ -151,8 +152,32 @@ export const Splitter: React.FC<SplitterProps> & {
   const [split, setSplit] = useState<number>(initialSplit);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const latestSplitRef = useRef<number>(initialSplit);
 
   const isVertical = orientation === 'vertical'; // vertical split = top/bottom panels
+
+  // Splitter has no controlled/ref prop for `split` — a consumer button
+  // ("collapse this panel", "reset the layout") drives it the same way a
+  // drag, an arrow key, or the handle's own dblclick-to-reset already do:
+  // over `aiBus`, matched by this Splitter's own `domainId` (already used
+  // to target it for `layout:domain:created`/`layout:corners:squared`
+  // above, so this reuses an id a consumer may already have on hand rather
+  // than introducing a second identifier). `fromBus` mirrors Collapsible's
+  // own `handleOpenChange(open, fromBus)` guard: a change that arrived
+  // FROM the bus doesn't re-emit, so two Splitters (or a Splitter and an
+  // external listener) commanding each other can't loop.
+  const commitSplit = (value: number, fromBus = false) => {
+    const clamped = Math.max(minSize, Math.min(100 - minSize, value));
+    latestSplitRef.current = clamped;
+    setSplit(clamped);
+    if (!fromBus) {
+      aiBus.emit('splitter:split_changed', { id: domainId, split: clamped });
+    }
+  };
+
+  useAIEvent('splitter:split_changed', e => {
+    if (e.id === domainId) commitSplit(e.split, true);
+  });
 
   useEffect(() => {
     aiBus.emit('layout:domain:created', {
@@ -226,11 +251,17 @@ export const Splitter: React.FC<SplitterProps> & {
       }
 
       const clamped = Math.max(minSize, Math.min(100 - minSize, newPercentage));
+      // setSplit directly, not commitSplit -- this fires on every
+      // mousemove tick during a drag, and broadcasting each one over
+      // aiBus would flood it. The final position still gets announced,
+      // via commitSplit on pointer-up below.
+      latestSplitRef.current = clamped;
       setSplit(clamped);
     };
 
     const handlePointerUp = () => {
       setIsDragging(false);
+      commitSplit(latestSplitRef.current);
     };
 
     ownerWindow.addEventListener('mousemove', handlePointerMove);
@@ -321,23 +352,23 @@ export const Splitter: React.FC<SplitterProps> & {
         tabIndex={0}
         onMouseDown={onHandleDown}
         onPointerDown={onHandleDown}
-        onDoubleClick={() => setSplit(initialSplit)}
+        onDoubleClick={() => commitSplit(initialSplit)}
         onKeyDown={e => {
           const step = e.shiftKey ? 10 : 2;
           const forwardKey = isVertical ? 'ArrowDown' : 'ArrowRight';
           const backwardKey = isVertical ? 'ArrowUp' : 'ArrowLeft';
           if (e.key === forwardKey) {
             e.preventDefault();
-            setSplit(s => Math.max(minSize, Math.min(100 - minSize, s + step)));
+            commitSplit(split + step);
           } else if (e.key === backwardKey) {
             e.preventDefault();
-            setSplit(s => Math.max(minSize, Math.min(100 - minSize, s - step)));
+            commitSplit(split - step);
           } else if (e.key === 'Home') {
             e.preventDefault();
-            setSplit(minSize);
+            commitSplit(minSize);
           } else if (e.key === 'End') {
             e.preventDefault();
-            setSplit(100 - minSize);
+            commitSplit(100 - minSize);
           }
         }}
         className="ai-focus-ring"

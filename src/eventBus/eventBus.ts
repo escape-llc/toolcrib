@@ -80,6 +80,7 @@ export interface AIEventMap {
   'datatable:row_clicked': { id?: string; index: number };
   'log:cleared': { timestamp: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
+  'splitter:split_changed': { id: string; split: number };
   'layout:corners:squared': {
     domainId: string;
     slot: 'first' | 'second';

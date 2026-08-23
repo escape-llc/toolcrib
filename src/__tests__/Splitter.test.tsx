@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { Splitter } from '../components/Splitter/Splitter';
+import { aiBus } from '../eventBus/eventBus';
 
 describe('Splitter Component & Corner Squaring', () => {
   it('renders split panes and separator handle', () => {
@@ -231,6 +232,90 @@ describe('Splitter Component & Corner Squaring', () => {
       fireEvent.mouseMove(window, { clientX: 40 }); // 40/200 = 20%, clamped to minSize=10 -> stays 20
       expect(handle).toHaveAttribute('aria-valuenow', '20');
       fireEvent.mouseUp(window);
+    });
+  });
+
+  describe('splitter:split_changed aiBus command', () => {
+    it('commands the split ratio from outside, matched by id', () => {
+      render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      expect(handle).toHaveAttribute('aria-valuenow', '60');
+
+      act(() => {
+        aiBus.emit('splitter:split_changed', { id: 'my-splitter', split: 30 });
+      });
+      expect(handle).toHaveAttribute('aria-valuenow', '30');
+    });
+
+    it('ignores a command for a different id', () => {
+      render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+
+      aiBus.emit('splitter:split_changed', { id: 'someone-elses-splitter', split: 30 });
+      expect(handle).toHaveAttribute('aria-valuenow', '60');
+    });
+
+    it('clamps a commanded split to minSize/maxSize the same way a drag or keypress would', () => {
+      render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+
+      act(() => {
+        aiBus.emit('splitter:split_changed', { id: 'my-splitter', split: 500 });
+      });
+      expect(handle).toHaveAttribute('aria-valuenow', '90');
+    });
+
+    it('re-emits splitter:split_changed when the handle itself changes the split (dblclick reset), so an external listener stays in sync', () => {
+      render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      fireEvent.keyDown(handle, { key: 'ArrowDown' });
+
+      const listener = vi.fn();
+      const unsubscribe = aiBus.on('splitter:split_changed', listener);
+      fireEvent.doubleClick(handle);
+      unsubscribe();
+
+      expect(listener).toHaveBeenCalledWith({ id: 'my-splitter', split: 60 });
+    });
+
+    it('does not echo a commanded change back onto the bus (no feedback loop between two Splitters commanding each other)', () => {
+      render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={60} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const listener = vi.fn();
+      const unsubscribe = aiBus.on('splitter:split_changed', listener);
+      act(() => {
+        aiBus.emit('splitter:split_changed', { id: 'my-splitter', split: 40 });
+      });
+      unsubscribe();
+
+      // Only the original command itself was observed — Splitter's own
+      // handler applied it (fromBus=true) without re-emitting.
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith({ id: 'my-splitter', split: 40 });
     });
   });
 

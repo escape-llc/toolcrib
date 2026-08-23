@@ -60,6 +60,8 @@ import {
   HoverCard,
   AspectRatio,
   Combobox,
+  Listbox,
+  type ListboxOptionData,
   FileUpload,
   Pagination,
   Badge,
@@ -91,6 +93,43 @@ import {
   Sparkline,
   Heatmap,
 } from '#toolcrib';
+
+// Named so the "collapse event log" toolbar button (in the AppShell.Main
+// render below) can target this specific Splitter's `id` over aiBus,
+// without hardcoding the same magic numbers/string in two places.
+const MAIN_SPLITTER_ID = 'main-demo-splitter';
+const MAIN_SPLITTER_INITIAL_SPLIT = 70;
+const MAIN_SPLITTER_MIN_SIZE = 15;
+
+// For the standalone <Listbox> demo below — label carries " — " so the
+// render slot can split it into a two-line name/role display, while label
+// itself stays the plain string the filter matches against.
+const TEAM_MEMBERS: ListboxOptionData[] = [
+  { label: 'Ava Chen — Design', value: 'ava' },
+  { label: 'Marcus Lee — Engineering', value: 'marcus' },
+  { label: 'Priya Patel — Product', value: 'priya' },
+  { label: 'Sam Rivera — Engineering', value: 'sam' },
+  { label: 'Jordan Kim — Design', value: 'jordan' },
+].map(opt => ({
+  ...opt,
+  render: (o: ListboxOptionData) => {
+    const [name, role] = o.label.split(' — ');
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+        <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>{name}</span>
+        <span style={{ fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>{role}</span>
+      </div>
+    );
+  },
+}));
+
+const TABLE_COLUMN_OPTIONS = [
+  { label: 'Name', value: 'name' },
+  { label: 'Email', value: 'email' },
+  { label: 'Role', value: 'role' },
+  { label: 'Status', value: 'status' },
+  { label: 'Actions', value: 'actions' },
+];
 
 const COUNTRY_OPTIONS = [
   { label: 'United States', value: 'us' },
@@ -635,6 +674,10 @@ export const App: React.FC = () => {
   // way either way; this only adds the explicit React-level hook.
   const [activeTab, setActiveTab] = useState('overview');
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
+  const [listboxQuery, setListboxQuery] = useState('');
+  const [listboxActiveIndex, setListboxActiveIndex] = useState<number | undefined>(undefined);
+  const [listboxSelected, setListboxSelected] = useState<string | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'email', 'status']);
   const [progressValue, setProgressValue] = useState(45);
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
@@ -643,6 +686,23 @@ export const App: React.FC = () => {
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
   const [dashboardDimension, setDashboardDimension] = useState('all');
+  const [eventLogCollapsed, setEventLogCollapsed] = useState(false);
+  // MAIN_SPLITTER_ID/MAIN_SPLITTER_MIN_SIZE below give the "collapse the
+  // event log" button a stable target: Splitter has no controlled/ref prop
+  // for its split ratio, but it listens for `splitter:split_changed` on
+  // aiBus, matched by its own `id`, exactly the way Modal/Collapsible are
+  // already commanded by their own `id` -- driving it here is the same
+  // pattern the rest of this toolkit already uses for cross-component
+  // action, not a Splitter-specific special case. The handle itself still
+  // works too (drag, arrow keys, dblclick-to-reset) -- this button is an
+  // additional way to reach the same `split` state, not a replacement.
+  const toggleEventLogCollapsed = () => {
+    aiBus.emit('splitter:split_changed', {
+      id: MAIN_SPLITTER_ID,
+      split: eventLogCollapsed ? MAIN_SPLITTER_INITIAL_SPLIT : 100 - MAIN_SPLITTER_MIN_SIZE,
+    });
+    setEventLogCollapsed(v => !v);
+  };
 
   // Data-driven for <CommandPalette> — grouped, each entry either jumps to
   // a tab (closing over setActiveTab, the same controlled hook above) or
@@ -863,7 +923,7 @@ export const App: React.FC = () => {
 
       {/* Main Content Area with Resizable Splitter */}
       <AppShell.Main>
-        <Splitter orientation="vertical" initialSplit={70}>
+        <Splitter id={MAIN_SPLITTER_ID} orientation="vertical" initialSplit={MAIN_SPLITTER_INITIAL_SPLIT} minSize={MAIN_SPLITTER_MIN_SIZE}>
           {/* Top Panel: Interactive Component Playground */}
           {/* <Content> fills the Splitter.Panel and establishes the flex
               domain; unlike a plain div (or VStack, which doesn't declare
@@ -2320,6 +2380,98 @@ export const App: React.FC = () => {
                       </Card.Content>
                     </Card>
 
+                    {/* Section 4.55: Listbox — the keyboard-navigable
+                        option list Combobox is built on, now usable
+                        standalone. Left: a caller-owned text input drives
+                        activeIndex/aria-activedescendant, exactly the
+                        contract Combobox itself relies on internally, and
+                        each option's `render` slot replaces the plain
+                        label with a two-line name/role layout. Right: a
+                        plain multiSelectable checklist with no input and
+                        no keyboard state at all — just toggling
+                        selectedValues membership on click. */}
+                    <Card>
+                      <Card.Header>Standalone Option List (`&lt;Listbox&gt;`)</Card.Header>
+                      <Card.Content>
+                        <Grid columns={2} gap="lg">
+                          <VStack gap="sm">
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Keyboard-Navigable Picker with a Custom `render` Slot</div>
+                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                              Extracted from <code>&lt;Combobox&gt;</code>'s own internals — Listbox owns no keyboard state itself, so the input below drives <code>activeIndex</code> and <code>aria-activedescendant</code> the same way Combobox already does internally.
+                            </p>
+                            <Input
+                              value={listboxQuery}
+                              placeholder="Filter teammates..."
+                              aria-controls="demo-listbox-team"
+                              aria-activedescendant={listboxActiveIndex !== undefined ? `demo-listbox-team-option-${listboxActiveIndex}` : undefined}
+                              onChange={e => {
+                                setListboxQuery(e.target.value);
+                                setListboxActiveIndex(undefined);
+                              }}
+                              onKeyDown={e => {
+                                const filtered = TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()));
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setListboxActiveIndex(i => Math.min(filtered.length - 1, (i ?? -1) + 1));
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setListboxActiveIndex(i => Math.max(0, (i ?? 0) - 1));
+                                } else if (e.key === 'Enter' && listboxActiveIndex !== undefined) {
+                                  e.preventDefault();
+                                  const opt = filtered[listboxActiveIndex];
+                                  if (opt) {
+                                    setListboxSelected(opt.value);
+                                    setListboxQuery(opt.label);
+                                    setListboxActiveIndex(undefined);
+                                    addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
+                                  }
+                                }
+                              }}
+                            />
+                            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
+                              <Listbox
+                                id="demo-listbox-team"
+                                options={TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()))}
+                                activeIndex={listboxActiveIndex}
+                                selectedValues={listboxSelected ? [listboxSelected] : []}
+                                aria-label="Teammates"
+                                onSelect={opt => {
+                                  setListboxSelected(opt.value);
+                                  setListboxQuery(opt.label);
+                                  setListboxActiveIndex(undefined);
+                                  addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
+                                }}
+                              />
+                            </div>
+                          </VStack>
+
+                          <VStack gap="sm">
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Click-Only Multi-Select (`multiSelectable`, no input)</div>
+                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                              No keyboard state needed when there's no search box driving it — each click just toggles membership in <code>selectedValues</code>, the shape a "Visible Columns" quick-picker needs.
+                            </p>
+                            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
+                              <Listbox
+                                id="demo-listbox-columns"
+                                options={TABLE_COLUMN_OPTIONS}
+                                selectedValues={visibleColumns}
+                                multiSelectable
+                                aria-label="Visible table columns"
+                                onSelect={opt => {
+                                  setVisibleColumns(cols =>
+                                    cols.includes(opt.value) ? cols.filter(c => c !== opt.value) : [...cols, opt.value]
+                                  );
+                                }}
+                              />
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+                              Visible: {visibleColumns.length ? visibleColumns.join(', ') : '(none)'}
+                            </p>
+                          </VStack>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
+
                     {/* Section 4.6: FileUpload — drag-and-drop with a
                         simulated upload transport (staged progress via
                         setTimeout, occasionally failing to demonstrate
@@ -2525,55 +2677,69 @@ export const App: React.FC = () => {
                     <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
                   </Toolbar.Left>
                   <Toolbar.Right>
-                    {/* Toolbar.Button (not a plain Button): joins the
-                        toolbar's roving-tabindex group — Left/Right arrow
-                        keys move focus between these two actions instead of
-                        each taking its own Tab stop. Still wrappable in
-                        <Tooltip> exactly like a plain Button, since
-                        Toolbar.Button forwards its ref. */}
-                    <Tooltip content="Download the captured events below as newline-delimited JSON — boilerplate for the telemetry-forwarding pattern this panel and the error:boundary toast above both demonstrate live in-browser: swap this Blob download for a fetch()/fs.appendFile() call and the same shape ships events to a real backend instead">
-                      <Toolbar.Button
-                        size="sm"
-                        variant="outline"
-                        icon="⬇️"
-                        disabled={eventLogs.length === 0}
-                        onClick={() => {
-                          // One JSON object per line, oldest first (eventLogs
-                          // is newest-first for display) — the standard JSONL
-                          // convention so a consumer can append-only stream
-                          // this to a file/log pipeline. `log.payload` is
-                          // already a JSON string (built by JSON.stringify
-                          // above), so it's spliced in directly rather than
-                          // re-stringified, avoiding double-encoding it.
-                          const lines = [...eventLogs].reverse().map(
-                            log => `{"time":${JSON.stringify(log.time)},"event":${JSON.stringify(log.event)},"payload":${log.payload}}`
-                          );
-                          const blob = new Blob([lines.join('\n')], { type: 'application/x-ndjson' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `aibus-events-${Date.now()}.jsonl`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        Export JSONL
-                      </Toolbar.Button>
-                    </Tooltip>
-                    <Toolbar.Separator />
-                    <Tooltip content="Clear all recorded event log items from stream">
-                      <Toolbar.Button
-                        size="sm"
-                        variant="ghost"
-                        icon="🗑️"
-                        onClick={() => {
-                          setEventLogs([]);
-                          aiBus.emit('log:cleared', { timestamp: new Date().toLocaleTimeString() });
-                        }}
-                      >
-                        Clear Log
-                      </Toolbar.Button>
-                    </Tooltip>
+                    {/* A connected <UIGroup> instead of loose Toolbar.Button
+                        siblings — same "3-Button Connected Group with
+                        Glyphs" pattern shown on the Component Showcase tab,
+                        just applied to a real toolbar instead of a demo
+                        card. Plain <Button> (not Toolbar.Button): UIGroup's
+                        border-merging CSS targets its own direct children,
+                        and each Tooltip passes its child straight through
+                        via Radix's asChild with no wrapper of its own, so
+                        the Button stays UIGroup's direct child either way. */}
+                    <UIGroup>
+                      <Tooltip content="Download the captured events below as newline-delimited JSON — boilerplate for the telemetry-forwarding pattern this panel and the error:boundary toast above both demonstrate live in-browser: swap this Blob download for a fetch()/fs.appendFile() call and the same shape ships events to a real backend instead">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon="⬇️"
+                          disabled={eventLogs.length === 0}
+                          onClick={() => {
+                            // One JSON object per line, oldest first (eventLogs
+                            // is newest-first for display) — the standard JSONL
+                            // convention so a consumer can append-only stream
+                            // this to a file/log pipeline. `log.payload` is
+                            // already a JSON string (built by JSON.stringify
+                            // above), so it's spliced in directly rather than
+                            // re-stringified, avoiding double-encoding it.
+                            const lines = [...eventLogs].reverse().map(
+                              log => `{"time":${JSON.stringify(log.time)},"event":${JSON.stringify(log.event)},"payload":${log.payload}}`
+                            );
+                            const blob = new Blob([lines.join('\n')], { type: 'application/x-ndjson' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `aibus-events-${Date.now()}.jsonl`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
+                          Export JSONL
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="Clear all recorded event log items from stream">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon="🗑️"
+                          onClick={() => {
+                            setEventLogs([]);
+                            aiBus.emit('log:cleared', { timestamp: new Date().toLocaleTimeString() });
+                          }}
+                        >
+                          Clear Log
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content={eventLogCollapsed ? 'Expand the event log panel back to its default height' : 'Collapse the event log panel to give the playground above more vertical space'}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon={eventLogCollapsed ? '▲' : '▼'}
+                          onClick={toggleEventLogCollapsed}
+                        >
+                          {eventLogCollapsed ? 'Expand' : 'Collapse'}
+                        </Button>
+                      </Tooltip>
+                    </UIGroup>
                   </Toolbar.Right>
                 </Toolbar>
               </Card.Header>

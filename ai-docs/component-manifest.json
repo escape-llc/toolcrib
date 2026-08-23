@@ -681,6 +681,10 @@
         "payload": "{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
       },
       {
+        "name": "splitter:split_changed",
+        "payload": "{ id: string; split: number }"
+      },
+      {
         "name": "layout:corners:squared",
         "payload": "{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"
       }
@@ -2737,7 +2741,7 @@
       "props": {
         "id": {
           "type": "string",
-          "description": "Unique domain identifier for layout context. Auto-generated if omitted."
+          "description": "Unique domain identifier for layout context, and the `id` a `splitter:split_changed` aiBus event must match to command this Splitter's split ratio externally. Auto-generated if omitted — pass an explicit value to target it predictably."
         },
         "orientation": {
           "type": "'horizontal' | 'vertical'",
