@@ -2026,6 +2026,67 @@
       "description": "Multi-series line chart with a shared hover crosshair; `variant=\"area\"` renders a stacked, filled area chart"
     },
     {
+      "name": "Listbox",
+      "import": "import { Listbox } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "required": true,
+          "description": "DOM id for the listbox container. Each option's own id is derived from this (`${id}-option-${index}`) — predictable so a caller can compute the active option's id for `aria-activedescendant` without Listbox needing to expose it separately."
+        },
+        "options": {
+          "type": "ListboxOptionData[]",
+          "required": true,
+          "description": "Options to render."
+        },
+        "activeIndex": {
+          "type": "number",
+          "description": "Index of the currently keyboard-highlighted option, if any."
+        },
+        "selectedValues": {
+          "type": "string[]",
+          "description": "Values currently selected."
+        },
+        "onSelect": {
+          "type": "(option: ListboxOptionData) => void",
+          "required": true,
+          "description": "Called when an option is chosen (via `mousedown`, so a fast pointer-down-then-drag selects correctly, matching native listbox feel — and before an input's own `blur` would otherwise run). Never called for a `disabled` option."
+        },
+        "loading": {
+          "type": "boolean",
+          "description": "Shows `loadingMessage` instead of the option list."
+        },
+        "loadingMessage": {
+          "type": "ReactNode",
+          "default": "'Loading…'",
+          "description": "Content shown while `loading` is true."
+        },
+        "emptyMessage": {
+          "type": "ReactNode",
+          "default": "'No results'",
+          "description": "Content shown when there are no options and not loading."
+        },
+        "multiSelectable": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Whether more than one option can be selected at once — sets\n`aria-multiselectable` and renders a trailing checkmark on selected\noptions. A single-select listbox conveys its selection through the\ncaller's own trigger instead, so it doesn't need an in-list indicator."
+        },
+        "itemPadding": {
+          "type": "string",
+          "default": "'var(--ai-padding-sm, 0.4375rem 0.75rem)'",
+          "description": "Per-option-row padding. Pass a caller's own themed CSS variable reference (e.g. Combobox passes `var(--ai-combobox-item-padding, ...)`) to keep density theme-consistent with the rest of that caller's own UI."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control — drives the option row's font-size."
+        }
+      },
+      "constraints": "Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`",
+      "category": "Form Controls",
+      "description": "Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone"
+    },
+    {
       "name": "Modal",
       "import": "import { Modal } from '#toolcrib'",
       "slots": [
@@ -3318,22 +3379,6 @@
         "description": "If true, the item cannot be selected."
       }
     },
-    "ComboboxOptionData": {
-      "label": {
-        "type": "string",
-        "required": true,
-        "description": "Display text for the option — also what's matched against the typed query for client-side filtering."
-      },
-      "value": {
-        "type": "string",
-        "required": true,
-        "description": "Value submitted/emitted when this option is selected."
-      },
-      "disabled": {
-        "type": "boolean",
-        "description": "If true, the option is visible but not selectable."
-      }
-    },
     "RadioOption": {
       "label": {
         "type": "ReactNode",
@@ -3393,6 +3438,26 @@
       "caption": {
         "type": "ReactNode",
         "description": "Optional caption shown in the `<Viewer>` for this item."
+      }
+    },
+    "ListboxOptionData": {
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Display text for the option, and the text any caller's own filtering matches against. Still rendered as-is when `render` is omitted."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value submitted/emitted when this option is selected."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, the option is visible but not selectable."
+      },
+      "render": {
+        "type": "(option: ListboxOptionData) => ReactNode",
+        "description": "Custom content for this option, overriding the plain `label` text render. `label` still applies to any caller's own text-based filtering — this only changes what's visually shown."
       }
     },
     "SidebarItemData": {

@@ -10,16 +10,17 @@ import { computeCornerSquaring } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
+import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 
-/** Data shape for each option in a `<Combobox>` listbox. */
-export interface ComboboxOptionData {
-  /** Display text for the option — also what's matched against the typed query for client-side filtering. */
-  label: string;
-  /** Value submitted/emitted when this option is selected. */
-  value: string;
-  /** If true, the option is visible but not selectable. */
-  disabled?: boolean;
-}
+/**
+ * Data shape for each option in a `<Combobox>` listbox — literally
+ * `ListboxOptionData` (same `label`/`value`/`disabled`/`render` shape,
+ * same reasoning for why `label` stays a plain `string`: it's what
+ * `Combobox`'s own client-side filter matches against). Kept as its own
+ * named export since it predates the `Listbox` extraction and consumers
+ * already import it by this name.
+ */
+export type ComboboxOptionData = ListboxOptionData;
 
 /**
  * Props for the `<Combobox>` filterable text input + listbox.
@@ -339,7 +340,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
     }
   };
 
-  const activeOptionId = filteredOptions[activeIndex] ? `${baseId}-option-${activeIndex}` : undefined;
+  // Matches Listbox's own id-generation scheme (`${id}-option-${index}`,
+  // where `id` is whatever's passed as its own `id` prop below) — Listbox
+  // is deliberately controlled/presentational and doesn't expose its
+  // option ids any other way, so a caller predicts them from the same `id`
+  // it already passed in.
+  const activeOptionId = filteredOptions[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined;
   const hasValue = selectedValues.length > 0;
 
   // ArrowDown/ArrowUp/Home/End all move activeIndex, but the listbox itself
@@ -544,64 +550,19 @@ export const Combobox: React.FC<ComboboxProps> = ({
             ...comboboxVars,
           }}
         >
-          <div
-            role="listbox"
+          <Listbox
             id={listboxId}
-            aria-multiselectable={multiple || undefined}
-            style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
-          >
-            {loading && (
-              <div style={{ padding: 'var(--ai-combobox-item-padding, 0.4375rem 0.75rem)', fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
-                Searching…
-              </div>
-            )}
-            {!loading && filteredOptions.length === 0 && (
-              <div style={{ padding: 'var(--ai-combobox-item-padding, 0.4375rem 0.75rem)', fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
-                {noResultsMessage}
-              </div>
-            )}
-            {!loading &&
-              filteredOptions.map((opt, index) => {
-                const isSelected = selectedValues.includes(opt.value);
-                return (
-                  <div
-                    key={opt.value}
-                    id={`${baseId}-option-${index}`}
-                    role="option"
-                    aria-selected={isSelected}
-                    data-highlighted={index === activeIndex ? '' : undefined}
-                    className="ai-menu-item"
-                    // onMouseDown, not onClick: fires before the input's own
-                    // blur would otherwise run (moot here since these plain,
-                    // non-focusable divs never steal focus from the input in
-                    // the first place — see this file's own review notes —
-                    // but onMouseDown also lets a fast pointer-down-then-drag
-                    // select correctly, matching native listbox feel).
-                    onMouseDown={e => {
-                      e.preventDefault();
-                      commitSelection(opt);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: 'var(--ai-combobox-item-padding, 0.4375rem 0.75rem)',
-                      fontSize: '0.875rem',
-                      borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                      color: 'var(--ai-text-primary, #111827)',
-                      cursor: opt.disabled ? 'not-allowed' : 'pointer',
-                      opacity: opt.disabled ? 0.5 : 1,
-                      userSelect: 'none',
-                    }}
-                  >
-                    {opt.label}
-                    {multiple && isSelected && (
-                      <span style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 'var(--ai-font-weight-black, 900)' }}>✓</span>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
+            options={filteredOptions}
+            activeIndex={activeIndex}
+            selectedValues={selectedValues}
+            onSelect={commitSelection}
+            loading={loading}
+            loadingMessage="Searching…"
+            emptyMessage={noResultsMessage}
+            multiSelectable={multiple}
+            itemPadding="var(--ai-combobox-item-padding, 0.4375rem 0.75rem)"
+            size={size}
+          />
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>

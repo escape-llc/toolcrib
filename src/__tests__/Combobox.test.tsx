@@ -40,6 +40,19 @@ describe('Combobox Component — client-side filtering', () => {
     expect(screen.getByText('Nothing found')).toBeInTheDocument();
   });
 
+  it('renders custom option content via render(), while filtering still matches against the plain label text', () => {
+    const richOptions = [
+      { label: 'Admin', value: 'admin', render: (opt: { label: string }) => <em data-testid="rich-admin">{opt.label} role</em> },
+      { label: 'Editor', value: 'editor' },
+    ];
+    render(<Combobox options={richOptions} onChange={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'adm' } });
+
+    expect(screen.getByTestId('rich-admin')).toHaveTextContent('Admin role');
+    expect(screen.queryByText('Editor')).not.toBeInTheDocument();
+  });
+
   it('selects an option via pointer interaction, closes the listbox, and emits combobox:changed', () => {
     const onChange = vi.fn();
     const changedFn = vi.fn();

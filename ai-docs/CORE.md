@@ -207,6 +207,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides`, `size` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
+| `<Listbox>` | — | `id`, `options`, `activeIndex`, `selectedValues`, `onSelect`, `loading`, `loadingMessage`, `emptyMessage`, `multiSelectable`, `itemPadding`, `size` | Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone |
 | `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides`, `size` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<Rating>` | — | `name`, `value`, `defaultValue`, `onChange`, `max`, `icon`, `readOnly`, `overrides` | Star rating control built on Radix RadioGroup, or a read-only fractional-fill display |
