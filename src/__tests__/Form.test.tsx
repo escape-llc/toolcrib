@@ -432,7 +432,7 @@ describe('Form & Zod Validation Engine', () => {
 
     it('renders the lg size styling', () => {
       render(<Button size="lg">Large</Button>);
-      expect(screen.getByText('Large').style.fontSize).toBe('1rem');
+      expect(screen.getByText('Large').style.fontSize).toBe('var(--ai-control-font-size-lg, 1rem)');
     });
   });
 });

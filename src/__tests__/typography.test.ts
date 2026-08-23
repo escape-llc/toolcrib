@@ -34,4 +34,25 @@ describe('Typography Theme Slice Engine', () => {
   it('lists --ai-line-height in fieldVars so a sparse baseLineHeight-only override emits just that variable', () => {
     expect(TypographyThemeSlice.fieldVars?.baseLineHeight).toEqual(['--ai-line-height']);
   });
+
+  it('derives --ai-control-font-size-sm/md/lg as ratios of masterFontSize (75%/87.5%/100%), so every sized control rescales with the one slider', () => {
+    const vars = getTypographyVariables({ fontFamily: 'system', masterFontSize: 16, baseLineHeight: 1.5 });
+    expect(vars['--ai-control-font-size-sm']).toBe('12px');
+    expect(vars['--ai-control-font-size-md']).toBe('14px');
+    expect(vars['--ai-control-font-size-lg']).toBe('16px');
+
+    const scaled = getTypographyVariables({ fontFamily: 'system', masterFontSize: 20, baseLineHeight: 1.5 });
+    expect(scaled['--ai-control-font-size-sm']).toBe('15px');
+    expect(scaled['--ai-control-font-size-md']).toBe('17.5px');
+    expect(scaled['--ai-control-font-size-lg']).toBe('20px');
+  });
+
+  it('lists all three control-font-size variables under masterFontSize in fieldVars, alongside --ai-master-font-size itself', () => {
+    expect(TypographyThemeSlice.fieldVars?.masterFontSize).toEqual([
+      '--ai-master-font-size',
+      '--ai-control-font-size-sm',
+      '--ai-control-font-size-md',
+      '--ai-control-font-size-lg',
+    ]);
+  });
 });

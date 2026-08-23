@@ -14,6 +14,7 @@ import { CalendarDate } from '@internationalized/date';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
+import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 
 /** Props for the standalone `<Calendar>` month grid. */
 export interface CalendarProps {
@@ -44,8 +45,10 @@ export interface CalendarProps {
    * @default 'en-US'
    */
   locale?: string;
-  /** Per-instance override for grid cell size. */
+  /** Per-instance override for grid cell size. `overrides.cellSize` wins over `size` below if both are set. */
   overrides?: Partial<DatePickerSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control — maps onto the same scale as `overrides.cellSize` and scales the month heading's font size. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -62,8 +65,9 @@ export const Calendar: React.FC<CalendarProps> = ({
   isDisabled = false,
   locale = 'en-US',
   overrides,
+  size = 'md',
 }) => {
-  const { vars } = useSliceOverrides(DatePickerThemeSlice, overrides ?? {});
+  const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
 
   const handleChange = (val: CalendarDate) => {
     onChange?.(val);
@@ -96,7 +100,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           >
             ◀
           </Button>
-          <CalendarHeading style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }} />
+          <CalendarHeading style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: CONTROL_FONT_SIZE_VAR[size], color: 'var(--ai-text-primary, #111827)' }} />
           <Button
             slot="next"
             className="ai-btn"

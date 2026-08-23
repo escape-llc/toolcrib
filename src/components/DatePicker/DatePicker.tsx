@@ -17,6 +17,7 @@ import { Popup } from '../Overlay/Popup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { Calendar } from './Calendar';
 import { type DatePickerSliceState } from './DatePickerSlice';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
 /** Props for the `<DatePicker>` field + calendar popover. */
 export interface DatePickerProps {
@@ -50,6 +51,8 @@ export interface DatePickerProps {
   locale?: string;
   /** Per-instance override for the calendar popover's grid cell size. */
   overrides?: Partial<DatePickerSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -58,7 +61,7 @@ export interface DatePickerProps {
  * (only available *inside* `<DatePicker>`, not from the props this
  * component's caller has direct access to).
  */
-const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceState> }> = ({ overrides }) => {
+const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceState>; size: ControlSize }> = ({ overrides, size }) => {
   const state = useContext(DatePickerStateContext)!;
 
   return (
@@ -67,14 +70,14 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
+        padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         border: '0.0625rem solid var(--ai-border, #d1d5db)',
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
         background: 'var(--ai-bg-surface, #ffffff)',
         width: 'fit-content',
       }}
     >
-      <DateInput style={{ display: 'flex', fontSize: '0.875rem' }}>
+      <DateInput style={{ display: 'flex', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
         {segment => (
           <DateSegment
             segment={segment}
@@ -127,6 +130,7 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
             state.setOpen(false);
           }}
           overrides={overrides}
+          size={size}
         />
       </Popup>
     </Group>
@@ -148,6 +152,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   isDisabled = false,
   locale = 'en-US',
   overrides,
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -180,11 +185,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         className="ai-focus-ring"
       >
         {label && (
-          <Label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
+          <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
             {label}
           </Label>
         )}
-        <DatePickerFieldAndCalendar overrides={overrides} />
+        <DatePickerFieldAndCalendar overrides={overrides} size={size} />
       </AriaDatePicker>
     </I18nProvider>
   );

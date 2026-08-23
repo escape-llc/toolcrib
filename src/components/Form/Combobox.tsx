@@ -9,6 +9,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { computeCornerSquaring } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
 /** Data shape for each option in a `<Combobox>` listbox. */
 export interface ComboboxOptionData {
@@ -77,8 +78,10 @@ export interface ComboboxProps {
   disabled?: boolean;
   /** Message shown when no options match. @default 'No results' */
   noResultsMessage?: ReactNode;
-  /** Per-instance overrides for input padding and item density. */
+  /** Per-instance overrides for input padding and item density. Only applies at the default `size="md"` — see `<Input>`'s own `size` doc for why. */
   overrides?: Partial<ComboboxSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -100,6 +103,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   disabled = false,
   noResultsMessage = 'No results',
   overrides,
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -333,7 +337,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             alignItems: 'center',
             gap: '0.25rem',
             width: '100%',
-            padding: 'var(--ai-combobox-input-padding, 0.5rem 0.75rem)',
+            padding: resolveControlPadding(size, 'var(--ai-combobox-input-padding, 0.5rem 0.75rem)'),
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             border: '0.0625rem solid var(--ai-border, #d1d5db)',
             background: 'var(--ai-bg-surface, #ffffff)',
@@ -426,7 +430,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
               outline: 'none',
               background: 'transparent',
               color: 'var(--ai-text-primary, #111827)',
-              fontSize: '0.875rem',
+              fontSize: CONTROL_FONT_SIZE_VAR[size],
               padding: 0,
               cursor: disabled ? 'not-allowed' : 'text',
             }}

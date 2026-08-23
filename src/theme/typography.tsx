@@ -30,7 +30,21 @@ export interface TypographyCSSVariables extends Record<string, string> {
   '--ai-font-family': string;
   '--ai-master-font-size': string;
   '--ai-line-height': string;
+  '--ai-control-font-size-sm': string;
+  '--ai-control-font-size-md': string;
+  '--ai-control-font-size-lg': string;
 }
+
+// The standardized sm/md/lg font-size scale every sized interactive control
+// (Button, Input, Select, Combobox, ToggleGroup, ...) reads from — see
+// `src/theme/controlSize.ts`. Ratios of masterFontSize rather than an
+// independent field: `lg` is 100% of the master size, `md` 87.5%, `sm` 75%
+// (the exact numbers this scale already used before it moved here, just now
+// expressed as ratios so the whole scale tracks one slider instead of
+// three). Consumers reference the CSS variable with its own literal-rem
+// fallback (`var(--ai-control-font-size-sm, 0.75rem)`), so `size` still
+// resolves correctly even outside a mounted `ToolcribProvider`.
+const CONTROL_FONT_SIZE_RATIO = { sm: 0.75, md: 0.875, lg: 1 } as const;
 
 export const defaultTypographyState: TypographySliceState = {
   fontFamily: 'system',
@@ -52,6 +66,9 @@ export function getTypographyVariables(state: TypographySliceState = defaultTypo
     '--ai-font-family': fontFamilyMap[state.fontFamily] || fontFamilyMap.system,
     '--ai-master-font-size': `${state.masterFontSize}px`,
     '--ai-line-height': `${state.baseLineHeight}`,
+    '--ai-control-font-size-sm': `${state.masterFontSize * CONTROL_FONT_SIZE_RATIO.sm}px`,
+    '--ai-control-font-size-md': `${state.masterFontSize * CONTROL_FONT_SIZE_RATIO.md}px`,
+    '--ai-control-font-size-lg': `${state.masterFontSize * CONTROL_FONT_SIZE_RATIO.lg}px`,
   };
 }
 
@@ -107,7 +124,7 @@ export const TypographyThemeSlice: ThemeSlice<TypographySliceState, TypographyCS
   ),
   fieldVars: {
     fontFamily: ['--ai-font-family'],
-    masterFontSize: ['--ai-master-font-size'],
+    masterFontSize: ['--ai-master-font-size', '--ai-control-font-size-sm', '--ai-control-font-size-md', '--ai-control-font-size-lg'],
     baseLineHeight: ['--ai-line-height'],
   },
 };

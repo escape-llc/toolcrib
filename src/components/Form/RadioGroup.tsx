@@ -5,6 +5,7 @@ import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { RadioGroupThemeSlice, type RadioGroupSliceState } from './RadioGroupSlice';
+import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 
 /** Data shape for each option in a `<RadioGroup>`. */
 export interface RadioOption {
@@ -41,8 +42,10 @@ export interface RadioGroupProps {
   children?: ReactNode;
   /** If true, all options are disabled. */
   disabled?: boolean;
-  /** Per-instance overrides for option spacing and radio dot size. */
+  /** Per-instance overrides for option spacing and radio dot size. `overrides.dotSize` wins over `size` below if both are set. */
   overrides?: Partial<RadioGroupSliceState>;
+  /** Control size — standardized with `<Button>` and every other sized control. Drives both the radio dot diameter (via the same scale as `overrides.dotSize`) and the option label's font size. @default 'md' */
+  size?: ControlSize;
 }
 
 interface RadioGroupContextValue {
@@ -50,6 +53,7 @@ interface RadioGroupContextValue {
   selectedValue?: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  size: ControlSize;
 }
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
@@ -70,12 +74,13 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   children,
   disabled = false,
   overrides,
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
-  const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, overrides ?? {});
+  const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, { dotSize: size, ...overrides });
   useInjectInteractionStyles();
 
   // See Select.tsx for why this matters: without it, a RadioGroup left at
@@ -114,6 +119,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         selectedValue: stringVal,
         onChange: handleChange,
         disabled,
+        size,
       }}
     >
       <RadioGroupPrimitive.Root
@@ -212,7 +218,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span
           style={{
-            fontSize: '0.875rem',
+            fontSize: CONTROL_FONT_SIZE_VAR[ctx.size],
             fontWeight: isChecked ? 'var(--ai-font-weight-semibold, 600)' : 'var(--ai-font-weight-normal, 400)',
             color: 'var(--ai-text-primary, #111827)',
           }}

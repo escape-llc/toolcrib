@@ -73,6 +73,9 @@
       "--ai-commandpalette-max-list-height",
       "--ai-contextmenu-item-padding",
       "--ai-contextmenu-shadow",
+      "--ai-control-font-size-lg",
+      "--ai-control-font-size-md",
+      "--ai-control-font-size-sm",
       "--ai-datepicker-cell-size",
       "--ai-datepicker-popover-padding",
       "--ai-drawer-backdrop-blur",
@@ -1066,7 +1069,12 @@
         },
         "overrides": {
           "type": "Partial<DatePickerSliceState>",
-          "description": "Per-instance override for grid cell size."
+          "description": "Per-instance override for grid cell size. `overrides.cellSize` wins over `size` below if both are set."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control — maps onto the same scale as `overrides.cellSize` and scales the month heading's font size."
         }
       },
       "category": "Form Controls",
@@ -1260,7 +1268,12 @@
         },
         "overrides": {
           "type": "Partial<ComboboxSliceState>",
-          "description": "Per-instance overrides for input padding and item density."
+          "description": "Per-instance overrides for input padding and item density. Only applies at the default `size=\"md\"` — see `<Input>`'s own `size` doc for why."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",
@@ -1513,6 +1526,11 @@
         "overrides": {
           "type": "Partial<DatePickerSliceState>",
           "description": "Per-instance override for the calendar popover's grid cell size."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",
@@ -1668,7 +1686,12 @@
         },
         "overrides": {
           "type": "Partial<FileUploadSliceState>",
-          "description": "Per-instance override for dropzone padding density."
+          "description": "Per-instance override for dropzone padding density. `overrides.density` wins over `size` below if both are set."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control — maps onto the same `density` scale as `overrides.density` (`sm`→`'compact'`, `md`→`'normal'`, `lg`→`'spacious'`) and scales the dropzone's own label text."
         }
       },
       "category": "Form Controls",
@@ -2238,7 +2261,12 @@
         },
         "overrides": {
           "type": "Partial<RadioGroupSliceState>",
-          "description": "Per-instance overrides for option spacing and radio dot size."
+          "description": "Per-instance overrides for option spacing and radio dot size. `overrides.dotSize` wins over `size` below if both are set."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size — standardized with `<Button>` and every other sized control. Drives both the radio dot diameter (via the same scale as `overrides.dotSize`) and the option label's font size."
         }
       },
       "category": "Form Controls",
@@ -2382,7 +2410,12 @@
         },
         "overrides": {
           "type": "Partial<SelectSliceState> & { subtheme?: SubthemeName }",
-          "description": "Per-instance overrides for trigger padding and item density."
+          "description": "Per-instance overrides for trigger padding and item density. Only applies at the default `size=\"md\"` — see `<Input>`'s own `size` doc for why."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",
@@ -2755,6 +2788,11 @@
           "type": "string",
           "default": "'en-US'",
           "description": "BCP 47 locale tag controlling segment order and hour-cycle default.\nFixed, not browser-auto-detected -- an explicit default is what\nprevents an SSR hydration mismatch (server and client disagreeing),\nnot the presence of a provider by itself."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",
@@ -2787,7 +2825,12 @@
         },
         "overrides": {
           "type": "Partial<ToggleSliceState>",
-          "description": "Per-instance override for padding density. Shared with `<ToggleGroup>`."
+          "description": "Per-instance override for padding density. Shared with `<ToggleGroup>`. Only applies at the default `size=\"md\"` — see `<Input>`'s own `size` doc for why."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",
@@ -2829,7 +2872,12 @@
         },
         "overrides": {
           "type": "Partial<ToggleSliceState>",
-          "description": "Per-instance override for padding density. Shared with `<Toggle>`."
+          "description": "Per-instance override for padding density. Shared with `<Toggle>`. Only applies at the default `size=\"md\"` — see `<Input>`'s own `size` doc for why."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
       "category": "Form Controls",

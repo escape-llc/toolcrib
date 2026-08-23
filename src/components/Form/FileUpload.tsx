@@ -6,7 +6,14 @@ import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
-import { FileUploadThemeSlice, type FileUploadSliceState } from './FileUploadSlice';
+import { FileUploadThemeSlice, type FileUploadSliceState, type FileUploadDensity } from './FileUploadSlice';
+import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
+
+const SIZE_TO_DENSITY: Record<ControlSize, FileUploadDensity> = {
+  sm: 'compact',
+  md: 'normal',
+  lg: 'spacious',
+};
 
 /** A single file's upload lifecycle, tracked internally by `<FileUpload>`. */
 export interface FileUploadItem {
@@ -43,8 +50,10 @@ export interface FileUploadProps {
   onUpload?: (file: File, onProgress: (percent: number) => void) => Promise<void>;
   /** Fired whenever the accepted file list changes (add, remove, or status change). */
   onFilesChange?: (files: FileUploadItem[]) => void;
-  /** Per-instance override for dropzone padding density. */
+  /** Per-instance override for dropzone padding density. `overrides.density` wins over `size` below if both are set. */
   overrides?: Partial<FileUploadSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control — maps onto the same `density` scale as `overrides.density` (`sm`→`'compact'`, `md`→`'normal'`, `lg`→`'spacious'`) and scales the dropzone's own label text. @default 'md' */
+  size?: ControlSize;
 }
 
 function formatBytes(bytes: number): string {
@@ -67,12 +76,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   onUpload,
   onFilesChange,
   overrides,
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
-  const fileUploadVars = getSparseVariables(FileUploadThemeSlice, overrides ?? {});
+  const fileUploadVars = getSparseVariables(FileUploadThemeSlice, { density: SIZE_TO_DENSITY[size], ...overrides });
   const inputRef = useRef<HTMLInputElement>(null);
   const nextIdRef = useRef(0);
   const previewUrlsRef = useRef<Map<string, string>>(new Map());
@@ -276,7 +286,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           }}
           style={{ display: 'none' }}
         />
-        <span style={{ fontSize: '0.875rem', color: 'var(--ai-text-primary, #111827)' }}>
+        <span style={{ fontSize: CONTROL_FONT_SIZE_VAR[size], color: 'var(--ai-text-primary, #111827)' }}>
           Drag and drop {multiple ? 'files' : 'a file'} here, or click to browse
         </span>
         {accept && (

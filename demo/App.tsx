@@ -2021,7 +2021,7 @@ export const App: React.FC = () => {
                           plain wrapper div instead (not a toolcrib
                           component, so it's outside the "no ad hoc style"
                           constraint). */}
-                      <div style={{ height: '18rem' }}>
+                      <div style={{ height: '25rem' }}>
                         <Card layout="auto">
                           <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
                           <Card.Content layout="auto">
@@ -2041,7 +2041,7 @@ export const App: React.FC = () => {
                         </Card>
                       </div>
 
-                      <div style={{ height: '18rem' }}>
+                      <div style={{ height: '25rem' }}>
                         <Card layout="auto">
                           <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
                           <Card.Content layout="auto">
@@ -2070,6 +2070,22 @@ export const App: React.FC = () => {
                                     <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
                                   </UIGroup>
                                 </div>
+                              </div>
+
+                              <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</div>
+                                <VStack gap="sm">
+                                  <UIGroup>
+                                    <Button size="sm" variant="outline">sm</Button>
+                                    <Input size="sm" placeholder="Small input" />
+                                    <Select size="sm" options={[{ label: 'Small', value: 'sm' }]} placeholder="Small select" />
+                                  </UIGroup>
+                                  <UIGroup>
+                                    <Button size="lg" variant="outline">lg</Button>
+                                    <Input size="lg" placeholder="Large input" />
+                                    <Select size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
+                                  </UIGroup>
+                                </VStack>
                               </div>
                             </VStack>
                           </Card.Content>

@@ -4,6 +4,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { ToggleThemeSlice, type ToggleSliceState } from './ToggleSlice';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
 export interface ToggleProps {
@@ -18,8 +19,10 @@ export interface ToggleProps {
   /** If true, the toggle is non-interactive. */
   disabled?: boolean;
   children: ReactNode;
-  /** Per-instance override for padding density. Shared with `<ToggleGroup>`. */
+  /** Per-instance override for padding density. Shared with `<ToggleGroup>`. Only applies at the default `size="md"` — see `<Input>`'s own `size` doc for why. */
   overrides?: Partial<ToggleSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -34,6 +37,7 @@ export const Toggle: React.FC<ToggleProps> = ({
   disabled = false,
   children,
   overrides,
+  size = 'md',
 }) => {
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
@@ -57,12 +61,12 @@ export const Toggle: React.FC<ToggleProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 'var(--ai-toggle-gap, 0.375rem)',
-        padding: 'var(--ai-toggle-padding, 0.4375rem 0.75rem)',
+        padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
         border: `0.0625rem solid ${isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
         background: isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
         color: isPressed ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
-        fontSize: '0.875rem',
+        fontSize: CONTROL_FONT_SIZE_VAR[size],
         fontWeight: 'var(--ai-font-weight-semibold, 600)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -116,8 +120,10 @@ export interface ToggleGroupProps {
   options: ToggleGroupOption[];
   /** If true, every option is disabled. */
   disabled?: boolean;
-  /** Per-instance override for padding density. Shared with `<Toggle>`. */
+  /** Per-instance override for padding density. Shared with `<Toggle>`. Only applies at the default `size="md"` — see `<Input>`'s own `size` doc for why. */
   overrides?: Partial<ToggleSliceState>;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -133,6 +139,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   options,
   disabled = false,
   overrides,
+  size = 'md',
 }) => {
   const [internalValue, setInternalValue] = useState<string | string[]>(
     defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : ''
@@ -175,7 +182,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 'var(--ai-toggle-gap, 0.375rem)',
-              padding: 'var(--ai-toggle-padding, 0.4375rem 0.75rem)',
+              padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
               border: `0.0625rem solid ${selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
               borderTopLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
@@ -184,7 +191,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               marginLeft: isFirst ? 0 : '-0.0625rem',
               background: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
               color: selected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
-              fontSize: '0.875rem',
+              fontSize: CONTROL_FONT_SIZE_VAR[size],
               fontWeight: 'var(--ai-font-weight-semibold, 600)',
               cursor: itemDisabled ? 'not-allowed' : 'pointer',
               opacity: itemDisabled ? 0.5 : 1,

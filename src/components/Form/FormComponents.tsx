@@ -9,6 +9,7 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { FieldContext } from './FieldContext';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
@@ -120,7 +121,7 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
    */
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   /** Button size controlling padding and font-size. @default 'md' */
-  size?: 'sm' | 'md' | 'lg';
+  size?: ControlSize;
   /** Override padding using the theme padding token scale. */
   paddingMode?: PaddingMode;
   /** Override corner radius using the theme radius token scale. */
@@ -182,14 +183,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   const buttonVars = getSparseVariables(ButtonThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
-  const getSizeStyles = (): React.CSSProperties => {
-    const padding = resolvePadding(paddingMode, size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md');
-    switch (size) {
-      case 'sm': return { padding, fontSize: '0.75rem' };
-      case 'lg': return { padding, fontSize: '1rem' };
-      default: return { padding, fontSize: '0.875rem' };
-    }
-  };
+  const getSizeStyles = (): React.CSSProperties => ({
+    padding: resolvePadding(paddingMode, size),
+    fontSize: CONTROL_FONT_SIZE_VAR[size],
+  });
 
   const getVariantStyles = (): React.CSSProperties => {
     // Text color per fill is picked from the palette's own
@@ -307,18 +304,20 @@ export const SubmitButton: React.FC<ButtonProps> = (props) => {
 };
 
 /** Props for `<Input>` — text input bound to Form context via `name`. */
-export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInputElement>, 'name'>> {
+export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInputElement>, 'name' | 'size'>> {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
-  /** Per-instance overrides for padding and border width. Shared with `<Textarea>`. */
+  /** Per-instance overrides for padding and border width. Shared with `<Textarea>`. Only applies at the default `size="md"` — `sm`/`lg` resolve through the shared control padding scale instead, so they line up with a `sm`/`lg` `<Button>` in the same `<UIGroup>`. */
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
   /** Which corners to square off — e.g. inside a `<UIGroup>`. @default 'none' */
   squareCorners?: SquareCornerOption;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, ...props }) => {
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -357,12 +356,12 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       }}
       style={{
         width: '100%',
-        padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
+        padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
         border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
-        fontSize: '0.875rem',
+        fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
@@ -543,11 +542,13 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   name?: string;
   /** Override corner radius using the theme radius token scale. */
   cornerRadiusMode?: CornerRadiusMode;
-  /** Per-instance overrides for padding and border width. Shared with `<Input>`. */
+  /** Per-instance overrides for padding and border width. Shared with `<Input>`. Only applies at the default `size="md"` — see `<Input>`'s own `size` doc. */
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, size = 'md', ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -586,12 +587,12 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
       }}
       style={{
         width: '100%',
-        padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
+        padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
         border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
-        fontSize: '0.875rem',
+        fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
         fontFamily: 'inherit',

@@ -11,6 +11,7 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
 /** Props for the `<TimeField>` segmented time input. */
 export interface TimeFieldProps {
@@ -43,6 +44,8 @@ export interface TimeFieldProps {
    * @default 'en-US'
    */
   locale?: string;
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -59,6 +62,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   hourCycle,
   isDisabled = false,
   locale = 'en-US',
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -89,18 +93,18 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         className="ai-focus-ring"
       >
         {label && (
-          <Label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
+          <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
             {label}
           </Label>
         )}
         <DateInput
           style={{
             display: 'flex',
-            padding: 'var(--ai-input-padding, 0.5rem 0.75rem)',
+            padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
             border: `0.0625rem solid var(--ai-border, #d1d5db)`,
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             background: isDisabled ? 'var(--ai-bg-container, #f3f4f6)' : 'var(--ai-bg-surface, #ffffff)',
-            fontSize: '0.875rem',
+            fontSize: CONTROL_FONT_SIZE_VAR[size],
             color: 'var(--ai-text-primary, #111827)',
             width: 'fit-content',
           }}

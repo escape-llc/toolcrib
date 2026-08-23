@@ -201,22 +201,22 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
 | `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
-| `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Month grid for selecting a single date, built on React Aria Components |
-| `<Combobox>` | — | `id`, `name`, `placeholder`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
-| `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |
-| `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
+| `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting a single date, built on React Aria Components |
+| `<Combobox>` | — | `id`, `name`, `placeholder`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides`, `size` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
+| `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |
+| `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides`, `size` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
 | `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
-| `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides` | Single-select radio control bound to Form context, data-driven or compositional |
+| `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides`, `size` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<Rating>` | — | `name`, `value`, `defaultValue`, `onChange`, `max`, `icon`, `readOnly`, `overrides` | Star rating control built on Radix RadioGroup, or a read-only fractional-fill display |
-| `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides` | Dropdown select control bound to Form context, built on Radix Select |
+| `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides`, `size` | Dropdown select control bound to Form context, built on Radix Select |
 | `<Slider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `overrides` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot` | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing. |
-| `<TimeField>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `granularity`, `hourCycle`, `isDisabled`, `locale` | Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components |
-| `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
-| `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled`, `overrides` | Connected button set for single or multiple selection, data-driven |
+| `<TimeField>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `granularity`, `hourCycle`, `isDisabled`, `locale`, `size` | Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components |
+| `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides`, `size` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
+| `<ToggleGroup>` | — | `name`, `type`, `value`, `defaultValue`, `onChange`, `options`, `disabled`, `overrides`, `size` | Connected button set for single or multiple selection, data-driven |
 
 `<Modal ariaLabel>` and `<Drawer title>` are **not** the same kind of prop: `Modal.ariaLabel` is a screen-reader-only string (`Modal.Header`'s visible text is decorative and not otherwise wired to the dialog's accessible name), while `Drawer.title` is a visible `ReactNode` rendered in the drawer header. Don't assume one works like the other.
 

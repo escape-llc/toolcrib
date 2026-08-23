@@ -9,6 +9,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { SelectThemeSlice, type SelectSliceState } from './SelectSlice';
+import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
 /** Data shape for each option in a `<Select>` dropdown. */
 export interface SelectOptionData {
@@ -42,8 +43,10 @@ export interface SelectProps {
   onChange?: (value: string) => void;
   /** If true, the select is non-interactive. */
   disabled?: boolean;
-  /** Per-instance overrides for trigger padding and item density. */
+  /** Per-instance overrides for trigger padding and item density. Only applies at the default `size="md"` — see `<Input>`'s own `size` doc for why. */
   overrides?: Partial<SelectSliceState> & { subtheme?: SubthemeName };
+  /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
+  size?: ControlSize;
 }
 
 /**
@@ -60,6 +63,7 @@ export const Select: React.FC<SelectProps> = ({
   onChange: externalOnChange,
   disabled = false,
   overrides,
+  size = 'md',
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -116,12 +120,12 @@ export const Select: React.FC<SelectProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          padding: 'var(--ai-select-trigger-padding, 0.5rem 0.75rem)',
+          padding: resolveControlPadding(size, 'var(--ai-select-trigger-padding, 0.5rem 0.75rem)'),
           borderRadius: 'var(--ai-radius-md, 0.375rem)',
           border: '0.0625rem solid var(--ai-border, #d1d5db)',
           background: 'var(--ai-bg-surface, #ffffff)',
           color: 'var(--ai-text-primary, #111827)',
-          fontSize: '0.875rem',
+          fontSize: CONTROL_FONT_SIZE_VAR[size],
           outline: 'none',
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',
