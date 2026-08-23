@@ -59,9 +59,9 @@ export interface ListboxProps {
   emptyMessage?: ReactNode;
   /**
    * Whether more than one option can be selected at once — sets
-   * `aria-multiselectable` and renders a trailing checkmark on selected
-   * options. A single-select listbox conveys its selection through the
-   * caller's own trigger instead, so it doesn't need an in-list indicator.
+   * `aria-multiselectable`. Every selected option gets a trailing
+   * checkmark and a tinted background regardless of this flag; this only
+   * controls whether more than one can carry that state simultaneously.
    * @default false
    */
   multiSelectable?: boolean;
@@ -146,13 +146,22 @@ export const Listbox: React.FC<ListboxProps> = ({
                 fontSize: CONTROL_FONT_SIZE_VAR[size],
                 borderRadius: 'var(--ai-radius-sm, 0.25rem)',
                 color: 'var(--ai-text-primary, #111827)',
+                // A selected row's own tint, independent of multiSelectable
+                // -- single-select needs a persistent "this one is picked"
+                // signal too, same as any native <select>'s own OS-rendered
+                // dropdown already shows for its one selected item. Without
+                // it, a caller that clears its own filter query after
+                // picking (the natural thing to do, so the full list
+                // reappears instead of staying narrowed to the one label
+                // that now matches) has no visual trace of the pick at all.
+                background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : undefined,
                 cursor: opt.disabled ? 'not-allowed' : 'pointer',
                 opacity: opt.disabled ? 0.5 : 1,
                 userSelect: 'none',
               }}
             >
               {opt.render ? opt.render(opt) : opt.label}
-              {multiSelectable && isSelected && (
+              {isSelected && (
                 <span style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 'var(--ai-font-weight-black, 900)' }}>✓</span>
               )}
             </div>

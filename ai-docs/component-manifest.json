@@ -2119,7 +2119,7 @@
         "multiSelectable": {
           "type": "boolean",
           "default": "false",
-          "description": "Whether more than one option can be selected at once — sets\n`aria-multiselectable` and renders a trailing checkmark on selected\noptions. A single-select listbox conveys its selection through the\ncaller's own trigger instead, so it doesn't need an in-list indicator."
+          "description": "Whether more than one option can be selected at once — sets\n`aria-multiselectable`. Every selected option gets a trailing\ncheckmark and a tinted background regardless of this flag; this only\ncontrols whether more than one can carry that state simultaneously."
         },
         "itemPadding": {
           "type": "string",

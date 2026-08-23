@@ -60,14 +60,23 @@ describe('Listbox', () => {
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
   });
 
-  it('renders a trailing checkmark for selected options only when multiSelectable is true', () => {
-    const { rerender } = render(
+  it('renders a trailing checkmark and a tinted background for a selected option, single-select or multi', () => {
+    const { rerender, container } = render(
       <Listbox id="lb" options={options} selectedValues={['admin']} onSelect={vi.fn()} />
     );
-    expect(screen.queryByText('✓')).not.toBeInTheDocument();
+    expect(screen.getByText('✓')).toBeInTheDocument();
+    const selectedRow = container.querySelector('[aria-selected="true"]') as HTMLElement;
+    expect(selectedRow.style.background).not.toBe('');
 
     rerender(<Listbox id="lb" options={options} selectedValues={['admin']} multiSelectable onSelect={vi.fn()} />);
     expect(screen.getByText('✓')).toBeInTheDocument();
+  });
+
+  it('renders no checkmark and no tint when nothing is selected', () => {
+    const { container } = render(<Listbox id="lb" options={options} onSelect={vi.fn()} />);
+    expect(screen.queryByText('✓')).not.toBeInTheDocument();
+    const rows = container.querySelectorAll('[role="option"]');
+    rows.forEach(row => expect((row as HTMLElement).style.background).toBe(''));
   });
 
   it('uses render() for custom option content instead of the plain label, matching DataTable\'s own Column.render shape', () => {

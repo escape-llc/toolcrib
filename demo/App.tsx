@@ -2516,7 +2516,7 @@ export const App: React.FC = () => {
                                   const opt = filtered[listboxActiveIndex];
                                   if (opt) {
                                     setListboxSelected(opt.value);
-                                    setListboxQuery(opt.label);
+                                    setListboxQuery('');
                                     setListboxActiveIndex(undefined);
                                     addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
                                   }
@@ -2532,7 +2532,7 @@ export const App: React.FC = () => {
                                 aria-label="Teammates"
                                 onSelect={opt => {
                                   setListboxSelected(opt.value);
-                                  setListboxQuery(opt.label);
+                                  setListboxQuery('');
                                   setListboxActiveIndex(undefined);
                                   addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
                                 }}
