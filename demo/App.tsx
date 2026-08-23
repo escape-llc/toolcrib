@@ -99,7 +99,16 @@ import {
 // without hardcoding the same magic numbers/string in two places.
 const MAIN_SPLITTER_ID = 'main-demo-splitter';
 const MAIN_SPLITTER_INITIAL_SPLIT = 70;
-const MAIN_SPLITTER_MIN_SIZE = 15;
+// Small enough that the Collapse button (below) actually reads as
+// "collapsed to the toolbar," not just "smaller" -- 15% of a typical
+// viewport height left a visibly scrollable slice of the event log still
+// showing beneath its own toolbar (reported directly, from a real
+// screenshot). Also gates manual drag/keyboard resizing of *either*
+// panel via Splitter's own minSize floor, not just this collapse target
+// -- a deliberate reuse, not an accidental side effect: there's no
+// reason a user dragging the handle by hand should stop earlier than the
+// button does.
+const MAIN_SPLITTER_MIN_SIZE = 5;
 
 // A small, separate Acme Analytics roster for the standalone <Listbox>
 // demo below — deliberately not sliced from the 250-row `dummyUsers`
@@ -2829,21 +2838,29 @@ export const App: React.FC = () => {
                   </Toolbar.Right>
                 </Toolbar>
               </Card.Header>
-              <Card.Content layout="auto" paddingMode="compact">
-                <div style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
-                  {eventLogs.length === 0 ? (
-                    <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
-                  ) : (
-                    eventLogs.map(log => (
-                      <div key={log.id} style={{ marginBottom: '0.2rem' }}>
-                        <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
-                        <span style={{ color: 'var(--ai-color-primary)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
-                        <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </Card.Content>
+              {/* Omitted entirely (not just hidden) while collapsed --
+                  Splitter's own minSize floor still leaves a couple of
+                  percent of viewport height for this panel (a hard floor
+                  on both panels, not something a "collapse" command can
+                  bypass), and a scrollable log peeking through that gap
+                  would defeat the point of collapsing it. */}
+              {!eventLogCollapsed && (
+                <Card.Content layout="auto" paddingMode="compact">
+                  <div style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
+                    {eventLogs.length === 0 ? (
+                      <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
+                    ) : (
+                      eventLogs.map(log => (
+                        <div key={log.id} style={{ marginBottom: '0.2rem' }}>
+                          <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
+                          <span style={{ color: 'var(--ai-color-primary)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
+                          <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </Card.Content>
+              )}
             </Card>
           </Splitter.Panel>
         </Splitter>

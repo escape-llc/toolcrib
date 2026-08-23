@@ -77,7 +77,12 @@ export const Progress: React.FC<ProgressProps> = ({
           background: subthemeColors ? subthemeColors.main : 'var(--ai-color-primary, #3b82f6)',
           borderRadius: 'inherit',
           transform: `translateX(-${100 - percentage}%)`,
-          transition: 'transform var(--ai-transition-normal, 0.3s cubic-bezier(0.4, 0, 0.2, 1))',
+          // The var alone, not `transform ${var}` -- see Sidebar.tsx's
+          // own comment on why prepending a property name in front of
+          // --ai-transition-normal (which already resolves to a complete
+          // `all <duration> <easing>` shorthand) produces invalid,
+          // silently-dropped CSS once a real ThemeProvider is mounted.
+          transition: 'var(--ai-transition-normal, all 0.3s cubic-bezier(0.4, 0, 0.2, 1))',
         }}
       />
     </ProgressPrimitive.Root>

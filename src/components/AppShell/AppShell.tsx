@@ -13,6 +13,41 @@ import { AppShellThemeSlice, type AppShellSliceState } from './AppShellSlice';
 // StyleDomainContext), rather than threading a prop through.
 const SidebarPositionContext = createContext<'left' | 'right'>('left');
 
+// The reverse direction of the context above: AppShell.Sidebar's own
+// <aside> has always sized itself independently of whatever it contains
+// -- a fixed `width` with no idea a <Sidebar> inside it can collapse
+// itself down to an icon-only rail. Without this, collapsing <Sidebar>
+// only shrinks the nav *inside* the aside, leaving the aside itself at
+// its full width and a large dead strip of empty background between the
+// now-narrow rail and AppShell.Main (reported directly, from a real
+// screenshot). `reportCollapsed` lets a <Sidebar> (or anything else that
+// wants to) tell its own ancestor <AppShell.Sidebar> to resize alongside
+// it; harmless no-op for a consumer that puts something else entirely
+// inside AppShell.Sidebar, or renders <Sidebar> outside of it.
+const SidebarCollapseContext = createContext<{ reportCollapsed: (collapsed: boolean) => void } | undefined>(undefined);
+
+/**
+ * For a component (typically `<Sidebar>`) that wants its own collapsed/
+ * expanded state to also resize an ancestor `<AppShell.Sidebar>`, if one
+ * is present. Safe to call unconditionally -- resolves to a no-op outside
+ * an `<AppShell.Sidebar>`. Exported for a consumer building their own
+ * custom collapsible nav rail to plug into the same mechanism `<Sidebar>`
+ * itself uses, not just for this toolkit's internal use.
+ * @barrelExport
+ */
+export function useReportSidebarCollapsed(collapsed: boolean): void {
+  const ctx = useContext(SidebarCollapseContext);
+  React.useEffect(() => {
+    ctx?.reportCollapsed(collapsed);
+  }, [ctx, collapsed]);
+}
+
+// Matches Sidebar.tsx's own COLLAPSED_WIDTH literal -- kept in sync by
+// hand (same lightweight pattern as this codebase's other small
+// cross-file constants, e.g. e2e/nav.ts's own TAB_GROUP comment) rather
+// than importing across component folders for one shared literal.
+const SIDEBAR_COLLAPSED_WIDTH = '3.5rem';
+
 /**
  * Props for the root `<AppShell>` container — the full-viewport frame every
  * app built with this toolkit starts from.
@@ -163,20 +198,31 @@ AppShell.Main = ({ children, paddingMode, ...props }) => {
 AppShell.Sidebar = ({ children, paddingMode, ...props }) => {
   warnIfLegacyStyleProps(props, 'AppShell.Sidebar');
   const position = useContext(SidebarPositionContext);
+  const [collapsed, setCollapsed] = React.useState(false);
+  const contextValue = React.useMemo(() => ({ reportCollapsed: setCollapsed }), []);
+
   return (
     <aside
       {...props}
       style={{
         flexShrink: 0,
-        width: 'var(--ai-appshell-sidebar-width, 16rem)',
-        overflow: 'auto',
+        width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : 'var(--ai-appshell-sidebar-width, 16rem)',
+        // Same transition value as Sidebar's own inner rail (Sidebar.tsx)
+        // -- both widths need to animate in lockstep, or the rail visibly
+        // outruns (or lags) the aside's own edge during the collapse. The
+        // var alone, not `width ${var}` -- see Sidebar.tsx's own comment
+        // on why prepending a property name in front of
+        // --ai-transition-normal produces invalid, silently-dropped CSS.
+        transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         background: 'var(--ai-bg-surface)',
         borderRight: position === 'left' ? '0.0625rem solid var(--ai-border)' : undefined,
         borderLeft: position === 'right' ? '0.0625rem solid var(--ai-border)' : undefined,
         padding: paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-appshell-sidebar-padding, 1rem 0.75rem)',
       }}
     >
-      {children}
+      <SidebarCollapseContext.Provider value={contextValue}>{children}</SidebarCollapseContext.Provider>
     </aside>
   );
 };

@@ -2,6 +2,7 @@ import React, { type ReactNode, useState } from 'react';
 import { NavigationMenu as NavigationMenuPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
 import { SidebarThemeSlice, type SidebarSliceState } from './SidebarSlice';
+import { useReportSidebarCollapsed } from '../AppShell/AppShell';
 
 /** Data shape for each nav item in a `<Sidebar>`. */
 export interface SidebarItemData {
@@ -70,6 +71,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isCollapsedControlled = externalCollapsed !== undefined;
   const collapsed = isCollapsedControlled ? externalCollapsed : internalCollapsed;
   const sidebarVars = getSparseVariables(SidebarThemeSlice, overrides ?? {});
+  // Resizes an ancestor <AppShell.Sidebar> alongside this rail, if one is
+  // present -- see AppShell.tsx's own comment on why the aside doesn't
+  // already know to do this on its own.
+  useReportSidebarCollapsed(collapsed);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -88,7 +93,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         height: '100%',
         width: collapsed ? COLLAPSED_WIDTH : '100%',
         flexShrink: 0,
-        transition: 'width var(--ai-transition-normal, 0.2s ease)',
+        // The var, not `width ${var}` -- --ai-transition-normal already
+        // resolves to a complete `transition` shorthand value (e.g. `all
+        // 220ms cubic-bezier(...)`, see animation.tsx's own
+        // getAnimationVariables()), not just a duration+easing pair meant
+        // to be prefixed with a property name. Prepending "width " in
+        // front of that produced an invalid declaration ("width all
+        // 220ms ...") that the browser silently drops -- the collapse
+        // was snapping instantly with no ThemeProvider mounted, not
+        // animating at all, until this was caught (reported directly).
+        transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
       }}
     >
       <button

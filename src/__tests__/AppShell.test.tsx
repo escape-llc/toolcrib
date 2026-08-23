@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { AppShell } from '../components/AppShell/AppShell';
+import { Sidebar } from '../components/Sidebar/Sidebar';
 
 describe('AppShell Component', () => {
   it('renders AppShell with Header and Main slots', () => {
@@ -96,5 +97,41 @@ describe('AppShell Component', () => {
     aside = screen.getByText('Nav').closest('aside') as HTMLElement;
     expect(aside.style.borderLeft).not.toBe('');
     expect(aside.style.borderRight).toBe('');
+  });
+
+  describe('regression: collapsing a <Sidebar> inside AppShell.Sidebar left a dead strip of empty space', () => {
+    it('shrinks its own width in lockstep when a <Sidebar> inside it collapses/expands', () => {
+      render(
+        <AppShell layout="sidebar-left">
+          <AppShell.Sidebar>
+            <Sidebar items={[{ id: 'home', label: 'Home' }]} aria-label="Primary" />
+          </AppShell.Sidebar>
+          <AppShell.Main>Main</AppShell.Main>
+        </AppShell>
+      );
+      const aside = screen.getByText('Home').closest('aside') as HTMLElement;
+      expect(aside.style.width).toBe('var(--ai-appshell-sidebar-width, 16rem)');
+
+      fireEvent.click(screen.getByLabelText('Collapse sidebar'));
+      // Matches Sidebar's own COLLAPSED_WIDTH literal exactly -- the two
+      // are meant to move in lockstep, not just both "get smaller."
+      expect(aside.style.width).toBe('3.5rem');
+
+      fireEvent.click(screen.getByLabelText('Expand sidebar'));
+      expect(aside.style.width).toBe('var(--ai-appshell-sidebar-width, 16rem)');
+    });
+
+    it('stays at its default width when nothing inside ever reports a collapsed state', () => {
+      render(
+        <AppShell layout="sidebar-left">
+          <AppShell.Sidebar>
+            <span>Just some plain content, not a Sidebar</span>
+          </AppShell.Sidebar>
+          <AppShell.Main>Main</AppShell.Main>
+        </AppShell>
+      );
+      const aside = screen.getByText('Just some plain content, not a Sidebar').closest('aside') as HTMLElement;
+      expect(aside.style.width).toBe('var(--ai-appshell-sidebar-width, 16rem)');
+    });
   });
 });
