@@ -48,7 +48,13 @@ describe('computeCornerSquaring', () => {
 
   it('only squares the trigger while actually open, so a closed trigger keeps its normal shape', () => {
     const closed = computeCornerSquaring('bottom', 'start', false);
-    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('inherit');
+    // The trigger's own radius (the same value popupCornerStyle's base
+    // uses), not the CSS keyword 'inherit' -- 'inherit' pulls a
+    // non-inherited property like border-radius from the PARENT element's
+    // computed value, which is a real, previously-shipped bug (Combobox's
+    // plain-DOM wrapper div showed its bottom corners already flattened
+    // even while closed, because its parent's own radius happened to be 0).
+    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('var(--ai-radius-lg, 0.5rem)');
     expect(closed.triggerSquareCorners).toBe('none');
     // The popup's own corner style is independent of isOpen -- Radix only
     // mounts Content while open anyway, so there's nothing to gate there.
@@ -62,6 +68,11 @@ describe('computeCornerSquaring', () => {
   it('accepts a custom radius token, matching whichever radius scale the caller already uses', () => {
     const result = computeCornerSquaring('bottom', 'start', true, 'var(--ai-radius-md, 0.375rem)');
     expect(result.popupCornerStyle.borderTopRightRadius).toBe('var(--ai-radius-md, 0.375rem)');
+  });
+
+  it('restores the closed trigger to the SAME custom radius token, not the parent element\'s own unrelated radius (regression: a plain-DOM trigger showed its corner already flattened while closed, since the old \'inherit\' keyword pulled from the parent, not this value)', () => {
+    const closed = computeCornerSquaring('bottom', 'start', false, 'var(--ai-radius-md, 0.375rem)');
+    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('var(--ai-radius-md, 0.375rem)');
   });
 
   it('squares both corners on the connecting edge for align="stretch" (a popup sized to the trigger\'s full width, e.g. Combobox)', () => {
@@ -94,8 +105,8 @@ describe('computeCornerSquaring', () => {
 
   it('gates align="stretch" trigger squaring on isOpen, same as the single-corner case', () => {
     const closed = computeCornerSquaring('bottom', 'stretch', false);
-    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('inherit');
-    expect(closed.triggerCornerStyle.borderBottomRightRadius).toBe('inherit');
+    expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('var(--ai-radius-lg, 0.5rem)');
+    expect(closed.triggerCornerStyle.borderBottomRightRadius).toBe('var(--ai-radius-lg, 0.5rem)');
     expect(closed.triggerSquareCorners).toBe('none');
   });
 });

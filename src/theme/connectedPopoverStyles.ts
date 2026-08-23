@@ -67,7 +67,7 @@ const STRETCH_TRIGGER_CORNERS: Record<PopoverSide, [Corner, Corner]> = {
 // doesn't satisfy for most of them. A switch keeps each assignment on its
 // own literal property name instead, where the value type actually is
 // `string | number`.
-function setRadiusCorner(style: React.CSSProperties, corner: Corner, value: 0 | 'inherit'): void {
+function setRadiusCorner(style: React.CSSProperties, corner: Corner, value: 0 | string): void {
   switch (corner) {
     case 'top-left': style.borderTopLeftRadius = value; break;
     case 'top-right': style.borderTopRightRadius = value; break;
@@ -85,7 +85,7 @@ export interface CornerSquaringResult {
   sideOffset: number;
   /** Spread into the popup content's own `style` — always a complete four-corner `borderRadius`, with the corner facing the trigger flattened to 0 while open. */
   popupCornerStyle: React.CSSProperties;
-  /** Direct style patch for a plain DOM element trigger (a `<button>`, an `<input>` a component owns directly) — only the one facing corner, `0` while open and `'inherit'` while closed so it doesn't permanently truncate the trigger's own shape. */
+  /** Direct style patch for a plain DOM element trigger (a `<button>`, an `<input>` a component owns directly) — only the one facing corner, `0` while open and back to `radius` while closed so it doesn't permanently truncate the trigger's own shape. */
   triggerCornerStyle: React.CSSProperties;
   /** Same information in the shared `SquareCornerOption` vocabulary, for a toolcrib-native trigger component that already understands a `squareCorners` prop (`<Button>`, `<Card>`, ...). */
   triggerSquareCorners: SquareCornerOption;
@@ -123,7 +123,18 @@ export function computeCornerSquaring(
 
   const triggerCornerStyle: React.CSSProperties = {};
   for (const corner of triggerCorners) {
-    setRadiusCorner(triggerCornerStyle, corner, isOpen ? 0 : 'inherit');
+    // `radius`, not the CSS keyword 'inherit' — 'inherit' pulls a
+    // non-inherited property like border-radius from the PARENT element's
+    // computed value, not "this trigger's own normal radius" (there's no
+    // stylesheet rule to fall back to here; the trigger's own base radius
+    // is itself just another inline style value set by the caller, same as
+    // this one). Reported directly: a plain-DOM-element trigger (Combobox's
+    // own wrapper div, which spreads this directly rather than going
+    // through renderTriggerWithCornerSquaring's squareCorners-prop path)
+    // showed its connecting corners already flattened even while CLOSED,
+    // because its parent's own radius happened to be 0 — confirmed via the
+    // element's raw inline style attribute, not just the computed value.
+    setRadiusCorner(triggerCornerStyle, corner, isOpen ? 0 : radius);
   }
 
   return {
