@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoTab } from './nav';
 
 // Covers Toast.tsx's injectToastAnimations() — Radix's Presence keeps the
 // toast's DOM node mounted until a real `animationend` fires on it, which
@@ -8,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 test('a fired toast plays its slide-in animation and is removed cleanly after dismiss', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('Toast Subsystem').click();
+  await gotoTab(page, 'Toast Subsystem');
 
   await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
 
@@ -57,7 +58,7 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
 
 test('a toast that times out on its own (never clicked) also plays its exit animation before being removed', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('Toast Subsystem').click();
+  await gotoTab(page, 'Toast Subsystem');
   await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
 
   const toast = page.locator('[data-testid="toast-item"]').first();

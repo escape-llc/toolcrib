@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoTab } from './nav';
 
 // Same rationale as toast-animation.spec.ts: whether a real `animation`
 // actually resolves and plays is invisible to jsdom (no layout/paint
@@ -15,7 +16,7 @@ import { test, expect } from '@playwright/test';
 
 test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('🪟 Overlays & Actions', { exact: true }).click();
+  await gotoTab(page, 'Overlays & Actions');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const modal = page.getByTestId('modal-container');
@@ -27,7 +28,7 @@ test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }
 
 test('expanding an Accordion item plays its ai-accordion-slide-down animation', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('🧩 Component Showcase', { exact: true }).click();
+  await gotoTab(page, 'Component Showcase');
 
   // faq-1 is open by default (defaultValue) — faq-2 starts closed, so
   // clicking it is a real closed-to-open transition, not just a fresh

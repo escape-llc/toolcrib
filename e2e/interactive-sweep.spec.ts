@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { gotoTab } from './nav';
 
 // A general backstop against the whole CLASS of bug this session found and
 // fixed one instance at a time (TabStrip's active-tab fontWeight/divider
@@ -18,15 +19,17 @@ import { test, expect, Page } from '@playwright/test';
 // (bounding boxes, console output) is the same approach every other spec in
 // this suite already uses, and it's platform-stable.
 
+// Plain labels (no emoji) -- gotoTab (e2e/nav.ts) navigates to each via
+// its owning sidebar group, mirroring demo/App.tsx's own NAV_GROUPS.
 const TABS = [
-  '🚀 Overview & Architecture',
-  '📝 Forms & Zod Engine',
-  '🪟 Overlays & Actions',
-  '🔔 Toast Subsystem',
-  '📊 Data Table',
-  '📐 Common Layout Idioms',
-  '🗺️ Wireframe Gallery',
-  '🧩 Component Showcase',
+  'Overview & Architecture',
+  'Forms & Zod Engine',
+  'Overlays & Actions',
+  'Toast Subsystem',
+  'Data Table',
+  'Common Layout Idioms',
+  'Wireframe Gallery',
+  'Component Showcase',
 ];
 
 // Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
@@ -109,7 +112,7 @@ test('no console errors while clicking through every interactive control on ever
   await page.goto('/');
 
   for (const tab of TABS) {
-    await page.getByText(tab, { exact: true }).click();
+    await gotoTab(page, tab);
     // Lets the panel's own entrance transition finish before the sweep
     // starts clicking through it — mid-transition is exactly when a
     // locator's actionability check ("stable" — the element's bounding box
@@ -140,7 +143,7 @@ test("interacting with one card's own control never shifts a sibling card's posi
   await page.goto('/');
 
   for (const tab of TABS) {
-    await page.getByText(tab, { exact: true }).click();
+    await gotoTab(page, tab);
     await page.waitForTimeout(300);
     await settle(page);
 

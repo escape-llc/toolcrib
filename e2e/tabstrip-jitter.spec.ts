@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoTab } from './nav';
 
 // Guards against a real regression: TabStrip.Trigger used to render the
 // active tab with a heavier fontWeight (700 vs 500) than every inactive
@@ -13,6 +14,11 @@ import { test, expect } from '@playwright/test';
 // browser (see e2e/README.md's "real CSS resolution" scope).
 test('clicking a tab does not shift any tab\'s x-position', async ({ page }) => {
   await page.goto('/');
+  // Overview (the default landing group) is a solo-tab sidebar group, so
+  // its inner TabStrip is hidden entirely (see demo/App.tsx's NAV_GROUPS)
+  // -- "Overlays & Feedback" is the nearest 3-tab group, giving this test
+  // an actual multi-tab strip to click within.
+  await gotoTab(page, 'Overlays & Actions');
 
   const tabs = page.locator('[role="tablist"]').first().locator('[role="tab"]');
   const count = await tabs.count();
