@@ -276,6 +276,41 @@ const SIDEBAR_ITEMS: SidebarItemData[] = [
   { id: 'settings', label: 'Settings', icon: '⚙️', disabled: true },
 ];
 
+// Single source of truth for the 12 main-demo tabs' labels -- both the
+// TabStrip head row and the CommandPalette's "Go to" commands used to
+// keep their own separate copy of this list, and they'd already drifted
+// (the CommandPalette one was quietly missing "charts"). `plainLabel`
+// strips the leading emoji for contexts (the command palette's own list
+// rows) that already render an icon column of their own.
+const TAB_DEFS: Record<string, { label: string; plainLabel: string }> = {
+  overview: { label: '🚀 Overview & Architecture', plainLabel: 'Overview & Architecture' },
+  forms: { label: '📝 Forms & Zod Engine', plainLabel: 'Forms & Zod Engine' },
+  overlays: { label: '🪟 Overlays & Actions', plainLabel: 'Overlays & Actions' },
+  toasts: { label: '🔔 Toast Subsystem', plainLabel: 'Toast Subsystem' },
+  datatable: { label: '📊 Data Table', plainLabel: 'Data Table' },
+  charts: { label: '📈 Charts', plainLabel: 'Charts' },
+  navigation: { label: '🧭 Navigation & Structure', plainLabel: 'Navigation & Structure' },
+  media: { label: '🖼️ Media Gallery', plainLabel: 'Media Gallery' },
+  status: { label: '🎛️ Feedback & Status', plainLabel: 'Feedback & Status' },
+  layout: { label: '📐 Common Layout Idioms', plainLabel: 'Common Layout Idioms' },
+  wireframes: { label: '🗺️ Wireframe Gallery', plainLabel: 'Wireframe Gallery' },
+  showcase: { label: '🧩 Component Showcase', plainLabel: 'Component Showcase' },
+};
+
+// Groups the 12 flat tabs above into a real <AppShell.Sidebar> nav rail --
+// a sidebar group with more than one tabId still shows a (now much
+// shorter) <TabStrip> for the tabs within it; a solo-tabId group skips
+// the redundant single-item strip entirely (see the render below).
+const NAV_GROUPS: { id: string; label: string; icon: string; tabIds: string[] }[] = [
+  { id: 'overview', label: 'Overview', icon: '🚀', tabIds: ['overview'] },
+  { id: 'forms-data', label: 'Forms & Data', icon: '📋', tabIds: ['forms', 'datatable'] },
+  { id: 'feedback', label: 'Overlays & Feedback', icon: '🔔', tabIds: ['overlays', 'toasts', 'status'] },
+  { id: 'analytics', label: 'Analytics', icon: '📈', tabIds: ['charts'] },
+  { id: 'nav-layout', label: 'Navigation & Layout', icon: '🧭', tabIds: ['navigation', 'layout'] },
+  { id: 'media-wireframes', label: 'Media & Wireframes', icon: '🖼️', tabIds: ['media', 'wireframes'] },
+  { id: 'showcase', label: 'Showcase', icon: '🧩', tabIds: ['showcase'] },
+];
+
 const STEPPER_STEPS: StepperStepData[] = [
   {
     id: 'account',
@@ -681,6 +716,13 @@ export const App: React.FC = () => {
   // TabStrip. TabStrip still broadcasts `tab:changed` on `aiBus` the same
   // way either way; this only adds the explicit React-level hook.
   const [activeTab, setActiveTab] = useState('overview');
+  // Derived, not its own state -- activeTab is the single source of truth
+  // for "where am I," same reasoning as Block/Listbox's own derived values
+  // elsewhere in this file. Keeping a separate activeGroupId in sync with
+  // activeTab (e.g. from a <CommandPalette> "go to" command jumping into a
+  // tab whose group isn't currently selected) would be exactly the kind
+  // of dual-source-of-truth bug this avoids by construction.
+  const activeGroup = NAV_GROUPS.find(g => g.tabIds.includes(activeTab)) ?? NAV_GROUPS[0];
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
   const [listboxQuery, setListboxQuery] = useState('');
   const [listboxActiveIndex, setListboxActiveIndex] = useState<number | undefined>(undefined);
@@ -717,23 +759,11 @@ export const App: React.FC = () => {
   // fires a small cross-cutting action, demonstrating why a command palette
   // is genuinely useful once an app has more than a couple of screens.
   const commandPaletteItems: CommandPaletteItemData[] = [
-    ...[
-      { id: 'overview', label: 'Overview & Architecture' },
-      { id: 'forms', label: 'Forms & Zod Engine' },
-      { id: 'overlays', label: 'Overlays & Actions' },
-      { id: 'toasts', label: 'Toast Subsystem' },
-      { id: 'datatable', label: 'Data Table' },
-      { id: 'navigation', label: 'Navigation & Structure' },
-      { id: 'media', label: 'Media Gallery' },
-      { id: 'status', label: 'Feedback & Status' },
-      { id: 'layout', label: 'Common Layout Idioms' },
-      { id: 'wireframes', label: 'Wireframe Gallery' },
-      { id: 'showcase', label: 'Component Showcase' },
-    ].map(tab => ({
-      value: `goto-${tab.id}`,
-      label: tab.label,
+    ...Object.entries(TAB_DEFS).map(([id, def]) => ({
+      value: `goto-${id}`,
+      label: def.plainLabel,
       group: 'Go to',
-      onSelect: () => setActiveTab(tab.id),
+      onSelect: () => setActiveTab(id),
     })),
     {
       value: 'toggle-dark-mode',
@@ -847,7 +877,7 @@ export const App: React.FC = () => {
           above. Also directly openable via aiBus.openCommandPalette(id),
           demonstrated by the button on the Overlays tab. */}
       <CommandPalette id="global-command-palette" items={commandPaletteItems} />
-      <AppShell>
+      <AppShell layout="sidebar-left">
       {/* Top Header Bar */}
       <AppShell.Header>
         <HStack gap="sm">
@@ -929,6 +959,26 @@ export const App: React.FC = () => {
         </UIGroup>
       </AppShell.Header>
 
+      {/* Primary nav rail -- <Sidebar> in its real, intended context (see
+          AppShell.Sidebar's own doc comment), not the bounded demo box
+          on the Navigation & Structure tab. Selecting a group jumps
+          activeTab to that group's first tab; activeGroup itself is
+          derived from activeTab (see its own comment above), so this
+          stays in sync regardless of how activeTab changes -- a sidebar
+          click, a <CommandPalette> "go to" command, or the (now
+          shorter, per-group) <TabStrip> below all funnel through the
+          same setActiveTab. */}
+      <AppShell.Sidebar>
+        <Sidebar
+          items={NAV_GROUPS.map(g => ({ id: g.id, label: g.label, icon: g.icon }))}
+          activeId={activeGroup.id}
+          onItemClick={groupId => {
+            const group = NAV_GROUPS.find(g => g.id === groupId);
+            if (group) setActiveTab(group.tabIds[0]);
+          }}
+        />
+      </AppShell.Sidebar>
+
       {/* Main Content Area with Resizable Splitter */}
       <AppShell.Main>
         <Splitter id={MAIN_SPLITTER_ID} orientation="vertical" initialSplit={MAIN_SPLITTER_INITIAL_SPLIT} minSize={MAIN_SPLITTER_MIN_SIZE}>
@@ -941,25 +991,25 @@ export const App: React.FC = () => {
               forwards correctly. */}
           <Splitter.Panel squareCorners="bottom">
             <Content>
-              <TabStrip
-                id="main-demo"
-                activeId={activeTab}
-                onChange={setActiveTab}
-                items={[
-                  { id: 'overview', label: '🚀 Overview & Architecture' },
-                  { id: 'forms', label: '📝 Forms & Zod Engine' },
-                  { id: 'overlays', label: '🪟 Overlays & Actions' },
-                  { id: 'toasts', label: '🔔 Toast Subsystem' },
-                  { id: 'datatable', label: '📊 Data Table' },
-                  { id: 'charts', label: '📈 Charts' },
-                  { id: 'navigation', label: '🧭 Navigation & Structure' },
-                  { id: 'media', label: '🖼️ Media Gallery' },
-                  { id: 'status', label: '🎛️ Feedback & Status' },
-                  { id: 'layout', label: '📐 Common Layout Idioms' },
-                  { id: 'wireframes', label: '🗺️ Wireframe Gallery' },
-                  { id: 'showcase', label: '🧩 Component Showcase' },
-                ]}
-              />
+              {/* Scoped to the active sidebar group's own tabIds, not the
+                  full list of 12 -- the sidebar handles top-level
+                  navigation now, so this only needs to disambiguate
+                  between the (at most 3) tabs within whichever group is
+                  selected. Stays mounted even for a solo-tab group
+                  (display:none, not conditional rendering) so its own
+                  tab:changed broadcast effect keeps firing on every
+                  activeTab change regardless of group size -- an
+                  unmount/remount here would risk missing exactly the
+                  broadcast TabStrip.Panel elsewhere in the tree depends
+                  on to know a new tab is active. */}
+              <div style={{ display: activeGroup.tabIds.length > 1 ? undefined : 'none' }}>
+                <TabStrip
+                  id="main-demo"
+                  activeId={activeTab}
+                  onChange={setActiveTab}
+                  items={activeGroup.tabIds.map(id => ({ id, label: TAB_DEFS[id].label }))}
+                />
+              </div>
 
               {/*
                 <Content.Grow> is the scrollable container for the active
@@ -1687,7 +1737,7 @@ export const App: React.FC = () => {
                         <Card.Header>Collapsible Nav Rail (`&lt;Sidebar&gt;`)</Card.Header>
                         <Card.Content>
                           <p style={{ marginTop: 0 }}>
-                            Typically placed inside <code>&lt;AppShell.Sidebar&gt;</code> — shown here in a bounded box so it doesn't restructure this whole demo's own root layout. Renders its own collapse toggle internally.
+                            This page's own left-hand navigation is a real <code>&lt;Sidebar&gt;</code> inside <code>&lt;AppShell.Sidebar&gt;</code> — the same component shown here again in a bounded box, isolated from that live grouping/routing logic, so its own collapse toggle and item states are easier to try in isolation.
                           </p>
                           <div style={{ height: '14rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
                             <Sidebar
