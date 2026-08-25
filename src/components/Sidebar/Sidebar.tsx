@@ -163,7 +163,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   textDecoration: 'none',
                   fontSize: '0.875rem',
                   fontWeight: isActive ? 'var(--ai-font-weight-semibold, 600)' : 'var(--ai-font-weight-normal, 400)',
-                  color: isActive ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-text-primary, #111827)',
+                  // `--ai-subtheme-info-text`, not `--ai-color-primary` -- the
+                  // latter is the raw, non-contrast-checked hue (see
+                  // colorVariant.ts's own comment on why identity colors'
+                  // "soft" text is deliberately unverified) and paired with
+                  // this same background it failed AA contrast under the
+                  // default theme (axe: color-contrast). `-info-text` is the
+                  // WCAG-contrast-checked counterpart harmonies.ts already
+                  // generates specifically to sit on `-info-bg`, the same
+                  // pairing ThemeEditor.tsx already uses.
+                  color: isActive ? 'var(--ai-subtheme-info-text)' : 'var(--ai-text-primary, #111827)',
                   background: isActive ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : 'transparent',
                   cursor: item.disabled ? 'not-allowed' : 'pointer',
                   opacity: item.disabled ? 0.5 : 1,

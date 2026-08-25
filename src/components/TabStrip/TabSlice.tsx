@@ -60,6 +60,25 @@ export function getTabVariables(state: TabSliceState = defaultTabState): TabCSSV
   if (activeSubtheme === 'success') activeColor = 'var(--ai-subtheme-success, #10b981)';
   if (activeSubtheme === 'info') activeColor = 'var(--ai-subtheme-info, #0284c7)';
 
+  // For TEXT specifically -- every variant here renders the active tab's
+  // label in `activeColor` sitting on a near-white/neutral surface
+  // background (none of the four variants below fill the tab with a solid
+  // `activeColor` background), and the raw hue on its own measures under AA
+  // contrast (axe: color-contrast) against that surface. `-readable`/`-text`
+  // are harmonies.ts-generated, WCAG-AA-checked-against-bgSurface hsl()
+  // literals (see GeneratedPalette.primaryReadable's own doc comment) --
+  // not a live color-mix()/relative-color CSS expression (tried first):
+  // those compute to a `color(srgb ...)` value in this Chromium/axe-core
+  // combination, which axe's contrast checker doesn't parse reliably,
+  // reporting a false failure even once the actual ratio measured well
+  // above 4.5:1 by hand. `activeColor` itself stays undarkened for the
+  // 'underline' variant's border below, which doesn't have this problem (a
+  // border isn't held to text contrast rules).
+  let activeTextColor = 'var(--ai-color-primary-readable, #1e3a8a)';
+  if (activeSubtheme === 'secondary') activeTextColor = 'var(--ai-color-secondary-readable, #334155)';
+  if (activeSubtheme === 'success') activeTextColor = 'var(--ai-subtheme-success-text, #047857)';
+  if (activeSubtheme === 'info') activeTextColor = 'var(--ai-subtheme-info-text, #075985)';
+
   let borderRadius = 'var(--ai-radius-md, 0.375rem)';
   let activeBg = 'var(--ai-bg-surface, #ffffff)';
   let activeBorder = 'none';
@@ -90,7 +109,7 @@ export function getTabVariables(state: TabSliceState = defaultTabState): TabCSSV
     '--ai-tab-font-size': fontSize,
     '--ai-tab-border-radius': borderRadius,
     '--ai-tab-active-bg': activeBg,
-    '--ai-tab-active-color': activeColor,
+    '--ai-tab-active-color': activeTextColor,
     '--ai-tab-active-border': activeBorder,
     '--ai-tab-inactive-color': 'var(--ai-text-secondary, #6b7280)',
     '--ai-tab-panel-animation': panelAnimation,

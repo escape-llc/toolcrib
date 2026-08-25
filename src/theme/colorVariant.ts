@@ -39,20 +39,20 @@ export interface ResolvedColorVariant {
 // instead. Text/border for identity colors uses the raw `main` hue
 // directly, same as Button's own pre-existing outline/ghost variants
 // already do for primary/secondary -- not a new tradeoff, just reused.
-const IDENTITY_COLOR_VARS: Record<ColorVariant, { main: string; onMain: string }> = {
-  primary: { main: 'var(--ai-color-primary)', onMain: 'var(--ai-color-primary-text)' },
-  secondary: { main: 'var(--ai-color-secondary)', onMain: 'var(--ai-color-secondary-text)' },
+const IDENTITY_COLOR_VARS: Record<ColorVariant, { main: string; onMain: string; readable: string }> = {
+  primary: { main: 'var(--ai-color-primary)', onMain: 'var(--ai-color-primary-text)', readable: 'var(--ai-color-primary-readable)' },
+  secondary: { main: 'var(--ai-color-secondary)', onMain: 'var(--ai-color-secondary-text)', readable: 'var(--ai-color-secondary-readable)' },
 };
 
-function applyAppearance(appearance: Appearance, main: string, onMain: string, softBackground: string, softBorder: string, softColor: string): ResolvedColorVariant {
+function applyAppearance(appearance: Appearance, main: string, onMain: string, readable: string, softBackground: string, softBorder: string): ResolvedColorVariant {
   switch (appearance) {
     case 'solid':
       return { background: main, border: main, color: onMain };
     case 'outline':
-      return { background: 'transparent', border: main, color: main };
+      return { background: 'transparent', border: main, color: readable };
     case 'soft':
     default:
-      return { background: softBackground, border: softBorder, color: softColor };
+      return { background: softBackground, border: softBorder, color: readable };
   }
 }
 
@@ -74,13 +74,24 @@ export function resolveColorVariant(options: { variant?: ColorVariant; appearanc
 
   if (subtheme) {
     const colors = resolveSubtheme(subtheme);
-    return applyAppearance(appearance, colors.main, colors.onMain, colors.background, colors.border, colors.color);
+    return applyAppearance(appearance, colors.main, colors.onMain, colors.color, colors.background, colors.border);
   }
   if (variant) {
-    const { main, onMain } = IDENTITY_COLOR_VARS[variant];
+    const { main, onMain, readable } = IDENTITY_COLOR_VARS[variant];
     const softBackground = `color-mix(in srgb, ${main} 12%, var(--ai-bg-surface, #ffffff))`;
     const softBorder = `color-mix(in srgb, ${main} 35%, transparent)`;
-    return applyAppearance(appearance, main, onMain, softBackground, softBorder, main);
+    // `readable` (--ai-color-primary-readable/-secondary-readable), not the
+    // raw `main` hue -- 'soft'/'outline' both put this directly on a
+    // near-white surface (the tinted background above, or the page's own
+    // background for 'outline'), where the raw hue measured under AA
+    // contrast (axe: color-contrast; confirmed against a real default
+    // theme). A plain harmonies.ts-generated hsl() literal, not a live
+    // color-mix()/relative-color CSS expression (tried first, for both this
+    // and TabSlice.tsx's identical problem) -- those compute to a
+    // `color(srgb ...)` value in this Chromium/axe-core combination, which
+    // axe's contrast checker doesn't parse reliably, reporting a false
+    // failure even once the actual ratio measured well above 4.5:1 by hand.
+    return applyAppearance(appearance, main, onMain, readable, softBackground, softBorder);
   }
   return null;
 }

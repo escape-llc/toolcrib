@@ -226,6 +226,14 @@ export const TabStrip: React.FC<TabStripProps> & {
                 disabled={item.disabled}
                 onClick={() => !item.disabled && handleChange(item.id)}
                 className="ai-tab-trigger"
+                // Overrides Radix's own auto-generated aria-controls, which
+                // points at the id of a same-value `Tabs.Content` this
+                // component deliberately never renders -- `<TabStrip>` and
+                // `<TabStrip.Panel>` coordinate purely over the `tab:changed`
+                // event (see this file's own doc comment on `id`/`groupId`),
+                // not a shared Radix Root/Content tree, so that id never
+                // resolves to a real element (axe: aria-valid-attr-value).
+                aria-controls={undefined}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

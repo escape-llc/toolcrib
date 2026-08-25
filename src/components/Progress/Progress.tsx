@@ -16,6 +16,14 @@ import { ProgressThemeSlice, type ProgressSliceState } from './ProgressSlice';
 export interface ProgressProps {
   /** Unique identifier included in emitted `progress:changed` events. */
   id?: string;
+  /**
+   * Accessible name for the underlying `role="progressbar"` element.
+   * Required in practice, not just in principle: unlike a `<button>`, a
+   * progressbar has no visible text content ARIA can derive a name from, so
+   * without this every instance is nameless to assistive tech regardless of
+   * what's rendered next to it visually.
+   */
+  'aria-label'?: string;
   /** Current progress value, between 0 and `max`. */
   value: number;
   /** Value representing 100% completion. @default 100 */
@@ -40,6 +48,7 @@ const SIZE_HEIGHT: Record<NonNullable<ProgressProps['size']>, string> = {
  */
 export const Progress: React.FC<ProgressProps> = ({
   id,
+  'aria-label': ariaLabel,
   value,
   max = 100,
   size = 'md',
@@ -58,6 +67,7 @@ export const Progress: React.FC<ProgressProps> = ({
 
   return (
     <ProgressPrimitive.Root
+      aria-label={ariaLabel}
       value={clampedValue}
       max={max}
       style={{

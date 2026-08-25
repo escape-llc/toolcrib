@@ -116,7 +116,20 @@ export const Popup: React.FC<PopupProps> = ({
             height instead of filling the space given to it — reported
             directly, and the reason this is now a shared constant instead
             of each component's own copy (see its own doc comment). */}
-        <div style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
+        {/* aria-haspopup/aria-expanded explicitly nulled -- Radix's
+            `asChild` merges its own aria-haspopup/aria-expanded/data-state
+            onto whichever element is its direct child, which is this
+            wrapper div, not the real trigger element nested inside it.
+            Tried giving the div role="button" first (its implicit
+            "generic" role doesn't support aria-haspopup at all -- axe:
+            aria-allowed-attr) -- that traded one violation for another
+            (axe: nested-interactive, a "button" wrapping a real, separately
+            focusable button). The real trigger inside already carries its
+            own real interactive semantics and receives focus directly, so
+            nulling these here doesn't lose anything an AT user actually
+            had -- these attributes were never reaching the element that's
+            actually focused either way. */}
+        <div aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>

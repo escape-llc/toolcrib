@@ -122,6 +122,10 @@
           "default": "'Search...'",
           "description": "Placeholder text when empty."
         },
+        "ariaLabel": {
+          "type": "string",
+          "description": "Accessible name announced by screen readers. Only needed when this\n`Combobox` isn't inside a `<FormField label=\"...\">` -- the `<label\nhtmlFor>` that renders provides the accessible name already in that\ncase, the same way it does for `Input`/`Select`/`Slider`."
+        },
         "options": {
           "type": "ListboxOptionData[]",
           "description": "Client-side option list, filtered locally by substring match against\n`label`. Omit when using `onSearch` for server-driven results instead."

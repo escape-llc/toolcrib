@@ -334,7 +334,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     {formatBytes(item.file.size)}
                     {item.status === 'error' && ` · ${item.error}`}
                   </span>
-                  {item.status === 'uploading' && <Progress id={item.id} value={item.progress} size="sm" />}
+                  {item.status === 'uploading' && (
+                    <Progress id={item.id} value={item.progress} size="sm" aria-label={`Uploading ${item.file.name}`} />
+                  )}
                 </div>
                 {item.status === 'error' && (
                   <Button size="sm" variant="outline" onClick={() => retryItem(item.id)}>Retry</Button>

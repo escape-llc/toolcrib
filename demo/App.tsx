@@ -929,6 +929,7 @@ export const App: React.FC = () => {
           >
             <Tooltip content="Current theme base color">
               <span
+                role="img"
                 aria-label="Theme base color swatch"
                 style={{
                   display: 'inline-block',
@@ -1442,8 +1443,15 @@ export const App: React.FC = () => {
                         </UIGroup>
 
                         <HStack gap="sm">
-                          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</span>
+                          {/* Native <label>, not <span> -- this Select's own
+                              trigger renders as role="combobox", which
+                              (unlike role="button") doesn't derive its
+                              accessible name from visible content, only from
+                              an aria-label/aria-labelledby or an associated
+                              <label> (axe: button-name). */}
+                          <label htmlFor="toast-anchor-select" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</label>
                           <Select
+                            id="toast-anchor-select"
                             defaultValue="top-right"
                             onChange={val => setAnchor(val as any)}
                             options={[
@@ -2261,12 +2269,22 @@ export const App: React.FC = () => {
                                   <UIGroup>
                                     <Button size="sm" variant="outline">sm</Button>
                                     <Input size="sm" placeholder="Small input" />
-                                    <Select size="sm" options={[{ label: 'Small', value: 'sm' }]} placeholder="Small select" />
+                                    {/* VisuallyHidden label, not just `placeholder` -- Select's
+                                        trigger renders role="combobox", which (unlike
+                                        role="button") doesn't derive its accessible name
+                                        from visible content (axe: button-name). */}
+                                    <VisuallyHidden>
+                                      <Label htmlFor="showcase-select-sm">Small select</Label>
+                                    </VisuallyHidden>
+                                    <Select id="showcase-select-sm" size="sm" options={[{ label: 'Small', value: 'sm' }]} placeholder="Small select" />
                                   </UIGroup>
                                   <UIGroup>
                                     <Button size="lg" variant="outline">lg</Button>
                                     <Input size="lg" placeholder="Large input" />
-                                    <Select size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
+                                    <VisuallyHidden>
+                                      <Label htmlFor="showcase-select-lg">Large select</Label>
+                                    </VisuallyHidden>
+                                    <Select id="showcase-select-lg" size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
                                   </UIGroup>
                                 </VStack>
                               </div>
@@ -2304,7 +2322,7 @@ export const App: React.FC = () => {
 
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
-                              <Slider defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+                              <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
                             </div>
                           </VStack>
 
@@ -2347,16 +2365,16 @@ export const App: React.FC = () => {
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Determinate Progress Bar (`&lt;Progress&gt;`)</div>
                               <VStack gap="sm">
-                                <Progress id="demo-upload" value={progressValue} subtheme="success" />
+                                <Progress id="demo-upload" aria-label="Upload progress" value={progressValue} subtheme="success" />
                                 <UIGroup>
                                   <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.max(0, v - 10))}>-10%</Button>
                                   <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.min(100, v + 10))}>+10%</Button>
                                 </UIGroup>
                                 {/* size="sm"/"md"/"lg" (bar thickness), isolated from the
                                     interactive default-size bar above. */}
-                                <Progress value={progressValue} size="sm" />
-                                <Progress value={progressValue} size="md" />
-                                <Progress value={progressValue} size="lg" />
+                                <Progress value={progressValue} size="sm" aria-label="Small progress bar" />
+                                <Progress value={progressValue} size="md" aria-label="Medium progress bar" />
+                                <Progress value={progressValue} size="lg" aria-label="Large progress bar" />
                               </VStack>
                             </div>
 
@@ -2433,6 +2451,7 @@ export const App: React.FC = () => {
                             </p>
                             <Combobox
                               placeholder="Search users..."
+                              ariaLabel="Search users"
                               searchDebounceMs={300}
                               onSearch={async (query) => {
                                 await new Promise(resolve => setTimeout(resolve, 200));
@@ -2457,6 +2476,7 @@ export const App: React.FC = () => {
                             <Combobox
                               multiple
                               placeholder="Add skills..."
+                              ariaLabel="Skills"
                               defaultValue={['react', 'typescript']}
                               options={[
                                 { label: 'React', value: 'react' },
@@ -2637,7 +2657,8 @@ export const App: React.FC = () => {
                               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
                                 Each row below is wrapped in its own <code>&lt;DeferredContent&gt;</code> — scroll the list and the browser skips layout/paint for rows currently off-screen, resuming automatically as they scroll into view. Best for long lists/grids of many content-sized (not flex-fill) repeated items.
                               </p>
-                              <div style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
+                              {/* tabIndex -- rows are plain text, no focusable descendant of their own (axe: scrollable-region-focusable). */}
+                              <div tabIndex={0} style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
                                 {Array.from({ length: 40 }, (_, i) => (
                                   <DeferredContent key={i} estimatedHeight={44}>
                                     <div
@@ -2846,14 +2867,23 @@ export const App: React.FC = () => {
                   would defeat the point of collapsing it. */}
               {!eventLogCollapsed && (
                 <Card.Content layout="auto" paddingMode="compact">
-                  <div style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
+                  {/* tabIndex -- a keyboard-only user needs a way to reach and
+                      scroll this region directly (axe: scrollable-region-focusable);
+                      its content is plain text, no other focusable descendant. */}
+                  <div tabIndex={0} style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
                     {eventLogs.length === 0 ? (
                       <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
                     ) : (
                       eventLogs.map(log => (
                         <div key={log.id} style={{ marginBottom: '0.2rem' }}>
                           <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
-                          <span style={{ color: 'var(--ai-color-primary)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
+                          {/* --ai-color-primary-readable, not --ai-color-primary --
+                              this text sits on the log panel's near-neutral background,
+                              and the raw hue measures under AA contrast there (axe:
+                              color-contrast); same fix/reasoning as TabSlice.tsx's
+                              own activeTextColor (see its comment for why a plain
+                              harmonies.ts-generated var, not color-mix()). */}
+                          <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
                           <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
                         </div>
                       ))

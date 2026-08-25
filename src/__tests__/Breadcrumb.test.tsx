@@ -124,11 +124,16 @@ describe('Breadcrumb', () => {
       // (confirmed: this codebase's own existing DropdownMenu test has the
       // same limitation, asserting only that the trigger is clickable, not
       // that the menu's items actually appear afterward). What's reliably
-      // verifiable here is that the trigger is real, correctly wired to a
-      // real menu (aria-haspopup), and the collapsed items were handed to
-      // it correctly -- covered by computeVisibleCrumbs' own dedicated
-      // tests above for the data, and this attribute check for the wiring.
-      const trigger = screen.getByLabelText('Show hidden breadcrumb items').closest('[aria-haspopup="menu"]');
+      // verifiable here is that the trigger is real and the collapsed
+      // items were handed to it correctly -- covered by
+      // computeVisibleCrumbs' own dedicated tests above for the data, and
+      // this presence check for the wiring. Not asserting aria-haspopup
+      // here anymore -- DropdownMenu's Radix asChild wrapper deliberately
+      // no longer carries it (see DropdownMenu.tsx's own comment: role=
+      // generic doesn't support it, and role="button" there instead
+      // produced a real nested-interactive violation), and this component
+      // doesn't clone it onto the real trigger element either.
+      const trigger = screen.getByLabelText('Show hidden breadcrumb items');
       expect(trigger).toBeInTheDocument();
     } finally {
       scrollWidthSpy.mockRestore();

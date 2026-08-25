@@ -63,10 +63,12 @@
       "--ai-color-base",
       "--ai-color-on-primary",
       "--ai-color-primary",
+      "--ai-color-primary-readable",
       "--ai-color-primary-text",
       "--ai-color-quaternary",
       "--ai-color-quaternary-text",
       "--ai-color-secondary",
+      "--ai-color-secondary-readable",
       "--ai-color-secondary-text",
       "--ai-combobox-input-padding",
       "--ai-combobox-item-padding",
@@ -1281,6 +1283,10 @@
           "type": "string",
           "default": "'Search...'",
           "description": "Placeholder text when empty."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "description": "Accessible name announced by screen readers. Only needed when this\n`Combobox` isn't inside a `<FormField label=\"...\">` -- the `<label\nhtmlFor>` that renders provides the accessible name already in that\ncase, the same way it does for `Input`/`Select`/`Slider`."
         },
         "options": {
           "type": "ListboxOptionData[]",

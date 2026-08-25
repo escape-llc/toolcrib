@@ -53,7 +53,12 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
         ...scrollAreaVars,
       }}
     >
-      <ScrollAreaPrimitive.Viewport style={{ width: '100%', height: '100%' }}>
+      {/* tabIndex -- Radix's own Viewport is overflow:scroll internally
+          with no tabIndex of its own, so a keyboard-only user has no way to
+          reach and scroll it unless its content happens to contain another
+          focusable element (axe: scrollable-region-focusable). Same fix as
+          Content.Grow. */}
+      <ScrollAreaPrimitive.Viewport tabIndex={0} style={{ width: '100%', height: '100%' }}>
         {children}
       </ScrollAreaPrimitive.Viewport>
       {showVertical && (

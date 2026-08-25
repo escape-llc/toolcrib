@@ -35,6 +35,13 @@ export interface ComboboxProps {
   /** Placeholder text when empty. @default 'Search...' */
   placeholder?: string;
   /**
+   * Accessible name announced by screen readers. Only needed when this
+   * `Combobox` isn't inside a `<FormField label="...">` -- the `<label
+   * htmlFor>` that renders provides the accessible name already in that
+   * case, the same way it does for `Input`/`Select`/`Slider`.
+   */
+  ariaLabel?: string;
+  /**
    * Client-side option list, filtered locally by substring match against
    * `label`. Omit when using `onSearch` for server-driven results instead.
    */
@@ -83,6 +90,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   id,
   name: propName,
   placeholder = 'Search...',
+  ariaLabel,
   options: staticOptions,
   onSearch,
   searchDebounceMs = 250,
@@ -436,11 +444,18 @@ export const Combobox: React.FC<ComboboxProps> = ({
           <input
             ref={inputRef}
             id={effectiveId}
+            aria-label={ariaLabel}
             role="combobox"
             aria-expanded={open}
-            aria-controls={listboxId}
+            // Only while open -- the listbox this points to (Listbox below,
+            // inside PopoverPrimitive.Content) only mounts when open is
+            // true, so pointing at its id while closed is a reference to an
+            // element that isn't in the DOM (axe: aria-valid-attr-value).
+            aria-controls={open ? listboxId : undefined}
             aria-autocomplete="list"
-            aria-activedescendant={activeOptionId}
+            // Same reasoning as aria-controls above -- the option divs
+            // aria-activedescendant would point at only exist while open.
+            aria-activedescendant={open ? activeOptionId : undefined}
             aria-invalid={isError || undefined}
             aria-describedby={isError ? `${fieldName}-error` : undefined}
             autoComplete="off"

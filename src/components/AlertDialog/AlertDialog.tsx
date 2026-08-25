@@ -120,7 +120,11 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
     <AlertDialogPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
       {trigger && (
         <AlertDialogPrimitive.Trigger asChild>
-          <div style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{trigger}</div>
+          {/* aria-haspopup/aria-expanded explicitly nulled -- see
+              Popup.tsx's identical wrapper for the full reasoning
+              (role="button" here traded aria-allowed-attr for
+              nested-interactive). */}
+          <div aria-haspopup={undefined} aria-expanded={undefined} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{trigger}</div>
         </AlertDialogPrimitive.Trigger>
       )}
 

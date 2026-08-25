@@ -40,7 +40,7 @@ describe('Badge', () => {
   it.each(['primary', 'secondary'] as const)('resolves the %s identity-color variant via the shared resolveColorVariant(), for a branded (non-status) badge', variant => {
     render(<Badge variant={variant}>{variant}</Badge>);
     const badge = screen.getByText(variant);
-    expect(badge.style.color).toBe(`var(--ai-color-${variant})`);
+    expect(badge.style.color).toBe(`var(--ai-color-${variant}-readable)`);
   });
 
   it('subtheme wins over variant when both are set', () => {
@@ -56,11 +56,11 @@ describe('Badge', () => {
     expect(badge.style.color).toBe('var(--ai-subtheme-error-on-main)');
   });
 
-  it('appearance="outline" renders a hollow badge — transparent background, colored border+text', () => {
+  it('appearance="outline" renders a hollow badge — transparent background, colored border, readable-on-surface text', () => {
     render(<Badge subtheme="info" appearance="outline">Draft</Badge>);
     const badge = screen.getByText('Draft');
     expect(badge.style.background).toBe('transparent');
     expect(badge.style.border).toContain('var(--ai-subtheme-info)');
-    expect(badge.style.color).toBe('var(--ai-subtheme-info)');
+    expect(badge.style.color).toBe('var(--ai-subtheme-info-text)');
   });
 });

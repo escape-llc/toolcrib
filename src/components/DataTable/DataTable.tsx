@@ -530,6 +530,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       <div
         ref={bodyRef}
         onScroll={onScroll}
+        // Focusable so a keyboard-only user can reach and scroll this region
+        // directly (axe: scrollable-region-focusable) -- row-level controls
+        // (checkboxes, sort buttons) don't cover this on their own since a
+        // table with more rows than fit can still have unreached scroll
+        // distance beyond the last focusable row.
+        tabIndex={0}
         style={{
           height: typeof containerHeight === 'number' ? `${containerHeight}px` : undefined,
           flex: isAutoHeight ? '1 1 0px' : undefined,
@@ -797,6 +803,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <UIGroup>
             <select
+              aria-label="Rows per page"
               value={pageSize}
               onChange={e => {
                 const newSize = Number(e.target.value);

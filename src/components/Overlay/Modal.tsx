@@ -131,7 +131,12 @@ export const Modal: React.FC<ModalProps> & {
     <DialogPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
       {trigger && (
         <DialogPrimitive.Trigger asChild>
-          <div style={TRIGGER_WRAPPER_STYLE}>{trigger}</div>
+          {/* aria-haspopup/aria-expanded explicitly nulled -- see
+              Popup.tsx's identical wrapper for the full reasoning
+              (role="button" here traded aria-allowed-attr for
+              nested-interactive, since the real trigger nested inside is
+              already its own separately focusable interactive element). */}
+          <div aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{trigger}</div>
         </DialogPrimitive.Trigger>
       )}
 

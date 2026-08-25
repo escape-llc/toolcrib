@@ -42,7 +42,7 @@ describe('TabThemeSlice Engine', () => {
     expect(vars['--ai-tab-border-radius']).toContain('0 0');
     expect(vars['--ai-tab-active-bg']).toBe('var(--ai-bg-surface, #ffffff)');
     expect(vars['--ai-tab-active-border']).toBe('0.0625rem solid var(--ai-border, #e5e7eb)');
-    expect(vars['--ai-tab-active-color']).toBe('var(--ai-color-secondary, #64748b)');
+    expect(vars['--ai-tab-active-color']).toBe('var(--ai-color-secondary-readable, #334155)');
     expect(vars['--ai-tab-panel-animation']).toBe('none');
   });
 
@@ -57,7 +57,7 @@ describe('TabThemeSlice Engine', () => {
     expect(vars['--ai-tab-border-radius']).toBe('var(--ai-radius-sm, 0.25rem)');
     expect(vars['--ai-tab-active-bg']).toBe('var(--ai-bg-surface, #ffffff)');
     expect(vars['--ai-tab-active-border']).toBe('none');
-    expect(vars['--ai-tab-active-color']).toBe('var(--ai-subtheme-info, #0284c7)');
+    expect(vars['--ai-tab-active-color']).toBe('var(--ai-subtheme-info-text, #075985)');
   });
 
   it('exports correct ThemeSlice metadata', () => {

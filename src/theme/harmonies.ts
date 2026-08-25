@@ -57,6 +57,18 @@ export interface GeneratedPalette {
   primaryText: HSVColor;
   /** Readable text/icon color for content painted directly on top of `secondary` as a solid fill. */
   secondaryText: HSVColor;
+  /**
+   * `primary`'s own hue, nudged for WCAG AA (4.5:1) against `bgSurface` --
+   * for text/icons *in* the identity color on a neutral surface (a "soft"-
+   * appearance Badge/Tab label, e.g.), as opposed to `primaryText`, which is
+   * for content sitting *on top of* a `primary`-filled background instead.
+   * Distinct from `primary` itself, which stays exactly the harmony-derived
+   * hue with no contrast adjustment, since it's also used as a border/fill
+   * color where text-contrast rules don't apply.
+   */
+  primaryReadable: HSVColor;
+  /** `secondary`'s own hue, nudged for WCAG AA against `bgSurface` -- see `primaryReadable`. */
+  secondaryReadable: HSVColor;
   /** Readable text/icon color for content painted directly on top of `accent` as a solid fill. */
   accentText: HSVColor;
   /** Readable text/icon color for content painted directly on top of `quaternary` as a solid fill. */
@@ -241,6 +253,12 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(60, primary.s), v: Math.max(50, primary.v) });
   }
 
+  // See primaryReadable's own doc comment on GeneratedPalette -- computed
+  // here (not alongside primaryText above) because it needs bgSurface,
+  // which isn't resolved yet at that point.
+  const primaryReadable = ensureWCAGContrast(primary, bgSurface, 4.5, isDarkMode);
+  const secondaryReadable = ensureWCAGContrast(secondary, bgSurface, 4.5, isDarkMode);
+
   // Monochromatic Subthemes carrying base SV axes with WCAG compliance
   const subThemes = {
     error: generateMonochromaticSubTheme(0, base, bgSurface, isDarkMode), // Red (0°)
@@ -259,6 +277,8 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     secondaryText,
     accentText,
     quaternaryText,
+    primaryReadable,
+    secondaryReadable,
     bgPrimary,
     bgSurface,
     bgContainer,
@@ -353,8 +373,10 @@ export function paletteToCSSVariables(
     '--ai-color-base': hsvToCSS(palette.base),
     '--ai-color-primary': hsvToCSS(palette.primary),
     '--ai-color-primary-text': hsvToCSS(palette.primaryText),
+    '--ai-color-primary-readable': hsvToCSS(palette.primaryReadable),
     '--ai-color-secondary': hsvToCSS(palette.secondary),
     '--ai-color-secondary-text': hsvToCSS(palette.secondaryText),
+    '--ai-color-secondary-readable': hsvToCSS(palette.secondaryReadable),
     '--ai-color-accent': hsvToCSS(palette.accent),
     '--ai-color-accent-text': hsvToCSS(palette.accentText),
     '--ai-color-quaternary': hsvToCSS(palette.quaternary),

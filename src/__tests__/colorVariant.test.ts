@@ -26,12 +26,12 @@ describe('resolveColorVariant', () => {
       });
     });
 
-    it('outline is hollow: transparent background, main-colored border+text', () => {
+    it('outline is hollow: transparent background, main-colored border, readable-on-surface text', () => {
       const result = resolveColorVariant({ subtheme: 'warning', appearance: 'outline' });
       expect(result).toEqual({
         background: 'transparent',
         border: 'var(--ai-subtheme-warning)',
-        color: 'var(--ai-subtheme-warning)',
+        color: 'var(--ai-subtheme-warning-text)',
       });
     });
 
@@ -42,11 +42,11 @@ describe('resolveColorVariant', () => {
   });
 
   describe('variant (identity colors)', () => {
-    it('soft (default) derives a live color-mix() tint from the identity color', () => {
+    it('soft (default) derives a live color-mix() tint from the identity color, with a readable-on-surface text color', () => {
       const result = resolveColorVariant({ variant: 'primary' });
       expect(result?.background).toBe('color-mix(in srgb, var(--ai-color-primary) 12%, var(--ai-bg-surface, #ffffff))');
       expect(result?.border).toBe('color-mix(in srgb, var(--ai-color-primary) 35%, transparent)');
-      expect(result?.color).toBe('var(--ai-color-primary)');
+      expect(result?.color).toBe('var(--ai-color-primary-readable)');
     });
 
     it('solid fills with the identity color and its precomputed readable-on-fill text', () => {
@@ -58,12 +58,12 @@ describe('resolveColorVariant', () => {
       });
     });
 
-    it('outline is hollow: transparent background, the raw identity color as border+text', () => {
+    it('outline is hollow: transparent background, the raw identity color as border, readable-on-surface text', () => {
       const result = resolveColorVariant({ variant: 'primary', appearance: 'outline' });
       expect(result).toEqual({
         background: 'transparent',
         border: 'var(--ai-color-primary)',
-        color: 'var(--ai-color-primary)',
+        color: 'var(--ai-color-primary-readable)',
       });
     });
   });

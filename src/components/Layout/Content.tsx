@@ -85,6 +85,13 @@ Content.Grow = ({ children, ...props }) => {
   warnIfLegacyStyleProps(props, 'Content.Grow');
   return (
     <div
+      // Focusable by default so a keyboard-only user can actually reach and
+      // scroll this region (axe: scrollable-region-focusable) -- the
+      // unconditional `overflowY: 'auto'` above means this box is
+      // scrollable whether or not its content happens to contain another
+      // focusable element. Before `{...props}` so an explicit `tabIndex`
+      // a consumer passes still wins.
+      tabIndex={0}
       {...props}
       style={{
         flex: '1 1 0px',

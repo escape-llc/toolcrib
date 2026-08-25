@@ -85,7 +85,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       }}
     >
       <DropdownMenuPrimitive.Trigger asChild>
-        <div style={{ display: 'inline-block', cursor: 'pointer' }}>{renderedTrigger}</div>
+        {/* aria-haspopup/aria-expanded explicitly nulled -- see Popup.tsx's
+            identical wrapper for the full reasoning (role="button" here
+            traded aria-allowed-attr for nested-interactive). */}
+        <div aria-haspopup={undefined} aria-expanded={undefined} style={{ display: 'inline-block', cursor: 'pointer' }}>{renderedTrigger}</div>
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
