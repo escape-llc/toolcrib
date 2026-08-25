@@ -20,7 +20,8 @@
     "generate-index": "node scripts/generate-index.js --write",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "generate-storyboard": "node scripts/generate-storyboard.js"
+    "generate-storyboard": "node scripts/generate-storyboard.js",
+    "usage-report": "node scripts/usage-report.js"
   },
   "dependencies": {
     "@internationalized/date": "^3.12.3",
