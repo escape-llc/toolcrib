@@ -28,6 +28,29 @@ Even a task as simple as "add a button" is combinatorical. Do you want:
 - The "danger" color? 
 - Is there a "danger" color even defined app-wide?
 
+### Tailwind Version
+
+``````
+<button className="px-4 py-2 rounded-md bg-blue-600 text-white font-medium
+  hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+  Save
+</button>
+
+<button className="px-4 py-2 rounded-md bg-red-600 text-white font-medium
+  hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center gap-2">
+  <TrashIcon className="w-4 h-4" /> Delete
+</button>
+``````
+
+### Toolcrib Version
+
+``````
+<Button variant="primary">Save</Button>
+<Button subtheme="error" icon="🗑️">Delete</Button>
+``````
+
+That's the whole decision — no CSS, no guessing what "error" resolves to.
+
 It gets worse! Each time you ask for the "same" UI element, like a Toolbar, the model simply regenerates it anew. And it may use the same or similar styling it used last time.  The same applies to popups, modals, forms, etc.  So consistency is not likely.
 
 After experiencing this "herding the cats" personally, we asked numerous different AI models about "whether a specially-designed toolkit optimized for AI model consumption" would be a good idea.  They all said yes!  So here it is!
@@ -39,6 +62,15 @@ Following the Rodney Dangerfield joke of "I told my doctor: It hurts when I do t
 Left to its own devices, the model works out a "fuzz" of tailwind-inspired ad hoc styling (aka The Prior).  And it does this anew with each turn.  And it looks great--at first blush.  But then you start tweaking, and it falls apart.  The problem is the model has no "memory" of the styles it has already generated, nor the semantics associated with them.  There is no real "cohesion" to the output.
 
 Toolcrib remedies this by removing the model's ability to generate `class` or `style` attributes.  Instead, the model is forced to use the components provided.  This gives the model a solid foundation to build on.  If the model wants a "button", it uses the `<Button />` component.  This Button component already knows how to be a primary button, a success button, etc.  The model does not have to constantly re-specify that, for example.  There is a single source of truth.
+
+``````
+<Card>
+  <Card.Header>Order #4471</Card.Header>
+  <Card.Content>Shipped — arriving Thursday.</Card.Content>
+</Card>
+``````
+
+Padding, radius, border, shadow — all resolved from the theme, zero props for any of it.
 
 This pain doesn't end at visuals! Modal forms, Drawers, Popups, all get one-shotted, and are unlikely to come with the required focus trap, etc. that is expected for correct operation.  Want second Drawer or Modal? It gets rebuilt from scratch each time, and *maybe* it works the same as the first one!
 
