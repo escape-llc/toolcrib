@@ -1,6 +1,6 @@
 # Toolcrib — Adopting Into an Existing App
 
-Use alongside `CORE.md` when introducing `toolcrib` into a codebase that already has UI components, styling, and state management. If you're starting a project from scratch, read `NEW_APP.md` instead.
+Use alongside `CORE.md` when introducing `toolcrib` into a codebase that already has UI components, styling, and state management. If you're starting a project from scratch, read `NEW_APP.md` instead. If the existing styling is specifically Tailwind, `TAILWIND.md` is a short vocabulary lookup worth reading alongside this file — this doc covers the migration mechanics, that one covers "how do I say `p-4 rounded-lg bg-blue-500` in toolcrib's terms."
 
 ## 1. Install and check for drift
 
