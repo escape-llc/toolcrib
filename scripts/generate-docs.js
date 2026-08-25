@@ -35,11 +35,12 @@
  * Also renders ai-docs/templates/examples/*.md.hbs into ai-docs/examples/
  * — narrative walkthroughs of the toolkit's bespoke, no-training-data-prior
  * mechanisms (overrides+StyleDomain composition, event bus sticky replay,
- * the z-index scale). The prose is hand-authored (no source-of-truth to
- * derive a "why" from), but each template interpolates the specific facts
- * it quotes (a prop's type, an event's payload, a Z_INDEX value) from the
- * same extract.js data as everything above, so a renamed prop/event/tier
- * fails `--check` instead of silently leaving the example stale.
+ * the z-index scale, Splitter's imperative bus command). The prose is
+ * hand-authored (no source-of-truth to derive a "why" from), but each
+ * template interpolates the specific facts it quotes (a prop's type, an
+ * event's payload, a Z_INDEX value) from the same extract.js data as
+ * everything above, so a renamed prop/event/tier fails `--check` instead
+ * of silently leaving the example stale.
  *
  * Usage:
  *   node scripts/generate-docs.js            # check mode (default) — exits 1 on drift
@@ -167,6 +168,13 @@ function assembleZIndexExampleFacts() {
   };
 }
 
+function assembleSplitterExampleFacts() {
+  const splitChanged = generateEventChannels().find((c) => c.name === 'splitter:split_changed');
+  return {
+    splitterSplitChangedPayload: splitChanged.payload,
+  };
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -176,6 +184,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'overrides-and-style-domains.md.hbs', data: assembleOverridesExampleFacts },
   { file: 'event-bus-sticky-replay.md.hbs', data: assembleEventBusExampleFacts },
   { file: 'z-index-scale.md.hbs', data: assembleZIndexExampleFacts },
+  { file: 'splitter-bus-command.md.hbs', data: assembleSplitterExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {

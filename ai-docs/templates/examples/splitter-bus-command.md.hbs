@@ -1,0 +1,68 @@
+# Worked Example: Splitter's Imperative Bus Command
+
+`<Splitter>` (CORE.md §2, point 2) has no controlled prop and no ref for
+its own split ratio — `initialSplit` only ever seeds the *starting*
+position. The only way to command an already-mounted Splitter from
+outside is `aiBus.emit('splitter:split_changed', { id, split })`, matched
+against the Splitter instance's own `id`. This walks through why that's
+the right shape, not a missing prop.
+
+## The problem: reaching for state that doesn't exist
+
+```tsx
+// Don't do this — there's no ref API to reach for.
+const splitterRef = useRef<{ setSplit: (n: number) => void }>(null);
+
+<Button onClick={() => splitterRef.current?.setSplit(100)}>
+  Collapse panel
+</Button>
+<Splitter id="main-layout" ref={splitterRef} orientation="vertical">
+  <Splitter.Panel>{/* ... */}</Splitter.Panel>
+  <Splitter.Panel>{/* ... */}</Splitter.Panel>
+</Splitter>
+```
+
+`Splitter` doesn't forward a ref for this at all — there's nothing to
+imperatively call, by design, not by omission.
+
+## The fix: command it over the bus, by id
+
+```tsx
+import { aiBus, Splitter, Button } from '#toolcrib';
+
+<Button onClick={() => aiBus.emit('splitter:split_changed', { id: 'main-layout', split: 100 })}>
+  Collapse panel
+</Button>
+<Splitter id="main-layout" orientation="vertical">
+  <Splitter.Panel>{/* ... */}</Splitter.Panel>
+  <Splitter.Panel>{/* ... */}</Splitter.Panel>
+</Splitter>
+```
+
+`id` is what scopes the command to this specific Splitter instance, the
+same matching pattern every other id-addressed bus channel in the toolkit
+uses (`aiBus.openModal(id, ...)`, `TabStrip`'s `groupId`). The channel's
+exact payload shape is:
+
+```ts
+{{splitterSplitChangedPayload}}
+```
+
+## Why this isn't just a weaker version of a ref
+
+A ref would make this a one-way remote control — call it once, and
+nothing keeps the caller's idea of "the split" in sync with what the user
+actually does next. The bus command doesn't have that problem, because
+it's the same channel the Splitter's own internal drag/keyboard handling
+already emits on every real change — an external `emit` and a user
+dragging the handle both funnel through the identical path. Concretely:
+a mismatched `id` is silently ignored (no risk of one Splitter's button
+accidentally moving a different one), an out-of-range `split` clamps
+through the same `minSize`/`maxSize` logic a drag already respects, and a
+command that arrives *from* the bus never re-emits back onto it — so two
+Splitters (or a Splitter and an external listener) can't loop each other.
+Unlike `tab:changed`, this channel is **not sticky** — a late-mounting
+listener won't get the current split replayed to it, since there's no
+mount-order race to solve here the way `TabStrip`/`TabStrip.Panel`'s
+cross-tree relationship has (see the event-bus-sticky-replay example) —
+this is a same-tree, imperative command, not cross-tree state sync.
