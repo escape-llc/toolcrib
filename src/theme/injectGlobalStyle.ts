@@ -15,13 +15,28 @@
  * different documents can each have their own element with the same id),
  * so injecting the same `id` into two different documents is not a
  * collision — each gets its own copy, exactly as intended.
+ *
+ * The optional `nonce` matches `ThemeProvider`'s own `nonce` prop — a
+ * consumer running a strict, nonce-based Content-Security-Policy
+ * (`style-src` with no `'unsafe-inline'`) needs it set on every `<style>`
+ * tag this toolkit creates, or the browser drops the rule silently (see
+ * CORE.md's own CSP note: this is the one real gap in an otherwise
+ * CSP-compatible styling model, since inline `style` *props* go through
+ * React's CSSOM-property-assignment path instead, which CSP's
+ * `style-src-attr` enforcement doesn't intercept at all). Set via the
+ * `.nonce` IDL property, not `setAttribute('nonce', ...)` — the `nonce`
+ * *content* attribute is deliberately unreadable/unreliable post-parse in
+ * modern browsers for security reasons (prevents leaking it back out via
+ * a CSS attribute selector); the IDL property is the only mechanism specs
+ * guarantee actually satisfies CSP nonce checking from script.
  */
-export function injectGlobalStyle(id: string, css: string, targetDocument?: Document): void {
+export function injectGlobalStyle(id: string, css: string, targetDocument?: Document, nonce?: string): void {
   const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
   if (!doc) return;
   if (doc.getElementById(id)) return;
   const styleEl = doc.createElement('style');
   styleEl.id = id;
+  if (nonce) styleEl.nonce = nonce;
   styleEl.textContent = css;
   doc.head.appendChild(styleEl);
 }
@@ -34,8 +49,12 @@ export function injectGlobalStyle(id: string, css: string, targetDocument?: Docu
  * itself is deliberately create-once/never-update, correct for its
  * existing callers' genuinely static content, but wrong here: update
  * the existing tag's content in place instead of no-op'ing past it.
+ * `nonce` only matters on the creation path — an existing element already
+ * carries whatever nonce it was created with, and updating `textContent`
+ * doesn't re-trigger CSP's nonce check (only insertion does), so there's
+ * nothing to re-apply on the update path.
  */
-export function upsertGlobalStyle(id: string, css: string, targetDocument?: Document): void {
+export function upsertGlobalStyle(id: string, css: string, targetDocument?: Document, nonce?: string): void {
   const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
   if (!doc) return;
   const existing = doc.getElementById(id) as HTMLStyleElement | null;
@@ -45,6 +64,7 @@ export function upsertGlobalStyle(id: string, css: string, targetDocument?: Docu
   }
   const styleEl = doc.createElement('style');
   styleEl.id = id;
+  if (nonce) styleEl.nonce = nonce;
   styleEl.textContent = css;
   doc.head.appendChild(styleEl);
 }

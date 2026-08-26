@@ -6,6 +6,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 import { resolveColorVariant } from '../../theme/colorVariant';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
@@ -20,7 +21,7 @@ const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 // so the browser never restarts it) — real `[data-state]`/`[data-swipe]`
 // selectors need a real stylesheet, hence injecting one instead of relying
 // on inline styles like the rest of this component's styling does.
-function injectToastAnimations(targetDocument?: Document): void {
+function injectToastAnimations(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     TOAST_STYLE_ID,
     `
@@ -53,7 +54,8 @@ function injectToastAnimations(targetDocument?: Document): void {
       animation: toolcrib-toast-swipe-out 0.2s ease-out forwards;
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -65,9 +67,10 @@ export interface ToastProps {
 export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   const { dismissToast } = useToast();
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectToastAnimations(targetDocument);
-  }, [targetDocument]);
+    injectToastAnimations(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   useInjectInteractionStyles();
 
   // ToastPrimitive.Root is given the same `duration` below and runs its own

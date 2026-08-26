@@ -21,32 +21,25 @@ const STYLE_ID = 'toolcrib-shared-keyframes';
  * reusing it here would just make the loop uncomfortably fast, not save a
  * real duplicate token family.
  *
- * Called once, unconditionally, at the bottom of this module — not lazily
- * per-component like `injectInteractionStyles`/`injectToastAnimations`,
- * and deliberately not from `src/index.ts` either, even though that's the
- * package barrel: `src/index.ts` is itself generated in full by
- * `scripts/generate-index.js` from every file's `@manifest`/`@barrelExport`
- * tags, so anything hand-added directly there gets silently wiped the next
- * time it's regenerated. This function's own `@barrelExport` tag below is
- * what makes the generator emit `export * from './theme/animationKeyframes'`
- * — importing *anything* from the package re-exports this module, which
- * evaluates its own body (including the no-args call at the bottom)
- * exactly once, so the keyframes are guaranteed to exist in the global
- * `document` without any consumer or future component author needing to
- * remember to wire this up themselves.
- *
- * That module-load-time call can't know about a `targetDocument` (nothing
- * has rendered yet), so it always targets the global `document` — correct
- * for the overwhelmingly common case. `ThemeProvider` separately calls
- * this again, explicitly passing its own `targetDocument`, so the one case
- * that first call can't cover (a `<ThemeProvider targetDocument>` portaled
- * into a different document, e.g. an `<iframe>`'s own) still gets its own
- * copy — see `themeContext.tsx`'s own call for why that's not a redundant
- * duplicate for the common case (it's a no-op there, guarded the same way
- * every `injectGlobalStyle` call is).
+ * `ThemeProvider` calls this on mount, passing its own `targetDocument`
+ * and `nonce` — that call is the sole injection point. There used to also
+ * be an eager, no-args call at the bottom of this module (running the
+ * instant the module was first imported, before any `ThemeProvider` could
+ * mount) so the keyframes existed even with zero `ThemeProvider`
+ * involvement — but `injectGlobalStyle`'s create-once-per-id dedup meant
+ * that eager call always won the race against `ThemeProvider`'s own
+ * nonce-aware one for the default document, so a real nonce-based CSP
+ * could never actually reach this tag: the un-nonced eager copy had
+ * already claimed the id. Removed once it was confirmed (via a real
+ * strict-CSP e2e run — see `e2e/csp-nonce.spec.ts`) that this was the
+ * literal cause of a genuine, browser-enforced CSP violation, not just a
+ * theoretical gap. `ThemeProvider` is already a required root wrapper for
+ * every other part of toolcrib's styling (CSS variables, typography, ...),
+ * so relying on it here too doesn't lose real coverage — nothing in this
+ * codebase renders `Modal`/`Drawer`/etc. without one.
  * @barrelExport
  */
-export function injectSharedAnimationKeyframes(targetDocument?: Document): void {
+export function injectSharedAnimationKeyframes(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     STYLE_ID,
     `
@@ -107,10 +100,7 @@ export function injectSharedAnimationKeyframes(targetDocument?: Document): void 
       to { transform: rotate(360deg); }
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
-
-// Runs once, the moment this module is first evaluated — see the doc
-// comment above for why this lives here instead of in src/index.ts.
-injectSharedAnimationKeyframes();

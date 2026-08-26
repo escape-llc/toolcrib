@@ -2,6 +2,7 @@ import React, { type ReactNode, useEffect } from 'react';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 
 /**
  * Props for the `<UIGroup>` component.
@@ -39,7 +40,7 @@ export interface UIGroupProps {
 // cooperation required from the child's own prop handling, `!important`
 // only because it has to outrank each child's inline `borderRadius`.
 const STYLE_ID = 'toolcrib-group-styles';
-function injectUIGroupStyles(targetDocument?: Document) {
+function injectUIGroupStyles(targetDocument?: Document, nonce?: string) {
   injectGlobalStyle(
     STYLE_ID,
     `
@@ -95,7 +96,8 @@ function injectUIGroupStyles(targetDocument?: Document) {
       margin-top: var(--ai-uigroup-overlap, -0.0625rem);
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -111,9 +113,10 @@ export const UIGroup: React.FC<UIGroupProps> = ({
 }) => {
   warnIfLegacyStyleProps(props, 'UIGroup');
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectUIGroupStyles(targetDocument);
-  }, [targetDocument]);
+    injectUIGroupStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   return (
     <div

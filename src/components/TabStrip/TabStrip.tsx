@@ -9,6 +9,7 @@ import { useScrollOverflow } from '../shared/useScrollOverflow';
 import { TabThemeSlice, type TabSliceState } from './TabSlice';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 
 /** Data shape for each tab in a `<TabStrip>`. */
 export interface TabItem {
@@ -380,11 +381,12 @@ const TAB_PANEL_STYLE_ID = 'toolcrib-tabstrip-panel-styles';
 // fix, not an inline style -- Panel can't set `style` on arbitrary
 // `children`, only a CSS selector reaches them generically regardless of
 // what a consumer puts inside.
-function injectTabPanelStyles(targetDocument?: Document): void {
+function injectTabPanelStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     TAB_PANEL_STYLE_ID,
     `.ai-tabstrip-panel > * { flex-shrink: 0; }`,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -392,9 +394,10 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ..
   warnIfLegacyStyleProps(props, 'TabStrip.Panel');
   const [isActive, setIsActive] = useState(false);
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectTabPanelStyles(targetDocument);
-  }, [targetDocument]);
+    injectTabPanelStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   useAIEvent('tab:changed', (event) => {
     if (event.id === groupId) setIsActive(event.activeId === value);

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { injectGlobalStyle } from './injectGlobalStyle';
 import { useTargetDocument } from './targetDocumentContext';
+import { useNonce } from './nonceContext';
 
 const STYLE_ID = 'toolcrib-interaction-styles';
 
@@ -50,7 +51,7 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  * sets that exact property (documented per-rule below) — inline style
  * always outranks an external stylesheet rule otherwise, override or not.
  */
-export function injectInteractionStyles(targetDocument?: Document): void {
+export function injectInteractionStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     STYLE_ID,
     `
@@ -117,7 +118,8 @@ export function injectInteractionStyles(targetDocument?: Document): void {
       background: color-mix(in srgb, currentColor var(--ai-menu-item-highlight-amount, 10%), transparent);
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -127,11 +129,13 @@ export function injectInteractionStyles(targetDocument?: Document): void {
  * `.ai-btn`/`.ai-focus-ring`/`.ai-menu-item` consumer needs — found
  * hand-copied at ~20 separate call sites across the component tree by an
  * external review pass; collapses each to a single `useInjectInteractionStyles();`
- * call instead.
+ * call instead. Also the one place `nonce` (CORE.md's CSP note) needs
+ * wiring for all ~20 of those consumers at once, rather than touching each.
  */
 export function useInjectInteractionStyles(): void {
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectInteractionStyles(targetDocument);
-  }, [targetDocument]);
+    injectInteractionStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 }

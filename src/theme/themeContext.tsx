@@ -68,6 +68,7 @@ import {
 } from './responsive';
 import { injectSharedAnimationKeyframes } from './animationKeyframes';
 import { TargetDocumentContext } from './targetDocumentContext';
+import { NonceContext } from './nonceContext';
 
 // Register standard theme slices
 globalThemeSliceRegistry.register(PaddingThemeSlice);
@@ -217,6 +218,20 @@ export interface ThemeProviderProps {
    * where the component instance actually renders.
    */
   targetDocument?: Document;
+  /**
+   * A Content-Security-Policy nonce, set on every `<style>` tag this
+   * provider creates (the typography base rule, responsive `@media`
+   * blocks) so they aren't silently dropped under a strict, nonce-based
+   * `style-src` (no `'unsafe-inline'`). Only needed for that specific
+   * policy shape — everything else about toolcrib's styling (inline
+   * `style` props, the overwhelming majority of it) goes through React's
+   * own CSSOM-property-assignment path, which CSP's `style-src-attr`
+   * enforcement doesn't intercept regardless of this prop. See CORE.md's
+   * CSP note for the full picture. The value itself has to come from
+   * your own server-rendered nonce (CSP nonces must be unique per
+   * request) — this prop only threads it through, it doesn't generate one.
+   */
+  nonce?: string;
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
@@ -224,6 +239,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialParameters,
   initialSliceStates,
   targetDocument,
+  nonce,
 }) => {
   const [parameters, setParameters] = useState<ThemeParameters & { shadowMode?: ShadowMode }>({
     ...defaultParameters,
@@ -338,8 +354,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       removeGlobalStyle('toolcrib-responsive-theme', doc);
       return;
     }
-    upsertGlobalStyle('toolcrib-responsive-theme', generateResponsiveCSS(responsiveInput), doc);
-  }, [responsiveInput, targetDocument]);
+    upsertGlobalStyle('toolcrib-responsive-theme', generateResponsiveCSS(responsiveInput), doc, nonce);
+  }, [responsiveInput, targetDocument, nonce]);
 
   // `--ai-font-family`/`--ai-master-font-size`/`--ai-text-primary` above are
   // written as CSS custom properties on :root, but a custom property alone
@@ -376,26 +392,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     injectGlobalStyle(
       'toolcrib-typography-base',
       `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`,
-      targetDocument
+      targetDocument,
+      nonce
     );
-  }, [targetDocument]);
+  }, [targetDocument, nonce]);
 
-  // injectSharedAnimationKeyframes() (animationKeyframes.ts) already runs
-  // eagerly, once, the moment the package is first imported — but that
-  // call happens before any component (including this one) has rendered,
-  // so it has no way to know about a `targetDocument` and only ever
-  // reaches the global `document`. That's the right default (Modal/
-  // Drawer/etc.'s entrance animations work with zero ThemeProvider
-  // involvement), but it means the one case this component *does* know
-  // about — a `targetDocument` pointing somewhere else entirely, e.g. an
-  // <iframe>'s own document via ReactDOM.createPortal — would otherwise
-  // never get its own copy of these keyframes, silently. Calling it again
-  // here is a harmless no-op for the common case (idempotent, guarded by
-  // injectGlobalStyle's per-document getElementById check) and the actual
-  // fix for the portaled one.
+  // The sole injection point for the shared entrance/exit @keyframes
+  // (Modal/Drawer/Popup/AlertDialog/TabStrip.Panel/Accordion) — see
+  // animationKeyframes.ts's own doc comment for why this used to also run
+  // eagerly at module-load time, and why that was removed (it silently
+  // defeated `nonce` for the default, un-portaled document by winning
+  // injectGlobalStyle's create-once-per-id dedup before this effect could
+  // ever run). This one call now correctly covers both the common case
+  // (the default `document`) and a `targetDocument` pointing somewhere
+  // else entirely (e.g. an <iframe>'s own document via
+  // ReactDOM.createPortal).
   useEffect(() => {
-    injectSharedAnimationKeyframes(targetDocument);
-  }, [targetDocument]);
+    injectSharedAnimationKeyframes(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   const setBaseColor = (baseColor: HSVColor) => setParameters(p => ({ ...p, baseColor }));
   const setHarmonyMode = (harmonyMode: HarmonyMode) => setParameters(p => ({ ...p, harmonyMode }));
@@ -444,7 +458,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={value}>
-      <TargetDocumentContext.Provider value={targetDocument}>{children}</TargetDocumentContext.Provider>
+      <TargetDocumentContext.Provider value={targetDocument}>
+        <NonceContext.Provider value={nonce}>{children}</NonceContext.Provider>
+      </TargetDocumentContext.Provider>
     </ThemeContext.Provider>
   );
 };

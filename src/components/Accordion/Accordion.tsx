@@ -6,6 +6,7 @@ import { AccordionThemeSlice, type AccordionSliceState } from './AccordionSlice'
 import { useStableId } from '../shared/useStableId';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 
 const ACCORDION_STYLE_ID = 'toolcrib-accordion-styles';
 
@@ -19,7 +20,7 @@ const ACCORDION_STYLE_ID = 'toolcrib-accordion-styles';
 // any other consumer with an Accordion whose content panel never actually
 // animated (no @keyframes anywhere) and no hover/chevron-rotation styling
 // either.
-function injectAccordionStyles(targetDocument?: Document): void {
+function injectAccordionStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     ACCORDION_STYLE_ID,
     `
@@ -53,7 +54,8 @@ function injectAccordionStyles(targetDocument?: Document): void {
       color: var(--ai-color-primary, #3b82f6);
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -106,9 +108,10 @@ export const Accordion: React.FC<AccordionProps> = ({
   const id = useStableId(propId, 'accordion');
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectAccordionStyles(targetDocument);
-  }, [targetDocument]);
+    injectAccordionStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   // Tracks which item values are currently open so onValueChange can emit
   // one accordion:opened/closed per item that actually changed state —

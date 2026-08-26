@@ -7,6 +7,7 @@ import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 
 const CORNER_SQUARING_STYLE_ID = 'toolcrib-corner-squaring';
 
@@ -29,7 +30,7 @@ const CORNER_SQUARING_STYLE_ID = 'toolcrib-corner-squaring';
  * other consumer's plain/non-hook-calling children with square-less
  * corners butting up against the splitter handle.
  */
-function injectCornerSquaringStyles(targetDocument?: Document): void {
+function injectCornerSquaringStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     CORNER_SQUARING_STYLE_ID,
     `
@@ -58,7 +59,8 @@ function injectCornerSquaringStyles(targetDocument?: Document): void {
       border-bottom-left-radius: 0px !important;
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -127,9 +129,10 @@ export const Splitter: React.FC<SplitterProps> & {
 }) => {
   warnIfLegacyStyleProps(props, 'Splitter');
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectCornerSquaringStyles(targetDocument);
-  }, [targetDocument]);
+    injectCornerSquaringStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   // useStableId (React's useId() under the hood) rather than the previous
   // Math.random()-in-a-useRef: domainId is rendered directly into
   // `data-ai-layout-domain` below, on both panel wrappers, so a value that

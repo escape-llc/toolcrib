@@ -5,6 +5,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useNonce } from '../../theme/nonceContext';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
 
 const TOOLTIP_STYLE_ID = 'toolcrib-tooltip-animations';
@@ -21,7 +22,7 @@ const TOOLTIP_STYLE_ID = 'toolcrib-tooltip-animations';
 // `animation: ai-fade-in` would only ever play once. Reuses the same
 // shared ai-fade-in/ai-fade-out keyframes Modal's overlay uses — no new
 // keyframes needed for a plain fade.
-function injectTooltipAnimations(targetDocument?: Document): void {
+function injectTooltipAnimations(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     TOOLTIP_STYLE_ID,
     `
@@ -33,7 +34,8 @@ function injectTooltipAnimations(targetDocument?: Document): void {
       animation: ai-fade-out var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease) forwards;
     }
     `,
-    targetDocument
+    targetDocument,
+    nonce
   );
 }
 
@@ -92,9 +94,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
   const [isOpen, setIsOpen] = useState(false);
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useEffect(() => {
-    injectTooltipAnimations(targetDocument);
-  }, [targetDocument]);
+    injectTooltipAnimations(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
