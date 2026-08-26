@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { type HSVColor } from './hsv';
 import {
   type HarmonyMode,
@@ -58,7 +58,14 @@ import { ChartThemeSlice } from '../components/Chart/ChartSlice';
 import { globalThemeSliceRegistry } from './slice';
 import { type ToolcribSliceStateMap, type ToolcribSliceStates } from './sliceStateMap';
 import { aiBus } from '../eventBus/eventBus';
-import { injectGlobalStyle } from './injectGlobalStyle';
+import { injectGlobalStyle, upsertGlobalStyle, removeGlobalStyle } from './injectGlobalStyle';
+import {
+  type ResponsiveThemeInput,
+  isResponsiveConfig,
+  resolveBaseMode,
+  getResponsiveVariableKeys,
+  generateResponsiveCSS,
+} from './responsive';
 import { injectSharedAnimationKeyframes } from './animationKeyframes';
 import { TargetDocumentContext } from './targetDocumentContext';
 
@@ -245,34 +252,94 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     return generateHarmonyPalette(parameters);
   }, [parameters]);
 
+  // A ResponsiveModeConfig's `base` tier resolved to a bare mode string --
+  // this is what feeds every consumer downstream that only ever expected
+  // a bare string (paletteToCSSVariables, computeAllVariables, and this
+  // memo's own inline-style application). It's also the correct SSR/
+  // first-paint value: `base` is unconditional, matching this codebase's
+  // established pattern (useStableId/Splitter) of a static deterministic
+  // default rather than anything measured.
+  const resolvedPaddingMode = resolveBaseMode(parameters.paddingMode);
+  const resolvedMarginMode = resolveBaseMode(parameters.marginMode || 'normal');
+  const resolvedCornerRadiusMode = resolveBaseMode(parameters.cornerRadiusMode);
+
+  // Which of the three families are under responsive control right now,
+  // in the small flat shape generateResponsiveCSS/getResponsiveVariableKeys
+  // (responsive.ts) expect -- recomputed whenever any of the three
+  // parameters changes (a live Theme Editor setter can flip a mode
+  // between static and responsive at any time, not just at mount).
+  const responsiveInput = useMemo(() => {
+    const input: ResponsiveThemeInput = {};
+    if (isResponsiveConfig(parameters.paddingMode)) input.padding = parameters.paddingMode;
+    if (isResponsiveConfig(parameters.marginMode)) input.margin = parameters.marginMode;
+    if (isResponsiveConfig(parameters.cornerRadiusMode)) input.radius = parameters.cornerRadiusMode;
+    return input;
+  }, [parameters.paddingMode, parameters.marginMode, parameters.cornerRadiusMode]);
+
+  // The CSS variable names owned by whichever families are responsive --
+  // these must never also be set inline (see the injection effect below):
+  // an inline style always beats a stylesheet rule, @media or not,
+  // regardless of specificity, so a key left in both places would make
+  // its @media rules permanently dead code.
+  const responsiveVariableKeys = useMemo(() => getResponsiveVariableKeys(responsiveInput), [responsiveInput]);
+  const prevResponsiveKeysRef = useRef<Set<string>>(new Set());
+
   const cssVariables = useMemo(() => {
     const baseVars = paletteToCSSVariables(
       palette,
-      parameters.paddingMode,
-      parameters.cornerRadiusMode,
-      parameters.marginMode || 'normal',
+      resolvedPaddingMode,
+      resolvedCornerRadiusMode,
+      resolvedMarginMode,
       parameters.isDarkMode
     );
     const sliceVars = globalThemeSliceRegistry.computeAllVariables({
-      padding: parameters.paddingMode,
-      margin: parameters.marginMode,
-      radius: parameters.cornerRadiusMode,
+      padding: resolvedPaddingMode,
+      margin: resolvedMarginMode,
+      radius: resolvedCornerRadiusMode,
       shadow: parameters.shadowMode,
       ...sliceStates,
     });
     return { ...baseVars, ...sliceVars };
-  }, [palette, parameters, sliceStates]);
+  }, [palette, parameters, sliceStates, resolvedPaddingMode, resolvedMarginMode, resolvedCornerRadiusMode]);
 
   // Inject CSS variables into root document element
   useEffect(() => {
     const root = (targetDocument ?? document).documentElement;
+
+    // A key that just became responsive-controlled (a live setter flipped
+    // it from a bare mode to a ResponsiveModeConfig) may still carry a
+    // stale inline value from before the flip -- an inline value that
+    // predates going responsive still wins the cascade forever unless
+    // explicitly cleared, since nothing else ever removes it on its own.
+    for (const key of responsiveVariableKeys) {
+      if (!prevResponsiveKeysRef.current.has(key)) root.style.removeProperty(key);
+    }
+    prevResponsiveKeysRef.current = responsiveVariableKeys;
+
     Object.entries(cssVariables).forEach(([key, value]) => {
+      if (responsiveVariableKeys.has(key)) return; // owned by the responsive <style> block instead, see below
       root.style.setProperty(key, value);
     });
 
     // Notify Event Bus of theme change
     aiBus.emit('theme:changed', { parameters, palette, cssVariables });
-  }, [cssVariables, parameters, palette, targetDocument]);
+  }, [cssVariables, parameters, palette, targetDocument, responsiveVariableKeys]);
+
+  // The @media-guarded counterpart to the inline loop above -- generates
+  // real CSS text (base :root {} + one @media block per configured
+  // breakpoint) via responsive.ts and upserts it into a single <style>
+  // tag. upsertGlobalStyle, not injectGlobalStyle: a live setter
+  // (setPaddingMode etc.) can change this content at any point in the
+  // provider's lifetime, unlike every other injectGlobalStyle caller's
+  // genuinely static content.
+  useEffect(() => {
+    const doc = targetDocument ?? document;
+    if (Object.keys(responsiveInput).length === 0) {
+      removeGlobalStyle('toolcrib-responsive-theme', doc);
+      return;
+    }
+    upsertGlobalStyle('toolcrib-responsive-theme', generateResponsiveCSS(responsiveInput), doc);
+  }, [responsiveInput, targetDocument]);
 
   // `--ai-font-family`/`--ai-master-font-size`/`--ai-text-primary` above are
   // written as CSS custom properties on :root, but a custom property alone

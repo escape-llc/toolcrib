@@ -12,6 +12,7 @@ import {
 import { type PaddingMode, getPaddingVariables } from './padding';
 import { type MarginMode, getMarginVariables } from './margin';
 import { type CornerRadiusMode, getRadiusVariables } from './radius';
+import { type ResponsiveModeConfig } from './responsive';
 
 /** @barrelExport */
 export type HarmonyMode =
@@ -27,9 +28,13 @@ export interface ThemeParameters {
   hueSpread: number; // e.g. 30
   darkenLightenFactor: number; // e.g. 1.0 (default), >1 lighter, <1 darker
   saturationFactor: number; // e.g. 1.0 (default)
-  paddingMode: PaddingMode; // 'compact' | 'normal' | 'spacious'
-  marginMode?: MarginMode; // 'compact' | 'normal' | 'spacious'
-  cornerRadiusMode: CornerRadiusMode; // 'sharp' | 'subtle' | 'rounded' | 'pill'
+  // A bare mode string (unchanged, existing behavior) or a
+  // ResponsiveModeConfig varying the mode by breakpoint (responsive.ts) --
+  // purely additive; every existing caller passing a bare string keeps
+  // compiling and behaving identically.
+  paddingMode: PaddingMode | ResponsiveModeConfig<PaddingMode>; // 'compact' | 'normal' | 'spacious'
+  marginMode?: MarginMode | ResponsiveModeConfig<MarginMode>; // 'compact' | 'normal' | 'spacious'
+  cornerRadiusMode: CornerRadiusMode | ResponsiveModeConfig<CornerRadiusMode>; // 'sharp' | 'subtle' | 'rounded' | 'pill'
   isDarkMode: boolean;
 }
 

@@ -25,3 +25,32 @@ export function injectGlobalStyle(id: string, css: string, targetDocument?: Docu
   styleEl.textContent = css;
   doc.head.appendChild(styleEl);
 }
+
+/**
+ * `injectGlobalStyle`'s sibling for CSS text that can genuinely change
+ * over a provider's lifetime (e.g. responsive.ts's generated `@media`
+ * blocks, which change whenever a live theme setter like `setPaddingMode`
+ * flips a mode between static and responsive) -- `injectGlobalStyle`
+ * itself is deliberately create-once/never-update, correct for its
+ * existing callers' genuinely static content, but wrong here: update
+ * the existing tag's content in place instead of no-op'ing past it.
+ */
+export function upsertGlobalStyle(id: string, css: string, targetDocument?: Document): void {
+  const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
+  if (!doc) return;
+  const existing = doc.getElementById(id) as HTMLStyleElement | null;
+  if (existing) {
+    if (existing.textContent !== css) existing.textContent = css;
+    return;
+  }
+  const styleEl = doc.createElement('style');
+  styleEl.id = id;
+  styleEl.textContent = css;
+  doc.head.appendChild(styleEl);
+}
+
+/** Removes a tag previously injected by `upsertGlobalStyle` (or `injectGlobalStyle`), if present. */
+export function removeGlobalStyle(id: string, targetDocument?: Document): void {
+  const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
+  doc?.getElementById(id)?.remove();
+}

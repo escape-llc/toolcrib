@@ -18,12 +18,15 @@ export function FieldRow({
   value,
   onChange,
   options,
+  disabled,
 }: {
   label: string;
   tooltip?: string;
   value: string;
   onChange: (val: string) => void;
   options: { label: string; value: string }[];
+  /** Disables the underlying Select -- e.g. a mode under responsive breakpoint control, where one selected value can't represent every tier. */
+  disabled?: boolean;
 }) {
   const id = useId();
   return (
@@ -36,7 +39,7 @@ export function FieldRow({
           </Tooltip>
         )}
       </div>
-      <Select id={id} value={value} onChange={val => onChange(val)} options={options} />
+      <Select id={id} value={value} onChange={val => onChange(val)} options={options} disabled={disabled} />
     </div>
   );
 }

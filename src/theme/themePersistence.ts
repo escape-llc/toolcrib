@@ -1,5 +1,6 @@
 import type { ThemeContextType } from './themeContext';
 import type { ToolcribSliceStateMap } from './sliceStateMap';
+import { resolveBaseMode } from './responsive';
 
 /**
  * The one shared type + the only two functions that touch `ThemeContextType`
@@ -98,9 +99,15 @@ export function applyThemeSnapshot(theme: ThemeContextType, snapshot: ThemeSnaps
     if (typeof p.hueSpread === 'number') theme.setHueSpread(p.hueSpread);
     if (typeof p.darkenLightenFactor === 'number') theme.setDarkenLightenFactor(p.darkenLightenFactor);
     if (typeof p.saturationFactor === 'number') theme.setSaturationFactor(p.saturationFactor);
-    if (p.paddingMode) theme.setPaddingMode(p.paddingMode);
-    if (p.marginMode) theme.setMarginMode(p.marginMode);
-    if (p.cornerRadiusMode) theme.setCornerRadiusMode(p.cornerRadiusMode);
+    // setPaddingMode/setMarginMode/setCornerRadiusMode are deliberately
+    // bare-string-only (a responsive config is initialization-only, set
+    // via ThemeProvider's initialParameters, not a live setter -- see
+    // responsive.ts) -- a saved snapshot that captured a responsive
+    // config restores only its `base` tier here, a safe degrade rather
+    // than an error or a silently dropped restore.
+    if (p.paddingMode) theme.setPaddingMode(resolveBaseMode(p.paddingMode));
+    if (p.marginMode) theme.setMarginMode(resolveBaseMode(p.marginMode));
+    if (p.cornerRadiusMode) theme.setCornerRadiusMode(resolveBaseMode(p.cornerRadiusMode));
     if (p.shadowMode) theme.setShadowMode(p.shadowMode);
     if (typeof p.isDarkMode === 'boolean') theme.setDarkMode(p.isDarkMode);
   }

@@ -5,6 +5,7 @@ import { type PaddingMode } from '../../theme/padding';
 import { type MarginMode } from '../../theme/margin';
 import { type CornerRadiusMode } from '../../theme/radius';
 import { type ShadowMode } from '../../theme/shadow';
+import { isResponsiveConfig, resolveBaseMode } from '../../theme/responsive';
 import { AnimationThemeSlice } from '../../theme/animation';
 import { TypographyThemeSlice } from '../../theme/typography';
 import { globalThemeSliceRegistry, type ThemeSlice, type ThemeSliceCategory } from '../../theme/slice';
@@ -365,9 +366,10 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <FieldRow
         label="Global Padding Mode"
-        tooltip="Controls internal container padding density across all components"
-        value={parameters.paddingMode}
+        tooltip={isResponsiveConfig(parameters.paddingMode) ? 'Controlled by a responsive breakpoint config (set via initialParameters) -- showing its base tier' : 'Controls internal container padding density across all components'}
+        value={resolveBaseMode(parameters.paddingMode)}
         onChange={val => setPaddingMode(val as PaddingMode)}
+        disabled={isResponsiveConfig(parameters.paddingMode)}
         options={[
           { label: 'Compact (Tight rem padding)', value: 'compact' },
           { label: 'Normal (Standard rem padding)', value: 'normal' },
@@ -376,9 +378,10 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       />
       <FieldRow
         label="Global Margin & Element Gaps"
-        tooltip="Controls vertical rhythm and gap spacing between UI elements"
-        value={parameters.marginMode || 'normal'}
+        tooltip={isResponsiveConfig(parameters.marginMode) ? 'Controlled by a responsive breakpoint config (set via initialParameters) -- showing its base tier' : 'Controls vertical rhythm and gap spacing between UI elements'}
+        value={resolveBaseMode(parameters.marginMode || 'normal')}
         onChange={val => setMarginMode(val as MarginMode)}
+        disabled={isResponsiveConfig(parameters.marginMode)}
         options={[
           { label: 'Compact (Tight element gaps)', value: 'compact' },
           { label: 'Normal (Standard element gaps)', value: 'normal' },
@@ -387,8 +390,10 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       />
       <FieldRow
         label="Corner Rounding Mode"
-        value={parameters.cornerRadiusMode}
+        tooltip={isResponsiveConfig(parameters.cornerRadiusMode) ? 'Controlled by a responsive breakpoint config (set via initialParameters) -- showing its base tier' : undefined}
+        value={resolveBaseMode(parameters.cornerRadiusMode)}
         onChange={val => setCornerRadiusMode(val as CornerRadiusMode)}
+        disabled={isResponsiveConfig(parameters.cornerRadiusMode)}
         options={[
           { label: 'Sharp (0rem Square Corners)', value: 'sharp' },
           { label: 'Subtle (Compact Corner Rounding)', value: 'subtle' },
