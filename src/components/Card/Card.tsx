@@ -1,6 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
-import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
+import { useCornerSquaring, useLayoutDomain } from '../Splitter/LayoutDomainContext';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -137,6 +137,7 @@ export const Card: React.FC<CardProps> & {
 } = ({ children, layout = 'default', squareCorners, overrides, ...props }) => {
   warnIfLegacyStyleProps(props, 'Card');
   const isAuto = layout === 'auto' || squareCorners === 'auto';
+  const domainInfo = useLayoutDomain();
   const { style: domainCornerStyle } = useCornerSquaring(isAuto);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const { vars, subtheme } = useSliceOverrides(CardThemeSlice, overrides);
@@ -144,7 +145,17 @@ export const Card: React.FC<CardProps> & {
 
   return (
     <div
-      data-ai-layout-auto={isAuto ? 'true' : 'false'}
+      // Gated on genuinely being inside a live layout domain (domainInfo),
+      // not just the local layout="auto" flag -- the injected global CSS
+      // catch-all this attribute feeds (see Splitter.tsx's
+      // injectCornerSquaringStyles) matches on raw DOM structure via a
+      // descendant selector, so it doesn't know or care that Grid resets
+      // LayoutDomainContext back to null for its own cells. Without this
+      // gate, a layout="auto" Card used purely for unrelated flex-fill
+      // sizing (no ambient Splitter at all, or one reset by an
+      // intervening Grid) still matched the CSS selector and got squared
+      // corners meant for a completely different Splitter's own edge.
+      data-ai-layout-auto={isAuto && domainInfo ? 'true' : 'false'}
       {...props}
       style={{
         background: 'var(--ai-bg-surface, #ffffff)',

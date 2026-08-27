@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { resolveMargin, type MarginMode } from '../../theme/margin';
 import { resolvePadding, type PaddingMode } from '../../theme/padding';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { LayoutDomainContext } from '../Splitter/LayoutDomainContext';
 
 /**
  * Props for the `<Grid>` responsive multi-column layout container.
@@ -61,7 +62,22 @@ export const Grid: React.FC<GridProps> = ({
         padding: paddingMode ? resolvePadding(paddingMode, 'md') : undefined,
       }}
     >
-      {children}
+      {/* Resets the ambient Splitter layout domain (see
+          LayoutDomainContext.tsx) for everything inside this Grid's cells.
+          useCornerSquaring reaches through Context to any depth, which is
+          correct for a single logical block of content (e.g. a lone Card
+          wrapped in a VStack for spacing) but wrong the moment a Grid
+          introduces multiple independent siblings side by side — there is
+          no single cell that can correctly claim to be "the edge-touching
+          content of the enclosing Splitter panel," so a Card with
+          layout="auto" nested in any cell here must not inherit
+          corner-squaring meant for the panel's own boundary. Reported
+          directly: a `layout="auto"` demo Card two Grid levels deep picked
+          up squared bottom corners intended for a completely unrelated
+          outer Splitter many components away. */}
+      <LayoutDomainContext.Provider value={null}>
+        {children}
+      </LayoutDomainContext.Provider>
     </div>
   );
 };
