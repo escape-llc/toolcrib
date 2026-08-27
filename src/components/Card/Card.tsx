@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
@@ -137,6 +138,7 @@ export const Card: React.FC<CardProps> & {
   warnIfLegacyStyleProps(props, 'Card');
   const isAuto = layout === 'auto' || squareCorners === 'auto';
   const { style: domainCornerStyle } = useCornerSquaring(isAuto);
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
   const { vars, subtheme } = useSliceOverrides(CardThemeSlice, overrides);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
 
@@ -161,7 +163,7 @@ export const Card: React.FC<CardProps> & {
         } : {}),
         ...domainCornerStyle,
         ...vars,
-        ...resolveSquareCorners(squareCorners),
+        ...resolveSquareCorners(squareCorners ?? uiGroupSquareCorners),
       }}
     >
       {children}

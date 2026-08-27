@@ -1,5 +1,5 @@
 import React, { type ReactElement, type ReactNode, cloneElement, isValidElement } from 'react';
-import { type SquareCornerOption } from '../components/Card/Card';
+import { type SquareCornerOption, resolveSquareCorners } from '../components/Card/Card';
 
 /** @barrelExport */
 export type PopoverSide = 'top' | 'right' | 'bottom' | 'left';
@@ -147,6 +147,45 @@ export function computeCornerSquaring(
   };
 }
 
+// Expands any SquareCornerOption to the literal corners it names -- a
+// small, deliberate parallel to Card.tsx's own resolveSquareCorners
+// (which does the same case analysis but returns CSS properties instead
+// of corner names). Kept separate rather than refactored into one shared
+// function: resolveSquareCorners is exercised by every existing
+// squareCorners-aware component's tests already, and this file's own
+// need (uniting two *sources* of squaring into one corner set, not just
+// resolving one value to CSS) is a different enough shape that sharing
+// the implementation would mean threading an output-format flag through
+// otherwise-stable, already-shipped code for a small win.
+function expandToCorners(option?: SquareCornerOption): Corner[] {
+  if (!option || option === 'none' || option === 'auto') return [];
+  if (option === 'all') return ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+  if (option === 'top') return ['top-left', 'top-right'];
+  if (option === 'bottom') return ['bottom-left', 'bottom-right'];
+  if (option === 'left') return ['top-left', 'bottom-left'];
+  if (option === 'right') return ['top-right', 'bottom-right'];
+  if (Array.isArray(option)) return option;
+  return [];
+}
+
+/**
+ * Unions two independent sources of corner-squaring into one
+ * `SquareCornerOption` — needed because a trigger can legitimately need
+ * squaring for two unrelated reasons at once: "attached to its open
+ * popup panel" (this file's own `computeCornerSquaring`) and "a member
+ * of a `<UIGroup>`" (`UIGroupContext`). Neither should silently discard
+ * the other — found for real, not theoretically: `Popup`'s own trigger
+ * clone always sets an explicit `squareCorners` (even `'none'` while
+ * closed), which is never `undefined`, so a plain `??` fallback to
+ * `useUIGroupSquareCorners()` at the Button level never got a chance to
+ * apply — the popup-attachment squaring silently won every time,
+ * regardless of the trigger's actual position in a UIGroup row.
+ */
+function mergeSquareCorners(a?: SquareCornerOption, b?: SquareCornerOption): SquareCornerOption {
+  const corners = [...new Set([...expandToCorners(a), ...expandToCorners(b)])];
+  return corners.length > 0 ? corners : 'none';
+}
+
 /**
  * Applies a `CornerSquaringResult`'s trigger-side corner to an arbitrary
  * `trigger` element: a toolcrib-native component (anything not a bare
@@ -155,14 +194,30 @@ export function computeCornerSquaring(
  * direct `style` patch instead, since it has no such prop to consult. Same
  * dispatch `Popup` already used, extracted so `DropdownMenu` doesn't have
  * to duplicate it to get the same trigger-squaring `Popup` has.
+ *
+ * `uiGroupSquareCorners` — the caller's own `useUIGroupSquareCorners()`
+ * result, if any — is merged in rather than overridden by this function's
+ * own popup-attachment squaring; see `mergeSquareCorners`'s own comment
+ * for why that distinction matters. Optional and defaults to `undefined`
+ * (no UIGroup involved) so existing callers that haven't been updated
+ * still compile and behave exactly as before.
  */
-export function renderTriggerWithCornerSquaring(trigger: ReactNode, squaring: CornerSquaringResult): ReactNode {
+export function renderTriggerWithCornerSquaring(
+  trigger: ReactNode,
+  squaring: CornerSquaringResult,
+  uiGroupSquareCorners?: SquareCornerOption
+): ReactNode {
   if (!isValidElement(trigger)) return trigger;
   const element = trigger as ReactElement<any>;
   const isToolcribComponent = typeof element.type !== 'string';
   return isToolcribComponent
-    ? cloneElement(element, { squareCorners: squaring.triggerSquareCorners })
+    ? cloneElement(element, { squareCorners: mergeSquareCorners(squaring.triggerSquareCorners, uiGroupSquareCorners) })
     : cloneElement(element, {
-        style: { ...(element.props as any).style, ...squaring.triggerCornerStyle, transition: 'border-radius 0.15s ease' },
+        style: {
+          ...(element.props as any).style,
+          ...squaring.triggerCornerStyle,
+          ...resolveSquareCorners(uiGroupSquareCorners),
+          transition: 'border-radius 0.15s ease',
+        },
       });
 }

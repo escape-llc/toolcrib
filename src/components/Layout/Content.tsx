@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { type MarginMode, resolveMargin } from '../../theme/margin';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 
 /**
@@ -44,6 +45,7 @@ export const Content: React.FC<ContentProps> & {
 } = ({ children, gap = 'md', marginMode, squareCorners, ...props }) => {
   warnIfLegacyStyleProps(props, 'Content');
   const { style: domainCornerStyle } = useCornerSquaring(true);
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
 
   return (
     <div
@@ -57,7 +59,7 @@ export const Content: React.FC<ContentProps> & {
         minHeight: 0,
         gap: resolveMargin(marginMode, gap),
         ...domainCornerStyle,
-        ...resolveSquareCorners(squareCorners),
+        ...resolveSquareCorners(squareCorners ?? uiGroupSquareCorners),
       }}
     >
       {children}

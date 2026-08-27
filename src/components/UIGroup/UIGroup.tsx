@@ -1,8 +1,10 @@
-import React, { type ReactNode, useEffect } from 'react';
+import React, { Children, isValidElement, type ReactNode, useEffect } from 'react';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { useNonce } from '../../theme/nonceContext';
+import { type SquareCornerOption } from '../Card/Card';
+import { UIGroupContext } from './UIGroupContext';
 
 /**
  * Props for the `<UIGroup>` component.
@@ -30,15 +32,30 @@ export interface UIGroupProps {
 }
 
 // Inject focus/hover stacking + border-merging CSS for UIGroup elements.
-// Corner-radius merging is deliberately pure CSS, not cloneElement-injected
-// style: UIGroup's children are almost always toolcrib components (Button,
-// Input, Select) whose own inline `style` attribute — computed internally,
+// Corner-radius merging is CSS-first, not cloneElement-injected style:
+// UIGroup's children are almost always toolcrib components (Button, Input,
+// Select) whose own inline `style` attribute — computed internally,
 // applied after any {...props} spread — would silently win over an
 // injected style prop once those components stopped accepting one, exactly
 // the failure mode found and fixed for Splitter.Panel. CSS selectors
 // scoped to this wrapper's own children sidestep that entirely: no
 // cooperation required from the child's own prop handling, `!important`
 // only because it has to outrank each child's inline `borderRadius`.
+//
+// This CSS only reaches *direct* DOM children, though — and a `Modal`/
+// `Popup`/`AlertDialog` passed as a child wraps its own `trigger` in an
+// internal `<div>` (for flex-stretch inside a UIGroup row in the first
+// place), putting the actual `<button>` two DOM layers below this
+// selector's reach. UIGroupContext (below, in the component body) is the
+// fix for that case specifically — a squareCorners-aware component
+// consults it directly regardless of DOM nesting, since Context
+// propagates via the render tree, not the DOM tree. The two mechanisms
+// aren't in tension: for a plain direct-child Button/Input, they agree
+// (same visual result, computed twice by two independent paths); for a
+// wrapped trigger, only the Context path can reach it at all. Found for
+// real, not theoretically: a Popup/AlertDialog-triggered button inside a
+// UIGroup rendered with its default rounded corners regardless of
+// position, undetected until it visually collided with a widened sibling.
 const STYLE_ID = 'toolcrib-group-styles';
 function injectUIGroupStyles(targetDocument?: Document, nonce?: string) {
   injectGlobalStyle(
@@ -118,6 +135,21 @@ export const UIGroup: React.FC<UIGroupProps> = ({
     injectUIGroupStyles(targetDocument, nonce);
   }, [targetDocument, nonce]);
 
+  // React.Children.toArray, not Children.map -- it's the one documented to
+  // both filter out non-element children (null/false/undefined from a
+  // conditional like `{cond && <Button/>}`) and compact the result, so
+  // `index`/`items.length` below reflect real, renderable members only.
+  // Mirrors ThemeEditor.tsx's own hand-written version of this exact
+  // position → squareCorners mapping for its internal Popup-triggered
+  // toolbar buttons (first item squares its trailing edge, last item
+  // squares its leading edge, everything between squares both) --
+  // generalized here so every UIGroup consumer gets it automatically
+  // instead of reimplementing it per call site.
+  const items = Children.toArray(children).filter(isValidElement);
+  const total = items.length;
+  const leadingEdge = orientation === 'horizontal' ? 'right' : 'bottom';
+  const trailingEdge = orientation === 'horizontal' ? 'left' : 'top';
+
   return (
     <div
       className="toolcrib-group"
@@ -130,7 +162,15 @@ export const UIGroup: React.FC<UIGroupProps> = ({
         ['--toolcrib-group-radius' as string]: borderRadius,
       }}
     >
-      {children}
+      {items.map((child, index) => {
+        const squareCorners: SquareCornerOption =
+          total <= 1 ? 'none' : index === 0 ? leadingEdge : index === total - 1 ? trailingEdge : 'all';
+        return (
+          <UIGroupContext.Provider value={squareCorners} key={child.key ?? index}>
+            {child}
+          </UIGroupContext.Provider>
+        );
+      })}
     </div>
   );
 };

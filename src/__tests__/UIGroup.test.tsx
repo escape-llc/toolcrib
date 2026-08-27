@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest';
+import { type ReactElement } from 'react';
 import { render, screen } from '@testing-library/react';
 import { UIGroup } from '../components/UIGroup/UIGroup';
+import { Button, Input } from '../components/Form/FormComponents';
+
+// Wraps its own `trigger` child in an intermediate <div>, the same shape
+// Modal/Popup/AlertDialog's own internal trigger wrapper takes (see their
+// own components for the real thing) -- a minimal stand-in so this suite
+// doesn't have to drag in a full Modal/Popup/AlertDialog + Radix portal
+// just to prove the wrapper-div case specifically.
+function WrappedTrigger({ trigger }: { trigger: ReactElement }) {
+  return <div style={{ display: 'inline-flex' }}>{trigger}</div>;
+}
 
 // Corner-radius merging is applied via an injected global stylesheet
 // (`.toolcrib-group[data-orientation=...] > *` selectors), not inline
@@ -81,5 +92,138 @@ describe('UIGroup Component', () => {
       </>
     );
     expect(document.querySelectorAll('#toolcrib-group-styles').length).toBe(1);
+  });
+});
+
+// Unlike UIGroup's own CSS-based squaring (verified separately in a real
+// browser, per the file-level comment above), this is an *inline* style a
+// squareCorners-aware component computes itself from UIGroupContext --
+// jsdom can observe it directly, no real browser needed.
+describe('UIGroup automatic corner-squaring via context', () => {
+  it('squares a direct-child Button based on its position: first/middle/last', () => {
+    render(
+      <UIGroup>
+        <Button>First</Button>
+        <Button>Middle</Button>
+        <Button>Last</Button>
+      </UIGroup>
+    );
+
+    const first = screen.getByText('First');
+    const middle = screen.getByText('Middle');
+    const last = screen.getByText('Last');
+
+    // First: trailing edge (right, for horizontal) squared, leading (left) not.
+    expect(first.style.borderTopRightRadius).toBe('0px');
+    expect(first.style.borderBottomRightRadius).toBe('0px');
+    expect(first.style.borderTopLeftRadius).not.toBe('0px');
+
+    // Middle: every corner squared.
+    expect(middle.style.borderTopLeftRadius).toBe('0px');
+    expect(middle.style.borderTopRightRadius).toBe('0px');
+    expect(middle.style.borderBottomLeftRadius).toBe('0px');
+    expect(middle.style.borderBottomRightRadius).toBe('0px');
+
+    // Last: leading edge (left) squared, trailing (right) not.
+    expect(last.style.borderTopLeftRadius).toBe('0px');
+    expect(last.style.borderBottomLeftRadius).toBe('0px');
+    expect(last.style.borderTopRightRadius).not.toBe('0px');
+  });
+
+  it('does not square a single child (only member of the group)', () => {
+    render(
+      <UIGroup>
+        <Button>Only</Button>
+      </UIGroup>
+    );
+    const only = screen.getByText('Only');
+    expect(only.style.borderTopLeftRadius).not.toBe('0px');
+    expect(only.style.borderTopRightRadius).not.toBe('0px');
+  });
+
+  it('reaches a Button nested behind an intermediate wrapper <div> -- the Modal/Popup/AlertDialog trigger shape', () => {
+    // This is the actual regression this context exists to fix: UIGroup's
+    // own CSS only reaches *direct* DOM children, which a wrapped trigger
+    // (like Modal's/Popup's/AlertDialog's own internal trigger div) never
+    // is. Confirmed failing without the context (a Button here read its
+    // default, unsquared radius) before this fix landed.
+    render(
+      <UIGroup>
+        <Button>First</Button>
+        <WrappedTrigger trigger={<Button>Wrapped</Button>} />
+        <Button>Last</Button>
+      </UIGroup>
+    );
+
+    const wrapped = screen.getByText('Wrapped');
+    expect(wrapped.style.borderTopLeftRadius).toBe('0px');
+    expect(wrapped.style.borderTopRightRadius).toBe('0px');
+    expect(wrapped.style.borderBottomLeftRadius).toBe('0px');
+    expect(wrapped.style.borderBottomRightRadius).toBe('0px');
+  });
+
+  it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+    render(
+      <UIGroup>
+        <Button>First</Button>
+        <Button squareCorners="none">Override</Button>
+        <Button>Last</Button>
+      </UIGroup>
+    );
+
+    const override = screen.getByText('Override');
+    expect(override.style.borderTopLeftRadius).not.toBe('0px');
+    expect(override.style.borderTopRightRadius).not.toBe('0px');
+  });
+
+  it('skips non-element children (a falsy conditional) when computing first/last position', () => {
+    const showMiddle = false;
+    render(
+      <UIGroup>
+        <Button>First</Button>
+        {showMiddle && <Button>Middle</Button>}
+        <Button>Last</Button>
+      </UIGroup>
+    );
+
+    // With the falsy conditional correctly skipped, "Last" is still the
+    // group's true last member (leading edge squared, trailing not) --
+    // not treated as a middle item just because three JSX children were
+    // authored.
+    const last = screen.getByText('Last');
+    expect(last.style.borderTopLeftRadius).toBe('0px');
+    expect(last.style.borderTopRightRadius).not.toBe('0px');
+  });
+
+  it('squares top/bottom (not left/right) for a vertical group', () => {
+    render(
+      <UIGroup orientation="vertical">
+        <Button>First</Button>
+        <Button>Last</Button>
+      </UIGroup>
+    );
+
+    const first = screen.getByText('First');
+    const last = screen.getByText('Last');
+    expect(first.style.borderBottomLeftRadius).toBe('0px');
+    expect(first.style.borderBottomRightRadius).toBe('0px');
+    expect(first.style.borderTopLeftRadius).not.toBe('0px');
+
+    expect(last.style.borderTopLeftRadius).toBe('0px');
+    expect(last.style.borderTopRightRadius).toBe('0px');
+    expect(last.style.borderBottomLeftRadius).not.toBe('0px');
+  });
+
+  it('also squares an Input the same way -- its squareCorners prop was previously destructured but never applied at all', () => {
+    render(
+      <UIGroup>
+        <Input aria-label="search" />
+        <Button>Go</Button>
+      </UIGroup>
+    );
+    const input = screen.getByLabelText('search');
+    expect(input.style.borderTopRightRadius).toBe('0px');
+    expect(input.style.borderBottomRightRadius).toBe('0px');
+    expect(input.style.borderTopLeftRadius).not.toBe('0px');
   });
 });

@@ -2264,6 +2264,36 @@ export const App: React.FC = () => {
                               </div>
 
                               <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Group Containing a Popup Trigger (wrapper-div squaring)</div>
+                                {/* Regression coverage, live: Modal/Popup/
+                                    AlertDialog all wrap their own `trigger`
+                                    in an internal div (for flex-stretch
+                                    inside a row like this one), which
+                                    UIGroup's own direct-child CSS can't
+                                    reach through — the actual Button here
+                                    sits two DOM layers below that
+                                    selector's reach. Squares correctly
+                                    anyway via UIGroupContext, which
+                                    propagates through that wrapper the
+                                    same way useTargetDocument()/useNonce()
+                                    already reach components nested inside
+                                    a portal. See e2e/uiGroup.spec.ts for
+                                    the real-browser assertion this exists
+                                    to back up visually. */}
+                                <UIGroup>
+                                  <Button variant="outline" icon="◀">Prev</Button>
+                                  <Popup
+                                    id="uigroup-popup-demo"
+                                    trigger={<Button variant="outline" icon="⚙️" aria-label="Options" />}
+                                    placement="bottom-start"
+                                  >
+                                    <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Popup content</div>
+                                  </Popup>
+                                  <Button variant="outline" icon="▶">Next</Button>
+                                </UIGroup>
+                              </div>
+
+                              <div>
                                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</div>
                                 <VStack gap="sm">
                                   <UIGroup>

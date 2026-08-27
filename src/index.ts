@@ -150,6 +150,7 @@ export * from './components/Tooltip/TooltipSlice';
 export * from './components/Tree/Tree';
 export * from './components/Tree/TreeSlice';
 export * from './components/UIGroup/UIGroup';
+export * from './components/UIGroup/UIGroupContext';
 export * from './components/UIGroup/UIGroupSlice';
 export * from './components/Viewer/Viewer';
 export * from './components/Viewer/ViewerContent';

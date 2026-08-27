@@ -11,6 +11,7 @@ import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, type PopoverSide } from '../../theme/connectedPopoverStyles';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
@@ -103,7 +104,8 @@ export const Popup: React.FC<PopupProps> = ({
   // (which only accepts 'start'|'center'|'end') with no cast.
   const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
   const squaring = computeCornerSquaring(side, align, isOpen);
-  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring);
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring, uiGroupSquareCorners);
 
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>

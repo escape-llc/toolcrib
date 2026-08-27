@@ -11,6 +11,7 @@ import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { FieldContext } from './FieldContext';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
 import { InputThemeSlice, type InputSliceState } from './InputSlice';
@@ -237,7 +238,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   // this. Keeping all four keys present on every render, only their
   // values changing, avoids it — confirmed via a real test run, not just
   // reasoning about it.
-  const cornerOverrides = resolveSquareCorners(squareCorners);
+  // uiGroupSquareCorners: this Button's automatic fallback when it's a
+  // <UIGroup> member and the consumer hasn't set squareCorners themselves
+  // — an explicit prop still always wins (see UIGroupContext.tsx).
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   const variantStyles = getVariantStyles();
 
   return (
@@ -336,6 +341,16 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
 
+  // squareCorners was previously destructured but never actually applied
+  // anywhere below — dead since the prop was added, confirmed by reading
+  // the render output, not assumed. Fixed the same pass as UIGroup's own
+  // context-based squaring fallback, since it's the same underlying gap:
+  // an Input never squared itself inside a UIGroup at all, even for the
+  // simple direct-child case CSS alone already handles for Button.
+  const currentRadius = resolveRadius(cornerRadiusMode, 'md');
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
+
   return (
     <input
       {...props}
@@ -357,7 +372,14 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       style={{
         width: '100%',
         padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-        borderRadius: resolveRadius(cornerRadiusMode, 'md'),
+        // Explicit per-corner longhands, always all four -- same reason as
+        // Button's own identical pattern (see its comment): a sparse
+        // spread would add/remove style keys across renders as
+        // squareCorners changes, which React warns about.
+        borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? currentRadius,
+        borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? currentRadius,
+        borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
+        borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
         border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',

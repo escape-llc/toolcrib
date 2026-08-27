@@ -6,6 +6,7 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring } from '../../theme/connectedPopoverStyles';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, type DropdownMenuSliceState } from './DropdownMenuSlice';
@@ -71,7 +72,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   useInjectInteractionStyles();
   const [isOpen, setIsOpen] = useState(false);
   const squaring = computeCornerSquaring(side, align, isOpen, 'var(--ai-radius-md, 0.375rem)');
-  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring);
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring, uiGroupSquareCorners);
 
   return (
     <DropdownMenuPrimitive.Root
