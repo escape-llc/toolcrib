@@ -29,3 +29,10 @@ cli/integration-test/releases/
 
 # temp folder for in-flight plans from other AI sessions
 .plans/
+
+# Claude Code project settings accumulate session-local entries (e.g.
+# additionalDirectories pointing at another local project's absolute
+# path) as a normal part of how the tool manages permissions during a
+# session -- not safely shareable across contributors/machines. Untracked
+# going forward (was previously committed; removed via `git rm --cached`).
+.claude/settings.json
