@@ -1,5 +1,6 @@
 import React, { useState, useLayoutEffect, useRef, type ReactNode, type ReactElement } from 'react';
 import { Portal } from 'radix-ui';
+import { Presence } from '@radix-ui/react-presence';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -7,7 +8,6 @@ import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { useAnimatedMount } from '../../theme/useAnimatedMount';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 
 /**
@@ -67,15 +67,6 @@ export const Drawer: React.FC<DrawerProps> = ({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const drawerRef = useRef<HTMLDivElement>(null);
-
-  // Drives the drawer's mount lifecycle off a real exit-animation
-  // animationend rather than a guessed setTimeout duration — see
-  // useAnimatedMount's own doc comment for why: this component's previous
-  // hand-rolled setTimeout(..., 250) version could leave the drawer (and
-  // its still-click-blocking backdrop) stuck mounted indefinitely,
-  // reproduced directly via a Playwright sweep that got stuck exactly this
-  // way. finalizeClose is wired to the backdrop's onAnimationEnd below.
-  const { isMounted, isClosing, finalizeClose } = useAnimatedMount(isOpen);
 
   const toggle = (state?: boolean, fromBus = false) => {
     const nextState = state !== undefined ? state : !isOpen;
@@ -145,91 +136,17 @@ export const Drawer: React.FC<DrawerProps> = ({
     }
   };
 
-  const backdropAnim = isClosing
-    ? 'ai-fade-out var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards'
-    : 'ai-fade-in var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards';
+  // Keyed off the plain isOpen prop rather than derived "isClosing" state —
+  // Presence (below) keeps this component rendering with isOpen already
+  // false throughout the exit animation, so the fade-out/slide-out variant
+  // is simply whatever isOpen currently says.
+  const backdropAnim = isOpen
+    ? 'ai-fade-in var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards'
+    : 'ai-fade-out var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards';
 
-  const drawerAnim = isClosing
-    ? `ai-slide-out-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`
-    : `ai-slide-in-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`;
-
-  const portalContent = isMounted && (
-    <div
-      role="presentation"
-      onClick={() => toggle(false)}
-      onAnimationEnd={e => {
-        if (e.animationName === 'ai-fade-out') finalizeClose();
-      }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: zIndex,
-        background: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',
-        display: 'flex',
-        animation: backdropAnim,
-      }}
-    >
-      <div
-        ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
-        onClick={e => e.stopPropagation()}
-        style={{
-          position: 'fixed',
-          background: 'var(--ai-bg-surface, #ffffff)',
-          boxShadow: '0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: zIndex + 1,
-          overflowY: 'auto',
-          animation: drawerAnim,
-          // Self-contained drawer panel — see Modal.tsx's identical
-          // reasoning. Being position:'fixed' itself doesn't conflict with
-          // also being a containment boundary for what's inside it.
-          contain: 'content',
-          ...getPositionStyles(),
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
-            margin: 'var(--ai-drawer-header-margin, 0)',
-            borderRadius: 'var(--ai-drawer-header-border-radius, 0)',
-            borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            background: 'var(--ai-bg-surface, #ffffff)',
-          }}
-        >
-          <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
-            {title || 'Drawer Panel'}
-          </div>
-          <button
-            onClick={() => toggle(false)}
-            className="ai-btn"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '1.25rem',
-              cursor: 'pointer',
-              color: 'var(--ai-text-secondary, #6b7280)',
-              ['--ai-btn-bg' as string]: 'transparent',
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
-          <AIErrorBoundary componentName="Drawer">
-            {children}
-          </AIErrorBoundary>
-        </div>
-      </div>
-    </div>
-  );
+  const drawerAnim = isOpen
+    ? `ai-slide-in-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`
+    : `ai-slide-out-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`;
 
   return (
     <>
@@ -241,7 +158,92 @@ export const Drawer: React.FC<DrawerProps> = ({
           {trigger}
         </div>
       )}
-      {isMounted && <Portal.Root container={targetDocument?.body}>{portalContent}</Portal.Root>}
+      <Portal.Root container={targetDocument?.body}>
+        {/* Presence (Radix's own primitive, already used internally by
+            Modal's Dialog) replaces the previous hand-rolled
+            useAnimatedMount + onAnimationEnd combo. It attaches its
+            animationend listener directly to this backdrop's real DOM
+            node (via ref) rather than React's bubbling onAnimationEnd
+            prop, and explicitly checks event.target === node itself --
+            so it can't be fooled by a portaled-but-React-descendant
+            Tooltip's own animationend bubbling through, which is exactly
+            what broke the old hand-rolled version (a Tooltip inside this
+            Drawer reusing the same 'ai-fade-out' keyframe name). */}
+        <Presence present={isOpen}>
+          <div
+            role="presentation"
+            onClick={() => toggle(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: zIndex,
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',
+              display: 'flex',
+              animation: backdropAnim,
+            }}
+          >
+            <div
+              ref={drawerRef}
+              role="dialog"
+              aria-modal="true"
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                background: 'var(--ai-bg-surface, #ffffff)',
+                boxShadow: '0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: zIndex + 1,
+                overflowY: 'auto',
+                animation: drawerAnim,
+                // Self-contained drawer panel — see Modal.tsx's identical
+                // reasoning. Being position:'fixed' itself doesn't conflict with
+                // also being a containment boundary for what's inside it.
+                contain: 'content',
+                ...getPositionStyles(),
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
+                  margin: 'var(--ai-drawer-header-margin, 0)',
+                  borderRadius: 'var(--ai-drawer-header-border-radius, 0)',
+                  borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                  background: 'var(--ai-bg-surface, #ffffff)',
+                }}
+              >
+                <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
+                  {title || 'Drawer Panel'}
+                </div>
+                <button
+                  onClick={() => toggle(false)}
+                  className="ai-btn"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '1.25rem',
+                    cursor: 'pointer',
+                    color: 'var(--ai-text-secondary, #6b7280)',
+                    ['--ai-btn-bg' as string]: 'transparent',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
+                <AIErrorBoundary componentName="Drawer">
+                  {children}
+                </AIErrorBoundary>
+              </div>
+            </div>
+          </div>
+        </Presence>
+      </Portal.Root>
     </>
   );
 };

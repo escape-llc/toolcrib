@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@internationalized/date": "^3.12.3",
+    "@radix-ui/react-presence": "^1.1.10",
     "@visx/axis": "^4.0.0",
     "@visx/curve": "^4.0.0",
     "@visx/event": "^4.0.0",

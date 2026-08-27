@@ -26,7 +26,6 @@ export * from './theme/themeLibrary';
 export * from './theme/themePersistence';
 export * from './theme/triggerWrapperStyle';
 export * from './theme/typography';
-export * from './theme/useAnimatedMount';
 export * from './theme/useSliceOverrides';
 export * from './theme/zIndex';
 
