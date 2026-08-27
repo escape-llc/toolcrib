@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { checkManagedBlocks, checkImportsCompatibility, listReprintableBlocks } from '../src/commands/doctor.js';
+import { checkManagedBlocks, checkImportsCompatibility, checkTypeScriptAdopted, listReprintableBlocks } from '../src/commands/doctor.js';
 import { buildManagedBlock } from '../src/lib/managedDocs.js';
 
 /**
@@ -187,5 +187,26 @@ describe('checkImportsCompatibility', () => {
   it('returns an empty string (not null) when moduleResolution is simply unset', () => {
     fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
     expect(checkImportsCompatibility(tmpDir)).toBe('');
+  });
+});
+
+describe('checkTypeScriptAdopted', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns false when there is no tsconfig.json', () => {
+    expect(checkTypeScriptAdopted(tmpDir)).toBe(false);
+  });
+
+  it('returns true when a tsconfig.json exists', () => {
+    fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
+    expect(checkTypeScriptAdopted(tmpDir)).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import path from 'node:path';
 import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { normalize } from '../lib/patches.js';
-import { readJsonIfExists, readLock, readTextIfExists } from '../lib/project.js';
+import { readJsonIfExists, readLock, readTextIfExists, fileExists } from '../lib/project.js';
 import { listVersions } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
 import { detectBundler } from '../lib/bundler.js';
@@ -32,6 +32,25 @@ export function checkImportsCompatibility(projectRoot) {
   if (IMPORTS_COMPATIBLE_MODULE_RESOLUTIONS.has(moduleResolution)) return null;
 
   return moduleResolution;
+}
+
+/**
+ * Read-only heuristic: does this project appear to be a TypeScript project
+ * at all? Absence of `tsconfig.json` is the same signal
+ * `checkImportsCompatibility` already treats as "nothing to check here,
+ * e.g. a plain JS project" — this check exists specifically to make that
+ * case non-silent instead. toolcrib's own components are fully typed so
+ * that an invalid prop value (a typo'd `variant`, a misspelled event name,
+ * a prop that doesn't exist on that component) fails at compile time —
+ * a `.jsx`/`.js` consumer gets none of that, since `tsc` doesn't
+ * type-check plain JS by default. Confirmed as a real failure mode, not
+ * hypothetical: a real consumer app passed `variant="solid"` — not a
+ * value any toolcrib `Button` variant accepts — and it shipped invisibly
+ * for the life of the project until it happened to visually collide with
+ * an unrelated layout change and got noticed by eye.
+ */
+export function checkTypeScriptAdopted(projectRoot) {
+  return fileExists(path.join(projectRoot, 'tsconfig.json'));
 }
 
 /**
@@ -211,6 +230,16 @@ export async function doctorCommand(options = {}) {
     p.log.info(`A newer version is available: v${newest.version} (installed: v${lock.version}). Run 'toolcrib merge'.`);
   } else {
     p.log.info('You are on the latest release.');
+  }
+
+  if (!checkTypeScriptAdopted(projectRoot)) {
+    p.log.warn(
+      'No tsconfig.json found — this project doesn\'t appear to be using TypeScript. ' +
+        'Every toolcrib component ships a full, exact prop type specifically so an invalid value ' +
+        '(a typo\'d variant, a misspelled event name, a prop that doesn\'t exist) fails at compile ' +
+        'time instead of shipping silently — a plain JS/JSX project gets none of that protection. ' +
+        'See NEW_APP.md\'s "Already started in JavaScript?" section to convert.'
+    );
   }
 
   const badModuleResolution = checkImportsCompatibility(projectRoot);

@@ -2,6 +2,20 @@
 
 Use alongside `CORE.md` when `toolcrib` is the UI layer from day one — there's no existing styling or component system to reconcile with. If you're adding `toolcrib` to a codebase that already has UI, read `REFACTOR_APP.md` instead.
 
+## 0. TypeScript is required
+
+Scaffold the project with a TypeScript template from the start — `npm create vite@latest my-app -- --template react-ts` (or the equivalent for your framework/bundler), not the plain JS variant. This isn't a style preference: every toolcrib component ships a full, exact prop type, specifically so an invalid value — a typo'd `variant`, a misspelled event name, a prop that doesn't exist on that component — fails at compile time instead of shipping silently. A `.jsx` project gets none of that protection; `tsc` doesn't type-check plain JS/JSX by default, so an invalid prop only surfaces if and when it happens to visually collide with something else and gets noticed by eye. Confirmed as a real failure mode, not hypothetical: a real consumer app passed `variant="solid"` — not a value any toolcrib `Button` variant accepts — and it shipped invisibly for the life of the project until it visually collided with an unrelated layout change. `toolcrib doctor` flags a missing `tsconfig.json` on every run for exactly this reason.
+
+### Already started in JavaScript?
+
+Convert before continuing to build with toolcrib — the further a plain-JS project gets, the more retroactive type errors accumulate at once, and every one of them was already a real (if invisible) bug.
+
+1. `npm install -D typescript @types/react @types/react-dom` (add `@types/node` too if your bundler config file, e.g. `vite.config`, touches Node APIs).
+2. Add a `tsconfig.json` — copy one from your framework's own TypeScript template rather than hand-writing it (e.g. scaffold `npm create vite@latest tmp-ts -- --template react-ts` into a scratch directory and copy its `tsconfig*.json` files over, then delete the scratch directory).
+3. Rename every `.jsx` file, and every `.js` file that contains JSX, to `.tsx`. A `.js` file with no JSX in it can become plain `.ts`. Update whatever references the old entry-point filename (`index.html`, your bundler config).
+4. Run `npx tsc --noEmit` and fix what it reports. This is the step that actually pays off the conversion — every prop type toolcrib ships now applies to your existing call sites, surfacing errors that were always there and invisible until now.
+5. Re-run `toolcrib doctor` to confirm its TypeScript check clears.
+
 ## 1. Install the toolkit
 
 ```bash
