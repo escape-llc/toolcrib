@@ -62,11 +62,11 @@ describe('Toast Subsystem Event Generation', () => {
 
     // Fast-forward past the 100ms duration timer — this triggers Radix's
     // onOpenChange(false), which emits toast:expired synchronously but only
-    // *schedules* beginCollapse() (a 500ms backstop, normally preempted by a
-    // real fade-out animationend — see Toast.tsx's own comment on why
-    // dismissToast is deferred at all). jsdom never fires a real
-    // animationend, so the backstop is the only thing that will ever
-    // resolve it here.
+    // *schedules* a single 1000ms backstop before dismissToast() actually
+    // runs, normally preempted by a real exit-animation animationend (see
+    // Toast.tsx's own comment on why dismissToast is deferred at all).
+    // jsdom never fires a real animationend, so the backstop is the only
+    // thing that will ever resolve it here.
     act(() => {
       vi.advanceTimersByTime(150);
     });
@@ -79,15 +79,8 @@ describe('Toast Subsystem Event Generation', () => {
       })
     );
 
-    // beginCollapse() itself schedules a SECOND backstop (300ms, normally
-    // preempted by the grid-template-rows collapse transition's real
-    // transitionend) before the actual dismissToast() call — advance past
-    // both backstops in sequence, same fake-timer causality note as above.
     act(() => {
-      vi.advanceTimersByTime(500);
-    });
-    act(() => {
-      vi.advanceTimersByTime(300);
+      vi.advanceTimersByTime(1000);
     });
 
     expect(dismissedFn).toHaveBeenCalledWith(
@@ -106,9 +99,8 @@ describe('Toast Subsystem Event Generation', () => {
   it('emits toast:action_clicked and toast:dismissed with reason="action" when action button is clicked', () => {
     // Fake timers, same reason as the expiry test above: dismissToast()
     // (and its toast:dismissed emission) is deferred until both the exit
-    // animation's fade-out AND its collapse transition would each fire a
-    // real animationend/transitionend, neither of which jsdom produces, so
-    // only the two chained backstop timers resolve it here.
+    // animation would fire a real animationend, which jsdom never
+    // produces, so only the single 1000ms backstop timer resolves it here.
     vi.useFakeTimers();
     const actionClickedFn = vi.fn();
     const dismissedFn = vi.fn();
@@ -136,10 +128,7 @@ describe('Toast Subsystem Event Generation', () => {
     );
 
     act(() => {
-      vi.advanceTimersByTime(500);
-    });
-    act(() => {
-      vi.advanceTimersByTime(300);
+      vi.advanceTimersByTime(1000);
     });
 
     expect(dismissedFn).toHaveBeenCalledWith(
@@ -248,7 +237,7 @@ describe('Toast Subsystem Event Generation', () => {
     });
   });
 
-  it('onAnimationEnd finishes the fade-out by collapsing immediately (bypassing the 500ms backstop) once a dismiss reason is already recorded', () => {
+  it('onAnimationEnd ignores an unrelated animationName and does not finalize the toast', () => {
     render(
       <ToastProvider>
         <TestComponent />
@@ -265,7 +254,6 @@ describe('Toast Subsystem Event Generation', () => {
     // instead of real animation events). This only exercises the handler
     // being wired up and its animationName guard, not a real dismiss flow.
     fireEvent.animationEnd(toastEl, { animationName: 'not-a-toast-animation' });
-    expect(toastEl.style.gridTemplateRows).toBe('1fr'); // guard rejected the wrong animationName
     expect(screen.getByTestId('toast-item')).toBeInTheDocument();
   });
 

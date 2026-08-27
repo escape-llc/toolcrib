@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Toast as ToastPrimitive } from 'radix-ui';
 import { type ToastItem, useToast } from './ToastContext';
 import { aiBus } from '../../eventBus/eventBus';
@@ -21,6 +21,24 @@ const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 // so the browser never restarts it) — real `[data-state]`/`[data-swipe]`
 // selectors need a real stylesheet, hence injecting one instead of relying
 // on inline styles like the rest of this component's styling does.
+//
+// The exit keyframes also animate `grid-template-rows` themselves, folding
+// the fade/swipe AND the box-collapse into one single `animation` rather
+// than a separate later `transition` driven by React state. This isn't a
+// style preference: Presence is UNCONTROLLED here (no explicit `open` prop
+// on ToastPrimitive.Root) and tracks the DOM node's *own*
+// `getComputedStyle(node).animationName` directly — it has no idea a
+// second, later phase exists via an unrelated `transition`, and unmounts
+// the node the instant the first (fade-only) animation's animationend
+// fires. Confirmed directly via a real per-frame trace: the previous
+// two-phase version (a quick fade-out `animation`, then a separately
+// React-state-triggered `transition: grid-template-rows` to collapse the
+// box) had its own collapse phase silently never render at all — Presence
+// tore the node out of the DOM the moment the fade ended, ~180ms before
+// the intended 300ms collapse transition would even have started, so
+// every sibling toast below it snapped up instantly instead of sliding —
+// reported directly as "all the toasts flash" on expiry. A single
+// animation Presence can track start-to-finish avoids the race entirely.
 function injectToastAnimations(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     TOAST_STYLE_ID,
@@ -30,18 +48,41 @@ function injectToastAnimations(targetDocument?: Document, nonce?: string): void 
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
     @keyframes toolcrib-toast-fade-out {
-      from { opacity: 1; transform: translateY(0) scale(1); }
-      to { opacity: 0; transform: translateY(-0.25rem) scale(0.96); }
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      37% { opacity: 0; transform: translateY(-0.25rem) scale(0.96); }
+      100% { opacity: 0; transform: translateY(-0.25rem) scale(0.96); }
     }
     @keyframes toolcrib-toast-swipe-out {
-      from { transform: translateX(var(--radix-toast-swipe-end-x, 0)); opacity: 1; }
-      to { transform: translateX(150%); opacity: 0; }
+      0% { transform: translateX(var(--radix-toast-swipe-end-x, 0)); opacity: 1; }
+      50% { transform: translateX(150%); opacity: 0; }
+      100% { transform: translateX(150%); opacity: 0; }
+    }
+    .ai-toast-root {
+      /* A plain CSS transition (not baked into the exit @keyframes above)
+         -- Chromium's fr-unit interpolation for grid-template-rows inside
+         a @keyframes rule proved unreliable in practice, confirmed via a
+         real per-frame trace: it snapped between only a few discrete
+         values (full height, then straight to the padding's own
+         intrinsic floor, ~24px) instead of interpolating smoothly, no
+         matter what minmax()/min-height combination guarded against the
+         usual grid-track floor. The same property driven by a plain
+         transition (declared once, unconditionally, so it's always
+         armed) reaches a true, smooth zero reliably. transition-delay
+         below is what sequences it to start only once the fade/swipe
+         portion of the *animation* (which is what Presence actually
+         tracks -- see injectToastAnimations' own comment) has visually
+         finished, rather than collapsing underneath a still-visible toast. */
+      grid-template-rows: 1fr;
+      transition: grid-template-rows var(--ai-toast-collapse-duration, 200ms) ease;
     }
     .ai-toast-root[data-state="open"] {
       animation: toolcrib-toast-slide-in var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1));
+      grid-template-rows: 1fr;
     }
     .ai-toast-root[data-state="closed"]:not([data-swipe="end"]) {
-      animation: toolcrib-toast-fade-out var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+      animation: toolcrib-toast-fade-out var(--ai-toast-exit-duration, 320ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+      grid-template-rows: 0fr;
+      transition-delay: var(--ai-transition-duration-fast, 120ms);
     }
     .ai-toast-root[data-swipe="move"] {
       transform: translateX(var(--radix-toast-swipe-move-x, 0));
@@ -51,7 +92,9 @@ function injectToastAnimations(targetDocument?: Document, nonce?: string): void 
       transition: transform 0.2s ease-out;
     }
     .ai-toast-root[data-swipe="end"] {
-      animation: toolcrib-toast-swipe-out 0.2s ease-out forwards;
+      animation: toolcrib-toast-swipe-out var(--ai-toast-swipe-exit-duration, 400ms) ease-out forwards;
+      grid-template-rows: 0fr;
+      transition-delay: 0.2s;
     }
     `,
     targetDocument,
@@ -108,42 +151,22 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
   // running, so if it's still false when that timer eventually does fire,
   // the later dismissal is correctly reported as 'expired', not 'user'.
   const swipedRef = useRef(false);
-  // Second phase after the fade-out/swipe-out plays (see onAnimationEnd
-  // below): collapses this toast's own box to zero height via a
-  // grid-template-rows transition before it's actually removed from state.
-  // Reported directly as a "big flash" — once the fade/slide-out fix above
-  // made toasts actually animate closed, the toasts BELOW the dismissed one
-  // still snapped up instantly (plain flex reflow has nothing to animate;
-  // there's no discrete CSS property representing "this item's position in
-  // its flex parent" for a transition to interpolate), so a smoothly-fading
-  // toast sitting above instantly-relocating ones read as more jarring than
-  // either alone. grid-template-rows is the standard CSS-only trick for
-  // animating a collapse to/from content-driven ("auto") height without
-  // measuring pixels in JS: a single-row grid's `1fr` track sizes to its
-  // content, and transitioning that track to `0fr` shrinks the box over
-  // real, per-frame layout recalculation — which is what makes the flex
-  // siblings below slide up smoothly as a natural consequence, not a
-  // faked/interpolated transform.
-  const [isCollapsing, setIsCollapsing] = useState(false);
-  // Actually removes the toast from state — deferred until the collapse
-  // transition's real transitionend (see onTransitionEnd below), with a
-  // bounded fallback in case one never fires (e.g. a consumer's own global
+  // Removes the toast from state once its exit animation genuinely
+  // finishes (see injectToastAnimations' own comment for why that
+  // animation now includes a grid-template-rows collapse of this toast's
+  // own box down to zero height, so siblings below it slide up smoothly
+  // rather than snapping the instant it's removed). backstopMs is a bound
+  // in case animationend never fires at all (e.g. a consumer's own global
   // stylesheet disables animations via `prefers-reduced-motion` +
   // `!important`) so a toast can never get stuck in the DOM forever — the
   // same class of bug this toolkit hit before for Tooltip with a missing
-  // @keyframes. finalizedRef guards against the fallback timer double-
-  // firing after a real transitionend already handled it.
+  // @keyframes. finalizedRef guards the backstop against double-firing
+  // after a real animationend already handled it.
   const finalizedRef = useRef(false);
   const finalize = (reason: 'user' | 'expired' | 'action') => {
     if (finalizedRef.current) return;
     finalizedRef.current = true;
     dismissToast(toast.id, reason);
-  };
-  const beginCollapse = (reason: 'user' | 'expired' | 'action') => {
-    setIsCollapsing(true);
-    // Fallback: if this toast's grid-template-rows transition never fires
-    // a transitionend (see finalize's own comment), still remove it.
-    window.setTimeout(() => finalize(reason), 300);
   };
 
   // Both always non-null: toast.type is always one of the 4 SubthemeName
@@ -174,29 +197,30 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
             dismissReasonRef.current = 'expired';
           }
         }
-        window.setTimeout(() => beginCollapse(dismissReasonRef.current!), 500);
+        // Backstop only -- see finalize's own comment. The real removal
+        // path is onAnimationEnd below, which fires much sooner (as soon
+        // as the exit animation itself finishes) than this fallback.
+        window.setTimeout(() => finalize(dismissReasonRef.current!), 1000);
       }}
       onAnimationEnd={(e) => {
         if (
           dismissReasonRef.current &&
           (e.animationName === 'toolcrib-toast-fade-out' || e.animationName === 'toolcrib-toast-swipe-out')
         ) {
-          beginCollapse(dismissReasonRef.current);
-        }
-      }}
-      onTransitionEnd={(e) => {
-        if (dismissReasonRef.current && e.propertyName === 'grid-template-rows') {
           finalize(dismissReasonRef.current);
         }
       }}
       style={{
-        // grid, not flex, and a single 1fr/0fr row — see isCollapsing's own
-        // comment above for why: this is what lets the collapse transition
-        // below shrink this toast's box from real content height to zero
-        // without measuring pixels in JS.
+        // grid, not flex, and a single-row track -- the injected stylesheet
+        // (see injectToastAnimations) drives grid-template-rows itself,
+        // between 1fr (open) and 0fr (closed, via a plain CSS transition),
+        // collapsing this toast's box from real content height to zero
+        // without measuring pixels in JS. Deliberately NOT set here as an
+        // inline value -- an inline style would always win over the
+        // stylesheet's [data-state] rules regardless of specificity, which
+        // is exactly what that separate mechanism needs to control.
         display: 'grid',
-        gridTemplateRows: isCollapsing ? '0fr' : '1fr',
-        transition: 'grid-template-rows 0.2s ease',
+        minHeight: 0,
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
         background: `linear-gradient(135deg, ${softColors.background} 0%, var(--ai-bg-surface, #ffffff) 100%)`,
         color: 'var(--ai-text-primary, #111827)',
@@ -230,92 +254,106 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         pointerEvents: 'auto',
       }}
     >
-      {/* The single grid row's actual content — overflow:hidden + minHeight:0
-          are both required for the grid-template-rows collapse trick above:
-          without them this div's own intrinsic content height would keep
-          it from ever visually shrinking below that, even once its parent
-          row track is told to become 0fr. Padding/gap that used to live on
-          Root itself moved here, since Root is now the grid container. */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.375rem',
-          padding: 'var(--ai-padding-lg, 0.75rem 1rem)',
-          overflow: 'hidden',
-          minHeight: 0,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              {toast.title && (
-                <ToastPrimitive.Title style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.9rem' }}>
-                  {toast.title}
-                </ToastPrimitive.Title>
-              )}
-              {toast.sticky && (
-                <span style={{ fontSize: '0.6875rem', padding: 'var(--ai-padding-xs, 0.0625rem 0.375rem)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ai-subtheme-error, #ef4444)', fontWeight: 'var(--ai-font-weight-bold, 700)' }}>
-                  📌 Sticky
-                </span>
-              )}
+      {/* The direct grid item Root's animated grid-template-rows actually
+          shrinks — overflow:hidden + minHeight:0, with NO padding/gap of
+          its own. Same rule Accordion.tsx's own comment documents: CSS
+          floors a box's *rendered* height at its own padding+border sum
+          regardless of min-height/box-sizing, so the element whose height
+          is actually being animated can never have padding directly on it
+          — confirmed the hard way here too, not just reasoned about: this
+          div used to carry the padding itself, and the collapse
+          consistently stalled at exactly that padding's own pixel sum
+          (~24px) instead of reaching true zero, no matter how many nested
+          flex rows below also got minHeight:0 (each was a real, necessary
+          fix in its own right — flex items default to min-height:auto
+          regardless of display type, and none of that mattered until the
+          padding itself, on the animated element, was also moved out). */}
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.375rem',
+            padding: 'var(--ai-padding-lg, 0.75rem 1rem)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', minHeight: 0 }}>
+            {/* minHeight:0 -- also a flex item of the row above (its own
+                display:'block' doesn't exempt it: a flex item's
+                min-height:auto resolves to its own min-content size
+                regardless of its display type), same fix as its siblings
+                for the same reason. */}
+            <div style={{ minHeight: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', minHeight: 0 }}>
+                {toast.title && (
+                  <ToastPrimitive.Title style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.9rem' }}>
+                    {toast.title}
+                  </ToastPrimitive.Title>
+                )}
+                {toast.sticky && (
+                  <span style={{ fontSize: '0.6875rem', padding: 'var(--ai-padding-xs, 0.0625rem 0.375rem)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ai-subtheme-error, #ef4444)', fontWeight: 'var(--ai-font-weight-bold, 700)' }}>
+                    📌 Sticky
+                  </span>
+                )}
+              </div>
+              <ToastPrimitive.Description style={{ fontSize: '0.875rem' }}>
+                {toast.message}
+              </ToastPrimitive.Description>
             </div>
-            <ToastPrimitive.Description style={{ fontSize: '0.875rem' }}>
-              {toast.message}
-            </ToastPrimitive.Description>
+
+            <ToastPrimitive.Close
+              aria-label="Dismiss toast"
+              onClick={() => { dismissReasonRef.current = 'user'; }}
+              className="ai-btn"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ai-text-secondary, #6b7280)',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                padding: 'var(--ai-padding-xs, 0.125rem 0.375rem)',
+                minHeight: 0,
+                ['--ai-btn-bg' as string]: 'transparent',
+              }}
+            >
+              ×
+            </ToastPrimitive.Close>
           </div>
 
-          <ToastPrimitive.Close
-            aria-label="Dismiss toast"
-            onClick={() => { dismissReasonRef.current = 'user'; }}
-            className="ai-btn"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--ai-text-secondary, #6b7280)',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              padding: 'var(--ai-padding-xs, 0.125rem 0.375rem)',
-              ['--ai-btn-bg' as string]: 'transparent',
-            }}
-          >
-            ×
-          </ToastPrimitive.Close>
+          {toast.actions && toast.actions.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', minHeight: 0 }}>
+              {toast.actions.map((act, i) => (
+                <ToastPrimitive.Action
+                  key={i}
+                  altText={act.label}
+                  onClick={() => {
+                    aiBus.emit('toast:action_clicked', {
+                      id: toast.id,
+                      actionLabel: act.label,
+                      message: toast.message,
+                    });
+                    act.onClick();
+                    dismissReasonRef.current = 'action';
+                  }}
+                  className="ai-btn"
+                  style={{
+                    padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)',
+                    borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                    border: `0.0625rem solid ${outlineColors.color}`,
+                    background: 'transparent',
+                    color: outlineColors.color,
+                    fontSize: '0.75rem',
+                    fontWeight: 'var(--ai-font-weight-semibold, 600)',
+                    cursor: 'pointer',
+                    ['--ai-btn-bg' as string]: 'transparent',
+                  }}
+                >
+                  {act.label}
+                </ToastPrimitive.Action>
+              ))}
+            </div>
+          )}
         </div>
-
-        {toast.actions && toast.actions.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-            {toast.actions.map((act, i) => (
-              <ToastPrimitive.Action
-                key={i}
-                altText={act.label}
-                onClick={() => {
-                  aiBus.emit('toast:action_clicked', {
-                    id: toast.id,
-                    actionLabel: act.label,
-                    message: toast.message,
-                  });
-                  act.onClick();
-                  dismissReasonRef.current = 'action';
-                }}
-                className="ai-btn"
-                style={{
-                  padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)',
-                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  border: `0.0625rem solid ${outlineColors.color}`,
-                  background: 'transparent',
-                  color: outlineColors.color,
-                  fontSize: '0.75rem',
-                  fontWeight: 'var(--ai-font-weight-semibold, 600)',
-                  cursor: 'pointer',
-                  ['--ai-btn-bg' as string]: 'transparent',
-                }}
-              >
-                {act.label}
-              </ToastPrimitive.Action>
-            ))}
-          </div>
-        )}
       </div>
     </ToastPrimitive.Root>
   );
