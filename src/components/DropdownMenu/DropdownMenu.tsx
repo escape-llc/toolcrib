@@ -1,11 +1,11 @@
-import React, { useState, type ReactNode, type ReactElement } from 'react';
+import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { computeCornerSquaring, renderTriggerWithCornerSquaring } from '../../theme/connectedPopoverStyles';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
@@ -71,7 +71,12 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const targetDocument = useTargetDocument();
   useInjectInteractionStyles();
   const [isOpen, setIsOpen] = useState(false);
-  const squaring = computeCornerSquaring(side, align, isOpen, 'var(--ai-radius-md, 0.375rem)');
+  const contentRef = useRef<HTMLDivElement>(null);
+  // See Popup.tsx's identical use of useActualPopoverSide -- Radix
+  // auto-flips `side` on collision, and corner-squaring must key off
+  // whatever it actually rendered, not just the requested prop.
+  const actualSide = useActualPopoverSide(contentRef, side, isOpen);
+  const squaring = computeCornerSquaring(actualSide, align, isOpen, 'var(--ai-radius-md, 0.375rem)');
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring, uiGroupSquareCorners);
 
@@ -95,6 +100,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
       <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
         <DropdownMenuPrimitive.Content
+          ref={contentRef}
           side={side}
           align={align}
           sideOffset={squaring.sideOffset}

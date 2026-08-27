@@ -1,4 +1,4 @@
-import React, { type ReactElement, type ReactNode, cloneElement, isValidElement } from 'react';
+import React, { type ReactElement, type ReactNode, type RefObject, cloneElement, isValidElement, useEffect, useState } from 'react';
 import { type SquareCornerOption, resolveSquareCorners } from '../components/Card/Card';
 
 /** @barrelExport */
@@ -89,6 +89,86 @@ export interface CornerSquaringResult {
   triggerCornerStyle: React.CSSProperties;
   /** Same information in the shared `SquareCornerOption` vocabulary, for a toolcrib-native trigger component that already understands a `squareCorners` prop (`<Button>`, `<Card>`, ...). */
   triggerSquareCorners: SquareCornerOption;
+}
+
+/**
+ * Radix's Popper-based `*.Content` (Popover, DropdownMenu) auto-flips to
+ * the opposite side on collision by default (`avoidCollisions`, on unless
+ * a caller explicitly disables it) — e.g. a `side="bottom"` popup near the
+ * bottom of the viewport actually renders above its trigger instead.
+ * Radix reflects whichever side it actually chose via a `data-side`
+ * attribute on the Content element itself, but has no callback for when
+ * that changes, so a `MutationObserver` on the attribute is the only way
+ * to learn about a flip. Every caller of `computeCornerSquaring` needs the
+ * *actual* side, not the merely-requested one — squaring the corner for
+ * "bottom" while Radix silently flipped to "top" squares the wrong edge
+ * entirely, reported directly via a real screenshot of exactly that.
+ * Falls back to `requestedSide` before the content has mounted/measured
+ * (or while closed), so a caller can use the return value unconditionally
+ * without an extra null check.
+ */
+export function useActualPopoverSide(
+  contentRef: RefObject<HTMLElement | null>,
+  requestedSide: PopoverSide,
+  isOpen: boolean
+): PopoverSide {
+  const [actualSide, setActualSide] = useState<PopoverSide>(requestedSide);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActualSide(requestedSide);
+      return;
+    }
+
+    let observer: MutationObserver | undefined;
+    let rafId: number | undefined;
+    let cancelled = false;
+
+    // `data-side` isn't guaranteed to land on the ref'd node itself --
+    // Radix's actual Popper positioning wrapper carrying it can be a
+    // different element than whichever one a caller's own `ref` forwards
+    // to. Checking both self and descendant, and observing with
+    // `subtree: true`, means this works regardless of exactly which node
+    // in Content's own internal structure ends up owning the attribute.
+    const attach = (node: HTMLElement) => {
+      const readSide = () => {
+        const target = node.hasAttribute('data-side') ? node : node.querySelector('[data-side]');
+        const attr = target?.getAttribute('data-side');
+        if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
+          setActualSide(attr);
+        }
+      };
+      readSide();
+      observer = new MutationObserver(readSide);
+      observer.observe(node, { attributes: true, attributeFilter: ['data-side'], subtree: true });
+    };
+
+    // Radix's Content is Presence-mounted, which can land one render tick
+    // after `isOpen` flips true -- `contentRef.current` isn't guaranteed
+    // to be populated yet in this same effect run (confirmed directly: it
+    // was reliably still null here, silently no-op'ing the whole hook).
+    // This effect only reruns when `isOpen` itself changes, so missing
+    // that window meant never picking up the ref at all. Polling via rAF
+    // for a few frames catches it as soon as it actually mounts.
+    const waitForNode = () => {
+      if (cancelled) return;
+      const node = contentRef.current;
+      if (node) {
+        attach(node);
+      } else {
+        rafId = requestAnimationFrame(waitForNode);
+      }
+    };
+    waitForNode();
+
+    return () => {
+      cancelled = true;
+      if (rafId !== undefined) cancelAnimationFrame(rafId);
+      observer?.disconnect();
+    };
+  }, [contentRef, requestedSide, isOpen]);
+
+  return actualSide;
 }
 
 /**

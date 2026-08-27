@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode, type ReactElement } from 'react';
+import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -10,7 +10,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
-import { computeCornerSquaring, renderTriggerWithCornerSquaring, type PopoverSide } from '../../theme/connectedPopoverStyles';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
@@ -103,7 +103,13 @@ export const Popup: React.FC<PopupProps> = ({
   // narrow lets `align` below go straight to Radix's own Content prop
   // (which only accepts 'start'|'center'|'end') with no cast.
   const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
-  const squaring = computeCornerSquaring(side, align, isOpen);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Corner-squaring must key off the side Radix actually rendered, not
+  // just the one requested -- Radix auto-flips on collision by default,
+  // and nothing about the requested `side` changes when it does. See
+  // useActualPopoverSide's own comment.
+  const actualSide = useActualPopoverSide(contentRef, side, isOpen);
+  const squaring = computeCornerSquaring(actualSide, align, isOpen);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring, uiGroupSquareCorners);
 
@@ -136,6 +142,7 @@ export const Popup: React.FC<PopupProps> = ({
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
+          ref={contentRef}
           side={side}
           align={align}
           sideOffset={squaring.sideOffset}

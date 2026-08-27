@@ -6,7 +6,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { computeCornerSquaring } from '../../theme/connectedPopoverStyles';
+import { computeCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
@@ -127,6 +127,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   // onInteractOutside handler below exempt the anchor region itself, the
   // same way Radix's own Trigger is exempted internally.
   const anchorRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   useInjectInteractionStyles();
 
   const baseId = useId();
@@ -182,14 +183,17 @@ export const Combobox: React.FC<ComboboxProps> = ({
   // when this ref is true.
   const isUserTypingRef = useRef(false);
 
-  // Always opens directly below the input, at the input's own width
+  // Requests opening directly below the input, at the input's own width
   // (`width: var(--radix-popover-trigger-width)` on Content below) -- so
   // the whole bottom edge of the input meets the whole top edge of the
   // listbox, not just one corner. align="stretch" squares both connecting
   // corners on each side accordingly. Unlike DropdownMenu/Popup, side/align
-  // aren't configurable here, so this is computed once rather than
-  // threaded through as props.
-  const squaring = computeCornerSquaring('bottom', 'stretch', open && !disabled, 'var(--ai-radius-md, 0.375rem)');
+  // aren't configurable here, so 'bottom' is a fixed request rather than
+  // threaded through as a prop -- but Radix still auto-flips to 'top' on
+  // collision regardless of what's requested, so the actual, possibly
+  // flipped side (see useActualPopoverSide) is what corner-squaring uses.
+  const actualSide = useActualPopoverSide(contentRef, 'bottom', open && !disabled);
+  const squaring = computeCornerSquaring(actualSide, 'stretch', open && !disabled, 'var(--ai-radius-md, 0.375rem)');
 
   // External/Form-driven value changes (not from a selection made through
   // this input) resync the displayed text in single mode — e.g.
@@ -387,7 +391,22 @@ export const Combobox: React.FC<ComboboxProps> = ({
             gap: '0.25rem',
             width: '100%',
             padding: resolveControlPadding(size, 'var(--ai-combobox-input-padding, 0.5rem 0.75rem)'),
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
+            // All four corners as explicit longhands, not the `borderRadius`
+            // shorthand -- squaring.triggerCornerStyle only ever includes
+            // the specific corners currently squared (2 of 4, and *which*
+            // 2 changes as the popover's actual side flips), so mixing it
+            // with a shorthand base means the set of longhand keys present
+            // changes across renders while the shorthand stays put. React
+            // warns about exactly this ("Removing a style property...when a
+            // conflicting property is set"), confirmed directly once
+            // useActualPopoverSide started actually detecting a real flip
+            // instead of silently never updating. See AGENTS.md's own
+            // documented fix for this same pattern (Button's corner-radius
+            // computation).
+            borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
             border: '0.0625rem solid var(--ai-border, #d1d5db)',
             background: 'var(--ai-bg-surface, #ffffff)',
             boxSizing: 'border-box',
@@ -543,6 +562,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
+          ref={contentRef}
           side="bottom"
           align="start"
           sideOffset={squaring.sideOffset}
