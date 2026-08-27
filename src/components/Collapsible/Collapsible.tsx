@@ -1,11 +1,52 @@
-import React, { useState, type ReactNode } from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 import { CollapsibleThemeSlice, type CollapsibleSliceState } from './CollapsibleSlice';
+
+const COLLAPSIBLE_STYLE_ID = 'toolcrib-collapsible-styles';
+
+// Same rationale as Accordion's own injectAccordionStyles (and Toast's
+// injectToastAnimations before that): the expand/collapse animation needs a
+// *different* keyframe depending on [data-state="open"/"closed"], which an
+// inline style.animation can't express (its value doesn't change between
+// renders just because a data-attribute did, so the browser never restarts
+// it) -- only a real stylesheet rule reacting to the attribute change can.
+// This component previously had no CSS height animation at all (reported
+// directly: "the Collapsible component does not animate") -- Radix's own
+// [data-state] toggling just showed/hid the panel instantly.
+function injectCollapsibleStyles(targetDocument?: Document, nonce?: string): void {
+  injectGlobalStyle(
+    COLLAPSIBLE_STYLE_ID,
+    `
+    @keyframes ai-collapsible-slide-down {
+      from { height: 0; opacity: 0; }
+      to { height: var(--radix-collapsible-content-height); opacity: 1; }
+    }
+    @keyframes ai-collapsible-slide-up {
+      from { height: var(--radix-collapsible-content-height); opacity: 1; }
+      to { height: 0; opacity: 0; }
+    }
+    .ai-collapsible-content {
+      overflow: hidden;
+    }
+    .ai-collapsible-content[data-state="open"] {
+      animation: ai-collapsible-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ai-collapsible-content[data-state="closed"] {
+      animation: ai-collapsible-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    `,
+    targetDocument,
+    nonce
+  );
+}
 
 /**
  * Props for the `<Collapsible>` single expand/collapse panel.
@@ -49,6 +90,11 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 }) => {
   const id = useStableId(propId, 'collapsible');
   const collapsibleVars = getSparseVariables(CollapsibleThemeSlice, overrides ?? {});
+  const targetDocument = useTargetDocument();
+  const nonce = useNonce();
+  useEffect(() => {
+    injectCollapsibleStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   useInjectInteractionStyles();
   const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -114,19 +160,16 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
       </CollapsiblePrimitive.Trigger>
 
       <CollapsiblePrimitive.Content
+        className="ai-collapsible-content"
         style={{
-          // No padding/font styling directly here, deliberately — this
-          // component has no CSS height animation today (no injected
-          // keyframes, no className), but IF one is ever added the same
-          // way Accordion's was, Radix's own [data-state]-driven height
-          // animation targets THIS element's `height`, and CSS floors a
-          // box's rendered height at its own padding+border sum regardless
-          // of box-sizing. Accordion had exactly this padding-on-the-
-          // animated-element structure, and it caused a real, measured
-          // discrete snap at the end of every collapse (see Accordion.tsx's
-          // own comment for the full mechanism). Keeping padding on the
-          // inner wrapper below instead means adding an animation here
-          // later won't silently reintroduce that bug.
+          // No padding/font styling directly here, deliberately — this is
+          // the element injectCollapsibleStyles' keyframes actually animate
+          // the `height` of, and CSS floors a box's rendered height at its
+          // own padding+border sum regardless of box-sizing. Accordion hit
+          // exactly this padding-on-the-animated-element bug for real (a
+          // measured discrete snap at the end of every collapse — see
+          // Accordion.tsx's own comment for the full mechanism); keeping
+          // padding on the inner wrapper below instead avoids it here too.
           contain: 'content',
         }}
       >
