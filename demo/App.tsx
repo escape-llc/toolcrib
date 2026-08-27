@@ -1367,6 +1367,17 @@ export const App: React.FC = () => {
                           trigger={<Button variant="secondary">Open Drawer</Button>}
                         >
                           <p>This drawer is decoupled and easily controlled by AI.</p>
+                          {/* Regression coverage for a real bug: Tooltip's exit
+                              animation used to bubble an animationend event up
+                              through this Drawer's own (React-tree, portal-
+                              spanning) onAnimationEnd handler and close the
+                              drawer just from hovering then un-hovering this
+                              button. Fixed by migrating Drawer to Radix's
+                              Presence primitive, which listens on the real DOM
+                              node directly instead of via bubbling. */}
+                          <Tooltip content="Hover then un-hover — must not close the drawer">
+                            <Button variant="outline">Hover me (regression check)</Button>
+                          </Tooltip>
                           <Button variant="danger" onClick={() => aiBus.closeDrawer('demo-drawer')}>Close Drawer</Button>
                         </Drawer>
                       </Card.Content>
@@ -2206,13 +2217,21 @@ export const App: React.FC = () => {
 
                     {/* Section 2: Adaptive Card Layout & Groups */}
                     <Grid columns={2} gap="lg">
-                      {/* layout="auto" fills 100% of its container — Card
-                          itself no longer accepts a raw style prop to pin a
-                          fixed demo height, so the fixed size lives on this
-                          plain wrapper div instead (not a toolcrib
-                          component, so it's outside the "no ad hoc style"
-                          constraint). */}
-                      <div style={{ height: '25rem' }}>
+                      {/* No explicit height on this wrapper (or its sibling
+                          below) — Grid's plain `display:'grid'` leaves
+                          `align-items:stretch` as the browser default, so
+                          each grid item's cross-axis size is already the
+                          row's own height (driven by whichever card's
+                          natural content is tallest), with no JS/measurement
+                          involved. `layout="auto"`'s `height:'100%'` (see
+                          Card.tsx) resolves against that stretched size
+                          correctly per the CSS Grid spec even though it was
+                          never given an explicit height — so the demo box
+                          below grows/shrinks to match its row-mate
+                          dynamically instead of both being pinned to a
+                          hardcoded value that silently drifts out of sync
+                          the moment either card's content changes. */}
+                      <div>
                         <Card layout="auto">
                           <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
                           <Card.Content layout="auto">
@@ -2232,10 +2251,25 @@ export const App: React.FC = () => {
                         </Card>
                       </div>
 
-                      <div style={{ height: '25rem' }}>
-                        <Card layout="auto">
+                      {/* No layout="auto" here, unlike its sibling to the
+                          left -- this card's content is a growing list of
+                          example rows and must size itself to its own
+                          content, driving the row's stretched height (see
+                          this Grid's own comment above), not the other way
+                          around. It previously had the same fixed-height
+                          wrapper as its sibling, left over from an earlier,
+                          shorter version of this content: harmless while it
+                          fit, but a real clip once more example rows were
+                          added -- reachable only via the browser's native
+                          focus-scroll on Tab (which can scroll an
+                          overflow:hidden ancestor even though a mouse wheel
+                          can't), reported directly as "this card had two
+                          versions of the mixed controls" being invisible to
+                          normal scrolling. */}
+                      <div>
+                        <Card>
                           <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
-                          <Card.Content layout="auto">
+                          <Card.Content>
                             <VStack gap="md">
                               <div>
                                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
