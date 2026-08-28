@@ -2,8 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/toolcrib.svg)](https://badge.fury.io/js/toolcrib)
 [![npm dl](https://img.shields.io/npm/dm/toolcrib)](https://npmjs.com/package/toolcrib)
-![workflow](https://github.com/escape-llc/toolcrib/actions/workflows/ci.yml//badge.svg)
-![e2e](https://github.com/escape-llc/toolcrib/actions/workflows/e2e.yml//badge.svg)
+![workflow](https://github.com/escape-llc/toolcrib/actions/workflows/ci.yml/badge.svg)
+![e2e](https://github.com/escape-llc/toolcrib/actions/workflows/e2e.yml/badge.svg)
 ![codeql](https://github.com/escape-llc/toolcrib/actions/workflows/github-code-scanning/codeql/badge.svg)
 [![codecov](https://codecov.io/gh/escape-llc/toolcrib/graph/badge.svg?token=Z13THY4CPZ)](https://codecov.io/gh/escape-llc/toolcrib)
 [![license](https://img.shields.io/npm/l/toolcrib)](https://github.com/escape-llc/toolcrib/blob/main/LICENSE)
@@ -61,7 +61,7 @@ Following the Rodney Dangerfield joke of "I told my doctor: It hurts when I do t
 
 Left to its own devices, the model works out a "fuzz" of tailwind-inspired ad hoc styling (aka The Prior).  And it does this anew with each turn.  And it looks great--at first blush.  But then you start tweaking, and it falls apart.  The problem is the model has no "memory" of the styles it has already generated, nor the semantics associated with them.  There is no real "cohesion" to the output.
 
-Toolcrib remedies this by removing the model's ability to generate `class` or `style` attributes.  Instead, the model is forced to use the components provided.  This gives the model a solid foundation to build on.  If the model wants a "button", it uses the `<Button />` component.  This Button component already knows how to be a primary button, a success button, etc.  The model does not have to constantly re-specify that, for example.  There is a single source of truth.
+Toolcrib remedies this by (among other techniques) removing the model's ability to generate `class` or `style` attributes.  Instead, the model is forced to use the components provided.  This gives the model a solid foundation to build on.  If the model wants a "button", it uses the `<Button />` component.  This Button component already knows how to be a primary button, a success button, etc.  The model does not have to constantly re-specify that, for example.  There is a single source of truth.
 
 ``````
 <Card>
@@ -76,9 +76,9 @@ This pain doesn't end at visuals! Modal forms, Drawers, Popups, all get one-shot
 
 ## Human-in-the-Loop (HITL)
 
-Just having the model is not enough! A compentent driver must operate the equipment.  Models make mistakes on every turn, and without The Human to challenge it, all hope is lost!
+Just having the model is not enough! A competent driver must operate the equipment.  Models make mistakes on every turn, and without The Human to challenge it, all hope is lost!
 
-The amount of structure in `toolcrib` is not a natural occurence of AI; it is The Human guiding the AI, and letting it perform what its best at.
+The amount of structure in `toolcrib` is not a natural occurrence of AI; it is The Human guiding the AI, and letting it perform what it's best at.
 
 # Installation
 
@@ -88,15 +88,31 @@ The deployment model for Toolcrib is "Full Vendoring" meaning you copy all the s
 
 > Refer to the USER_GUIDE.md file for detailed instructions!
 
-# Usage
+# AI Guidance
+
+The source code alone is not sufficient for good usage; you also get extensive System Prompt support in the `ai-docs` folder:
+
+- AGENT/CLAUDE instructions
+- component manifests in JSON
+- knowledge base examples/anti-patterns
+- new app and refactor specific templates
+
+> This is all auto-generated (for accuracy) and/or AI-composed; the model acknowledges its own weaknesses and guides around them.
 
 To get the most out of Toolcrib, tell your AI agent to use it.
 
-There are assets in the `ai-docs` folder to integrate into your `AGENTS.md`, `CLAUDE.md`, etc.
-
-The `component-manifest.json` is a machine-readable manifest of the toolkit API surface. Refer to this file, instead of piling API descriptions into your prompts.
-
 > The CLI will install these for you (as patches)!
+
+# Project
+
+Project goals:
+- Built by AI.
+- Designed and Guided by Human-in-the-loop.
+- High test coverage.
+- Unit and E2E test coverage.
+- github actions suite.
+- Transparency via AI Generated Discussions of design sessions.
+- Extensive AI instructions describing the workflow (the agent must use).
 
 # Theming
 
@@ -114,7 +130,7 @@ Theming goals:
 # Infrastructure
 
 Infrastructure goals:
-- Codify the boilerplate AI can get wrong or inconsistently applied.
+- Codify the boilerplate AI can get wrong or inconsistently apply.
 - Reliability is in the framework, not your "vibe".
 - Signal techniques that guide away from anti-patterns like prop-drilling.
 - Leverage Radix primitives for ARIA etc.
