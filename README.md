@@ -88,6 +88,11 @@ The deployment model for Toolcrib is "Full Vendoring" meaning you copy all the s
 
 > Refer to the USER_GUIDE.md file for detailed instructions!
 
+# Examples
+
+- **[feed-farmer-pwa](https://github.com/escape-llc/feed-farmer-pwa)** — a real RSS/Atom feed reader PWA, not a component showcase: a small real product, fully client-side (IndexedDB + a service worker, no backend), built entirely with toolcrib — Zod-driven forms, the event bus, `Tree`, `CommandPalette`, `Combobox`, the live Theme Editor, `UIGroup`, `Skeleton`, and the responsive breakpoint framework.
+  **→ [Live demo](https://escape-llc.github.io/feed-farmer-pwa/)**
+
 # AI Guidance
 
 The source code alone is not sufficient for good usage; you also get extensive System Prompt support in the `ai-docs` folder:
