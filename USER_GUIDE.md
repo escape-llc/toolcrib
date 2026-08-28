@@ -1,12 +1,13 @@
 # Toolcrib — User Guide
 
 This is the human-facing walkthrough for bootstrapping a project with
-toolcrib: the commands you run yourself, in order, with a real example
-(`feed-farmer-pwa`, a project actually built this way) at each step. Once
-your project is wired up, the day-to-day work of building UI happens in an
-AI-guided session — toolcrib is designed for that, not for hand-authoring
-components — but getting to that point starts with a few steps only you
-can do: creating the project, running the CLI, and wiring the provider.
+toolcrib: what has to happen, in order, with a real example
+(`feed-farmer-pwa`, a project actually bootstrapped this way) at each
+step. Every step below can be done by typing the commands yourself, or by
+directing an AI coding agent to run them for you — `feed-farmer-pwa`'s own
+bootstrap, CLI commands included, was done entirely by an AI agent under
+human direction, not hand-typed. Read this as "what needs to happen and
+why," not "what you personally must type."
 
 ## 1. Start with a real project
 
@@ -58,9 +59,10 @@ but your editor and `tsc` need one of those three settings to understand
 ## 3. Wire the provider
 
 Every toolcrib component needs a single `<ToolcribProvider>` wrapped
-around your app root, or components will throw or silently no-op. This is
-the one piece of integration code you write by hand — everything after it
-is AI-guided. `feed-farmer-pwa`'s `src/main.tsx`:
+around your app root, or components will throw or silently no-op. `AGENTS.md`/
+`CLAUDE.md` (written by `init` in the step above) already tells an AI agent
+to do this as part of setup — but if you're wiring it by hand, or checking
+what the agent produced, here's `feed-farmer-pwa`'s own `src/main.tsx`:
 
 ```tsx
 import { StrictMode } from 'react';
@@ -95,20 +97,46 @@ feed reader) with an `analogous` spread into teals and limes, and dark
 mode on by default. Pick a hue that fits your project and move on — the
 rest of the palette derives from it automatically.
 
-## 4. Hand it to your AI assistant
+**Example prompt covering steps 1–3**, if you're directing an AI agent
+through the whole bootstrap rather than typing it yourself:
 
-At this point `toolcrib init` has already written a managed block into
-your `AGENTS.md` (or `CLAUDE.md`) — toolcrib's own system prompt,
-component reference, and conventions, kept in sync by `toolcrib merge` so
-it never goes stale. This is the point where you stop hand-writing UI code
-and start describing what you want to an AI coding agent (Claude Code or
-equivalent) working in this repo. It reads that block automatically the
-same way it reads any other project instructions, and builds against the
-real component set, theme system, and event bus documented there instead
-of hand-rolling ad-hoc CSS and popups. Everything from here — which
-component to reach for, how the event bus and form engine work, first-run
-provider gotchas — is written for that AI session to read, in `ai-docs/`,
-not for you to read directly.
+> Bootstrap this project with toolcrib. Run `npx toolcrib init --situation
+> new`, show me a summary of what landed in `./toolcrib-patches/`, then run
+> `npx toolcrib apply`. Wire `<ToolcribProvider>` around the app root with
+> a theme that fits a [describe your project — e.g. "developer analytics
+> dashboard, dark mode by default"] — pick an HSV base color and harmony
+> mode that fits.
+
+## 4. Building the UI itself
+
+`toolcrib init` has already written a managed block into your `AGENTS.md`
+(or `CLAUDE.md`) — toolcrib's own system prompt, component reference, and
+conventions, kept in sync by `toolcrib merge` so it never goes stale. From
+here, describe what you want to an AI coding agent (Claude Code or
+equivalent) working in this repo rather than hand-writing UI code — it
+reads that block automatically the same way it reads any other project
+instructions, and builds against the real component set, theme system, and
+event bus documented there instead of hand-rolling ad-hoc CSS and popups.
+Everything from here — which component to reach for, how the event bus and
+form engine work, first-run provider gotchas — is written for that AI
+session to read, in `ai-docs/`, not for you to read directly.
+
+**Example prompts to get started building:**
+
+> Build a settings page using toolcrib components: a sidebar-grouped nav,
+> a form with Zod-validated fields, and a save button that shows a toast
+> on success.
+
+> Add a data table showing our [feeds/orders/users/...] with sortable
+> columns, a search box, and a Drawer that opens with the full detail when
+> a row is clicked.
+
+> Build a dashboard: a row of summary cards at the top, a chart below, and
+> a modal for editing an entry, triggered from each card.
+
+> This app doesn't have any UI yet — read `ai-docs/NEW_APP.md` and
+> propose a page layout for [describe what the app does] before writing
+> any code.
 
 ## 5. Staying current
 
