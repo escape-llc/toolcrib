@@ -20,7 +20,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coverage:unit": "vitest run --coverage"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
@@ -29,6 +30,7 @@
     "semver": "^7.6.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
     "vitest": "^4.1.10"
   }
 }

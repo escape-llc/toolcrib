@@ -8,5 +8,15 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/**/*.test.js'],
+    coverage: {
+      provider: 'v8',
+      // `all: true` (with a matching `include`) reports every src/ file in
+      // the percentage, even one with zero tests importing it at all --
+      // without this, a file nothing exercises is silently absent from the
+      // table entirely rather than showing as 0%, which is exactly the gap
+      // that hid apply.js/versions.js/git.js having no dedicated test file.
+      all: true,
+      include: ['src/**/*.js'],
+    },
   },
 });
