@@ -79,6 +79,39 @@ describe('PendingChanges', () => {
     expect(summary).toContain('+ (new) a.txt');
     expect(summary).toContain('~ b.txt');
   });
+
+  // A deletion is just the mirror image of a new file: empty *proposed*
+  // content instead of empty *current* content, and the patch's target
+  // (not source) becomes /dev/null — confirmed directly against a real
+  // `git apply` run (not just asserted here) that this is enough for git
+  // to recognize it as "delete this file," no git-extended `diff --git`/
+  // `deleted file mode` headers required.
+  it('marks empty proposed content as a deletion patch using /dev/null as the target', () => {
+    changes.propose('theme/useAnimatedMount.ts', 'export function useAnimatedMount() {}\n', '');
+    expect(changes.entries[0].isDeletedFile).toBe(true);
+    expect(changes.entries[0].isNewFile).toBe(false);
+    expect(changes.entries[0].patch).toContain('/dev/null');
+  });
+
+  it('does not mark a new file (empty current content) as also deleted', () => {
+    changes.propose('components/dialog.tsx', '', 'export function Dialog() {}\n');
+    expect(changes.entries[0].isDeletedFile).toBe(false);
+  });
+
+  it('proposes nothing for a file that is already absent on both sides', () => {
+    changes.propose('already-gone.ts', '', '');
+    expect(changes.isEmpty()).toBe(true);
+  });
+
+  it('summarize() marks deletions distinctly from new files and modifications', () => {
+    changes.propose('a.txt', '', 'new\n');
+    changes.propose('b.txt', 'old\n', 'new\n');
+    changes.propose('c.txt', 'old\n', '');
+    const summary = changes.summarize();
+    expect(summary).toContain('+ (new) a.txt');
+    expect(summary).toContain('~ b.txt');
+    expect(summary).toContain('- (deleted) c.txt');
+  });
 });
 
 describe('joinPatchPath', () => {

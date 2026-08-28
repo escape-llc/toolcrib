@@ -65,6 +65,72 @@ describe('applyPatchFallback', () => {
     expect(result.error).toMatch(/did not apply cleanly/);
   });
 
+  it('applies a deletion patch by removing the target file', () => {
+    fs.mkdirSync(path.join(tmpDir, 'theme'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'theme', 'useAnimatedMount.ts'), 'export function useAnimatedMount() {}\n');
+    const patch = createTwoFilesPatch(
+      'a/theme/useAnimatedMount.ts',
+      '/dev/null',
+      'export function useAnimatedMount() {}\n',
+      '',
+      '(current)',
+      undefined
+    );
+    const patchPath = path.join(tmpDir, 'the.patch');
+    fs.writeFileSync(patchPath, patch);
+
+    const result = applyPatchFallback(patchPath, tmpDir);
+
+    expect(result).toEqual({ success: true });
+    expect(fs.existsSync(path.join(tmpDir, 'theme', 'useAnimatedMount.ts'))).toBe(false);
+  });
+
+  it('treats a deletion patch as already-satisfied (not a failure) when the target is already gone', () => {
+    // Re-running `apply` after a prior partial run, or a target a human
+    // already deleted by hand — the end state the patch wants is already
+    // true, so this should succeed as a no-op rather than error trying to
+    // remove a file that isn't there.
+    const patch = createTwoFilesPatch(
+      'a/theme/useAnimatedMount.ts',
+      '/dev/null',
+      'export function useAnimatedMount() {}\n',
+      '',
+      '(current)',
+      undefined
+    );
+    const patchPath = path.join(tmpDir, 'the.patch');
+    fs.writeFileSync(patchPath, patch);
+
+    const result = applyPatchFallback(patchPath, tmpDir);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it('refuses to delete outside the project root (same containment guard as writes)', () => {
+    const patch = createTwoFilesPatch(
+      'a/../../outside.txt',
+      '/dev/null',
+      'do not delete me\n',
+      '',
+      '(current)',
+      undefined
+    );
+    const patchPath = path.join(tmpDir, 'the.patch');
+    fs.writeFileSync(patchPath, patch);
+    const outsidePath = path.join(tmpDir, '..', '..', 'outside.txt');
+    fs.writeFileSync(outsidePath, 'do not delete me\n');
+
+    try {
+      const result = applyPatchFallback(patchPath, tmpDir);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/outside the project root/);
+      expect(fs.existsSync(outsidePath)).toBe(true);
+    } finally {
+      fs.rmSync(outsidePath, { force: true });
+    }
+  });
+
   it('refuses to write outside the project root (regression: no containment check)', () => {
     // A patch header path is normally always one of this CLI's own vendored
     // relPaths or fixed strings — never attacker-controlled — but nothing

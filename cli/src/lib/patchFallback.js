@@ -13,7 +13,13 @@ export function applyPatchFallback(patchPath, projectRoot) {
   const patchText = fs.readFileSync(patchPath, 'utf-8');
   const [parsed] = parsePatch(patchText);
 
-  const targetRelPath = parsed.newFileName.replace(/^b\//, '');
+  const isDeletedFile = parsed.newFileName === '/dev/null';
+  // A deletion's real target is its *source* name (oldFileName) — newFileName
+  // is /dev/null itself for a deletion, so falling through to the same
+  // newFileName-based path resolution used for create/update would target
+  // a literal "/dev/null" path inside the project instead of the file
+  // actually being removed.
+  const targetRelPath = (isDeletedFile ? parsed.oldFileName : parsed.newFileName).replace(/^[ab]\//, '');
   const targetPath = path.join(projectRoot, targetRelPath);
 
   // Defense in depth: every relPath this CLI itself writes into a patch
@@ -29,6 +35,16 @@ export function applyPatchFallback(patchPath, projectRoot) {
   const resolvedTarget = path.resolve(targetPath);
   if (resolvedTarget !== resolvedRoot && !resolvedTarget.startsWith(resolvedRoot + path.sep)) {
     return { success: false, error: `Refusing to apply patch: target path "${targetRelPath}" resolves outside the project root.` };
+  }
+
+  if (isDeletedFile) {
+    if (!fs.existsSync(targetPath)) {
+      // Already gone (e.g. a re-run after a partial previous apply) —
+      // the end state this patch wants is already true, not a failure.
+      return { success: true };
+    }
+    fs.rmSync(targetPath);
+    return { success: true };
   }
 
   const isNewFile = parsed.oldFileName === '/dev/null';

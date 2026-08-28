@@ -97,3 +97,93 @@ describe('mergeCommand — lock file update (regression)', () => {
     expect(fs.existsSync(path.join(tmpDir, 'toolcrib-patches'))).toBe(false);
   });
 });
+
+describe('mergeCommand — files removed upstream', () => {
+  let tmpDir;
+  let originalCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-merge-removed-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', dependencies: {} }, null, 2) + '\n');
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib', 'theme'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0' }, null, 2) + '\n'
+    );
+
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('proposes deleting a file that is unmodified locally and removed upstream', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'theme', 'useAnimatedMount.ts'), 'export function useAnimatedMount() {}\n');
+
+    const oldRelease = fakeRelease('1.0.0', {
+      'index.ts': 'export {};\n',
+      'theme/useAnimatedMount.ts': 'export function useAnimatedMount() {}\n',
+    });
+    const newRelease = fakeRelease('2.0.0', { 'index.ts': 'export {};\n' });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const deletionPatch = findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts');
+    expect(deletionPatch).toBeDefined();
+
+    const patchContent = fs.readFileSync(path.join(patchDir, deletionPatch), 'utf-8');
+    expect(patchContent).toContain('/dev/null');
+    expect(patchContent).toContain('-export function useAnimatedMount() {}');
+  });
+
+  it('flags a conflict instead of silently deleting a file that was modified locally and removed upstream', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', 'theme', 'useAnimatedMount.ts'),
+      'export function useAnimatedMount() { /* my own tweak */ }\n'
+    );
+
+    const oldRelease = fakeRelease('1.0.0', {
+      'index.ts': 'export {};\n',
+      'theme/useAnimatedMount.ts': 'export function useAnimatedMount() {}\n',
+    });
+    const newRelease = fakeRelease('2.0.0', { 'index.ts': 'export {};\n' });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    // No deletion patch — the modified file is left untouched, and a
+    // conflict note is staged instead (same shape as any other conflict).
+    expect(findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts')).toBeUndefined();
+    const conflictPatch = findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts.upstream-diff');
+    expect(conflictPatch).toBeDefined();
+
+    const patchContent = fs.readFileSync(path.join(patchDir, conflictPatch), 'utf-8');
+    expect(patchContent).toContain('removed upstream');
+    expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'theme', 'useAnimatedMount.ts'), 'utf-8')).toContain('my own tweak');
+  });
+
+  it('proposes nothing for a file removed upstream that is already absent locally', async () => {
+    // No useAnimatedMount.ts written to disk this time.
+    const oldRelease = fakeRelease('1.0.0', {
+      'index.ts': 'export {};\n',
+      'theme/useAnimatedMount.ts': 'export function useAnimatedMount() {}\n',
+    });
+    const newRelease = fakeRelease('2.0.0', { 'index.ts': 'export {};\n' });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    expect(findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts')).toBeUndefined();
+    expect(findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts.upstream-diff')).toBeUndefined();
+  });
+});

@@ -62,7 +62,9 @@ export class PendingChanges {
    *   built, regardless of whether the caller already went through
    *   joinPatchPath() or constructed relPath some other way.
    * @param {string} currentContent - '' if the file doesn't exist yet
-   * @param {string} proposedContent - the desired final content
+   * @param {string} proposedContent - '' to propose deleting the file
+   *   (only meaningful when currentContent is non-empty — '' vs '' is
+   *   already a no-op via the check below)
    * @param {string} [label] - display label for the patch header
    */
   propose(relPath, currentContent, proposedContent, label) {
@@ -74,16 +76,25 @@ export class PendingChanges {
     if (normalize(currentContent) === normalize(proposedContent)) return; // no-op, nothing to propose
 
     const isNewFile = currentContent === '';
+    // Symmetric with isNewFile above: a deletion is just a patch whose
+    // *target* is /dev/null instead of its *source* — git apply (confirmed
+    // directly against a real repo, not assumed) recognizes this from a
+    // plain unified diff exactly the same way it recognizes a new file from
+    // an empty source, no git-extended `diff --git`/`deleted file mode`
+    // headers required. The `!isNewFile` guard only rules out the
+    // '' -> '' case, already caught by the no-op check above; kept for
+    // clarity that a file can't be simultaneously new and deleted.
+    const isDeletedFile = proposedContent === '' && !isNewFile;
     const patch = createTwoFilesPatch(
       isNewFile ? '/dev/null' : `a/${relPath}`,
-      `b/${relPath}`,
+      isDeletedFile ? '/dev/null' : `b/${relPath}`,
       currentContent,
       proposedContent,
       isNewFile ? undefined : `${label} (current)`,
-      isNewFile ? `${label} (new file)` : `${label} (proposed)`
+      isDeletedFile ? undefined : isNewFile ? `${label} (new file)` : `${label} (proposed)`
     );
 
-    this.entries.push({ relPath, patch, isNewFile });
+    this.entries.push({ relPath, patch, isNewFile, isDeletedFile });
   }
 
   isEmpty() {
@@ -96,7 +107,7 @@ export class PendingChanges {
 
   summarize() {
     return this.entries
-      .map((e) => `  ${e.isNewFile ? '+ (new) ' : '~ '}${e.relPath}`)
+      .map((e) => `  ${e.isDeletedFile ? '- (deleted) ' : e.isNewFile ? '+ (new) ' : '~ '}${e.relPath}`)
       .join('\n');
   }
 

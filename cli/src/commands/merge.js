@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
 import { mergeImportsField } from '../lib/deps.js';
-import { readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
+import { fileExists, readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks, upsertManagedBlock } from '../lib/managedDocs.js';
 
 const TOOLKIT_DIR = './toolcrib';
@@ -155,6 +155,7 @@ export async function mergeCommand(options) {
   const conflicts = [];
   let updatedCount = 0;
   let keptCount = 0;
+  let deletedCount = 0;
 
   for (const relPath of newRelease.allFiles()) {
     const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
@@ -177,6 +178,48 @@ export async function mergeCommand(options) {
       case 'conflict':
         conflicts.push({ relPath, patchPath: joinPatchPath(TOOLKIT_DIR, relPath), original, local, updated });
         break;
+    }
+  }
+
+  // A file present in oldRelease but absent from newRelease was removed
+  // upstream — e.g. useAnimatedMount.ts when Drawer moved to Radix
+  // Presence in v0.10.0. Without this pass, a vendored copy of a file
+  // upstream no longer ships just sits there forever, unreferenced but
+  // never cleaned up, since the loop above only ever visits paths that
+  // still exist in the *new* release. classify(original, local, '')
+  // reuses the same four-way logic as the update loop, treating "removed
+  // upstream" as updated content of '': local unmodified from original ->
+  // safe to delete; local modified -> a real conflict (don't silently
+  // discard someone's customization just because upstream dropped the
+  // file), same as any other conflicting edit.
+  for (const relPath of oldRelease.allFiles()) {
+    if (newRelease.allFiles().includes(relPath)) continue;
+
+    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
+    if (!fileExists(targetPath)) continue; // already absent locally — nothing to propose
+    const local = readTextIfExists(targetPath);
+
+    const original = oldRelease.readFile(relPath);
+    const status = classify(original, local, '');
+
+    switch (status) {
+      case 'safe-update':
+        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, '', relPath);
+        deletedCount++;
+        break;
+      case 'conflict':
+        conflicts.push({
+          relPath,
+          patchPath: joinPatchPath(TOOLKIT_DIR, relPath),
+          original,
+          local,
+          updated: '',
+          removedUpstream: true,
+        });
+        break;
+      // 'unchanged'/'keep-local' can't occur here: original is always
+      // non-empty (relPath came from oldRelease.allFiles()) and updated is
+      // always '', so upstreamChanged is unconditionally true.
     }
   }
 
@@ -230,7 +273,11 @@ export async function mergeCommand(options) {
     await changes.writeAll(projectRoot);
   }
 
-  p.log.success(`${updatedCount} file(s) updated cleanly, ${keptCount} local edit(s) preserved untouched.`);
+  p.log.success(
+    `${updatedCount} file(s) updated cleanly, ${keptCount} local edit(s) preserved untouched` +
+      (deletedCount > 0 ? `, ${deletedCount} file(s) removed upstream and proposed for deletion` : '') +
+      '.'
+  );
   if (conflicts.length > 0) {
     p.log.warn(
       `${conflicts.length} conflict(s) — both local and upstream changed:\n` +
@@ -243,6 +290,13 @@ export async function mergeCommand(options) {
 }
 
 function buildConflictNote(conflict) {
+  if (conflict.removedUpstream) {
+    return (
+      `This file was modified locally, but removed upstream in the new version.\n` +
+      `Automatic deletion was skipped — review manually or ask your AI assistant:\n` +
+      `"reconcile my local changes to ${conflict.relPath}, which was removed upstream"\n`
+    );
+  }
   return (
     `This file was modified locally AND changed upstream.\n` +
     `Automatic merge was skipped — review manually or ask your AI assistant:\n` +
