@@ -17,6 +17,18 @@ export default defineConfig({
       // that hid apply.js/versions.js/git.js having no dedicated test file.
       all: true,
       include: ['src/**/*.js'],
+      // This CLI is what controls what actually lands in a consumer's own
+      // repo -- a gap here isn't just "an untested helper," it's a real
+      // risk of silently corrupting or misapplying someone else's project.
+      // `coverage:unit` fails outright (not just a lower number in a
+      // report) if coverage drops below this, the same way a failing test
+      // does.
+      thresholds: {
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
+      },
     },
   },
 });

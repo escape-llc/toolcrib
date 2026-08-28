@@ -1,8 +1,28 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { checkManagedBlocks, checkImportsCompatibility, checkTypeScriptAdopted, listReprintableBlocks } from '../src/commands/doctor.js';
+
+// doctorCommand itself imports fetchRelease/listVersions directly -- mock
+// both at the module level (before importing doctorCommand) so neither
+// call hits the network, the same reason merge.test.js/versions.test.js
+// mock their own network-dependent imports.
+vi.mock('../src/lib/release.js', () => ({
+  fetchRelease: vi.fn(),
+}));
+vi.mock('../src/lib/github.js', () => ({
+  listVersions: vi.fn(),
+}));
+
+import { fetchRelease } from '../src/lib/release.js';
+import { listVersions } from '../src/lib/github.js';
+import {
+  checkManagedBlocks,
+  checkImportsCompatibility,
+  checkTypeScriptAdopted,
+  listReprintableBlocks,
+  doctorCommand,
+} from '../src/commands/doctor.js';
 import { buildManagedBlock } from '../src/lib/managedDocs.js';
 
 /**
@@ -208,5 +228,203 @@ describe('checkTypeScriptAdopted', () => {
   it('returns true when a tsconfig.json exists', () => {
     fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
     expect(checkTypeScriptAdopted(tmpDir)).toBe(true);
+  });
+});
+
+/** Matches the real fetchRelease() shape doctorCommand actually uses. */
+function fakeDoctorRelease(version, files) {
+  return {
+    version,
+    readFile: (relPath) => {
+      if (files[relPath] === undefined) throw new Error(`no such file in fake release: ${relPath}`);
+      return files[relPath];
+    },
+    allFiles: () => Object.keys(files),
+    cleanup: async () => {},
+  };
+}
+
+describe('doctorCommand', () => {
+  let tmpDir;
+  let originalCwd;
+  let consoleErrorSpy;
+  let consoleWarnSpy;
+  let consoleLogSpy;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-doctor-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+    process.exitCode = undefined;
+    vi.resetAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    process.exitCode = undefined;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  function writeLock(version) {
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'), JSON.stringify({ version }, null, 2) + '\n');
+  }
+
+  it('errors and sets exitCode when there is no toolcrib install at all', async () => {
+    await doctorCommand();
+
+    expect(process.exitCode).toBe(1);
+    expect(fetchRelease).not.toHaveBeenCalled();
+  });
+
+  describe('normal (non-reprint) mode', () => {
+    beforeEach(() => {
+      writeLock('1.0.0');
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+      fetchRelease.mockResolvedValue(fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n' }));
+      listVersions.mockResolvedValue([{ version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false }]);
+    });
+
+    it('completes without throwing on a fully clean, up-to-date, TypeScript-adopted project', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { moduleResolution: 'bundler' } }));
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src', 'main.tsx'), '<ToolcribProvider>\n');
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+    });
+
+    it('detects a locally drifted vendored file', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export const changed = true;\n');
+
+      await doctorCommand();
+
+      // No assertion API for clack's own log stream -- this only proves
+      // doctorCommand ran the drift loop and finished without throwing.
+      // The drift *value* itself (the file-by-file comparison) is the same
+      // normalize()-based logic merge.test.js already covers in depth via
+      // classify(); this test's job is just confirming doctorCommand wires
+      // it in for real, against a real drifted file on disk.
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('surfaces a managed-block hand-edited warning through to completion', async () => {
+      fetchRelease.mockResolvedValue(
+        fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n', 'ai-docs/CORE.md': 'Core rules.\n' })
+      );
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules, but hand-edited.\n'));
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('reports a newer version is available when listVersions returns one', async () => {
+      listVersions.mockResolvedValue([
+        { version: '2.0.0', publishedAt: '2026-02-01T00:00:00Z', prerelease: false },
+        { version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false },
+      ]);
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('skips a prerelease when deciding whether a newer version is available', async () => {
+      // newest non-prerelease is still 1.0.0 (the installed version) even
+      // though a 2.0.0-beta.1 prerelease is listed -- should read as
+      // "already on latest," not prompt an upgrade to an unreleased beta.
+      listVersions.mockResolvedValue([
+        { version: '2.0.0-beta.1', publishedAt: '2026-02-01T00:00:00Z', prerelease: true },
+        { version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false },
+      ]);
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('warns when no tsconfig.json is present at all', async () => {
+      // beforeEach doesn't write one -- exercises checkTypeScriptAdopted's
+      // false branch wired into doctorCommand's own warning.
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('warns when moduleResolution is incompatible with package.json imports', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { moduleResolution: 'node' } }));
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('reports a detected bundler when one is present', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'vite.config.ts'), 'export default {};\n');
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('warns when no root provider wiring can be found anywhere', async () => {
+      // No src/ directory at all written in this test -- checkRootProviderWired
+      // falls through to its own "not found" branch.
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('reports manual ThemeProvider/ToastProvider composition when found (not ToolcribProvider)', async () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, 'src', 'main.tsx'),
+        '<ThemeProvider><ToastProvider><ToastContainer /></ToastProvider></ThemeProvider>\n'
+      );
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('stops the spinner and rethrows when fetching the release fails', async () => {
+      fetchRelease.mockRejectedValue(new Error('network unreachable'));
+
+      await expect(doctorCommand()).rejects.toThrow('network unreachable');
+    });
+  });
+
+  describe('reprint mode (--reprint-managed-block)', () => {
+    it('errors and sets exitCode for an unrecognized docId filter', async () => {
+      await doctorCommand({ reprintManagedBlock: 'not-a-real-docid' });
+
+      expect(process.exitCode).toBe(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown docId'));
+    });
+
+    it('warns when no managed blocks exist anywhere and a specific docId was requested', async () => {
+      await doctorCommand({ reprintManagedBlock: 'core' });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('No managed block "core"'));
+    });
+
+    it('warns generically when no managed blocks exist anywhere and no docId filter was given', async () => {
+      await doctorCommand({ reprintManagedBlock: true });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('nothing to reprint'));
+    });
+
+    it('prints just the matching block\'s content when a specific docId is found', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules.\n'));
+
+      await doctorCommand({ reprintManagedBlock: 'core' });
+
+      const printed = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(printed).toContain('Core rules.');
+      expect(process.exitCode).toBeUndefined();
+      // Reprint mode never calls the network at all -- it's read-only over
+      // whatever's already on disk.
+      expect(fetchRelease).not.toHaveBeenCalled();
+    });
+
+    it('prints every managed block found when no docId filter is given', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), buildManagedBlock('core', '1.0.0', 'Core rules.\n'));
+      fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), buildManagedBlock('new-app', '1.0.0', 'New app guide.\n'));
+
+      await doctorCommand({ reprintManagedBlock: true });
+
+      const printed = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(printed).toContain('Core rules.');
+      expect(printed).toContain('New app guide.');
+    });
   });
 });

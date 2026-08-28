@@ -98,6 +98,16 @@ describe('resolveVersion', () => {
     const result = await resolveVersion('latest');
     expect(result).toBe('1.9.0'); // skips the prerelease even though it's newer
   });
+
+  it('throws a clear error when every published release is a prerelease (no stable version to resolve "latest" to)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { tag_name: 'v2.0.0-rc1', published_at: '2026-08-01T00:00:00Z', prerelease: true, draft: false },
+      ],
+    });
+    await expect(resolveVersion('latest')).rejects.toThrow('No published releases found.');
+  });
 });
 
 describe('downloadReleaseZip checksum verification', () => {
@@ -154,5 +164,16 @@ describe('downloadReleaseZip checksum verification', () => {
 
     const result = await downloadReleaseZip('1.0.0');
     expect(result.equals(content)).toBe(true);
+  });
+
+  it('throws when the zip asset itself fails to download (distinct from a merely-missing checksum sibling)', async () => {
+    fetchMock.mockImplementation(async (url) => {
+      if (String(url).endsWith('.sha256')) {
+        return { ok: true, text: async () => 'irrelevant  toolcrib.zip\n' };
+      }
+      return { ok: false, status: 404, statusText: 'Not Found' };
+    });
+
+    await expect(downloadReleaseZip('1.0.0')).rejects.toThrow(/404/);
   });
 });
