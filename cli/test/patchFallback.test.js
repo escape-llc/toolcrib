@@ -107,8 +107,17 @@ describe('applyPatchFallback', () => {
   });
 
   it('refuses to delete outside the project root (same containment guard as writes)', () => {
+    // One level up (to os.tmpdir() itself, tmpDir's own direct parent), not
+    // two -- unlike the sibling "refuses to write" test below, this one
+    // actually needs to write the pre-existing file being "protected"
+    // before the guard can prove it wasn't deleted, and two levels up from
+    // a Linux CI runner's shallow /tmp/xxx path lands at the filesystem
+    // root, which the runner has no write permission to at all (confirmed
+    // directly: this exact test failed in CI with EACCES on that write,
+    // while passing locally on Windows where two levels up still resolves
+    // somewhere writable). os.tmpdir() itself is writable everywhere.
     const patch = createTwoFilesPatch(
-      'a/../../outside.txt',
+      'a/../outside.txt',
       '/dev/null',
       'do not delete me\n',
       '',
@@ -117,7 +126,7 @@ describe('applyPatchFallback', () => {
     );
     const patchPath = path.join(tmpDir, 'the.patch');
     fs.writeFileSync(patchPath, patch);
-    const outsidePath = path.join(tmpDir, '..', '..', 'outside.txt');
+    const outsidePath = path.join(tmpDir, '..', 'outside.txt');
     fs.writeFileSync(outsidePath, 'do not delete me\n');
 
     try {
