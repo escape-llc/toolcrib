@@ -92,6 +92,8 @@ The deployment model for Toolcrib is "Full Vendoring" meaning you copy all the s
 
 - **[feed-farmer-pwa](https://github.com/escape-llc/feed-farmer-pwa)** — a real RSS/Atom feed reader PWA, not a component showcase: a small real product, fully client-side (IndexedDB + a service worker, no backend), built entirely with toolcrib — Zod-driven forms, the event bus, `Tree`, `CommandPalette`, `Combobox`, the live Theme Editor, `UIGroup`, `Skeleton`, and the responsive breakpoint framework.
   **→ [Live demo](https://escape-llc.github.io/feed-farmer-pwa/)**
+- **[founders-desk](https://github.com/escape-llc/founders-desk)** — a personal command-center PWA for a fictitious CEO who journals meeting notes and tracks discretionary/reimbursable spend, fully client-side (IndexedDB, no backend), built entirely with toolcrib — `Tree` + `TabStrip` + `Splitter` for the notebook, `DataTable` + the `@visx` `BarChart` + `DatePicker` for the ledger, Zod-driven forms, and `CommandPalette` quick-open across both.
+  **→ [Live demo](https://escape-llc.github.io/founders-desk/)**
 
 # AI Guidance
 
