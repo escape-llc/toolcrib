@@ -301,7 +301,7 @@
         },
         "onSubmit": {
           "type": "(values: T) => void | Promise<void>",
-          "description": "Called with validated values on successful submission."
+          "description": "Called with the schema's parsed output on successful submission — for\na schema using `z.coerce.number()`, `.transform()`, etc., this is the\ntransformed value (a real `number`), not the raw string every field\ncontrol itself always stores. Forms with no `schema` get the raw field\nvalues as-is, since there's nothing to parse them into."
         },
         "id": {
           "type": "string",

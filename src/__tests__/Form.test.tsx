@@ -96,6 +96,86 @@ describe('Form & Zod Validation Engine', () => {
     });
   });
 
+  describe("regression: onSubmit receives the schema's parsed output, not raw field strings", () => {
+    // Every field control (Input included) always stores a raw string in
+    // Form's own `values` state — that's what a <Form> with no schema at
+    // all correctly hands onSubmit unchanged. But a schema using
+    // z.coerce.number()/`.transform()` previously validated that string
+    // correctly (schema.safeParse ran fine) and then handed onSubmit the
+    // SAME raw string back anyway, discarding safeParse's own `result.data`
+    // — so `onSubmit`'s declared type (`z.infer<typeof schema>`, a real
+    // `number` here) didn't match what actually arrived at runtime. Found
+    // for real in a consumer app (Founder's Desk): a `.toFixed()` call on
+    // what the schema's type said was already a `number` crashed, because
+    // it was still the submitted string.
+    it('a z.coerce.number() field arrives at onSubmit as a real number, not the raw input string', async () => {
+      const amountSchema = z.object({ amount: z.coerce.number().positive('Enter a positive amount') });
+      const handleSubmit = vi.fn();
+
+      render(
+        <Form id="amount-form" schema={amountSchema} onSubmit={handleSubmit}>
+          <FormField name="amount" label="Amount">
+            <Input placeholder="Amount" />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '123.45' } });
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        expect(handleSubmit).toHaveBeenCalledWith({ amount: 123.45 });
+      });
+      // The live field itself still displays the raw string -- coercion
+      // only applies to onSubmit's payload, not to Form's own `values`
+      // state (which is what a bound <Input> reads back).
+      expect(screen.getByPlaceholderText('Amount')).toHaveValue('123.45');
+    });
+
+    it('form:submitted on the event bus also carries the parsed output, matching onSubmit', async () => {
+      const amountSchema = z.object({ amount: z.coerce.number() });
+      const submittedSpy = vi.fn();
+      const unsub = aiBus.on('form:submitted', submittedSpy);
+
+      render(
+        <Form id="amount-form-2" schema={amountSchema}>
+          <FormField name="amount" label="Amount">
+            <Input placeholder="Amount" />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '10' } });
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        expect(submittedSpy).toHaveBeenCalledWith({ formId: 'amount-form-2', values: { amount: 10 } });
+      });
+      unsub();
+    });
+
+    it('a form with no schema still passes onSubmit the raw string, since there is nothing to parse it into', async () => {
+      const handleSubmit = vi.fn();
+      render(
+        <Form id="no-schema-amount-form" onSubmit={handleSubmit}>
+          <FormField name="amount" label="Amount">
+            <Input placeholder="Amount" />
+          </FormField>
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+      fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '10' } });
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        expect(handleSubmit).toHaveBeenCalledWith({ amount: '10' });
+      });
+    });
+  });
+
   it('stays disabled while submitting even when the consumer passes their own disabled prop (regression)', async () => {
     // Reproduces a real bug: SubmitButton spread {...props} *after* its
     // computed disabled={isSubmitting || props.disabled}, so passing any

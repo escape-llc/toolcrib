@@ -33,6 +33,12 @@ PowerShell-specific gotchas hit in practice:
 
 The actual component/theme/event-bus rules (no prop-drilling, HSV-only color, `rem` units, anti-patterns) live in `ai-docs/CORE.md` — that file is the single source of truth, read by consumers and shipped as-is. Don't duplicate those rules here; if you change one, change it there and keep this file's references in sync.
 
+## `<Form>`'s `onSubmit`/`form:submitted` must receive the schema's parsed output, not raw field state
+
+`FormContext.tsx`'s `handleSubmit` computes validity via `schema.safeParse(values)` and then must hand `onSubmit` (and the `form:submitted` event) that same call's `result.data` — never the raw `values` state object directly. A version that passed `values` (the previous implementation) validated correctly but silently discarded whatever the schema's own `z.coerce.*`/`.transform()` produced, so `FormProps.onSubmit`'s declared type (`z.infer<typeof schema>`, e.g. a real `number` for `z.coerce.number()`) didn't match what actually arrived at runtime (still the original string). Found for real building the Founder's Desk example app: a `.toFixed()` call on what its own schema's type said was already a `number` crashed `<DataTable>`, because the value was still the submitted string.
+
+Every field control (`<Input>`, `<Select>`, etc.) always stores a raw value in `values` regardless of schema — that's correct and unrelated; it's specifically the one-time hand-off at submission (and nowhere else) that has to route through the schema's parsed result. `parseValues()` (the internal helper `validateValues` was renamed to, since it now returns `{ errors, data }` instead of just errors) is the single place this is computed — any future change to `handleSubmit` that reads `values` directly instead of destructuring `data` from `parseValues(values)` is reintroducing this exact bug. `Form.test.tsx`'s `"regression: onSubmit receives the schema's parsed output, not raw field strings"` suite exists to catch that regression directly.
+
 ## Documenting a component for the manifest
 
 `ai-docs/component-manifest.json` is **generated**, not hand-edited — `node scripts/generate-manifest.js --write` (or `npm run generate-manifest`) rebuilds it from JSDoc directly on component source via the TypeScript Compiler API. `npm run check-manifest` validates there's no drift, and CI runs it on every release; a component with missing/wrong tags either doesn't show up at all or fails the build, silently or loudly depending on which mistake you make below.
