@@ -28,10 +28,10 @@ Concretely: `className="flex items-center gap-4 p-6 rounded-xl shadow-md bg-whit
 | `grid grid-cols-3 gap-4` | `<Grid columns={3} gap="md">` |
 | `grid-cols-[repeat(auto-fit,minmax(200px,1fr))]` | `<Grid columns="auto-fit" minColWidth="12.5rem">` |
 | An inline `style={{ ... }}` or arbitrary-value class (`w-[137px]`, `top-[13px]`) "just this once" | Doesn't exist here — no component accepts `style`/`className` at the type level, so there's no escape hatch to reach for. If the token system genuinely can't express what's needed, that's a real gap, not a one-off to route around; see `CORE.md`'s override/`StyleDomain` section for the sanctioned per-instance path first. |
+| `p-2 md:p-4 lg:p-6` (density that changes per breakpoint) | A `{ base, sm?, md?, lg?, xl? }` object on `paddingMode`/`marginMode`/`cornerRadiusMode`, set once on `<ThemeProvider initialParameters={{...}}>` — see `CORE.md` §2.8. One global setting every component responds to at once, not a per-element class you repeat on each one. |
 
-## Two honest gaps, not oversights
+## One honest gap, not an oversight
 
-- **No `sm:`/`md:`/`lg:` responsive-prefix system.** Toolcrib has no breakpoint-variant mechanism at all. Responsiveness comes from CSS's own intrinsic behavior instead — `flex-wrap`, `<Grid columns="auto-fit">`'s `minmax()`-driven reflow — not from swapping a whole class per breakpoint. If a layout genuinely needs different structure (not just reflow) at different widths, that's not something toolcrib solves for you today.
 - **No arbitrary-value syntax.** Tailwind's escape hatch for "this exact pixel value, this one time" (`w-[137px]`) has no toolcrib equivalent, and that's deliberate, not missing — the whole point of the token system is that no component-level styling decision is a one-off. See `CORE.md`'s Theme Editor / `overrides` section for where a genuinely novel value should go instead (a theme parameter or a slice override), not around the type system.
 
 ## Where to go next
