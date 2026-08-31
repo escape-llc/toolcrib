@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "toolcrib",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Per-category slice of component-manifest.json's \"components\" array (category: Overlays), for on-demand detail without loading the full manifest. See component-manifest.json for themeSystem/zIndexScale/eventBus and cross-category data.",
   "category": "Overlays",
   "components": [
