@@ -79,6 +79,13 @@ test('every <style> tag present on initial load carries the configured nonce', a
   ];
 
   for (const id of alwaysPresentIds) {
+    // Each of these <style> tags is created inside its owning component's
+    // mount effect (a plain useEffect, scheduled after the initial paint),
+    // not synchronously during render -- reading this soon after goto()
+    // races those effects. Narrow enough that Chromium's own load-event
+    // timing never exposed it; WebKit's doesn't leave the same margin
+    // (same root cause as this file's other two tests' identical fix).
+    await page.waitForSelector(`#${id}`, { state: 'attached' });
     const nonce = await nonceOf(page, id);
     expect(nonce, `#${id}'s nonce attribute`).toBe(NONCE);
   }
@@ -99,6 +106,14 @@ test('the shared animation keyframes also carry the configured nonce for the def
   // sole injection point (see animationKeyframes.ts's current doc comment
   // for the full history).
   await page.goto('/');
+  // The <style id="toolcrib-shared-keyframes"> tag is created inside
+  // ThemeProvider's mount effect (a plain useEffect, scheduled after the
+  // initial paint), not synchronously during render -- reading it this
+  // soon after goto() races that effect. Narrow enough that Chromium's own
+  // load-event timing never exposed it; WebKit's doesn't leave the same
+  // margin. Wait for the element to actually exist before reading its
+  // nonce, rather than trusting goto() alone.
+  await page.waitForSelector('#toolcrib-shared-keyframes', { state: 'attached' });
   const nonce = await nonceOf(page, 'toolcrib-shared-keyframes');
   expect(nonce).toBe(NONCE);
 });

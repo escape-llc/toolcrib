@@ -20,6 +20,15 @@ const BELOW_LG = { width: 900, height: 800 }; // demo's lg threshold is 1024px
 const ABOVE_LG = { width: 1280, height: 800 };
 
 async function readMarginMd(page: import('@playwright/test').Page) {
+  // ThemeProvider applies its CSS variables from a plain useEffect (not
+  // useLayoutEffect), scheduled through React's own Scheduler after the
+  // initial paint -- a real, if usually narrow, race against however fast
+  // this test reads state right after goto. Chromium's own load-event
+  // timing happened to leave enough of a gap for this to never matter in
+  // practice; WebKit's doesn't -- found for real the first time this suite
+  // ran against a second browser engine. Wait for the variable to actually
+  // be populated before reading it, rather than trusting goto() alone.
+  await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--ai-margin-md').trim() !== '');
   return page.evaluate(() => ({
     computed: getComputedStyle(document.documentElement).getPropertyValue('--ai-margin-md').trim(),
     inline: document.documentElement.style.getPropertyValue('--ai-margin-md').trim(),

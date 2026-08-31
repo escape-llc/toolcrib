@@ -88,6 +88,12 @@ const EXPECTED_NOISE = [
   // deliberately demonstrates the fallback-on-load-failure behavior.
   /broken-image-url\.example/,
   /ERR_NAME_NOT_RESOLVED/,
+  // WebKit's own wording for the same broken-image DNS failure above --
+  // Chromium logs "net::ERR_NAME_NOT_RESOLVED", WebKit logs "Could not
+  // resolve hostname" instead. Same deliberate demo behavior, different
+  // engine's error string; found running this suite against webkit for
+  // the first time.
+  /Could not resolve hostname/,
 ];
 const isExpectedNoise = (text: string): boolean => EXPECTED_NOISE.some(re => re.test(text));
 
@@ -140,6 +146,13 @@ test('no console errors while clicking through every interactive control on ever
 });
 
 test("interacting with one card's own control never shifts a sibling card's position", async ({ page }) => {
+  // Same reasoning as the sweep above's own timeout bump: this walks
+  // every card on every tab, taking a fresh boundingBox() per card per
+  // interaction -- real work that scales with the same growing demo
+  // content. WebKit's rendering pipeline is measurably slower than
+  // Chromium's for this, and 30s (the Playwright default) isn't enough
+  // margin there even though it was fine on Chromium alone.
+  test.setTimeout(120_000);
   await page.goto('/');
 
   for (const tab of TABS) {

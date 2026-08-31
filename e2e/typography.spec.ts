@@ -9,6 +9,12 @@ import { test, expect } from '@playwright/test';
 
 test('switching Font Family in the Theme Editor updates --ai-font-family and the real computed font', async ({ page }) => {
   await page.goto('/');
+  // ThemeProvider applies its CSS variables from a plain useEffect, which
+  // React schedules after the initial paint rather than synchronously --
+  // a real race against reading state this soon after goto(), narrow
+  // enough that Chromium's own load-event timing never exposed it but
+  // WebKit's does. Wait for the variable to actually be populated first.
+  await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--ai-font-family').trim() !== '');
 
   const before = await page.evaluate(() => ({
     varValue: getComputedStyle(document.documentElement).getPropertyValue('--ai-font-family').trim(),

@@ -22,6 +22,19 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // WebKit, not Firefox — this suite exists specifically for real-engine
+    // divergence on CSS/focus-visible/animation behavior (see this file's
+    // own doc comment and e2e/README.md), and WebKit is where that
+    // divergence actually shows up: its `:focus-visible` heuristics and
+    // `color-mix()`/relative-color serialization genuinely differ from
+    // Chromium's (the latter already produced a real, Chromium-specific
+    // axe-core false positive — see AGENTS.md's axe-core section). Firefox
+    // agrees with Chromium on both axes far more often, so it adds mostly
+    // redundant CI time/flake surface rather than new signal.
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
   // Boots the same `npm run dev` every local workflow in this repo already
   // assumes (see vite.config.ts's own comment on why `base` is gated on
