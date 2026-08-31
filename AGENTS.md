@@ -18,6 +18,20 @@ This is also the concrete reason external review sessions like the one this file
 
 `SESSION_SUMMARIES.md` is the other half of this same feedback loop, aimed outward instead of in: a per-checkpoint prompt for posting a short, honest writeup (including friction) of a contributor session to this repo's own GitHub Discussions, rather than folding everything into this file's cumulative record.
 
+That loop was one-directional until 2026-08-31 — plenty of guidance on *posting* a session's friction to Discussions, nothing telling the *next* session to actually go read what's already there before starting work. **Before starting anything beyond a trivial/mechanical change, check the last several posts under the "AI Session Summaries" Discussions category.** A gap already found and reported once (a component's real friction point, a bug that needed a non-obvious fix) shouldn't have to be independently rediscovered from scratch by the next session just because nothing prompted a look first — the same root problem this whole section already argues against for in-repo lessons, just aimed at the other half of the loop. Query it directly rather than browsing the web UI, using the same cached IDs `SESSION_SUMMARIES.md` documents for posting:
+
+```
+gh api graphql -f query='
+query {
+  repository(owner: "escape-llc", name: "toolcrib") {
+    discussions(categoryId: "DIC_kwDOTwhGaM4DDiVO", first: 10, orderBy: {field: CREATED_AT, direction: DESC}) {
+      nodes { title url createdAt }
+    }
+  }
+}'
+```
+
+Skim titles/dates for relevance to the task at hand, then fetch a specific one's full body (`bodyText` in place of `title url createdAt` above, or `gh api graphql -f query='query{ node(id:"..."){ ... on Discussion { bodyText } } }'` with that discussion's own node id) only for the ones that look relevant — reading all of them up front doesn't scale as the category grows, and most won't bear on any given task.
 
 ## Dev machine is Windows — use PowerShell, not Bash
 
