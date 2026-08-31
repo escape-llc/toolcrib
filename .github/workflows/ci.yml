@@ -74,3 +74,38 @@ jobs:
 
       - name: Check src/index.ts matches source
         run: node scripts/generate-index.js --check
+
+  # Every cross-platform bug found in this project's history so far (CRLF
+  # vs LF, backslash path separators breaking `git apply`, a UTF-8 BOM
+  # breaking JSON.parse — see AGENTS.md's Windows section) lived in cli/'s
+  # path-handling code and was found only by someone running the CLI by
+  # hand on a real Windows machine, because ubuntu-latest above cannot
+  # reproduce any of it. Scoped to cli/'s own unit suite only (not a full
+  # matrix of the job above) — cli/'s tests already mock process.platform
+  # for both branches (see cli/test/zip.test.js, git.test.js), so this is a
+  # cheap, low-risk addition, not a guess at what else might break on
+  # Windows. It does NOT yet cover the real end-to-end case (a genuine git
+  # apply against a real checked-out project, which is where the CRLF/BOM
+  # bugs actually lived) -- that only exists today as a manual, multi-step
+  # procedure documented in cli/CONTRIBUTING.md's integration-test section.
+  # Automating that on Windows CI too is real, separate follow-up work
+  # (tracked in .plans/toolcrib-defect-pindown-plan.md), not something this
+  # job already closes.
+  cli-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install CLI dependencies
+        run: npm ci
+        working-directory: cli
+
+      - name: Run CLI test suite
+        run: npm test
+        working-directory: cli

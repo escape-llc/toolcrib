@@ -92,7 +92,19 @@ export const Select: React.FC<SelectProps> = ({
     if (fieldName && registerField) registerField(fieldName);
   }, [fieldName, registerField]);
 
-  const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
+  // `?? ''` matters beyond the empty-string fallback itself: registerField's
+  // own effect above only runs AFTER this first render, so a form-bound
+  // field with no `initialValues` entry read as `undefined` here for
+  // exactly one paint, then flipped to `''` once that effect committed —
+  // a real "component is changing from uncontrolled to controlled" React
+  // warning (Radix's SelectPrimitive.Root going from `value={undefined}` to
+  // `value={''}`), invisible in this suite until a global console.error/warn
+  // assertion actually looked for it. Resolving to `''` immediately here —
+  // matching what registerField is about to set anyway — keeps this
+  // control controlled from its very first render whenever it's form-bound,
+  // same fix `<Input>`'s own `formContext.values[name] ?? ''` already
+  // applies.
+  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? '' : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? String(formValue) : defaultValue;
 
   const handleChange = (val: string) => {

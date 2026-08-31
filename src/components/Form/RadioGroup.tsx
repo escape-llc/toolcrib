@@ -98,7 +98,20 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
     if (fieldName && registerField) registerField(fieldName);
   }, [fieldName, registerField]);
 
-  const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;
+  // `?? ''` (not left as plain `formContext.values[fieldName]`) matters for
+  // more than the empty-string fallback itself: `registerField`'s own
+  // effect above only runs AFTER this first render, so a form-bound field
+  // with no `initialValues` entry reads as `undefined` here for exactly
+  // one paint, then flips to `''` once registerField's effect commits —
+  // a real "component is changing from uncontrolled to controlled" React
+  // warning (Radix's RadioGroupPrimitive.Root gets `value={undefined}`,
+  // then `value={''}`), invisible in this suite until a global
+  // console.error/warn assertion actually looked for it. Resolving to `''`
+  // immediately here — matching what registerField is about to set
+  // anyway — keeps this control controlled from its very first render
+  // whenever it's form-bound, same fix `<Input>`'s own `formContext.values[name]
+  // ?? ''` already applies.
+  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? '' : undefined;
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? formValue : defaultValue;
 
   const handleChange = (val: string) => {

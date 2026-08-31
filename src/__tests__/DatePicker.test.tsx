@@ -25,7 +25,7 @@ describe('DatePicker', () => {
   });
 
   it('opens the calendar via the toggle button, hosted in <Popup> (not a react-aria-components Popover)', () => {
-    const { baseElement } = render(<DatePicker name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} />);
+    const { baseElement } = render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
     openCalendar();
     expect(document.querySelector('.react-aria-Calendar')).toBeInTheDocument();
     // Popup portals its content to the real document body via Radix's own
@@ -36,7 +36,7 @@ describe('DatePicker', () => {
 
   it('selects a date, closes the calendar, and calls onChange with a CalendarDate', () => {
     const onChange = vi.fn();
-    render(<DatePicker name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} onChange={onChange} />);
+    render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} onChange={onChange} />);
     openCalendar();
 
     const grid = document.querySelector('.react-aria-Calendar') as HTMLElement;
@@ -52,7 +52,7 @@ describe('DatePicker', () => {
   it('emits datepicker:changed with an ISO date string', () => {
     const changedFn = vi.fn();
     const unsub = aiBus.on('datepicker:changed', changedFn);
-    render(<DatePicker name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} />);
+    render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
     openCalendar();
     const grid = document.querySelector('.react-aria-Calendar') as HTMLElement;
     fireEvent.click(getDayCell(grid, 20));
@@ -67,7 +67,7 @@ describe('DatePicker', () => {
   it('pressing Escape once with the calendar open closes only the calendar, not an enclosing Modal', () => {
     render(
       <Modal isOpen>
-        <DatePicker name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} />
+        <DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />
       </Modal>
     );
     expect(screen.getByTestId('modal-container')).toBeInTheDocument();
@@ -84,6 +84,7 @@ describe('DatePicker', () => {
     render(
       <DatePicker
         name="meetingDate"
+        aria-label="Meeting date"
         defaultValue={new CalendarDate(2026, 3, 15)}
         minValue={new CalendarDate(2026, 3, 10)}
         maxValue={new CalendarDate(2026, 3, 20)}
