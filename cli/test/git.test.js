@@ -58,6 +58,22 @@ describe('git.js (real git subprocess)', () => {
   describe('gitApplyStreaming', () => {
     beforeEach(async () => {
       await execFileAsync('git', ['init'], { cwd: tmpDir, shell: isWindows });
+      // Real `git apply` (invoked below via the actual gitApplyStreaming
+      // subprocess, not a mock) checks out the patched file through
+      // whatever `core.autocrlf` this repo resolves to -- which on a
+      // Windows machine/runner commonly defaults to `true` at the global/
+      // system level (Git for Windows' own installer default), converting
+      // the patch's LF content to CRLF on write. That's real, correct git
+      // behavior a consumer's own repo may legitimately want -- it's not
+      // something gitApplyStreaming (a thin wrapper with no line-ending
+      // opinion of its own, see git.js) does wrong. But it makes this
+      // specific throwaway test repo's content non-deterministic across
+      // hosts, which is a test hygiene gap, not a production one -- pin it
+      // explicitly so `\n` vs `\r\n` assertions below hold on every
+      // platform this suite runs on. Found for real: this exact assertion
+      // failed on windows-latest the first time cli/'s suite ever ran
+      // there (see ci.yml's cli-windows job).
+      await execFileAsync('git', ['config', 'core.autocrlf', 'false'], { cwd: tmpDir, shell: isWindows });
     });
 
     it('applies a real, valid patch and reports success', async () => {
