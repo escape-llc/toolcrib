@@ -79,6 +79,10 @@ export interface AIEventMap {
   'pagination:changed': { id?: string; page: number; pageSize: number };
   'datatable:row_clicked': { id?: string; index: number };
   'log:cleared': { timestamp: string };
+
+  // Routing
+  /** One-shot imperative navigation command — not state to replay (see STICKY_EVENTS comment below). */
+  'route:navigate': { to: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
   'splitter:split_changed': { id: string; split: number };
   'layout:corners:squared': {
@@ -254,6 +258,10 @@ class AIEventBus {
 
   closePopup(id: string) {
     this.emit('popup:hidden', { id });
+  }
+
+  navigate(to: string) {
+    this.emit('route:navigate', { to });
   }
 
   /** @manifestReturns string (toast id) */

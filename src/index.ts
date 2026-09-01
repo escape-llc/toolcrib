@@ -120,6 +120,7 @@ export * from './components/Progress/Progress';
 export * from './components/Progress/ProgressSlice';
 export * from './components/Rating/Rating';
 export * from './components/Rating/RatingSlice';
+export * from './components/RouterAdapter/RouterAdapterContext';
 export * from './components/ScrollArea/ScrollArea';
 export * from './components/ScrollArea/ScrollAreaSlice';
 export * from './components/Separator/Separator';

@@ -1,0 +1,184 @@
+# Worked Example: Router Integration
+
+Toolcrib has zero router awareness by design — no React Router, TanStack
+Router, or Next navigation import anywhere in the toolkit. This file walks
+through the points where a real router actually meets toolcrib: provider
+nesting order, controlled overlays for deep-linking, `<TabStrip>`/URL
+sync, and imperative navigation from anywhere via the event bus.
+
+## Where `<ToolcribProvider>` sits relative to your router
+
+`useTheme()`/`useToast()` throw `"must be used within a ...Provider"` the
+moment a component using them renders outside that provider's subtree —
+ordinary React Context, no toolcrib-specific magic. The practical
+consequence for routing: `<ToolcribProvider>` must wrap your router's
+routes, not sit inside one layout route among several — a route that
+doesn't happen to render under it will throw the moment it uses
+`useToast()` or any themed component. Put it at the true render root,
+above `<BrowserRouter>`/`<RouterProvider>`/Next's root layout, once.
+
+## Controlled vs. uncontrolled overlays
+
+`<Modal>`, `<Drawer>`, and `<Popup>` all default to **uncontrolled**:
+`aiBus.openModal(id)` / `aiBus.closeModal(id)` toggle them without any
+`isOpen` prop at all — the component owns its own open/closed state
+internally. For URL-driven deep-linking, pass the controlled `isOpen`
+prop instead, deriving it from route state so the overlay is **controlled**:
+the parent owns the state and the component only ever reflects it.
+
+```tsx
+import { Modal } from '#toolcrib';
+import { useParams } from 'react-router-dom';
+
+function ItemDetailModal() {
+  const { itemId } = useParams();
+  return (
+    <Modal id="item-detail" isOpen={Boolean(itemId)} onOpenChange={(open) => {
+      if (!open) history.back();
+    }}>
+      <Modal.Body>{/* ... */}</Modal.Body>
+    </Modal>
+  );
+}
+```
+
+`onOpenChange` fires for both the URL-driven case and any internal close
+(Escape key, backdrop click) — reconcile the URL there rather than race
+it against the bus.
+
+## Two-way `<TabStrip>` / URL sync
+
+`<TabStrip>`'s `onChange` prop exists specifically "for syncing with a
+router" (its own JSDoc says so) — pass a controlled `activeId` derived
+from the URL, and update the URL from `onChange`:
+
+```tsx
+<TabStrip
+  id="settings-tabs"
+  items={tabs}
+  activeId={searchParams.get('tab') ?? 'general'}
+  onChange={(id) => setSearchParams({ tab: id })}
+/>
+```
+
+`<TabStrip.Panel groupId="settings-tabs">` instances elsewhere in the tree
+don't need any of this — they read `tab:changed` off the bus regardless
+of whether `<TabStrip>` is controlled or self-managed (see the
+event-bus-sticky-replay example for why that channel is sticky).
+
+## Imperative navigation from anywhere: `RouterAdapterProvider` + `aiBus.navigate()`
+
+For the case with no natural "controlled prop" — a `CommandPalette` item,
+a toast action, a modal's confirm handler — wire up the bridge once,
+inside your router's own tree (wherever the real navigate function
+exists):
+
+```tsx
+import { RouterAdapterProvider, useRouterBridge } from '#toolcrib';
+import { useNavigate } from 'react-router-dom';
+
+function RouterBridgeMount() {
+  useRouterBridge();
+  return null;
+}
+
+function AppRoutes() {
+  const navigate = useNavigate();
+  return (
+    <RouterAdapterProvider adapter=\{{ navigate }}>
+      <RouterBridgeMount />
+      {/* routes */}
+    </RouterAdapterProvider>
+  );
+}
+
+// Root: <ToolcribProvider><BrowserRouter><AppRoutes /></BrowserRouter></ToolcribProvider>
+```
+
+Then, from anywhere — a `CommandPalette` `onSelect`, a toast action's
+`onClick` — with no shared ancestor with the router required:
+
+```ts
+aiBus.navigate('/settings/billing');
+```
+
+`route:navigate`'s payload is:
+
+```ts
+{{routeNavigatePayload}}
+```
+
+Deliberately **not** a sticky event: it's a one-shot imperative command,
+not state a late subscriber should replay. A `RouterAdapterProvider`/
+`useRouterBridge()` pair mounted *after* `aiBus.navigate()` already fired
+will not retroactively navigate.
+
+The adapter object is opaque to *how* your router actually navigates —
+the same `{ navigate }` from React Router's `useNavigate()` works
+identically whether the app uses `<BrowserRouter>` (History API) or
+`<HashRouter>` (`#/path` URLs). Without a router library at all, a manual
+hash adapter works the same way:
+
+```ts
+<RouterAdapterProvider adapter=\{{ navigate: (to) => { window.location.hash = to; } }}>
+```
+
+This is worth calling out explicitly, not just as a fallback: toolcrib's
+own real sample apps (Feed Farmer, Founder's Desk) both already dropped
+`react-router` in favor of plain view-state switching, and a hash-based
+scheme — needed for GitHub Pages deep-link support, since Pages has no
+server-side rewrite for History-API routing — is a more likely next step
+for an app in that same minimalist style than adopting a router library.
+
+If `useRouterBridge()` is mounted with no `RouterAdapterProvider` above
+it — no router configured at all — it's a safe no-op with a dev-only
+console warning the moment a navigation is actually attempted, not a hard
+throw: unlike `useTheme()`/`useToast()`, mounting this hook isn't required
+by every toolcrib consumer, so nothing should force a router-less app to
+avoid it defensively.
+
+## Reconstructing state after back/forward navigation
+
+This is not a toolcrib mechanism. A back/forward navigation is handled
+entirely by the router (or a raw `hashchange` listener) re-rendering with
+new state — `aiBus`/`RouterAdapterProvider` are never involved, since that
+channel only carries the opposite direction (component → router).
+Controlled props (`Modal`'s `isOpen`, `TabStrip`'s `activeId`) reconstruct
+correctly for free *only if* they're derived fresh from the router's live
+state on every render — `isOpen={Boolean(useParams().itemId)}`, or
+`useSyncExternalStore` over `window.location.hash` for the no-library
+case — not from local state only ever updated inside an event handler.
+The idiomatic uncontrolled path (`aiBus.openModal(id)`) cannot participate
+in this at all: if deep-linking or back-nav needs to affect a given
+overlay, controlled `isOpen` is mandatory for it, not optional.
+
+Deriving state from the URL is only the *read* half, though. See the next
+section for the missing *write* half — reading a URL that nothing ever
+wrote reconstructs nothing.
+
+## Worked scenario: a drawer's "view original" link, and why Back loses it
+
+Concrete case, in the shape of a feed reader: a `<Drawer>` opens showing
+an article — today, via plain `aiBus.openDrawer(id)`, uncontrolled,
+in-memory only — and its "view original" button navigates same-tab to
+the article's source page. Clicking browser Back afterward lands on the
+app's root, not back on that article's drawer, because nothing ever
+created a history entry for "drawer open on article X" in the first
+place. Deriving `isOpen` from the URL, as above, has nothing to read,
+since nothing wrote it.
+
+Two fixes, in order of preference:
+
+- **Default: open the external link in a new tab**
+  (`target="_blank" rel="noopener noreferrer"`) instead of a same-tab
+  navigation. This is the standard pattern for a "view original source"
+  action specifically because it sidesteps the problem entirely — the
+  SPA's own tab/history is never touched, so there's nothing for Back to
+  get wrong. Reach for this before the pattern below.
+- **When a same-tab navigation away genuinely needs to survive a
+  subsequent Back**: *opening* the drawer must itself push a history
+  entry (a hash change or `history.pushState`) at open time, not just
+  flip in-memory state. Read-from-URL and write-to-URL-on-open are a
+  pair — deriving `isOpen` from the current hash on mount/`popstate` only
+  works if something wrote that hash when the drawer opened to begin
+  with.

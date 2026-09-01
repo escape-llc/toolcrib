@@ -88,6 +88,8 @@ const EVENT_NOTES = {
     '`id` is the `<TabStrip id>` group identifier; sticky (see above), so a `<TabStrip.Panel>` mounted after this fires still gets the current value replayed to it',
   'error:boundary':
     'emitted by `<AIErrorBoundary>` (used internally by `<Modal>`/`<Drawer>`) whenever a child throws during render',
+  'route:navigate':
+    'a one-shot imperative navigation command, deliberately not sticky; forwarded to a real router via `<RouterAdapterProvider>`/`useRouterBridge()` — see the router-integration example',
 };
 
 function assembleZIndexRows() {
@@ -175,6 +177,13 @@ function assembleSplitterExampleFacts() {
   };
 }
 
+function assembleRouterExampleFacts() {
+  const routeNavigate = generateEventChannels().find((c) => c.name === 'route:navigate');
+  return {
+    routeNavigatePayload: routeNavigate.payload,
+  };
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -185,6 +194,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'event-bus-sticky-replay.md.hbs', data: assembleEventBusExampleFacts },
   { file: 'z-index-scale.md.hbs', data: assembleZIndexExampleFacts },
   { file: 'splitter-bus-command.md.hbs', data: assembleSplitterExampleFacts },
+  { file: 'router-integration.md.hbs', data: assembleRouterExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {

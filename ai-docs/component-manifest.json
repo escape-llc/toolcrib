@@ -682,6 +682,10 @@
         "payload": "{ timestamp: string }"
       },
       {
+        "name": "route:navigate",
+        "payload": "{ to: string }"
+      },
+      {
         "name": "layout:domain:created",
         "payload": "{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
       },
@@ -733,6 +737,10 @@
       {
         "method": "aiBus.closePopup(id)",
         "emits": "popup:hidden"
+      },
+      {
+        "method": "aiBus.navigate(to)",
+        "emits": "route:navigate"
       },
       {
         "method": "aiBus.showToast(message, type?, priority?)",
