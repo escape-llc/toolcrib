@@ -1,3 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks -- RadioGroup.Option below is a real
+   component (the documented Component.Slot = (props) => {...} pattern this
+   repo's AGENTS.md manifest section describes for slot discovery), calling
+   useContext internally. The lint rule's naming heuristic only recognizes a
+   bare PascalCase identifier as a valid component name, not a
+   `RadioGroup.Option =` assignment target, so it misreads this as a plain
+   non-component function calling hooks illegally. Confirmed false positive,
+   not a real bug -- this renders and tests correctly today. Scoped to just
+   this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';

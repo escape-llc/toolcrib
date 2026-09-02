@@ -1,3 +1,21 @@
+/* eslint-disable react-hooks/refs -- selectedLabelsRef below is a persistent,
+   incrementally-populated label cache read/written synchronously during
+   render (see its own comment for why: labels must survive staticOptions/
+   asyncOptions no longer containing a matching entry, e.g. after an async
+   search moves on). Two things make this a deliberate exception rather
+   than a bug: (1) every write is idempotent -- the same value key always
+   resolves to the same deterministic label from immutable inputs, so even
+   a discarded/replayed render (the actual concern this rule guards
+   against) can't corrupt it, writing the same data twice does nothing
+   different from writing it once; (2) deferring the population to an
+   effect (the rule's own suggested fix) would be a real regression, not a
+   fix -- the very first render needs already-selected values' labels
+   resolved immediately (used at line ~171 for this component's own
+   initial `query` state and in the chip list below), and effects don't
+   run until after that first render commits, so an effect-based version
+   would show raw values instead of labels on initial mount until some
+   unrelated re-render happened to occur. Confirmed correct as-is, not
+   deferred out of caution. */
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
@@ -201,9 +219,21 @@ export const Combobox: React.FC<ComboboxProps> = ({
   // this input) resync the displayed text in single mode — e.g.
   // Form.resetForm(). Multi mode has no single "current label" to sync the
   // input to (selections render as chips instead, not as the input's text).
-  useEffect(() => {
+  //
+  // Adjusted during render, not via a useEffect -- React's own documented
+  // pattern for "sync state when a prop changes." Deliberately keyed on the
+  // same three inputs the original effect's deps list named (multiple,
+  // open, rawValue) rather than depending on labelFor/selectedValues too --
+  // this must resync exactly when one of those three actually changes, not
+  // on every render where selectedValues happens to differ for an unrelated
+  // reason (e.g. the user's own selection, which shouldn't stomp on what
+  // they just typed/selected).
+  const comboboxSyncKey = `${multiple}|${open}|${rawValue}`;
+  const [prevComboboxSyncKey, setPrevComboboxSyncKey] = useState(comboboxSyncKey);
+  if (comboboxSyncKey !== prevComboboxSyncKey) {
+    setPrevComboboxSyncKey(comboboxSyncKey);
     if (!multiple && !open) setQuery(labelFor(selectedValues[0] ?? ''));
-  }, [multiple, open, rawValue]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   useEffect(() => {
     if (!onSearch) return;
@@ -247,9 +277,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
     return source.filter(o => o.label.toLowerCase().includes(q));
   }, [onSearch, asyncOptions, staticOptions, query]);
 
-  useEffect(() => {
+  // Adjusted during render, not via a useEffect -- same "sync state when a
+  // derived value changes" pattern as above, avoiding an extra
+  // render-then-effect-then-rerender cascade every time the filtered list
+  // shrinks/grows.
+  const [prevFilteredLength, setPrevFilteredLength] = useState(filteredOptions.length);
+  if (filteredOptions.length !== prevFilteredLength) {
+    setPrevFilteredLength(filteredOptions.length);
     setActiveIndex(prev => Math.max(0, Math.min(prev, filteredOptions.length - 1)));
-  }, [filteredOptions.length]);
+  }
 
   const emitChange = (next: string[]) => {
     const emitted: string | string[] = multiple ? next : next[0] ?? '';

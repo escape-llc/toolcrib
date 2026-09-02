@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Toolbar } from '../Toolbar/Toolbar';
@@ -282,7 +282,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // writes it synchronously before calling goToPage, so it's always current
   // by the time onPageChange reads it, regardless of React's batching.
   const pageSizeRef = useRef(pageSize);
-  pageSizeRef.current = pageSize;
+  // useLayoutEffect, not a bare assignment during render -- writing to a
+  // ref during render is unsafe under React's stricter rules (a discarded/
+  // aborted render attempt could write a value that never actually
+  // commits). useLayoutEffect runs synchronously right after commit,
+  // before the browser paints or any event handler can run, which is
+  // early enough that "kept in sync every render" (this comment's own
+  // original claim) still holds by the time any event handler reads it.
+  useLayoutEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
   const [scrollTop, setScrollTop] = useState(0);
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -359,14 +368,31 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // throttled frame when the page/sort changed would fire after this reset,
   // calling setScrollTop with the stale pre-change offset and silently
   // undoing the reset above — reintroducing the exact blank-table bug this
-  // effect exists to prevent.
+  // exists to prevent.
+  //
+  // The scrollTop *state* reset happens during render (React's documented
+  // "adjust state when a dependency changes" pattern), not inside the effect
+  // below -- avoids an extra render-then-effect-then-rerender cascade for
+  // the state half of this reset. The effect still owns the real-DOM/RAF
+  // side effects (cancelling a pending frame, resetting the actual scroll
+  // position), which can only happen after commit regardless. Since both
+  // run synchronously within the same tick (render+commit+effects all
+  // finish before the browser's next animation frame), a still-pending rAF
+  // from the old page is cancelled before it could ever fire with a stale
+  // offset -- same ordering guarantee the original single-effect version had.
+  const paginationSortKey = `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}`;
+  const [prevPaginationSortKey, setPrevPaginationSortKey] = useState(paginationSortKey);
+  if (paginationSortKey !== prevPaginationSortKey) {
+    setPrevPaginationSortKey(paginationSortKey);
+    setScrollTop(0);
+  }
+
   useEffect(() => {
     if (scrollRafRef.current !== null) {
       cancelAnimationFrame(scrollRafRef.current);
       scrollRafRef.current = null;
     }
     latestScrollTopRef.current = 0;
-    setScrollTop(0);
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [validCurrentPage, pageSize, sortKey, sortDirection]);
 

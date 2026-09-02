@@ -89,6 +89,12 @@ export const Carousel: React.FC<CarouselProps> = ({
       setScrollSnaps(emblaApi.scrollSnapList());
       onSelect();
     };
+    // Legitimate "read an external system's current state once, then
+    // subscribe for future changes" pattern (React's own docs explicitly
+    // sanction this shape) -- emblaApi is Embla's own instance, not
+    // something React renders, so its initial snap-list/selection can only
+    // be read once this effect actually runs, not during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScrollSnaps(emblaApi.scrollSnapList());
     onSelect();
     emblaApi.on('select', onSelect);

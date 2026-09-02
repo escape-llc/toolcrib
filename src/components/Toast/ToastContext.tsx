@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useCallback, useRef, useLayoutEffect } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
 import { type SubthemeName } from '../../theme/subtheme';
@@ -102,7 +102,17 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   // stable (still `[]` deps, matching every other callback here) while
   // giving it a synchronously-current snapshot to read from instead.
   const toastsRef = useRef<ToastItem[]>(toasts);
-  toastsRef.current = toasts;
+  // useLayoutEffect, not a bare assignment during render -- writing to a
+  // ref during render is unsafe under React's stricter rules (a discarded/
+  // aborted render attempt could write a value that never actually
+  // commits). useLayoutEffect runs synchronously right after commit,
+  // before the browser paints or any event handler can run, so
+  // dismissToast (called from an event handler or a later timer) still
+  // sees a synchronously-current snapshot, same as this comment's
+  // original "kept in sync" guarantee.
+  useLayoutEffect(() => {
+    toastsRef.current = toasts;
+  }, [toasts]);
 
   const addToast = useCallback((toastData: Omit<ToastItem, 'id'> & { id?: string }): string => {
     const id = toastData.id || `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;

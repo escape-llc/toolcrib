@@ -114,11 +114,26 @@ export function useActualPopoverSide(
 ): PopoverSide {
   const [actualSide, setActualSide] = useState<PopoverSide>(requestedSide);
 
+  // Adjusted during render, not via a useEffect, for the "closed" case --
+  // resets actualSide back to whatever's currently requested whenever
+  // isOpen/requestedSide change while closed, avoiding an extra
+  // render-then-effect-then-rerender cascade for what's really just a
+  // "sync state to a prop" concern. The *open* case below still
+  // genuinely needs an effect (subscribing to Radix's own data-side
+  // attribute via MutationObserver, a real external system) -- its own
+  // setActualSide calls all happen inside that subscription's callback
+  // (readSide, invoked from a MutationObserver/rAF callback), not
+  // synchronously in the effect body, which is the sanctioned "call
+  // setState in a callback when external state changes" shape.
+  const closedResyncKey = `${isOpen}|${requestedSide}`;
+  const [prevClosedResyncKey, setPrevClosedResyncKey] = useState(closedResyncKey);
+  if (closedResyncKey !== prevClosedResyncKey) {
+    setPrevClosedResyncKey(closedResyncKey);
+    if (!isOpen) setActualSide(requestedSide);
+  }
+
   useEffect(() => {
-    if (!isOpen) {
-      setActualSide(requestedSide);
-      return;
-    }
+    if (!isOpen) return;
 
     let observer: MutationObserver | undefined;
     let rafId: number | undefined;

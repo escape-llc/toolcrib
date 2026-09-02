@@ -1,3 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Toolbar.Left/.Center/.Right/.Separator
+   below are real components (the documented Component.Slot = (props) => {...}
+   pattern this repo's AGENTS.md manifest section describes for slot discovery),
+   each calling useContext internally. The lint rule's naming heuristic only
+   recognizes a bare PascalCase identifier as a valid component/hook name, not a
+   `Toolbar.Left =` assignment target, so it misreads these as plain non-component
+   functions calling hooks illegally. Confirmed false positive, not a real bug --
+   these render and test correctly today. Scoped to just this one rule for this
+   file; every other react-hooks rule still applies normally. */
 import React, { type ReactNode, createContext, useContext } from 'react';
 import { Toolbar as ToolbarPrimitive } from 'radix-ui';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';

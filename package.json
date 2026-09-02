@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "coverage:unit": "vitest run --coverage",
+    "lint": "node scripts/node_modules/eslint/bin/eslint.js --config scripts/eslint.config.js src demo",
     "check-manifest": "node scripts/generate-manifest.js",
     "generate-manifest": "node scripts/generate-manifest.js --write",
     "check-docs": "node scripts/generate-docs.js",

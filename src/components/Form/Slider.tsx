@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
@@ -90,9 +90,19 @@ export const Slider: React.FC<SliderProps> = ({
   // it changes from outside (e.g. a programmatic reset), just not on
   // every internal drag tick.
   const [localValue, setLocalValue] = useState(value !== undefined ? value : defaultValue);
-  useEffect(() => {
-    if (value !== undefined) setLocalValue(value);
-  }, [value]);
+  // Adjusted during render, not via a useEffect -- React's own documented
+  // pattern for "sync state when a prop changes" (react.dev/learn/you-
+  // might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+  // Calling setState here (not inside an effect) lets React apply it
+  // before committing this render, avoiding the extra
+  // render-then-effect-then-rerender cascade a useEffect version would
+  // cause -- same external behavior (localValue tracks value), one fewer
+  // render pass.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== undefined && value !== prevValue) {
+    setPrevValue(value);
+    setLocalValue(value);
+  }
 
   // Uncontrolled (no `value` prop) always renders from `localValue` --
   // controlled reads the external `value` directly UNLESS commitOnRelease

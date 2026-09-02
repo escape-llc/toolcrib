@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export interface UsePaginationOptions {
   /** Total number of items being paged across. */
@@ -57,11 +57,17 @@ export function usePagination({
   // Syncing the actual state here, once, whenever `totalPages` changes is
   // what makes the render-only clamp durable instead of cosmetic. Skipped
   // when controlled -- that state is the caller's to own, not something
-  // this effect can write back into.
-  useEffect(() => {
-    if (isPageControlled) return;
+  // this can write back into.
+  //
+  // Adjusted during render, not via a useEffect -- React's own documented
+  // pattern for "sync state when a derived value changes" (see Slider.tsx's
+  // identical shape/comment). Avoids the extra render-then-effect-then-
+  // rerender cascade a useEffect version would cause.
+  const [prevTotalPages, setPrevTotalPages] = useState(totalPages);
+  if (!isPageControlled && totalPages !== prevTotalPages) {
+    setPrevTotalPages(totalPages);
     setInternalPage(p => Math.min(p, totalPages));
-  }, [totalPages, isPageControlled]);
+  }
 
   const goToPage = (page: number) => {
     const clamped = Math.max(1, Math.min(page, totalPages));

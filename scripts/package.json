@@ -2,8 +2,12 @@
   "name": "toolcrib-scripts",
   "private": true,
   "type": "module",
-  "description": "Isolated devDependency scope for scripts/lib/extract.js, which depends on the classic TypeScript Compiler API (ts.createSourceFile, ts.forEachChild, ts.isXxx node guards, ...) to walk component source for manifest/docs/index generation. TypeScript 7's package export is reduced to { version, versionMajorMinor } — that API is absent, not renamed or deprecated (see root AGENTS.md's TypeScript section). Root package.json is free to run a newer typescript for its own build/type-check without affecting this pin, and vice versa: Node resolves 'typescript' starting from this directory's own node_modules before falling back to root's, so extract.js always gets the version declared here regardless of what root has installed.",
+  "description": "Isolated devDependency scope for scripts/lib/extract.js, which depends on the classic TypeScript Compiler API (ts.createSourceFile, ts.forEachChild, ts.isXxx node guards, ...) to walk component source for manifest/docs/index generation. TypeScript 7's package export is reduced to { version, versionMajorMinor } — that API is absent, not renamed or deprecated (see root AGENTS.md's TypeScript section). Root package.json is free to run a newer typescript for its own build/type-check without affecting this pin, and vice versa: Node resolves 'typescript' starting from this directory's own node_modules before falling back to root's, so extract.js always gets the version declared here regardless of what root has installed. A second consumer joined this isolation for the exact same reason: typescript-eslint hard-fails at import time against TS 7 (confirmed directly -- 'typescript-eslint does not support TS 7.0', the same class of API-removal break as extract.js's, not a coincidence), so ESLint's own config/dependencies live here too rather than at root.",
   "dependencies": {
-    "typescript": "6.0.3"
+    "eslint": "^10.9.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.69.0"
   }
 }

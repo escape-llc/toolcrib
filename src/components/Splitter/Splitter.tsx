@@ -1,4 +1,15 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, type ReactNode, type ReactElement, isValidElement, cloneElement } from 'react';
+/* eslint-disable react-hooks/rules-of-hooks -- Splitter.Panel below is a real
+   component (the documented Component.Slot = (props) => {...} pattern this
+   repo's AGENTS.md manifest section describes for slot discovery), calling
+   useCornerSquaring (a custom hook) internally. The lint rule's naming
+   heuristic only recognizes a bare PascalCase identifier as a valid
+   component/hook name, not a `Splitter.Panel =` assignment target, so it
+   misreads this as a plain non-component function calling hooks illegally.
+   Confirmed false positive, not a real bug -- this renders and tests
+   correctly today. Scoped to just this one rule for this file; every other
+   react-hooks rule (including exhaustive-deps, which has a real separate
+   finding elsewhere in this file) still applies normally. */
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, type ReactNode, type ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -169,14 +180,23 @@ export const Splitter: React.FC<SplitterProps> & {
   // own `handleOpenChange(open, fromBus)` guard: a change that arrived
   // FROM the bus doesn't re-emit, so two Splitters (or a Splitter and an
   // external listener) commanding each other can't loop.
-  const commitSplit = (value: number, fromBus = false) => {
-    const clamped = Math.max(minSize, Math.min(100 - minSize, value));
-    latestSplitRef.current = clamped;
-    setSplit(clamped);
-    if (!fromBus) {
-      aiBus.emit('splitter:split_changed', { id: domainId, split: clamped });
-    }
-  };
+  // useCallback, not a plain function -- the pointer-drag effect below
+  // needs a stable reference to add as a real dependency (otherwise it
+  // would either capture a stale closure over minSize/domainId for the
+  // lifetime of one drag, or -- if added to deps without memoizing --
+  // re-run on every render, tearing down and reattaching window-level
+  // pointer listeners mid-drag).
+  const commitSplit = useCallback(
+    (value: number, fromBus = false) => {
+      const clamped = Math.max(minSize, Math.min(100 - minSize, value));
+      latestSplitRef.current = clamped;
+      setSplit(clamped);
+      if (!fromBus) {
+        aiBus.emit('splitter:split_changed', { id: domainId, split: clamped });
+      }
+    },
+    [minSize, domainId]
+  );
 
   useAIEvent('splitter:split_changed', e => {
     if (e.id === domainId) commitSplit(e.split, true);
@@ -278,7 +298,7 @@ export const Splitter: React.FC<SplitterProps> & {
       ownerWindow.removeEventListener('pointermove', handlePointerMove);
       ownerWindow.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [isDragging, isVertical, minSize]);
+  }, [isDragging, isVertical, minSize, commitSplit]);
 
   const onHandleDown = (e: React.SyntheticEvent) => {
     e.preventDefault();

@@ -1,3 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks -- AppShell.Sidebar below is a real
+   component (the documented Component.Slot = (props) => {...} pattern this
+   repo's AGENTS.md manifest section describes for slot discovery), calling
+   useContext/useState/useMemo internally. The lint rule's naming heuristic
+   only recognizes a bare PascalCase identifier as a valid component name, not
+   an `AppShell.Sidebar =` assignment target, so it misreads this as a plain
+   non-component function calling hooks illegally. Confirmed false positive,
+   not a real bug -- this renders and tests correctly today. Scoped to just
+   this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';

@@ -90,7 +90,16 @@ export const Tree: React.FC<TreeProps> = ({
 
   const [internalExpanded, setInternalExpanded] = useState<Set<string>>(() => new Set(defaultExpandedIds ?? []));
   const isExpandedControlled = controlledExpandedIds !== undefined;
-  const expandedSet = isExpandedControlled ? new Set(controlledExpandedIds) : internalExpanded;
+  // useMemo, not a bare conditional -- the controlled branch built a brand
+  // new Set every render (even when controlledExpandedIds' actual contents
+  // hadn't changed), which silently defeated flatVisible's own useMemo
+  // below (expandedSet never held a stable reference for it to compare
+  // against). Memoizing here fixes both the exhaustive-deps concern and a
+  // real, if minor, performance regression in controlled mode.
+  const expandedSet = useMemo(
+    () => (isExpandedControlled ? new Set(controlledExpandedIds) : internalExpanded),
+    [isExpandedControlled, controlledExpandedIds, internalExpanded]
+  );
 
   const [internalSelected, setInternalSelected] = useState<string | undefined>(defaultSelectedId);
   const isSelectedControlled = controlledSelectedId !== undefined;

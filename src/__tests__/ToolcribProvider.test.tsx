@@ -64,6 +64,10 @@ describe('ToolcribProvider', () => {
   it('passes the strings prop straight through to the underlying LocaleProvider', () => {
     let seen: string | undefined;
     const StringsConsumer = () => {
+      // Test-only capture pattern (render, then assert on the captured
+      // value) -- safe here since RTL's render() is single-pass, not
+      // concurrent-replayed.
+      // eslint-disable-next-line react-hooks/globals
       seen = useLocaleStrings().tree.treeLabel;
       return null;
     };

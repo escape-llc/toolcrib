@@ -1,3 +1,13 @@
+/* eslint-disable react-hooks/refs -- previewUrlsRef is read during render
+   (line ~308, looking up an already-created object URL to display) but is
+   only ever WRITTEN inside real event handlers (addFiles/removeItem
+   above) or an unmount-cleanup effect -- never during render itself. A
+   render-time read of a ref that's never mutated during render doesn't
+   have the actual "torn value from a discarded/concurrent render" failure
+   mode this rule guards against; it's equivalent to reading any other
+   stable, externally-populated side table. Kept as a ref rather than
+   folded into `items` state deliberately -- these are Blob object URLs,
+   not serializable data that should trigger their own re-render cycle. */
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';

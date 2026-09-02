@@ -39,7 +39,6 @@ export function useScrollOverflow(
     const { scrollLeft, scrollWidth, clientWidth } = el;
     setCanScrollLeft(scrollLeft > 2);
     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef]);
 
   useEffect(() => {

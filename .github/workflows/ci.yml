@@ -52,6 +52,14 @@ jobs:
       - name: Run toolkit test suite
         run: npm test
 
+      # eslint/typescript-eslint live in scripts/'s isolated node_modules
+      # (already installed by "Install scripts/ dependencies" above), not
+      # root's — see AGENTS.md's Linting section for why (typescript-eslint
+      # hard-fails against root's TS 7.x, the same class of break as
+      # extract.js's). Scoped to just eslint-plugin-react-hooks's rules.
+      - name: Lint (React hooks correctness)
+        run: npm run lint
+
       - name: Install CLI dependencies
         run: npm ci
         working-directory: cli
