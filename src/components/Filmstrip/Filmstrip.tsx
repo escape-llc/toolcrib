@@ -175,7 +175,6 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
         ref={scrollContainerRef}
         role="listbox"
         aria-label="Filmstrip"
-        className="ai-focus-ring"
         style={{
           display: 'flex',
           alignItems: 'center',

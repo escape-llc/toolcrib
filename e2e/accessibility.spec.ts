@@ -130,6 +130,127 @@ test('every tab has zero automatable WCAG 2.1 AA violations in light mode', asyn
   expect(failures, `WCAG AA violations (light mode):\n${failures.join('\n')}`).toEqual([]);
 });
 
+async function runAxe(page: Page, extraDisabledRules: string[] = []) {
+  return new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .disableRules([...COLOR_CONTRAST_DISABLED, ...extraDisabledRules])
+    .analyze();
+}
+
+// A second deliberate, hand-verified carve-out alongside COLOR_CONTRAST_DISABLED
+// above -- same discipline: confirmed by direct investigation, not assumed.
+// Radix's Menu-family primitives (DropdownMenu, ContextMenu -- both built on
+// @radix-ui/react-menu) call `hideOthers()` to set aria-hidden="true" on the
+// rest of the page while open, but this demo's entire app lives inside one
+// #root container, so *every* interactive element on the page (sidebar,
+// tab content, everything) ends up "aria-hidden with a focusable descendant"
+// by axe's static reading -- axe's aria-hidden-focus rule has no way to know
+// whether those elements are actually Tab-reachable at runtime. Confirmed by
+// direct Tab-trace testing (not assumed): with a DropdownMenu/ContextMenu
+// open, pressing Tab six times in a row never moves focus outside the menu's
+// own content -- Radix's FocusScope intercepts Tab at the keydown level and
+// keeps it cycling within the menu, regardless of what's still nominally
+// tabbable in the DOM underneath. The WCAG requirement (nothing hidden is
+// keyboard-reachable) is genuinely met; axe just can't observe the runtime
+// focus trap that makes it so. Re-verify this Tab-trace by hand before
+// trusting the carve-out again if Radix's menu internals ever change.
+const ARIA_HIDDEN_FOCUS_DISABLED = ['aria-hidden-focus'];
+
+test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1 AA violations', async ({ page }) => {
+  // scanEveryTab() above only ever sees each tab's *closed* state -- every
+  // Popup/Drawer/Modal/AlertDialog/Collapsible/ContextMenu/CommandPalette/
+  // HoverCard on these two tabs renders its real content into the DOM only
+  // once opened, so none of it was ever actually scanned by axe before this
+  // test existed (see aria-compliance-review's own §1 finding). One overlay
+  // open at a time, scanned, then closed (Escape closes basically everything
+  // in this codebase -- see interactive-sweep.spec.ts's identical note) --
+  // never two overlapping, to keep each scan attributable to one component.
+  test.setTimeout(60_000);
+  await page.goto('/');
+  const failures: string[] = [];
+
+  const scanNamed = async (label: string, extraDisabledRules: string[] = []) => {
+    const results = await runAxe(page, extraDisabledRules);
+    for (const violation of results.violations) {
+      const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
+      failures.push(`[${label}] ${violation.id} (${violation.impact}): ${violation.help} -- ${targets}`);
+    }
+  };
+
+  await gotoTab(page, 'Overlays & Actions');
+
+  await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
+  await scanNamed('Popup (Overlays tab)');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Open Drawer' }).click();
+  await scanNamed('Drawer');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
+  await scanNamed('Modal');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Open Command Palette' }).click();
+  await scanNamed('CommandPalette');
+  await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Component Showcase');
+
+  await page.getByRole('button', { name: 'Options', exact: true }).click();
+  await scanNamed('Popup (Component Showcase tab)');
+  await page.keyboard.press('Escape');
+
+  // Two "Delete Record" buttons exist on this tab (the Button Subsystem
+  // showcase's own danger-variant example, and this AlertDialog's real
+  // trigger) -- scope to the AlertDialog's own Card, same disambiguation
+  // overlay-animations.spec.ts already uses.
+  await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
+  await scanNamed('AlertDialog');
+  await page.keyboard.press('Escape');
+
+  await page.getByText('Show advanced options').click();
+  await scanNamed('Collapsible (expanded)');
+  await page.getByText('Show advanced options').click(); // collapse again, leave state as found
+
+  // Same Radix Menu-family primitive as ContextMenu below (@radix-ui/react-menu)
+  // -- shares the identical aria-hidden-focus carve-out for the identical reason.
+  await page.getByRole('button', { name: 'User Actions Menu' }).click();
+  await scanNamed('DropdownMenu', ARIA_HIDDEN_FOCUS_DISABLED);
+  await page.keyboard.press('Escape');
+
+  await page.getByText('Right-click this area').click({ button: 'right' });
+  await scanNamed('ContextMenu', ARIA_HIDDEN_FOCUS_DISABLED);
+  await page.keyboard.press('Escape');
+
+  // HoverCard opens on focus as well as hover (Radix default) -- focus is
+  // the keyboard-reachable path and what a screen-reader user actually
+  // triggers, so exercise that path rather than a mouse hover.
+  await page.getByRole('link', { name: '@janedoe' }).focus();
+  await page.waitForTimeout(300); // openDelay={150} on this instance, plus animation
+  await scanNamed('HoverCard');
+
+  // aria-compliance-review's own §4 finding, resolved from "plausible,
+  // unconfirmed" to a confirmed *deliberate Radix design choice*, not a
+  // toolcrib bug: @radix-ui/react-hover-card's HoverCardContentImpl runs a
+  // useEffect (dist/index.js, no dep array, every render) that walks every
+  // tabbable descendant of Content and force-sets tabindex="-1" on each --
+  // confirmed directly against node_modules source, not inferred. Radix's
+  // own accessibility docs for HoverCard state this is intentional (content
+  // is supplemental preview material, excluded from the Tab order by
+  // design) and recommend Popover -- toolcrib's <Popup> -- instead when
+  // interactive content genuinely needs to be keyboard-reachable. This
+  // assertion locks in that *known* behavior so a future Radix upgrade that
+  // silently changes it gets caught, rather than asserting the opposite
+  // (unreachable) as if it were the bug.
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'View profile' })).not.toBeFocused();
+
+  await page.keyboard.press('Escape');
+
+  expect(failures, `WCAG AA violations (overlay content):\n${failures.join('\n')}`).toEqual([]);
+});
+
 test('every tab has zero automatable WCAG 2.1 AA violations in dark mode', async ({ page, browserName }) => {
   // See the light-mode test's identical skip above for why.
   test.skip(browserName === 'webkit', 'axe-core repeatedly crashes WebKit across a 12-tab scan -- see comment');

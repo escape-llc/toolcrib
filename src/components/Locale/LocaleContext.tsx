@@ -34,6 +34,8 @@ export interface ToolcribLocaleStrings {
     slidesTablist: string;
     /** `slideNumber` is 1-based. */
     goToSlide: (slideNumber: number) => string;
+    /** Announced via a visually-hidden `aria-live` region on every slide change (drag, arrow, dot click, or autoplay) — `slideNumber` is 1-based. */
+    currentSlide: (slideNumber: number, total: number) => string;
   };
   viewer: {
     closeViewer: string;
@@ -87,6 +89,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     nextSlide: 'Next slide',
     slidesTablist: 'Slides',
     goToSlide: (slideNumber) => `Go to slide ${slideNumber}`,
+    currentSlide: (slideNumber, total) => `Slide ${slideNumber} of ${total}`,
   },
   viewer: {
     closeViewer: 'Close viewer',

@@ -12,8 +12,19 @@ import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice'
  *
  * Unlike `<Tooltip>`, `content` may hold rich, interactive markup (a link,
  * an avatar + bio, a button) — the card doesn't disappear on pointer-down
- * the way Tooltip deliberately does, so a click inside it reaches its
- * target normally.
+ * the way Tooltip deliberately does, so a *mouse* click inside it reaches
+ * its target normally.
+ *
+ * **Not reachable via keyboard Tab, by Radix's own design, not a toolcrib
+ * limitation.** `@radix-ui/react-hover-card`'s `Content` forces
+ * `tabindex="-1"` onto every focusable descendant on every render — Radix's
+ * own accessibility guidance states this is intentional (a hover card is
+ * supplemental preview content, not a fully keyboard-operable surface) and
+ * recommends `<Popup>` (Popover-based) instead whenever the content's
+ * interactive elements genuinely need to be keyboard-reachable. Confirmed
+ * via `e2e/accessibility.spec.ts`'s own regression test locking in this
+ * behavior. Don't rely on a button/link inside `content` being operable by
+ * anyone who can't use a mouse.
  */
 export interface HoverCardProps {
   /** Unique identifier for event bus targeting. */

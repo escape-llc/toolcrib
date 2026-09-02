@@ -646,6 +646,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       }
                     }}
                     tabIndex={isSortable ? 0 : undefined}
+                    className={isSortable ? 'ai-focus-ring' : undefined}
                     aria-sort={
                       isSortable
                         ? sortKey === col.key
@@ -797,7 +798,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>
+        <div role="status" aria-live="polite" aria-atomic="true" style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>
           {strings.showingEntries(
             totalItems > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0,
             Math.min(validCurrentPage * pageSize, sortedData.length),

@@ -2,6 +2,7 @@ import React, { type ReactNode, useCallback, useEffect, useRef, useState } from 
 import useEmblaCarousel from 'embla-carousel-react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
+import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { CarouselThemeSlice, type CarouselSliceState } from './CarouselSlice';
@@ -63,6 +64,7 @@ export const Carousel: React.FC<CarouselProps> = ({
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
 
   const previousIndexRef = useRef<number | undefined>(undefined);
+  const dotRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -103,8 +105,48 @@ export const Carousel: React.FC<CarouselProps> = ({
     return () => clearInterval(interval);
   }, [emblaApi, autoplay]);
 
+  // Hand-rolled roving tabindex + arrow-key nav for the dot tablist: unlike
+  // TabStrip/Stepper (real Radix TabsPrimitive), the dots drive Embla's own
+  // scroll-snap position rather than a Radix Tabs `value`/Content pairing,
+  // so there's no primitive to inherit this from — the WAI-ARIA APG Tablist
+  // pattern (one Tab stop, Left/Right/Home/End moves + activates) has to be
+  // implemented directly, same as Tree's hand-rolled keydown handling.
+  const onDotKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+      const lastIndex = scrollSnaps.length - 1;
+      let nextIndex: number | undefined;
+      switch (event.key) {
+        case 'ArrowRight':
+          nextIndex = index < lastIndex ? index + 1 : loop ? 0 : index;
+          break;
+        case 'ArrowLeft':
+          nextIndex = index > 0 ? index - 1 : loop ? lastIndex : index;
+          break;
+        case 'Home':
+          nextIndex = 0;
+          break;
+        case 'End':
+          nextIndex = lastIndex;
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+      if (nextIndex === index) return;
+      emblaApi?.scrollTo(nextIndex);
+      dotRefs.current[nextIndex]?.focus();
+    },
+    [emblaApi, loop, scrollSnaps.length]
+  );
+
   return (
     <div style={{ position: 'relative', width: '100%', ...vars }}>
+      {/* Autoplay/drag/dot-click all change the visible slide with no
+          corresponding focus move -- this is the only announcement a
+          screen-reader user gets that anything changed at all. */}
+      <div aria-live="polite" aria-atomic="true">
+        <VisuallyHidden>{strings.currentSlide(selectedIndex + 1, slides.length)}</VisuallyHidden>
+      </div>
       <div ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
         <div style={{ display: 'flex', gap: 'var(--ai-carousel-slide-gap, 1rem)' }}>
           {slides.map(slide => (
@@ -189,12 +231,17 @@ export const Carousel: React.FC<CarouselProps> = ({
           {scrollSnaps.map((_, index) => (
             <button
               key={index}
+              ref={el => {
+                dotRefs.current[index] = el;
+              }}
               type="button"
               role="tab"
+              tabIndex={index === selectedIndex ? 0 : -1}
               aria-selected={index === selectedIndex}
               aria-label={strings.goToSlide(index + 1)}
               onClick={() => emblaApi?.scrollTo(index)}
-              className="ai-btn"
+              onKeyDown={event => onDotKeyDown(event, index)}
+              className="ai-btn ai-focus-ring"
               style={{
                 width: 'var(--ai-carousel-dot-size, 0.5rem)',
                 height: 'var(--ai-carousel-dot-size, 0.5rem)',

@@ -2795,7 +2795,7 @@ export const App: React.FC = () => {
                                 <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
                               </HoverCard>
                               <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down.
+                                Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
                               </p>
                             </div>
                           </VStack>
