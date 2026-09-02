@@ -51,6 +51,14 @@ describe('Strongly-Typed EventBus', () => {
     expect(hidden).toHaveBeenCalledWith({ id: 'demo-popup' });
   });
 
+  it('provides a requireAuth helper emitting auth:unauthorized', () => {
+    const callback = vi.fn();
+    aiBus.on('auth:unauthorized', callback);
+
+    aiBus.requireAuth('token-expired');
+    expect(callback).toHaveBeenCalledWith({ reason: 'token-expired' });
+  });
+
   describe('sticky events', () => {
     it('replays the last value for a given id to a new subscriber', () => {
       aiBus.emit('tab:changed', { id: 'sticky-test-group', activeId: 'tab-1' });

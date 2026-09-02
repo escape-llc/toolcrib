@@ -184,6 +184,20 @@ function assembleRouterExampleFacts() {
   };
 }
 
+function assembleWildcardExampleFacts() {
+  const elementResized = generateEventChannels().find((c) => c.name === 'element:resized');
+  return {
+    elementResizedPayload: elementResized.payload,
+  };
+}
+
+function assembleAuthExampleFacts() {
+  const authUnauthorized = generateEventChannels().find((c) => c.name === 'auth:unauthorized');
+  return {
+    authUnauthorizedPayload: authUnauthorized.payload,
+  };
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -195,6 +209,8 @@ const EXAMPLE_TEMPLATES = [
   { file: 'z-index-scale.md.hbs', data: assembleZIndexExampleFacts },
   { file: 'splitter-bus-command.md.hbs', data: assembleSplitterExampleFacts },
   { file: 'router-integration.md.hbs', data: assembleRouterExampleFacts },
+  { file: 'wildcard-event-monitoring.md.hbs', data: assembleWildcardExampleFacts },
+  { file: 'auth-unauthorized.md.hbs', data: assembleAuthExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {

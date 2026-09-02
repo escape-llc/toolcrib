@@ -686,6 +686,10 @@
         "payload": "{ to: string }"
       },
       {
+        "name": "auth:unauthorized",
+        "payload": "{ reason?: string }"
+      },
+      {
         "name": "layout:domain:created",
         "payload": "{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
       },
@@ -741,6 +745,10 @@
       {
         "method": "aiBus.navigate(to)",
         "emits": "route:navigate"
+      },
+      {
+        "method": "aiBus.requireAuth(reason?)",
+        "emits": "auth:unauthorized"
       },
       {
         "method": "aiBus.showToast(message, type?, priority?)",

@@ -56,6 +56,8 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 
 For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a `CommandPalette` item, a toast action, a modal confirm handler — mount `<RouterAdapterProvider adapter={...}>` once inside your actual router's tree (supplying `navigate` from whatever router library you use) and call `useRouterBridge()` once beneath it. See `ai-docs/examples/router-integration.md` for the full pattern, including controlled-overlay and `TabStrip` URL-sync approaches that don't need the event bus at all.
 
+`aiBus.requireAuth(reason?)` announces that the current session/request is unauthorized (an API 401, a token expiry) from wherever that check actually happens, without prop-drilling a callback down to it — a persistently-mounted listener elsewhere in the tree decides what "unauthorized" means for your app. See `ai-docs/examples/auth-unauthorized.md`. `aiBus.on('*', ...)` (the wildcard subscriber every event already passes through) is the same shape of mechanism generalized to forwarding toolcrib's whole event vocabulary to an analytics/telemetry pipeline — see `ai-docs/examples/wildcard-event-monitoring.md`.
+
 ---
 
 ## 2. Core Principles
@@ -397,7 +399,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[66]{name,payload}:
+[67]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -461,6 +463,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "datatable:row_clicked","{ id?: string; index: number }"
   "log:cleared","{ timestamp: string }"
   "route:navigate","{ to: string }"
+  "auth:unauthorized","{ reason?: string }"
   "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
   "splitter:split_changed","{ id: string; split: number }"
   "layout:corners:squared","{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"

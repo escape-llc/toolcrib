@@ -56,6 +56,8 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 
 For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a `CommandPalette` item, a toast action, a modal confirm handler — mount `<RouterAdapterProvider adapter={...}>` once inside your actual router's tree (supplying `navigate` from whatever router library you use) and call `useRouterBridge()` once beneath it. See `ai-docs/examples/router-integration.md` for the full pattern, including controlled-overlay and `TabStrip` URL-sync approaches that don't need the event bus at all.
 
+`aiBus.requireAuth(reason?)` announces that the current session/request is unauthorized (an API 401, a token expiry) from wherever that check actually happens, without prop-drilling a callback down to it — a persistently-mounted listener elsewhere in the tree decides what "unauthorized" means for your app. See `ai-docs/examples/auth-unauthorized.md`. `aiBus.on('*', ...)` (the wildcard subscriber every event already passes through) is the same shape of mechanism generalized to forwarding toolcrib's whole event vocabulary to an analytics/telemetry pipeline — see `ai-docs/examples/wildcard-event-monitoring.md`.
+
 ---
 
 ## 2. Core Principles

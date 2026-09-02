@@ -83,6 +83,10 @@ export interface AIEventMap {
   // Routing
   /** One-shot imperative navigation command — not state to replay (see STICKY_EVENTS comment below). */
   'route:navigate': { to: string };
+
+  // Auth
+  /** Announces that the current session/request is unauthorized — an API 401, a token expiry, a failed permission check. Not sticky: a persistently-mounted subscriber (matching the toast-container pattern) is expected to always be listening, the same way modal:shown/toast:shown aren't sticky either. */
+  'auth:unauthorized': { reason?: string };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
   'splitter:split_changed': { id: string; split: number };
   'layout:corners:squared': {
@@ -262,6 +266,10 @@ class AIEventBus {
 
   navigate(to: string) {
     this.emit('route:navigate', { to });
+  }
+
+  requireAuth(reason?: string) {
+    this.emit('auth:unauthorized', { reason });
   }
 
   /** @manifestReturns string (toast id) */
