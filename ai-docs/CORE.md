@@ -52,7 +52,7 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 </ThemeProvider>
 ```
 
-`ThemeProvider` injects the HSV-derived CSS variables at `:root` on mount — nothing themed will render correctly without it. `ToastProvider` + `ToastContainer` are independent of `ThemeProvider` but must both be present together (the provider holds state; the container renders it).
+`ThemeProvider` injects the HSV-derived CSS variables at `:root` on mount — nothing themed will render correctly without it. `ToastProvider` + `ToastContainer` are independent of `ThemeProvider` but must both be present together (the provider holds state; the container renders it). That injection is client-only, so a server-rendered page (Next.js, Remix) flashes unthemed content until hydration — `computeServerThemeCSS()` computes the same CSS as plain text for your own SSR framework to render synchronously instead. See `ai-docs/examples/ssr-theme-injection.md` for the full pattern, including which element ids matter for hydration to recognize it without duplicating.
 
 For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a `CommandPalette` item, a toast action, a modal confirm handler — mount `<RouterAdapterProvider adapter={...}>` once inside your actual router's tree (supplying `navigate` from whatever router library you use) and call `useRouterBridge()` once beneath it. See `ai-docs/examples/router-integration.md` for the full pattern, including controlled-overlay and `TabStrip` URL-sync approaches that don't need the event bus at all.
 

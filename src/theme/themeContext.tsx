@@ -66,7 +66,7 @@ import {
   getResponsiveVariableKeys,
   generateResponsiveCSS,
 } from './responsive';
-import { injectSharedAnimationKeyframes } from './animationKeyframes';
+import { injectSharedAnimationKeyframes, TOOLCRIB_SHARED_KEYFRAMES_CSS } from './animationKeyframes';
 import { TargetDocumentContext } from './targetDocumentContext';
 import { NonceContext } from './nonceContext';
 
@@ -157,6 +157,57 @@ export interface ThemeContextType {
   toggleDarkMode: () => void;
   setDarkMode: (isDark: boolean) => void;
 }
+
+/**
+ * `computeServerThemeCSS`'s return shape — four separate strings rather
+ * than one blob, specifically so each can be rendered under the id (see
+ * `TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID`/`TOOLCRIB_RESPONSIVE_STYLE_ID` below)
+ * that makes `injectGlobalStyle`/`upsertGlobalStyle`'s client-side dedup
+ * recognize it as already-present on hydration, instead of duplicating it.
+ * @barrelExport
+ */
+export interface ServerThemeCSS {
+  /**
+   * A `:root { ... }` rule containing every computed CSS custom property
+   * — the SSR equivalent of the client's inline `root.style.setProperty`
+   * writes (the injection effect in `ThemeProvider` itself). No fixed id
+   * needed: an inline style write is idempotent (setting the same property
+   * to the same value twice has no effect), so this isn't subject to any
+   * id-based dedup at all — render it under any `<style>` tag.
+   */
+  rootVariablesCSS: string;
+  /** Render as `<style id={TOOLCRIB_RESPONSIVE_STYLE_ID}>`, or omit entirely when `null` (matches the client's `removeGlobalStyle` branch, which runs when nothing is under responsive control). */
+  responsiveCSS: string | null;
+  /** Render as `<style id={TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID}>`. */
+  typographyCSS: string;
+  /** Render as `<style id={TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}>` (that id is exported from `./animationKeyframes`, not this file). */
+  keyframesCSS: string;
+}
+
+/**
+ * Element ids `ThemeProvider` gives the two `<style>` tags it owns —
+ * exported so `computeServerThemeCSS`'s SSR output can be rendered under
+ * the exact same ids: `injectGlobalStyle`/`upsertGlobalStyle` dedup by
+ * `getElementById(id)`, so a server-rendered `<style>` tag using these ids
+ * verbatim is recognized as already-present on hydration (no duplicate
+ * tag, and — for the responsive one — later live updates via
+ * `upsertGlobalStyle` correctly update that same tag instead of a stale
+ * copy). A consumer-chosen id would silently defeat this.
+ * @barrelExport
+ */
+export const TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID = 'toolcrib-typography-base';
+/** @barrelExport */
+export const TOOLCRIB_RESPONSIVE_STYLE_ID = 'toolcrib-responsive-theme';
+
+/**
+ * The ambient typography/color base rule applied to `:root` — a static
+ * string (references only `var(--ai-*, fallback)`, no per-instance
+ * computation) exported so `computeServerThemeCSS` can return the exact
+ * same text for SSR rendering rather than a second, hand-copied literal
+ * that could drift.
+ * @barrelExport
+ */
+export const TOOLCRIB_TYPOGRAPHY_BASE_CSS = `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`;
 
 const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
   // Matches presetThemes.ts's 'tailwind' preset — Tailwind CSS's blue-500
@@ -351,10 +402,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   useEffect(() => {
     const doc = targetDocument ?? document;
     if (Object.keys(responsiveInput).length === 0) {
-      removeGlobalStyle('toolcrib-responsive-theme', doc);
+      removeGlobalStyle(TOOLCRIB_RESPONSIVE_STYLE_ID, doc);
       return;
     }
-    upsertGlobalStyle('toolcrib-responsive-theme', generateResponsiveCSS(responsiveInput), doc, nonce);
+    upsertGlobalStyle(TOOLCRIB_RESPONSIVE_STYLE_ID, generateResponsiveCSS(responsiveInput), doc, nonce);
   }, [responsiveInput, targetDocument, nonce]);
 
   // `--ai-font-family`/`--ai-master-font-size`/`--ai-text-primary` above are
@@ -389,12 +440,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // had zero visible effect anywhere else despite reading as a global
   // control. Ambient injection here is what actually makes it one.
   useEffect(() => {
-    injectGlobalStyle(
-      'toolcrib-typography-base',
-      `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`,
-      targetDocument,
-      nonce
-    );
+    injectGlobalStyle(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID, TOOLCRIB_TYPOGRAPHY_BASE_CSS, targetDocument, nonce);
   }, [targetDocument, nonce]);
 
   // The sole injection point for the shared entrance/exit @keyframes
@@ -472,3 +518,82 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
+/**
+ * The SSR-safe counterpart to `<ThemeProvider>`'s own client-only CSS
+ * injection — a pure, DOM-free function computing the exact same CSS
+ * `ThemeProvider` would eventually apply, as plain text, for a consumer's
+ * own SSR framework (Next.js, Remix, ...) to render synchronously in the
+ * initial server-rendered HTML. Without this, a server-rendered page ships
+ * default/unthemed markup that visibly flashes to the real theme once
+ * `ThemeProvider`'s client-side effects run after hydration.
+ *
+ * Pass the exact same `initialParameters`/`initialSliceStates` you give
+ * `<ThemeProvider>` — mirrors that component's own parameter-merging and
+ * variable-computation logic line for line (reusing the same private
+ * `defaultParameters`/`PARAMETER_DRIVEN_SLICE_IDS` constants and the same
+ * pure helpers `ThemeProvider` itself calls), so the two can't drift out
+ * of sync with each other. See `ai-docs/examples/ssr-theme-injection.md`
+ * for the full rendering pattern, including why matching ids matter for
+ * hydration and why `rootVariablesCSS` doesn't need one.
+ * @barrelExport
+ */
+export function computeServerThemeCSS(
+  initialParameters?: Partial<ThemeParameters & { shadowMode?: ShadowMode }>,
+  initialSliceStates?: Partial<ToolcribSliceStateMap>
+): ServerThemeCSS {
+  const parameters = { ...defaultParameters, ...initialParameters };
+
+  const sliceStates = {} as Record<string, unknown>;
+  for (const slice of globalThemeSliceRegistry.getAll()) {
+    if (PARAMETER_DRIVEN_SLICE_IDS.has(slice.id)) continue;
+    const override = (initialSliceStates as Record<string, unknown> | undefined)?.[slice.id];
+    sliceStates[slice.id] = { ...slice.defaultState, ...(override as object | undefined) };
+  }
+
+  const palette = generateHarmonyPalette(parameters);
+  const resolvedPaddingMode = resolveBaseMode(parameters.paddingMode);
+  // marginMode is optional on ThemeParameters (unlike paddingMode/cornerRadiusMode) —
+  // must replicate the same `|| 'normal'` fallback the provider's own effect uses.
+  const resolvedMarginMode = resolveBaseMode(parameters.marginMode || 'normal');
+  const resolvedCornerRadiusMode = resolveBaseMode(parameters.cornerRadiusMode);
+
+  const responsiveInput: ResponsiveThemeInput = {};
+  if (isResponsiveConfig(parameters.paddingMode)) responsiveInput.padding = parameters.paddingMode;
+  if (isResponsiveConfig(parameters.marginMode)) responsiveInput.margin = parameters.marginMode;
+  if (isResponsiveConfig(parameters.cornerRadiusMode)) responsiveInput.radius = parameters.cornerRadiusMode;
+  const responsiveVariableKeys = getResponsiveVariableKeys(responsiveInput);
+
+  const baseVars = paletteToCSSVariables(
+    palette,
+    resolvedPaddingMode,
+    resolvedCornerRadiusMode,
+    resolvedMarginMode,
+    parameters.isDarkMode
+  );
+  const sliceVars = globalThemeSliceRegistry.computeAllVariables({
+    padding: resolvedPaddingMode,
+    margin: resolvedMarginMode,
+    radius: resolvedCornerRadiusMode,
+    shadow: parameters.shadowMode,
+    ...(sliceStates as ToolcribSliceStates),
+  });
+  const cssVariables = { ...baseVars, ...sliceVars };
+
+  // Same exclusion as the provider's own injection effect: a variable
+  // family under responsive control lives in the @media-guarded stylesheet
+  // instead — an inline value always wins the cascade regardless of
+  // specificity, so including it here too would permanently defeat its
+  // own @media rules the moment the client's effects run.
+  const rootDeclarations = Object.entries(cssVariables)
+    .filter(([key]) => !responsiveVariableKeys.has(key))
+    .map(([key, value]) => `  ${key}: ${value};`)
+    .join('\n');
+
+  return {
+    rootVariablesCSS: `:root {\n${rootDeclarations}\n}`,
+    responsiveCSS: Object.keys(responsiveInput).length === 0 ? null : generateResponsiveCSS(responsiveInput),
+    typographyCSS: TOOLCRIB_TYPOGRAPHY_BASE_CSS,
+    keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
+  };
+}

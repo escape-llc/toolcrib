@@ -1,6 +1,15 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { render, renderHook, act } from '@testing-library/react';
-import { ThemeProvider, useTheme } from '../theme/themeContext';
+import {
+  ThemeProvider,
+  useTheme,
+  computeServerThemeCSS,
+  TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
+  TOOLCRIB_RESPONSIVE_STYLE_ID,
+} from '../theme/themeContext';
+import { TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID } from '../theme/animationKeyframes';
+import { generateHarmonyPalette } from '../theme/harmonies';
+import { hsvToCSS } from '../theme/hsv';
 
 describe('ThemeProvider targetDocument', () => {
   afterEach(() => {
@@ -88,5 +97,158 @@ describe('ThemeProvider setSliceState', () => {
     expect(result.current.sliceStates.drawer.position).toBe('right');
     // A different slice is completely unaffected.
     expect(result.current.sliceStates.accordion.variant).toBe('cards');
+  });
+});
+
+// SSR-safe theme injection: computeServerThemeCSS mirrors ThemeProvider's
+// own computation (same private defaults, same pure helpers) so a
+// consumer's SSR framework can render the same CSS synchronously, before
+// hydration — closing the flash-of-unstyled-content gap the client-only
+// injection effects leave otherwise.
+describe('computeServerThemeCSS', () => {
+  it('produces the same --ai-master-font-size a real mounted ThemeProvider injects, for default parameters', () => {
+    const { rootVariablesCSS } = computeServerThemeCSS();
+
+    render(
+      <ThemeProvider>
+        <div>content</div>
+      </ThemeProvider>
+    );
+    const mounted = document.documentElement.style.getPropertyValue('--ai-master-font-size');
+    document.documentElement.removeAttribute('style');
+
+    expect(mounted).not.toBe('');
+    expect(rootVariablesCSS).toContain(`--ai-master-font-size: ${mounted};`);
+  });
+
+  it('reflects a custom baseColor, matching generateHarmonyPalette called directly', () => {
+    const baseColor = { h: 30, s: 80, v: 90 };
+    const { rootVariablesCSS } = computeServerThemeCSS({ baseColor });
+
+    const expectedPrimary = hsvToCSS(generateHarmonyPalette({
+      baseColor,
+      harmonyMode: 'analogous',
+      hueSpread: 30,
+      darkenLightenFactor: 1.0,
+      saturationFactor: 1.0,
+      paddingMode: 'normal',
+      marginMode: 'normal',
+      cornerRadiusMode: 'rounded',
+      isDarkMode: false,
+    }).primary);
+
+    expect(rootVariablesCSS).toContain(`--ai-color-primary: ${expectedPrimary};`);
+    expect(rootVariablesCSS).not.toContain(hsvToCSS(generateHarmonyPalette({
+      baseColor: { h: 217, s: 76, v: 96 },
+      harmonyMode: 'analogous',
+      hueSpread: 30,
+      darkenLightenFactor: 1.0,
+      saturationFactor: 1.0,
+      paddingMode: 'normal',
+      marginMode: 'normal',
+      cornerRadiusMode: 'rounded',
+      isDarkMode: false,
+    }).primary));
+  });
+
+  it('emits a non-null responsiveCSS with a real @media block, and excludes those keys from rootVariablesCSS, for a responsive paddingMode', () => {
+    const { rootVariablesCSS, responsiveCSS } = computeServerThemeCSS({
+      paddingMode: { base: 'compact', lg: 'spacious' },
+    });
+
+    expect(responsiveCSS).not.toBeNull();
+    expect(responsiveCSS).toContain('@media (min-width: 1024px)');
+    // Padding-owned keys must not be *declared* in rootVariablesCSS — an
+    // inline value there would permanently win the cascade over any
+    // @media rule, same reasoning as the provider's own injection effect.
+    // Anchored to a real declaration (line start, before the colon), not a
+    // blind substring match: other slices legitimately *reference*
+    // --ai-padding-sm as a var() fallback (e.g. --ai-table-cell-padding),
+    // which isn't the same thing as padding's own key being declared here.
+    expect(rootVariablesCSS).not.toMatch(/^\s*--ai-padding-\w+:/m);
+  });
+
+  it('returns responsiveCSS: null when nothing is under responsive control', () => {
+    const { responsiveCSS } = computeServerThemeCSS();
+    expect(responsiveCSS).toBeNull();
+  });
+
+  it('does not crash when initialParameters omits marginMode entirely, and behaves as "normal"', () => {
+    const withoutMargin = computeServerThemeCSS({ baseColor: { h: 200, s: 50, v: 80 } });
+    const explicitNormal = computeServerThemeCSS({ baseColor: { h: 200, s: 50, v: 80 }, marginMode: 'normal' });
+
+    expect(withoutMargin.rootVariablesCSS).toBe(explicitNormal.rootVariablesCSS);
+  });
+});
+
+describe('computeServerThemeCSS hydration safety', () => {
+  // Also a beforeEach, not just afterEach: earlier tests in this file mount
+  // a real <ThemeProvider>, whose own effects inject these same ids and
+  // (correctly, by design — injectGlobalStyle is "create once, ever") never
+  // remove them. Without clearing first, a test here would seed its "SSR"
+  // element alongside an already-real leftover one from a prior test,
+  // making every assertion below count stale pollution as a false failure.
+  const clearInjectedStyles = () => {
+    document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)?.remove();
+    document.getElementById(TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID)?.remove();
+    document.getElementById(TOOLCRIB_RESPONSIVE_STYLE_ID)?.remove();
+    document.documentElement.removeAttribute('style');
+  };
+  beforeEach(clearInjectedStyles);
+  afterEach(clearInjectedStyles);
+
+  it('does not duplicate SSR-rendered <style> tags on client mount', () => {
+    const ssr = computeServerThemeCSS();
+
+    const typographyEl = document.createElement('style');
+    typographyEl.id = TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID;
+    typographyEl.textContent = ssr.typographyCSS;
+    document.head.appendChild(typographyEl);
+
+    const keyframesEl = document.createElement('style');
+    keyframesEl.id = TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID;
+    keyframesEl.textContent = ssr.keyframesCSS;
+    document.head.appendChild(keyframesEl);
+
+    render(
+      <ThemeProvider>
+        <div>content</div>
+      </ThemeProvider>
+    );
+
+    expect(document.querySelectorAll(`#${TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID}`).length).toBe(1);
+    expect(document.querySelectorAll(`#${TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}`).length).toBe(1);
+    // injectGlobalStyle no-op'd against the pre-existing element rather
+    // than re-creating it — content is exactly what was seeded, untouched.
+    expect(document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)!.textContent).toBe(ssr.typographyCSS);
+  });
+
+  it('recognizes the pre-existing responsive <style> tag on mount (no duplicate), then removes it once a live setter switches away from responsive control', () => {
+    const responsiveConfig = { base: 'compact' as const, lg: 'spacious' as const };
+    const ssr = computeServerThemeCSS({ paddingMode: responsiveConfig });
+
+    const el = document.createElement('style');
+    el.id = TOOLCRIB_RESPONSIVE_STYLE_ID;
+    el.textContent = ssr.responsiveCSS!;
+    document.head.appendChild(el);
+
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ({ children }) => (
+        <ThemeProvider initialParameters={{ paddingMode: responsiveConfig }}>{children}</ThemeProvider>
+      ),
+    });
+
+    // upsertGlobalStyle found the pre-existing (SSR-rendered) element and
+    // left it as the one tag, rather than inserting a second copy.
+    expect(document.querySelectorAll(`#${TOOLCRIB_RESPONSIVE_STYLE_ID}`).length).toBe(1);
+
+    // A real, typed live update — switching paddingMode away from
+    // responsive control entirely — must clean up the tag it owned
+    // (removeGlobalStyle's branch), not leave a stale SSR copy behind.
+    act(() => {
+      result.current.setPaddingMode('compact');
+    });
+
+    expect(document.getElementById(TOOLCRIB_RESPONSIVE_STYLE_ID)).toBeNull();
   });
 });

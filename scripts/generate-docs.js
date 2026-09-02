@@ -198,6 +198,12 @@ function assembleAuthExampleFacts() {
   };
 }
 
+// No source-derived facts to interpolate — every code sample in this one
+// is hand-written and static (unlike the event-payload examples above).
+function assembleSSRThemeExampleFacts() {
+  return {};
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -211,6 +217,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'router-integration.md.hbs', data: assembleRouterExampleFacts },
   { file: 'wildcard-event-monitoring.md.hbs', data: assembleWildcardExampleFacts },
   { file: 'auth-unauthorized.md.hbs', data: assembleAuthExampleFacts },
+  { file: 'ssr-theme-injection.md.hbs', data: assembleSSRThemeExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {
