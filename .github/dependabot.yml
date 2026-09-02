@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # Root package.json — the toolkit itself + the demo harness.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # cli/ has its own independent package.json and lockfile (deliberately
+  # isolated from root — see AGENTS.md's "cli/ has its own independent
+  # package.json" section) and needs its own updates entry.
+  - package-ecosystem: "npm"
+    directory: "/cli"
+    schedule:
+      interval: "weekly"
+
+  # scripts/ also has its own independent package.json, pinned to
+  # typescript@6.x for the Compiler API surface extract.js depends on
+  # (see AGENTS.md's TypeScript section — bumping past 6.x removes
+  # createSourceFile/ScriptTarget/etc. outright). Ignore major-version
+  # bumps on that one dependency so Dependabot can't propose exactly the
+  # upgrade AGENTS.md says not to make without first confirming the
+  # classic Compiler API surface still exists.
+  - package-ecosystem: "npm"
+    directory: "/scripts"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
