@@ -420,7 +420,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <PopoverPrimitive.Anchor asChild>
         <div
           ref={anchorRef}
-          className="ai-focus-ring-within"
+          className="ai-focus-ring"
           onClick={() => inputRef.current?.focus()}
           style={{
             display: 'flex',

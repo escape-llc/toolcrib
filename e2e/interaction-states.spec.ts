@@ -40,6 +40,18 @@ test('real keyboard Tab navigation shows a :focus-visible ring on the first .ai-
   expect(found).not.toBeNull();
   expect(found!.matches).toBe(true);
   expect(found!.outlineStyle).toBe('solid');
+
+  // outline-style alone no longer distinguishes focused/unfocused (it's
+  // unconditionally 'solid' now -- see interactionStyles.ts's own comment);
+  // outline-color actually being the real ring colour, not transparent, is
+  // what proves the ring is genuinely visible here. Read after a short
+  // settle, not synchronously in the loop above -- outline-color now
+  // *transitions* (--ai-transition-duration-fast) rather than snapping, so
+  // an immediate read can race the very first frame of that fade and still
+  // see the pre-focus transparent value.
+  await page.waitForTimeout(150);
+  const outlineColor = await page.evaluate(() => getComputedStyle(document.activeElement as HTMLElement).outlineColor);
+  expect(outlineColor).not.toBe('rgba(0, 0, 0, 0)');
 });
 
 test('a mouse click does NOT leave a :focus-visible ring behind (matches native browser behavior)', async ({ page }) => {
@@ -48,8 +60,13 @@ test('a mouse click does NOT leave a :focus-visible ring behind (matches native 
   const anyButton = page.locator('button.ai-btn').first();
   await anyButton.click();
 
-  const outlineStyle = await anyButton.evaluate(el => getComputedStyle(el).outlineStyle);
-  expect(outlineStyle).toBe('none');
+  // outline-style is now unconditionally 'solid' (see interactionStyles.ts's
+  // own comment on why -- it lets outline-color fade in/out via transition
+  // instead of the ring snapping on/off, since outline-style itself can't
+  // smoothly interpolate). The actual "no visible ring" signal is now
+  // outline-color staying transparent, not outline-style being 'none'.
+  const outlineColor = await anyButton.evaluate(el => getComputedStyle(el).outlineColor);
+  expect(outlineColor).toBe('rgba(0, 0, 0, 0)');
 });
 
 test(':active applies the animation slice\'s --ai-active-transform press feedback', async ({ page }) => {

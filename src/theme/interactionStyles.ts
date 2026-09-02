@@ -21,23 +21,36 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  *   not just a missing nicety: a keyboard user tabbing to a `<Button>` saw
  *   no focus indicator at all. `:focus-visible` (not `:focus`) so a mouse
  *   click doesn't also draw the ring, matching native browser behaviour.
+ *   The ring now *fades* in/out (`outline-color` transition) instead of
+ *   snapping — see the base rule's own comment below for why that requires
+ *   `outline-style` to be permanently `solid` rather than toggling with
+ *   `:focus-visible` itself.
  * - `:active` — a brief press-down feel using the animation slice's own
  *   `--ai-active-transform` token (already computed by animation.ts, was
  *   sitting unused until now), so it automatically respects the same
  *   Motion/Physics preset and `reducedMotion` setting as everything else.
  *
- * Two more classes extend the same systematic treatment to controls that
+ * One more class extends the same systematic treatment to controls that
  * don't fit the "button with a hover-tintable background" shape:
  *
- * - `.ai-focus-ring` — just the `:focus-visible` ring, for custom-shaped
- *   native controls with no hover-tint model of their own (the Select
- *   trigger, RadioGroup's dot, Checkbox, Switch). Same accessibility gap as
- *   above: all four previously reset `outline` to nothing (via an explicit
- *   `outline: 'none'` or `all: 'unset'`) with no replacement.
- * - `.ai-focus-ring-within` — the `:focus-within` sibling of the above, for
- *   a wrapper whose actual focusable element is a descendant rather than
- *   itself (Combobox's own chip-row anchor around its `<input>`), where
- *   `:focus-visible` on the wrapper would never match at all.
+ * - `.ai-focus-ring` — the `:focus-visible` ring, for custom-shaped native
+ *   controls with no hover-tint model of their own (the Select trigger,
+ *   RadioGroup's dot, Checkbox, Switch) *and* for a wrapper whose actual
+ *   focusable element is a descendant rather than itself (Combobox's own
+ *   chip-row anchor around its `<input>`). One class handles both shapes —
+ *   `:focus-visible` for "this exact element receives focus" and
+ *   `:has(:focus-visible)` for "a descendant does" are combined in the same
+ *   rule below, so a component author never has to choose between two
+ *   similarly-named classes (`.ai-focus-ring` vs. a `.ai-focus-ring-within`
+ *   sibling, the previous shape of this fix) or risk picking the wrong one
+ *   — `:focus-visible` alone silently never matches a wrapper that's never
+ *   itself the real focus target, which is exactly the bug this used to be
+ *   found and fixed one component at a time (see `AGENTS.md`'s own history
+ *   of it). `:has(:focus-visible)`, not the broader `:focus-within`,
+ *   deliberately — `:focus-within` matches on *any* focus, including a
+ *   plain mouse click on the descendant, which would reintroduce exactly
+ *   the "ring shows for a mouse user" problem `:focus-visible` exists
+ *   everywhere else in this file to avoid.
  * - `.ai-menu-item[data-highlighted]` — for Radix menu-style items
  *   (DropdownMenu.Item, ContextMenu.Item, Select.Item). Radix's own
  *   `data-highlighted` attribute already unifies mouse-hover and keyboard
@@ -64,19 +77,41 @@ export function injectInteractionStyles(targetDocument?: Document, nonce?: strin
       background: color-mix(in srgb, currentColor var(--ai-tab-hover-amount, 12%), var(--ai-tab-bg, transparent)) !important;
     }
 
-    /* :focus-visible — !important unconditionally: some .ai-btn consumers
-       (e.g. Collapsible's trigger, via \`all: 'unset'\`) reset outline inline
-       same as an explicit \`outline: 'none'\` would, and there's no
-       legitimate case where a .ai-btn user wants its own focus ring
-       suppressed, so this doesn't need tracking per-consumer like :hover's
-       --ai-btn-bg does. */
-    .ai-btn:focus-visible {
-      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
+    /* :focus-visible base + focus state — !important unconditionally: some
+       .ai-btn consumers (e.g. Collapsible's trigger, via \`all: 'unset'\`)
+       reset outline inline same as an explicit \`outline: 'none'\` would,
+       and there's no legitimate case where a .ai-btn user wants its own
+       focus ring suppressed, so this doesn't need tracking per-consumer
+       like :hover's --ai-btn-bg does.
+
+       The base rule declares outline-style: solid (via the outline
+       shorthand) UNCONDITIONALLY, with a transparent colour -- only
+       outline-color itself changes on focus, transitioned smoothly.
+       outline-style is a discrete keyword (can't interpolate a value
+       between 'none' and 'solid'), so a version that only sets \`outline\`
+       at :focus-visible -- leaving no outline at all beforehand -- makes
+       outline-style itself flip abruptly the instant :focus-visible
+       matches, and no transition on outline-color can smooth that over:
+       there's nothing rendered to fade from. Keeping outline-style
+       constantly 'solid' and only transitioning its colour is the
+       standard fix. Reuses the animation slice's own
+       --ai-transition-duration-fast/--ai-transition-easing (the same
+       tokens :active's --ai-active-transform below already reuses), so
+       the fade automatically respects the same Motion/Physics preset and
+       reducedMotion setting as everything else, with no separate opt-out
+       needed. */
+    .ai-btn,
+    .ai-tab-trigger,
+    .ai-focus-ring {
+      outline: var(--ai-focus-ring-width, 0.125rem) solid transparent !important;
       outline-offset: var(--ai-focus-ring-offset, 0.125rem);
+      transition: outline-color var(--ai-transition-duration-fast, 0.1s) var(--ai-transition-easing, ease) !important;
     }
-    .ai-tab-trigger:focus-visible {
-      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
-      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
+    .ai-btn:focus-visible,
+    .ai-tab-trigger:focus-visible,
+    .ai-focus-ring:focus-visible,
+    .ai-focus-ring:has(:focus-visible) {
+      outline-color: var(--ai-focus-ring, #3b82f6) !important;
     }
 
     /* :active — neither element sets an inline \`transform\`, so no
@@ -86,29 +121,6 @@ export function injectInteractionStyles(targetDocument?: Document, nonce?: strin
     }
     .ai-tab-trigger:active:not(:disabled) {
       transform: var(--ai-active-transform, scale(0.98));
-    }
-
-    /* .ai-focus-ring — every current user (Select's trigger, RadioGroup's
-       dot, Checkbox, Switch) sets an inline \`outline: 'none'\` (or resets it
-       via \`all: 'unset'\`, same effective result), so this needs !important
-       on every one of them to actually win. */
-    .ai-focus-ring:focus-visible {
-      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
-      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
-    }
-
-    /* .ai-focus-ring-within — for a wrapper whose real focusable element is
-       a descendant, not itself (Combobox's chip-row anchor around its own
-       <input>, e.g.) — :focus-visible never matches an element that's
-       never the actual focus target, so a plain .ai-focus-ring on a
-       wrapper like that is silently inert regardless of !important.
-       :focus-within is the correct selector there; outline draws outside
-       the wrapper's own border box, so it isn't obscured by ordinary
-       (non-positioned, non-elevated) content inside it the way a z-index
-       or overlap issue would be. */
-    .ai-focus-ring-within:focus-within {
-      outline: var(--ai-focus-ring-width, 0.125rem) solid var(--ai-focus-ring, #3b82f6) !important;
-      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
     }
 
     /* .ai-menu-item — none of DropdownMenu.Item/ContextMenu.Item/Select.Item
