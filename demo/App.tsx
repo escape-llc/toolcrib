@@ -1968,6 +1968,37 @@ export const App: React.FC = () => {
                           </VStack>
                         </Card.Content>
                       </Card>
+
+                      <Card>
+                        <Card.Header>Living Color (Ambient Breathe &amp; Glow)</Card.Header>
+                        <Card.Content>
+                          <VStack gap="sm">
+                            <div
+                              className="ai-living-accent"
+                              style={{
+                                padding: 'var(--ai-padding-md, 0.5rem)',
+                                borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                                color: 'var(--ai-color-primary-text, #ffffff)',
+                                textAlign: 'center',
+                                fontSize: '0.875rem',
+                              }}
+                            >
+                              .ai-living-accent
+                            </div>
+                            <div
+                              className="ai-living-glow"
+                              style={{
+                                padding: 'var(--ai-padding-md, 0.5rem)',
+                                borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                                textAlign: 'center',
+                                fontSize: '0.875rem',
+                              }}
+                            >
+                              .ai-living-glow
+                            </div>
+                          </VStack>
+                        </Card.Content>
+                      </Card>
                     </Grid>
 
                     <Card>

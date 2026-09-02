@@ -12,7 +12,13 @@ export const TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID = 'toolcrib-shared-keyframes';
  * never enter/exit, just loop for as long as they're mounted) and
  * deliberately not tied to the `--ai-transition-*` scale from
  * `theme/animation.ts`, which is tuned for 100–500ms discrete
- * state-transitions, not a slow continuous loop. Exported as a named
+ * state-transitions, not a slow continuous loop. `ai-color-breathe`/
+ * `ai-glow-pulse` are a third category, alongside the loading loops above:
+ * a continuous, opt-in *decorative* loop (not tied to a loading state),
+ * consumed via the `.ai-living-accent`/`.ai-living-glow` marker classes
+ * (`livingColorStyles.ts`) and driven by their own `--ai-living-color-*`
+ * variables (`livingColor.tsx`) — same reasoning as the loading loops for
+ * not reusing `--ai-transition-*`. Exported as a named
  * constant (rather than inlined only in `injectSharedAnimationKeyframes`
  * below) so `computeServerThemeCSS` (`themeContext.tsx`) can return the
  * exact same CSS text for SSR rendering, with no second copy to drift.
@@ -74,6 +80,14 @@ export const TOOLCRIB_SHARED_KEYFRAMES_CSS = `
     @keyframes ai-spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+    @keyframes ai-color-breathe {
+      0%, 100% { background-color: var(--ai-color-primary); }
+      50% { background-color: var(--ai-color-secondary); }
+    }
+    @keyframes ai-glow-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--ai-color-primary); }
+      50% { box-shadow: 0 0 1.5rem 0.25rem var(--ai-color-secondary); }
     }
     `;
 

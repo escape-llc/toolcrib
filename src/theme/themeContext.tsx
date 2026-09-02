@@ -13,6 +13,7 @@ import { type CornerRadiusMode, RadiusThemeSlice } from './radius';
 import { type ShadowMode, ShadowThemeSlice } from './shadow';
 import { DataTableThemeSlice } from '../components/DataTable/DataTableSlice';
 import { AnimationThemeSlice } from './animation';
+import { LivingColorThemeSlice } from './livingColor';
 import { TabThemeSlice } from '../components/TabStrip/TabSlice';
 import { DrawerThemeSlice } from '../components/Overlay/DrawerSlice';
 import { AccordionThemeSlice } from '../components/Accordion/AccordionSlice';
@@ -67,6 +68,7 @@ import {
   generateResponsiveCSS,
 } from './responsive';
 import { injectSharedAnimationKeyframes, TOOLCRIB_SHARED_KEYFRAMES_CSS } from './animationKeyframes';
+import { injectLivingColorStyles, TOOLCRIB_LIVING_COLOR_CSS } from './livingColorStyles';
 import { TargetDocumentContext } from './targetDocumentContext';
 import { NonceContext } from './nonceContext';
 
@@ -119,6 +121,7 @@ globalThemeSliceRegistry.register(LabelThemeSlice);
 globalThemeSliceRegistry.register(ScrollAreaThemeSlice);
 globalThemeSliceRegistry.register(ViewerThemeSlice);
 globalThemeSliceRegistry.register(ChartThemeSlice);
+globalThemeSliceRegistry.register(LivingColorThemeSlice);
 
 /** @barrelExport */
 export interface ThemeContextType {
@@ -184,6 +187,8 @@ export interface ServerThemeCSS {
   keyframesCSS: string;
   /** Render as `<style id={TOOLCRIB_THEME_TRANSITIONS_STYLE_ID}>`. */
   transitionsCSS: string;
+  /** Render as `<style id={TOOLCRIB_LIVING_COLOR_STYLE_ID}>` (that id is exported from `./livingColorStyles`, not this file). */
+  livingColorCSS: string;
 }
 
 /**
@@ -512,6 +517,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     injectSharedAnimationKeyframes(targetDocument, nonce);
   }, [targetDocument, nonce]);
 
+  // Opt-in-only decorative loop (.ai-living-accent/.ai-living-glow) — see
+  // livingColorStyles.ts's own doc comment for why this isn't ambiently
+  // applied to every element the way TOOLCRIB_THEME_TRANSITIONS_CSS is.
+  useEffect(() => {
+    injectLivingColorStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
+
   const setBaseColor = (baseColor: HSVColor) => setParameters(p => ({ ...p, baseColor }));
   const setHarmonyMode = (harmonyMode: HarmonyMode) => setParameters(p => ({ ...p, harmonyMode }));
   const setHueSpread = (hueSpread: number) => setParameters(p => ({ ...p, hueSpread }));
@@ -651,5 +663,6 @@ export function computeServerThemeCSS(
     typographyCSS: TOOLCRIB_TYPOGRAPHY_BASE_CSS,
     keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
     transitionsCSS: TOOLCRIB_THEME_TRANSITIONS_CSS,
+    livingColorCSS: TOOLCRIB_LIVING_COLOR_CSS,
   };
 }

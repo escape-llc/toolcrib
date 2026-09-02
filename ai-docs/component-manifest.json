@@ -113,6 +113,8 @@
       "--ai-layout-border-top-left-radius",
       "--ai-layout-border-top-right-radius",
       "--ai-line-height",
+      "--ai-living-color-duration",
+      "--ai-living-color-easing",
       "--ai-margin-gap",
       "--ai-margin-lg",
       "--ai-margin-md",
@@ -417,6 +419,10 @@
       {
         "id": "chart",
         "name": "📊 Chart Gridlines, Tooltip & Hover"
+      },
+      {
+        "id": "livingColor",
+        "name": "🌊 Living Color (Ambient Breathe & Glow)"
       }
     ]
   },

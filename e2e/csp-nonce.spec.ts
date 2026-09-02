@@ -76,6 +76,8 @@ test('every <style> tag present on initial load carries the configured nonce', a
     'toolcrib-corner-squaring',
     'toolcrib-group-styles',
     'toolcrib-tooltip-animations',
+    'toolcrib-theme-transitions',
+    'toolcrib-living-color-styles',
   ];
 
   for (const id of alwaysPresentIds) {
@@ -116,6 +118,14 @@ test('the shared animation keyframes also carry the configured nonce for the def
   await page.waitForSelector('#toolcrib-shared-keyframes', { state: 'attached' });
   const nonce = await nonceOf(page, 'toolcrib-shared-keyframes');
   expect(nonce).toBe(NONCE);
+
+  // Cheap regression guard that a later addition to TOOLCRIB_SHARED_KEYFRAMES_CSS
+  // (e.g. ai-color-breathe/ai-glow-pulse for the Living Color feature) didn't
+  // get lost/reverted -- this constant is the same one computeServerThemeCSS
+  // returns for SSR, so this doubles as a sanity check that path stays intact.
+  const keyframesText = await page.locator('#toolcrib-shared-keyframes').textContent();
+  expect(keyframesText).toContain('ai-color-breathe');
+  expect(keyframesText).toContain('ai-glow-pulse');
 });
 
 test('a lazily-mounted component (Toast) also carries the configured nonce once it actually renders', async ({ page }) => {
