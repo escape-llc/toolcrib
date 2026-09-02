@@ -4,6 +4,7 @@ import { Button } from '../Form/FormComponents';
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** A page number, or a collapsed run of skipped pages. */
 type PageToken = number | 'ellipsis';
@@ -66,6 +67,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   size = 'sm',
 }) => {
   const id = useStableId(propId, 'pagination');
+  const strings = useLocaleStrings().pagination;
 
   const { currentPage, totalPages, goToPage } = usePagination({
     totalItems,
@@ -96,14 +98,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <nav aria-label="Pagination" onKeyDown={handleKeyDown}>
+    <nav aria-label={strings.navLabel} onKeyDown={handleKeyDown}>
       <UIGroup>
         <Button
           variant="outline"
           size={size}
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
-          aria-label="Previous page"
+          aria-label={strings.previousPage}
         >
           ◀
         </Button>
@@ -119,7 +121,7 @@ export const Pagination: React.FC<PaginationProps> = ({
               variant={token === currentPage ? 'primary' : 'outline'}
               size={size}
               onClick={() => goToPage(token)}
-              aria-label={`Page ${token}`}
+              aria-label={strings.page(token)}
               aria-current={token === currentPage ? 'page' : undefined}
             >
               {token}
@@ -132,7 +134,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           size={size}
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          aria-label="Next page"
+          aria-label={strings.nextPage}
         >
           ▶
         </Button>

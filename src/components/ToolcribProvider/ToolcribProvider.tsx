@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '../../theme/themeContext';
 import { ToastProvider, type ToastProviderProps } from '../Toast/ToastContext';
 import { ToastContainer } from '../Toast/Toast';
+import { LocaleProvider, type LocaleStringsOverride } from '../Locale/LocaleContext';
 
 export interface ToolcribProviderProps {
   children: ReactNode;
@@ -9,6 +10,17 @@ export interface ToolcribProviderProps {
   theme?: Omit<ThemeProviderProps, 'children'>;
   /** Passed straight through to the underlying `<ToastProvider>`. */
   toast?: Omit<ToastProviderProps, 'children'>;
+  /**
+   * Passed straight through to the underlying `<LocaleProvider>`, as its
+   * own `strings` prop — deliberately flattened here rather than nested
+   * as `locale={{ strings: {...} }}` the way `theme`/`toast` above nest.
+   * `<Calendar>` already has its own, unrelated `locale` prop (a BCP-47
+   * tag for real date-name localization); reusing "locale" as a
+   * `ToolcribProvider` prop name here too would be a discoverability
+   * hazard even with no actual type collision, so this one prop is named
+   * after what it actually is instead of after its sub-provider.
+   */
+  strings?: LocaleStringsOverride;
 }
 
 /**
@@ -36,12 +48,14 @@ export interface ToolcribProviderProps {
  * for all three, not the generated component-manifest pipeline).
  * @barrelExport
  */
-export const ToolcribProvider: React.FC<ToolcribProviderProps> = ({ children, theme, toast }) => {
+export const ToolcribProvider: React.FC<ToolcribProviderProps> = ({ children, theme, toast, strings }) => {
   return (
     <ThemeProvider {...theme}>
       <ToastProvider {...toast}>
-        {children}
-        <ToastContainer />
+        <LocaleProvider strings={strings}>
+          {children}
+          <ToastContainer />
+        </LocaleProvider>
       </ToastProvider>
     </ThemeProvider>
   );

@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ToolcribProvider } from '../components/ToolcribProvider/ToolcribProvider';
 import { useTheme } from '../theme/themeContext';
 import { useToast } from '../components/Toast/ToastContext';
+import { useLocaleStrings } from '../components/Locale/LocaleContext';
 
 // Verifies ToolcribProvider actually composes ThemeProvider > ToastProvider
 // > children + ToastContainer correctly -- the same "does this behave
@@ -58,5 +59,21 @@ describe('ToolcribProvider', () => {
     // 'normal' default -- confirms initialParameters actually reached the
     // underlying ThemeProvider, not just that rendering didn't crash.
     expect(document.documentElement.style.getPropertyValue('--ai-padding-md')).not.toBe('');
+  });
+
+  it('passes the strings prop straight through to the underlying LocaleProvider', () => {
+    let seen: string | undefined;
+    const StringsConsumer = () => {
+      seen = useLocaleStrings().tree.treeLabel;
+      return null;
+    };
+
+    render(
+      <ToolcribProvider strings={{ tree: { treeLabel: 'Boom' } }}>
+        <StringsConsumer />
+      </ToolcribProvider>
+    );
+
+    expect(seen).toBe('Boom');
   });
 });

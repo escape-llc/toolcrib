@@ -690,6 +690,10 @@
         "payload": "{ reason?: string }"
       },
       {
+        "name": "locale:changed",
+        "payload": "{ strings: ToolcribLocaleStrings }"
+      },
+      {
         "name": "layout:domain:created",
         "payload": "{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
       },

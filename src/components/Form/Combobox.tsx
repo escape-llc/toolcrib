@@ -11,6 +11,7 @@ import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
  * Props for the `<Combobox>` filterable text input + listbox.
@@ -111,6 +112,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const registerField = formContext?.registerField;
   const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
+  const strings = useLocaleStrings().combobox;
   const targetDocument = useTargetDocument();
   const inputRef = useRef<HTMLInputElement>(null);
   // Radix's non-modal Popover.Content only exempts clicks on
@@ -438,7 +440,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                 {labelFor(v)}
                 <button
                   type="button"
-                  aria-label={`Remove ${labelFor(v)}`}
+                  aria-label={strings.removeItem(labelFor(v))}
                   disabled={disabled}
                   onClick={e => {
                     e.stopPropagation();
@@ -527,7 +529,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
           {hasValue && !disabled && (
             <button
               type="button"
-              aria-label="Clear selection"
+              aria-label={strings.clearSelection}
               onClick={handleClear}
               tabIndex={-1}
               style={{

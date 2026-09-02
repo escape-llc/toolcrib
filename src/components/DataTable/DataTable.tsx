@@ -11,6 +11,7 @@ import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, type TableSliceState } from './DataTableSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -249,6 +250,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   overrides,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
+  const strings = useLocaleStrings().dataTable;
   const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
   // Row-level borders below are set directly in JS (not through
   // --ai-table-border, which only reaches the cells' borderRight — see that
@@ -796,14 +798,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         }}
       >
         <div style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>
-          Showing {totalItems > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0} to{' '}
-          {Math.min(validCurrentPage * pageSize, sortedData.length)} of {sortedData.length} entries
+          {strings.showingEntries(
+            totalItems > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0,
+            Math.min(validCurrentPage * pageSize, sortedData.length),
+            sortedData.length
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <UIGroup>
             <select
-              aria-label="Rows per page"
+              aria-label={strings.rowsPerPage}
               value={pageSize}
               onChange={e => {
                 const newSize = Number(e.target.value);
@@ -828,7 +833,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             >
               {pageSizeOptions.map(opt => (
                 <option key={opt} value={opt}>
-                  {opt} per page
+                  {strings.perPageOption(opt)}
                 </option>
               ))}
             </select>
@@ -836,7 +841,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             <button
               onClick={() => paginationGoToPage(validCurrentPage - 1)}
               disabled={validCurrentPage === 1}
-              aria-label="Previous page"
+              aria-label={strings.previousPage}
               className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
@@ -868,7 +873,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             <button
               onClick={() => paginationGoToPage(validCurrentPage + 1)}
               disabled={validCurrentPage === totalPages}
-              aria-label="Next page"
+              aria-label={strings.nextPage}
               className="ai-btn"
               style={{
                 padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',

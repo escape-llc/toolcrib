@@ -4,6 +4,7 @@
  */
 import { type ThemeParameters, type GeneratedPalette } from '../theme/harmonies';
 import { type SubthemeName } from '../theme/subtheme';
+import { type ToolcribLocaleStrings } from '../components/Locale/LocaleContext';
 
 /** @barrelExport */
 export interface AIEventMap {
@@ -87,6 +88,10 @@ export interface AIEventMap {
   // Auth
   /** Announces that the current session/request is unauthorized — an API 401, a token expiry, a failed permission check. Not sticky: a persistently-mounted subscriber (matching the toast-container pattern) is expected to always be listening, the same way modal:shown/toast:shown aren't sticky either. */
   'auth:unauthorized': { reason?: string };
+
+  // Locale
+  /** Broadcasts whenever LocaleProvider's merged strings change — mirrors theme:changed's own broadcast, for anything reacting outside React context. Not sticky, same reasoning as theme:changed: a persistently-mounted listener (or one that reads useLocaleStrings() directly) doesn't need historical replay. */
+  'locale:changed': { strings: ToolcribLocaleStrings };
   'layout:domain:created': { domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' };
   'splitter:split_changed': { id: string; split: number };
   'layout:corners:squared': {

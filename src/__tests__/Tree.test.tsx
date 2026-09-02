@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Tree, type TreeItemData } from '../components/Tree/Tree';
+import { LocaleProvider } from '../components/Locale/LocaleContext';
 import { aiBus } from '../eventBus/eventBus';
 
 const items: TreeItemData[] = [
@@ -167,5 +168,19 @@ describe('Tree', () => {
     fireEvent.click(locked);
     expect(onSelectChange).not.toHaveBeenCalled();
     expect(locked).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  // Tree has no aria-label prop of its own and doesn't spread ...rest onto
+  // its root div — a LocaleProvider override is the only way to change
+  // this label at all, unlike every other affected component which at
+  // least has some (if incomplete) existing override surface.
+  it('renders an overridden root aria-label from a LocaleProvider', () => {
+    render(
+      <LocaleProvider strings={{ tree: { treeLabel: 'Boom' } }}>
+        <Tree items={items} />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByRole('tree', { name: 'Boom' })).toBeInTheDocument();
   });
 });

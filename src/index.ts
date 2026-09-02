@@ -109,6 +109,7 @@ export * from './components/Layout/Grid';
 export * from './components/Layout/Stack';
 export * from './components/Layout/VisuallyHidden';
 export * from './components/Listbox/Listbox';
+export * from './components/Locale/LocaleContext';
 export * from './components/Overlay/Drawer';
 export * from './components/Overlay/DrawerSlice';
 export * from './components/Overlay/Modal';

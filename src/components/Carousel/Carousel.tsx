@@ -5,6 +5,7 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { CarouselThemeSlice, type CarouselSliceState } from './CarouselSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Data shape for each slide in a `<Carousel>`. */
 export interface CarouselSlideItem {
@@ -52,6 +53,7 @@ export const Carousel: React.FC<CarouselProps> = ({
   overrides,
 }) => {
   const id = useStableId(propId, 'carousel');
+  const strings = useLocaleStrings().carousel;
   const { vars } = useSliceOverrides(CarouselThemeSlice, overrides);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop });
 
@@ -117,7 +119,7 @@ export const Carousel: React.FC<CarouselProps> = ({
         <button
           type="button"
           onClick={() => emblaApi?.scrollPrev()}
-          aria-label="Previous slide"
+          aria-label={strings.previousSlide}
           className="ai-btn"
           style={{
             position: 'absolute',
@@ -147,7 +149,7 @@ export const Carousel: React.FC<CarouselProps> = ({
         <button
           type="button"
           onClick={() => emblaApi?.scrollNext()}
-          aria-label="Next slide"
+          aria-label={strings.nextSlide}
           className="ai-btn"
           style={{
             position: 'absolute',
@@ -176,7 +178,7 @@ export const Carousel: React.FC<CarouselProps> = ({
       {scrollSnaps.length > 1 && (
         <div
           role="tablist"
-          aria-label="Slides"
+          aria-label={strings.slidesTablist}
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -190,7 +192,7 @@ export const Carousel: React.FC<CarouselProps> = ({
               type="button"
               role="tab"
               aria-selected={index === selectedIndex}
-              aria-label={`Go to slide ${index + 1}`}
+              aria-label={strings.goToSlide(index + 1)}
               onClick={() => emblaApi?.scrollTo(index)}
               className="ai-btn"
               style={{

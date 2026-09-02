@@ -204,6 +204,12 @@ function assembleSSRThemeExampleFacts() {
   return {};
 }
 
+// Same reasoning as assembleSSRThemeExampleFacts — LocaleProvider isn't a
+// manifest component and carries no per-event fact worth interpolating.
+function assembleLocaleExampleFacts() {
+  return {};
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -218,6 +224,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'wildcard-event-monitoring.md.hbs', data: assembleWildcardExampleFacts },
   { file: 'auth-unauthorized.md.hbs', data: assembleAuthExampleFacts },
   { file: 'ssr-theme-injection.md.hbs', data: assembleSSRThemeExampleFacts },
+  { file: 'locale-provider.md.hbs', data: assembleLocaleExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {

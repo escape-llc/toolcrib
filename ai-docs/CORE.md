@@ -37,7 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-`ToolcribProvider` composes `ThemeProvider` > `ToastProvider` > your app + `ToastContainer`, in the one correct nesting order, so there's no separate `ToastContainer` to remember and no ordering to get wrong. (Omitting it used to be a common silent failure with manual wiring: `aiBus.showToast()` / `addToast()` still updated state and emitted bus events, but nothing appeared on screen.) Its own `theme`/`toast` props pass straight through to the underlying providers — `theme` takes everything `ThemeProvider` itself accepts (`initialParameters`, `initialSliceStates`, `targetDocument`), `toast` takes everything `ToastProvider` accepts (`defaultAnchor`).
+`ToolcribProvider` composes `ThemeProvider` > `ToastProvider` > `LocaleProvider` > your app + `ToastContainer`, in the one correct nesting order, so there's no separate `ToastContainer` to remember and no ordering to get wrong. (Omitting it used to be a common silent failure with manual wiring: `aiBus.showToast()` / `addToast()` still updated state and emitted bus events, but nothing appeared on screen.) Its own `theme`/`toast`/`strings` props pass straight through to the underlying providers — `theme` takes everything `ThemeProvider` itself accepts (`initialParameters`, `initialSliceStates`, `targetDocument`), `toast` takes everything `ToastProvider` accepts (`defaultAnchor`), `strings` takes a `LocaleStringsOverride` (see below).
 
 For advanced composition — interleaving with a Router, Redux, or an Auth context at a specific nesting depth — `ThemeProvider`, `ToastProvider`, and `ToastContainer` are still individually exported and can be wired by hand in whatever order your app needs:
 
@@ -55,6 +55,8 @@ import { ThemeProvider, ToastProvider, ToastContainer } from '#toolcrib';
 `ThemeProvider` injects the HSV-derived CSS variables at `:root` on mount — nothing themed will render correctly without it. `ToastProvider` + `ToastContainer` are independent of `ThemeProvider` but must both be present together (the provider holds state; the container renders it). That injection is client-only, so a server-rendered page (Next.js, Remix) flashes unthemed content until hydration — `computeServerThemeCSS()` computes the same CSS as plain text for your own SSR framework to render synchronously instead. See `ai-docs/examples/ssr-theme-injection.md` for the full pattern, including which element ids matter for hydration to recognize it without duplicating.
 
 For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a `CommandPalette` item, a toast action, a modal confirm handler — mount `<RouterAdapterProvider adapter={...}>` once inside your actual router's tree (supplying `navigate` from whatever router library you use) and call `useRouterBridge()` once beneath it. See `ai-docs/examples/router-integration.md` for the full pattern, including controlled-overlay and `TabStrip` URL-sync approaches that don't need the event bus at all.
+
+`<LocaleProvider strings={...}>` batch-overrides every localizable UI chrome string (`Pagination`'s "Previous page", `Tree`'s root `aria-label`, and others) in one place — pass it directly to `ToolcribProvider`'s own `strings` prop, or mount `<LocaleProvider>` standalone for advanced composition. Optional and graceful like `RouterAdapterProvider`, not required-and-throws like `ThemeProvider`: every string already has a harmless English default, so not mounting it changes nothing. Distinct from `<Calendar>`'s own `locale` prop (a BCP 47 tag for real date-name localization, untouched by this). See `ai-docs/examples/locale-provider.md`.
 
 `aiBus.requireAuth(reason?)` announces that the current session/request is unauthorized (an API 401, a token expiry) from wherever that check actually happens, without prop-drilling a callback down to it — a persistently-mounted listener elsewhere in the tree decides what "unauthorized" means for your app. See `ai-docs/examples/auth-unauthorized.md`. `aiBus.on('*', ...)` (the wildcard subscriber every event already passes through) is the same shape of mechanism generalized to forwarding toolcrib's whole event vocabulary to an analytics/telemetry pipeline — see `ai-docs/examples/wildcard-event-monitoring.md`.
 
@@ -399,7 +401,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[67]{name,payload}:
+[68]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -464,6 +466,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "log:cleared","{ timestamp: string }"
   "route:navigate","{ to: string }"
   "auth:unauthorized","{ reason?: string }"
+  "locale:changed","{ strings: ToolcribLocaleStrings }"
   "layout:domain:created","{ domainId: string; parentId: string; orientation: 'horizontal' | 'vertical' }"
   "splitter:split_changed","{ id: string; split: number }"
   "layout:corners:squared","{ domainId: string; slot: 'first' | 'second'; orientation: 'horizontal' | 'vertical'; squaredCorners: { topLeft?: boolean; topRight?: boolean; bottomLeft?: boolean; bottomRight?: boolean; }; }"

@@ -4,6 +4,7 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { ViewerThemeSlice, type ViewerSliceState } from './ViewerSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Data shape for each media item in a `<ViewerContent>`/`<Viewer>`. */
 export interface ViewerItem {
@@ -62,6 +63,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
   overrides,
 }) => {
   const id = useStableId(propId, 'viewer');
+  const strings = useLocaleStrings().viewer;
   const { vars } = useSliceOverrides(ViewerThemeSlice, overrides);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -141,7 +143,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close viewer"
+          aria-label={strings.closeViewer}
           className="ai-btn"
           style={{
             position: 'absolute',
@@ -180,7 +182,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
           <button
             type="button"
             onClick={() => goTo(activeIndex - 1)}
-            aria-label="Previous item"
+            aria-label={strings.previousItem}
             className="ai-btn"
             style={{
               position: 'absolute',
@@ -207,7 +209,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
         <button
           type="button"
           onClick={() => setIsZoomed(z => !z)}
-          aria-label={isZoomed ? 'Zoom out' : 'Zoom in'}
+          aria-label={isZoomed ? strings.zoomOut : strings.zoomIn}
           aria-pressed={isZoomed}
           className="ai-btn"
           style={{
@@ -234,7 +236,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
           <button
             type="button"
             onClick={() => goTo(activeIndex + 1)}
-            aria-label="Next item"
+            aria-label={strings.nextItem}
             className="ai-btn"
             style={{
               position: 'absolute',

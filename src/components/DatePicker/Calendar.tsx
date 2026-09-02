@@ -15,6 +15,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Props for the standalone `<Calendar>` month grid. */
 export interface CalendarProps {
@@ -74,6 +75,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
+  const strings = useLocaleStrings().calendar;
 
   const handleChange = (val: CalendarDate) => {
     onChange?.(val);
@@ -97,7 +99,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           <Button
             slot="previous"
             className="ai-btn"
-            aria-label="Previous month"
+            aria-label={strings.previousMonth}
             style={{
               all: 'unset',
               cursor: 'pointer',
@@ -112,7 +114,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           <Button
             slot="next"
             className="ai-btn"
-            aria-label="Next month"
+            aria-label={strings.nextMonth}
             style={{
               all: 'unset',
               cursor: 'pointer',

@@ -2,6 +2,7 @@ import React from 'react';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Props for the `<Spinner>` indeterminate loading indicator. */
 export interface SpinnerProps extends StyleFreeAttributes<HTMLDivElement> {
@@ -23,6 +24,7 @@ const SIZE_DIAMETER: Record<NonNullable<SpinnerProps['size']>, string> = {
  */
 export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', subtheme: instanceSubtheme, ...props }) => {
   warnIfLegacyStyleProps(props, 'Spinner');
+  const strings = useLocaleStrings().spinner;
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
   const diameter = SIZE_DIAMETER[size];
@@ -30,7 +32,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', subtheme: instanc
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={strings.loading}
       {...props}
       style={{
         display: 'inline-block',

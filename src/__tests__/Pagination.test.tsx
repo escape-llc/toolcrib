@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Pagination } from '../components/Pagination/Pagination';
+import { LocaleProvider } from '../components/Locale/LocaleContext';
 import { aiBus } from '../eventBus/eventBus';
 
 describe('Pagination', () => {
@@ -66,5 +67,17 @@ describe('Pagination', () => {
 
     expect(changedFn).toHaveBeenLastCalledWith({ id: 'my-pagination', page: 2, pageSize: 10 });
     unsub();
+  });
+
+  it('renders overridden strings from a LocaleProvider, including the templated page label', () => {
+    render(
+      <LocaleProvider strings={{ pagination: { nextPage: 'Volgende', page: (n) => `Pagina ${n}` } }}>
+        <Pagination totalItems={50} pageSize={10} />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByLabelText('Volgende')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Next page')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Pagina 1')).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DeferredContent } from '../Layout/DeferredContent';
 import { TreeThemeSlice, type TreeSliceState } from './TreeSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Data shape for each node in a data-driven `<Tree>`. */
 export interface TreeItemData {
@@ -85,6 +86,7 @@ export const Tree: React.FC<TreeProps> = ({
 }) => {
   const id = useStableId(propId, 'tree');
   const { vars } = useSliceOverrides(TreeThemeSlice, overrides);
+  const strings = useLocaleStrings().tree;
 
   const [internalExpanded, setInternalExpanded] = useState<Set<string>>(() => new Set(defaultExpandedIds ?? []));
   const isExpandedControlled = controlledExpandedIds !== undefined;
@@ -195,7 +197,7 @@ export const Tree: React.FC<TreeProps> = ({
   };
 
   return (
-    <div role="tree" aria-label="Tree" style={{ display: 'flex', flexDirection: 'column', ...vars }}>
+    <div role="tree" aria-label={strings.treeLabel} style={{ display: 'flex', flexDirection: 'column', ...vars }}>
       {flatVisible.map((node, index) => {
         const hasChildren = !!node.item.children?.length;
         const isExpanded = expandedSet.has(node.item.id);
