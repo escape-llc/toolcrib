@@ -59,9 +59,26 @@ function generateId(): string {
   return `theme-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** Lists every user-saved theme, most recently saved first. */
+/**
+ * Lists every user-saved theme, most recently saved first.
+ *
+ * `savedAt` is millisecond-resolution (`toISOString()`), so two saves in
+ * quick succession (a fast double-click, a scripted/automated save, or —
+ * confirmed for real — a CI runner under load stretching what should be a
+ * few milliseconds) can tie exactly. `Array.prototype.sort` is stable, so
+ * a plain `.sort((a, b) => b.savedAt.localeCompare(a.savedAt))` on tied
+ * entries silently preserves their *original* array order — which is
+ * oldest-appended-first (`saveThemeToLibrary` always appends), the
+ * opposite of "most recently saved first." Reversing before the sort
+ * makes ties resolve to most-recently-appended-first instead, which is
+ * the actually-intended tiebreak and doesn't depend on timestamp
+ * precision at all.
+ */
 export function listSavedThemes(): SavedTheme[] {
-  return readLibrary().sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  return readLibrary()
+    .slice()
+    .reverse()
+    .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
 
 /** Saves a snapshot under a name, appending a new library entry (never overwrites an existing one by name — same name twice just means two entries). */

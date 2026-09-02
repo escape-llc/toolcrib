@@ -24,9 +24,15 @@ describe('themeLibrary (localStorage-backed)', () => {
     expect(list[0].snapshot.parameters?.baseColor).toEqual({ h: 1, s: 2, v: 3 });
   });
 
-  it('lists most recently saved first', async () => {
+  it('lists most recently saved first, even when both saves land in the same millisecond', () => {
+    // No artificial delay between the two saves -- listSavedThemes's own
+    // reverse-before-sort tiebreak (see its doc comment) is what makes this
+    // deterministic regardless of savedAt's millisecond resolution, not a
+    // timing gap between the two calls. A previous version of this test
+    // relied on a 2ms setTimeout to force distinct timestamps, which was
+    // genuinely flaky under CI load (confirmed directly: it failed for
+    // real on a loaded runner, not hypothetically).
     const first = saveThemeToLibrary('First', sampleSnapshot);
-    await new Promise(r => setTimeout(r, 2)); // ensures a distinct savedAt timestamp
     const second = saveThemeToLibrary('Second', sampleSnapshot);
 
     const list = listSavedThemes();
