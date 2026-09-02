@@ -6,6 +6,7 @@ import {
   computeServerThemeCSS,
   TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
+  TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
 } from '../theme/themeContext';
 import { TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID } from '../theme/animationKeyframes';
 import { generateHarmonyPalette } from '../theme/harmonies';
@@ -192,6 +193,7 @@ describe('computeServerThemeCSS hydration safety', () => {
     document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_RESPONSIVE_STYLE_ID)?.remove();
+    document.getElementById(TOOLCRIB_THEME_TRANSITIONS_STYLE_ID)?.remove();
     document.documentElement.removeAttribute('style');
   };
   beforeEach(clearInjectedStyles);
@@ -210,6 +212,11 @@ describe('computeServerThemeCSS hydration safety', () => {
     keyframesEl.textContent = ssr.keyframesCSS;
     document.head.appendChild(keyframesEl);
 
+    const transitionsEl = document.createElement('style');
+    transitionsEl.id = TOOLCRIB_THEME_TRANSITIONS_STYLE_ID;
+    transitionsEl.textContent = ssr.transitionsCSS;
+    document.head.appendChild(transitionsEl);
+
     render(
       <ThemeProvider>
         <div>content</div>
@@ -218,6 +225,7 @@ describe('computeServerThemeCSS hydration safety', () => {
 
     expect(document.querySelectorAll(`#${TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID}`).length).toBe(1);
     expect(document.querySelectorAll(`#${TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}`).length).toBe(1);
+    expect(document.querySelectorAll(`#${TOOLCRIB_THEME_TRANSITIONS_STYLE_ID}`).length).toBe(1);
     // injectGlobalStyle no-op'd against the pre-existing element rather
     // than re-creating it — content is exactly what was seeded, untouched.
     expect(document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)!.textContent).toBe(ssr.typographyCSS);

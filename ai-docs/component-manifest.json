@@ -191,6 +191,7 @@
       "--ai-table-stripe-bg",
       "--ai-text-primary",
       "--ai-text-secondary",
+      "--ai-theme-transition-properties",
       "--ai-toast-accent-width",
       "--ai-toast-collapse-duration",
       "--ai-toast-exit-duration",

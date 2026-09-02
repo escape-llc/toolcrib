@@ -15,6 +15,7 @@ import {
   computeServerThemeCSS,
   TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
+  TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
 } from '#toolcrib';
 import { TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID } from '#toolcrib';
 ```
@@ -38,6 +39,7 @@ import {
   TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
   TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID,
+  TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
 } from '#toolcrib';
 import { Providers } from './providers'; // a client component wrapping <ThemeProvider>
 
@@ -51,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: theme.rootVariablesCSS }} />
         <style id={TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID} dangerouslySetInnerHTML={{ __html: theme.typographyCSS }} />
         <style id={TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID} dangerouslySetInnerHTML={{ __html: theme.keyframesCSS }} />
+        <style id={TOOLCRIB_THEME_TRANSITIONS_STYLE_ID} dangerouslySetInnerHTML={{ __html: theme.transitionsCSS }} />
         {theme.responsiveCSS && (
           <style id={TOOLCRIB_RESPONSIVE_STYLE_ID} dangerouslySetInnerHTML={{ __html: theme.responsiveCSS }} />
         )}
@@ -78,7 +81,7 @@ The client's own injection effect writes these as inline properties on
 idempotent (setting the same custom property to the same value twice has
 no effect), so there's no id-based dedup to align with here. Render
 `rootVariablesCSS` under any `<style>` tag; the exact ids above only
-matter for the other three pieces.
+matter for the other four pieces.
 
 ## CSP nonce
 

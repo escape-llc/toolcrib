@@ -159,7 +159,7 @@ export interface ThemeContextType {
 }
 
 /**
- * `computeServerThemeCSS`'s return shape — four separate strings rather
+ * `computeServerThemeCSS`'s return shape — separate strings rather
  * than one blob, specifically so each can be rendered under the id (see
  * `TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID`/`TOOLCRIB_RESPONSIVE_STYLE_ID` below)
  * that makes `injectGlobalStyle`/`upsertGlobalStyle`'s client-side dedup
@@ -182,6 +182,8 @@ export interface ServerThemeCSS {
   typographyCSS: string;
   /** Render as `<style id={TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}>` (that id is exported from `./animationKeyframes`, not this file). */
   keyframesCSS: string;
+  /** Render as `<style id={TOOLCRIB_THEME_TRANSITIONS_STYLE_ID}>`. */
+  transitionsCSS: string;
 }
 
 /**
@@ -208,6 +210,52 @@ export const TOOLCRIB_RESPONSIVE_STYLE_ID = 'toolcrib-responsive-theme';
  * @barrelExport
  */
 export const TOOLCRIB_TYPOGRAPHY_BASE_CSS = `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`;
+
+/** @barrelExport */
+export const TOOLCRIB_THEME_TRANSITIONS_STYLE_ID = 'toolcrib-theme-transitions';
+
+/**
+ * Makes a theme/dark-mode/subtheme switch fade smoothly instead of cutting
+ * instantly — before this, no theme variable change animated anywhere
+ * (confirmed: nothing in this file ever set a `transition`), so toggling
+ * dark mode or a subtheme was a hard visual cut everywhere except the
+ * handful of components that happened to wire in `--ai-transition-normal`
+ * themselves for unrelated hover/press feedback.
+ *
+ * `:where(*)` (zero specificity) rather than a bare `*`: any component that
+ * already manages its own `transition`/`transition-property` inline (e.g.
+ * `Button`'s `all var(--ai-transition-normal)`) is completely unaffected —
+ * inline `style` always wins the cascade over any external stylesheet rule
+ * regardless of selector specificity, so this only ever supplies a baseline
+ * for elements that don't already have one of their own.
+ *
+ * Longhand `transition-property`/`-duration`/`-timing-function`, not the
+ * `transition` shorthand: a shorthand here would need its own full value on
+ * one line, whereas the longhand form lets `--ai-theme-transition-properties`
+ * be independently overridden (e.g. a consumer wanting `outline-color` added,
+ * or `box-shadow` removed because it's already busy for a different purpose)
+ * without having to restate the duration/easing too.
+ *
+ * Deliberately reuses `--ai-transition-duration-normal`/`--ai-transition-easing`
+ * (`animation.tsx`) rather than inventing parallel variables — both are
+ * already CSS-variable-driven, already user-configurable via the Theme
+ * Editor's Motion/Physics preset, and already collapse to `0s`/`linear`
+ * under `reducedMotion: 'always'` or `preset: 'none'`, so this gets that
+ * same accessibility behavior for free instead of needing its own guard.
+ *
+ * Deliberately excludes layout-affecting properties (`transform`, `width`,
+ * `height`, `top`/`left`, etc.) from the default list — this codebase has a
+ * real history of subtle animation bugs from over-broad transitions (see
+ * AGENTS.md's Toast/SlideOut/Splitter races and `tabstrip-jitter.spec.ts`),
+ * so the default only ever covers purely visual/color-bearing properties,
+ * never anything a layout/drag/resize mechanism elsewhere depends on.
+ * @barrelExport
+ */
+export const TOOLCRIB_THEME_TRANSITIONS_CSS = `:where(*) {
+  transition-property: var(--ai-theme-transition-properties, background-color, color, border-color, box-shadow, fill, stroke, outline-color, text-decoration-color);
+  transition-duration: var(--ai-transition-duration-normal, 0.2s);
+  transition-timing-function: var(--ai-transition-easing, ease);
+}`;
 
 const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
   // Matches presetThemes.ts's 'tailwind' preset — Tailwind CSS's blue-500
@@ -443,6 +491,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     injectGlobalStyle(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID, TOOLCRIB_TYPOGRAPHY_BASE_CSS, targetDocument, nonce);
   }, [targetDocument, nonce]);
 
+  // See TOOLCRIB_THEME_TRANSITIONS_CSS's own doc comment for why this is
+  // safe to apply ambiently (zero-specificity selector, inline styles
+  // always win) and why it only covers color-bearing properties.
+  useEffect(() => {
+    injectGlobalStyle(TOOLCRIB_THEME_TRANSITIONS_STYLE_ID, TOOLCRIB_THEME_TRANSITIONS_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
+
   // The sole injection point for the shared entrance/exit @keyframes
   // (Modal/Drawer/Popup/AlertDialog/TabStrip.Panel/Accordion) — see
   // animationKeyframes.ts's own doc comment for why this used to also run
@@ -595,5 +650,6 @@ export function computeServerThemeCSS(
     responsiveCSS: Object.keys(responsiveInput).length === 0 ? null : generateResponsiveCSS(responsiveInput),
     typographyCSS: TOOLCRIB_TYPOGRAPHY_BASE_CSS,
     keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
+    transitionsCSS: TOOLCRIB_THEME_TRANSITIONS_CSS,
   };
 }
