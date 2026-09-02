@@ -125,6 +125,8 @@ For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a
 | Build a second lazy-render/`IntersectionObserver` mechanism for a grid of many thumbnails | Use `<Gallery>` — thumbnails defer via the existing `<DeferredContent>`, not a new visibility mechanism |
 | Hand-roll swipe/drag physics, loop index math, or a `setInterval`-only slideshow for a slide viewport | Use `<Carousel>` — `embla-carousel-react` owns the drag/swipe/loop math; nav arrows and dot indicators are already themed and wired to it |
 
+**Security note — URL-accepting props:** `Breadcrumb`, `Sidebar`, `Avatar`, `Gallery`, and `Viewer`/`ViewerContent` all render a caller-supplied `href`/`src` value as-is, exactly like a plain `<a href>`/`<img src>` — none of them validate or strip the URL scheme. If that value can ever originate from another user's input (a stored profile link, an uploaded file's URL) rather than your own static config, sanitize/allow-list the scheme yourself (reject `javascript:`, `data:`, etc.) before it reaches the prop. This is the same responsibility every `<a href>`/`<img src>` already carries in a plain React app, not something a toolcrib component does differently or is expected to guard for you.
+
 ---
 
 ## 4. Component Reference
