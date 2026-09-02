@@ -98,6 +98,11 @@ function sha256(buffer) {
  * and return the raw buffer. Throws on mismatch (corrupted/truncated
  * download, or a tampered file at rest — see design notes on what a
  * checksum does and doesn't guarantee against a compromised source).
+ *
+ * Every published release has shipped a .sha256 sibling since this
+ * mechanism was introduced — a failed fetch of it (missing, network
+ * error, or an on-path actor blocking just that request) is treated
+ * as an integrity failure, not tolerated as an older-release gap.
  */
 export async function downloadReleaseZip(version) {
   const zipUrl = assetUrl(version, ASSET_NAME);
@@ -105,18 +110,21 @@ export async function downloadReleaseZip(version) {
 
   const [zipBuffer, checksumText] = await Promise.all([
     fetchBuffer(zipUrl),
-    fetchText(checksumUrl).catch(() => null), // tolerate older releases with no checksum asset
+    fetchText(checksumUrl).catch((err) => {
+      throw new Error(
+        `Failed to fetch checksum for ${ASSET_NAME} (${err.message}). ` +
+          `Refusing to install an unverified download.`
+      );
+    }),
   ]);
 
-  if (checksumText) {
-    const expected = checksumText.trim().split(/\s+/)[0];
-    const actual = sha256(zipBuffer);
-    if (actual !== expected) {
-      throw new Error(
-        `Checksum mismatch for ${ASSET_NAME} (expected ${expected}, got ${actual}). ` +
-          `The download may be corrupted or incomplete — try again.`
-      );
-    }
+  const expected = checksumText.trim().split(/\s+/)[0];
+  const actual = sha256(zipBuffer);
+  if (actual !== expected) {
+    throw new Error(
+      `Checksum mismatch for ${ASSET_NAME} (expected ${expected}, got ${actual}). ` +
+        `The download may be corrupted or incomplete — try again.`
+    );
   }
 
   return zipBuffer;

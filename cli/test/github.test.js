@@ -152,7 +152,7 @@ describe('downloadReleaseZip checksum verification', () => {
     await expect(downloadReleaseZip('1.0.0')).rejects.toThrow(/Checksum mismatch/);
   });
 
-  it('tolerates a missing checksum asset (older release) rather than failing the whole download', async () => {
+  it('throws when the checksum asset fails to fetch, rather than silently skipping verification', async () => {
     const content = Buffer.from('fake zip contents');
 
     fetchMock.mockImplementation(async (url) => {
@@ -162,8 +162,7 @@ describe('downloadReleaseZip checksum verification', () => {
       return { ok: true, arrayBuffer: async () => content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) };
     });
 
-    const result = await downloadReleaseZip('1.0.0');
-    expect(result.equals(content)).toBe(true);
+    await expect(downloadReleaseZip('1.0.0')).rejects.toThrow(/Failed to fetch checksum/);
   });
 
   it('throws when the zip asset itself fails to download (distinct from a merely-missing checksum sibling)', async () => {
