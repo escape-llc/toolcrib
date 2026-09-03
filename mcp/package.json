@@ -1,0 +1,35 @@
+{
+  "name": "toolcrib-mcp",
+  "version": "0.1.0",
+  "description": "Local MCP server exposing an already-vendored toolcrib install's ai-docs content to AI coding agents",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/escape-llc/toolcrib.git",
+    "directory": "mcp"
+  },
+  "bin": {
+    "toolcrib-mcp": "src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage:unit": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "fuse.js": "^7.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "vitest": "^4.1.10"
+  }
+}
