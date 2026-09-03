@@ -145,6 +145,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
           }}
         >
           <AlertDialogPrimitive.Content
+            aria-modal="true"
             data-testid="alertdialog-container"
             className="ai-focus-ring"
             style={{

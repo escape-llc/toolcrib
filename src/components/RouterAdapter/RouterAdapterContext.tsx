@@ -1,5 +1,6 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { isDevBuild } from '../../theme/safeProps';
 
 /**
  * Router-agnostic navigation contract. Build one of these from whatever
@@ -65,7 +66,7 @@ export function useRouterBridge(): void {
 
   useAIEvent('route:navigate', ({ to }) => {
     if (!adapter) {
-      if (process.env.NODE_ENV !== 'production') {
+      if (isDevBuild()) {
         console.warn(
           '[toolcrib] useRouterBridge(): aiBus.navigate() was called but no <RouterAdapterProvider> is mounted above this component — navigation was ignored. Wrap your router tree in <RouterAdapterProvider adapter={...}>.'
         );

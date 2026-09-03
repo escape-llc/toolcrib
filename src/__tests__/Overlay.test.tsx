@@ -111,6 +111,25 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();
   });
 
+  // Regression guard: @radix-ui/react-dialog's own DialogContent never sets
+  // aria-modal itself (confirmed directly in its source -- it relies on the
+  // `aria-hidden` package's hideOthers() to hide siblings instead, which
+  // achieves real modal *behavior* but not the spec-declared attribute).
+  // Nothing about the dialog looks or behaves broken without it, and
+  // aria-modal isn't a *required* attribute for role="dialog" -- so neither
+  // axe-core nor manual interaction testing would ever flag its absence.
+  // Modal.tsx now sets it explicitly; this test is the only thing standing
+  // between that and a silent regression next time Content's props change.
+  it('declares aria-modal="true" explicitly, since the underlying Radix primitive never sets it itself', () => {
+    render(
+      <Modal trigger={<Button>Open Modal</Button>}>
+        <Modal.Body>Content</Modal.Body>
+      </Modal>
+    );
+    fireEvent.click(screen.getByText('Open Modal'));
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
+  });
+
   it('exposes a generic default accessible name, and a custom one via ariaLabel', () => {
     const { rerender } = render(
       <Modal trigger={<Button>Open Default</Button>}>

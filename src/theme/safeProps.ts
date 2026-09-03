@@ -48,7 +48,7 @@ export function resolveIsDev(metaEnvDev: boolean | undefined, nodeEnv: string | 
  * extra console.warn a real production build silences at the log level is
  * a cheaper mistake than a real migration bug going unreported.
  */
-function isDevBuild(): boolean {
+export function isDevBuild(): boolean {
   const meta = import.meta as unknown as { env?: { DEV?: boolean } };
   const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
   return resolveIsDev(meta?.env?.DEV, proc?.env?.NODE_ENV);

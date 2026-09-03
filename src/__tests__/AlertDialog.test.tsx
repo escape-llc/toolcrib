@@ -33,6 +33,20 @@ describe('AlertDialog Component', () => {
     expect(screen.getByTestId('alertdialog-container')).toBeInTheDocument();
   });
 
+  // Regression guard: @radix-ui/react-alert-dialog is built directly on
+  // @radix-ui/react-dialog (confirmed in its own source) and inherits the
+  // identical gap -- its DialogContentImpl never sets aria-modal itself.
+  // See Overlay.test.tsx's matching Modal test for the full reasoning.
+  it('declares aria-modal="true" explicitly, since the underlying Radix primitive never sets it itself', () => {
+    render(
+      <AlertDialog trigger={<Button>Delete Record</Button>} ariaLabel="Delete confirmation">
+        <AlertDialog.Body>This cannot be undone.</AlertDialog.Body>
+      </AlertDialog>
+    );
+    fireEvent.click(screen.getByText('Delete Record'));
+    expect(screen.getByRole('alertdialog')).toHaveAttribute('aria-modal', 'true');
+  });
+
   it('still dismisses on Escape, matching a native confirm dialog', () => {
     render(
       <AlertDialog trigger={<Button>Open</Button>}>

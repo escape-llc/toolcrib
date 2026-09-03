@@ -61,6 +61,16 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Vendored source can't assume @types/node (or any other bundler's
+      // ambient types) is present in a consumer project -- a bare
+      // `process.env...` reference type-checks fine in this repo's own
+      // dev environment (where @types/node happens to be installed) and
+      // then fails to compile the moment it's vendored into a fresh
+      // consumer scaffold that never opted into it. Use `isDevBuild()`
+      // from `theme/safeProps.ts` instead, which reads the same value
+      // through a `globalThis` cast specifically so it never needs
+      // ambient Node or Vite types to compile. See AGENTS.md.
+      'no-restricted-globals': ['error', { name: 'process', message: 'Use isDevBuild() from theme/safeProps.ts instead of accessing process.env directly.' }],
     },
   }
 );

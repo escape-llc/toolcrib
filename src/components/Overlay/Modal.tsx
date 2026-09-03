@@ -159,6 +159,7 @@ export const Modal: React.FC<ModalProps> & {
         >
           <DialogPrimitive.Content
             aria-describedby={undefined}
+            aria-modal="true"
             data-testid="modal-container"
             className="ai-focus-ring"
             style={{
