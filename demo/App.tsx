@@ -65,6 +65,7 @@ import {
   FileUpload,
   Pagination,
   Badge,
+  Link,
   EmptyState,
   Skeleton,
   Spinner,
@@ -1766,6 +1767,23 @@ export const App: React.FC = () => {
                           <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Laptops', priority: 'low' })}>Laptops</Breadcrumb.Item>
                           <Breadcrumb.Item>Current Model</Breadcrumb.Item>
                         </Breadcrumb>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>Themed Hyperlinks (`&lt;Link&gt;`)</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Colors itself from <code>--ai-color-primary-readable</code>/<code>-secondary-readable</code> — the theme's own hue, nudged for WCAG AA contrast rather than a fixed browser blue/purple. A plain hand-written <code>&lt;a&gt;</code> anywhere in this page picks up the same link/visited colors ambiently, with no class needed.
+                        </p>
+                        <HStack gap="lg" wrap align="center">
+                          <Link href="#">Default (primary)</Link>
+                          <Link href="#" variant="secondary">Secondary variant</Link>
+                          <Link href="#" subtheme="error">Delete account (subtheme)</Link>
+                          <Link href="https://example.com" target="_blank">
+                            Opens in new tab (auto rel=&quot;noopener noreferrer&quot;)
+                          </Link>
+                        </HStack>
                       </Card.Content>
                     </Card>
 

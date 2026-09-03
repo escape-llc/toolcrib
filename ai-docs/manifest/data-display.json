@@ -497,6 +497,25 @@
       "description": "Multi-series line chart with a shared hover crosshair; `variant=\"area\"` renders a stacked, filled area chart"
     },
     {
+      "name": "Link",
+      "import": "import { Link } from '#toolcrib'",
+      "props": {
+        "variant": {
+          "type": "'primary' | 'secondary'",
+          "default": "'primary'",
+          "description": "Identity color from the harmony palette, used for both the unvisited\nand (nudged) visited text color — matches whichever brand hue `variant`\non `<Button>`/`<Badge>` already resolves to, so a link reads as part of\nthe same themed surface rather than a fixed, independent color.\nIgnored if `subtheme` is set."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour instead (e.g. a destructive \"Delete account\"\nlink). Wins over `variant` if both are set. Unlike `variant`, uses the\nsame resolved color for both unvisited and visited state — a status\ncolored link's meaning doesn't change once visited the way an ordinary\nnavigational link's does."
+        }
+      },
+      "category": "Data Display",
+      "antiPatternAvoid": "Hardcode a link's color (or leave it unthemed), or write `<a target=\"_blank\">` without also setting `rel=\"noopener noreferrer\"` (reverse-tabnabbing — the opened page gets `window.opener` and can navigate your tab)",
+      "antiPatternInstead": "Use `<Link>` — colors itself from `--ai-color-primary-readable`/`-secondary-readable` (hue preserved, contrast-checked) for link/visited state, and supplies the safe `rel` default automatically",
+      "description": "Themed hyperlink — colors itself from the theme's identity palette (hue-preserving, WCAG AA against the page background) for both unvisited and `:visited` state, and auto-applies `rel=\"noopener noreferrer\"` when `target=\"_blank\"`"
+    },
+    {
       "name": "PieChart",
       "import": "import { PieChart } from '#toolcrib'",
       "props": {

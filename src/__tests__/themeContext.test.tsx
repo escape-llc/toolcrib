@@ -5,6 +5,7 @@ import {
   useTheme,
   computeServerThemeCSS,
   TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
+  TOOLCRIB_LINK_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
   TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
 } from '../theme/themeContext';
@@ -191,6 +192,7 @@ describe('computeServerThemeCSS hydration safety', () => {
   // making every assertion below count stale pollution as a false failure.
   const clearInjectedStyles = () => {
     document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)?.remove();
+    document.getElementById(TOOLCRIB_LINK_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_RESPONSIVE_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_THEME_TRANSITIONS_STYLE_ID)?.remove();
@@ -206,6 +208,11 @@ describe('computeServerThemeCSS hydration safety', () => {
     typographyEl.id = TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID;
     typographyEl.textContent = ssr.typographyCSS;
     document.head.appendChild(typographyEl);
+
+    const linkEl = document.createElement('style');
+    linkEl.id = TOOLCRIB_LINK_STYLE_ID;
+    linkEl.textContent = ssr.linkCSS;
+    document.head.appendChild(linkEl);
 
     const keyframesEl = document.createElement('style');
     keyframesEl.id = TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID;
@@ -229,6 +236,7 @@ describe('computeServerThemeCSS hydration safety', () => {
     // injectGlobalStyle no-op'd against the pre-existing element rather
     // than re-creating it — content is exactly what was seeded, untouched.
     expect(document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)!.textContent).toBe(ssr.typographyCSS);
+    expect(document.getElementById(TOOLCRIB_LINK_STYLE_ID)!.textContent).toBe(ssr.linkCSS);
   });
 
   it('recognizes the pre-existing responsive <style> tag on mount (no duplicate), then removes it once a live setter switches away from responsive control', () => {

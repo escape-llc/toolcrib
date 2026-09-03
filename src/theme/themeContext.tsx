@@ -183,6 +183,8 @@ export interface ServerThemeCSS {
   responsiveCSS: string | null;
   /** Render as `<style id={TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID}>`. */
   typographyCSS: string;
+  /** Render as `<style id={TOOLCRIB_LINK_STYLE_ID}>`. */
+  linkCSS: string;
   /** Render as `<style id={TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}>` (that id is exported from `./animationKeyframes`, not this file). */
   keyframesCSS: string;
   /** Render as `<style id={TOOLCRIB_THEME_TRANSITIONS_STYLE_ID}>`. */
@@ -215,6 +217,44 @@ export const TOOLCRIB_RESPONSIVE_STYLE_ID = 'toolcrib-responsive-theme';
  * @barrelExport
  */
 export const TOOLCRIB_TYPOGRAPHY_BASE_CSS = `:root { font-family: var(--ai-font-family, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif); font-size: var(--ai-master-font-size, 16px); line-height: var(--ai-line-height, 1.5); color: var(--ai-text-primary, #111827); }`;
+
+/** @barrelExport */
+export const TOOLCRIB_LINK_STYLE_ID = 'toolcrib-link-base';
+
+/**
+ * Ambient link/`:visited` colouring for every `<a>` in a consumer's app —
+ * not just toolcrib's own `<Link>` component. Before this, a plain
+ * hand-authored `<a>` got zero theming (no rule anywhere set `a { color }`),
+ * so it either inherited whatever `:root`'s own text color was (no visited
+ * distinction, no "this is a link" affordance at all) or the browser's
+ * hardcoded UA-stylesheet blue/purple, neither of which tracks the theme.
+ *
+ * Uses `--ai-color-primary-readable`/`--ai-color-secondary-readable`
+ * (harmonies.ts) rather than the raw `--ai-color-primary`/`-secondary` —
+ * those are already WCAG-AA-checked against the page background via
+ * `ensureWCAGContrast` (hsv.ts), which only ever nudges Value/Saturation,
+ * *never* Hue — so a link stays recognizably "the theme's own primary hue"
+ * (blue, by default) rather than being neutralized toward grey or shifted
+ * to a different color for contrast's sake. Same mechanism `resolveColorVariant`
+ * already uses for Badge/Toast's own "identity color as safe text on a
+ * neutral surface" case (colorVariant.ts) — reused here, not reinvented.
+ *
+ * `--ai-link-color`/`--ai-link-visited-color` are the per-instance escape
+ * hatch `<Link>` itself sets *inline* (never the `color` property directly)
+ * to override just this rule's resolved value — `:visited` can only ever be
+ * styled from a real stylesheet rule (never inline `style`, never read back
+ * via script, by long-standing browser privacy restriction on visited-link
+ * history sniffing), so a per-instance override has to flow through a CSS
+ * custom property referenced here, not a `style.color` write that would
+ * permanently defeat the `:visited` rule below it once visited.
+ *
+ * `.ai-link` alongside the bare `a` selector: `<Link>` renders `className="ai-link"`
+ * so this same rule (and its per-instance variable overrides) applies to it
+ * too, without a second, duplicate rule.
+ * @barrelExport
+ */
+export const TOOLCRIB_LINK_CSS = `a, .ai-link { color: var(--ai-link-color, var(--ai-color-primary-readable, #1e3a8a)); }
+a:visited, .ai-link:visited { color: var(--ai-link-visited-color, var(--ai-color-secondary-readable, #334155)); }`;
 
 /** @barrelExport */
 export const TOOLCRIB_THEME_TRANSITIONS_STYLE_ID = 'toolcrib-theme-transitions';
@@ -496,6 +536,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     injectGlobalStyle(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID, TOOLCRIB_TYPOGRAPHY_BASE_CSS, targetDocument, nonce);
   }, [targetDocument, nonce]);
 
+  // See TOOLCRIB_LINK_CSS's own doc comment for why this is ambient (every
+  // plain `<a>`, not just `<Link>`) and why per-instance overrides go
+  // through a CSS custom property rather than an inline `color`.
+  useEffect(() => {
+    injectGlobalStyle(TOOLCRIB_LINK_STYLE_ID, TOOLCRIB_LINK_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
+
   // See TOOLCRIB_THEME_TRANSITIONS_CSS's own doc comment for why this is
   // safe to apply ambiently (zero-specificity selector, inline styles
   // always win) and why it only covers color-bearing properties.
@@ -661,6 +708,7 @@ export function computeServerThemeCSS(
     rootVariablesCSS: `:root {\n${rootDeclarations}\n}`,
     responsiveCSS: Object.keys(responsiveInput).length === 0 ? null : generateResponsiveCSS(responsiveInput),
     typographyCSS: TOOLCRIB_TYPOGRAPHY_BASE_CSS,
+    linkCSS: TOOLCRIB_LINK_CSS,
     keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
     transitionsCSS: TOOLCRIB_THEME_TRANSITIONS_CSS,
     livingColorCSS: TOOLCRIB_LIVING_COLOR_CSS,

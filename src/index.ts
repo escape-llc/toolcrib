@@ -110,6 +110,7 @@ export * from './components/Layout/DeferredContent';
 export * from './components/Layout/Grid';
 export * from './components/Layout/Stack';
 export * from './components/Layout/VisuallyHidden';
+export * from './components/Link/Link';
 export * from './components/Listbox/Listbox';
 export * from './components/Locale/LocaleContext';
 export * from './components/Overlay/Drawer';

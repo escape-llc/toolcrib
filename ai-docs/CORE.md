@@ -115,6 +115,7 @@ For triggering navigation from anywhere in the tree via `aiBus.navigate()` — a
 | Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Build a second lazy-render/`IntersectionObserver` mechanism for a grid of many thumbnails | Use `<Gallery>` — thumbnails defer via the existing `<DeferredContent>`, not a new visibility mechanism |
+| Hardcode a link's color (or leave it unthemed), or write `<a target="_blank">` without also setting `rel="noopener noreferrer"` (reverse-tabnabbing — the opened page gets `window.opener` and can navigate your tab) | Use `<Link>` — colors itself from `--ai-color-primary-readable`/`-secondary-readable` (hue preserved, contrast-checked) for link/visited state, and supplies the safe `rel` default automatically |
 | Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
 | Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free |
@@ -203,6 +204,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Gallery>` | — | `id`, `items`, `columns`, `onItemClick`, `overrides` | Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default |
 | `<Heatmap>` | — | `columns`, `rows`, `values`, `width`, `height`, `title`, `formatValue` | Row/column magnitude grid with a theme-tracking sequential ramp |
 | `<LineChart>` | — | `categories`, `series`, `width`, `height`, `title`, `variant`, `legendPosition`, `overrides` | Multi-series line chart with a shared hover crosshair; `variant="area"` renders a stacked, filled area chart |
+| `<Link>` | — | `variant`, `subtheme` | Themed hyperlink — colors itself from the theme's identity palette (hue-preserving, WCAG AA against the page background) for both unvisited and `:visited` state, and auto-applies `rel="noopener noreferrer"` when `target="_blank"` |
 | `<PieChart>` | — | `data`, `width`, `height`, `innerRadius`, `title`, `legendPosition` | Part-to-whole pie or donut chart |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<ScaleLegend>` | — | `min`, `max`, `formatValue`, `width` | Gradient legend for a sequential (magnitude) color-encoded chart |
