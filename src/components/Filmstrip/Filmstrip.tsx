@@ -55,6 +55,8 @@ export interface FilmstripProps {
 /**
  * @manifest Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails
+ * @manifestAntiPatternInstead Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it
  */
 export const Filmstrip: React.FC<FilmstripProps> = ({
   id: propId,

@@ -155,6 +155,8 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
 /**
  * @manifest Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestAntiPatternAvoid Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input
+ * @manifestAntiPatternInstead Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee
  */
 export const DatePicker: React.FC<DatePickerProps> = ({
   name: propName,

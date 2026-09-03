@@ -36,6 +36,8 @@ const DEFAULT_ICON = '★';
 /**
  * @manifest Star rating control built on Radix RadioGroup, or a read-only fractional-fill display
  * @manifestCategory Form Controls
+ * @manifestAntiPatternAvoid Build a row of clickable star `<span>`s with manual hover/click state for a rating input
+ * @manifestAntiPatternInstead Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them
  */
 export const Rating: React.FC<RatingProps> = ({
   name,

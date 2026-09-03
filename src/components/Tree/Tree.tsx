@@ -72,6 +72,8 @@ export interface TreeProps {
  * @manifest Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation
  * @manifestConstraints Rendered as a flat, single-level DOM list with `aria-level`/`aria-setsize`/`aria-posinset` conveying hierarchy (not nested `role="group"` elements) — a WAI-ARIA-APG-accepted alternative that keeps each visible row independently wrappable in `<DeferredContent>` for large trees
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation
+ * @manifestAntiPatternInstead Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free
  */
 export const Tree: React.FC<TreeProps> = ({
   id: propId,

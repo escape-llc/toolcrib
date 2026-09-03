@@ -93,6 +93,8 @@
         }
       },
       "category": "Overlays",
+      "antiPatternAvoid": "Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener",
+      "antiPatternInstead": "Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)`",
       "description": "Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement)"
     },
     {
@@ -385,6 +387,8 @@
         }
       },
       "category": "Overlays",
+      "antiPatternAvoid": "Build a bespoke fullscreen image lightbox, independent of `<Modal>`",
+      "antiPatternInstead": "Use `<Viewer>` — composes `<ViewerContent>` inside `<Modal>` automatically; nested inside another `<Modal>`, Escape closes only the `<Viewer>`, not the parent",
       "description": "Fullscreen media lightbox — composes ViewerContent inside Modal"
     },
     {
@@ -423,6 +427,8 @@
         }
       },
       "category": "Overlays",
+      "antiPatternAvoid": "Weld a media viewer's zoom/pan/nav content directly to one specific overlay component",
+      "antiPatternInstead": "Use `<ViewerContent>` on its own — zero overlay chrome of its own, host it inside `<Modal>` (`<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline",
       "description": "Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing"
     }
   ],

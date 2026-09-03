@@ -103,6 +103,8 @@
         }
       },
       "category": "Form Controls",
+      "antiPatternAvoid": "Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases)",
+      "antiPatternInstead": "Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee",
       "description": "Month grid for selecting a single date, built on React Aria Components"
     },
     {
@@ -235,6 +237,8 @@
         }
       },
       "category": "Form Controls",
+      "antiPatternAvoid": "Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input",
+      "antiPatternInstead": "Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee",
       "description": "Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components"
     },
     {
@@ -322,6 +326,8 @@
         "Slider"
       ],
       "category": "Form Controls",
+      "antiPatternAvoid": "Write `register()` or `onChange` boilerplate for form fields",
+      "antiPatternInstead": "Nest `<Input>`, `<Select>`, etc. inside `<FormField name=\"...\">` — binding is automatic",
       "description": "Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate"
     },
     {
@@ -435,6 +441,8 @@
         }
       },
       "category": "Form Controls",
+      "antiPatternAvoid": "Hand-roll page-index math (clamping, prev/next, page-size resets)",
+      "antiPatternInstead": "Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging",
       "description": "Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>`"
     },
     {
@@ -528,6 +536,8 @@
         }
       },
       "category": "Form Controls",
+      "antiPatternAvoid": "Build a row of clickable star `<span>`s with manual hover/click state for a rating input",
+      "antiPatternInstead": "Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them",
       "description": "Star rating control built on Radix RadioGroup, or a read-only fractional-fill display"
     },
     {
@@ -709,6 +719,8 @@
         }
       },
       "category": "Form Controls",
+      "antiPatternAvoid": "Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation)",
+      "antiPatternInstead": "Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free",
       "description": "Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components"
     },
     {

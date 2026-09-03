@@ -52,6 +52,8 @@ export interface ViewerContentProps {
 /**
  * @manifest Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing
  * @manifestCategory Overlays
+ * @manifestAntiPatternAvoid Weld a media viewer's zoom/pan/nav content directly to one specific overlay component
+ * @manifestAntiPatternInstead Use `<ViewerContent>` on its own — zero overlay chrome of its own, host it inside `<Modal>` (`<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline
  */
 export const ViewerContent: React.FC<ViewerContentProps> = ({
   id: propId,

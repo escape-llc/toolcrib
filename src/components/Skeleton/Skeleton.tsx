@@ -20,6 +20,8 @@ export interface SkeletonProps extends StyleFreeAttributes<HTMLDivElement> {
 /**
  * @manifest Shimmering loading placeholder in text/circle/rect shapes
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll a pulsing/shimmering loading placeholder `<div>` for content that hasn't loaded yet
+ * @manifestAntiPatternInstead Use `<Skeleton shape="text"|"circle"|"rect">` — already animates off the shared keyframes, not a one-off duration
  */
 export const Skeleton: React.FC<SkeletonProps> = ({ shape = 'text', width, height, ...props }) => {
   warnIfLegacyStyleProps(props, 'Skeleton');

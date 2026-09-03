@@ -67,6 +67,8 @@ export interface FormProps<T extends Record<string, any> = Record<string, any>> 
  * @manifest Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate
  * @manifestChildren FormField, FormError, Button, SubmitButton, Input, Select, Checkbox, Switch, Textarea, RadioGroup, Slider
  * @manifestCategory Form Controls
+ * @manifestAntiPatternAvoid Write `register()` or `onChange` boilerplate for form fields
+ * @manifestAntiPatternInstead Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic
  */
 export function Form<T extends Record<string, any> = Record<string, any>>({
   schema,

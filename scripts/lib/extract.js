@@ -466,6 +466,8 @@ export function findComponentDeclarations(sourceFile) {
           constraints: jsDocTag(doc, 'manifestConstraints'),
           children: jsDocTag(doc, 'manifestChildren'),
           category: jsDocTag(doc, 'manifestCategory'),
+          antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
+          antiPatternInstead: jsDocTag(doc, 'manifestAntiPatternInstead'),
         });
       }
     } else if (ts.isFunctionDeclaration(node)) {
@@ -483,6 +485,8 @@ export function findComponentDeclarations(sourceFile) {
         constraints: jsDocTag(doc, 'manifestConstraints'),
         children: jsDocTag(doc, 'manifestChildren'),
         category: jsDocTag(doc, 'manifestCategory'),
+        antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
+        antiPatternInstead: jsDocTag(doc, 'manifestAntiPatternInstead'),
       });
     }
   });
@@ -711,6 +715,13 @@ function generateComponentEntry(sourceFile, decl, defs) {
   }
   if (decl.constraints) entry.constraints = decl.constraints;
   if (decl.category) entry.category = decl.category;
+  // Both or neither -- one tag without its pair is a JSDoc mistake, not a
+  // valid partial anti-pattern row (see AGENTS.md/generate-docs.js's own
+  // assembleAntiPatternRows for how this feeds CORE.md's §3 table).
+  if (decl.antiPatternAvoid && decl.antiPatternInstead) {
+    entry.antiPatternAvoid = decl.antiPatternAvoid;
+    entry.antiPatternInstead = decl.antiPatternInstead;
+  }
   entry.description = decl.description;
   return entry;
 }

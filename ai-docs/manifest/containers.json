@@ -26,6 +26,8 @@
       },
       "constraints": "Intended to be rendered once, at the root of the component tree",
       "category": "Containers",
+      "antiPatternAvoid": "Hand-roll a full-viewport app layout frame with header/sidebar/main regions and manual sidebar-collapse state",
+      "antiPatternInstead": "Use `<AppShell layout=\"sidebar-left\"|\"sidebar-right\">` + `<AppShell.Sidebar>` — icon-only collapse and the correct divider border side come for free",
       "description": "Full-viewport root layout frame with Header, Sidebar, and Main slots — the top-level wrapper for an entire app"
     },
     {
@@ -198,6 +200,8 @@
         }
       },
       "category": "Containers",
+      "antiPatternAvoid": "Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state",
+      "antiPatternInstead": "Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free",
       "description": "Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode"
     },
     {

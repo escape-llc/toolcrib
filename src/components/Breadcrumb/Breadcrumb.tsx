@@ -56,6 +56,8 @@ export function computeVisibleCrumbs(crumbs: CrumbInfo[], isOverflowing: boolean
 /**
  * @manifest Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll a breadcrumb trail with manual truncation/overflow logic
+ * @manifestAntiPatternInstead Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container
  */
 export const Breadcrumb: React.FC<BreadcrumbProps> & {
   Item: React.FC<BreadcrumbItemProps>;

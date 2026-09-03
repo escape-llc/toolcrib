@@ -221,6 +221,8 @@ export interface DataTableProps<T = any> {
 /**
  * @manifest Virtualized, sortable, paginated data table with sticky headers
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Fake per-row emphasis via `column.render` (styling each cell individually to approximate a highlighted row), or hand-roll row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic)
+ * @manifestAntiPatternInstead Use `<DataTable rowSubtheme={(record) => ...}>` for row emphasis — classifies a row into `'error'`/`'success'`/`'warning'`/`'info'` and tints the actual row background/border, not a per-cell approximation — and `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` for selection, where the checkbox column, 3-state header checkbox, and cross-page persistence all come built in
  */
 export function DataTable<T extends Record<string, any> = Record<string, any>>({
   id: propId,

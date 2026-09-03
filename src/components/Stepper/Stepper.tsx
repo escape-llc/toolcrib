@@ -44,6 +44,8 @@ export interface StepperProps {
  * @manifest Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating
  * @manifestConstraints Forward navigation past a step with `formId` set is blocked until that step's `<Form>` reports `isValid: true`
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks
+ * @manifestAntiPatternInstead Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId`
  */
 export const Stepper: React.FC<StepperProps> = ({
   id: propId,

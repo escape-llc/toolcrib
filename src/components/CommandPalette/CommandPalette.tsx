@@ -61,6 +61,8 @@ export interface CommandPaletteProps {
 /**
  * @manifest Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement)
  * @manifestCategory Overlays
+ * @manifestAntiPatternAvoid Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener
+ * @manifestAntiPatternInstead Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)`
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   id: propId,

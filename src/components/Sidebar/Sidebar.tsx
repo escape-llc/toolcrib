@@ -50,6 +50,8 @@ const COLLAPSED_WIDTH = '3.5rem';
 /**
  * @manifest Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode
  * @manifestCategory Containers
+ * @manifestAntiPatternAvoid Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state
+ * @manifestAntiPatternInstead Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free
  */
 export const Sidebar: React.FC<SidebarProps> = ({
   items,

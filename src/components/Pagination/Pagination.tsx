@@ -56,6 +56,8 @@ export interface PaginationProps {
 /**
  * @manifest Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>`
  * @manifestCategory Form Controls
+ * @manifestAntiPatternAvoid Hand-roll page-index math (clamping, prev/next, page-size resets)
+ * @manifestAntiPatternInstead Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging
  */
 export const Pagination: React.FC<PaginationProps> = ({
   id: propId,

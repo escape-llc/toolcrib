@@ -103,6 +103,8 @@ export interface AppShellSidebarProps extends StyleFreeAttributes<HTMLDivElement
  * @manifest Full-viewport root layout frame with Header, Sidebar, and Main slots — the top-level wrapper for an entire app
  * @manifestConstraints Intended to be rendered once, at the root of the component tree
  * @manifestCategory Containers
+ * @manifestAntiPatternAvoid Hand-roll a full-viewport app layout frame with header/sidebar/main regions and manual sidebar-collapse state
+ * @manifestAntiPatternInstead Use `<AppShell layout="sidebar-left"|"sidebar-right">` + `<AppShell.Sidebar>` — icon-only collapse and the correct divider border side come for free
  */
 export const AppShell: React.FC<AppShellProps> & {
   Header: React.FC<AppShellHeaderProps>;

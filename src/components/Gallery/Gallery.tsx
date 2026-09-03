@@ -54,6 +54,8 @@ export interface GalleryProps {
 /**
  * @manifest Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Build a second lazy-render/`IntersectionObserver` mechanism for a grid of many thumbnails
+ * @manifestAntiPatternInstead Use `<Gallery>` — thumbnails defer via the existing `<DeferredContent>`, not a new visibility mechanism
  */
 export const Gallery: React.FC<GalleryProps> = ({
   id: propId,

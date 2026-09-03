@@ -26,11 +26,18 @@
  *  - Event Bus table: name/payload generated from eventBus.channels;
  *    a handful of channels get an authored extra note (EVENT_NOTES
  *    below), same pattern as Z_INDEX_USAGE.
+ *  - Anti-Patterns table (§3): a handful of rows with no single owning
+ *    component (a structural convention, or a small set of components
+ *    sharing one combined message with no natural per-component split)
+ *    are authored in STATIC_ANTI_PATTERNS below; the rest are generated
+ *    from any component carrying BOTH `@manifestAntiPatternAvoid` and
+ *    `@manifestAntiPatternInstead` — closes the same "shipped with a
+ *    @manifest tag but no corresponding doc row" gap the Component
+ *    Reference/Event Bus tables were built to close (see AGENTS.md).
  *  - Theme Slices sentence: generated from themeSystem.slices.
- *  - Everything else (Root Setup, Core Principles, Anti-Patterns,
- *    §5/§7/§9 prose, code samples): static template content — no
- *    source-of-truth to derive it from, so it's authored directly in the
- *    .hbs file, not templated.
+ *  - Everything else (Root Setup, Core Principles, §5/§7/§9 prose, code
+ *    samples): static template content — no source-of-truth to derive it
+ *    from, so it's authored directly in the .hbs file, not templated.
  *
  * Also renders ai-docs/templates/examples/*.md.hbs into ai-docs/examples/
  * — narrative walkthroughs of the toolkit's bespoke, no-training-data-prior
@@ -92,6 +99,53 @@ const EVENT_NOTES = {
     'a one-shot imperative navigation command, deliberately not sticky; forwarded to a real router via `<RouterAdapterProvider>`/`useRouterBridge()` — see the router-integration example',
 };
 
+// Authored rows for anti-patterns with no single owning component — a
+// structural convention (ToolcribProvider deliberately has no @manifest
+// tag, matching ThemeProvider/ToastProvider's own carve-out, so it can't
+// be scanned), a genuine cross-cutting principle owned by no one
+// component (z-index/px-vs-rem/color-variables/prop-drilling/style-
+// className), or a set of components sharing one combined message with
+// no natural per-component split (Modal/Drawer/Popup all equally "manage
+// overlay state, portal correctly, use Z_INDEX" — three near-duplicate
+// generated rows would be a regression from the one coherent row below,
+// not an improvement). Concatenated with the generated, component-derived
+// rows in assembleAntiPatternRows() below into one uniform list — mirrors
+// Z_INDEX_USAGE/EVENT_NOTES' own "authored prose merged into a row object
+// before the template runs" pattern; nowhere in this codebase does a
+// Handlebars table mix raw static Markdown rows with a separate {{#each}}
+// block for the same table.
+const STATIC_ANTI_PATTERNS = [
+  {
+    avoid: 'Manually wire `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` at the app root',
+    instead: "Use `<ToolcribProvider>` — composes all three in the correct order, so there's no separate `<ToastContainer>` to forget (see §1)",
+  },
+  {
+    avoid: 'Manually manage overlay open/close with `useState`, create custom popup/modal/drawer components, or use `position: fixed` with manual z-index',
+    instead: 'Let `<Modal>`, `<Drawer>`, `<Popup>` manage state internally (or use `aiBus.openModal(id)`) — they portal correctly, handle focus traps/backdrop/light dismiss, and already use the `Z_INDEX` scale',
+  },
+  {
+    avoid: 'Hardcode `z-index` values',
+    instead: "Use the `Z_INDEX` scale: `import { Z_INDEX } from '#toolcrib'`",
+  },
+  {
+    avoid: 'Use `px` units for spacing, borders, radii',
+    instead: 'Use `rem` values. Only `--ai-master-font-size` is in `px`',
+  },
+  {
+    avoid: 'Hardcode colour values (hex, rgb)',
+    instead: 'Use CSS variables: `var(--ai-color-primary)`, `var(--ai-subtheme-error)`',
+  },
+  {
+    avoid: 'Prop-drill callbacks through component trees',
+    instead: 'Use `aiBus.emit()` / `useAIEvent()` for cross-tree communication',
+  },
+  {
+    avoid: 'Pass `style={{...}}` or `className="..."` to a toolcrib component',
+    instead:
+      "Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, a plain `<div>` is still fine — `<Block>` is the same escape hatch with theme-aware background/padding/radius/border defaults",
+  },
+];
+
 function assembleZIndexRows() {
   const scale = generateZIndexScale();
   return Object.entries(scale).map(([tier, value]) => {
@@ -109,6 +163,17 @@ function assembleEventChannelRows() {
     payload,
     note: EVENT_NOTES[name] ?? null,
   }));
+}
+
+function assembleAntiPatternRows() {
+  const generated = generateComponents()
+    .filter((c) => c.antiPatternAvoid && c.antiPatternInstead)
+    .map((c) => ({ avoid: c.antiPatternAvoid, instead: c.antiPatternInstead }));
+  // Static rows first (foundational/structural principles), generated
+  // rows after in generateComponents()'s own deterministic (alphabetical
+  // by component name) order — same ordering discipline as every other
+  // generated list in this file.
+  return [...STATIC_ANTI_PATTERNS, ...generated];
 }
 
 function assembleComponentsByCategory() {
@@ -136,6 +201,7 @@ function assembleTemplateData() {
       .join(', '),
     eventChannelRows: assembleEventChannelRows(),
     eventChannelsToon: toToon(generateEventChannels()),
+    antiPatternRows: assembleAntiPatternRows(),
   };
 }
 

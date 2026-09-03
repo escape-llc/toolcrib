@@ -44,6 +44,8 @@ export interface CarouselProps {
 /**
  * @manifest Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll swipe/drag physics, loop index math, or a `setInterval`-only slideshow for a slide viewport
+ * @manifestAntiPatternInstead Use `<Carousel>` — `embla-carousel-react` owns the drag/swipe/loop math; nav arrows and dot indicators are already themed and wired to it
  */
 export const Carousel: React.FC<CarouselProps> = ({
   id: propId,

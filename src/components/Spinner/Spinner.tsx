@@ -21,6 +21,8 @@ const SIZE_DIAMETER: Record<NonNullable<SpinnerProps['size']>, string> = {
 /**
  * @manifest Indeterminate circular loading indicator, same subtheme colouring as `<Progress>`
  * @manifestCategory Data Display
+ * @manifestAntiPatternAvoid Hand-roll a spinning-border `<div>` for indeterminate loading
+ * @manifestAntiPatternInstead Use `<Spinner>` — already animates off the shared keyframes, not a one-off duration
  */
 export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', subtheme: instanceSubtheme, ...props }) => {
   warnIfLegacyStyleProps(props, 'Spinner');
