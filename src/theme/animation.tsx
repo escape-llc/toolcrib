@@ -55,6 +55,39 @@ const baseDurations: Record<AnimationPreset, { fast: number; normal: number; slo
   spring: { fast: 150, normal: 300, slow: 500 },
 };
 
+/**
+ * A transition that completes before a human can register it happening is
+ * functionally identical to no transition at all — confirmed for real
+ * against the focus ring's own fade (interactionStyles.ts): 120ms
+ * (`snappy`'s own fast tier, before this floor existed) genuinely
+ * interpolated the right values, sampled and verified, and was still
+ * reported as invisible. `speed` alone can push any preset's fastest tier
+ * well below that regardless of which preset is chosen — `snappy`/`subtle`
+ * at `speed: 0.5` compute to 40–75ms, worse than the case that was already
+ * too fast.
+ *
+ * Per-tier, not one shared floor: an earlier version used a single 150ms
+ * floor for all three tiers, which meant the most extreme combination
+ * (`snappy`, `speed: 0.5`) collapsed fast/normal/slow to the exact same
+ * 150ms — defeating the actual point of having three tiers at all, not
+ * just a rare edge case to shrug off. These three values are chosen to
+ * stay clearly, individually distinguishable from each other (70–80ms
+ * apart) even when every one of them is the floor doing the work, not the
+ * preset's own math — confirmed this holds for every preset at `speed:
+ * 0.5` (the actual worst case), not just asserted for the default.
+ * Monotonically increasing floors applied to already-monotonically-
+ * increasing raw values (every `baseDurations` entry has fast <= normal
+ * <= slow, and multiplying by the same `speed` preserves that) can never
+ * invert the ordering — each tier's floored result is still >= the tier
+ * before it.
+ *
+ * Only applies in this function's "enabled" branch —
+ * preset:'none'/reducedMotion:'always' still collapse to a real, honored
+ * 0s below, since those are an explicit, deliberate request for no motion
+ * at all, not a speed the floor should second-guess.
+ */
+const MIN_PERCEPTIBLE_DURATION_MS = { fast: 150, normal: 220, slow: 300 };
+
 export function getAnimationVariables(state: AnimationSliceState = defaultAnimationState): AnimationCSSVariables {
   const { preset, speed, enableHoverEffects, reducedMotion } = state;
 
@@ -76,9 +109,9 @@ export function getAnimationVariables(state: AnimationSliceState = defaultAnimat
   const base = baseDurations[preset] || baseDurations.smooth;
   const easing = easingMap[preset] || easingMap.smooth;
 
-  const fastMs = Math.round(base.fast * speed);
-  const normalMs = Math.round(base.normal * speed);
-  const slowMs = Math.round(base.slow * speed);
+  const fastMs = Math.max(Math.round(base.fast * speed), MIN_PERCEPTIBLE_DURATION_MS.fast);
+  const normalMs = Math.max(Math.round(base.normal * speed), MIN_PERCEPTIBLE_DURATION_MS.normal);
+  const slowMs = Math.max(Math.round(base.slow * speed), MIN_PERCEPTIBLE_DURATION_MS.slow);
 
   const durFast = `${fastMs}ms`;
   const durNormal = `${normalMs}ms`;

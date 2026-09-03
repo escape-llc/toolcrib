@@ -95,17 +95,25 @@ export function injectInteractionStyles(targetDocument?: Document, nonce?: strin
        there's nothing rendered to fade from. Keeping outline-style
        constantly 'solid' and only transitioning its colour is the
        standard fix. Reuses the animation slice's own
-       --ai-transition-duration-fast/--ai-transition-easing (the same
-       tokens :active's --ai-active-transform below already reuses), so
-       the fade automatically respects the same Motion/Physics preset and
-       reducedMotion setting as everything else, with no separate opt-out
-       needed. */
+       --ai-transition-duration-normal/--ai-transition-easing -- NOT
+       -duration-fast, and confirmed why the hard way: sampled the real
+       fade curve live at the fast tier's default 120ms and it had already
+       fully interpolated to the ring colour by ~121ms, yet was reported as
+       imperceptible. animation.tsx's getAnimationVariables() now floors
+       every duration tier at a minimum perceptible value for exactly this
+       reason (a transition too fast to consciously register is
+       functionally identical to no transition), but -normal is still the
+       better *choice* of tier here even with that floor in place --
+       -fast's whole unfloored range sits at the low end of what a human
+       can register at all, so reaching for it for something that must
+       always visibly announce itself (a focus indicator, not a hover
+       micro-interaction) was the wrong tier regardless of the floor. */
     .ai-btn,
     .ai-tab-trigger,
     .ai-focus-ring {
       outline: var(--ai-focus-ring-width, 0.125rem) solid transparent !important;
       outline-offset: var(--ai-focus-ring-offset, 0.125rem);
-      transition: outline-color var(--ai-transition-duration-fast, 0.1s) var(--ai-transition-easing, ease) !important;
+      transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) !important;
     }
     .ai-btn:focus-visible,
     .ai-tab-trigger:focus-visible,
