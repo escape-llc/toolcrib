@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 /**
- * Pulls the three free, already-existing usage signals for this repo/package
+ * Pulls the four free, already-existing usage signals for this repo/package
  * — no telemetry, no new infrastructure, nothing vendored into consumer
  * projects. Run it periodically (`npm run usage-report`) to build a real
  * time series instead of eyeballing one-off numbers:
  *
  *  - npm downloads for the `toolcrib` CLI package (last 30 days) — the
- *    noisiest of the three. New npm packages routinely see large single-day
+ *    noisiest of the four. New npm packages routinely see large single-day
  *    spikes from registry mirrors and automated dependency/vulnerability
  *    scanners that have nothing to do with real installs; don't read the
  *    total at face value, look at the day-by-day shape for spikes like that.
+ *  - npm downloads for the `toolcrib-mcp` package (last 30 days) — added
+ *    2026-09-04, once that package existed to track. Same noise caveat as
+ *    the CLI's own number, but a meaningfully different population: nobody
+ *    gets `toolcrib-mcp` from `npx toolcrib init` alone -- it only gets
+ *    pulled when someone deliberately wires it into an MCP host's own
+ *    config (`.mcp.json`/`.cursor/mcp.json`/etc.), which is closer to real
+ *    engagement than a bare CLI install that may never get used again.
  *  - This repo's release asset downloads (`toolcrib.zip`, summed across
- *    every published release) — the most precise signal of the three: it
+ *    every published release) — the most precise signal of the four: it
  *    only increments when the CLI's `init`/`merge` actually fetches a real
  *    release (cli/src/lib/release.js's fetchRelease -> downloadReleaseZip),
  *    not on every npm install or `--version` check.
@@ -51,6 +58,7 @@ import path from 'node:path';
 
 const REPO = 'escape-llc/toolcrib';
 const NPM_PACKAGE = 'toolcrib';
+const NPM_PACKAGE_MCP = 'toolcrib-mcp';
 const RELEASE_ASSET_NAME = 'toolcrib.zip';
 const HISTORY_PATH = path.join(process.cwd(), '.plans', 'usage-reports.jsonl');
 
@@ -59,11 +67,11 @@ function gh(apiPath) {
   return JSON.parse(out);
 }
 
-async function fetchNpmDownloads(days) {
+async function fetchNpmDownloads(days, packageName) {
   const end = new Date();
   const start = new Date(end.getTime() - days * 86_400_000);
   const fmt = d => d.toISOString().slice(0, 10);
-  const url = `https://api.npmjs.org/downloads/range/${fmt(start)}:${fmt(end)}/${NPM_PACKAGE}`;
+  const url = `https://api.npmjs.org/downloads/range/${fmt(start)}:${fmt(end)}/${packageName}`;
   const res = await fetch(url);
   // A brand-new package with zero downloads on the range's start date
   // returns a 404 (no per-package record exists yet) rather than a
@@ -130,8 +138,9 @@ async function main() {
   const history = loadHistory();
   const previous = history.length > 0 ? history[history.length - 1] : null;
 
-  const [npm, releases, traffic] = await Promise.all([
-    fetchNpmDownloads(30),
+  const [npm, npmMcp, releases, traffic] = await Promise.all([
+    fetchNpmDownloads(30, NPM_PACKAGE),
+    fetchNpmDownloads(30, NPM_PACKAGE_MCP),
     Promise.resolve(fetchReleaseDownloads()),
     Promise.resolve(fetchRepoTraffic()),
   ]);
@@ -140,6 +149,7 @@ async function main() {
   const report = {
     timestamp,
     npmDownloads30d: npm.total,
+    mcpNpmDownloads30d: npmMcp.total,
     releaseDownloadsTotal: releases.total,
     releaseDownloadsPerTag: releases.perRelease,
     trafficViews14d: traffic.views.count,
@@ -156,9 +166,13 @@ async function main() {
     console.log(`(previous report: ${previous.timestamp})`);
   }
   console.log('');
-  console.log(`npm downloads, last 30d:        ${report.npmDownloads30d} ${previous ? deltaStr(report.npmDownloads30d, previous.npmDownloads30d) : ''}`);
+  console.log(`npm downloads (${NPM_PACKAGE}), last 30d:     ${report.npmDownloads30d} ${previous ? deltaStr(report.npmDownloads30d, previous.npmDownloads30d) : ''}`);
   if (npm.maxDay && npm.maxDay.downloads > 0) {
     console.log(`  largest single day:            ${npm.maxDay.downloads} on ${npm.maxDay.day} — verify this isn't a scanner/mirror spike before reading the total as real installs`);
+  }
+  console.log(`npm downloads (${NPM_PACKAGE_MCP}), last 30d: ${report.mcpNpmDownloads30d} ${previous ? deltaStr(report.mcpNpmDownloads30d, previous.mcpNpmDownloads30d ?? null) : ''}`);
+  if (npmMcp.maxDay && npmMcp.maxDay.downloads > 0) {
+    console.log(`  largest single day:            ${npmMcp.maxDay.downloads} on ${npmMcp.maxDay.day} — same scanner/mirror caveat applies`);
   }
   console.log(`release asset (${RELEASE_ASSET_NAME}) downloads, all-time: ${report.releaseDownloadsTotal} ${previous ? deltaStr(report.releaseDownloadsTotal, previous.releaseDownloadsTotal) : ''}`);
   console.log(`  the precise "someone ran init/merge for real" count -- see this file's own header comment for why`);
