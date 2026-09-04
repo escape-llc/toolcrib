@@ -19,14 +19,19 @@ export default defineConfig(({ command }) => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/__tests__/setup.ts',
-    // cli/ is a separate Node project with its own vitest.config.js (see its
-    // README) — without this, vitest's default include pattern picks up
-    // cli/test/*.test.js here too, which only works by accident (relies on
-    // cli/node_modules already being installed) and duplicates what `cd cli
-    // && npm test` already runs. e2e/ is Playwright's own separate suite
-    // (see e2e/README.md, run via `npm run test:e2e`) — its specs import
-    // `test`/`expect` from `@playwright/test`, not Vitest's, so Vitest
-    // picking them up here fails immediately with no `page` fixture.
-    exclude: [...configDefaults.exclude, 'cli/**', 'e2e/**'],
+    // cli/ and mcp/ are separate Node projects, each with its own
+    // vitest.config.js and its own isolated node_modules (see their own
+    // READMEs) — without excluding them here, vitest's default include
+    // pattern picks up cli/test/*.test.js and mcp/test/*.test.js here too,
+    // failing outright since root's own node_modules never has their
+    // dependencies (@modelcontextprotocol/sdk, fuse.js, semver, commander,
+    // etc.) installed — confirmed the hard way for mcp/ specifically: this
+    // exact failure broke CI on main the moment mcp/ was added, because
+    // this exclude list wasn't extended to cover it at the same time.
+    // e2e/ is Playwright's own separate suite (see e2e/README.md, run via
+    // `npm run test:e2e`) — its specs import `test`/`expect` from
+    // `@playwright/test`, not Vitest's, so Vitest picking them up here
+    // fails immediately with no `page` fixture.
+    exclude: [...configDefaults.exclude, 'cli/**', 'mcp/**', 'e2e/**'],
   },
 }));
