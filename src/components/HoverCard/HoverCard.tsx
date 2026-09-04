@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, type ReactElement } from 'react';
 import { HoverCard as HoverCardPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

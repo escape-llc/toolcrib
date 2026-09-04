@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { useCornerSquaring, useLayoutDomain } from '../Splitter/LayoutDomainContext';

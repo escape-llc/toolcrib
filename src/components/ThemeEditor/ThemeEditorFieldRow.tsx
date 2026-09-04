@@ -1,3 +1,5 @@
+'use client';
+
 import { useId } from 'react';
 import { Select } from '../Form/Select';
 import { Tooltip } from '../Tooltip/Tooltip';

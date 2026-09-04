@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type AnchorHTMLAttributes, type CSSProperties } from 'react';
 import { type StyleFree } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';

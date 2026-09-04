@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { scaleLinear } from '@visx/scale';
 import { LinePath } from '@visx/shape';

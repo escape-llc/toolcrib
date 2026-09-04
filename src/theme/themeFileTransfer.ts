@@ -1,3 +1,5 @@
+'use client';
+
 import { type ThemeSnapshot, isThemeSnapshotLike } from './themePersistence';
 
 /**

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useContext } from 'react';
 import {
   TimeField as AriaTimeField,

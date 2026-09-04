@@ -1,3 +1,5 @@
+'use client';
+
 import { type ThemeSlice, getSparseVariables } from './slice';
 import { useStyleDomain } from './StyleDomainContext';
 import { type SubthemeName } from './subtheme';
