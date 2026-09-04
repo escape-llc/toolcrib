@@ -18,8 +18,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { execFileSync, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import crossSpawn from 'cross-spawn';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../..');
@@ -32,20 +32,27 @@ const env = {
   TOOLCRIB_RELEASES_BASE: process.env.TOOLCRIB_RELEASES_BASE ?? 'http://localhost:9999/releases',
 };
 
+// npm/npx resolve to .cmd shims on Windows, which Node's own
+// execFileSync/spawnSync can't invoke directly (EINVAL) without shell:true
+// -- and shell:true plus a hand-built command string is exactly the
+// incomplete-escaping shape CodeQL flags (confirmed for real: an earlier
+// version of this function did that and tripped a real high-severity
+// alert on PR #136, since the naive quoting didn't escape backslashes).
+// cross-spawn is the standard fix for this exact, well-known problem (npm
+// itself, Jest, and Vite all use it internally) -- it resolves the
+// .cmd/.bat shim and encodes arguments correctly for Windows' CreateProcess
+// without ever building a shell command string.
 function run(cmd, args, cwd) {
   console.log(`\n$ ${cmd} ${args.join(' ')}  (cwd: ${cwd})`);
-  if (cmd === 'node') {
-    execFileSync(cmd, args, { cwd, env, stdio: 'inherit' });
-    return;
+  // cross-spawn's default export is the *async* spawn() replacement --
+  // .sync() is the spawnSync() one (easy to mix up: the async version
+  // silently "succeeds" with every result field undefined, since nothing
+  // has actually run yet when it returns).
+  const result = crossSpawn.sync(cmd, args, { cwd, env, stdio: 'inherit' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${cmd} ${args.join(' ')} exited with code ${result.status}`);
   }
-  // npm/npx resolve to .cmd shims on Windows -- spawning a .cmd file
-  // directly (even by name) fails with EINVAL; it can only be run through
-  // a shell (see AGENTS.md's PowerShell-gotchas section). execSync's
-  // single command-line string is the documented-safe way to do that,
-  // vs. execFileSync's shell:true + args array, which triggers Node's own
-  // DEP0190 warning about unescaped argument concatenation.
-  const quotedArgs = args.map((a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a));
-  execSync([cmd, ...quotedArgs].join(' '), { cwd, env, stdio: 'inherit' });
 }
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-nextjs-fixture-'));
@@ -89,5 +96,12 @@ try {
 
   console.log('\nNext.js App Router smoke build succeeded.');
 } finally {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  // Never let a cleanup failure (e.g. a lingering file handle on Windows)
+  // mask whatever error the try block actually threw -- throwing here
+  // would silently replace it in Node's own unwind semantics.
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch (cleanupErr) {
+    console.error(`Warning: failed to remove ${tmpDir}: ${cleanupErr.message}`);
+  }
 }
