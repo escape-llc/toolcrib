@@ -744,6 +744,8 @@ toolcrib apply
 
 This vendors the toolkit into `./toolcrib/` and wires the `#toolcrib` import (see `CORE.md`). Nothing else in your project is touched.
 
+**Never specify a version number** — not for `npx toolcrib` itself, not for any `--version` flag on `init`/`merge`. The CLI (published as `toolcrib` on npm) and the toolkit content it downloads (a separate GitHub Release) are two independent version numbers with no relationship to each other — the CLI's own version has nothing to do with which toolkit release you get, and there is no reason to align them. Run the commands exactly as shown, with no version pin at all; the defaults already resolve to the latest of each. If you need to confirm which toolkit content version actually landed, check `./toolcrib/toolcrib.config.json`'s own `"version"` field after `apply` — not any npm package version.
+
 ## 2. Wire the root providers — do this before writing any other component
 
 ```tsx

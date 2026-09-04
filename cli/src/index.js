@@ -29,7 +29,23 @@ program.enablePositionalOptions();
 program
   .name('toolcrib')
   .description('Bootstrap and maintain the toolcrib UI toolkit in your project')
-  .version(packageJson.version);
+  // Commander auto-adds -V/--version at the top level; without a custom
+  // description it just says "output the version number" with no
+  // indication of WHICH version. This is a real, confirmed source of
+  // confusion: an agent runs `toolcrib --version`, gets this CLI package's
+  // own npm version (e.g. "0.4.0"), and has no reason to suspect that
+  // number is unrelated to the toolkit content release `init`/`merge`'s
+  // own --version flag targets (a completely separate, independently-
+  // versioned GitHub Release) -- then reuses the wrong number there. The
+  // *parsing* collision between these two same-named flags was already
+  // fixed via enablePositionalOptions() above; this is the remaining
+  // *semantic* one -- disambiguated right in the text an agent actually
+  // reads when it checks.
+  .version(
+    packageJson.version,
+    '-V, --version',
+    "output this CLI tool's own npm package version -- unrelated to the toolkit content version (see `toolcrib init --version`/`toolcrib versions`)"
+  );
 
 program
   .command('init')

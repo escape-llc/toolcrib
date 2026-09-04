@@ -29,6 +29,18 @@ toolcrib <command>
 Run every command from your project's root — the same directory as your
 `package.json`.
 
+**Two version numbers, completely unrelated — never try to align them.**
+`npx toolcrib` (or `npm install -g toolcrib`) always resolves to the CLI's
+own latest npm release; there's no reason to ever pin it (`npx
+toolcrib@1.2.3`), and doing so has nothing to do with which toolkit content
+you get. The toolkit itself — the components, `ai-docs/`, everything
+`init`/`merge` actually download — is versioned completely separately, as
+GitHub Releases. That's what `init`/`merge`'s own `--version` flag targets
+(see [Commands](#commands) below), and it already defaults to `latest` on
+its own. These two numbers will essentially never match each other, by
+design — don't infer one from the other, and don't specify either unless
+you have a specific reason to pin a particular release.
+
 ## The lifecycle, at a glance
 
 ```
