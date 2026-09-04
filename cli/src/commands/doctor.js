@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { normalize } from '../lib/patches.js';
 import { readJsonIfExists, readLock, readTextIfExists, fileExists } from '../lib/project.js';
-import { listVersions } from '../lib/github.js';
+import { fetchLatestVersion } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
 import { detectBundler } from '../lib/bundler.js';
 import { checkRootProviderWired } from '../lib/rootProvider.js';
@@ -224,10 +224,12 @@ export async function doctorCommand(options = {}) {
     }
   }
 
-  const versions = await listVersions();
-  const newest = versions.find((v) => !v.prerelease);
-  if (newest && newest.version !== lock.version) {
-    p.log.info(`A newer version is available: v${newest.version} (installed: v${lock.version}). Run 'toolcrib merge'.`);
+  // fetchLatestVersion (GitHub's dedicated /releases/latest endpoint), not
+  // listVersions — doctor only ever needs the single newest release to
+  // compare against what's installed, not every release's full metadata.
+  const newestVersion = await fetchLatestVersion();
+  if (newestVersion !== lock.version) {
+    p.log.info(`A newer version is available: v${newestVersion} (installed: v${lock.version}). Run 'toolcrib merge'.`);
   } else {
     p.log.info('You are on the latest release.');
   }

@@ -25,4 +25,19 @@ describe('github.js default API/releases base (no override env vars set)', () =>
 
     expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/escape-llc/toolcrib/releases', expect.anything());
   });
+
+  it('fetchLatestVersion also falls back to the real api.github.com host', async () => {
+    delete process.env.TOOLCRIB_API_BASE;
+    delete process.env.TOOLCRIB_RELEASES_BASE;
+    const { fetchLatestVersion } = await import('../src/lib/github.js');
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v1.0.0' }),
+    });
+
+    await fetchLatestVersion();
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/escape-llc/toolcrib/releases/latest', expect.anything());
+  });
 });

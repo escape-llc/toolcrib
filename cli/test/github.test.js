@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 process.env.TOOLCRIB_API_BASE = 'http://localhost:9999/api';
 process.env.TOOLCRIB_RELEASES_BASE = 'http://localhost:9999/releases';
 
-const { listVersions, resolveVersion, downloadReleaseZip } = await import('../src/lib/github.js');
+const { listVersions, resolveVersion, fetchLatestVersion, downloadReleaseZip } = await import('../src/lib/github.js');
 
 describe('listVersions', () => {
   let fetchMock;
@@ -70,6 +70,46 @@ describe('listVersions', () => {
   });
 });
 
+describe('fetchLatestVersion', () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    fetchMock = vi.spyOn(globalThis, 'fetch');
+  });
+
+  afterEach(() => {
+    fetchMock.mockRestore();
+  });
+
+  it('resolves via the dedicated /releases/latest endpoint and strips the leading v', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v1.9.0', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false }),
+    });
+    const result = await fetchLatestVersion();
+    expect(result).toBe('1.9.0');
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/releases/latest'), expect.any(Object));
+  });
+
+  it('throws a clear error when no qualifying release exists (GitHub 404s /releases/latest in that case)', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
+    await expect(fetchLatestVersion()).rejects.toThrow('No published releases found.');
+  });
+
+  it('gives the same specific, actionable message when the unauthenticated rate limit is exhausted', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      headers: {
+        get: (name) => ({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': '1780000000' })[name] ?? null,
+      },
+    });
+    await expect(fetchLatestVersion()).rejects.toThrow(/rate limit/i);
+    await expect(fetchLatestVersion()).rejects.toThrow(/--version/);
+  });
+});
+
 describe('resolveVersion', () => {
   let fetchMock;
 
@@ -87,25 +127,18 @@ describe('resolveVersion', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('resolves "latest" to the newest non-prerelease version', async () => {
+  it('resolves "latest" via fetchLatestVersion (the dedicated /releases/latest endpoint)', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => [
-        { tag_name: 'v2.0.0-rc1', published_at: '2026-08-01T00:00:00Z', prerelease: true, draft: false },
-        { tag_name: 'v1.9.0', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false },
-      ],
+      json: async () => ({ tag_name: 'v1.9.0', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false }),
     });
     const result = await resolveVersion('latest');
-    expect(result).toBe('1.9.0'); // skips the prerelease even though it's newer
+    expect(result).toBe('1.9.0');
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/releases/latest'), expect.any(Object));
   });
 
-  it('throws a clear error when every published release is a prerelease (no stable version to resolve "latest" to)', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { tag_name: 'v2.0.0-rc1', published_at: '2026-08-01T00:00:00Z', prerelease: true, draft: false },
-      ],
-    });
+  it('throws a clear error when no qualifying release exists to resolve "latest" to', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
     await expect(resolveVersion('latest')).rejects.toThrow('No published releases found.');
   });
 });

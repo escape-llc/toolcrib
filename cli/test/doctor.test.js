@@ -3,19 +3,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-// doctorCommand itself imports fetchRelease/listVersions directly -- mock
-// both at the module level (before importing doctorCommand) so neither
+// doctorCommand itself imports fetchRelease/fetchLatestVersion directly --
+// mock both at the module level (before importing doctorCommand) so neither
 // call hits the network, the same reason merge.test.js/versions.test.js
 // mock their own network-dependent imports.
 vi.mock('../src/lib/release.js', () => ({
   fetchRelease: vi.fn(),
 }));
 vi.mock('../src/lib/github.js', () => ({
-  listVersions: vi.fn(),
+  fetchLatestVersion: vi.fn(),
 }));
 
 import { fetchRelease } from '../src/lib/release.js';
-import { listVersions } from '../src/lib/github.js';
+import { fetchLatestVersion } from '../src/lib/github.js';
 import {
   checkManagedBlocks,
   checkImportsCompatibility,
@@ -286,7 +286,7 @@ describe('doctorCommand', () => {
       writeLock('1.0.0');
       fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
       fetchRelease.mockResolvedValue(fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n' }));
-      listVersions.mockResolvedValue([{ version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false }]);
+      fetchLatestVersion.mockResolvedValue('1.0.0');
     });
 
     it('completes without throwing on a fully clean, up-to-date, TypeScript-adopted project', async () => {
@@ -321,23 +321,20 @@ describe('doctorCommand', () => {
       await expect(doctorCommand()).resolves.not.toThrow();
     });
 
-    it('reports a newer version is available when listVersions returns one', async () => {
-      listVersions.mockResolvedValue([
-        { version: '2.0.0', publishedAt: '2026-02-01T00:00:00Z', prerelease: false },
-        { version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false },
-      ]);
+    it('reports a newer version is available when fetchLatestVersion resolves to a different one', async () => {
+      fetchLatestVersion.mockResolvedValue('2.0.0');
 
       await expect(doctorCommand()).resolves.not.toThrow();
     });
 
-    it('skips a prerelease when deciding whether a newer version is available', async () => {
-      // newest non-prerelease is still 1.0.0 (the installed version) even
-      // though a 2.0.0-beta.1 prerelease is listed -- should read as
-      // "already on latest," not prompt an upgrade to an unreleased beta.
-      listVersions.mockResolvedValue([
-        { version: '2.0.0-beta.1', publishedAt: '2026-02-01T00:00:00Z', prerelease: true },
-        { version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z', prerelease: false },
-      ]);
+    it('reports up to date when fetchLatestVersion resolves to the installed version', async () => {
+      // Prerelease-skipping itself is no longer doctor.js's own concern --
+      // fetchLatestVersion resolves it via GitHub's own /releases/latest
+      // endpoint contract (a prerelease/draft never qualifies as "latest"
+      // there), covered directly in github.test.js. This just confirms
+      // doctorCommand's own string comparison against whatever it resolves
+      // to.
+      fetchLatestVersion.mockResolvedValue('1.0.0');
 
       await expect(doctorCommand()).resolves.not.toThrow();
     });
