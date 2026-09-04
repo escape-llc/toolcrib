@@ -29,6 +29,16 @@ updates:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 
+  # mcp/ (published separately as toolcrib-mcp) also has its own
+  # independent package.json and lockfile — same isolation rationale as
+  # cli/ above, and it ships zero vendored ai-docs content of its own, so
+  # its dependency updates (@modelcontextprotocol/sdk, fuse.js, zod,
+  # semver) are entirely unrelated to the toolkit's own release cadence.
+  - package-ecosystem: "npm"
+    directory: "/mcp"
+    schedule:
+      interval: "weekly"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

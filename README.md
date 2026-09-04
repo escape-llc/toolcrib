@@ -36,7 +36,7 @@ Hi! Welcome to Toolcrib, an AI-generated UI toolkit, targeting AI model consumpt
 **Tested & Hardened**
 - Committing to 95% test coverage!
 - 940+ unit tests, plus E2E coverage including real axe-core accessibility scanning and actual CSP nonce enforcement (not just attribute presence)
-- CodeQL static analysis on every push, Dependabot on all four independent dependency trees, branch-protected `main`, and private vulnerability reporting enabled
+- CodeQL static analysis on every push, Dependabot on all five independent dependency trees, branch-protected `main`, and private vulnerability reporting enabled
 
 **Component Library**
 - 68 production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
