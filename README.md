@@ -35,11 +35,11 @@ Hi! Welcome to Toolcrib, an AI-generated UI toolkit, targeting AI model consumpt
 
 **Tested & Hardened**
 - Committing to 95% test coverage!
-- 940+ unit tests, plus E2E coverage including real axe-core accessibility scanning and actual CSP nonce enforcement (not just attribute presence)
+- Unit tests, plus E2E coverage including real axe-core accessibility scanning and actual CSP nonce enforcement (not just attribute presence)
 - CodeQL static analysis on every push, Dependabot on all five independent dependency trees, branch-protected `main`, and private vulnerability reporting enabled
 
 **Component Library**
-- 68 production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
+- Many production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
 - Built on Radix UI / React Aria Components primitives — real keyboard nav, focus traps, and ARIA semantics, not approximated
 - No `style`/`className` on any component — every visual axis goes through a typed `overrides` prop instead
 
@@ -53,7 +53,7 @@ Hi! Welcome to Toolcrib, an AI-generated UI toolkit, targeting AI model consumpt
 
 **Cross-Tree Communication**
 - Built to counteract the prop-drilling anti-pattern
-- A single typed event bus (68 channels, 13 helper methods) replaces prop-drilling for anything that needs to reach across the component tree
+- A single typed event bus replaces prop-drilling for anything that needs to reach across the component tree
 - Router-agnostic navigation bridge and an `auth:unauthorized` announcement channel — wire your own app's routing/auth without toolcrib assuming either
 
 **Forms**
@@ -186,6 +186,8 @@ The source code alone is not sufficient for good usage; you also get extensive S
 > This is all auto-generated (for accuracy) and/or AI-composed; the model acknowledges its own weaknesses and guides around them.
 
 To get the most out of Toolcrib, tell your AI agent to use it.
+
+An AI agent (or search tool) encountering this project for the first time can also start from [`llms.txt`](./llms.txt) — a curated map of the repo per the [llmstxt.org](https://llmstxt.org/) convention — or [`llms-full.txt`](./llms-full.txt) for everything inlined in one file. Both are generated, same as everything above.
 
 > The CLI will install these for you (as patches)!
 

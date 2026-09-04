@@ -49,6 +49,27 @@
  * everything above, so a renamed prop/event/tier fails `--check` instead
  * of silently leaving the example stale.
  *
+ * Also renders llms.txt and llms-full.txt at the repo root (alongside
+ * README.md/LICENSE, not under ai-docs/ — matches the llms.txt spec's
+ * site-root expectation; there's no hosted docs site to nest under).
+ * These are a different audience than everything else this file renders:
+ * ai-docs/ is aimed at an AI that has *already* vendored toolcrib into a
+ * consumer app and needs usage guidance; llms.txt is aimed at an LLM
+ * encountering the toolcrib project itself for the first time (a search, a
+ * GitHub browse, an agent doing research) — pre-adoption discovery, not
+ * post-adoption reference. llms.txt itself follows the llmstxt.org spec
+ * (H1, one blockquote summary, H2-sectioned link lists, a specially-named
+ * `## Optional` section for droppable-when-context-is-limited links) via
+ * ai-docs/templates/llms-txt.hbs, with a handful of source-derived facts
+ * (component count, category list, event channel count) interpolated in so
+ * the summary can't silently drift the way README.md's own hand-typed
+ * component count already could (a separate, pre-existing risk this
+ * doesn't fix). llms-full.txt has no template at all — it's the
+ * community-convention "everything inlined in one file" companion (not
+ * part of the formal spec), built by pure concatenation of already-
+ * generated/authored content (README.md + this run's own CORE.md render +
+ * NEW_APP.md + REFACTOR_APP.md) rather than authoring prose a third time.
+ *
  * Usage:
  *   node scripts/generate-docs.js            # check mode (default) — exits 1 on drift
  *   node scripts/generate-docs.js --check     # same, explicit
@@ -72,6 +93,13 @@ const TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'CORE.md.hbs');
 const CORE_MD_PATH = path.join(ROOT, 'ai-docs', 'CORE.md');
 const EXAMPLES_TEMPLATE_DIR = path.join(ROOT, 'ai-docs', 'templates', 'examples');
 const EXAMPLES_OUTPUT_DIR = path.join(ROOT, 'ai-docs', 'examples');
+
+const LLMS_TXT_TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'llms-txt.hbs');
+const LLMS_TXT_PATH = path.join(ROOT, 'llms.txt');
+const LLMS_FULL_TXT_PATH = path.join(ROOT, 'llms-full.txt');
+const README_PATH = path.join(ROOT, 'README.md');
+const NEW_APP_PATH = path.join(ROOT, 'ai-docs', 'NEW_APP.md');
+const REFACTOR_APP_PATH = path.join(ROOT, 'ai-docs', 'REFACTOR_APP.md');
 
 // Authored "Used By" text per Z_INDEX tier — the tier/value columns are
 // generated, this prose isn't. Missing an entry here for a real tier is a
@@ -205,6 +233,41 @@ function assembleTemplateData() {
   };
 }
 
+function assembleLlmsTxtData() {
+  return {
+    componentCount: generateComponents().length,
+    categoryList: VALID_CATEGORIES.join(', '),
+    eventChannelCount: generateEventChannels().length,
+  };
+}
+
+// llms-full.txt has no template of its own -- pure concatenation of
+// already-generated/authored content. Takes coreMdContent as a parameter
+// (rather than re-rendering CORE.md.hbs itself) so there's exactly one
+// render of CORE.md per run and both outputs are guaranteed to embed the
+// identical content, not two independently-computed renders that could
+// theoretically diverge.
+// Labeled dividers, not a bare `---` -- CORE.md already uses bare `---` for
+// its own internal section breaks, so an unlabeled one here would be
+// ambiguous between "a new source document starts here" and "just another
+// internal section break."
+function llmsFullSection(sourceFile, content) {
+  return `<!-- ===== ${sourceFile} ===== -->\n\n${content.trim()}`;
+}
+
+function assembleLlmsFullTxt(coreMdContent) {
+  const readme = fs.readFileSync(README_PATH, 'utf-8');
+  const newApp = fs.readFileSync(NEW_APP_PATH, 'utf-8');
+  const refactorApp = fs.readFileSync(REFACTOR_APP_PATH, 'utf-8');
+  return [
+    llmsFullSection('README.md', readme),
+    llmsFullSection('ai-docs/CORE.md', coreMdContent),
+    llmsFullSection('ai-docs/NEW_APP.md', newApp),
+    llmsFullSection('ai-docs/REFACTOR_APP.md', refactorApp),
+    '',
+  ].join('\n\n');
+}
+
 // -------------------------------------------------------------------------
 // ai-docs/examples/ — one small, flat, named-field data object per
 // template, mirroring assembleZIndexRows/assembleEventChannelRows/
@@ -305,8 +368,12 @@ function main() {
 
   const mode = process.argv.includes('--write') ? 'write' : 'check';
 
+  const coreMdContent = renderTemplate(TEMPLATE_PATH, assembleTemplateData());
+
   const targets = [
-    { filePath: CORE_MD_PATH, content: renderTemplate(TEMPLATE_PATH, assembleTemplateData()), label: 'ai-docs/CORE.md' },
+    { filePath: CORE_MD_PATH, content: coreMdContent, label: 'ai-docs/CORE.md' },
+    { filePath: LLMS_TXT_PATH, content: renderTemplate(LLMS_TXT_TEMPLATE_PATH, assembleLlmsTxtData()), label: 'llms.txt' },
+    { filePath: LLMS_FULL_TXT_PATH, content: assembleLlmsFullTxt(coreMdContent), label: 'llms-full.txt' },
     ...EXAMPLE_TEMPLATES.map(({ file, data }) => ({
       filePath: path.join(EXAMPLES_OUTPUT_DIR, file.replace(/\.hbs$/, '')),
       content: renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data()),
@@ -319,7 +386,7 @@ function main() {
     for (const target of targets) {
       fs.writeFileSync(target.filePath, target.content);
     }
-    console.log(`Wrote ${targets.length} doc file(s): ai-docs/CORE.md + ${EXAMPLE_TEMPLATES.length} example(s) under ai-docs/examples/.`);
+    console.log(`Wrote ${targets.length} doc file(s): ai-docs/CORE.md + llms.txt + llms-full.txt + ${EXAMPLE_TEMPLATES.length} example(s) under ai-docs/examples/.`);
     return;
   }
 
@@ -334,7 +401,7 @@ function main() {
   }
 
   if (drifted.length === 0) {
-    console.log('ai-docs/CORE.md and ai-docs/examples/ all match the templates + source exactly.');
+    console.log('ai-docs/CORE.md, llms.txt, llms-full.txt, and ai-docs/examples/ all match the templates + source exactly.');
     return;
   }
 

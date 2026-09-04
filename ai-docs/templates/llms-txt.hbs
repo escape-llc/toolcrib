@@ -1,0 +1,33 @@
+# Toolcrib
+
+> An AI-generated, AI-optimized React UI toolkit — a structural component/theme/event-bus system that gets vendored directly into a consumer's project (`toolcrib init`, full-vendoring like shadcn, not an npm dependency), designed specifically to stop AI-driven UI generation from re-inventing inconsistent Tailwind soup on every turn.
+
+Toolcrib ships {{componentCount}} production components across five categories ({{categoryList}}), plus a {{eventChannelCount}}-channel typed event bus for cross-tree communication instead of prop-drilling, an HSV-derived CSS-variable theme system with a four-layer override hierarchy, and a Zod-schema-driven form engine — documented for AI consumption via generated, source-derived docs that can't silently drift from what's actually in the code.
+
+## Getting Started
+
+- [README](./README.md): project overview, features, philosophy, installation
+- [User Guide](./USER_GUIDE.md): detailed `toolcrib init`/`merge`/`doctor` CLI instructions
+
+## AI Guidance
+
+- [CORE.md](./ai-docs/CORE.md): the primary reference — root setup, core principles, anti-patterns, generated Component Reference/Z-Index/Theme Slices/Event Bus tables. Always include this when working in a project that uses toolcrib.
+- [Component manifest](./ai-docs/component-manifest.json): machine-readable JSON — every component's props, slots, category, and manifest metadata
+- [New App Setup](./ai-docs/NEW_APP.md): read alongside CORE.md when toolcrib is the UI layer from day one
+- [Refactor App](./ai-docs/REFACTOR_APP.md): read alongside CORE.md when adopting toolcrib into an existing app with its own UI/styling
+- [Tailwind Vocabulary](./ai-docs/TAILWIND.md): a short lookup for expressing Tailwind utility classes in toolcrib's own terms
+
+## Examples
+
+- [feed-farmer-pwa](https://github.com/escape-llc/feed-farmer-pwa): a real RSS/Atom feed reader PWA, fully client-side, built entirely with toolcrib ([live demo](https://escape-llc.github.io/feed-farmer-pwa/))
+- [founders-desk](https://github.com/escape-llc/founders-desk): a personal command-center PWA, fully client-side, built entirely with toolcrib ([live demo](https://escape-llc.github.io/founders-desk/))
+
+## Contributing
+
+- [AGENTS.md](./AGENTS.md): contributor instructions for whoever (human or AI) works on this repo itself — not for consumers building with toolcrib
+- [CONTRIBUTING.md](./CONTRIBUTING.md): contribution workflow
+
+## Optional
+
+- [ai-docs/examples/](./ai-docs/examples/): narrative walkthroughs of toolcrib's bespoke, no-training-data-prior mechanisms (overrides + style domain composition, event bus sticky replay, the z-index scale, Splitter's imperative bus command, router integration, and more)
+- [Session Summaries](./SESSION_SUMMARIES.md): honest, per-checkpoint writeups of contributor session friction, posted to GitHub Discussions
