@@ -117,3 +117,67 @@ jobs:
       - name: Run CLI test suite
         run: npm test
         working-directory: cli
+
+  # A real Next.js App Router build -- catches two defect classes nothing
+  # else in this workflow can see, because none of tsc/vitest/eslint
+  # understand React Server Component boundaries at all: (1) a vendored
+  # file missing 'use client' (see AGENTS.md's 'use client' section -- the
+  # original 51-file fix undercounted at 51 of the real 79, found only by a
+  # real build, twice), and (2) the documented SSR theme-injection pattern
+  # (ai-docs/examples/ssr-theme-injection.md) actually failing to build the
+  # way computeServerThemeCSS's original co-location with 'use client' did
+  # (a file-level directive marks every export as client-only, including a
+  # plain function meant to run on the server -- see
+  # src/theme/serverThemeCSS.ts's own header comment). Reuses demo/App.tsx
+  # as its page content instead of a second, separately-maintained demo --
+  # see cli/integration-test/nextjs-fixture/README.md for why.
+  nextjs-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install toolkit dependencies
+        run: npm ci
+
+      # See "Install scripts/ dependencies" above in the test job -- same
+      # ordering requirement (scripts/lib/extract.js's isolated
+      # typescript@6.x has to be installed before anything that shells out
+      # to scripts/generate-*.js, which build-release.js does internally).
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
+      - name: Build and package a real release
+        run: |
+          node scripts/build-release.js
+          node scripts/package-release.js
+
+      - name: Install CLI dependencies
+        run: npm ci
+        working-directory: cli
+
+      - name: Stage the release for the mock GitHub server
+        run: |
+          mkdir -p cli/integration-test/releases
+          cp toolcrib.zip toolcrib.zip.sha256 cli/integration-test/releases/
+
+      - name: Start the mock GitHub server
+        run: node cli/integration-test/mock-github-server.js &
+
+      - name: Wait for the mock server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9999/api/repos/escape-llc/toolcrib/releases/latest > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Mock GitHub server never became ready" >&2
+          exit 1
+
+      - name: Run the Next.js App Router smoke build
+        run: node cli/integration-test/run-nextjs-fixture.mjs
