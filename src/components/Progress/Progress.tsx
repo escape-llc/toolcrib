@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 import { Progress as ProgressPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

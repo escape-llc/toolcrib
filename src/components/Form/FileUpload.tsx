@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react-hooks/refs -- previewUrlsRef is read during render
    (line ~308, looking up an already-created object URL to display) but is
    only ever WRITTEN inside real event handlers (addFiles/removeItem

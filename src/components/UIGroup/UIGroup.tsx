@@ -1,3 +1,5 @@
+'use client';
+
 import React, { Children, isValidElement, type ReactNode, useEffect } from 'react';
 import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';

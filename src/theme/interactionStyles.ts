@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 import { injectGlobalStyle } from './injectGlobalStyle';
 import { useTargetDocument } from './targetDocumentContext';

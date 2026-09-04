@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useState } from 'react';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';

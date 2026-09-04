@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react-hooks/rules-of-hooks -- Splitter.Panel below is a real
    component (the documented Component.Slot = (props) => {...} pattern this
    repo's AGENTS.md manifest section describes for slot discovery), calling

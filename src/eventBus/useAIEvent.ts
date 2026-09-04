@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
 import { aiBus, type AIEventMap, type EventKey, type EventCallback } from './eventBus';
 

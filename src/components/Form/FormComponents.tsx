@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect } from 'react';
 import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';

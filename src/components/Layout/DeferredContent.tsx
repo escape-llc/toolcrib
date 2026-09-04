@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useEffect, useRef } from 'react';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 

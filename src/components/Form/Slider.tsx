@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useContext, useState } from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

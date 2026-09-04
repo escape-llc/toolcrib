@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, type ReactElement, useState, useEffect } from 'react';
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

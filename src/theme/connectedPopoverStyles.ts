@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactElement, type ReactNode, type RefObject, cloneElement, isValidElement, useEffect, useState } from 'react';
 import { type SquareCornerOption, resolveSquareCorners } from '../components/Card/Card';
 

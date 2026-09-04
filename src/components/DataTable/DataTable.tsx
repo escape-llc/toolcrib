@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';

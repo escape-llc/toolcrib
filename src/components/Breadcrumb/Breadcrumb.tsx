@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, type ReactElement, useRef, useState, useEffect } from 'react';
 import { Breadcrumbs as AriaBreadcrumbs, Breadcrumb as AriaBreadcrumb, Link as AriaLink } from 'react-aria-components/Breadcrumbs';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';

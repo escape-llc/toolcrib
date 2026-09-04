@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef, useEffect } from 'react';
 import { Toast as ToastPrimitive } from 'radix-ui';
 import { type ToastItem, useToast } from './ToastContext';

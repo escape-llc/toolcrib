@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useLayoutEffect, useRef, type ReactNode, type ReactElement } from 'react';
 import { Portal } from 'radix-ui';
 import { Presence } from '@radix-ui/react-presence';

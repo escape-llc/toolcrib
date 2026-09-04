@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

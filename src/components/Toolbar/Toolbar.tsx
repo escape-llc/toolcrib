@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react-hooks/rules-of-hooks -- Toolbar.Left/.Center/.Right/.Separator
    below are real components (the documented Component.Slot = (props) => {...}
    pattern this repo's AGENTS.md manifest section describes for slot discovery),

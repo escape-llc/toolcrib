@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useState } from 'react';
 import { NavigationMenu as NavigationMenuPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';

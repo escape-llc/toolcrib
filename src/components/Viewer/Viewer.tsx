@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';

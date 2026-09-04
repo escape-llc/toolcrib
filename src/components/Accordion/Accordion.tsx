@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useEffect, useRef } from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

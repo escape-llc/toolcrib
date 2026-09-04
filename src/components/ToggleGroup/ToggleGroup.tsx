@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useState } from 'react';
 import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback, type RefObject, type DependencyList } from 'react';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 

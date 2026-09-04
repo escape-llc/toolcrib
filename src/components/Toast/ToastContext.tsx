@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useState, type ReactNode, useCallback, useRef, useLayoutEffect } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';

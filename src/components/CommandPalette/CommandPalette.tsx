@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useEffect, useState } from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
 import { aiBus } from '../../eventBus/eventBus';

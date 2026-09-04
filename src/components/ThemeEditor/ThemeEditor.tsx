@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useMemo, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { type HarmonyMode } from '../../theme/harmonies';

@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useCallback, useContext, useState, type ReactNode, type FormEvent } from 'react';
 import { ZodType } from 'zod';
 import { aiBus } from '../../eventBus/eventBus';

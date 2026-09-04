@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useState, useRef, useMemo, type KeyboardEvent } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';

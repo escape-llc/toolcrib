@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, type RefObject } from 'react';
 import { observerManager, type ObservedElementConfig } from './observerManager';
 import { useAIEvent } from '../eventBus/useAIEvent';

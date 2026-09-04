@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

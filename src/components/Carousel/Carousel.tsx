@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { aiBus } from '../../eventBus/eventBus';

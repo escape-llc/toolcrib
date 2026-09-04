@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react-hooks/refs -- selectedLabelsRef below is a persistent,
    incrementally-populated label cache read/written synchronously during
    render (see its own comment for why: labels must survive staticOptions/

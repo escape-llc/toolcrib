@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, type ReactNode } from 'react';
 import { type SubthemeName } from './subtheme';
 
