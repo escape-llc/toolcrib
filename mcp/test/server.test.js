@@ -16,7 +16,7 @@ import { buildFakeProject, cleanupFakeProject } from './fixtures.js';
  * instrumentation.
  */
 async function connectedClient(vendoredRoot) {
-  const server = buildServer({ root: vendoredRoot });
+  const { server } = buildServer({ root: vendoredRoot });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
   await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
@@ -87,11 +87,24 @@ describe('buildServer', () => {
     );
   });
 
-  it('get_install_info reports the resolved root and version', async () => {
+  it('get_install_info reports the resolved root and version, with no compatibility warning for a version in range', async () => {
     const result = await client.callTool({ name: 'get_install_info', arguments: {} });
     const parsed = JSON.parse(textOf(result));
     expect(parsed.version).toBe('0.12.0');
     expect(parsed.vendoredRoot).toContain('toolcrib');
+    expect(parsed.compatibilityWarning).toBe(null);
+  });
+
+  it('get_install_info surfaces a compatibility warning for a vendored version outside the verified range', async () => {
+    const built = buildFakeProject({ version: '0.99.0' });
+    try {
+      const outOfRangeClient = await connectedClient(built.vendoredRoot);
+      const result = await outOfRangeClient.callTool({ name: 'get_install_info', arguments: {} });
+      const parsed = JSON.parse(textOf(result));
+      expect(parsed.compatibilityWarning).toContain('0.99.0');
+    } finally {
+      cleanupFakeProject(built.projectRoot);
+    }
   });
 
   it('get_install_info reports a null version when the lock file has no readable version', async () => {

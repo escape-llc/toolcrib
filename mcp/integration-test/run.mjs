@@ -49,6 +49,10 @@ try {
 
   const info = JSON.parse((await client.callTool({ name: 'get_install_info', arguments: {} })).content[0].text);
   assert(info.version === rootPkg.version, `get_install_info reports the real vendored version (${rootPkg.version})`);
+  assert(
+    info.compatibilityWarning === null,
+    `no compatibility warning for this repo's own current version (${rootPkg.version}) -- if this fails, COMPATIBLE_RANGE in src/lib/compatibility.js needs updating`
+  );
 
   const categories = JSON.parse((await client.callTool({ name: 'list_categories', arguments: {} })).content[0].text);
   assert(categories.includes('Overlays'), 'list_categories includes the real "Overlays" category');

@@ -26,6 +26,21 @@ describe('run', () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining('could not find a vendored toolcrib install'));
   });
 
+  it('logs a compatibility warning before "ready" when the vendored version is outside the verified range', async () => {
+    let projectRoot;
+    try {
+      ({ projectRoot } = buildFakeProject({ version: '0.99.0' }));
+      const vendoredRoot = path.join(projectRoot, 'toolcrib');
+      const [, serverTransport] = InMemoryTransport.createLinkedPair();
+      const log = vi.fn();
+      await run(['--root', vendoredRoot], { log, transport: serverTransport });
+      expect(log).toHaveBeenCalledWith(expect.stringContaining('0.99.0'));
+      expect(log).toHaveBeenCalledWith('toolcrib-mcp: ready.');
+    } finally {
+      if (projectRoot) cleanupFakeProject(projectRoot);
+    }
+  });
+
   it('connects the server over the given transport, logs ready, and returns exit code 0', async () => {
     let projectRoot;
     try {

@@ -6,6 +6,7 @@ import { resolveVendoredRoot, readLockInfo } from './lib/localInstall.js';
 import { loadManifestIndex } from './lib/manifestIndex.js';
 import { loadCoreDoc } from './lib/coreDoc.js';
 import { loadExamples } from './lib/examples.js';
+import { checkCompatibility } from './lib/compatibility.js';
 
 const json = (value) => ({ content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
 const text = (value) => ({ content: [{ type: 'text', text: value }] });
@@ -21,6 +22,12 @@ const errorText = (value) => ({ content: [{ type: 'text', text: value }], isErro
  * install is found — a misconfigured MCP host pointing this at the wrong
  * directory is the most likely real-world failure mode, and that message is
  * what ends up in the host's own error surface.
+ *
+ * Returns `{ server, compatibilityWarning }` rather than the server alone —
+ * `compatibilityWarning` (from lib/compatibility.js, `null` when the
+ * vendored version is within COMPATIBLE_RANGE) is surfaced both here, for
+ * the caller to log once at startup, and inside `get_install_info`'s own
+ * response, so it's visible however the host chooses to check.
  */
 export function buildServer({ root } = {}) {
   const candidateRoot = root ? root.replace(/[/\\]+$/, '') : resolveVendoredRoot(process.cwd());
@@ -33,6 +40,7 @@ export function buildServer({ root } = {}) {
   }
 
   const lock = readLockInfo(vendoredRoot);
+  const compatibilityWarning = checkCompatibility(lock?.version);
   const manifestIndex = loadManifestIndex(vendoredRoot);
   const coreDoc = loadCoreDoc(vendoredRoot);
   const examples = loadExamples(vendoredRoot);
@@ -43,9 +51,9 @@ export function buildServer({ root } = {}) {
     'get_install_info',
     {
       description:
-        'Reports which vendored toolcrib install this server is serving — the exact version and directory path, so a caller can confirm it is talking to the right project.',
+        'Reports which vendored toolcrib install this server is serving — the exact version and directory path, so a caller can confirm it is talking to the right project — plus a compatibility warning if that version is outside the range this server has actually been verified against.',
     },
-    async () => json({ vendoredRoot, version: lock?.version ?? null })
+    async () => json({ vendoredRoot, version: lock?.version ?? null, compatibilityWarning })
   );
 
   server.registerTool(
@@ -150,5 +158,5 @@ export function buildServer({ root } = {}) {
     async () => json(manifestIndex.getThemeSystem())
   );
 
-  return server;
+  return { server, compatibilityWarning };
 }

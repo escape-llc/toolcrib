@@ -26,6 +26,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "fuse.js": "^7.0.0",
+    "semver": "^7.8.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

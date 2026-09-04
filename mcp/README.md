@@ -41,7 +41,7 @@ looking for `toolcrib/.toolcrib-lock.json`.
 
 | Tool | What it returns |
 |---|---|
-| `get_install_info` | The exact vendored version and directory path this server is serving — confirm it's talking to the right project. |
+| `get_install_info` | The exact vendored version and directory path this server is serving, plus `compatibilityWarning` (`null`, or a message) if that version is outside the range this server release has actually been verified against — see `src/lib/compatibility.js`. |
 | `list_categories` | Every component category. |
 | `list_components` | Component names + one-line descriptions, optionally filtered by category. |
 | `get_component` | Full detail for one component — props, types, defaults, required flags, slots, constraints. |

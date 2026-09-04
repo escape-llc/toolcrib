@@ -27,9 +27,9 @@ export function parseArgs(argv) {
 export async function run(argv, { log = console.error, transport = new StdioServerTransport() } = {}) {
   const { root } = parseArgs(argv);
 
-  let server;
+  let server, compatibilityWarning;
   try {
-    server = buildServer({ root });
+    ({ server, compatibilityWarning } = buildServer({ root }));
   } catch (err) {
     // stderr, not stdout -- stdout is the MCP protocol channel itself once
     // a transport connects, and must never carry anything else.
@@ -37,6 +37,7 @@ export async function run(argv, { log = console.error, transport = new StdioServ
     return 1;
   }
 
+  if (compatibilityWarning) log(`toolcrib-mcp: ${compatibilityWarning}`);
   await server.connect(transport);
   log('toolcrib-mcp: ready.');
   return 0;
