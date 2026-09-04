@@ -1,10 +1,39 @@
 version: 2
 updates:
   # Root package.json — the toolkit itself + the demo harness.
+  #
+  # react/react-dom's dependency range was widened to "^18.3.1 || ^19.0.0"
+  # to match the peerDependency range consumers already get (see
+  # scripts/build-release.js's PEER_DEPENDENCY_RANGE_OVERRIDES) — but this
+  # repo's own dev/build/test toolchain intentionally stays on React 18 for
+  # now, same reasoning as that override's own comment. Widening the range
+  # was safe on its own (npm respects the existing lockfile; it doesn't
+  # force an upgrade), but it also means Dependabot could now propose an
+  # 18->19 *major* bump here that it couldn't before, since the range
+  # technically allows it — confirmed for real, not hypothetical: PR #119
+  # ("Bump react-dom and @types/react-dom") had already proposed exactly
+  # this, react-dom 18.3.1 -> 19.2.8, *rewriting* package.json's own range
+  # to match rather than widening it (closed by hand before this guard went
+  # in). Ignored for the same reason the scripts/ typescript entry below
+  # ignores major bumps: don't let Dependabot propose a major upgrade this
+  # repo hasn't deliberately decided to make yet, just because a range was
+  # widened for a different purpose (what consumers may run, not what this
+  # repo's own CI tests against). @types/react(-dom) covered too — the same
+  # PR bundled the type packages together with their runtime counterpart,
+  # since npm/Dependabot correctly treats them as needing to move as a set.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
 
   # cli/ has its own independent package.json and lockfile (deliberately
   # isolated from root — see AGENTS.md's "cli/ has its own independent
