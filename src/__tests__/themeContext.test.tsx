@@ -3,12 +3,12 @@ import { render, renderHook, act } from '@testing-library/react';
 import {
   ThemeProvider,
   useTheme,
-  computeServerThemeCSS,
   TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID,
   TOOLCRIB_LINK_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
   TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
 } from '../theme/themeContext';
+import { computeServerThemeCSS } from '../theme/serverThemeCSS';
 import { TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID } from '../theme/animationKeyframes';
 import { generateHarmonyPalette } from '../theme/harmonies';
 import { hsvToCSS } from '../theme/hsv';

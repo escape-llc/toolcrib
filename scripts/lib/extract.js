@@ -198,15 +198,18 @@ export function resolveModuleFile(basePathNoExt) {
 }
 
 /**
- * Every `globalThemeSliceRegistry.register(X)` call in themeContext.tsx,
+ * Every `globalThemeSliceRegistry.register(X)` call in registerThemeSlices.ts,
  * in registration order, resolved to each `X`'s own `id`/`name` fields —
  * read from wherever `X` is actually declared (each slice lives in its own
  * file under src/theme/ or alongside the component it themes), not
- * hand-copied.
+ * hand-copied. Registration used to live directly in themeContext.tsx; it
+ * moved to its own file so computeServerThemeCSS (serverThemeCSS.ts) could
+ * trigger the same registrations without importing anything 'use client' —
+ * see that module's header comment.
  */
 export function generateThemeSlices() {
-  const themeContextPath = path.join(THEME_DIR, 'themeContext.tsx');
-  const sourceFile = parse(themeContextPath);
+  const registerThemeSlicesPath = path.join(THEME_DIR, 'registerThemeSlices.ts');
+  const sourceFile = parse(registerThemeSlicesPath);
 
   // local identifier -> resolved absolute path (no extension) it was imported from
   const importedFrom = new Map();
@@ -239,7 +242,7 @@ export function generateThemeSlices() {
   return registeredIdentifiers.map((identifier) => {
     const resolvedBase = importedFrom.get(identifier);
     if (!resolvedBase) {
-      throw new Error(`generateThemeSlices: '${identifier}' is registered but not imported in themeContext.tsx`);
+      throw new Error(`generateThemeSlices: '${identifier}' is registered but not imported in registerThemeSlices.ts`);
     }
     const sliceFile = resolveModuleFile(resolvedBase);
     const sliceSourceFile = parse(sliceFile);

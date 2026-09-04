@@ -1,0 +1,15 @@
+# Populated by toolcrib init/apply when run-nextjs-fixture.mjs executes
+# against this template -- never committed.
+/node_modules
+/.next
+/next-env.d.ts
+/toolcrib/
+/toolcrib-patches/
+/.toolcrib-lock.json
+/package-lock.json
+
+# Copied in from ../../../demo/ by run-nextjs-fixture.mjs -- see README.md.
+/app/DemoApp.tsx
+/app/demo.css
+/app/page.tsx
+/public/

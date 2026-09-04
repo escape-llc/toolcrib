@@ -4,10 +4,10 @@ import path from 'node:path';
 
 /**
  * A real `ThemeSlice` object existing in a component's own `*Slice.tsx` file
- * doesn't mean it's actually wired in — `themeContext.tsx` has to separately
- * import it and call `globalThemeSliceRegistry.register(...)` on it, or its
- * *global* default theming is silently unreachable (per-instance `overrides`
- * still works, since that bypasses the registry entirely — see
+ * doesn't mean it's actually wired in — `registerThemeSlices.ts` has to
+ * separately import it and call `globalThemeSliceRegistry.register(...)` on
+ * it, or its *global* default theming is silently unreachable (per-instance
+ * `overrides` still works, since that bypasses the registry entirely — see
  * `useSliceOverrides.ts`). Commit `9192624` found 9 real slices (Carousel,
  * Combobox, CommandPalette, FileUpload, Gallery, HoverCard, Label,
  * ScrollArea, Viewer) that had shipped this way, undiscovered until an
@@ -16,16 +16,22 @@ import path from 'node:path';
  * imported+registered now fails a test immediately, rather than waiting for
  * someone to notice its global defaults never respond to the Theme Editor.
  *
+ * Registration used to live directly in `themeContext.tsx`; it moved to its
+ * own `registerThemeSlices.ts` so `computeServerThemeCSS` (`serverThemeCSS.ts`)
+ * could trigger the same registrations without importing anything
+ * `'use client'` — see that module's header comment. This test now scans
+ * the new file instead.
+ *
  * Pure static-text scan, not a runtime import graph — this deliberately
  * mirrors the class of bug (missing wiring is a *textual* omission in
- * themeContext.tsx), and avoids the overhead/fragility of dynamically
+ * registerThemeSlices.ts), and avoids the overhead/fragility of dynamically
  * importing every component file just to inspect its exports.
  */
 
 const SRC_ROOT = path.join(__dirname, '..');
 const COMPONENTS_ROOT = path.join(SRC_ROOT, 'components');
 const THEME_ROOT = path.join(SRC_ROOT, 'theme');
-const THEME_CONTEXT_PATH = path.join(THEME_ROOT, 'themeContext.tsx');
+const REGISTER_THEME_SLICES_PATH = path.join(THEME_ROOT, 'registerThemeSlices.ts');
 
 function collectSourceFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -46,8 +52,8 @@ function collectSourceFiles(dir: string): string[] {
 // not the `ThemeSlice` type itself, not `ThemeSliceRegistry`.
 const SLICE_EXPORT_RE = /export const (\w+ThemeSlice)\b/g;
 
-describe('Every exported *ThemeSlice is imported and registered in themeContext.tsx', () => {
-  const themeContextSource = fs.readFileSync(THEME_CONTEXT_PATH, 'utf8');
+describe('Every exported *ThemeSlice is imported and registered in registerThemeSlices.ts', () => {
+  const registerThemeSlicesSource = fs.readFileSync(REGISTER_THEME_SLICES_PATH, 'utf8');
 
   const candidateFiles = [
     ...collectSourceFiles(COMPONENTS_ROOT),
@@ -55,7 +61,7 @@ describe('Every exported *ThemeSlice is imported and registered in themeContext.
       .readdirSync(THEME_ROOT)
       .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
       .map((f) => path.join(THEME_ROOT, f)),
-  ].filter((f) => f !== THEME_CONTEXT_PATH);
+  ].filter((f) => f !== REGISTER_THEME_SLICES_PATH);
 
   const foundSlices = new Map<string, string>();
 
@@ -77,13 +83,13 @@ describe('Every exported *ThemeSlice is imported and registered in themeContext.
 
   for (const [sliceName, relPath] of foundSlices) {
     it(`${sliceName} (${relPath}) is registered`, () => {
-      const importedOrReferenced = new RegExp(`\\b${sliceName}\\b`).test(themeContextSource);
-      expect(importedOrReferenced, `${sliceName} does not appear anywhere in themeContext.tsx`).toBe(true);
+      const importedOrReferenced = new RegExp(`\\b${sliceName}\\b`).test(registerThemeSlicesSource);
+      expect(importedOrReferenced, `${sliceName} does not appear anywhere in registerThemeSlices.ts`).toBe(true);
 
-      const registered = new RegExp(`globalThemeSliceRegistry\\.register\\(\\s*${sliceName}\\s*\\)`).test(themeContextSource);
+      const registered = new RegExp(`globalThemeSliceRegistry\\.register\\(\\s*${sliceName}\\s*\\)`).test(registerThemeSlicesSource);
       expect(
         registered,
-        `${sliceName} appears in themeContext.tsx but is never passed to globalThemeSliceRegistry.register(...) -- its global theme defaults are silently unreachable (per-instance overrides still work). See commit 9192624 for the exact bug shape.`
+        `${sliceName} appears in registerThemeSlices.ts but is never passed to globalThemeSliceRegistry.register(...) -- its global theme defaults are silently unreachable (per-instance overrides still work). See commit 9192624 for the exact bug shape.`
       ).toBe(true);
     });
   }
