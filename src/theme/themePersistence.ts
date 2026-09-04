@@ -1,3 +1,5 @@
+'use client';
+
 import type { ThemeContextType } from './themeContext';
 import type { ToolcribSliceStateMap } from './sliceStateMap';
 import { resolveBaseMode } from './responsive';

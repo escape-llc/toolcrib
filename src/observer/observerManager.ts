@@ -1,3 +1,5 @@
+'use client';
+
 import { aiBus } from '../eventBus/eventBus';
 
 /** @barrelExport */

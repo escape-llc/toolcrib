@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Button } from '../Form/FormComponents';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 

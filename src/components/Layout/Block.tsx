@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type HTMLAttributes } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';

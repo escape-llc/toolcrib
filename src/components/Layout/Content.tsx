@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { type MarginMode, resolveMargin } from '../../theme/margin';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';

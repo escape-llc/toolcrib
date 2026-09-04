@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { Group } from '@visx/group';
 import { scalePoint, scaleLinear } from '@visx/scale';

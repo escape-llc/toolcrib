@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';

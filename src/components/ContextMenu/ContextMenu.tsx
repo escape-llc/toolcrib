@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';

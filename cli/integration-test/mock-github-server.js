@@ -7,6 +7,24 @@ const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 9999;
 
 const server = http.createServer((req, res) => {
+  // Mimics: GET /api/repos/{repo}/releases/latest -> GitHub's single-release
+  // JSON (a plain object, not an array) for the dedicated "latest" endpoint
+  // resolveVersion/doctor actually call by default (see lib/github.js's
+  // fetchLatestVersion) -- checked before the plain /releases route below
+  // since that one matches on a mere endsWith('/releases') and this URL
+  // doesn't end that way, but keeping the more specific route first avoids
+  // relying on that being true forever.
+  if (req.url.endsWith('/releases/latest') && req.url.startsWith('/api')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      tag_name: 'v1.0.0',
+      published_at: '2026-08-01T00:00:00Z',
+      prerelease: false,
+      draft: false,
+    }));
+    return;
+  }
+
   // Mimics: GET /api/repos/{repo}/releases  ->  GitHub's release-list JSON
   if (req.url.endsWith('/releases') && req.url.startsWith('/api')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode, useContext } from 'react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
