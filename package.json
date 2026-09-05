@@ -21,6 +21,7 @@
     "generate-index": "node scripts/generate-index.js --write",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:screen-reader": "playwright test --config e2e/screen-reader/playwright.config.ts",
     "generate-storyboard": "node scripts/generate-storyboard.js",
     "usage-report": "node scripts/usage-report.js"
   },
@@ -44,6 +45,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@guidepup/guidepup": "^0.34.0",
+    "@guidepup/playwright": "^0.19.1",
+    "@guidepup/setup": "^0.25.2",
     "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
