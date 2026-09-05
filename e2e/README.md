@@ -35,3 +35,26 @@ npm run test:e2e:ui    # Playwright's interactive UI mode
 
 `playwright.config.ts` boots `npm run dev` automatically (and reuses one
 you already have running locally) — no manual server start needed.
+
+## `screen-reader/` — a separate, Windows-only sub-pipeline
+
+`e2e/screen-reader/` drives real NVDA (via `@guidepup/playwright`) and
+asserts on actual announced speech, not just ARIA attribute presence the
+way `accessibility.spec.ts`'s axe-core scan does — see its own
+`playwright.config.ts` for why it's a separate config/CI workflow
+(`.github/workflows/screen-reader.yml`) rather than a project inside this
+directory's own config. NVDA is Windows-only and a singleton, so it can't
+run alongside the Chromium/WebKit suite above.
+
+```
+npx guidepup install         # one-time: downloads a portable NVDA build
+npx guidepup setup           # one-time: configures NVDA settings guidepup needs
+npm run test:screen-reader
+```
+
+Real screen-reader automation needs true, uncontested OS focus on the
+browser window for the run's duration — on a shared interactive desktop
+(an IDE, another automation tool, anything else with a window open) this can
+be genuinely flaky in ways a clean, single-purpose CI runner isn't. Don't
+read a local failure/empty-capture here as proof of a regression on its own
+— check the CI run.

@@ -1,0 +1,71 @@
+name: Screen Reader
+
+# Deliberately its own workflow, not a job in e2e.yml or ci.yml's
+# windows-integration job -- NVDA is Windows-only and a singleton (only one
+# instance can run at a time, per @guidepup/guidepup), so this can't share a
+# runner with anything else and shouldn't block the fast unit/e2e signal
+# those pipelines give on every push. See e2e/screen-reader/playwright.config.ts
+# for the rest of the "why a separate pipeline" reasoning.
+#
+# Modeled directly on mui/base-ui's own real, working "Screen Reader
+# (Windows / NVDA)" CI job (confirmed by reading their source, not guessed
+# at) -- see .plans/toolcrib-competitive-analysis.md §9 and
+# .plans/toolcrib-gap-closure-plan.md §6a for the full context this came
+# from. Targets a known, still-open gap (Modal/AlertDialog never set
+# aria-modal="true") that axe-core's automated scan (e2e/accessibility.spec.ts)
+# structurally cannot catch, since the attribute is optional per the WAI-ARIA
+# spec -- see e2e/screen-reader/modal.spec.ts.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least-privilege default -- see ci.yml's identical comment. This workflow
+# only checks out the repo and runs tests.
+permissions:
+  contents: read
+
+jobs:
+  screen-reader:
+    runs-on: windows-latest
+    # Real screen-reader interaction (NVDA startup, speech capture with its
+    # own debounce timers) is slower and less deterministic than a plain DOM
+    # assertion -- generous relative to e2e.yml's own default.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Downloads and extracts a portable NVDA build compatible with
+      # Guidepup -- confirmed for real against this exact command during
+      # development (see the gap-closure plan's §6a status line for what was
+      # and wasn't verified on a shared interactive dev machine vs. what
+      # only a clean CI runner can confirm).
+      - name: Install NVDA (via guidepup)
+        run: npx guidepup install
+
+      # Configures NVDA settings Guidepup needs (verbosity, disabling
+      # first-run dialogs, etc.) -- mirrors mui/base-ui's own
+      # test:screen-reader:setup script.
+      - name: Configure NVDA (via guidepup)
+        run: npx guidepup setup
+
+      - name: Run screen-reader suite
+        run: npm run test:screen-reader
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: screen-reader-report
+          path: test-results/screen-reader/
+          retention-days: 14
