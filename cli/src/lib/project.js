@@ -13,12 +13,9 @@ const GITIGNORE_FENCE_ID = 'gitignore';
 // literal ﻿ at the start of the string. Left in place, it breaks
 // JSON.parse() outright ("Unexpected token" — a real, well-known Node
 // gotcha, not hypothetical: package.json/tsconfig.json saved by some
-// Windows editors carry one), and would otherwise sit in front of whatever
-// content starts the file (e.g. a managed fence written into a brand new
-// AGENTS.md) without necessarily breaking regex matching, but silently
-// corrupting any byte-for-byte comparison against BOM-less content. Strip
-// it at the read chokepoint, once, rather than defending against it at
-// every call site.
+// Windows editors carry one). readJsonIfExists strips it for exactly that
+// reason, at the read chokepoint, once, rather than defending against it
+// at every JSON.parse call site.
 function stripBOM(text) {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
@@ -28,8 +25,23 @@ export function readJsonIfExists(filePath) {
   return JSON.parse(stripBOM(fs.readFileSync(filePath, 'utf-8')));
 }
 
+// Deliberately does NOT strip a BOM, unlike readJsonIfExists above --
+// confirmed as a real, previously-shipped bug (found via
+// cli/integration-test/run-windows-integration.mjs, not assumed): every
+// call site of this function feeds `changes.propose()`'s "current"
+// argument, which becomes the literal "before" context in a real diff/
+// patch that `git apply` later matches byte-for-byte against the real
+// file on disk. Stripping the BOM here made that comparison start from
+// content that no longer matches what's actually in the file -- so a
+// project with a BOM'd package.json (PowerShell's `Out-File`/`>`
+// redirection adds one by default) got `error: patch does not apply` on
+// the very first line, and the patch was silently discarded, every time.
+// The BOM in the file itself is still handled correctly elsewhere: the
+// *new* content computed from readJsonIfExists (which does strip it) is
+// always BOM-free, so applying the resulting patch also naturally cleans
+// up a pre-existing BOM going forward.
 export function readTextIfExists(filePath) {
-  return fs.existsSync(filePath) ? stripBOM(fs.readFileSync(filePath, 'utf-8')) : '';
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
 }
 
 /**

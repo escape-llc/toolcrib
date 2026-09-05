@@ -12,6 +12,7 @@ import {
   gitApplyStreaming,
   ensureGitRepo,
 } from '../src/lib/git.js';
+import { readTextIfExists } from '../src/lib/project.js';
 
 const execFileAsync = promisify(execFile);
 const isWindows = process.platform === 'win32';
@@ -86,6 +87,32 @@ describe('git.js (real git subprocess)', () => {
 
       expect(result).toEqual({ success: true });
       expect(fs.readFileSync(path.join(tmpDir, 'file.txt'), 'utf-8')).toBe('new content\n');
+    });
+
+    it('regression: applies a real patch generated against a BOM-prefixed file — readTextIfExists must not strip it, or the patch context silently stops matching the real file on disk', async () => {
+      // Found for real via cli/integration-test/run-windows-integration.mjs
+      // (not hypothetical): a PowerShell `Out-File`/`>` redirection adds a
+      // UTF-8 BOM by default, so a Windows user's own package.json can
+      // easily carry one. readTextIfExists used to strip it before handing
+      // that text to PendingChanges.propose() as the patch's "before"
+      // side -- but `git apply` matches a patch's context against the
+      // REAL bytes on disk, BOM included, so a BOM-stripped "before" text
+      // silently stopped matching real content: "patch does not apply",
+      // discarded, every time, on a file that had never actually changed
+      // shape from the patch's perspective. See project.js's own
+      // readTextIfExists for the fix and full explanation.
+      const bomPrefixed = '﻿' + '{\n  "name": "x"\n}\n';
+      fs.writeFileSync(path.join(tmpDir, 'package.json'), bomPrefixed);
+      const current = readTextIfExists(path.join(tmpDir, 'package.json'));
+      const proposed = '{\n  "name": "x",\n  "imports": {}\n}\n';
+      const patch = createTwoFilesPatch('a/package.json', 'b/package.json', current, proposed, '(current)', '(proposed)');
+      const patchPath = path.join(tmpDir, 'the.patch');
+      fs.writeFileSync(patchPath, patch);
+
+      const result = await gitApplyStreaming(patchPath, tmpDir);
+
+      expect(result).toEqual({ success: true });
+      expect(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf-8')).toBe(proposed);
     });
 
     it('applies a real deletion patch (target /dev/null) by removing the file', async () => {
