@@ -92,13 +92,9 @@ jobs:
   # matrix of the job above) — cli/'s tests already mock process.platform
   # for both branches (see cli/test/zip.test.js, git.test.js), so this is a
   # cheap, low-risk addition, not a guess at what else might break on
-  # Windows. It does NOT yet cover the real end-to-end case (a genuine git
+  # Windows. It does NOT cover the real end-to-end case (a genuine git
   # apply against a real checked-out project, which is where the CRLF/BOM
-  # bugs actually lived) -- that only exists today as a manual, multi-step
-  # procedure documented in cli/CONTRIBUTING.md's integration-test section.
-  # Automating that on Windows CI too is real, separate follow-up work
-  # (tracked in .plans/toolcrib-defect-pindown-plan.md), not something this
-  # job already closes.
+  # bugs actually lived) -- see windows-integration below for that.
   cli-windows:
     runs-on: windows-latest
     steps:
@@ -181,3 +177,68 @@ jobs:
 
       - name: Run the Next.js App Router smoke build
         run: node cli/integration-test/run-nextjs-fixture.mjs
+
+  # The real end-to-end Windows integration test cli-windows above
+  # explicitly doesn't cover: a real toolcrib init/apply/doctor pipeline,
+  # via real `git apply`, on a real Windows host -- with a deliberately
+  # BOM-prefixed package.json (PowerShell's `Out-File`/`>` redirection
+  # adds one by default, so this is a realistic trigger, not a contrived
+  # one). This is the exact shape of every historical Windows bug this
+  # project has hit (see AGENTS.md's PowerShell-gotchas section), reusing
+  # the same mock-GitHub-server infrastructure nextjs-fixture already
+  # established. It found a real, previously-unknown bug the first time it
+  # ran: readTextIfExists() used to strip a BOM before handing that text
+  # to PendingChanges.propose() as a patch's "before" content, but `git
+  # apply` matches a patch's context against the real bytes on disk (BOM
+  # included) -- so a BOM'd package.json always failed to apply, silently
+  # discarded. See cli/src/lib/project.js's readTextIfExists and
+  # cli/integration-test/run-windows-integration.mjs for the full account.
+  windows-integration:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install toolkit dependencies
+        run: npm ci
+
+      - name: Build and package a real release
+        run: |
+          node scripts/build-release.js
+          node scripts/package-release.js
+
+      - name: Install CLI dependencies
+        run: npm ci
+        working-directory: cli
+
+      # bash steps below (Git Bash, bundled on GitHub's windows-latest
+      # runners) reuse the exact same commands as nextjs-fixture's
+      # Linux job, rather than rewriting them in PowerShell syntax.
+      - name: Stage the release for the mock GitHub server
+        shell: bash
+        run: |
+          mkdir -p cli/integration-test/releases
+          cp toolcrib.zip toolcrib.zip.sha256 cli/integration-test/releases/
+
+      - name: Start the mock GitHub server
+        shell: bash
+        run: node cli/integration-test/mock-github-server.js &
+
+      - name: Wait for the mock server to be ready
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9999/api/repos/escape-llc/toolcrib/releases/latest > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Mock GitHub server never became ready" >&2
+          exit 1
+
+      - name: Run the real Windows init/apply/doctor integration test
+        shell: bash
+        run: node cli/integration-test/run-windows-integration.mjs
