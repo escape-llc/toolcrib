@@ -45,6 +45,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       # Downloads and extracts a portable NVDA build compatible with
       # Guidepup -- confirmed for real against this exact command during
       # development (see the gap-closure plan's §6a status line for what was
