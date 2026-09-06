@@ -6,11 +6,16 @@
 // catches these in-editor, not just at CI/pre-commit time -- the standalone
 // script duplicated this logic and is retired now that these exist.
 //
-// Both `check-theme-tokens.js`'s cross-file awareness (a boxShadow is fine
-// if it references *any* CSS variable actually defined by a component's own
-// *Slice.tsx or the shared theme system, not just the global elevation
-// scale) and its behavior around zIndex/borderRadius carry over unchanged.
-
+// no-unexplained-zindex is imported from ../../eslint-rules/, not
+// reimplemented here -- that directory is the single canonical
+// implementation, vendored as-is to consumers (the same way ai-docs/ is)
+// so real apps can catch the identical bug shape in their own code. This
+// repo runs the exact same rule against its own source rather than a
+// hand-maintained duplicate that could drift out of sync with it.
+// no-unscaled-boxshadow and no-unscaled-pill-radius stay here: both need
+// cross-file awareness of Toolcrib's own *Slice.tsx files, which has no
+// consumer-facing equivalent.
+import { noUnexplainedZindex } from '../../eslint-rules/no-unexplained-zindex.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -80,42 +85,6 @@ const noUnscaledBoxshadow = {
             message:
               `boxShadow value '${value}' references neither var(--ai-shadow-sm|md|lg) nor a real, defined per-component Slice shadow variable -- nothing in the theme system can change this element's shadow. ` +
               `Either wrap it as a global-scale fallback (var(--ai-shadow-<sm|md|lg>, ${value})) or add a shadowDepth field to this component's own *Slice.tsx, matching Popup/Toast/DropdownMenu's pattern.`,
-          });
-        }
-      },
-    };
-  },
-};
-
-/** @type {import('eslint').Rule.RuleModule} */
-const noUnexplainedZindex = {
-  meta: {
-    type: 'problem',
-    docs: {
-      description: 'A z-index literal of 3 or higher needs a comment explaining it -- either it competes at the page level (use Z_INDEX from theme/zIndex.ts) or it is scoped to a local stacking context (say so).',
-    },
-    schema: [],
-  },
-  create(context) {
-    const sourceCode = context.sourceCode ?? context.getSourceCode();
-    return {
-      Property(node) {
-        const keyName = node.key.type === 'Identifier' ? node.key.name : null;
-        if (keyName !== 'zIndex') return;
-        if (node.value.type !== 'Literal' || typeof node.value.value !== 'number') return;
-        if (node.value.value < 3) return;
-
-        const commentsBefore = sourceCode.getCommentsBefore(node);
-        const line = node.loc.start.line;
-        const trailingOnSameLine = sourceCode.getCommentsAfter(node.value).some((c) => c.loc.start.line === line);
-        const hasExplanation = commentsBefore.length > 0 || trailingOnSameLine;
-
-        if (!hasExplanation) {
-          context.report({
-            node,
-            message:
-              `zIndex: ${node.value.value} has no comment explaining it. If this needs to compete at the page level, use Z_INDEX from theme/zIndex.ts (or useStackedZIndex for auto-incrementing nested/simultaneous instances). ` +
-              `If it's scoped to this element's own local stacking context, add a comment saying so -- see Carousel.tsx's zIndex: 1 for the pattern.`,
           });
         }
       },
