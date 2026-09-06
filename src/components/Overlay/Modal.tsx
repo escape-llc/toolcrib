@@ -46,7 +46,14 @@ export interface ModalProps {
    */
   height?: string;
   /**
-   * Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default.
+   * Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default. An
+   * intentional escape hatch, not guarded against an arbitrary/conflicting
+   * value -- most consumers should never need it. Two Modal instances left
+   * at their shared default (nested, or simply both open) get the
+   * identical numeric z-index; real stacking between them then falls back
+   * to portal/DOM append order, which is what actually keeps a later-
+   * opened instance on top today (verified live, see
+   * e2e/zindex-stress.spec.ts) -- not a second, independent guarantee.
    * @default Z_INDEX.MODAL (200)
    */
   zIndex?: number;
