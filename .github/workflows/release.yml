@@ -5,12 +5,16 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write   # required for softprops/action-gh-release to create the release
-
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    # Scoped to this one job, not the whole workflow -- there's only a
+    # single job here today, so this is a no-behavior-change, defense-in-depth
+    # move (per OpenSSF Scorecard's Token-Permissions finding, see
+    # .plans/toolcrib-gap-closure-plan.md §6a): a future second job added to
+    # this workflow won't silently inherit write access it doesn't need.
+    permissions:
+      contents: write   # required for softprops/action-gh-release to create the release
     steps:
       - name: Checkout
         uses: actions/checkout@v7
