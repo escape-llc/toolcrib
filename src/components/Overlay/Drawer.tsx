@@ -193,7 +193,7 @@ export const Drawer: React.FC<DrawerProps> = ({
               style={{
                 position: 'fixed',
                 background: 'var(--ai-bg-surface, #ffffff)',
-                boxShadow: '0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+                boxShadow: 'var(--ai-shadow-lg, 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
                 display: 'flex',
                 flexDirection: 'column',
                 zIndex: zIndex + 1,

@@ -269,7 +269,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
               borderRadius: '50%',
               background: 'var(--ai-color-base)',
               border: '0.125rem solid #ffffff',
-              boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.2)',
+              boxShadow: 'var(--ai-shadow-sm, 0 0.125rem 0.25rem rgba(0,0,0,0.2))',
             }}
           />
         </div>

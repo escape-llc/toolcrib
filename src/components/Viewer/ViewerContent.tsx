@@ -202,7 +202,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
               border: '0.0625rem solid var(--ai-border, #d1d5db)',
               color: 'var(--ai-text-primary, #111827)',
               cursor: 'pointer',
-              boxShadow: '0 0.0625rem 0.25rem rgba(0,0,0,0.15)',
+              boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.15))',
               ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
             }}
           >
@@ -256,7 +256,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
               border: '0.0625rem solid var(--ai-border, #d1d5db)',
               color: 'var(--ai-text-primary, #111827)',
               cursor: 'pointer',
-              boxShadow: '0 0.0625rem 0.25rem rgba(0,0,0,0.15)',
+              boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.15))',
               ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
             }}
           >

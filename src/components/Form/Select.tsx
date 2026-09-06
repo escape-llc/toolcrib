@@ -168,7 +168,7 @@ export const Select: React.FC<SelectProps> = ({
             background: 'var(--ai-bg-surface, #ffffff)',
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            boxShadow: '0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15)',
+            boxShadow: 'var(--ai-shadow-md, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
             overflow: 'hidden',
             minWidth: '11.25rem',
             ...selectVars,
