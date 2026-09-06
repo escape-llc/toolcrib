@@ -4,7 +4,7 @@ import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { Z_INDEX } from '../../theme/zIndex';
+import { useStackedZIndex } from '../../theme/zIndexStack';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -86,10 +86,12 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   isOpen: externalIsOpen,
   onOpenChange,
   width = '25rem',
-  zIndex = Z_INDEX.MODAL,
+  zIndex: zIndexProp,
   ariaLabel = 'Confirm Action',
   overrides,
 }) => {
+  const autoZIndex = useStackedZIndex('MODAL');
+  const zIndex = zIndexProp ?? autoZIndex;
   const id = useStableId(propId, 'alertdialog');
   const targetDocument = useTargetDocument();
   useInjectInteractionStyles();
