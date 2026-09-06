@@ -31,6 +31,7 @@ export * from './theme/triggerWrapperStyle';
 export * from './theme/typography';
 export * from './theme/useSliceOverrides';
 export * from './theme/zIndex';
+export * from './theme/zIndexStack';
 
 // Event Bus
 export * from './eventBus/eventBus';

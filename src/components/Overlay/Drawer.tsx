@@ -5,7 +5,7 @@ import { Portal } from 'radix-ui';
 import { Presence } from '@radix-ui/react-presence';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { Z_INDEX } from '../../theme/zIndex';
+import { useStackedZIndex } from '../../theme/zIndexStack';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -64,10 +64,12 @@ export const Drawer: React.FC<DrawerProps> = ({
   onOpenChange,
   title,
   width: propWidth,
-  zIndex = Z_INDEX.DRAWER,
+  zIndex: zIndexProp,
 }) => {
   const id = useStableId(propId, 'drawer');
   const targetDocument = useTargetDocument();
+  const autoZIndex = useStackedZIndex('DRAWER');
+  const zIndex = zIndexProp ?? autoZIndex;
   useInjectInteractionStyles();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;

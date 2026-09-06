@@ -2,18 +2,23 @@ import { test, expect } from '@playwright/test';
 import { gotoTab } from './nav';
 
 // Adversarial stress test for the Z_INDEX scale (src/theme/zIndex.ts) --
-// prompted directly by a self-audit finding that the scale's guarantee has
-// never actually been tested against the two ways it's most likely to
-// fail in practice: two instances of the *same* overlay type stacked on
-// top of each other (the scale gives both the identical numeric value),
-// and several *different* overlay types open simultaneously (the scale's
-// real reason to exist). Belongs in e2e/, not the Vitest suite, for the
-// same reason as every other spec here (see e2e/README.md) -- real
-// stacking order is a genuine browser paint-pipeline question
+// prompted directly by a self-audit finding that the scale's guarantee had
+// never actually been tested against the two ways it's most likely to fail
+// in practice: two instances of the *same* overlay type stacked on top of
+// each other, and several *different* overlay types open simultaneously
+// (the scale's real reason to exist). Belongs in e2e/, not the Vitest
+// suite, for the same reason as every other spec here (see e2e/README.md)
+// -- real stacking order is a genuine browser paint-pipeline question
 // (elementFromPoint, computed z-index against real siblings), not
 // something jsdom can answer.
+//
+// The first run of this test found nested same-tier instances got an
+// *identical* numeric z-index, correct stacking depending entirely on
+// portal/DOM append order rather than a real guarantee. That's now fixed
+// by useStackedZIndex (src/theme/zIndexStack.tsx) -- this test asserts the
+// stronger, current guarantee directly.
 
-test('two nested Modals get identical z-index by design -- verified, not assumed', async ({ page }) => {
+test('two nested Modals get strictly increasing z-index, not a tie', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Overlays & Actions');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
@@ -27,15 +32,14 @@ test('two nested Modals get identical z-index by design -- verified, not assumed
   await expect(containers).toHaveCount(2);
 
   const [outerZ, innerZ] = await containers.evaluateAll((els) =>
-    els.map((el) => getComputedStyle(el).zIndex)
+    els.map((el) => Number(getComputedStyle(el).zIndex))
   );
 
-  // This is the actual, current, documented behavior (Z_INDEX.MODAL + 1 for
-  // both, since neither Modal instance knows about the other) -- asserting
-  // it directly, not just describing it in a comment, so a future change
-  // to this scheme (e.g. an incrementing per-instance offset) is a
-  // deliberate decision that touches this test, not a silent drift.
-  expect(outerZ).toBe(innerZ);
+  // useStackedZIndex's actual guarantee, checked directly: the second
+  // Modal instance registers at a strictly higher depth than the first,
+  // so its base z-index alone already clears the first instance's content
+  // offset (base + 1) -- no tie anywhere, not dependent on DOM order.
+  expect(innerZ).toBeGreaterThan(outerZ);
 
   // Despite the tie, real stacking must still put the nested dialog on top
   // -- confirmed via the browser's actual paint order (elementFromPoint at

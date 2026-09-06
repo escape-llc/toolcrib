@@ -19,7 +19,6 @@
     "generate-docs": "node scripts/generate-docs.js --write",
     "check-index": "node scripts/generate-index.js",
     "generate-index": "node scripts/generate-index.js --write",
-    "check-theme-tokens": "node scripts/check-theme-tokens.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:screen-reader": "playwright test --config e2e/screen-reader/playwright.config.ts",

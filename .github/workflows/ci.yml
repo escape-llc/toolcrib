@@ -56,8 +56,12 @@ jobs:
       # (already installed by "Install scripts/ dependencies" above), not
       # root's — see AGENTS.md's Linting section for why (typescript-eslint
       # hard-fails against root's TS 7.x, the same class of break as
-      # extract.js's). Scoped to just eslint-plugin-react-hooks's rules.
-      - name: Lint (React hooks correctness)
+      # extract.js's). Scoped to eslint-plugin-react-hooks's rules, plus a
+      # local toolcrib-internal plugin (scripts/eslint-rules/theme-tokens.js)
+      # catching the three self-inflicted anti-pattern shapes a real audit
+      # of Toolcrib's own components against ai-docs/CORE.md §3 found live
+      # — see .plans/toolcrib-gap-closure-plan.md §6b for the full account.
+      - name: Lint (React hooks correctness + theme token usage)
         run: npm run lint
 
       - name: Install CLI dependencies
@@ -82,16 +86,6 @@ jobs:
 
       - name: Check src/index.ts matches source
         run: node scripts/generate-index.js --check
-
-      # Catches the exact three defect shapes a real audit of Toolcrib's own
-      # component set against its own ai-docs/CORE.md §3 anti-pattern rules
-      # found live -- see scripts/check-theme-tokens.js's own header comment
-      # and .plans/toolcrib-gap-closure-plan.md §6b for the full account.
-      # No --write mode: unlike the three checks above, there's no single
-      # correct value to regenerate, only a judgment call about which token
-      # applies -- this only flags, it doesn't fix.
-      - name: Check components use the real theme token system (shadow/z-index/radius)
-        run: node scripts/check-theme-tokens.js
 
   # Every cross-platform bug found in this project's history so far (CRLF
   # vs LF, backslash path separators breaking `git apply`, a UTF-8 BOM

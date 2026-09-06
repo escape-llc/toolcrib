@@ -1,6 +1,7 @@
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import { themeTokensPlugin } from './eslint-rules/theme-tokens.js';
 
 // Lives here, not at root, for the same reason typescript@6.0.3 (this
 // directory's own package.json) does: typescript-eslint hard-fails at
@@ -71,6 +72,27 @@ export default tseslint.config(
       // through a `globalThis` cast specifically so it never needs
       // ambient Node or Vite types to compile. See AGENTS.md.
       'no-restricted-globals': ['error', { name: 'process', message: 'Use isDevBuild() from theme/safeProps.ts instead of accessing process.env directly.' }],
+    },
+  },
+  {
+    // Scoped narrower than the block above (component source only, not
+    // demo/ or src/theme/ -- theme files legitimately define the literal
+    // token values these rules exist to flag misuse of elsewhere) -- flat
+    // config merges every matching object's plugins/rules for a given
+    // file, so this inherits languageOptions.parser from the block above
+    // without needing to redeclare it. Replaces scripts/check-theme-tokens.js,
+    // which duplicated this exact logic as a standalone script -- see
+    // scripts/eslint-rules/theme-tokens.js's own header comment and
+    // .plans/toolcrib-gap-closure-plan.md §6b for the full account.
+    files: ['src/components/**/*.tsx'],
+    ignores: ['src/components/**/*.test.tsx'],
+    plugins: {
+      'toolcrib-internal': themeTokensPlugin,
+    },
+    rules: {
+      'toolcrib-internal/no-unscaled-boxshadow': 'error',
+      'toolcrib-internal/no-unexplained-zindex': 'error',
+      'toolcrib-internal/no-unscaled-pill-radius': 'error',
     },
   }
 );
