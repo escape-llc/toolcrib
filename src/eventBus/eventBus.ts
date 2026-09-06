@@ -5,6 +5,7 @@
 import { type ThemeParameters, type GeneratedPalette } from '../theme/harmonies';
 import { type SubthemeName } from '../theme/subtheme';
 import { type ToolcribLocaleStrings } from '../components/Locale/LocaleContext';
+import { isDevBuild } from '../theme/safeProps';
 
 /** @barrelExport */
 export interface AIEventMap {
@@ -135,9 +136,33 @@ const STICKY_EVENTS = new Set<EventKey>(['tab:changed']);
 class AIEventBus {
   private listeners: { [K in EventKey]?: Set<EventCallback<K>> } = {};
   private stickyValues: { [K in EventKey]?: Map<string, AIEventMap[K]> } = {};
+  // STICKY_EVENTS is a hand-maintained Set, and stickyDiscriminator reads
+  // `.id` through an `any` cast (TypeScript can't express "every AIEventMap
+  // value this Set could contain must have an id field" on a plain Set
+  // literal) -- nothing stops a future sticky event from being added
+  // without one. That wouldn't crash: stickyDiscriminator falls back to a
+  // single '' key, meaning every distinct instance of that event silently
+  // shares one sticky slot instead of being scoped per-entity, exactly the
+  // "nothing enforces the two stay in sync" failure mode this whole
+  // exercise is about, just for this bus's own sticky mechanism instead of
+  // a hand-rolled competitor substitute. Warned once per event key here,
+  // dev-only, rather than left to be found by a real, confusing cross-talk
+  // bug in a genuinely id-less sticky event later. If a real id-less
+  // sticky use case is ever added deliberately, reconsider this condition
+  // then -- none exists today.
+  private warnedMissingStickyId = new Set<EventKey>();
 
-  private stickyDiscriminator<K extends EventKey>(payload: AIEventMap[K]): string {
+  private stickyDiscriminator<K extends EventKey>(event: K, payload: AIEventMap[K]): string {
     const id = (payload as any)?.id;
+    if (typeof id !== 'string' && isDevBuild() && !this.warnedMissingStickyId.has(event)) {
+      this.warnedMissingStickyId.add(event);
+      console.warn(
+        `AIEventBus: sticky event "${event}" was emitted without a string "id" field. ` +
+        `Its last value will be replayed to every new subscriber under one shared slot instead of ` +
+        `being scoped per-entity -- confirm this is intentional (a genuinely single, global sticky value), ` +
+        `or add an "id" field to this event's payload.`
+      );
+    }
     return typeof id === 'string' ? id : '';
   }
 
@@ -182,7 +207,7 @@ class AIEventBus {
       if (!this.stickyValues[event]) {
         this.stickyValues[event] = new Map() as any;
       }
-      (this.stickyValues[event] as Map<string, AIEventMap[K]>).set(this.stickyDiscriminator(payload), payload);
+      (this.stickyValues[event] as Map<string, AIEventMap[K]>).set(this.stickyDiscriminator(event, payload), payload);
     }
 
     const set = this.listeners[event];

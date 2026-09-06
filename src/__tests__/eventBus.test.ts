@@ -59,6 +59,76 @@ describe('Strongly-Typed EventBus', () => {
     expect(callback).toHaveBeenCalledWith({ reason: 'token-expired' });
   });
 
+  // The eight helpers below had zero direct test coverage before this pass
+  // -- eventBusTraffic.test.tsx tests the other direction (a real component
+  // emits correctly), not that aiBus's own convenience wrappers still emit
+  // what they claim to. This is the exact "a hand-rolled substitute for the
+  // event bus drifted out of sync with itself, with nothing enforcing it"
+  // failure mode every competitor's own reinvented version hit (see
+  // .plans/head2head/*.md) -- applied here to Toolcrib's own real bus,
+  // not a hypothetical.
+
+  it('provides openModal/closeModal helpers, matching the openPopup/closePopup pattern', () => {
+    const shown = vi.fn();
+    const hidden = vi.fn();
+    aiBus.on('modal:shown', shown);
+    aiBus.on('modal:hidden', hidden);
+
+    aiBus.openModal('demo-modal', { foo: 'bar' });
+    expect(shown).toHaveBeenCalledWith({ id: 'demo-modal', data: { foo: 'bar' } });
+
+    aiBus.closeModal('demo-modal');
+    expect(hidden).toHaveBeenCalledWith({ id: 'demo-modal' });
+  });
+
+  it('provides openAlertDialog/closeAlertDialog helpers', () => {
+    const shown = vi.fn();
+    const hidden = vi.fn();
+    aiBus.on('alertdialog:shown', shown);
+    aiBus.on('alertdialog:hidden', hidden);
+
+    aiBus.openAlertDialog('confirm-delete', { recordId: 42 });
+    expect(shown).toHaveBeenCalledWith({ id: 'confirm-delete', data: { recordId: 42 } });
+
+    aiBus.closeAlertDialog('confirm-delete');
+    expect(hidden).toHaveBeenCalledWith({ id: 'confirm-delete' });
+  });
+
+  it('provides openDrawer/closeDrawer helpers, defaulting position to "right"', () => {
+    const shown = vi.fn();
+    const hidden = vi.fn();
+    aiBus.on('drawer:shown', shown);
+    aiBus.on('drawer:hidden', hidden);
+
+    aiBus.openDrawer('demo-drawer');
+    expect(shown).toHaveBeenCalledWith({ id: 'demo-drawer', position: 'right', data: undefined });
+
+    aiBus.openDrawer('demo-drawer-left', 'left', { foo: 'bar' });
+    expect(shown).toHaveBeenCalledWith({ id: 'demo-drawer-left', position: 'left', data: { foo: 'bar' } });
+
+    aiBus.closeDrawer('demo-drawer');
+    expect(hidden).toHaveBeenCalledWith({ id: 'demo-drawer' });
+  });
+
+  it('provides an openCommandPalette helper, with id optional', () => {
+    const callback = vi.fn();
+    aiBus.on('commandpalette:open', callback);
+
+    aiBus.openCommandPalette('global-palette');
+    expect(callback).toHaveBeenCalledWith({ id: 'global-palette' });
+
+    aiBus.openCommandPalette();
+    expect(callback).toHaveBeenCalledWith({ id: undefined });
+  });
+
+  it('provides a navigate helper emitting route:navigate', () => {
+    const callback = vi.fn();
+    aiBus.on('route:navigate', callback);
+
+    aiBus.navigate('/settings');
+    expect(callback).toHaveBeenCalledWith({ to: '/settings' });
+  });
+
   describe('sticky events', () => {
     it('replays the last value for a given id to a new subscriber', () => {
       aiBus.emit('tab:changed', { id: 'sticky-test-group', activeId: 'tab-1' });
@@ -99,6 +169,36 @@ describe('Strongly-Typed EventBus', () => {
     it('clearSticky is a no-op for an event/id with nothing stored', () => {
       expect(() => aiBus.clearSticky('tab:changed', 'never-emitted')).not.toThrow();
       expect(() => aiBus.clearSticky('modal:shown')).not.toThrow();
+    });
+
+    it('the real, current sticky event (tab:changed) never triggers the missing-id warning', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      aiBus.emit('tab:changed', { id: 'warn-control-check', activeId: 'a' });
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('warns (dev-only, once per event key) if a sticky event is emitted without a string id -- the exact drift a future sticky event could introduce with nothing else catching it', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // stickyDiscriminator is private -- reached directly here because the
+      // one real sticky event today (tab:changed) always has an id, so this
+      // exact branch can't be reached through the public on()/emit() API
+      // without a real id-less sticky event existing yet. Testing the
+      // method's own logic directly is the honest alternative to not
+      // testing this defensive path at all.
+      const bus = aiBus as unknown as { stickyDiscriminator<K extends string>(event: K, payload: unknown): string };
+
+      const result = bus.stickyDiscriminator('tab:changed', { activeId: 'no-id-here' });
+      expect(result).toBe('');
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy.mock.calls[0][0]).toContain('tab:changed');
+
+      // Deduped: a second missing-id payload for the same event key doesn't
+      // warn again, so a real app hitting this repeatedly doesn't spam.
+      bus.stickyDiscriminator('tab:changed', { activeId: 'still-no-id' });
+      expect(warnSpy).toHaveBeenCalledOnce();
+
+      warnSpy.mockRestore();
     });
   });
 });
