@@ -39,11 +39,40 @@ export function buildServer({ root } = {}) {
     );
   }
 
-  const lock = readLockInfo(vendoredRoot);
-  const compatibilityWarning = checkCompatibility(lock?.version);
-  const manifestIndex = loadManifestIndex(vendoredRoot);
-  const coreDoc = loadCoreDoc(vendoredRoot);
-  const examples = loadExamples(vendoredRoot);
+  let lock = readLockInfo(vendoredRoot);
+  let compatibilityWarning = checkCompatibility(lock?.version);
+  let manifestIndex = loadManifestIndex(vendoredRoot);
+  let coreDoc = loadCoreDoc(vendoredRoot);
+  let examples = loadExamples(vendoredRoot);
+
+  /**
+   * Re-reads .toolcrib-lock.json (a few bytes) before every tool call and
+   * reloads the manifest/CORE.md/examples in full whenever its version has
+   * changed since the last load. An MCP host typically spawns this process
+   * once per session and keeps it alive for the session's whole duration --
+   * without this, a real `toolcrib merge` upgrade run mid-session would
+   * leave every tool (including get_install_info's own version field)
+   * silently serving whatever was on disk at startup, indefinitely. A
+   * reload failure (e.g. a half-written file caught mid-merge) is swallowed
+   * and the previous known-good state kept, rather than taking the whole
+   * server down over a transient partial write.
+   */
+  function refreshIfStale() {
+    const currentLock = readLockInfo(vendoredRoot);
+    if (currentLock?.version === lock?.version) return;
+    try {
+      const nextManifestIndex = loadManifestIndex(vendoredRoot);
+      const nextCoreDoc = loadCoreDoc(vendoredRoot);
+      const nextExamples = loadExamples(vendoredRoot);
+      manifestIndex = nextManifestIndex;
+      coreDoc = nextCoreDoc;
+      examples = nextExamples;
+      lock = currentLock;
+      compatibilityWarning = checkCompatibility(lock?.version);
+    } catch {
+      // Keep serving the last known-good state.
+    }
+  }
 
   const server = new McpServer({ name: 'toolcrib-mcp', version: '0.1.0' });
 
@@ -53,13 +82,19 @@ export function buildServer({ root } = {}) {
       description:
         'Reports which vendored toolcrib install this server is serving — the exact version and directory path, so a caller can confirm it is talking to the right project — plus a compatibility warning if that version is outside the range this server has actually been verified against.',
     },
-    async () => json({ vendoredRoot, version: lock?.version ?? null, compatibilityWarning })
+    async () => {
+      refreshIfStale();
+      return json({ vendoredRoot, version: lock?.version ?? null, compatibilityWarning });
+    }
   );
 
   server.registerTool(
     'list_categories',
     { description: 'Lists every component category (e.g. "Form Controls", "Overlays").' },
-    async () => json(manifestIndex.listCategories())
+    async () => {
+      refreshIfStale();
+      return json(manifestIndex.listCategories());
+    }
   );
 
   server.registerTool(
@@ -69,7 +104,10 @@ export function buildServer({ root } = {}) {
         'Lists component names, categories, and one-line descriptions — optionally filtered to one category. Call get_component for full prop detail on a specific one.',
       inputSchema: { category: z.string().optional().describe('Exact category name from list_categories, e.g. "Form Controls"') },
     },
-    async ({ category }) => json(manifestIndex.listComponents(category))
+    async ({ category }) => {
+      refreshIfStale();
+      return json(manifestIndex.listComponents(category));
+    }
   );
 
   server.registerTool(
@@ -80,6 +118,7 @@ export function buildServer({ root } = {}) {
       inputSchema: { name: z.string().describe('Exact component name, e.g. "DataTable"') },
     },
     async ({ name }) => {
+      refreshIfStale();
       const component = manifestIndex.getComponent(name);
       if (!component) return errorText(`No component named "${name}". Try search_components first.`);
       return json(component);
@@ -93,7 +132,10 @@ export function buildServer({ root } = {}) {
         "Fuzzy-searches component names, descriptions, and categories — use this when you don't already know the exact component name (e.g. \"something like a dialog\").",
       inputSchema: { query: z.string() },
     },
-    async ({ query }) => json(manifestIndex.searchComponents(query))
+    async ({ query }) => {
+      refreshIfStale();
+      return json(manifestIndex.searchComponents(query));
+    }
   );
 
   server.registerTool(
@@ -102,7 +144,10 @@ export function buildServer({ root } = {}) {
       description:
         'Lists the worked examples available for mechanisms with no prior in ordinary React/Radix training data (event bus sticky replay, overrides+StyleDomain composition, router integration, etc.).',
     },
-    async () => json(examples.listExamples())
+    async () => {
+      refreshIfStale();
+      return json(examples.listExamples());
+    }
   );
 
   server.registerTool(
@@ -112,6 +157,7 @@ export function buildServer({ root } = {}) {
       inputSchema: { name: z.string() },
     },
     async ({ name }) => {
+      refreshIfStale();
       const content = examples.getExample(name);
       if (content === null) return errorText(`No example named "${name}". Call list_examples first.`);
       return text(content);
@@ -128,6 +174,7 @@ export function buildServer({ root } = {}) {
       },
     },
     async ({ section }) => {
+      refreshIfStale();
       const result = coreDoc.getSection(section);
       if (section && result === null) {
         return errorText(`No section "${section}". Available: ${coreDoc.listSections().map((s) => s.heading).join(', ')}`);
@@ -143,6 +190,7 @@ export function buildServer({ root } = {}) {
       inputSchema: { name: z.string().optional().describe('Exact channel name, e.g. "modal:shown"') },
     },
     async ({ name }) => {
+      refreshIfStale();
       const result = manifestIndex.getEventChannels(name);
       if (name && result === null) return errorText(`No event channel named "${name}".`);
       return json(result);
@@ -155,7 +203,10 @@ export function buildServer({ root } = {}) {
       description:
         'Returns the HSV-derived theme system *reference* (CSS variable names/roles, supported harmony modes, theme slice list) and the z-index scale. This is static documentation, not a live resolver — it does not compute actual CSS values for a given theme config.',
     },
-    async () => json(manifestIndex.getThemeSystem())
+    async () => {
+      refreshIfStale();
+      return json(manifestIndex.getThemeSystem());
+    }
   );
 
   return { server, compatibilityWarning };

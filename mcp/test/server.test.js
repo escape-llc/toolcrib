@@ -178,3 +178,59 @@ describe('buildServer', () => {
     expect(theme.themeSystem.colorSpace).toBe('HSV');
   });
 });
+
+describe('buildServer auto-refresh on a live vendored-install change', () => {
+  let projectRoot, vendoredRoot, client;
+
+  beforeEach(async () => {
+    const built = buildFakeProject();
+    projectRoot = built.projectRoot;
+    vendoredRoot = built.vendoredRoot;
+    client = await connectedClient(vendoredRoot);
+  });
+
+  afterEach(() => cleanupFakeProject(projectRoot));
+
+  it('reloads the manifest and reports the new version once .toolcrib-lock.json changes on disk, with no server restart', async () => {
+    const before = JSON.parse(textOf(await client.callTool({ name: 'get_install_info', arguments: {} })));
+    expect(before.version).toBe('0.12.0');
+    const categoriesBefore = JSON.parse(textOf(await client.callTool({ name: 'list_categories', arguments: {} })));
+    expect(categoriesBefore).toEqual(['Containers', 'Overlays']);
+
+    // Simulate a real `toolcrib merge` upgrade happening while this same
+    // server process is still alive: bump the lock version and add a real
+    // new category to the manifest, exactly as a version bump would.
+    fs.writeFileSync(path.join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version: '0.13.0' }));
+    const manifestPath = path.join(vendoredRoot, 'ai-docs', 'component-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.version = '0.13.0';
+    manifest.components.push({
+      name: 'Skeleton',
+      import: "import { Skeleton } from '#toolcrib'",
+      category: 'Data Display',
+      description: 'Loading placeholder',
+      props: {},
+    });
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+    const after = JSON.parse(textOf(await client.callTool({ name: 'get_install_info', arguments: {} })));
+    expect(after.version).toBe('0.13.0');
+    const categoriesAfter = JSON.parse(textOf(await client.callTool({ name: 'list_categories', arguments: {} })));
+    expect(categoriesAfter).toEqual(['Containers', 'Data Display', 'Overlays']);
+  });
+
+  it('keeps serving the last known-good state if the lock version changed but the new manifest is unreadable', async () => {
+    const before = JSON.parse(textOf(await client.callTool({ name: 'list_categories', arguments: {} })));
+
+    // A version bump caught mid-write: the lock file already has the new
+    // version, but the manifest it should pair with is corrupt/incomplete.
+    fs.writeFileSync(path.join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version: '0.13.0' }));
+    fs.writeFileSync(path.join(vendoredRoot, 'ai-docs', 'component-manifest.json'), '{not valid json');
+
+    const after = JSON.parse(textOf(await client.callTool({ name: 'list_categories', arguments: {} })));
+    expect(after).toEqual(before);
+
+    const info = JSON.parse(textOf(await client.callTool({ name: 'get_install_info', arguments: {} })));
+    expect(info.version).toBe('0.12.0');
+  });
+});
