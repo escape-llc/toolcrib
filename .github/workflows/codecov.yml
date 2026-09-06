@@ -1,7 +1,15 @@
 name: codecov
+
+# `statuses: write` was here originally but was never actually needed --
+# codecov/codecov-action authenticates to codecov.io via secrets.CODECOV_TOKEN,
+# not GITHUB_TOKEN, and the PR status check/comment Codecov posts comes from
+# its own separate GitHub App integration on this repo, not from this
+# workflow's token. Removed per OpenSSF Scorecard's Token-Permissions finding
+# (see .github/workflows/scorecard.yml and .plans/toolcrib-gap-closure-plan.md
+# §6a) -- verified the Codecov PR check/comment still posts correctly after
+# this change (see the PR that removed this).
 permissions:
   contents: read
-  statuses: write
 on:
   push:
     branches: [ "main" ]
