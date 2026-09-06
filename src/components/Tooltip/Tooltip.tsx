@@ -174,7 +174,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
               borderRadius: 'var(--ai-tooltip-border-radius, var(--ai-radius-md, 0.375rem))',
               background: 'var(--ai-tooltip-bg, var(--ai-text-primary, #111827))',
               color: 'var(--ai-tooltip-color, var(--ai-bg-surface, #ffffff))',
-              boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.15)',
+              boxShadow: 'var(--ai-shadow-sm, 0 0.25rem 0.75rem rgba(0,0,0,0.15))',
               userSelect: 'none',
               pointerEvents: 'none',
               // Verified empirically (Playwright screenshot test) before

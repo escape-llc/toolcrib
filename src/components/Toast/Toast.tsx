@@ -234,7 +234,6 @@ export const ToastItemComponent: React.FC<ToastProps> = ({ toast }) => {
         minWidth: '17.5rem',
         maxWidth: '26.25rem',
         position: 'relative',
-        zIndex: 3000,
         outline: 'none',
         // Confirmed via a real browser run (DOM dump + computed-style walk):
         // Radix's ToastPrimitive.Root portals its actual rendered content to

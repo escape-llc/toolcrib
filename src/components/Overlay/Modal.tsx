@@ -168,7 +168,7 @@ export const Modal: React.FC<ModalProps> & {
               background: 'var(--ai-bg-surface, #ffffff)',
               borderRadius: 'var(--ai-radius-lg, 0.75rem)',
               border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-              boxShadow: '0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3)',
+              boxShadow: 'var(--ai-shadow-lg, 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3))',
               width,
               height,
               maxWidth: '90vw',

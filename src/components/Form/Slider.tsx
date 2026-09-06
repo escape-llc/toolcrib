@@ -185,7 +185,7 @@ export const Slider: React.FC<SliderProps> = ({
           background: 'var(--ai-bg-surface, #ffffff)',
           border: '0.125rem solid var(--ai-color-primary, #3b82f6)',
           borderRadius: '50%',
-          boxShadow: '0 0.0625rem 0.25rem rgba(0,0,0,0.2)',
+          boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.2))',
           outline: 'none',
           cursor: disabled ? 'not-allowed' : 'pointer',
         }}

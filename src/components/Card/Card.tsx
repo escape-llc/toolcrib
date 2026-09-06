@@ -163,7 +163,7 @@ export const Card: React.FC<CardProps> & {
         background: 'var(--ai-bg-surface, #ffffff)',
         borderRadius: 'var(--ai-radius-lg, 0.75rem)',
         border: `0.0625rem solid ${subthemeColors ? subthemeColors.border : 'var(--ai-border, #e5e7eb)'}`,
-        boxShadow: '0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.05)',
+        boxShadow: 'var(--ai-shadow-sm, 0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.05))',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',

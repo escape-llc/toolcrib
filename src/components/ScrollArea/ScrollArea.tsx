@@ -78,7 +78,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             style={{
               flex: 1,
               background: 'var(--ai-border, #d1d5db)',
-              borderRadius: '9999px',
+              borderRadius: 'var(--ai-radius-xl, 9999px)',
               position: 'relative',
             }}
           />
@@ -101,7 +101,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             style={{
               flex: 1,
               background: 'var(--ai-border, #d1d5db)',
-              borderRadius: '9999px',
+              borderRadius: 'var(--ai-radius-xl, 9999px)',
               position: 'relative',
             }}
           />
