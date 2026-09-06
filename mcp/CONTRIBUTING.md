@@ -48,7 +48,7 @@ Only when the maintainer explicitly asks for a version bump:
 
 ```bash
 cd mcp
-npm version <patch|minor|major>
+npm version <patch|minor|major> --no-git-tag-version   # see below re: --no-git-tag-version
 npm test                # full suite green
 node integration-test/run.mjs   # real subprocess check, against this repo's live ai-docs/
 npm pack --dry-run       # confirm exactly what would ship -- package.json,
@@ -56,8 +56,10 @@ npm pack --dry-run       # confirm exactly what would ship -- package.json,
                           # packed as of the first release)
 npm publish --dry-run    # same validation a real publish runs, no network write
 npm publish
-git push && git push --tags
+git add package.json package-lock.json && git commit -m "Bump toolcrib-mcp to vX.Y.Z" && git push
 ```
+
+**Always pass `--no-git-tag-version`, and never `git push --tags` for this package.** Git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package — plain `npm version` defaults to creating and pushing a `vX.Y.Z` tag, and the root `toolcrib` package has already claimed every `v0.1.0`–`v0.12.0` (see root `AGENTS.md`'s "Cutting a release"). Since this package started at `0.1.0` too, a minor bump here lands on `v0.2.0`, which already exists as a root release tag — `git tag` fails loudly rather than silently colliding, but it's still a real footgun the default command walks straight into. **This repo tags GitHub Releases for the root `toolcrib` package only; `cli/` and this package are npm-published with no git tag of their own at all.**
 
 ### What the `files` field is for
 
