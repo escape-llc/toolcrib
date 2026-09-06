@@ -55,9 +55,22 @@ test('two nested Modals get identical z-index by design -- verified, not assumed
 
   // Escape closes only the top (nested) dialog, leaving the parent open --
   // reconfirms AGENTS.md's prior manual finding as a standing, automated
-  // regression rather than a one-time check.
+  // regression rather than a one-time check. A brief settle wait between
+  // the two Escape presses is required, not just defensive: Modal has no
+  // custom Escape handler of its own, relying entirely on Radix Dialog's
+  // built-in dismissable-layer stack (which tracks which mounted dialog is
+  // currently "top" and should receive the keydown). React removing the
+  // nested dialog's DOM node (what toHaveCount(1) alone confirms) and
+  // Radix's own internal layer-stack bookkeeping registering that removal
+  // are two different things -- confirmed for real: on a real CI runner
+  // (ubuntu-latest, headless Chromium), firing the second Escape
+  // immediately after the count-1 assertion passed twice in a row without
+  // ever closing the parent, reproducibly, while the identical sequence
+  // never failed locally. This wait is closing a real, confirmed race
+  // between those two facts, not papering over a flaky assertion.
   await page.keyboard.press('Escape');
   await expect(containers).toHaveCount(1);
+  await page.waitForTimeout(200);
   await page.keyboard.press('Escape');
   await expect(containers).toHaveCount(0);
 });
