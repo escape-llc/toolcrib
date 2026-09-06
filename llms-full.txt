@@ -20,12 +20,15 @@ Hi! Welcome to Toolcrib, an AI-generated UI toolkit, targeting AI model consumpt
 - We repeatedly asked the models what their weaknesses were, and put guardrails up
   - Enforced by Typescript
   - Coerced via System Prompt
-- Agent-directed layered documentation to guide models to patterns not anti-patterns
+- Agent-directed layered documentation to guide models to patterns and anti-patterns
+- `llms.txt` for discovery by your harness
+- MCP for tighter integration
 
 **AI-First Documentation**
 - Built to aid the AI models in consuming Toolcrib "patterns" and knowledge
 - A machine-readable component manifest (JSON) plus generated `CORE.md` — both derived directly from source, never hand-maintained, so they can't drift from what's actually there
 - Contributor `AGENTS.md` with an accumulated log of real bugs found and fixed, so the same mistake doesn't get regenerated twice
+- MCP uses the vendored source so it is always 100% accurate, not whatever is "in the registry"
 
 **Skill Enabled**
 - Applies to Toolcrib repo itself
@@ -64,6 +67,7 @@ Hi! Welcome to Toolcrib, an AI-generated UI toolkit, targeting AI model consumpt
 **Vendoring, Not a Dependency**
 - Full-vendoring CLI (`init`/`merge`/`doctor`/`apply`) — the code lands in *your* repo as reviewable patches, same model as shadcn
 - Every release download is SHA-256 checksum-verified before it's applied — a failed or missing checksum fails the install rather than silently skipping verification
+- MCP and docs always exactly match what is installed
 
 ## Rationale
 
@@ -129,9 +133,9 @@ Padding, radius, border, shadow — all resolved from the theme, zero props for 
 
 This pain doesn't end at visuals! Modal forms, Drawers, Popups, all get one-shotted, and are unlikely to come with the required focus trap, etc. that is expected for correct operation.  Want second Drawer or Modal? It gets rebuilt from scratch each time, and *maybe* it works the same as the first one!
 
-## The Floor
+## The Floor and Guardrails
 
-We introduce the **Architectural Floor** where you apply a layer of functionality that ensures a certain Quality of Service (QoS) in the form of important UX axes and biased for AI model consumption.
+We introduce the **QoS Floor** where you apply a layer of functionality that ensures a certain Quality of Service (QoS) in the form of important UX axes and biased for AI model consumption.
 
 The Floor provided by "unguided" code generation is fairly limited.  You are subject to the myriad deficiencies Toolcrib was designed to eliminate.
 
@@ -146,7 +150,7 @@ This is just the tip of a long list of features unguided generation re-invents a
 - Form Validation
 - Real Composite UI Components (e.g. Autocomplete, Combobox, DataTable)
 
-The Floor you get with Toolcrib has those baked in, and more!
+The Floor and Guardrails you get with Toolcrib are extensive and multi-layer!
 - Leverage existing hardened primitives (Radix, React ARIA)
 - Model Guidance
 - E2E tests
