@@ -52,6 +52,15 @@ const VENDOR_DIRS = ['theme', 'eventBus', 'observer', 'components'];
 // without this leaves no entry point at all.
 const INDEX_FILE = 'index.ts';
 const AI_DOCS_DIR = path.join(ROOT, 'ai-docs');
+// A standalone, dependency-free ESLint rule (eslint-rules/no-unexplained-zindex.js)
+// shared verbatim between this repo's own internal lint config
+// (scripts/eslint-rules/theme-tokens.js imports it directly) and consumers
+// -- ships as-is, the same way ai-docs/ does, so a real app can catch the
+// identical hardcoded-z-index bug shape in its own code. Deliberately its
+// own top-level directory, not nested under ai-docs/ (which is prose
+// documentation, not executable tooling) or under scripts/ (contributor-only
+// tooling with its own isolated toolchain, never vendored at all).
+const ESLINT_RULES_DIR = path.join(ROOT, 'eslint-rules');
 
 // Node builtins and anything else that should never appear as a
 // peerDependency even if imported (e.g. types-only or ambient imports).
@@ -286,6 +295,11 @@ function main() {
   const aiDocFiles = listFilesRecursive(AI_DOCS_DIR).filter((f) => !f.startsWith('templates/'));
   copyPreservingStructure(aiDocFiles, AI_DOCS_DIR, path.join(DIST, 'ai-docs'));
 
+  // Ships as-is, same as ai-docs/ -- no filtering needed, everything in
+  // this directory is meant for a consumer.
+  const eslintRuleFiles = listFilesRecursive(ESLINT_RULES_DIR);
+  copyPreservingStructure(eslintRuleFiles, ESLINT_RULES_DIR, path.join(DIST, 'eslint-rules'));
+
   const config = {
     version: rootPkg.version,
     generatedAt: new Date().toISOString(),
@@ -294,18 +308,20 @@ function main() {
       root: [INDEX_FILE],
       ...filesByDir,
       aiDocs: aiDocFiles.map((f) => `ai-docs/${f}`),
+      eslintRules: eslintRuleFiles.map((f) => `eslint-rules/${f}`),
     },
   };
 
   fs.writeFileSync(path.join(DIST, 'toolcrib.config.json'), JSON.stringify(config, null, 2) + '\n');
 
-  const totalFiles = Object.values(filesByDir).flat().length + aiDocFiles.length + 1;
+  const totalFiles = Object.values(filesByDir).flat().length + aiDocFiles.length + eslintRuleFiles.length + 1;
   console.log(`Built release v${rootPkg.version}: ${totalFiles} file(s) staged in ./dist-release`);
   console.log(`  root: 1 (${INDEX_FILE})`);
   for (const [dir, files] of Object.entries(filesByDir)) {
     console.log(`  ${dir}: ${files.length}`);
   }
   console.log(`  ai-docs: ${aiDocFiles.length}`);
+  console.log(`  eslint-rules: ${eslintRuleFiles.length}`);
   console.log(`  peerDependencies: ${Object.keys(peerDependencies).join(', ')}`);
 }
 
