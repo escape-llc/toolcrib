@@ -42,7 +42,10 @@ export interface DrawerProps {
    */
   width?: string;
   /**
-   * Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default.
+   * Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default. An
+   * intentional escape hatch, not guarded against an arbitrary/conflicting
+   * value -- most consumers should never need it. See Modal's identical
+   * prop for the tie-breaking behavior when two instances share a default.
    * @default Z_INDEX.DRAWER (100)
    */
   zIndex?: number;

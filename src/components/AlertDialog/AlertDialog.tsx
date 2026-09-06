@@ -49,7 +49,10 @@ export interface AlertDialogProps {
    */
   width?: string;
   /**
-   * Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default.
+   * Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default. An
+   * intentional escape hatch, not guarded against an arbitrary/conflicting
+   * value -- most consumers should never need it. See Modal's identical
+   * prop for the tie-breaking behavior when two instances share a default.
    * @default Z_INDEX.MODAL (200)
    */
   zIndex?: number;

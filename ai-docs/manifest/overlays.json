@@ -41,7 +41,7 @@
         "zIndex": {
           "type": "number",
           "default": "Z_INDEX.MODAL (200)",
-          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default. An\nintentional escape hatch, not guarded against an arbitrary/conflicting\nvalue -- most consumers should never need it. See Modal's identical\nprop for the tie-breaking behavior when two instances share a default."
         },
         "ariaLabel": {
           "type": "string",
@@ -156,7 +156,7 @@
         "zIndex": {
           "type": "number",
           "default": "Z_INDEX.DRAWER (100)",
-          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default."
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.DRAWER tier by default. An\nintentional escape hatch, not guarded against an arbitrary/conflicting\nvalue -- most consumers should never need it. See Modal's identical\nprop for the tie-breaking behavior when two instances share a default."
         }
       },
       "category": "Overlays",
@@ -278,7 +278,7 @@
         "zIndex": {
           "type": "number",
           "default": "Z_INDEX.MODAL (200)",
-          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default."
+          "description": "Z-index layer. Uses the toolkit's Z_INDEX.MODAL tier by default. An\nintentional escape hatch, not guarded against an arbitrary/conflicting\nvalue -- most consumers should never need it. Two Modal instances left\nat their shared default (nested, or simply both open) get the\nidentical numeric z-index; real stacking between them then falls back\nto portal/DOM append order, which is what actually keeps a later-\nopened instance on top today (verified live, see\ne2e/zindex-stress.spec.ts) -- not a second, independent guarantee."
         },
         "ariaLabel": {
           "type": "string",

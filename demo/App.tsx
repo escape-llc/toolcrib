@@ -1392,6 +1392,19 @@ export const App: React.FC = () => {
                           <Modal.Header>Confirm Account Action</Modal.Header>
                           <Modal.Body>
                             Are you sure you want to perform this action? Keyboard navigation (Tab) is trapped safely inside this dialog.
+                            <div style={{ marginTop: '0.75rem' }}>
+                              <Modal trigger={<Button variant="outline">Open Nested Modal</Button>} ariaLabel="Nested Confirmation">
+                                <Modal.Header>Nested Confirmation</Modal.Header>
+                                <Modal.Body>
+                                  Both this dialog and its parent default to the same Z_INDEX.MODAL tier — real stacking here depends on portal/DOM order, not a distinct numeric value per nesting depth.
+                                </Modal.Body>
+                                <Modal.Footer>
+                                  <Modal.Actions>
+                                    <Modal.CloseButton />
+                                  </Modal.Actions>
+                                </Modal.Footer>
+                              </Modal>
+                            </div>
                           </Modal.Body>
                           <Modal.Footer>
                             <Modal.Actions>
