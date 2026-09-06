@@ -93,6 +93,7 @@ export default tseslint.config(
       'toolcrib-internal/no-unscaled-boxshadow': 'error',
       'toolcrib-internal/no-unexplained-zindex': 'error',
       'toolcrib-internal/no-unscaled-pill-radius': 'error',
+      'toolcrib-internal/no-computed-prop-before-spread': 'error',
     },
   }
 );
