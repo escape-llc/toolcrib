@@ -57,9 +57,12 @@ npm pack --dry-run       # confirm exactly what would ship -- package.json,
 npm publish --dry-run    # same validation a real publish runs, no network write
 npm publish
 git add package.json package-lock.json && git commit -m "Bump toolcrib-mcp to vX.Y.Z" && git push
+git tag mcp-vX.Y.Z && git push origin mcp-vX.Y.Z   # tag *after* the version-bump commit exists, so it points at the real, correct state -- see below re: prefix
 ```
 
-**Always pass `--no-git-tag-version`, and never `git push --tags` for this package.** Git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package — plain `npm version` defaults to creating and pushing a `vX.Y.Z` tag, and the root `toolcrib` package has already claimed every `v0.1.0`–`v0.12.0` (see root `AGENTS.md`'s "Cutting a release"). Since this package started at `0.1.0` too, a minor bump here lands on `v0.2.0`, which already exists as a root release tag — `git tag` fails loudly rather than silently colliding, but it's still a real footgun the default command walks straight into. **This repo tags GitHub Releases for the root `toolcrib` package only; `cli/` and this package are npm-published with no git tag of their own at all.**
+**Always pass `--no-git-tag-version` on the `npm version` step itself** — that command's own default behavior creates and pushes a bare `vX.Y.Z` tag, and git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package: the root `toolcrib` package has already claimed every `v0.1.0`–`v0.13.0` (see root `AGENTS.md`'s "Cutting a release"), so a bare `npm version`-created tag would collide with (or worse, silently shadow) a real root release tag.
+
+**Tag `mcp-vX.Y.Z` explicitly instead, added 2026-09-08** — a real git-level record of exactly which commit a given `toolcrib-mcp` publish was built from, the same "the tag *is* the shipped content" guarantee `release.yml` already gives the root package, just via a prefixed tag instead of a shared bare one. Verified directly, not assumed: `release.yml`'s own trigger (`on.push.tags: ['v*']`) only matches tags starting with the literal character `v` — `mcp-v0.3.0` starts with `m`, so creating and pushing it cannot trigger that workflow. Push only the one specific tag (`git push origin mcp-vX.Y.Z`), never a blanket `git push --tags` — this repo's tag namespace has other packages' tags in it too (`cli-vX.Y.Z`, see `cli/CONTRIBUTING.md`; plain `vX.Y.Z` for the root package), and a blanket push has no way to push just this package's own.
 
 ### What the `files` field is for
 

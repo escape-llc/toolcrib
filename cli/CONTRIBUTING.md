@@ -159,14 +159,24 @@ unit tests, by construction, couldn't have caught:
 
 ## Publishing
 
+Only when the maintainer explicitly asks for a version bump:
+
 ```bash
 cd cli
+npm version <patch|minor|major> --no-git-tag-version   # see below re: --no-git-tag-version
+npm test               # full suite green
 npm pack --dry-run    # confirm exactly what would ship — should be
                        # package.json + src/ only, ~20 files
 npm publish --dry-run  # same validation a real publish runs (bin-script
                         # checks, package.json normalization), no network write
 npm publish
+git add package.json package-lock.json && git commit -m "Bump toolcrib CLI to vX.Y.Z" && git push
+git tag cli-vX.Y.Z && git push origin cli-vX.Y.Z   # tag *after* the version-bump commit exists, so it points at the real, correct state -- see below re: prefix
 ```
+
+**Always pass `--no-git-tag-version` on the `npm version` step itself** — that command's own default behavior creates and pushes a bare `vX.Y.Z` tag, and git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package: the root `toolcrib` package has already claimed every `v0.1.0`–`v0.13.0` (see root `AGENTS.md`'s "Cutting a release"), so a bare `npm version`-created tag would collide with (or worse, silently shadow) a real root release tag.
+
+**Tag `cli-vX.Y.Z` explicitly instead, added 2026-09-08** — a real git-level record of exactly which commit a given `toolcrib` CLI publish was built from, the same "the tag *is* the shipped content" guarantee `release.yml` already gives the root package, just via a prefixed tag instead of a shared bare one. Verified directly, not assumed: `release.yml`'s own trigger (`on.push.tags: ['v*']`) only matches tags starting with the literal character `v` — `cli-v0.6.0` starts with `c`, so creating and pushing it cannot trigger that workflow. Push only the one specific tag (`git push origin cli-vX.Y.Z`), never a blanket `git push --tags` — this repo's tag namespace has other packages' tags in it too (`mcp-vX.Y.Z`, see `mcp/CONTRIBUTING.md`; plain `vX.Y.Z` for the root package), and a blanket push has no way to push just this package's own.
 
 ### What the `files` field is for
 
