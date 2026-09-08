@@ -186,52 +186,69 @@ export async function doctorCommand(options = {}) {
 
   const spinner = p.spinner();
   spinner.start(`Checking against installed version v${lock.version}`);
-  let release;
+  // Network-dependent section 1 of 2: drift check against the installed
+  // release. A failure here (rate limit, network down, bad release asset)
+  // should only skip *this* check, not abort bundler detection/root-provider
+  // check/etc. below — those are 100% local and would otherwise succeed.
+  let release = null;
+  let releaseFetchError = null;
   try {
     release = await fetchRelease(lock.version);
   } catch (err) {
-    spinner.stop('Failed to fetch release');
-    throw err;
+    releaseFetchError = err;
   }
 
-  const drifted = [];
-  for (const relPath of release.allFiles()) {
-    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
-    const local = readTextIfExists(targetPath);
-    const shipped = release.readFile(relPath);
-    if (normalize(local) !== normalize(shipped)) {
-      drifted.push(relPath);
+  if (release) {
+    const drifted = [];
+    for (const relPath of release.allFiles()) {
+      const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
+      const local = readTextIfExists(targetPath);
+      const shipped = release.readFile(relPath);
+      if (normalize(local) !== normalize(shipped)) {
+        drifted.push(relPath);
+      }
     }
-  }
-  const managedBlockMessages = await checkManagedBlocks(projectRoot, release);
-  await release.cleanup();
-  spinner.stop('Drift check complete');
+    const managedBlockMessages = await checkManagedBlocks(projectRoot, release);
+    await release.cleanup();
+    spinner.stop('Drift check complete');
 
-  if (drifted.length === 0) {
-    p.log.success(`No local drift detected from v${lock.version}.`);
-  } else {
-    p.log.warn(
-      `${drifted.length} file(s) differ from the shipped v${lock.version}:\n` +
-        drifted.map((f) => `  ${f}`).join('\n')
-    );
-  }
-
-  if (managedBlockMessages.length === 0) {
-    p.log.success('No managed AGENTS.md/CLAUDE.md blocks found, or none have drifted.');
-  } else {
-    for (const message of managedBlockMessages) {
-      p.log[message.level](message.text);
+    if (drifted.length === 0) {
+      p.log.success(`No local drift detected from v${lock.version}.`);
+    } else {
+      p.log.warn(
+        `${drifted.length} file(s) differ from the shipped v${lock.version}:\n` +
+          drifted.map((f) => `  ${f}`).join('\n')
+      );
     }
+
+    if (managedBlockMessages.length === 0) {
+      p.log.success('No managed AGENTS.md/CLAUDE.md blocks found, or none have drifted.');
+    } else {
+      for (const message of managedBlockMessages) {
+        p.log[message.level](message.text);
+      }
+    }
+  } else {
+    spinner.stop('Drift check skipped');
+    p.log.warn(`Could not fetch v${lock.version} to check for drift: ${releaseFetchError.message}`);
   }
 
+  // Network-dependent section 2 of 2: "is a newer version available."
+  // Independent failure point from the drift check above (different
+  // GitHub endpoint, same rate limit) — same rule applies: a failure here
+  // shouldn't take out the local-only checks that follow.
   // fetchLatestVersion (GitHub's dedicated /releases/latest endpoint), not
   // listVersions — doctor only ever needs the single newest release to
   // compare against what's installed, not every release's full metadata.
-  const newestVersion = await fetchLatestVersion();
-  if (newestVersion !== lock.version) {
-    p.log.info(`A newer version is available: v${newestVersion} (installed: v${lock.version}). Run 'toolcrib merge'.`);
-  } else {
-    p.log.info('You are on the latest release.');
+  try {
+    const newestVersion = await fetchLatestVersion();
+    if (newestVersion !== lock.version) {
+      p.log.info(`A newer version is available: v${newestVersion} (installed: v${lock.version}). Run 'toolcrib merge'.`);
+    } else {
+      p.log.info('You are on the latest release.');
+    }
+  } catch (err) {
+    p.log.warn(`Could not check for a newer release: ${err.message}`);
   }
 
   if (!checkTypeScriptAdopted(projectRoot)) {
