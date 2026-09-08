@@ -22,14 +22,16 @@ export function parseArgs(argv) {
  * `transport` is injectable (defaults to the real stdio one) so a unit test
  * can pass an in-memory transport instead — connecting the real
  * `StdioServerTransport` would attach to the test process's own actual
- * stdin/stdout, which is unsafe to do from inside a test run.
+ * stdin/stdout, which is unsafe to do from inside a test run. `parserMap`
+ * is passed straight through to `buildServer` (undefined on every real
+ * invocation) for the same test-only reason as its own doc comment.
  */
-export async function run(argv, { log = console.error, transport = new StdioServerTransport() } = {}) {
+export async function run(argv, { log = console.error, transport = new StdioServerTransport(), parserMap } = {}) {
   const { root } = parseArgs(argv);
 
   let server, compatibilityWarning;
   try {
-    ({ server, compatibilityWarning } = buildServer({ root }));
+    ({ server, compatibilityWarning } = buildServer({ root, parserMap }));
   } catch (err) {
     // stderr, not stdout -- stdout is the MCP protocol channel itself once
     // a transport connects, and must never carry anything else.

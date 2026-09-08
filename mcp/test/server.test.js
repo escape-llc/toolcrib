@@ -5,6 +5,10 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { buildServer } from '../src/server.js';
+import { computeSchemaFingerprint } from '../src/lib/schemaFingerprint.js';
+import { loadManifestIndex } from '../src/lib/manifestIndex.js';
+import { loadCoreDoc } from '../src/lib/coreDoc.js';
+import { loadExamples } from '../src/lib/examples.js';
 import { buildFakeProject, cleanupFakeProject } from './fixtures.js';
 
 /**
@@ -15,12 +19,25 @@ import { buildFakeProject, cleanupFakeProject } from './fixtures.js';
  * this covers the tool logic itself, in-process, for real coverage
  * instrumentation.
  */
-async function connectedClient(vendoredRoot) {
-  const { server } = buildServer({ root: vendoredRoot });
+async function connectedClient(vendoredRoot, parserMap) {
+  const { server } = buildServer({ root: vendoredRoot, parserMap });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
   await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
   return client;
+}
+
+/**
+ * A fake project's own real content is a deliberately minimal stand-in,
+ * not a replica of real production ai-docs/ — see compatibility.test.js's
+ * own identical helper for the full reasoning. Registering the fixture's
+ * own computed fingerprint is what lets most of this file's tests exercise
+ * a "recognized, no warning" server without depending on real repo
+ * content that could change independently of these tests.
+ */
+function parserMapFor(vendoredRoot) {
+  const fingerprint = computeSchemaFingerprint(vendoredRoot);
+  return new Map([[fingerprint, { loadManifestIndex, loadCoreDoc, loadExamples }]]);
 }
 
 function textOf(result) {
@@ -33,7 +50,7 @@ describe('buildServer', () => {
   beforeEach(async () => {
     const built = buildFakeProject();
     projectRoot = built.projectRoot;
-    client = await connectedClient(built.vendoredRoot);
+    client = await connectedClient(built.vendoredRoot, parserMapFor(built.vendoredRoot));
   });
 
   afterEach(() => cleanupFakeProject(projectRoot));
@@ -95,13 +112,35 @@ describe('buildServer', () => {
     expect(parsed.compatibilityWarning).toBe(null);
   });
 
-  it('get_install_info surfaces a compatibility warning for a vendored version outside the verified range', async () => {
+  it('get_install_info reports no compatibility warning for an unusual version number alone — compatibility is about schema shape, not version', async () => {
+    // Regression test for what the fingerprint-based design deliberately
+    // drops from the old semver-range one: a fake project's real ai-docs/
+    // content is untouched here, only the version string is unusual. Under
+    // the old COMPATIBLE_RANGE design this would have warned; this design
+    // recognizes it as the same real, verified schema shape regardless.
     const built = buildFakeProject({ version: '0.99.0' });
     try {
-      const outOfRangeClient = await connectedClient(built.vendoredRoot);
-      const result = await outOfRangeClient.callTool({ name: 'get_install_info', arguments: {} });
+      const versionClient = await connectedClient(built.vendoredRoot, parserMapFor(built.vendoredRoot));
+      const result = await versionClient.callTool({ name: 'get_install_info', arguments: {} });
       const parsed = JSON.parse(textOf(result));
-      expect(parsed.compatibilityWarning).toContain('0.99.0');
+      expect(parsed.compatibilityWarning).toBe(null);
+    } finally {
+      cleanupFakeProject(built.projectRoot);
+    }
+  });
+
+  it('get_install_info surfaces a compatibility warning when the vendored schema shape is genuinely unrecognized', async () => {
+    const built = buildFakeProject();
+    try {
+      const manifestPath = path.join(built.vendoredRoot, 'ai-docs', 'component-manifest.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      delete manifest.components[0].description;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      const unrecognizedClient = await connectedClient(built.vendoredRoot);
+      const result = await unrecognizedClient.callTool({ name: 'get_install_info', arguments: {} });
+      const parsed = JSON.parse(textOf(result));
+      expect(parsed.compatibilityWarning).toContain("doesn't recognize");
     } finally {
       cleanupFakeProject(built.projectRoot);
     }
