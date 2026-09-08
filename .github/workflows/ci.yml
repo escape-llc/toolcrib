@@ -172,7 +172,7 @@ jobs:
 
       - name: Wait for the mock server to be ready
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             curl -sf http://localhost:9999/api/repos/escape-llc/toolcrib/releases/latest > /dev/null && exit 0
             sleep 1
           done
@@ -236,7 +236,7 @@ jobs:
       - name: Wait for the mock server to be ready
         shell: bash
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             curl -sf http://localhost:9999/api/repos/escape-llc/toolcrib/releases/latest > /dev/null && exit 0
             sleep 1
           done
@@ -279,11 +279,12 @@ jobs:
   # dozens of real GitHub issues/PRs/discussions/commits by URL, with
   # nothing catching a typo'd number or a link that rotted after a rename.
   # Verified directly before adding this: a real lychee run against every
-  # .md/.txt file in the repo found 58/59 links healthy -- the one flag
-  # (npmjs.com returning 403 to automated requests) is a known bot-blocking
-  # false positive, not a real dead link, so it's excluded below rather
-  # than accepted as a passing status code (which would be broader than
-  # needed and could mask a genuinely gated page elsewhere).
+  # .md/.txt file in the repo found the links healthy -- npmjs.com and
+  # badge.fury.io both return 403 to automated (non-browser) requests, a
+  # known bot-blocking quirk of badge-hosting sites, not real dead links
+  # (both were confirmed working normally in a real browser) -- excluded
+  # below rather than accepted as a passing status code, which would be
+  # broader than needed and could mask a genuinely gated page elsewhere.
   link-check:
     runs-on: ubuntu-latest
     steps:
@@ -293,5 +294,5 @@ jobs:
       - name: Check links in docs
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
         with:
-          args: --no-progress --exclude 'npmjs\.com' './**/*.md' './**/*.txt'
+          args: --no-progress --exclude 'npmjs\.com' --exclude 'badge\.fury\.io' './**/*.md' './**/*.txt'
           fail: true
