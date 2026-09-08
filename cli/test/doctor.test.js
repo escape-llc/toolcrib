@@ -373,10 +373,29 @@ describe('doctorCommand', () => {
       await expect(doctorCommand()).resolves.not.toThrow();
     });
 
-    it('stops the spinner and rethrows when fetching the release fails', async () => {
+    it('warns and continues (does not throw, does not abort the sequence) when fetching the release fails', async () => {
       fetchRelease.mockRejectedValue(new Error('network unreachable'));
+      fetchLatestVersion.mockResolvedValue('1.0.0');
 
-      await expect(doctorCommand()).rejects.toThrow('network unreachable');
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+      // The real regression this guards: a failure fetching the release
+      // (drift check) must not prevent doctorCommand from reaching the
+      // later, independent "is a newer version available" network call --
+      // previously an uncaught rejection here aborted the whole command
+      // before that call (and the local-only bundler/root-provider checks
+      // after it) ever ran.
+      expect(fetchLatestVersion).toHaveBeenCalled();
+    });
+
+    it('warns and continues (does not throw, does not abort the sequence) when checking for the latest version fails', async () => {
+      fetchRelease.mockResolvedValue(
+        fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n', 'ai-docs/CORE.md': 'Core rules.\n' })
+      );
+      fetchLatestVersion.mockRejectedValue(new Error('GitHub rate limit exhausted'));
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
     });
   });
 
