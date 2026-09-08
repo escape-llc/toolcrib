@@ -51,7 +51,7 @@ try {
   assert(info.version === rootPkg.version, `get_install_info reports the real vendored version (${rootPkg.version})`);
   assert(
     info.compatibilityWarning === null,
-    `no compatibility warning for this repo's own current version (${rootPkg.version}) -- if this fails, COMPATIBLE_RANGE in src/lib/compatibility.js needs updating`
+    `no compatibility warning for this repo's own current version (${rootPkg.version}) -- if this fails, this repo's real schema shape changed in a way PARSER_MAP in src/lib/compatibility.js doesn't recognize yet (see LEGACY_FINGERPRINT's own comment for how to verify and add a new entry)`
   );
 
   const categories = JSON.parse((await client.callTool({ name: 'list_categories', arguments: {} })).content[0].text);
