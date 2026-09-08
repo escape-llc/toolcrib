@@ -143,7 +143,7 @@ anything. It reports:
 - **Stale instruction-file blocks** — if the `<!-- toolcrib:managed:... -->`
   block in your `AGENTS.md`/`CLAUDE.md` was hand-edited instead of
   regenerated, or is out of date with your installed version.
-- **Whether a newer release is available.**
+- **Whether a newer release is available** — and, when a known, fixed vulnerability affects your installed version specifically, its severity and a link to the fix (generated from real, fixed toolcrib CodeQL findings — see the project's own `AGENTS.md` for how).
 - **A `tsconfig.json` compatibility check** — if `moduleResolution` isn't
   set to `"bundler"`, `"node16"`, or `"nodenext"`, `import { ... } from
   '#toolcrib'` will run fine but your editor/`tsc` may falsely report

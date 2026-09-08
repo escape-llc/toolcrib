@@ -23,6 +23,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Overrides the workflow-level contents:read-only default (see above)
+    # -- this is the one job that reads code-scanning alerts (for the
+    # security-advisories.json check below), which needs security-events:
+    # read even on a public repo. Scoped to just this job, not workflow-
+    # wide, matching the least-privilege precedent already established
+    # for release.yml's contents:write (see AGENTS.md's OpenSSF Scorecard
+    # hardening account).
+    permissions:
+      contents: read
+      security-events: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -86,6 +96,18 @@ jobs:
 
       - name: Check src/index.ts matches source
         run: node scripts/generate-index.js --check
+
+      # Unlike the three checks above, this one's "source" is live GitHub
+      # API state (code-scanning alerts + releases), not local files -- see
+      # scripts/generate-security-advisories.js's own header comment for
+      # why. Needs security-events: read, granted below scoped to this job
+      # only (least-privilege, matching the Token-Permissions hardening
+      # elsewhere in this repo's workflows) -- the default GITHUB_TOKEN
+      # already carries it once granted, no extra secret needed.
+      - name: Check security-advisories.json matches real CodeQL alert state
+        run: node scripts/generate-security-advisories.js --check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Every cross-platform bug found in this project's history so far (CRLF
   # vs LF, backslash path separators breaking `git apply`, a UTF-8 BOM
