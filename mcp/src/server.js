@@ -3,9 +3,6 @@ import { z } from 'zod';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveVendoredRoot, readLockInfo } from './lib/localInstall.js';
-import { loadManifestIndex } from './lib/manifestIndex.js';
-import { loadCoreDoc } from './lib/coreDoc.js';
-import { loadExamples } from './lib/examples.js';
 import { checkCompatibility } from './lib/compatibility.js';
 
 const json = (value) => ({ content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
@@ -25,11 +22,17 @@ const errorText = (value) => ({ content: [{ type: 'text', text: value }], isErro
  *
  * Returns `{ server, compatibilityWarning }` rather than the server alone —
  * `compatibilityWarning` (from lib/compatibility.js, `null` when the
- * vendored version is within COMPATIBLE_RANGE) is surfaced both here, for
- * the caller to log once at startup, and inside `get_install_info`'s own
- * response, so it's visible however the host chooses to check.
+ * vendored install's real schema fingerprint matches a known-verified one)
+ * is surfaced both here, for the caller to log once at startup, and inside
+ * `get_install_info`'s own response, so it's visible however the host
+ * chooses to check.
+ *
+ * `parserMap` is passed straight through to `checkCompatibility` (see its
+ * own doc comment) — omitted by every real call site, present only so
+ * tests can exercise the "recognized schema" path against a fake
+ * fixture's own computed fingerprint instead of real production content.
  */
-export function buildServer({ root } = {}) {
+export function buildServer({ root, parserMap } = {}) {
   const candidateRoot = root ? root.replace(/[/\\]+$/, '') : resolveVendoredRoot(process.cwd());
   const vendoredRoot = candidateRoot && existsSync(join(candidateRoot, '.toolcrib-lock.json')) ? candidateRoot : null;
   if (!vendoredRoot) {
@@ -40,10 +43,14 @@ export function buildServer({ root } = {}) {
   }
 
   let lock = readLockInfo(vendoredRoot);
-  let compatibilityWarning = checkCompatibility(lock?.version);
-  let manifestIndex = loadManifestIndex(vendoredRoot);
-  let coreDoc = loadCoreDoc(vendoredRoot);
-  let examples = loadExamples(vendoredRoot);
+  // parserMap is undefined on every real call site -- checkCompatibility's
+  // own default parameter handles that directly (JS defaults trigger on
+  // undefined), so there's no need to special-case it here too.
+  let compat = checkCompatibility(vendoredRoot, parserMap);
+  let compatibilityWarning = compat.warning;
+  let manifestIndex = compat.parsers.loadManifestIndex(vendoredRoot);
+  let coreDoc = compat.parsers.loadCoreDoc(vendoredRoot);
+  let examples = compat.parsers.loadExamples(vendoredRoot);
 
   /**
    * Re-reads .toolcrib-lock.json (a few bytes) before every tool call and
@@ -61,14 +68,15 @@ export function buildServer({ root } = {}) {
     const currentLock = readLockInfo(vendoredRoot);
     if (currentLock?.version === lock?.version) return;
     try {
-      const nextManifestIndex = loadManifestIndex(vendoredRoot);
-      const nextCoreDoc = loadCoreDoc(vendoredRoot);
-      const nextExamples = loadExamples(vendoredRoot);
+      const nextCompat = checkCompatibility(vendoredRoot, parserMap);
+      const nextManifestIndex = nextCompat.parsers.loadManifestIndex(vendoredRoot);
+      const nextCoreDoc = nextCompat.parsers.loadCoreDoc(vendoredRoot);
+      const nextExamples = nextCompat.parsers.loadExamples(vendoredRoot);
       manifestIndex = nextManifestIndex;
       coreDoc = nextCoreDoc;
       examples = nextExamples;
       lock = currentLock;
-      compatibilityWarning = checkCompatibility(lock?.version);
+      compatibilityWarning = nextCompat.warning;
     } catch {
       // Keep serving the last known-good state.
     }
