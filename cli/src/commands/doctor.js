@@ -1,9 +1,10 @@
 import path from 'node:path';
+import semver from 'semver';
 import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { normalize } from '../lib/patches.js';
 import { readJsonIfExists, readLock, readTextIfExists, fileExists } from '../lib/project.js';
-import { fetchLatestVersion } from '../lib/github.js';
+import { fetchLatestVersion, fetchSecurityAdvisories } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
 import { detectBundler } from '../lib/bundler.js';
 import { checkRootProviderWired } from '../lib/rootProvider.js';
@@ -249,6 +250,31 @@ export async function doctorCommand(options = {}) {
     }
   } catch (err) {
     p.log.warn(`Could not check for a newer release: ${err.message}`);
+  }
+
+  // Network-dependent section 3 of 3: security advisories, generated from
+  // real CodeQL findings (see scripts/generate-security-advisories.js).
+  // Independent failure point from the version check above -- this file
+  // always lives on the toolcrib repo's own main branch, never in a
+  // consumer's vendored copy (a frozen snapshot that structurally can't
+  // know about anything published after it), so it's fetched fresh on
+  // every run for the same reason fetchLatestVersion is. Enriches the
+  // version check above rather than replacing it: same underlying
+  // question ("is there a newer version worth getting"), this just says
+  // *why* when the answer is yes for a real, fixed vulnerability.
+  try {
+    const advisories = await fetchSecurityAdvisories();
+    const relevant = advisories
+      .filter((a) => semver.gt(a.fixedIn, lock.version))
+      .sort((a, b) => semver.compare(b.fixedIn, a.fixedIn));
+    for (const a of relevant) {
+      p.log.warn(
+        `Security: v${a.fixedIn} fixes a ${a.severity.toUpperCase()}-severity issue (installed: v${lock.version}) -- ` +
+          `${a.summary}\n  ${a.url}\n  Run 'toolcrib merge' to update.`
+      );
+    }
+  } catch (err) {
+    p.log.warn(`Could not check for security advisories: ${err.message}`);
   }
 
   if (!checkTypeScriptAdopted(projectRoot)) {
