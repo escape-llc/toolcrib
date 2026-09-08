@@ -22,6 +22,10 @@ describe('checkCompatibility', () => {
   });
 
   it('flags an older version as outside the range too, not just newer ones', () => {
-    expect(checkCompatibility('0.4.0')).not.toBe(null);
+    // 0.0.1 predates this project's actual first release (0.1.0) -- every
+    // real release from 0.1.0 up is now empirically verified compatible
+    // (see COMPATIBLE_RANGE's own comment), so a hypothetical pre-0.1.0
+    // version is what's actually "older and out of range" here.
+    expect(checkCompatibility('0.0.1')).not.toBe(null);
   });
 });
