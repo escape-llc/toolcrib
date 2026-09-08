@@ -54,15 +54,23 @@ jobs:
       # Every third-party Action below is pinned to a full commit SHA, not
       # a mutable tag -- ironic to run a supply-chain scanner whose own
       # workflow fails its single most-cited check (Pinned-Dependencies).
-      # ci.yml's actions/checkout@v7 etc. stay tag-pinned for now (repo-wide
-      # re-pinning is a separate, larger follow-up if the first real score
-      # flags it); this workflow alone is held to the stricter bar since
-      # it's the one whose entire purpose is exactly that check.
+      # Repo-wide re-pinning (every other workflow) followed shortly after
+      # in #167, once the first real score flagged the gap.
+      #
+      # repo_token: the default GITHUB_TOKEN this job's own `permissions`
+      # block grants can't read classic branch protection rules (a real,
+      # confirmed error on this workflow's first run -- see issue #166),
+      # so Branch-Protection needs a separate token with real read access.
+      # TOOLCRIB_READ_TOKEN is a fine-grained PAT scoped to this repo only,
+      # "Administration: Read-only" and nothing else, added as a repo
+      # secret by the maintainer per ossf/scorecard-action's own auth docs
+      # (https://github.com/ossf/scorecard-action/blob/main/docs/authentication/fine-grained-auth-token.md).
       - name: Run analysis
         uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
           results_file: results.sarif
           results_format: sarif
+          repo_token: ${{ secrets.TOOLCRIB_READ_TOKEN }}
           publish_results: true
 
       - name: Upload SARIF results as an artifact
