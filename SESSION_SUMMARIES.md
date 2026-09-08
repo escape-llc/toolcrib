@@ -34,6 +34,19 @@ it's still the freshest thing in context — not one summary per session.**
 is dead for readers until it's actually on `origin`. Push (or confirm it's
 already pushed) before posting, not after.
 
+**Back-link from the PR, added 2026-09-08.** Once the Discussion post exists,
+add a short comment on the PR the summary's Outcome section names (`gh pr
+comment <N> --body "Session summary: <discussion URL>"`) — a one-line pointer,
+not a duplicate of the summary itself. The Discussion category stays the
+right place to *browse* recent work (see `AGENTS.md`'s own "check the last
+several posts" instruction); this just means someone who lands on the PR
+directly — the more likely entry point once it's merged and the branch is
+gone — has a breadcrumb back to the fuller writeup instead of no trail at
+all. For a summary whose Outcome spans several PRs (a multi-PR arc, e.g. a
+single initiative landed across five sequential PRs), comment on whichever
+one the summary itself calls the outcome — don't spam every PR touched
+along the way.
+
 ## The prompt
 
 Paste this in immediately after a checkpoint/commit, before moving on to
