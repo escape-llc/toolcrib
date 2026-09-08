@@ -1,0 +1,28 @@
+# Toolcrib — Contributor Workflow
+
+How a real change to this repo actually gets from "idea" to "merged," for whoever (human or AI) is doing the work. This is process, not component conventions — see `AGENTS.md` for those. Standing default, confirmed by the maintainer: every real change goes through this sequence, not a direct commit to `main`.
+
+## The sequence
+
+1. **Open an issue** describing what's changing and why. This is the durable record of intent — a PR description explains *what changed*, the issue explains *why it was worth doing*, and the two together are what a future session (or a human) reads to reconstruct context without re-deriving it.
+2. **Branch off an up-to-date `main`** (`git checkout main && git pull --ff-only` first — never branch off a stale local copy).
+3. **Make the change, verify it locally** before pushing — the relevant subset of: `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run check-manifest`/`check-docs`/`check-index`. See "Validate what nothing else validates" below for a real gap in this list.
+4. **Commit**, message ending with the `Co-Authored-By` trailer this session's attribution requires. Reference the issue number in the commit body if it clarifies which change it's part of.
+5. **Push, open a PR** referencing the issue. Body gets a `## Summary` and a `## Test plan` — the test plan should say what was actually verified, not just what should theoretically pass. Use `Closes #N` only when this PR is the *whole* fix — see "Partial fixes" below for why that matters.
+6. **Wait for CI to go green before merging — always.** Never merge on "the diff looks right" alone; this repo's own required checks (`test`, `cli-windows`, `e2e`, `CodeQL`) exist because more than one real bug in this project's history passed a confident read and failed CI anyway.
+7. **Squash-merge, delete the branch** (`gh pr merge <N> --squash --delete-branch`).
+8. **Close the issue** if the merge didn't already auto-close it via `Closes #N`.
+9. **Sync local `main`** (`git checkout main && git pull --ff-only`) and drop the now-merged local branch ref.
+10. **Post a session summary to GitHub Discussions**, per `SESSION_SUMMARIES.md`'s own template and cadence (one per commit-worthy checkpoint, not one per session) — that file owns the *how*; this step just says *when* it happens in the larger sequence.
+
+Not every one-line typo fix needs the full ceremony — but a real change (new behavior, a real bug fix, a config/infra change) does, by default. When in doubt, run the sequence; the cost of an extra issue/PR is low, the cost of an undocumented direct-to-`main` change is a future session with no idea why something is the way it is.
+
+## Boundaries this sequence has actually hit
+
+**Repo-security-setting changes are maintainer-only, not just maintainer-preferred.** Branch protection rules, repo secrets, personal access tokens — an AI session's own permission system blocks these directly (confirmed for real: a `gh api` call to update branch protection, and a `gh pr merge --auto`, were both denied by the harness's own auto-mode classifier, regardless of how explicit the instruction was). This isn't a preference to negotiate around — when a task requires one of these, the right move is diagnosing exactly what's needed and handing back a specific, minimal, already-verified ask (exact settings, exact steps, exact secret name expected) rather than attempting a workaround. See the `TOOLCRIB_READ_TOKEN` and branch-protection `enforce_admins`/`strict` work (issues #166, #173) for the template this takes: the code-side half (wiring a secret into a workflow) is normal PR work; the setting-side half never is.
+
+**Validate what nothing else validates.** `npm run lint` only covers `src`/`demo` — it doesn't touch `.github/workflows/*.yml`, and there's no YAML linter wired into this repo at all. A workflow-file change needs its own validation before pushing (`npx js-yaml <file>` catches real structural mistakes — used for real during the OpenSSF Scorecard workflow and the repo-wide Action-pinning work, both `.yml`-only changes `npm test`/`tsc` can't see). The general lesson: before pushing a change to a file type nothing in `npm test`/`npm run lint`/`tsc` actually parses, find *something* that parses it, even a one-off `npx` tool — don't push a config file's first real validation as the CI run itself.
+
+**A PR's own CI can surface real, unrelated drift — fix it in the same branch, not a separate one.** The repo-wide Action-pinning PR (#167) failed its first CI run not because of anything in that PR's own diff, but because `llms-full.txt` (which embeds `README.md`'s content verbatim) had drifted out of sync with an unrelated README edit that landed in the same commit. Since CI blocks the PR either way, fixing the drift on the same branch (`node scripts/generate-docs.js --write`, then commit) is faster than opening a second PR for an unrelated one-line regeneration — but only when the fix is genuinely mechanical (a generated file catching up to its own source) and not a second real behavior change smuggled into an unrelated PR.
+
+**Partial fixes shouldn't use `Closes #N`.** When an issue names two things and a PR only does one of them (see #173, which split into a code change landed via PR + a repo-settings change the maintainer applied directly), the PR body should say `Part of #N`, not `Closes #N` — the latter auto-closes the issue on merge regardless of whether the rest of the work is actually done, silently losing track of the remainder.
