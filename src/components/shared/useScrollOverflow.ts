@@ -21,8 +21,8 @@ export interface UseScrollOverflowResult {
  * changes (typically the scrolled item list itself, since adding/removing
  * items can flip overflow without the container's width changing at all).
  *
- * Extracted from `TabStrip`'s own filmstrip-overflow logic (its `@manifest`
- * tag already named this exact behavior "filmstrip overflow") so `Filmstrip`
+ * Extracted from `TabStrip`'s own filmstrip-overflow logic (its own manifest
+ * entry already named this exact behavior "filmstrip overflow") so `Filmstrip`
  * can reuse the identical detection instead of a second, parallel
  * implementation that could drift from it.
  */

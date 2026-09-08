@@ -42,7 +42,7 @@ export interface ToolcribProviderProps {
  * No `overrides`/`style`/`className` prop, no `ThemeSlice`, no z-index, no
  * event-bus emission, no resize awareness of its own — it's pure
  * composition, so the usual per-component ground rules don't apply here.
- * Deliberately has no `@manifest` tag (see `component-manifest.json`'s
+ * Deliberately not tagged for manifest generation (see `component-manifest.json`'s
  * precedent: `ThemeProvider`/`ToastProvider` don't have entries there
  * either — `CORE.md` §1's Root Setup prose is the documentation surface
  * for all three, not the generated component-manifest pipeline).

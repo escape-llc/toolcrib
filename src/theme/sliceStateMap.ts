@@ -6,7 +6,7 @@
  * each slice file (e.g. `DrawerSlice.ts`) contributes its own entry
  * directly via a `declare module './sliceStateMap'` block, the same
  * self-registering spirit `globalThemeSliceRegistry.register()` and the
- * `@manifest`/`@barrelExport` tag system already use elsewhere in this
+ * `manifest`/`barrelExport` tag system already use elsewhere in this
  * codebase. A new component's own slice file is the only place that needs
  * touching to plug into `ThemeProviderProps.initialSliceStates` — nothing
  * here, and nothing shared, ever needs editing again.
