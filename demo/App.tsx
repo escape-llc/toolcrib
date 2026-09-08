@@ -93,6 +93,7 @@ import {
   PieChart,
   Sparkline,
   Heatmap,
+  ScaleLegend,
 } from '#toolcrib';
 
 // Named so the "collapse event log" toolbar button (in the AppShell.Main
@@ -1702,6 +1703,7 @@ export const App: React.FC = () => {
                           ]}
                           formatValue={v => `${v} tickets`}
                         />
+                        <ScaleLegend min={5} max={24} formatValue={v => `${v} tickets`} />
                       </Card.Content>
                     </Card>
 
