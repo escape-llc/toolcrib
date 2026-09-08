@@ -246,3 +246,52 @@ jobs:
       - name: Run the real Windows init/apply/doctor integration test
         shell: bash
         run: node cli/integration-test/run-windows-integration.mjs
+
+  # WORKFLOW.md documented this as a real gap: no YAML linter was wired in
+  # anywhere, only an ad-hoc "run npx js-yaml before pushing" manual
+  # practice. actionlint (rhysd/actionlint) is the purpose-built tool --
+  # unlike js-yaml (bare YAML syntax only), it understands actual GitHub
+  # Actions semantics (job structure, expression syntax, known action
+  # inputs, permissions typos), and on ubuntu-latest it also gets
+  # shellcheck integration for free (preinstalled on GitHub-hosted
+  # runners), checking every `run:` block's shell syntax too. Verified
+  # directly before adding this: a real run against every workflow file in
+  # this repo found zero findings -- purely additive, no cleanup debt.
+  # Runs via the official binary's npm/npx wrapper (github-actionlint,
+  # version-pinned) rather than a separate GitHub Action -- no repo
+  # checkout dependency beyond the workflow files themselves, no new
+  # third-party Action to trust/pin.
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+
+      - name: Lint GitHub Actions workflow files
+        run: npx --yes github-actionlint@1.7.12
+
+  # A second real gap, found the same way: this repo's docs cross-reference
+  # dozens of real GitHub issues/PRs/discussions/commits by URL, with
+  # nothing catching a typo'd number or a link that rotted after a rename.
+  # Verified directly before adding this: a real lychee run against every
+  # .md/.txt file in the repo found 58/59 links healthy -- the one flag
+  # (npmjs.com returning 403 to automated requests) is a known bot-blocking
+  # false positive, not a real dead link, so it's excluded below rather
+  # than accepted as a passing status code (which would be broader than
+  # needed and could mask a genuinely gated page elsewhere).
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check links in docs
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
+        with:
+          args: --no-progress --exclude 'npmjs\.com' './**/*.md' './**/*.txt'
+          fail: true
