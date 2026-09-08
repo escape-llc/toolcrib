@@ -17,6 +17,16 @@ already required to follow:
   (`cli/`) specifically: local development, the integration test harness,
   and publishing. A separate, independently-versioned npm package from the
   toolkit itself — see `AGENTS.md`'s own note on why they aren't merged.
+- **[mcp/CONTRIBUTING.md](mcp/CONTRIBUTING.md)** — the `toolcrib-mcp`
+  local MCP server (`mcp/`) specifically: local development, the
+  in-process/subprocess test setup, and publishing. Also its own
+  independently-versioned npm package, with its own release cadence
+  decoupled from toolcrib's own content releases — see `AGENTS.md`'s MCP
+  section for why.
+- **[WORKFLOW.md](WORKFLOW.md)** — how a real change actually gets from
+  idea to merged: issue, branch, PR, CI-green, squash-merge, close, sync.
+  The process this repo expects every real change to follow, not just a
+  style preference.
 - **[SESSION_SUMMARIES.md](SESSION_SUMMARIES.md)** — how a session closes
   out: posting an honest writeup (including friction) of what changed to
   GitHub Discussions, so the next session — and anyone watching the
