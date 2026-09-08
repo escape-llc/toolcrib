@@ -97,6 +97,18 @@ const EXAMPLES_OUTPUT_DIR = path.join(ROOT, 'ai-docs', 'examples');
 const LLMS_TXT_TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'llms-txt.hbs');
 const LLMS_TXT_PATH = path.join(ROOT, 'llms.txt');
 const LLMS_FULL_TXT_PATH = path.join(ROOT, 'llms-full.txt');
+
+// Size budgets, added following Ark UI's "check llms.txt response sizes"
+// CI step (see .plans/toolcrib-competitive-analysis.md) -- the entire
+// point of these two files (see this file's header comment above) is
+// being fetched under an agent's context-budget constraint, and nothing
+// before this caught silent growth past a sane size as more components/
+// docs ship over time. Set with real headroom above the size at the time
+// this was added (~2.8KB / ~75KB) -- a growth alarm, not a diet; a
+// genuine size regression should still fail loudly rather than pass
+// silently just because the budget was set too loose to ever matter.
+const LLMS_TXT_SIZE_BUDGET_BYTES = 8 * 1024; // llms.txt is deliberately a short index+links per the llmstxt.org spec, not full content
+const LLMS_FULL_TXT_SIZE_BUDGET_BYTES = 200 * 1024; // the "everything inlined" companion, naturally larger but still bounded
 const README_PATH = path.join(ROOT, 'README.md');
 const NEW_APP_PATH = path.join(ROOT, 'ai-docs', 'NEW_APP.md');
 const REFACTOR_APP_PATH = path.join(ROOT, 'ai-docs', 'REFACTOR_APP.md');
@@ -372,8 +384,18 @@ function main() {
 
   const targets = [
     { filePath: CORE_MD_PATH, content: coreMdContent, label: 'ai-docs/CORE.md' },
-    { filePath: LLMS_TXT_PATH, content: renderTemplate(LLMS_TXT_TEMPLATE_PATH, assembleLlmsTxtData()), label: 'llms.txt' },
-    { filePath: LLMS_FULL_TXT_PATH, content: assembleLlmsFullTxt(coreMdContent), label: 'llms-full.txt' },
+    {
+      filePath: LLMS_TXT_PATH,
+      content: renderTemplate(LLMS_TXT_TEMPLATE_PATH, assembleLlmsTxtData()),
+      label: 'llms.txt',
+      sizeBudgetBytes: LLMS_TXT_SIZE_BUDGET_BYTES,
+    },
+    {
+      filePath: LLMS_FULL_TXT_PATH,
+      content: assembleLlmsFullTxt(coreMdContent),
+      label: 'llms-full.txt',
+      sizeBudgetBytes: LLMS_FULL_TXT_SIZE_BUDGET_BYTES,
+    },
     ...EXAMPLE_TEMPLATES.map(({ file, data }) => ({
       filePath: path.join(EXAMPLES_OUTPUT_DIR, file.replace(/\.hbs$/, '')),
       content: renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data()),
@@ -381,12 +403,26 @@ function main() {
     })),
   ];
 
+  // Only targets carrying a sizeBudgetBytes (llms.txt/llms-full.txt) are
+  // checked -- everything else (CORE.md, the examples) has no size
+  // budget of its own, by design; see the constants' own comment above
+  // for why these two specifically need one.
+  const oversized = targets
+    .filter((t) => t.sizeBudgetBytes !== undefined)
+    .map((t) => ({ label: t.label, actualBytes: Buffer.byteLength(t.content, 'utf-8'), budgetBytes: t.sizeBudgetBytes }))
+    .filter((t) => t.actualBytes > t.budgetBytes);
+
   if (mode === 'write') {
     fs.mkdirSync(EXAMPLES_OUTPUT_DIR, { recursive: true });
     for (const target of targets) {
       fs.writeFileSync(target.filePath, target.content);
     }
     console.log(`Wrote ${targets.length} doc file(s): ai-docs/CORE.md + llms.txt + llms-full.txt + ${EXAMPLE_TEMPLATES.length} example(s) under ai-docs/examples/.`);
+    // Warned, not failed -- --write's job is to write; --check (below) is
+    // the real CI gate on size the same way it already is on drift.
+    for (const t of oversized) {
+      console.warn(`Warning: ${t.label} is ${t.actualBytes} bytes, over its ${t.budgetBytes}-byte budget.`);
+    }
     return;
   }
 
@@ -400,8 +436,22 @@ function main() {
     if (current !== target.content) drifted.push(target.label);
   }
 
+  if (oversized.length > 0) {
+    console.error(
+      `Size budget exceeded for ${oversized.length} file(s):\n` +
+        oversized.map((t) => `  ${t.label}: ${t.actualBytes} bytes (budget: ${t.budgetBytes} bytes)`).join('\n')
+    );
+    console.error(
+      `The whole point of these two files is being fetched under an agent's context-budget constraint -- ` +
+        `review what grew before raising the budget, don't just raise it.`
+    );
+    process.exitCode = 1;
+  }
+
   if (drifted.length === 0) {
-    console.log('ai-docs/CORE.md, llms.txt, llms-full.txt, and ai-docs/examples/ all match the templates + source exactly.');
+    if (oversized.length === 0) {
+      console.log('ai-docs/CORE.md, llms.txt, llms-full.txt, and ai-docs/examples/ all match the templates + source exactly.');
+    }
     return;
   }
 
