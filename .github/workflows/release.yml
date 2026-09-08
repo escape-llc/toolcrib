@@ -5,6 +5,14 @@ on:
     tags:
       - 'v*'
 
+# Explicit deny-by-default at the workflow level -- the one job below
+# grants back only what it actually needs. Scorecard's Token-Permissions
+# check flags a workflow with no top-level permissions block at all as
+# ambiguous even when every job scopes its own (see
+# .plans/toolcrib-gap-closure-plan.md §6a); this is the standard
+# "deny-by-default, grant per-job" pattern GitHub itself recommends.
+permissions: {}
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
