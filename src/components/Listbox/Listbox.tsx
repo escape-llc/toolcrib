@@ -1,5 +1,9 @@
-import React, { type ReactNode } from 'react';
+'use client';
+
+import React, { type ReactNode, useState } from 'react';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
+import { VisuallyHidden } from '../Layout/VisuallyHidden';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
  * Data shape for each item in a `<Listbox>`.
@@ -104,69 +108,97 @@ export const Listbox: React.FC<ListboxProps> = ({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
 }) => {
+  const strings = useLocaleStrings().listbox;
+
+  // Announces `loading` transitions via a visually-hidden aria-live region
+  // -- the only non-visual signal a screen-reader user gets that an async
+  // search (Combobox's own debounced onSearch) started or resolved.
+  // Adjusted during render, not a useEffect -- same "sync state when a prop
+  // changes" pattern Combobox itself already uses for comboboxSyncKey.
+  // Deliberately scoped to `loading` transitions specifically, not every
+  // `options` change: a static/client-filtered Listbox (loading always
+  // false, never toggles) would otherwise announce a fresh result count on
+  // every keystroke, which is exactly the kind of chatty, typing-
+  // interrupting behavior real ARIA combobox guidance warns against --
+  // `loading` only ever changes for genuinely async, already-debounced
+  // searches, so gating on it naturally excludes that case.
+  const [prevLoading, setPrevLoading] = useState(loading);
+  const [announcement, setAnnouncement] = useState('');
+  if (loading !== prevLoading) {
+    setPrevLoading(loading);
+    setAnnouncement(
+      loading ? strings.loadingAnnouncement : options.length === 0 ? strings.noResultsAnnouncement : strings.resultsAnnouncement(options.length)
+    );
+  }
+
   return (
-    <div
-      role="listbox"
-      id={id}
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledBy}
-      aria-multiselectable={multiSelectable || undefined}
-      style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
-    >
-      {loading && (
-        <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
-          {loadingMessage}
-        </div>
-      )}
-      {!loading && options.length === 0 && (
-        <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
-          {emptyMessage}
-        </div>
-      )}
-      {!loading &&
-        options.map((opt, index) => {
-          const isSelected = selectedValues.includes(opt.value);
-          return (
-            <div
-              key={opt.value}
-              id={`${id}-option-${index}`}
-              role="option"
-              aria-selected={isSelected}
-              data-highlighted={index === activeIndex ? '' : undefined}
-              className="ai-menu-item"
-              onMouseDown={e => {
-                e.preventDefault();
-                if (!opt.disabled) onSelect(opt);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: itemPadding,
-                fontSize: CONTROL_FONT_SIZE_VAR[size],
-                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                color: 'var(--ai-text-primary, #111827)',
-                // A selected row's own tint, independent of multiSelectable
-                // -- single-select needs a persistent "this one is picked"
-                // signal too, same as any native <select>'s own OS-rendered
-                // dropdown already shows for its one selected item. Without
-                // it, a caller that clears its own filter query after
-                // picking (the natural thing to do, so the full list
-                // reappears instead of staying narrowed to the one label
-                // that now matches) has no visual trace of the pick at all.
-                background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : undefined,
-                cursor: opt.disabled ? 'not-allowed' : 'pointer',
-                opacity: opt.disabled ? 0.5 : 1,
-                userSelect: 'none',
-              }}
-            >
-              {opt.render ? opt.render(opt) : opt.label}
-              {isSelected && (
-                <span style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 'var(--ai-font-weight-black, 900)' }}>✓</span>
-              )}
-            </div>
-          );
-        })}
-    </div>
+    <>
+      <div aria-live="polite" aria-atomic="true">
+        <VisuallyHidden>{announcement}</VisuallyHidden>
+      </div>
+      <div
+        role="listbox"
+        id={id}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-multiselectable={multiSelectable || undefined}
+        style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
+      >
+        {loading && (
+          <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
+            {loadingMessage}
+          </div>
+        )}
+        {!loading && options.length === 0 && (
+          <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
+            {emptyMessage}
+          </div>
+        )}
+        {!loading &&
+          options.map((opt, index) => {
+            const isSelected = selectedValues.includes(opt.value);
+            return (
+              <div
+                key={opt.value}
+                id={`${id}-option-${index}`}
+                role="option"
+                aria-selected={isSelected}
+                data-highlighted={index === activeIndex ? '' : undefined}
+                className="ai-menu-item"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  if (!opt.disabled) onSelect(opt);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: itemPadding,
+                  fontSize: CONTROL_FONT_SIZE_VAR[size],
+                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                  color: 'var(--ai-text-primary, #111827)',
+                  // A selected row's own tint, independent of multiSelectable
+                  // -- single-select needs a persistent "this one is picked"
+                  // signal too, same as any native <select>'s own OS-rendered
+                  // dropdown already shows for its one selected item. Without
+                  // it, a caller that clears its own filter query after
+                  // picking (the natural thing to do, so the full list
+                  // reappears instead of staying narrowed to the one label
+                  // that now matches) has no visual trace of the pick at all.
+                  background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : undefined,
+                  cursor: opt.disabled ? 'not-allowed' : 'pointer',
+                  opacity: opt.disabled ? 0.5 : 1,
+                  userSelect: 'none',
+                }}
+              >
+                {opt.render ? opt.render(opt) : opt.label}
+                {isSelected && (
+                  <span style={{ color: 'var(--ai-color-primary, #3b82f6)', fontWeight: 'var(--ai-font-weight-black, 900)' }}>✓</span>
+                )}
+              </div>
+            );
+          })}
+      </div>
+    </>
   );
 };

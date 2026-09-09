@@ -79,6 +79,34 @@ describe('Listbox', () => {
     rows.forEach(row => expect((row as HTMLElement).style.background).toBe(''));
   });
 
+  // Regression: async search results (Combobox's own debounced onSearch)
+  // resolving gave a screen-reader user zero non-visual signal -- nothing
+  // in Listbox announced the loading state or the resolved result count.
+  // Deliberately transition-based (mount with loading=false, then flip),
+  // not just "renders with loading=true" -- the announcement only fires on
+  // a real loading transition, not on initial mount (standard aria-live
+  // semantics: don't announce a region's own starting content).
+  it('announces via a visually-hidden aria-live region when loading starts, and again when it resolves with results', () => {
+    const { rerender } = render(<Listbox id="lb" options={[]} onSelect={vi.fn()} />);
+    rerender(<Listbox id="lb" options={[]} loading onSelect={vi.fn()} />);
+    expect(screen.getByText('Loading results…')).toBeInTheDocument();
+
+    rerender(<Listbox id="lb" options={options} loading={false} onSelect={vi.fn()} />);
+    expect(screen.getByText('3 results available')).toBeInTheDocument();
+  });
+
+  it('announces "no results" when loading resolves with an empty list', () => {
+    const { rerender } = render(<Listbox id="lb" options={[]} onSelect={vi.fn()} />);
+    rerender(<Listbox id="lb" options={[]} loading onSelect={vi.fn()} />);
+    rerender(<Listbox id="lb" options={[]} loading={false} onSelect={vi.fn()} />);
+    expect(screen.getByText('No results found')).toBeInTheDocument();
+  });
+
+  it('does not announce anything on initial mount, regardless of loading state', () => {
+    render(<Listbox id="lb" options={options} loading onSelect={vi.fn()} />);
+    expect(screen.queryByText('Loading results…')).not.toBeInTheDocument();
+  });
+
   it('uses render() for custom option content instead of the plain label, matching DataTable\'s own Column.render shape', () => {
     const customOptions: ListboxOptionData[] = [
       { label: 'admin', value: 'admin', render: opt => <strong data-testid="custom">{opt.label.toUpperCase()}</strong> },
