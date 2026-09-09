@@ -500,7 +500,7 @@
       "props": {
         "name": {
           "type": "string",
-          "description": "Field name included in emitted `rating:changed` events."
+          "description": "Field name included in emitted `rating:changed` events. Not a visible or accessible label -- see `aria-label`."
         },
         "value": {
           "type": "number",
