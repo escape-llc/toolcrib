@@ -68,6 +68,23 @@ describe('Rating', () => {
     unsub();
   });
 
+  // Regression: the radiogroup's own aria-label used to be suppressed
+  // whenever `name` was passed (`aria-label={name ? undefined : 'Rating'}`)
+  // -- `name` is an internal field identifier for emitted events, not a
+  // visible/accessible label, so every real call site (which always passes
+  // `name`) left the group with no accessible name at all. A screen-reader
+  // user got "1 star, radio button, 1 of 5" with no indication what was
+  // being rated.
+  it('has an accessible name on its radiogroup even when name is passed, falling back to "Rating"', () => {
+    render(<Rating name="quality" />);
+    expect(screen.getByRole('radiogroup', { name: 'Rating' })).toBeInTheDocument();
+  });
+
+  it('uses an explicit aria-label over the "Rating" fallback when provided', () => {
+    render(<Rating name="quality" aria-label="Rate this product" />);
+    expect(screen.getByRole('radiogroup', { name: 'Rate this product' })).toBeInTheDocument();
+  });
+
   it('renders a non-interactive display in readOnly mode, with no radio role and no onChange calls', () => {
     const onChange = vi.fn();
     render(<Rating value={3.5} readOnly onChange={onChange} />);
