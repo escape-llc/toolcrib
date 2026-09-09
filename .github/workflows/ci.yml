@@ -155,6 +155,12 @@ jobs:
   # see cli/integration-test/nextjs-fixture/README.md for why.
   nextjs-fixture:
     runs-on: ubuntu-latest
+    # Skipped entirely for a Dependabot-authored PR -- not a required status
+    # check (required contexts are test/cli-windows/e2e/CodeQL only,
+    # confirmed via the branch protection API), so there's no "job must
+    # still post a status" constraint the way e2e/screen-reader have. Same
+    # reasoning as codecov.yml's run job.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -221,6 +227,9 @@ jobs:
   # cli/integration-test/run-windows-integration.mjs for the full account.
   windows-integration:
     runs-on: windows-latest
+    # Same reasoning as nextjs-fixture above -- not a required status check,
+    # skipped entirely (not just its steps) for a Dependabot-authored PR.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
