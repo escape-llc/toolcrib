@@ -88,6 +88,36 @@ export async function fetchLatestVersion() {
   return release.tag_name.replace(/^v/, '');
 }
 
+/**
+ * Fetch security-advisories.json fresh from the toolcrib repo's own
+ * `main` branch -- never from a consumer's vendored copy, which is a
+ * frozen snapshot from whatever version they installed and structurally
+ * can't know about anything published after that (see
+ * scripts/generate-security-advisories.js for how the file itself is
+ * generated, from real CodeQL alert state, never hand-authored).
+ *
+ * Uses the Contents API's raw media type to get the file's bytes
+ * directly rather than base64-decoding the default JSON-wrapped
+ * response. A missing file (a fresh main with nothing published yet, or
+ * before this file's first commit) is treated as "no advisories," not an
+ * error -- unlike every other call in this file, absence here is the
+ * normal, expected starting state, not a failure.
+ *
+ * Public, unauthenticated read (unlike the generator script, which needs
+ * a token to read the code-scanning alerts API this file is derived
+ * from) -- a consumer's `doctor` run never needs credentials for this.
+ */
+export async function fetchSecurityAdvisories() {
+  const res = await fetch(`${API_BASE}/repos/${REPO}/contents/security-advisories.json?ref=main`, {
+    headers: { Accept: 'application/vnd.github.raw+json' },
+  });
+
+  if (res.status === 404) return [];
+  if (!res.ok) throwGitHubApiError(res, 'security-advisories.json');
+
+  return JSON.parse(await res.text());
+}
+
 function assetUrl(version, assetName) {
   return version === 'latest'
     ? `${RELEASES_BASE}/latest/download/${assetName}`
