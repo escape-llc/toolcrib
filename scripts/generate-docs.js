@@ -84,6 +84,8 @@ import {
   generateThemeSlices,
   generateEventChannels,
   generateComponents,
+  generateSupportedHarmonies,
+  generateThemeParametersFields,
   VALID_CATEGORIES,
   CATEGORY_SLUGS,
 } from './lib/extract.js';
@@ -351,6 +353,70 @@ function assembleLocaleExampleFacts() {
   return {};
 }
 
+// Hand-authored one-line description per real ThemeParameters field --
+// assembleThemeParametersExampleFacts below asserts this set exactly
+// matches generateThemeParametersFieldNames()'s real output, so a field
+// renamed/added/removed in source fails generation outright instead of
+// silently leaving the example stale (same "generation fails outright"
+// discipline as Z_INDEX_USAGE/EVENT_NOTES above and
+// validateCategories/validateNoForbiddenProps in generate-manifest.js).
+const THEME_PARAMETER_DESCRIPTIONS = {
+  baseColor: 'The one color everything else is generated from, as HSVColor ({ h, s, v }) -- not a hex string.',
+  harmonyMode: 'Which fixed hue-relationship algorithm derives the secondary/accent hues from baseColor.',
+  hueSpread: 'Degrees between generated hues for the modes that use a spread (analogous, split-complementary, tetradic) -- ignored by monochromatic/triadic, which use fixed relationships instead.',
+  darkenLightenFactor: 'Global Value-channel multiplier applied across the generated palette -- 1.0 is neutral, >1 lightens, <1 darkens.',
+  saturationFactor: 'Global Saturation-channel multiplier applied across the generated palette -- 1.0 is neutral.',
+  paddingMode: "Internal container padding density: 'compact' | 'normal' | 'spacious' (or a responsive per-breakpoint config).",
+  marginMode: "Spacing between sibling elements: 'compact' | 'normal' | 'spacious' (or a responsive per-breakpoint config).",
+  cornerRadiusMode: "Corner rounding: 'sharp' | 'subtle' | 'rounded' | 'pill' (or a responsive per-breakpoint config).",
+  isDarkMode: 'Whether the generated palette targets a dark or light surface -- also gates which direction ensureWCAGContrast nudges text toward.',
+};
+
+// Same assert-against-real-source discipline as THEME_PARAMETER_DESCRIPTIONS
+// above -- when to reach for each HarmonyMode, keyed by its real value.
+const HARMONY_MODE_DESCRIPTIONS = {
+  monochromatic: 'One hue throughout, varied only by lightness/saturation. Fits a brief asking for something calm, minimal, or brand-disciplined ("just use our one brand color").',
+  analogous: 'Hues near baseColor on the wheel, spread by hueSpread degrees. A safe general-purpose default (the bundled Tailwind preset uses it) -- cohesive without being flat.',
+  'split-complementary': 'baseColor plus two hues near its opposite. Fits a brief wanting real contrast/energy without the harsher clash of a direct complementary pair.',
+  triadic: 'Three hues evenly spaced around the wheel. Fits a brief explicitly asking for a "vibrant" or "playful" feel.',
+  tetradic: 'Four hues, two complementary pairs. The richest/most saturated-feeling option -- fits a brief for something bold, rarely the right default.',
+};
+
+function assertDescriptionsMatchRealValues(descriptions, realValues, sourceLabel) {
+  const describedKeys = Object.keys(descriptions);
+  const missing = realValues.filter((v) => !describedKeys.includes(v));
+  const stale = describedKeys.filter((k) => !realValues.includes(k));
+  if (missing.length > 0 || stale.length > 0) {
+    throw new Error(
+      `${sourceLabel} is out of sync with its real source values -- ` +
+        `${missing.length > 0 ? `missing: ${missing.join(', ')}. ` : ''}${stale.length > 0 ? `stale (no longer real): ${stale.join(', ')}.` : ''}`
+    );
+  }
+}
+
+function assembleThemeParametersExampleFacts() {
+  const realFields = generateThemeParametersFields();
+  assertDescriptionsMatchRealValues(
+    THEME_PARAMETER_DESCRIPTIONS,
+    realFields.map((f) => f.name),
+    'THEME_PARAMETER_DESCRIPTIONS (theme/harmonies.ts ThemeParameters)'
+  );
+
+  const realHarmonies = generateSupportedHarmonies();
+  assertDescriptionsMatchRealValues(HARMONY_MODE_DESCRIPTIONS, realHarmonies, 'HARMONY_MODE_DESCRIPTIONS (theme/harmonies.ts HarmonyMode)');
+
+  return {
+    themeParameterFields: realFields.map((f) => ({
+      name: f.name,
+      optionalMarker: f.optional ? '?' : '',
+      type: f.type,
+      description: THEME_PARAMETER_DESCRIPTIONS[f.name],
+    })),
+    harmonyModes: realHarmonies.map((name) => ({ name, description: HARMONY_MODE_DESCRIPTIONS[name] })),
+    themeSliceCount: generateThemeSlices().length,
+  };
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -366,6 +432,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'auth-unauthorized.md.hbs', data: assembleAuthExampleFacts },
   { file: 'ssr-theme-injection.md.hbs', data: assembleSSRThemeExampleFacts },
   { file: 'locale-provider.md.hbs', data: assembleLocaleExampleFacts },
+  { file: 'theme-parameters-from-brief.md.hbs', data: assembleThemeParametersExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {
