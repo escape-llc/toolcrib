@@ -95,5 +95,36 @@ export default tseslint.config(
       'toolcrib-internal/no-unscaled-pill-radius': 'error',
       'toolcrib-internal/no-computed-prop-before-spread': 'error',
     },
+  },
+  {
+    // Broader than the block above on purpose: no-missing-use-client has
+    // to cover every file that could need the directive (src/theme,
+    // src/eventBus, src/observer -- not just src/components), and hooks/
+    // contexts aren't .tsx-only, so this covers .ts too. Not merged into
+    // the block above -- that one is deliberately scoped to component
+    // source only (see its own comment: theme files legitimately define
+    // the literal token values the other three rules exist to flag misuse
+    // of elsewhere), a distinction that doesn't apply to this rule at all.
+    // One full pattern per directory, matching the block above's own
+    // established style -- not a bare '*.test.{ts,tsx}' shorthand, per
+    // this file's own basePath-relative-matching gotcha documented up top.
+    files: [
+      'src/theme/**/*.{ts,tsx}',
+      'src/eventBus/**/*.{ts,tsx}',
+      'src/observer/**/*.{ts,tsx}',
+      'src/components/**/*.{ts,tsx}',
+    ],
+    ignores: [
+      'src/theme/**/*.test.{ts,tsx}',
+      'src/eventBus/**/*.test.{ts,tsx}',
+      'src/observer/**/*.test.{ts,tsx}',
+      'src/components/**/*.test.{ts,tsx}',
+    ],
+    plugins: {
+      'toolcrib-internal': themeTokensPlugin,
+    },
+    rules: {
+      'toolcrib-internal/no-missing-use-client': 'error',
+    },
   }
 );

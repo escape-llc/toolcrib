@@ -31,6 +31,7 @@
  * guarantee actually satisfies CSP nonce checking from script.
  */
 export function injectGlobalStyle(id: string, css: string, targetDocument?: Document, nonce?: string): void {
+  // eslint-disable-next-line toolcrib-internal/no-missing-use-client -- guarded/isomorphic reference, safe no-op on the server; doesn't require the directive
   const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
   if (!doc) return;
   if (doc.getElementById(id)) return;
@@ -55,6 +56,7 @@ export function injectGlobalStyle(id: string, css: string, targetDocument?: Docu
  * nothing to re-apply on the update path.
  */
 export function upsertGlobalStyle(id: string, css: string, targetDocument?: Document, nonce?: string): void {
+  // eslint-disable-next-line toolcrib-internal/no-missing-use-client -- guarded/isomorphic reference, safe no-op on the server; doesn't require the directive
   const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
   if (!doc) return;
   const existing = doc.getElementById(id) as HTMLStyleElement | null;
@@ -71,6 +73,7 @@ export function upsertGlobalStyle(id: string, css: string, targetDocument?: Docu
 
 /** Removes a tag previously injected by `upsertGlobalStyle` (or `injectGlobalStyle`), if present. */
 export function removeGlobalStyle(id: string, targetDocument?: Document): void {
+  // eslint-disable-next-line toolcrib-internal/no-missing-use-client -- guarded/isomorphic reference, safe no-op on the server; doesn't require the directive
   const doc = targetDocument ?? (typeof document === 'undefined' ? undefined : document);
   doc?.getElementById(id)?.remove();
 }
