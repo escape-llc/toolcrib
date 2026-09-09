@@ -5,6 +5,7 @@
 ![workflow](https://github.com/escape-llc/toolcrib/actions/workflows/ci.yml/badge.svg)
 ![e2e](https://github.com/escape-llc/toolcrib/actions/workflows/e2e.yml/badge.svg)
 ![codeql](https://github.com/escape-llc/toolcrib/actions/workflows/github-code-scanning/codeql/badge.svg)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14550/badge)](https://www.bestpractices.dev/projects/14550)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/escape-llc/toolcrib/badge)](https://securityscorecards.dev/viewer/?uri=github.com/escape-llc/toolcrib)
 [![codecov](https://codecov.io/gh/escape-llc/toolcrib/graph/badge.svg?token=Z13THY4CPZ)](https://codecov.io/gh/escape-llc/toolcrib)
 [![license](https://img.shields.io/npm/l/toolcrib)](https://github.com/escape-llc/toolcrib/blob/main/LICENSE)
