@@ -26,6 +26,18 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # vitest + @vitest/coverage-v8 MUST move together regardless of
+      # major/minor -- confirmed for real, not hypothetical: a Dependabot
+      # PR bumping vitest to 5.0.0 alone (leaving @vitest/coverage-v8 at
+      # 4.x) broke coverage provisioning outright. This group is matched
+      # before minor-and-patch below (Dependabot evaluates groups in
+      # order, first match wins), so a vitest-family major bump is pulled
+      # in here instead of landing as two separate, independently-broken
+      # PRs the way it just did.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       minor-and-patch:
         update-types: ["minor", "patch"]
     ignore:
@@ -46,6 +58,12 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # See root's identical vitest group above for why -- same package
+      # pair, same isolated-package.json duplication of the risk.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       minor-and-patch:
         update-types: ["minor", "patch"]
 
@@ -77,6 +95,11 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # See root's identical vitest group above for why.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       minor-and-patch:
         update-types: ["minor", "patch"]
 
