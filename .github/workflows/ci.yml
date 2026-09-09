@@ -71,6 +71,19 @@ jobs:
       # catching the three self-inflicted anti-pattern shapes a real audit
       # of Toolcrib's own components against ai-docs/CORE.md §3 found live
       # — see .plans/toolcrib-gap-closure-plan.md §6b for the full account.
+      # RuleTester unit tests for scripts/eslint-rules/'s own custom rules
+      # (no-missing-use-client specifically -- see that file's own header
+      # for why it needs coverage the other two vendored rules don't: 4
+      # independent detection categories plus scope-resolution logic, and
+      # a false negative here silently ships a real build-breaking bug
+      # rather than a lint nit). Run before Lint below, not after -- verify
+      # the rule itself works before trusting it to police the real
+      # corpus. Plain `node`, not Vitest: root's own package.json has no
+      # `eslint` dependency at all (deliberately isolated to scripts/), and
+      # ESLint's RuleTester needs no test framework to function.
+      - name: Test custom ESLint rules
+        run: npm run test-eslint-rules
+
       - name: Lint (React hooks correctness + theme token usage)
         run: npm run lint
 

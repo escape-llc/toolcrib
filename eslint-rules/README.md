@@ -1,6 +1,6 @@
 # Vendored ESLint rules
 
-This directory ships two independent, standalone rules. Each is vendored here — not installed automatically, not wired into your config for you — because your ESLint setup (flat config vs. legacy `.eslintrc`, which parser, which other plugins) is yours to own; auto-editing it would be more likely to break something than help.
+This directory ships three independent, standalone rules. Each is vendored here — not installed automatically, not wired into your config for you — because your ESLint setup (flat config vs. legacy `.eslintrc`, which parser, which other plugins) is yours to own; auto-editing it would be more likely to break something than help.
 
 ## `no-unexplained-zindex.js`
 
@@ -28,11 +28,26 @@ This rule flags one: a named JSX attribute, positioned before a spread of an ide
 - **Catches:** `disabled={isSubmitting || props.disabled} {...props}`, `className={cx('foo', props.className)} {...props}` — any attribute computed from the very object it precedes in the spread.
 - **Doesn't catch (correctly left alone):** a static default placed before a spread on purpose so a caller *can* override it (`<div tabIndex={0} {...props} />` — nothing here reads `props.tabIndex`, so there's no computed value to lose); a prop already destructured out before spreading the rest (`({ disabled, ...rest }) => <Button disabled={isSubmitting || disabled} {...rest} />` — `rest` no longer has a `disabled` key, so the spread can't collide); a spread argument that isn't a plain identifier (`{...getExtraProps()}`); or a collision that goes through a differently-named alias of the same object.
 
-## Wiring both in (flat config, `eslint.config.js`)
+## `no-missing-use-client.js`
+
+Every file that calls a React hook, calls `createContext`, references a browser-only global, or defines a class component needs `'use client'` as its literal first line, or a Next.js App Router build fails outright refusing to include that file in a Server Component's module graph at all. This is a universal Next.js concern, not a Toolcrib-specific bug shape — it's exactly as reachable writing fresh code in your own app's `components/` or `hooks/` directory as it was in Toolcrib's own source (see Toolcrib's `AGENTS.md`, the `'use client'` section, for the real incident this automates: a 51→79-file undercount found across two separate real `next build` failures).
+
+This rule flags one: a file where a hook call, `createContext` call, browser-global reference, or class-component definition is present, but `'use client'` isn't the file's literal first statement.
+
+**This rule has real, scoped dependencies unlike the other two** — it needs ESLint's own built-in scope analysis (no extra package; every modern ESLint ships it) to correctly distinguish a real reference to a browser global from a locally-shadowed variable of the same name. Still zero dependency on `typescript`/`typescript-eslint`/anything Toolcrib-specific.
+
+### What it does and doesn't catch
+
+- **Catches:** any `use[A-Z]...(...)` call (built-in or custom hook, bare or as `X.useSomething(...)`); `createContext(...)`/`X.createContext(...)` (a generic type argument like `createContext<T>(...)` needs no special handling); a real reference to `document`, `window`, `ResizeObserver`, `IntersectionObserver`, `MutationObserver`, `matchMedia`, `localStorage`, `sessionStorage`, or `navigator`, resolved via real scope analysis so a locally-shadowed variable of the same name is correctly left alone; a class extending `Component`/`PureComponent`/`React.Component`/`React.PureComponent`.
+- **Deliberately still flags a guarded/isomorphic reference** (`typeof document === 'undefined' ? undefined : document`) even though it's SSR-safe — it's still a real reference to the actual global, just conditionally used, and the rule has no way to know a given guard is actually safe. Fix a confirmed-safe case with a scoped `eslint-disable-next-line` and a comment explaining why, not by disabling the rule broadly.
+- **Doesn't catch (real, accepted limitations):** a coincidentally `use`-prefixed non-hook function (`useCase()`, some unrelated `useEffectiveWidth()` helper) still triggers — inherited from the general hook-naming pattern this rule intentionally uses instead of an enumerated list (the same pattern that closed Toolcrib's own original undercount); a bracket-notation call (`obj['useFoo']()`) or a `globalThis.document`/`self.document` form isn't caught (Identifier/`X.member` match only, the same "differently-named alias" class of gap `no-computed-prop-before-spread.js` already documents for its own spread-argument check); the class-component check matches by superclass *name* only, not real inheritance — an unrelated class from a different library sharing the name `Component` would false-positive; **same-file only** — it cannot see that a file needs the directive because it imports another file that does. A real Next.js build remains the only way to catch that class of gap.
+
+## Wiring all three in (flat config, `eslint.config.js`)
 
 ```js
 import { noUnexplainedZindex } from './toolcrib/eslint-rules/no-unexplained-zindex.js';
 import { noComputedPropBeforeSpread } from './toolcrib/eslint-rules/no-computed-prop-before-spread.js';
+import { noMissingUseClient } from './toolcrib/eslint-rules/no-missing-use-client.js';
 
 export default [
   // ...your existing config objects...
@@ -43,12 +58,14 @@ export default [
         rules: {
           'no-unexplained-zindex': noUnexplainedZindex,
           'no-computed-prop-before-spread': noComputedPropBeforeSpread,
+          'no-missing-use-client': noMissingUseClient,
         },
       },
     },
     rules: {
       'toolcrib-consumer/no-unexplained-zindex': 'error',
       'toolcrib-consumer/no-computed-prop-before-spread': 'error',
+      'toolcrib-consumer/no-missing-use-client': 'error',
     },
   },
 ];
