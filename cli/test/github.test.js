@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 process.env.TOOLCRIB_API_BASE = 'http://localhost:9999/api';
 process.env.TOOLCRIB_RELEASES_BASE = 'http://localhost:9999/releases';
 
-const { listVersions, resolveVersion, fetchLatestVersion, downloadReleaseZip } = await import('../src/lib/github.js');
+const { listVersions, resolveVersion, fetchLatestVersion, downloadReleaseZip, fetchSecurityAdvisories } = await import(
+  '../src/lib/github.js'
+);
 
 describe('listVersions', () => {
   let fetchMock;
@@ -107,6 +109,41 @@ describe('fetchLatestVersion', () => {
     });
     await expect(fetchLatestVersion()).rejects.toThrow(/rate limit/i);
     await expect(fetchLatestVersion()).rejects.toThrow(/--version/);
+  });
+});
+
+describe('fetchSecurityAdvisories', () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    fetchMock = vi.spyOn(globalThis, 'fetch');
+  });
+
+  afterEach(() => {
+    fetchMock.mockRestore();
+  });
+
+  it('fetches security-advisories.json off main and parses it', async () => {
+    const advisories = [{ alertNumber: 5, fixedIn: '0.14.0', severity: 'high', summary: 'x', url: 'https://x' }];
+    fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify(advisories) });
+
+    const result = await fetchSecurityAdvisories();
+    expect(result).toEqual(advisories);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/contents/security-advisories.json?ref=main'),
+      expect.objectContaining({ headers: { Accept: 'application/vnd.github.raw+json' } })
+    );
+  });
+
+  it('treats a missing file (404) as no advisories, not an error', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
+    const result = await fetchSecurityAdvisories();
+    expect(result).toEqual([]);
+  });
+
+  it('throws a clear error on a real API failure', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Server Error' });
+    await expect(fetchSecurityAdvisories()).rejects.toThrow(/500/);
   });
 });
 
