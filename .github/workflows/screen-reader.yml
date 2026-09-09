@@ -44,7 +44,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Skipped only for a Dependabot-authored PR, never for a push to main
+      # -- same reasoning as e2e.yml's identical condition. screen-reader
+      # isn't a required status check (unlike e2e), so skipping its steps
+      # entirely here is lower-risk than that case, but the same
+      # step-not-job pattern is used for consistency and in case it's ever
+      # promoted to required later.
       - name: Install Playwright browsers
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx playwright install --with-deps chromium
 
       # Downloads and extracts a portable NVDA build compatible with
@@ -53,15 +60,18 @@ jobs:
       # and wasn't verified on a shared interactive dev machine vs. what
       # only a clean CI runner can confirm).
       - name: Install NVDA (via guidepup)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx guidepup install
 
       # Configures NVDA settings Guidepup needs (verbosity, disabling
       # first-run dialogs, etc.) -- mirrors mui/base-ui's own
       # test:screen-reader:setup script.
       - name: Configure NVDA (via guidepup)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx guidepup setup
 
       - name: Run screen-reader suite
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npm run test:screen-reader
 
       - name: Upload Playwright report
