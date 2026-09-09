@@ -39,6 +39,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Mimics: GET /api/repos/{repo}/contents/security-advisories.json?ref=main
+  // -- doctor.js's fetchSecurityAdvisories call. Always empty here: no real
+  // advisory fixture exists for this mock, and the point of this route is
+  // just proving the real init/apply/doctor pipeline exercises the fetch
+  // (and survives it) end to end, not exercising the advisory-rendering
+  // logic itself (covered directly, with real data, in cli/test/doctor.test.js).
+  if (req.url.includes('/contents/security-advisories.json') && req.url.startsWith('/api')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end('[]');
+    return;
+  }
+
   // Mimics: GET /releases/latest/download/{asset} and /releases/download/v{x}/{asset}
   if (req.url.startsWith('/releases/')) {
     const assetName = req.url.split('/').pop();
