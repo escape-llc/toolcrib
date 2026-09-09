@@ -18,6 +18,16 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # Skipped entirely (the whole job, not just its steps) for a
+    # Dependabot-authored PR -- unlike e2e.yml/screen-reader.yml, `run` is
+    # not a required status check (confirmed via the branch protection API:
+    # required contexts are test/cli-windows/e2e/CodeQL only), so there's no
+    # "job must still post a status" constraint forcing a step-skip instead
+    # of a job-skip here. A coverage delta from a routine dependency bump is
+    # not interesting enough to justify the job's own ~1-2 minute cost on
+    # every Dependabot PR; release.yml's own pre-tag checklist doesn't even
+    # depend on this workflow at all.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
