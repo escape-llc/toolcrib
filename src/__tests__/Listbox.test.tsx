@@ -60,6 +60,26 @@ describe('Listbox', () => {
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
   });
 
+  // Regression: role="listbox" requires at least one role="option" child at
+  // all times (WAI-ARIA aria-required-children) -- the loading/empty
+  // message used to render as a plain div, leaving the listbox childless in
+  // exactly those two states. Only ever surfaced once a real axe scan
+  // finally reached an open, loading/empty Combobox listbox (never true
+  // before -- see aria-compliance-review's own §1 coverage-gap finding).
+  it('renders the loading message with role="option" and aria-disabled, satisfying aria-required-children', () => {
+    render(<Listbox id="lb" options={options} loading onSelect={vi.fn()} />);
+    const loadingRow = screen.getByText('Loading…');
+    expect(loadingRow).toHaveAttribute('role', 'option');
+    expect(loadingRow).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('renders the empty message with role="option" and aria-disabled, satisfying aria-required-children', () => {
+    render(<Listbox id="lb" options={[]} emptyMessage="Nothing here" onSelect={vi.fn()} />);
+    const emptyRow = screen.getByText('Nothing here');
+    expect(emptyRow).toHaveAttribute('role', 'option');
+    expect(emptyRow).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('renders a trailing checkmark and a tinted background for a selected option, single-select or multi', () => {
     const { rerender, container } = render(
       <Listbox id="lb" options={options} selectedValues={['admin']} onSelect={vi.fn()} />

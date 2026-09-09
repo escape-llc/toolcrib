@@ -144,13 +144,24 @@ export const Listbox: React.FC<ListboxProps> = ({
         aria-multiselectable={multiSelectable || undefined}
         style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
       >
+        {/* role="option" + aria-disabled, not a plain div -- role="listbox"
+            requires at least one role="option" child at all times (WAI-ARIA
+            aria-required-children), including while loading or genuinely
+            empty; a plain text div here leaves the listbox childless in
+            exactly those two states, a real violation axe only started
+            catching once a real scan actually reached this component while
+            open (aria-compliance-review's own §1 coverage-gap finding).
+            aria-disabled (not omitting a role, or disabled on a real
+            <button>) keeps it correctly non-interactive without breaking
+            the required-children contract -- mousedown never reaches
+            onSelect for it since it's not part of options.map below. */}
         {loading && (
-          <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
+          <div role="option" aria-disabled="true" style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
             {loadingMessage}
           </div>
         )}
         {!loading && options.length === 0 && (
-          <div style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
+          <div role="option" aria-disabled="true" style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
             {emptyMessage}
           </div>
         )}
