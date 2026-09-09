@@ -12,10 +12,11 @@ vi.mock('../src/lib/release.js', () => ({
 }));
 vi.mock('../src/lib/github.js', () => ({
   fetchLatestVersion: vi.fn(),
+  fetchSecurityAdvisories: vi.fn(),
 }));
 
 import { fetchRelease } from '../src/lib/release.js';
-import { fetchLatestVersion } from '../src/lib/github.js';
+import { fetchLatestVersion, fetchSecurityAdvisories } from '../src/lib/github.js';
 import {
   checkManagedBlocks,
   checkImportsCompatibility,
@@ -287,6 +288,7 @@ describe('doctorCommand', () => {
       fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
       fetchRelease.mockResolvedValue(fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n' }));
       fetchLatestVersion.mockResolvedValue('1.0.0');
+      fetchSecurityAdvisories.mockResolvedValue([]);
     });
 
     it('completes without throwing on a fully clean, up-to-date, TypeScript-adopted project', async () => {
@@ -396,6 +398,53 @@ describe('doctorCommand', () => {
 
       await expect(doctorCommand()).resolves.not.toThrow();
       expect(process.exitCode).toBeUndefined();
+    });
+
+    it('reports a security advisory whose fixedIn is newer than the installed version', async () => {
+      fetchSecurityAdvisories.mockResolvedValue([
+        {
+          alertNumber: 5,
+          severity: 'high',
+          summary: 'Path injection in a vendored component.',
+          fixedIn: '2.0.0',
+          url: 'https://github.com/escape-llc/toolcrib/security/code-scanning/5',
+        },
+      ]);
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+    });
+
+    it('sorts multiple relevant advisories newest-fix-first without throwing', async () => {
+      fetchSecurityAdvisories.mockResolvedValue([
+        { alertNumber: 5, severity: 'high', summary: 'Older fix.', fixedIn: '1.5.0', url: 'https://x/5' },
+        { alertNumber: 8, severity: 'critical', summary: 'Newer fix.', fixedIn: '2.0.0', url: 'https://x/8' },
+      ]);
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+    });
+
+    it('does not throw when every known advisory is already at or below the installed version', async () => {
+      // Installed version is '1.0.0' (writeLock above) -- an advisory fixed
+      // in an *older* release is already covered and must not surface.
+      fetchSecurityAdvisories.mockResolvedValue([
+        { alertNumber: 2, severity: 'low', summary: 'Already covered.', fixedIn: '0.9.0', url: 'https://x' },
+      ]);
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+    });
+
+    it('warns and continues (does not throw, does not abort the sequence) when fetching security advisories fails', async () => {
+      fetchSecurityAdvisories.mockRejectedValue(new Error('network unreachable'));
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
+      // Same regression shape as the fetchRelease/fetchLatestVersion
+      // failure tests above -- a rejection here must not prevent the
+      // local-only checks after it (bundler/root-provider) from running.
+      expect(fetchSecurityAdvisories).toHaveBeenCalled();
     });
   });
 

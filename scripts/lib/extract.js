@@ -165,6 +165,26 @@ export function generateSupportedHarmonies() {
   return alias.type.types.filter(ts.isLiteralTypeNode).map((t) => t.literal.text);
 }
 
+// Member names only (not full type info) -- just enough for a caller to
+// assert its own hand-authored field-by-field description covers exactly
+// the real interface, catching a renamed/added/removed field as a hard
+// generation error rather than a silently-stale worked example. See
+// generate-docs.js's assembleThemeParametersExampleFacts for the actual
+// assertion.
+export function generateThemeParametersFields() {
+  const sourceFile = parse(path.join(THEME_DIR, 'harmonies.ts'));
+  const iface = findTopLevel(
+    sourceFile,
+    (n) => ts.isInterfaceDeclaration(n) && n.name.text === 'ThemeParameters'
+  );
+  if (!iface) throw new Error('ThemeParameters interface not found in theme/harmonies.ts');
+  return iface.members.filter(ts.isPropertySignature).map((m) => ({
+    name: m.name.getText(sourceFile),
+    optional: !!m.questionToken,
+    type: m.type ? m.type.getText(sourceFile) : 'unknown',
+  }));
+}
+
 export function generateCssVariables() {
   const found = new Set();
   // Each hyphen-separated segment must have at least one alphanumeric char,
