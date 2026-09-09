@@ -1,0 +1,49 @@
+{
+  "_comment": "The dependency graph for toolcrib's generation pipeline -- generated files (component-manifest.json, CORE.md, src/index.ts, security-advisories.json) and the real source each one depends on. Read via scripts/lib/buildGraph.js, matched via scripts/lib/graphEngine.js, driven from the CLI via scripts/build-engine.js. Each input's 'reason' is a manually-synced parallel to the real fs calls in scripts/lib/extract.js -- robust to changes within the trees already named here, not to a genuinely new tree outside them. See AGENTS.md's generation-pipeline sections for the full picture; this file is the machine-readable version of that same information, not a duplicate authored independently.",
+  "nodes": [
+    {
+      "id": "manifest",
+      "outputs": ["ai-docs/component-manifest.json", "ai-docs/manifest/**"],
+      "inputs": [
+        { "pattern": "src/**", "reason": "generateComponents()'s prop-type resolution cross-scans the entire src/ tree via listSourceFiles(SRC) (extract.js:562-568), not just src/components/ -- a component's prop can reference an interface declared anywhere under src/." },
+        { "pattern": "package.json", "reason": "name/version read directly by generate-manifest.js" }
+      ],
+      "check": "npm run check-manifest",
+      "write": "npm run generate-manifest"
+    },
+    {
+      "id": "docs",
+      "outputs": ["ai-docs/CORE.md", "ai-docs/examples/**", "llms.txt", "llms-full.txt"],
+      "inputs": [
+        { "pattern": "src/**", "reason": "same generateComponents()/extract.js cross-scan as manifest -- generate-docs.js calls the same functions" },
+        { "pattern": "ai-docs/templates/**", "reason": "Handlebars templates rendered directly" },
+        { "pattern": "README.md", "reason": "concatenated verbatim into llms-full.txt" },
+        { "pattern": "ai-docs/NEW_APP.md", "reason": "concatenated verbatim into llms-full.txt" },
+        { "pattern": "ai-docs/REFACTOR_APP.md", "reason": "concatenated verbatim into llms-full.txt" }
+      ],
+      "check": "npm run check-docs",
+      "write": "npm run generate-docs"
+    },
+    {
+      "id": "index",
+      "outputs": ["src/index.ts"],
+      "inputs": [
+        { "pattern": "src/theme/**", "reason": "generateBarrelExports() (extract.js:880-901) scans this dir's own top-level JSDoc tags only -- no cross-file resolution, unlike manifest/docs" },
+        { "pattern": "src/eventBus/**", "reason": "same as above" },
+        { "pattern": "src/observer/**", "reason": "same as above" },
+        { "pattern": "src/components/**", "reason": "same as above" }
+      ],
+      "check": "npm run check-index",
+      "write": "npm run generate-index"
+    },
+    {
+      "id": "security-advisories",
+      "outputs": ["security-advisories.json"],
+      "inputs": [],
+      "liveSource": true,
+      "requiresEnv": ["GITHUB_TOKEN"],
+      "check": "npm run check-security-advisories",
+      "write": "npm run generate-security-advisories"
+    }
+  ]
+}
