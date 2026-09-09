@@ -58,7 +58,7 @@ There is no cost to strict adherence here — you aren't fighting existing patte
 
 ## 4. Tune the palette with the Theme Editor, don't hand-pick colours
 
-Drop `<ThemeEditor trigger={...}>` somewhere reachable early in development (a debug toolbar, a temporary route) and use it to pick the base colour, harmony mode, and spacing scale interactively. Once you're happy, read the resulting `parameters` off `useTheme()` and pass them as `<ThemeProvider initialParameters={...}>` so the app starts pre-themed instead of flashing the default palette on load. Don't hardcode individual `--ai-*` CSS variable overrides by hand — that's the same ad-hoc-CSS anti-pattern `CORE.md` warns against, just aimed at the theme layer instead of component styles.
+Drop `<ThemeEditor trigger={...}>` somewhere reachable early in development (a debug toolbar, a temporary route) and use it to pick the base colour, harmony mode, and spacing scale interactively. Once you're happy, read the resulting `parameters` off `useTheme()` and pass them as `<ThemeProvider initialParameters={...}>` so the app starts pre-themed instead of flashing the default palette on load. Don't hardcode individual `--ai-*` CSS variable overrides by hand — that's the same ad-hoc-CSS anti-pattern `CORE.md` warns against, just aimed at the theme layer instead of component styles. That interactive path is for a human driving the app in a browser — if you're generating the theme yourself from a plain-English design brief, it's usually faster to compute `initialParameters` directly instead: see `ai-docs/examples/theme-parameters-from-brief.md` for the field-by-field meaning of every `ThemeParameters` value and a worked brief-to-parameters translation.
 
 ## 5. Common first-run mistakes
 
