@@ -84,6 +84,8 @@ import {
   generateThemeSlices,
   generateEventChannels,
   generateComponents,
+  generateSupportedHarmonies,
+  generateThemeParametersFields,
   VALID_CATEGORIES,
   CATEGORY_SLUGS,
 } from './lib/extract.js';
@@ -97,6 +99,18 @@ const EXAMPLES_OUTPUT_DIR = path.join(ROOT, 'ai-docs', 'examples');
 const LLMS_TXT_TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'llms-txt.hbs');
 const LLMS_TXT_PATH = path.join(ROOT, 'llms.txt');
 const LLMS_FULL_TXT_PATH = path.join(ROOT, 'llms-full.txt');
+
+// Size budgets, added following Ark UI's "check llms.txt response sizes"
+// CI step (see .plans/toolcrib-competitive-analysis.md) -- the entire
+// point of these two files (see this file's header comment above) is
+// being fetched under an agent's context-budget constraint, and nothing
+// before this caught silent growth past a sane size as more components/
+// docs ship over time. Set with real headroom above the size at the time
+// this was added (~2.8KB / ~75KB) -- a growth alarm, not a diet; a
+// genuine size regression should still fail loudly rather than pass
+// silently just because the budget was set too loose to ever matter.
+const LLMS_TXT_SIZE_BUDGET_BYTES = 8 * 1024; // llms.txt is deliberately a short index+links per the llmstxt.org spec, not full content
+const LLMS_FULL_TXT_SIZE_BUDGET_BYTES = 200 * 1024; // the "everything inlined" companion, naturally larger but still bounded
 const README_PATH = path.join(ROOT, 'README.md');
 const NEW_APP_PATH = path.join(ROOT, 'ai-docs', 'NEW_APP.md');
 const REFACTOR_APP_PATH = path.join(ROOT, 'ai-docs', 'REFACTOR_APP.md');
@@ -339,6 +353,70 @@ function assembleLocaleExampleFacts() {
   return {};
 }
 
+// Hand-authored one-line description per real ThemeParameters field --
+// assembleThemeParametersExampleFacts below asserts this set exactly
+// matches generateThemeParametersFieldNames()'s real output, so a field
+// renamed/added/removed in source fails generation outright instead of
+// silently leaving the example stale (same "generation fails outright"
+// discipline as Z_INDEX_USAGE/EVENT_NOTES above and
+// validateCategories/validateNoForbiddenProps in generate-manifest.js).
+const THEME_PARAMETER_DESCRIPTIONS = {
+  baseColor: 'The one color everything else is generated from, as HSVColor ({ h, s, v }) -- not a hex string.',
+  harmonyMode: 'Which fixed hue-relationship algorithm derives the secondary/accent hues from baseColor.',
+  hueSpread: 'Degrees between generated hues for the modes that use a spread (analogous, split-complementary, tetradic) -- ignored by monochromatic/triadic, which use fixed relationships instead.',
+  darkenLightenFactor: 'Global Value-channel multiplier applied across the generated palette -- 1.0 is neutral, >1 lightens, <1 darkens.',
+  saturationFactor: 'Global Saturation-channel multiplier applied across the generated palette -- 1.0 is neutral.',
+  paddingMode: "Internal container padding density: 'compact' | 'normal' | 'spacious' (or a responsive per-breakpoint config).",
+  marginMode: "Spacing between sibling elements: 'compact' | 'normal' | 'spacious' (or a responsive per-breakpoint config).",
+  cornerRadiusMode: "Corner rounding: 'sharp' | 'subtle' | 'rounded' | 'pill' (or a responsive per-breakpoint config).",
+  isDarkMode: 'Whether the generated palette targets a dark or light surface -- also gates which direction ensureWCAGContrast nudges text toward.',
+};
+
+// Same assert-against-real-source discipline as THEME_PARAMETER_DESCRIPTIONS
+// above -- when to reach for each HarmonyMode, keyed by its real value.
+const HARMONY_MODE_DESCRIPTIONS = {
+  monochromatic: 'One hue throughout, varied only by lightness/saturation. Fits a brief asking for something calm, minimal, or brand-disciplined ("just use our one brand color").',
+  analogous: 'Hues near baseColor on the wheel, spread by hueSpread degrees. A safe general-purpose default (the bundled Tailwind preset uses it) -- cohesive without being flat.',
+  'split-complementary': 'baseColor plus two hues near its opposite. Fits a brief wanting real contrast/energy without the harsher clash of a direct complementary pair.',
+  triadic: 'Three hues evenly spaced around the wheel. Fits a brief explicitly asking for a "vibrant" or "playful" feel.',
+  tetradic: 'Four hues, two complementary pairs. The richest/most saturated-feeling option -- fits a brief for something bold, rarely the right default.',
+};
+
+function assertDescriptionsMatchRealValues(descriptions, realValues, sourceLabel) {
+  const describedKeys = Object.keys(descriptions);
+  const missing = realValues.filter((v) => !describedKeys.includes(v));
+  const stale = describedKeys.filter((k) => !realValues.includes(k));
+  if (missing.length > 0 || stale.length > 0) {
+    throw new Error(
+      `${sourceLabel} is out of sync with its real source values -- ` +
+        `${missing.length > 0 ? `missing: ${missing.join(', ')}. ` : ''}${stale.length > 0 ? `stale (no longer real): ${stale.join(', ')}.` : ''}`
+    );
+  }
+}
+
+function assembleThemeParametersExampleFacts() {
+  const realFields = generateThemeParametersFields();
+  assertDescriptionsMatchRealValues(
+    THEME_PARAMETER_DESCRIPTIONS,
+    realFields.map((f) => f.name),
+    'THEME_PARAMETER_DESCRIPTIONS (theme/harmonies.ts ThemeParameters)'
+  );
+
+  const realHarmonies = generateSupportedHarmonies();
+  assertDescriptionsMatchRealValues(HARMONY_MODE_DESCRIPTIONS, realHarmonies, 'HARMONY_MODE_DESCRIPTIONS (theme/harmonies.ts HarmonyMode)');
+
+  return {
+    themeParameterFields: realFields.map((f) => ({
+      name: f.name,
+      optionalMarker: f.optional ? '?' : '',
+      type: f.type,
+      description: THEME_PARAMETER_DESCRIPTIONS[f.name],
+    })),
+    harmonyModes: realHarmonies.map((name) => ({ name, description: HARMONY_MODE_DESCRIPTIONS[name] })),
+    themeSliceCount: generateThemeSlices().length,
+  };
+}
+
 // file: under ai-docs/templates/examples/, rendered to the same basename
 // (minus .hbs) under ai-docs/examples/. data: this template's own small
 // assembler from above — never the shared assembleTemplateData(), since
@@ -354,6 +432,7 @@ const EXAMPLE_TEMPLATES = [
   { file: 'auth-unauthorized.md.hbs', data: assembleAuthExampleFacts },
   { file: 'ssr-theme-injection.md.hbs', data: assembleSSRThemeExampleFacts },
   { file: 'locale-provider.md.hbs', data: assembleLocaleExampleFacts },
+  { file: 'theme-parameters-from-brief.md.hbs', data: assembleThemeParametersExampleFacts },
 ];
 
 function renderTemplate(templatePath, data) {
@@ -372,8 +451,18 @@ function main() {
 
   const targets = [
     { filePath: CORE_MD_PATH, content: coreMdContent, label: 'ai-docs/CORE.md' },
-    { filePath: LLMS_TXT_PATH, content: renderTemplate(LLMS_TXT_TEMPLATE_PATH, assembleLlmsTxtData()), label: 'llms.txt' },
-    { filePath: LLMS_FULL_TXT_PATH, content: assembleLlmsFullTxt(coreMdContent), label: 'llms-full.txt' },
+    {
+      filePath: LLMS_TXT_PATH,
+      content: renderTemplate(LLMS_TXT_TEMPLATE_PATH, assembleLlmsTxtData()),
+      label: 'llms.txt',
+      sizeBudgetBytes: LLMS_TXT_SIZE_BUDGET_BYTES,
+    },
+    {
+      filePath: LLMS_FULL_TXT_PATH,
+      content: assembleLlmsFullTxt(coreMdContent),
+      label: 'llms-full.txt',
+      sizeBudgetBytes: LLMS_FULL_TXT_SIZE_BUDGET_BYTES,
+    },
     ...EXAMPLE_TEMPLATES.map(({ file, data }) => ({
       filePath: path.join(EXAMPLES_OUTPUT_DIR, file.replace(/\.hbs$/, '')),
       content: renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data()),
@@ -381,12 +470,26 @@ function main() {
     })),
   ];
 
+  // Only targets carrying a sizeBudgetBytes (llms.txt/llms-full.txt) are
+  // checked -- everything else (CORE.md, the examples) has no size
+  // budget of its own, by design; see the constants' own comment above
+  // for why these two specifically need one.
+  const oversized = targets
+    .filter((t) => t.sizeBudgetBytes !== undefined)
+    .map((t) => ({ label: t.label, actualBytes: Buffer.byteLength(t.content, 'utf-8'), budgetBytes: t.sizeBudgetBytes }))
+    .filter((t) => t.actualBytes > t.budgetBytes);
+
   if (mode === 'write') {
     fs.mkdirSync(EXAMPLES_OUTPUT_DIR, { recursive: true });
     for (const target of targets) {
       fs.writeFileSync(target.filePath, target.content);
     }
     console.log(`Wrote ${targets.length} doc file(s): ai-docs/CORE.md + llms.txt + llms-full.txt + ${EXAMPLE_TEMPLATES.length} example(s) under ai-docs/examples/.`);
+    // Warned, not failed -- --write's job is to write; --check (below) is
+    // the real CI gate on size the same way it already is on drift.
+    for (const t of oversized) {
+      console.warn(`Warning: ${t.label} is ${t.actualBytes} bytes, over its ${t.budgetBytes}-byte budget.`);
+    }
     return;
   }
 
@@ -400,8 +503,22 @@ function main() {
     if (current !== target.content) drifted.push(target.label);
   }
 
+  if (oversized.length > 0) {
+    console.error(
+      `Size budget exceeded for ${oversized.length} file(s):\n` +
+        oversized.map((t) => `  ${t.label}: ${t.actualBytes} bytes (budget: ${t.budgetBytes} bytes)`).join('\n')
+    );
+    console.error(
+      `The whole point of these two files is being fetched under an agent's context-budget constraint -- ` +
+        `review what grew before raising the budget, don't just raise it.`
+    );
+    process.exitCode = 1;
+  }
+
   if (drifted.length === 0) {
-    console.log('ai-docs/CORE.md, llms.txt, llms-full.txt, and ai-docs/examples/ all match the templates + source exactly.');
+    if (oversized.length === 0) {
+      console.log('ai-docs/CORE.md, llms.txt, llms-full.txt, and ai-docs/examples/ all match the templates + source exactly.');
+    }
     return;
   }
 
