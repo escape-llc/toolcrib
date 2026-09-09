@@ -1324,6 +1324,7 @@ export const App: React.FC = () => {
                           </p>
                           <Rating
                             name="demoRating"
+                            aria-label="Star rating"
                             value={ratingValue}
                             onChange={value => {
                               setRatingValue(value);
