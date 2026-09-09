@@ -63,6 +63,14 @@ export interface ToolcribLocaleStrings {
     clearSelection: string;
     removeItem: (label: string) => string;
   };
+  listbox: {
+    /** Announced via a visually-hidden `aria-live` region whenever `loading` transitions to true -- a debounced async search (`Combobox`'s own `onSearch`) starting, with no other signal a screen-reader user would get. */
+    loadingAnnouncement: string;
+    /** Announced when `loading` transitions to false and no options are present. */
+    noResultsAnnouncement: string;
+    /** Announced when `loading` transitions to false and options are present. `count` is the number of options now shown. */
+    resultsAnnouncement: (count: number) => string;
+  };
 }
 
 /**
@@ -116,6 +124,11 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   combobox: {
     clearSelection: 'Clear selection',
     removeItem: (label) => `Remove ${label}`,
+  },
+  listbox: {
+    loadingAnnouncement: 'Loading results…',
+    noResultsAnnouncement: 'No results found',
+    resultsAnnouncement: (count) => `${count} result${count === 1 ? '' : 's'} available`,
   },
 };
 
