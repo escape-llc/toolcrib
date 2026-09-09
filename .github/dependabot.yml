@@ -25,6 +25,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
     ignore:
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
@@ -42,6 +45,9 @@ updates:
     directory: "/cli"
     schedule:
       interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
   # scripts/ also has its own independent package.json, pinned to
   # typescript@6.x for the Compiler API surface extract.js depends on
@@ -54,6 +60,9 @@ updates:
     directory: "/scripts"
     schedule:
       interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
@@ -67,8 +76,18 @@ updates:
     directory: "/mcp"
     schedule:
       interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
+  # Grouped the same way as the npm ecosystems above -- major bumps still
+  # land as their own individual PR (Dependabot's default for anything a
+  # group doesn't capture), since those are exactly the ones worth
+  # reviewing in isolation rather than folded into a batch.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
