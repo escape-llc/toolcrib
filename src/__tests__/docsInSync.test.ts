@@ -23,23 +23,39 @@ import { execSync } from 'node:child_process';
  * with that real output inlined plus the two concrete causes worth
  * checking first.
  */
+const DRIFT_HINT =
+  `  - Real drift: source changed but the generated file wasn't regenerated. Fix: rerun the same command ` +
+  `with --write instead of --check, then commit the result.`;
+const MISSING_SCRIPTS_DEPS_HINT =
+  `  - scripts/node_modules isn't installed: scripts/lib/extract.js needs the typescript@6.x pinned in ` +
+  `scripts/package.json, isolated from root's own typescript version — see AGENTS.md's TypeScript section. ` +
+  `Run \`npm install\` inside scripts/ before this test suite, not after.`;
+
 function runDriftCheck(command: string): void {
   try {
     execSync(command, { stdio: 'pipe' });
   } catch (err: any) {
     const stdout = err.stdout ? err.stdout.toString().trim() : '';
     const stderr = err.stderr ? err.stderr.toString().trim() : '';
+    const combined = `${stdout}\n${stderr}`;
+    // Only show the hint that actually matches the captured output, not
+    // both unconditionally every time -- the two failure modes have
+    // distinct, reliable textual signatures (generate-manifest.js/
+    // generate-docs.js's own "... drift detected in N file(s)" message;
+    // ScriptTarget/createSourceFile/"Cannot read properties of undefined"
+    // for the missing-scripts-deps TypeScript break -- see AGENTS.md's
+    // TypeScript section), so there's no need to make a human read past an
+    // irrelevant explanation to find the one that applies. Previously
+    // always printed both regardless of which one the output actually
+    // showed -- confirmed confusing in practice, not just in theory.
+    const isMissingScriptsDeps = /ScriptTarget|createSourceFile|Cannot read propert(y|ies) of undefined/.test(combined);
+    const isDrift = /drift detected/i.test(combined);
+    const hint = isMissingScriptsDeps ? MISSING_SCRIPTS_DEPS_HINT : isDrift ? DRIFT_HINT : `${DRIFT_HINT}\n${MISSING_SCRIPTS_DEPS_HINT}`;
     throw new Error(
       `\`${command}\` exited with code ${err.status ?? 'unknown'}.\n` +
       (stdout ? `\n--- stdout ---\n${stdout}\n` : '') +
       (stderr ? `\n--- stderr ---\n${stderr}\n` : '') +
-      `\nMost likely one of:\n` +
-      `  - Real drift: source changed but the generated file wasn't regenerated. Fix: rerun the same command ` +
-      `with --write instead of --check, then commit the result.\n` +
-      `  - scripts/node_modules isn't installed (a "Cannot read properties of undefined" TypeScript error, ` +
-      `typically mentioning ScriptTarget/createSourceFile, is this case): scripts/lib/extract.js needs the ` +
-      `typescript@6.x pinned in scripts/package.json, isolated from root's own typescript version — see ` +
-      `AGENTS.md's TypeScript section. Run \`npm install\` inside scripts/ before this test suite, not after.`
+      `\n${hint}`
     );
   }
 }
