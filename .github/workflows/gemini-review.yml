@@ -1,0 +1,137 @@
+name: Gemini Review
+
+# Best-effort, reactive second-model review -- NOT a required status check,
+# and nothing downstream waits for it. See issue #176 for the full design
+# reasoning: a code review is a judgment call, not a checkable pass/fail
+# floor (the same "guardrail vs. floor" distinction
+# .plans/toolcrib-competitive-analysis.md draws), so gating merge on it is
+# the wrong shape regardless of latency -- this repo already waits on real
+# CI (e2e's ~6min is the long pole) before every merge, and a review almost
+# always finishes inside that window anyway, but nothing here depends on
+# that being true. It posts one PR comment when it finishes, whether that
+# lands before or after merge -- a later checkpoint (a new session starting,
+# or a periodic sweep) treats an unaddressed comment as a normal finding:
+# file an issue, fix it via the standard issue -> branch -> PR cycle, same
+# as any other review's output. If it lands after merge, that's fine -- run
+# the workflow again against the follow-up.
+#
+# Deliberately simpler and more restricted than
+# google-github-actions/run-gemini-cli's own official
+# examples/workflows/pr-review + gemini-dispatch pair: those use a
+# Docker-run github-mcp-server plus an unpinned third-party extension
+# (github.com/gemini-cli-extensions/code-review) to give Gemini direct
+# gh/GitHub-API tool-calling with real write scope (pull_request_review_write).
+# This workflow gives Gemini ZERO tool access instead ("tools": {"core": []},
+# no mcpServers configured) -- the PR diff is embedded directly as plain text
+# in the prompt (via `gh pr diff`, not a raw `${{ }}` interpolation -- see
+# the "Post review" step's own comment for why that distinction matters), and
+# Gemini's only output is the review text itself, posted by a separate,
+# code-controlled step using the workflow's own token. Gemini never acts on
+# its own. A PR's diff content is untrusted input (this repo's own
+# actions-injection-review skill exists for exactly this reason); with zero
+# tools, even a deliberately prompt-injected diff can, at worst, produce a
+# misleading comment -- never an executed command. It has to sit there for a
+# human/AI to evaluate either way, the same trust boundary as any other
+# review comment.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Least-privilege: only what's needed to read the diff and post a comment.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: gemini-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # Same-repo PRs only -- a fork's own diff is the least-trusted possible
+    # input to hand an LLM, even a tool-less one; matches
+    # google-github-actions/run-gemini-cli's own official dispatcher's
+    # identical `head.repo.fork == false` guard. Dependabot PRs skipped too
+    # (same reasoning as ci.yml's existing Dependabot carve-outs) -- a
+    # version-bump diff doesn't need a code-quality second opinion the way a
+    # hand-written change does.
+    if: |
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Uses `gh pr diff` (GitHub's own API), not a manual `git diff
+      # origin/<base>...HEAD` -- avoids depending on fetch-depth/remote-ref
+      # gymnastics entirely. The diff (untrusted content) is written into
+      # $GITHUB_ENV behind a per-run random delimiter, not a fixed one --
+      # GitHub's own documented safe pattern for multiline env vars carrying
+      # untrusted content, so a diff that happened to contain a line
+      # matching a *guessable* delimiter can't break out of the heredoc and
+      # inject additional env var assignments.
+      - name: Build the review prompt (diff embedded as plain text -- no tool access needed to read it)
+        id: prompt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          DELIM="GEMINI_PROMPT_$(date +%s%N)_${RANDOM}"
+          {
+            echo "PROMPT<<${DELIM}"
+            echo 'You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.'
+            echo 'Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.'
+            echo 'Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.'
+            echo 'If you find nothing worth flagging, say so in one short line -- do not invent a finding to have something to say.'
+            echo 'Keep the whole response under 400 words, plain text (no markdown headers).'
+            echo ''
+            echo '--- DIFF ---'
+            gh pr diff "${{ github.event.pull_request.number }}"
+            echo "${DELIM}"
+          } >> "$GITHUB_ENV"
+
+      - name: Run Gemini review (zero tool access -- text in, text out only)
+        id: gemini_review
+        # Never fails the job even if the API errors/times out/rate-limits --
+        # this check is best-effort by design (see this file's own header
+        # comment) and must never render as a red X, or it starts looking
+        # like flaky required CI on every single PR.
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
+        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_pr_number: ${{ github.event.pull_request.number }}
+          prompt: ${{ env.PROMPT }}
+          workflow_name: 'gemini-review'
+          settings: |
+            {
+              "tools": { "core": [] }
+            }
+
+      # Posts via a plain `env:` + `$REVIEW` shell reference, never a raw
+      # `${{ steps.gemini_review.outputs.summary }}` interpolated directly
+      # into the run script -- that output is LLM text generated from
+      # untrusted diff content, so treating it as literal script text (the
+      # way `${{ }}` substitution works, before the shell ever runs) would
+      # be exactly the script-injection shape this repo's own
+      # actions-injection-review skill exists to catch. Routing it through
+      # env keeps it as inert variable data the whole way through.
+      - name: Post review as a PR comment (code-controlled, not Gemini-driven)
+        if: steps.gemini_review.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REVIEW: ${{ steps.gemini_review.outputs.summary }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" --body "🔎 **Gemini review** (best-effort, non-blocking -- see [issue #176](https://github.com/escape-llc/toolcrib/issues/176) for why this doesn't gate merge)
+
+          ${REVIEW}"
+
+      - name: Note a skipped/failed review without failing the job
+        if: steps.gemini_review.outcome != 'success'
+        run: echo "Gemini review did not complete successfully this run (outcome=${{ steps.gemini_review.outcome }}) -- no comment posted. Not failing the job; this check is best-effort by design."
