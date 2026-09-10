@@ -50,12 +50,23 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
   let keptCount = 0;
   let deletedCount = 0;
 
-  for (const relPath of newRelease.allFiles()) {
+  // Found by review: allFiles() re-walks its temp directory recursively on
+  // every call (listFilesRecursive is not cached), so calling
+  // oldRelease.allFiles().includes(relPath)/newRelease.allFiles().includes(relPath)
+  // inside these loops' own bodies (below) re-did that full filesystem walk
+  // once per file — real O(n²) filesystem I/O for a release with hundreds
+  // of files, made worse now that --with-tests doubles how often this
+  // function runs per merge. Computed once, up front, as Sets for O(1)
+  // membership checks instead.
+  const oldFiles = new Set(oldRelease.allFiles());
+  const newFiles = new Set(newRelease.allFiles());
+
+  for (const relPath of newFiles) {
     const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
     const local = readTextIfExists(targetPath);
     const updated = newRelease.readFile(relPath);
     // A file that's new in this release won't exist in oldRelease — treat as empty original.
-    const original = oldRelease.allFiles().includes(relPath) ? oldRelease.readFile(relPath) : '';
+    const original = oldFiles.has(relPath) ? oldRelease.readFile(relPath) : '';
 
     const status = classify(original, local, updated);
 
@@ -85,8 +96,8 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
   // safe to delete; local modified -> a real conflict (don't silently
   // discard someone's customization just because upstream dropped the
   // file), same as any other conflicting edit.
-  for (const relPath of oldRelease.allFiles()) {
-    if (newRelease.allFiles().includes(relPath)) continue;
+  for (const relPath of oldFiles) {
+    if (newFiles.has(relPath)) continue;
 
     const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
     if (!fileExists(targetPath)) continue; // already absent locally — nothing to propose
