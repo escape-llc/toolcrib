@@ -69,7 +69,8 @@ jobs:
       # extract.js's). Scoped to eslint-plugin-react-hooks's rules, plus a
       # local toolcrib-internal plugin (scripts/eslint-rules/theme-tokens.js)
       # catching the three self-inflicted anti-pattern shapes a real audit
-      # of Toolcrib's own components against ai-docs/CORE.md §3 found live
+      # of Toolcrib's own components against ai-docs/CORE.md's Anti-Patterns
+      # section found live
       # — see .plans/toolcrib-gap-closure-plan.md §6b for the full account.
       # RuleTester unit tests for the vendored rules that carry real,
       # non-trivial detection logic (no-missing-use-client: 4 independent

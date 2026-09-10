@@ -315,7 +315,7 @@ export async function doctorCommand(options = {}) {
     p.log.warn(
       "Root providers: couldn't find <ToolcribProvider> or a manual <ThemeProvider>/<ToastProvider>/<ToastContainer> " +
         'composition anywhere under src/. Every toolcrib component throws or silently no-ops without one of these ' +
-        "wrapping your app root — see CORE.md §1. (Heuristic text scan — a false warning is possible if your root " +
+        "wrapping your app root — see CORE.md's Root Setup section. (Heuristic text scan — a false warning is possible if your root " +
         'setup uses an unusual file layout or a re-exported alias; verify directly if you believe it\'s already wired.)'
     );
   }

@@ -1,6 +1,6 @@
 # Worked Example: Composing `overrides` with `StyleDomainProvider`
 
-This is the mechanism CORE.md §9 introduces — this file walks through the
+This is the mechanism CORE.md §10 introduces — this file walks through the
 part that's easy to get wrong: what happens when an **instance-level**
 `overrides` prop and an **ancestor-level** `<StyleDomainProvider>` both
 apply to the same component, and why `StyleDomainProvider` exists as a

@@ -1,6 +1,6 @@
 # Worked Example: Using the `Z_INDEX` Scale for a Custom Overlay
 
-The anti-pattern table (CORE.md §3) says "hardcode `z-index` values" →
+The anti-pattern table (CORE.md §4) says "hardcode `z-index` values" →
 "use the `Z_INDEX` scale." This walks through *why* that matters with a
 concrete failure case, not just the rule.
 

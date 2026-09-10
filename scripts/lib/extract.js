@@ -740,7 +740,7 @@ function generateComponentEntry(sourceFile, decl, defs) {
   if (decl.category) entry.category = decl.category;
   // Both or neither -- one tag without its pair is a JSDoc mistake, not a
   // valid partial anti-pattern row (see AGENTS.md/generate-docs.js's own
-  // assembleAntiPatternRows for how this feeds CORE.md's §3 table).
+  // assembleAntiPatternRows for how this feeds CORE.md's Anti-Patterns table).
   if (decl.antiPatternAvoid && decl.antiPatternInstead) {
     entry.antiPatternAvoid = decl.antiPatternAvoid;
     entry.antiPatternInstead = decl.antiPatternInstead;

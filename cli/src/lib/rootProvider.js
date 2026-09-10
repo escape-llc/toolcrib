@@ -41,7 +41,7 @@ function listCandidateFiles(rootDir) {
  * Read-only heuristic: does this project's own source wire up toolcrib's
  * root providers, via `<ToolcribProvider>` or the equivalent manual
  * `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` composition?
- * Both are legitimate per `CORE.md` §1 -- this doesn't prefer one, it just
+ * Both are legitimate per `CORE.md`'s Root Setup section -- this doesn't prefer one, it just
  * confirms *something* is wired, since every toolcrib component throws or
  * silently no-ops without it, and that failure mode gives no clue back to
  * "you forgot the root setup."

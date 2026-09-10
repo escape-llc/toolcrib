@@ -14,7 +14,7 @@ npx toolcrib merge      # already installed: stage an upgrade to a newer version
 
 ## 2. Wire the root providers exactly once
 
-See `CORE.md` §1 for the full snippet (`ThemeProvider` + `ToastProvider` + `ToastContainer`). Before adding it, check whether your app already has an equivalent from another UI kit (a theme context, a toast/snackbar provider):
+See `CORE.md`'s Root Setup section for the full snippet (`ThemeProvider` + `ToastProvider` + `ToastContainer`). Before adding it, check whether your app already has an equivalent from another UI kit (a theme context, a toast/snackbar provider):
 
 - **Toasts/snackbars**: if one already exists, don't run both — pick one system per app. Either keep the existing one and skip toolcrib's `<Toast>` components entirely (fine — the rest of the toolkit doesn't depend on it), or migrate call sites to `aiBus.showToast()` and remove the old provider.
 - **Theming**: `<ThemeProvider>` only manages the `--ai-*` CSS custom property namespace — it doesn't read or write any other theme system's variables/context. It's safe to mount alongside an existing theme provider (e.g. one driving a different component library) as long as the two don't target the same DOM elements.
@@ -35,13 +35,13 @@ Search for these patterns as migration candidates — each maps directly to a `C
 - `px` values in inline styles or CSS modules for spacing/radii → `rem`, or a toolcrib layout primitive (`<VStack gap>`, `<Card>`) that already resolves the right token.
 - Manual `z-index: 9999`-style overlay stacking → the `Z_INDEX` scale, once the overlay itself moves to `<Modal>`/`<Popup>`/`<Drawer>`.
 - Prop-drilled `onClose`/`onOpen` callbacks passed through 3+ component layers → `aiBus.emit()` / `useAIEvent()`.
-- A `style`/`className` prop passed to a component you're converting to its toolcrib equivalent → that component's `overrides` prop, if it has theme-controlled axes covering what you needed (see `CORE.md` §9). This isn't optional during conversion the way the other migrations can be staged gradually — toolcrib components don't accept `style`/`className` at the type level at all, so you can't keep the old prop around as a stopgap while converting the rest of a component's structure.
+- A `style`/`className` prop passed to a component you're converting to its toolcrib equivalent → that component's `overrides` prop, if it has theme-controlled axes covering what you needed (see `CORE.md`'s Per-Instance Overrides & Style Domains section). This isn't optional during conversion the way the other migrations can be staged gradually — toolcrib components don't accept `style`/`className` at the type level at all, so you can't keep the old prop around as a stopgap while converting the rest of a component's structure.
 
 Don't do a global find-and-replace across the whole codebase in one pass — migrate a component's styling only when you're already replacing that component's structure, per §3.
 
 ## 5. Coexisting with your existing CSS
 
-Toolcrib's own component styles are applied via inline `style={{...}}` objects that resolve `var(--ai-*)` custom properties — not via global class selectors — so there's little risk of a toolcrib component picking up unrelated global CSS rules, or vice versa. Note this describes the components' own internals; it doesn't mean you can pass your own `style`/`className` into them — see §4 and `CORE.md` §9. The exceptions:
+Toolcrib's own component styles are applied via inline `style={{...}}` objects that resolve `var(--ai-*)` custom properties — not via global class selectors — so there's little risk of a toolcrib component picking up unrelated global CSS rules, or vice versa. Note this describes the components' own internals; it doesn't mean you can pass your own `style`/`className` into them — see `CORE.md`'s Component Reference and Per-Instance Overrides & Style Domains sections. The exceptions:
 
 - `<ThemeProvider>` sets `--ai-*` custom properties on `document.documentElement` (`:root`). If your existing CSS already defines any of those exact variable names for something unrelated, there will be a collision — check for a `--ai-` prefix in your existing stylesheets before adopting.
 - A few components (`<UIGroup>`, `<Accordion>`) inject a `<style>` tag with a small number of scoped class selectors (`toolcrib-group`, `.ai-accordion-*`) for hover/focus-stacking and open/close animations. These are distinct enough names that a collision with existing app CSS is unlikely, but not architecturally impossible if your own CSS happens to use the same class names.

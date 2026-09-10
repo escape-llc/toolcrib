@@ -7,8 +7,8 @@ import { useLocaleStrings } from '../components/Locale/LocaleContext';
 
 // Verifies ToolcribProvider actually composes ThemeProvider > ToastProvider
 // > children + ToastContainer correctly -- the same "does this behave
-// identically to the manual three-provider wiring" bar CORE.md §1's Root
-// Setup rewrite depends on. Doesn't re-test ThemeProvider's or
+// identically to the manual three-provider wiring" bar CORE.md's Root
+// Setup section's rewrite depends on. Doesn't re-test ThemeProvider's or
 // ToastProvider's own internals (covered by themeContext.test.tsx and
 // Toast.test.tsx already); this only checks the composition itself.
 
