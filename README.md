@@ -27,6 +27,7 @@ npx toolcrib init
 - We repeatedly asked the models what their weaknesses were, and put guardrails up
   - Enforced by Typescript
   - Coerced via System Prompt
+  - ES Lint Custom Rules
 - Agent-directed layered documentation to guide models to patterns and anti-patterns
 - `llms.txt` for discovery by your harness
 - MCP for tighter integration
@@ -62,6 +63,7 @@ npx toolcrib init
 - Color theory accurate via Harmonies (e.g. Analogous, Split-Complementary)
 - Live, in-app Theme Editor — style without touching code, then bake presets into your own app at `init`
 - Automatic WCAG contrast enforcement — no manually-picked color pair silently fails accessibility
+- Responsive breakpoint framework via real @media CSS
 
 **Cross-Tree Communication**
 - Built to counteract the prop-drilling anti-pattern
