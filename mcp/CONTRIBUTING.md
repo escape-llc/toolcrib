@@ -55,10 +55,19 @@ npm pack --dry-run       # confirm exactly what would ship -- package.json,
                           # README.md, LICENSE, src/ only (10 files, ~8KB
                           # packed as of the first release)
 npm publish --dry-run    # same validation a real publish runs, no network write
-npm publish
-git add package.json package-lock.json && git commit -m "Bump toolcrib-mcp to vX.Y.Z" && git push
-git tag mcp-vX.Y.Z && git push origin mcp-vX.Y.Z   # tag *after* the version-bump commit exists, so it points at the real, correct state -- see below re: prefix
+git add package.json package-lock.json && git commit -m "Bump toolcrib-mcp to vX.Y.Z"
+git push -u origin <branch>   # main is a protected branch -- direct push is rejected
+# Open a PR, wait for every required check to go fully green, then squash-merge
+# (the standard issue/branch/PR/CI-green/merge sequence from root WORKFLOW.md --
+# not a special case for a release commit)
+git checkout main && git pull --ff-only
+npm publish              # LAST step -- only once the version-bump commit that's
+                          # about to be published is actually on main, verified
+                          # there by this repo's own CI, not before
+git tag mcp-vX.Y.Z && git push origin mcp-vX.Y.Z   # tag *after* publish succeeds, so a failed/declined publish never leaves a tag pointing at content that was never actually shipped
 ```
+
+**`npm publish` is the last step, not the middle one — corrected 2026-09-10, found live during a real release pass.** The previous version of this checklist ran `npm publish` immediately after the two dry-runs, ahead of the commit/push -- reasonable back when a direct push to `main` was possible (publish for real, then just record it in git). It stopped being reasonable the moment `main` became a protected branch requiring a PR and full CI before merge: that ordering let a real, public, irreversible `npm publish` happen *before* this repo's own CI had verified anything about the commit being published at all, exactly backwards from what a release gate is for. The fix is the order above: bump, test locally, dry-run, commit, open a PR, wait for CI to go green, merge -- and only then run the real `npm publish`, against a working tree that's been pulled from the now-current `main`, so what actually gets published is provably the exact content CI already verified, not a local checkout that happened to look right.
 
 **Always pass `--no-git-tag-version` on the `npm version` step itself** — that command's own default behavior creates and pushes a bare `vX.Y.Z` tag, and git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package: the root `toolcrib` package has already claimed every `v0.1.0`–`v0.13.0` (see root `AGENTS.md`'s "Cutting a release"), so a bare `npm version`-created tag would collide with (or worse, silently shadow) a real root release tag.
 
