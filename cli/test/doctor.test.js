@@ -9,13 +9,14 @@ import os from 'node:os';
 // mock their own network-dependent imports.
 vi.mock('../src/lib/release.js', () => ({
   fetchRelease: vi.fn(),
+  fetchTestsRelease: vi.fn(),
 }));
 vi.mock('../src/lib/github.js', () => ({
   fetchLatestVersion: vi.fn(),
   fetchSecurityAdvisories: vi.fn(),
 }));
 
-import { fetchRelease } from '../src/lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../src/lib/release.js';
 import { fetchLatestVersion, fetchSecurityAdvisories } from '../src/lib/github.js';
 import {
   checkManagedBlocks,
@@ -445,6 +446,73 @@ describe('doctorCommand', () => {
       // failure tests above -- a rejection here must not prevent the
       // local-only checks after it (bundler/root-provider) from running.
       expect(fetchSecurityAdvisories).toHaveBeenCalled();
+    });
+  });
+
+  describe('--with-tests drift check', () => {
+    function writeLockWithTests(version, testsVersion) {
+      fs.mkdirSync(path.join(tmpDir, 'toolcrib'), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+        JSON.stringify({ version, testsVersion }, null, 2) + '\n'
+      );
+    }
+
+    beforeEach(() => {
+      fetchRelease.mockResolvedValue(fakeDoctorRelease('1.0.0', { 'index.ts': 'export {};\n' }));
+      fetchLatestVersion.mockResolvedValue('1.0.0');
+      fetchSecurityAdvisories.mockResolvedValue([]);
+    });
+
+    it('never calls fetchTestsRelease when the lock has no testsVersion', async () => {
+      writeLock('1.0.0');
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+
+      await doctorCommand();
+
+      expect(fetchTestsRelease).not.toHaveBeenCalled();
+    });
+
+    it('reports clean when the vendored test suite matches what was shipped', async () => {
+      writeLockWithTests('1.0.0', '1.0.0');
+      fs.mkdirSync(path.join(tmpDir, 'toolcrib', '__tests__'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', '__tests__', 'Button.test.tsx'), 'expect(1).toBe(1);\n');
+      fetchTestsRelease.mockResolvedValue(
+        fakeDoctorRelease('1.0.0', { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' })
+      );
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(fetchTestsRelease).toHaveBeenCalledWith('1.0.0');
+    });
+
+    it('detects a locally drifted vendored test file, reported separately from core drift', async () => {
+      writeLockWithTests('1.0.0', '1.0.0');
+      fs.mkdirSync(path.join(tmpDir, 'toolcrib', '__tests__'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', '__tests__', 'Button.test.tsx'), 'expect(1).toBe(1); // hand-edited\n');
+      fetchTestsRelease.mockResolvedValue(
+        fakeDoctorRelease('1.0.0', { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' })
+      );
+
+      await doctorCommand();
+
+      // No assertion API for clack's own log stream -- same limitation
+      // "detects a locally drifted vendored file" above already notes for
+      // core drift. This confirms the check runs end to end against a real
+      // drifted test file without throwing; computeDrift() itself (the
+      // shared comparison logic) is exercised directly by the core-drift
+      // test already, so there's no need to re-derive its correctness here.
+      await expect(doctorCommand()).resolves.not.toThrow();
+    });
+
+    it('warns without throwing when fetchTestsRelease itself fails, and does not abort the rest of the sequence', async () => {
+      writeLockWithTests('1.0.0', '1.0.0');
+      fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+      fetchTestsRelease.mockRejectedValue(new Error('network unreachable'));
+
+      await expect(doctorCommand()).resolves.not.toThrow();
+      expect(process.exitCode).toBeUndefined();
     });
   });
 

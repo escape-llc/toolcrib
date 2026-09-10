@@ -55,6 +55,10 @@ program
     '--situation <situation>',
     'also stage the matching AGENTS.md/CLAUDE.md doc block: "new" (greenfield project) or "refactor" (adopting into an existing app)'
   )
+  .option(
+    '--with-tests',
+    'also vendor the real component test suite (Vitest + Testing Library) into ./toolcrib/__tests__/ — see README for what this does and its test-runner-collision caveat'
+  )
   .action(async (options) => {
     await initCommand(options).catch(fail);
   });

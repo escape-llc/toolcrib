@@ -44,12 +44,19 @@ export function resolveDependencyDecisions(userPkg, requiredDeps) {
   return decisions;
 }
 
-/** Produce the proposed package.json content (as an object) reflecting toAdd only. */
-export function buildProposedPackageJson(userPkg, toAdd) {
+/**
+ * Produce the proposed package.json content (as an object) reflecting
+ * toAdd only. `depsField` defaults to "dependencies" (core toolkit
+ * peerDependencies); init.js's --with-tests path passes "devDependencies"
+ * instead, since the test suite's own peer deps (vitest, testing-library,
+ * jsdom — see toolcrib-tests.config.json) are dev tooling, not something a
+ * consumer's production bundle should carry.
+ */
+export function buildProposedPackageJson(userPkg, toAdd, depsField = 'dependencies') {
   const proposed = structuredClone(userPkg);
-  proposed.dependencies ??= {};
+  proposed[depsField] ??= {};
   for (const { name, range } of toAdd) {
-    proposed.dependencies[name] = range;
+    proposed[depsField][name] = range;
   }
   return proposed;
 }

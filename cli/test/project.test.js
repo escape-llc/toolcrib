@@ -112,6 +112,25 @@ describe('lock file helpers', () => {
     expect(JSON.parse(result.proposed)).toEqual({ version: '1.5.0' });
   });
 
+  it('proposeLockUpdate omits extra fields (e.g. testsVersion) entirely when extra is not passed — unchanged shape for a plain init/merge', () => {
+    const result = proposeLockUpdate(tmpDir, '1.5.0');
+    expect(Object.keys(JSON.parse(result.proposed))).toEqual(['version']);
+  });
+
+  it('proposeLockUpdate merges an extra object (testsVersion) alongside version when passed — used by --with-tests', () => {
+    const result = proposeLockUpdate(tmpDir, '1.5.0', { testsVersion: '1.5.0' });
+    expect(JSON.parse(result.proposed)).toEqual({ version: '1.5.0', testsVersion: '1.5.0' });
+  });
+
+  it('readLock reads back a previously written testsVersion alongside version', () => {
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.5.0', testsVersion: '1.5.0' })
+    );
+    expect(readLock(tmpDir)).toEqual({ version: '1.5.0', testsVersion: '1.5.0' });
+  });
+
   // Regression test: git apply rejects paths with a leading "./" as
   // invalid ("error: invalid path './toolcrib/.toolcrib-lock.json'"),
   // discovered via a real end-to-end run against git apply, not by

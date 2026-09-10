@@ -2,7 +2,13 @@ import crypto from 'node:crypto';
 
 const REPO = 'escape-llc/toolcrib';
 const ASSET_NAME = 'toolcrib.zip';
-const CHECKSUM_ASSET_NAME = 'toolcrib.zip.sha256';
+
+// Exported so release.js's fetchTestsRelease can request it by name without
+// restringing 'toolcrib-tests.zip' a second time — the optional test-suite
+// artifact scripts/build-tests-release.js/package-tests-release.js already
+// build and release.yml already publishes on every release (see
+// toolcrib init --with-tests).
+export const TESTS_ASSET_NAME = 'toolcrib-tests.zip';
 
 // Optional overrides for tests/mirrors — unset in normal use, everything
 // targets real GitHub. Integration tests point these at a local server
@@ -161,16 +167,23 @@ function sha256(buffer) {
  * mechanism was introduced — a failed fetch of it (missing, network
  * error, or an on-path actor blocking just that request) is treated
  * as an integrity failure, not tolerated as an older-release gap.
+ *
+ * `assetName` defaults to the core toolkit zip; release.js's
+ * fetchTestsRelease passes TESTS_ASSET_NAME to fetch the optional
+ * test-suite artifact via this exact same verified-download path instead
+ * of a parallel one — the checksum sibling is always `${assetName}.sha256`,
+ * the one naming convention both assets already share.
  */
-export async function downloadReleaseZip(version) {
-  const zipUrl = assetUrl(version, ASSET_NAME);
-  const checksumUrl = assetUrl(version, CHECKSUM_ASSET_NAME);
+export async function downloadReleaseZip(version, assetName = ASSET_NAME) {
+  const checksumAssetName = `${assetName}.sha256`;
+  const zipUrl = assetUrl(version, assetName);
+  const checksumUrl = assetUrl(version, checksumAssetName);
 
   const [zipBuffer, checksumText] = await Promise.all([
     fetchBuffer(zipUrl),
     fetchText(checksumUrl).catch((err) => {
       throw new Error(
-        `Failed to fetch checksum for ${ASSET_NAME} (${err.message}). ` +
+        `Failed to fetch checksum for ${assetName} (${err.message}). ` +
           `Refusing to install an unverified download.`
       );
     }),
@@ -180,7 +193,7 @@ export async function downloadReleaseZip(version) {
   const actual = sha256(zipBuffer);
   if (actual !== expected) {
     throw new Error(
-      `Checksum mismatch for ${ASSET_NAME} (expected ${expected}, got ${actual}). ` +
+      `Checksum mismatch for ${assetName} (expected ${expected}, got ${actual}). ` +
         `The download may be corrupted or incomplete — try again.`
     );
   }

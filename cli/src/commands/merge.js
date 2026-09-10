@@ -1,6 +1,7 @@
 import path from 'node:path';
 import * as p from '@clack/prompts';
-import { fetchRelease } from '../lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../lib/release.js';
+import { resolveVersion } from '../lib/github.js';
 import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
 import { mergeImportsField } from '../lib/deps.js';
 import { fileExists, readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
@@ -28,6 +29,105 @@ function classify(original, local, updated) {
   if (!localModified && upstreamChanged) return 'safe-update';
   if (localModified && !upstreamChanged) return 'keep-local';
   return 'conflict';
+}
+
+/**
+ * The full four-way diff, applied per-file across one (oldRelease,
+ * newRelease) pair — extracted so both the core toolkit files and (when
+ * --with-tests was used) the vendored test-suite files run through the
+ * exact same logic rather than a second copy-pasted loop. Both file sets
+ * land under the same TOOLKIT_DIR: core relPaths have no prefix, test
+ * relPaths are already `__tests__/`-prefixed (see
+ * scripts/build-tests-release.js), so no separate target-directory
+ * parameter is needed here.
+ *
+ * Mutates `changes`/`conflicts` in place (matching this file's existing
+ * call-site style below) and returns per-call counts for the caller to
+ * fold into its own running totals.
+ */
+function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflicts) {
+  let updatedCount = 0;
+  let keptCount = 0;
+  let deletedCount = 0;
+
+  // Found by review: allFiles() re-walks its temp directory recursively on
+  // every call (listFilesRecursive is not cached), so calling
+  // oldRelease.allFiles().includes(relPath)/newRelease.allFiles().includes(relPath)
+  // inside these loops' own bodies (below) re-did that full filesystem walk
+  // once per file — real O(n²) filesystem I/O for a release with hundreds
+  // of files, made worse now that --with-tests doubles how often this
+  // function runs per merge. Computed once, up front, as Sets for O(1)
+  // membership checks instead.
+  const oldFiles = new Set(oldRelease.allFiles());
+  const newFiles = new Set(newRelease.allFiles());
+
+  for (const relPath of newFiles) {
+    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
+    const local = readTextIfExists(targetPath);
+    const updated = newRelease.readFile(relPath);
+    // A file that's new in this release won't exist in oldRelease — treat as empty original.
+    const original = oldFiles.has(relPath) ? oldRelease.readFile(relPath) : '';
+
+    const status = classify(original, local, updated);
+
+    switch (status) {
+      case 'unchanged':
+      case 'safe-update':
+        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, updated, relPath);
+        updatedCount++;
+        break;
+      case 'keep-local':
+        keptCount++;
+        break;
+      case 'conflict':
+        conflicts.push({ relPath, patchPath: joinPatchPath(TOOLKIT_DIR, relPath), original, local, updated });
+        break;
+    }
+  }
+
+  // A file present in oldRelease but absent from newRelease was removed
+  // upstream — e.g. useAnimatedMount.ts when Drawer moved to Radix
+  // Presence in v0.10.0. Without this pass, a vendored copy of a file
+  // upstream no longer ships just sits there forever, unreferenced but
+  // never cleaned up, since the loop above only ever visits paths that
+  // still exist in the *new* release. classify(original, local, '')
+  // reuses the same four-way logic as the update loop, treating "removed
+  // upstream" as updated content of '': local unmodified from original ->
+  // safe to delete; local modified -> a real conflict (don't silently
+  // discard someone's customization just because upstream dropped the
+  // file), same as any other conflicting edit.
+  for (const relPath of oldFiles) {
+    if (newFiles.has(relPath)) continue;
+
+    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
+    if (!fileExists(targetPath)) continue; // already absent locally — nothing to propose
+    const local = readTextIfExists(targetPath);
+
+    const original = oldRelease.readFile(relPath);
+    const status = classify(original, local, '');
+
+    switch (status) {
+      case 'safe-update':
+        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, '', relPath);
+        deletedCount++;
+        break;
+      case 'conflict':
+        conflicts.push({
+          relPath,
+          patchPath: joinPatchPath(TOOLKIT_DIR, relPath),
+          original,
+          local,
+          updated: '',
+          removedUpstream: true,
+        });
+        break;
+      // 'unchanged'/'keep-local' can't occur here: original is always
+      // non-empty (relPath came from oldRelease.allFiles()) and updated is
+      // always '', so upstreamChanged is unconditionally true.
+    }
+  }
+
+  return { updatedCount, keptCount, deletedCount };
 }
 
 /**
@@ -133,101 +233,77 @@ export async function mergeCommand(options) {
 
   const spinner = p.spinner();
   spinner.start(`Fetching current (v${lock.version}) and target (${options.version}) releases`);
-  let oldRelease, newRelease;
+  // Resolved once, then reused as a concrete version for every fetch below
+  // that targets the "new" side — the same real, if narrow, race init.js
+  // guards against: two independent 'latest' resolutions could otherwise
+  // pair a core zip from one version with a tests zip from another if a
+  // new release publishes in between.
+  let resolvedVersion, oldRelease, newRelease, oldTestsRelease, newTestsRelease;
   try {
-    [oldRelease, newRelease] = await Promise.all([
-      fetchRelease(lock.version),
-      fetchRelease(options.version),
-    ]);
+    resolvedVersion = await resolveVersion(options.version);
+    const fetches = [fetchRelease(lock.version), fetchRelease(resolvedVersion)];
+    // Auto-continue: no --with-tests flag on merge itself — whether the
+    // test suite was ever installed is read straight from the lock file,
+    // so it stays in sync automatically once opted into via init, with no
+    // separate flag to remember on every later merge.
+    if (lock.testsVersion) {
+      fetches.push(fetchTestsRelease(lock.testsVersion), fetchTestsRelease(resolvedVersion));
+    }
+    // Promise.allSettled, not Promise.all — a real, found-by-review gap:
+    // Promise.all rejects and abandons immediately on the first failure,
+    // so any OTHER fetch among these 2-4 that had already resolved by then
+    // (its own real temp directory already on disk) was never cleaned up,
+    // permanently leaking it. allSettled waits for every fetch to finish
+    // one way or the other, so every successfully-resolved release can
+    // still be cleaned up before this function throws.
+    const settled = await Promise.allSettled(fetches);
+    const firstRejection = settled.find((r) => r.status === 'rejected');
+    if (firstRejection) {
+      await Promise.all(
+        settled.filter((r) => r.status === 'fulfilled').map((r) => r.value.cleanup().catch(() => {}))
+      );
+      throw firstRejection.reason;
+    }
+    const results = settled.map((r) => r.value);
+    [oldRelease, newRelease] = results;
+    if (lock.testsVersion) {
+      [oldTestsRelease, newTestsRelease] = results.slice(2);
+    }
   } catch (err) {
     spinner.stop('Failed to fetch releases');
     throw err;
   }
   spinner.stop(`Comparing v${oldRelease.version} → v${newRelease.version}`);
 
+  const cleanupAll = () =>
+    Promise.all([oldRelease.cleanup(), newRelease.cleanup(), oldTestsRelease?.cleanup(), newTestsRelease?.cleanup()].filter(Boolean));
+
   if (oldRelease.version === newRelease.version) {
     p.outro('Already on this version. Run `toolcrib doctor` to check for local drift instead.');
-    await Promise.all([oldRelease.cleanup(), newRelease.cleanup()]);
+    await cleanupAll();
     return;
   }
 
   const changes = new PendingChanges();
   const conflicts = [];
-  let updatedCount = 0;
-  let keptCount = 0;
-  let deletedCount = 0;
 
-  for (const relPath of newRelease.allFiles()) {
-    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
-    const local = readTextIfExists(targetPath);
-    const updated = newRelease.readFile(relPath);
-    // A file that's new in this release won't exist in oldRelease — treat as empty original.
-    const original = oldRelease.allFiles().includes(relPath) ? oldRelease.readFile(relPath) : '';
+  const coreDiff = diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflicts);
+  let updatedCount = coreDiff.updatedCount;
+  let keptCount = coreDiff.keptCount;
+  let deletedCount = coreDiff.deletedCount;
 
-    const status = classify(original, local, updated);
-
-    switch (status) {
-      case 'unchanged':
-      case 'safe-update':
-        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, updated, relPath);
-        updatedCount++;
-        break;
-      case 'keep-local':
-        keptCount++;
-        break;
-      case 'conflict':
-        conflicts.push({ relPath, patchPath: joinPatchPath(TOOLKIT_DIR, relPath), original, local, updated });
-        break;
-    }
-  }
-
-  // A file present in oldRelease but absent from newRelease was removed
-  // upstream — e.g. useAnimatedMount.ts when Drawer moved to Radix
-  // Presence in v0.10.0. Without this pass, a vendored copy of a file
-  // upstream no longer ships just sits there forever, unreferenced but
-  // never cleaned up, since the loop above only ever visits paths that
-  // still exist in the *new* release. classify(original, local, '')
-  // reuses the same four-way logic as the update loop, treating "removed
-  // upstream" as updated content of '': local unmodified from original ->
-  // safe to delete; local modified -> a real conflict (don't silently
-  // discard someone's customization just because upstream dropped the
-  // file), same as any other conflicting edit.
-  for (const relPath of oldRelease.allFiles()) {
-    if (newRelease.allFiles().includes(relPath)) continue;
-
-    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
-    if (!fileExists(targetPath)) continue; // already absent locally — nothing to propose
-    const local = readTextIfExists(targetPath);
-
-    const original = oldRelease.readFile(relPath);
-    const status = classify(original, local, '');
-
-    switch (status) {
-      case 'safe-update':
-        changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, '', relPath);
-        deletedCount++;
-        break;
-      case 'conflict':
-        conflicts.push({
-          relPath,
-          patchPath: joinPatchPath(TOOLKIT_DIR, relPath),
-          original,
-          local,
-          updated: '',
-          removedUpstream: true,
-        });
-        break;
-      // 'unchanged'/'keep-local' can't occur here: original is always
-      // non-empty (relPath came from oldRelease.allFiles()) and updated is
-      // always '', so upstreamChanged is unconditionally true.
-    }
+  if (oldTestsRelease && newTestsRelease) {
+    const testsDiff = diffReleaseFiles(projectRoot, oldTestsRelease, newTestsRelease, changes, conflicts);
+    updatedCount += testsDiff.updatedCount;
+    keptCount += testsDiff.keptCount;
+    deletedCount += testsDiff.deletedCount;
   }
 
   const managedBlockCounts = await mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, conflicts);
   updatedCount += managedBlockCounts.updatedCount;
   keptCount += managedBlockCounts.keptCount;
 
-  await Promise.all([oldRelease.cleanup(), newRelease.cleanup()]);
+  await cleanupAll();
 
   // Installs from before the "imports" subpath entry existed won't have it —
   // propose adding it here too, not just on a fresh `init`.
@@ -254,8 +330,27 @@ export async function mergeCommand(options) {
   // installed, and a later `merge` would diff from the wrong baseline,
   // misclassifying every file that legitimately changed in this merge as
   // a local edit — and flagging false conflicts against it next time.
-  const lockChange = proposeLockUpdate(projectRoot, newRelease.version);
+  const lockChange = proposeLockUpdate(
+    projectRoot,
+    newRelease.version,
+    lock.testsVersion ? { testsVersion: newRelease.version } : {}
+  );
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
+
+  // Keeps .toolcrib-tests-config.json in sync too, same reasoning and same
+  // unconditional-overwrite treatment as init.js's own step 4b — this is
+  // meta-configuration (peerDependencies) a tool like toolcrib-mcp reads
+  // directly off disk, not vendored source meant to be hand-customized.
+  if (newTestsRelease) {
+    const testsConfigPath = 'toolcrib/.toolcrib-tests-config.json';
+    const proposedTestsConfig = JSON.stringify(newTestsRelease.config, null, 2) + '\n';
+    changes.propose(
+      testsConfigPath,
+      readTextIfExists(path.join(projectRoot, testsConfigPath)),
+      proposedTestsConfig,
+      '.toolcrib-tests-config.json'
+    );
+  }
 
   // Conflicts get their own patch showing the *upstream* diff (local vs.
   // untouched), so the human/AI can see exactly what upstream changed
