@@ -82,10 +82,11 @@ jobs:
           {
             echo "PROMPT<<${DELIM}"
             echo 'You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.'
+            echo 'You have NO tools available in this session -- everything you need is the diff text below. Do not narrate an intent to run a command, search the repo, or check another file; you cannot. Base your entire review only on the diff text given.'
             echo 'Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.'
             echo 'Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.'
             echo 'If you find nothing worth flagging, say so in one short line -- do not invent a finding to have something to say.'
-            echo 'Keep the whole response under 400 words, plain text (no markdown headers).'
+            echo 'Output ONLY the final review itself -- no reasoning, no plan, no description of what you are about to do. Keep the whole response under 400 words, plain text (no markdown headers).'
             echo ''
             echo '--- DIFF ---'
             gh pr diff "${{ github.event.pull_request.number }}"
