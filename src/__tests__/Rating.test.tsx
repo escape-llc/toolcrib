@@ -2,11 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Rating } from '../components/Rating/Rating';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Rating', () => {
-  it('renders max radio items, defaulting to 5', () => {
+  it('renders max radio items, defaulting to 5', async () => {
     render(<Rating name="quality" />);
     expect(screen.getAllByRole('radio')).toHaveLength(5);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('respects a custom max', () => {

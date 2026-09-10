@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Sparkline } from '../components/Chart/Sparkline';
+import { axe } from './testUtils/axe';
 
 describe('Sparkline', () => {
-  it('renders a single line path for the trend', () => {
+  it('renders a single line path for the trend', async () => {
     const { container } = render(<Sparkline values={[1, 3, 2, 5, 4]} />);
     expect(container.querySelectorAll('path')).toHaveLength(1);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('marks the last value with an accent-colored endpoint', () => {

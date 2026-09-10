@@ -5,6 +5,7 @@ import { AccessibleIcon } from '../components/Layout/AccessibleIcon';
 import { Label } from '../components/Form/Label';
 import { Checkbox, Switch } from '../components/Form/FormComponents';
 import { ScrollArea } from '../components/ScrollArea/ScrollArea';
+import { axe } from './testUtils/axe';
 
 // ScrollArea's internal ResizeObserver-driven size tracking has no effect on
 // whether its DOM nodes render (see ScrollArea.tsx's own review notes) but
@@ -20,9 +21,10 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 }
 
 describe('VisuallyHidden Component', () => {
-  it('keeps content queryable (announced to assistive tech) while rendering it', () => {
+  it('keeps content queryable (announced to assistive tech) while rendering it', async () => {
     render(<VisuallyHidden>Screen-reader-only text</VisuallyHidden>);
     expect(screen.getByText('Screen-reader-only text')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 });
 

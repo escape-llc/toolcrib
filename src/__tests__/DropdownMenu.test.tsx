@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DropdownMenu } from '../components/DropdownMenu/DropdownMenu';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // Radix DropdownMenu's positioning internals use ResizeObserver — not
 // implemented in jsdom. Same polyfill pattern already used in
@@ -17,7 +18,7 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 }
 
 describe('DropdownMenu Component', () => {
-  it('opens on trigger click, emits menu:opened, and renders every item', () => {
+  it('opens on trigger click, emits menu:opened, and renders every item', async () => {
     const openedFn = vi.fn();
     const unsub = aiBus.on('menu:opened', openedFn);
 
@@ -33,11 +34,19 @@ describe('DropdownMenu Component', () => {
     );
 
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    // Closed-state scan: DropdownMenu's items are Portal-rendered.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.pointerDown(screen.getByText('Options'), { button: 0 });
 
     expect(openedFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'actions-menu' }));
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
+    // Radix Menu-family hideOthers() reads as an aria-hidden ancestor with
+    // a focusable descendant to any static analysis -- the same confirmed
+    // false positive e2e/accessibility.spec.ts's own ARIA_HIDDEN_FOCUS_DISABLED
+    // carve-out exists for (ContextMenu.test.tsx hit this identically).
+    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
     unsub();
   });

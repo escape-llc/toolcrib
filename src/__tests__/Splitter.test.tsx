@@ -3,9 +3,10 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { Splitter } from '../components/Splitter/Splitter';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Splitter Component & Corner Squaring', () => {
-  it('renders split panes and separator handle', () => {
+  it('renders split panes and separator handle', async () => {
     render(
       <Splitter orientation="vertical" initialSplit={60}>
         <div>Top Pane Content</div>
@@ -16,6 +17,7 @@ describe('Splitter Component & Corner Squaring', () => {
     expect(screen.getByText('Top Pane Content')).toBeInTheDocument();
     expect(screen.getByText('Bottom Pane Content')).toBeInTheDocument();
     expect(screen.getByRole('separator')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('squares off joining bottom corners for top pane and top corners for bottom pane in vertical orientation', () => {

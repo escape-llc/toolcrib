@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // Mock ResizeObserver for Radix UI Slider in JSDOM
 (globalThis as any).ResizeObserver = class {
@@ -81,21 +82,31 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     });
   });
 
-  it('verifies Tooltip emits tooltip:shown on trigger focus', () => {
+  // This is Tooltip's only unit-test coverage anywhere in this suite (no
+  // dedicated Tooltip.test.tsx exists) -- both states get scanned here,
+  // not just this file's own event-emission concern.
+  it('verifies Tooltip emits tooltip:shown on trigger focus', async () => {
     render(
       <Tooltip id="test-tooltip" content="Tooltip Hint">
         <span>Hover Me</span>
       </Tooltip>
     );
 
+    // Closed-state scan: trigger only, Tooltip's own portal content absent.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.focus(screen.getByText('Hover Me'));
     expect(trafficSpy).toHaveBeenCalledWith({
       type: 'tooltip:shown',
       detail: expect.objectContaining({ id: 'test-tooltip', content: 'Tooltip Hint' }),
     });
+    // Open-state scan: real portal content now mounted.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('verifies Accordion emits accordion:opened event', () => {
+  // Also Accordion's only unit-test coverage anywhere in this suite (no
+  // dedicated Accordion.test.tsx exists).
+  it('verifies Accordion emits accordion:opened event', async () => {
     render(
       <Accordion
         id="test-accordion"
@@ -103,11 +114,17 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
       />
     );
 
+    // Closed-state scan: item content not yet mounted.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.click(screen.getByText('Accordion 1'));
     expect(trafficSpy).toHaveBeenCalledWith({
       type: 'accordion:opened',
       detail: expect.objectContaining({ id: 'test-accordion', itemValue: 'item-1' }),
     });
+    // Open-state scan: genuinely different structural branch -- the item's
+    // content is now mounted.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('verifies DropdownMenu emits menu:opened event via keyboard', () => {

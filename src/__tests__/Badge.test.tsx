@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from '../components/Badge/Badge';
+import { axe } from './testUtils/axe';
 
 describe('Badge', () => {
-  it('renders its children', () => {
+  it('renders its children', async () => {
     render(<Badge>New</Badge>);
     expect(screen.getByText('New')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders a neutral appearance with no subtheme', () => {

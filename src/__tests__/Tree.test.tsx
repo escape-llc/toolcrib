@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Tree, type TreeItemData } from '../components/Tree/Tree';
 import { LocaleProvider } from '../components/Locale/LocaleContext';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 const items: TreeItemData[] = [
   {
@@ -17,14 +18,15 @@ const items: TreeItemData[] = [
 ];
 
 describe('Tree', () => {
-  it('renders root-level items and keeps children collapsed by default', () => {
+  it('renders root-level items and keeps children collapsed by default', async () => {
     render(<Tree items={items} />);
     expect(screen.getByText('Fruits')).toBeInTheDocument();
     expect(screen.getByText('Vegetables')).toBeInTheDocument();
     expect(screen.queryByText('Apple')).not.toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('expands on click of the disclosure triangle, revealing children', () => {
+  it('expands on click of the disclosure triangle, revealing children', async () => {
     render(<Tree items={items} />);
     const fruitsRow = screen.getByText('Fruits').closest('[role="treeitem"]') as HTMLElement;
     expect(fruitsRow).toHaveAttribute('aria-expanded', 'false');
@@ -32,6 +34,9 @@ describe('Tree', () => {
     fireEvent.click(fruitsRow.querySelector('span')!); // the disclosure triangle
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(fruitsRow).toHaveAttribute('aria-expanded', 'true');
+    // Expanded-state scan: nested treeitems now present in the DOM,
+    // genuinely different structure from the collapsed state scanned above.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('sets aria-level/aria-setsize/aria-posinset correctly, including on nested items', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CalendarDate } from '@internationalized/date';
 import { DatePicker } from '../components/DatePicker/DatePicker';
 import { Modal } from '../components/Overlay/Modal';
@@ -47,6 +47,40 @@ describe('DatePicker', () => {
     expect(emitted).toBeInstanceOf(CalendarDate);
     expect(emitted.day).toBe(20);
     expect(document.querySelector('.react-aria-Calendar')).not.toBeInTheDocument();
+    // The field's own segments must actually reflect the new selection, not
+    // just fire onChange -- assert on the displayed value too, not only the
+    // callback. See the standalone-defaultValue regression test below for
+    // why this distinction matters.
+    expect(document.querySelector('[data-type="day"]')).toHaveTextContent('20');
+  });
+
+  // Regression: a standalone <DatePicker defaultValue={...}> (no Form
+  // ancestor, no `value` prop) has no live source that ever re-feeds the
+  // date back into the field after an edit -- passing `defaultValue`
+  // through the `value` prop (the previous implementation) made the field
+  // look controlled from the very first render, so React Aria's own
+  // internal state update on each keyboard edit was silently discarded and
+  // the segment snapped back to the original `defaultValue` every time.
+  // Found live in the demo app: the field could never be edited via the
+  // keyboard at all. This drives the actual DateInput segment, not the
+  // calendar grid, and asserts on the segment's own displayed text
+  // afterward -- exactly the assertion the previous "selects a date..."
+  // test above never made, which is why this regressed silently.
+  it('is keyboard-editable via its own segments when only defaultValue is set (no Form ancestor, no value prop)', () => {
+    render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
+    const daySegment = document.querySelector('[data-type="day"]') as HTMLElement;
+    expect(daySegment).toHaveTextContent('15');
+
+    act(() => {
+      daySegment.focus();
+      fireEvent.keyDown(daySegment, { key: 'ArrowUp' });
+    });
+    expect(daySegment).toHaveTextContent('16');
+
+    act(() => {
+      fireEvent.keyDown(daySegment, { key: 'ArrowUp' });
+    });
+    expect(daySegment).toHaveTextContent('17');
   });
 
   it('emits datepicker:changed with an ISO date string', () => {

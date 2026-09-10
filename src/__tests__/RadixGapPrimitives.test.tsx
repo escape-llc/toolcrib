@@ -4,6 +4,7 @@ import { HoverCard } from '../components/HoverCard/HoverCard';
 import { AspectRatio } from '../components/Layout/AspectRatio';
 import { Toolbar } from '../components/Toolbar/Toolbar';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -27,11 +28,16 @@ describe('HoverCard Component', () => {
         <a href="#profile">@jane</a>
       </HoverCard>
     );
+    // Closed-state scan: HoverCard's content is Portal-rendered, so this is
+    // real DOM the closed-state markup genuinely doesn't include yet --
+    // distinct from, and no substitute for, the open-state scan below.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     const trigger = screen.getByText('@jane');
     fireEvent.pointerEnter(trigger, { pointerType: 'mouse' });
     await waitFor(() => expect(screen.getByText('Rich preview content')).toBeInTheDocument());
     expect(shownFn).toHaveBeenCalledWith({ id: 'test-hovercard' });
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.pointerLeave(trigger, { pointerType: 'mouse' });
     await waitFor(() => expect(screen.queryByText('Rich preview content')).not.toBeInTheDocument());

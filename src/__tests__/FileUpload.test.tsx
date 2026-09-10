@@ -6,6 +6,7 @@ import { FileUpload } from '../components/Form/FileUpload';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -29,7 +30,7 @@ function makeFile(name: string, sizeBytes: number, type = 'text/plain'): File {
 }
 
 describe('FileUpload Component — selecting files', () => {
-  it('adds a file selected via the hidden native input to the list', () => {
+  it('adds a file selected via the hidden native input to the list', async () => {
     const onFilesChange = vi.fn();
     render(<FileUpload onFilesChange={onFilesChange} />);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -39,6 +40,7 @@ describe('FileUpload Component — selecting files', () => {
 
     expect(screen.getByText('report.txt')).toBeInTheDocument();
     expect(onFilesChange).toHaveBeenCalledWith([expect.objectContaining({ file, status: 'pending' })]);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('ignores dropped files and disables the native input when disabled', () => {

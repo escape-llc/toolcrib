@@ -2,9 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ContextMenu } from '../components/ContextMenu/ContextMenu';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('ContextMenu Component', () => {
-  it('opens on right-click (not left-click) and renders items', () => {
+  it('opens on right-click (not left-click) and renders items', async () => {
     render(
       <ContextMenu items={[{ value: 'copy', label: 'Copy' }]}>
         <div>Right-click target</div>
@@ -12,12 +13,21 @@ describe('ContextMenu Component', () => {
     );
 
     expect(screen.queryByText('Copy')).not.toBeInTheDocument();
+    // Closed-state scan: ContextMenu's items are Portal-rendered, real DOM
+    // the closed state genuinely omits.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Right-click target'));
     expect(screen.queryByText('Copy')).not.toBeInTheDocument();
 
     fireEvent.contextMenu(screen.getByText('Right-click target'));
     expect(screen.getByText('Copy')).toBeInTheDocument();
+    // Radix Menu-family hideOthers() reads as an aria-hidden ancestor with
+    // a focusable descendant to any static analysis -- the same confirmed
+    // false positive e2e/accessibility.spec.ts's own ARIA_HIDDEN_FOCUS_DISABLED
+    // carve-out exists for, real in jsdom for the identical structural
+    // reason (neither axe variant can observe Radix's runtime focus-trap).
+    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
   });
 
   it('emits menu:opened and menu:item_selected, matching DropdownMenu\'s event shape', () => {

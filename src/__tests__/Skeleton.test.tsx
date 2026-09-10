@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Skeleton } from '../components/Skeleton/Skeleton';
+import { axe } from './testUtils/axe';
 
 describe('Skeleton', () => {
-  it('renders a text shape by default, full width and a small fixed height', () => {
+  it('renders a text shape by default, full width and a small fixed height', async () => {
     const { container } = render(<Skeleton />);
     const el = container.firstChild as HTMLElement;
     expect(el.style.width).toBe('100%');
     expect(el.style.height).toBe('1rem');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders a circle with matching width/height when only one is given', () => {

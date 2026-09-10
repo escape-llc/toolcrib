@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TabStrip } from '../components/TabStrip/TabStrip';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('TabStrip Component', () => {
   const items = [
@@ -10,7 +11,7 @@ describe('TabStrip Component', () => {
     { id: 'tab3', label: 'Tab 3' },
   ];
 
-  it('renders tab items and handles tab changes (controlled mode)', () => {
+  it('renders tab items and handles tab changes (controlled mode)', async () => {
     const handleChange = vi.fn();
 
     render(<TabStrip id="demo" items={items} activeId="tab1" onChange={handleChange} />);
@@ -18,12 +19,13 @@ describe('TabStrip Component', () => {
     expect(screen.getByText('Tab 1')).toBeInTheDocument();
     expect(screen.getByText('Tab 2')).toBeInTheDocument();
     expect(screen.getByText('Tab 3')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Tab 2'));
     expect(handleChange).toHaveBeenCalledWith('tab2');
   });
 
-  it('manages its own active tab when uncontrolled (no activeId/onChange given)', () => {
+  it('manages its own active tab when uncontrolled (no activeId/onChange given)', async () => {
     render(<TabStrip id="uncontrolled-demo" items={items} defaultActiveId="tab2" />);
 
     // Radix marks the active trigger's tab state via data-state="active".
@@ -31,6 +33,10 @@ describe('TabStrip Component', () => {
 
     fireEvent.click(screen.getByText('Tab 3'));
     expect(screen.getByText('Tab 3').closest('button')).toHaveAttribute('data-state', 'active');
+    // A "paging" control -- the actual post-switch DOM (data-state moved,
+    // unlike the controlled test above where nothing visually changes
+    // without a parent re-render) is worth its own scan.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('coordinates with a <TabStrip.Panel> rendered as a sibling, not a child — no shared DOM containment required', async () => {

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { RadioGroup } from '../components/Form/RadioGroup';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
+import { axe } from './testUtils/axe';
 
 // Radix's RadioGroup uses ResizeObserver — not implemented in jsdom. Same
 // polyfill pattern already used in RadixPrimitives.test.tsx for the same
@@ -25,7 +26,7 @@ describe('RadioGroup Component', () => {
     { label: 'Option C', value: 'c' },
   ];
 
-  it('renders radio options and handles selection change', () => {
+  it('renders radio options and handles selection change', async () => {
     const handleChange = vi.fn();
 
     render(<RadioGroup options={options} value="a" onChange={handleChange} />);
@@ -38,6 +39,33 @@ describe('RadioGroup Component', () => {
 
     fireEvent.click(radioB);
     expect(handleChange).toHaveBeenCalledWith('b');
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  // Regression: a standalone <RadioGroup defaultValue="a"> (no Form
+  // ancestor, no `value` prop) has no live source that ever re-feeds the
+  // selection back into the group after a click -- the previous
+  // implementation echoed `defaultValue` straight into `selectedValue`
+  // every render with nothing ever updating it, which made the group look
+  // fully controlled to Radix (and to this component's own
+  // context-driven option styling) from the very first render, with no
+  // way to ever move off the initial option. The test above never caught
+  // this because it always passes an explicit `value` prop (genuinely
+  // controlled) -- this one is the standalone-defaultValue shape that was
+  // actually broken.
+  it('lets a standalone defaultValue-only group actually switch selection on click (no Form, no value prop)', () => {
+    const handleChange = vi.fn();
+    render(<RadioGroup options={options} defaultValue="a" onChange={handleChange} />);
+
+    const radioA = screen.getByRole('radio', { name: 'Option A' });
+    const radioB = screen.getByRole('radio', { name: 'Option B' });
+    expect(radioA).toHaveAttribute('aria-checked', 'true');
+    expect(radioB).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(radioB);
+    expect(handleChange).toHaveBeenCalledWith('b');
+    expect(radioB).toHaveAttribute('aria-checked', 'true');
+    expect(radioA).toHaveAttribute('aria-checked', 'false');
   });
 
   it('renders with compound RadioGroup.Option elements', () => {

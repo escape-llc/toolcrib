@@ -3,9 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { Splitter } from '../components/Splitter/Splitter';
 import { Card } from '../components/Card/Card';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Layout Domain & Event Bus Corner Coordination', () => {
-  it('automatically emits layout domain creation and corner squaring events over aiBus', () => {
+  it('automatically emits layout domain creation and corner squaring events over aiBus', async () => {
     const domainSpy = vi.fn();
     const cornerSpy = vi.fn();
 
@@ -42,6 +43,8 @@ describe('Layout Domain & Event Bus Corner Coordination', () => {
         squaredCorners: { topLeft: true, topRight: true },
       })
     );
+
+    expect(await axe(document.body)).toHaveNoViolations();
 
     unsub1();
     unsub2();

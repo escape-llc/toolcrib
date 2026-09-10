@@ -1,15 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DeferredContent } from '../components/Layout/DeferredContent';
+import { axe } from './testUtils/axe';
 
 describe('DeferredContent', () => {
-  it('renders its children', () => {
+  it('renders its children', async () => {
     render(
       <DeferredContent estimatedHeight={200}>
         <p>Hello</p>
       </DeferredContent>
     );
     expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('applies content-visibility: auto and contain-intrinsic-height from estimatedHeight', () => {

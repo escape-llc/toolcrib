@@ -5,6 +5,7 @@ import { Combobox } from '../components/Form/Combobox';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -23,21 +24,28 @@ const options = [
 ];
 
 describe('Combobox Component — client-side filtering', () => {
-  it('filters the listbox by substring as the user types', () => {
-    render(<Combobox options={options} onChange={vi.fn()} />);
+  it('filters the listbox by substring as the user types', async () => {
+    render(<Combobox options={options} onChange={vi.fn()} ariaLabel="Role" />);
     const input = screen.getByRole('combobox');
 
     fireEvent.change(input, { target: { value: 'ed' } });
     expect(screen.getByText('Editor')).toBeInTheDocument();
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     expect(screen.queryByText('Viewer')).not.toBeInTheDocument();
+    // A real structural branch -- populated results shown -- distinct from
+    // closed/empty/no-results/loading (each scanned separately below).
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('shows a no-results message when nothing matches', () => {
-    render(<Combobox options={options} onChange={vi.fn()} noResultsMessage="Nothing found" />);
+  it('shows a no-results message when nothing matches', async () => {
+    render(<Combobox options={options} onChange={vi.fn()} noResultsMessage="Nothing found" ariaLabel="Role" />);
     const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'zzz' } });
     expect(screen.getByText('Nothing found')).toBeInTheDocument();
+    // Another real structural branch -- Listbox's own role="option" +
+    // aria-disabled fallback for the empty-results message (see
+    // Listbox.tsx's own aria-required-children fix).
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders custom option content via render(), while filtering still matches against the plain label text', () => {
@@ -113,14 +121,16 @@ describe('Combobox Component — client-side filtering', () => {
     scrollIntoViewSpy.mockRestore();
   });
 
-  it('disables the input and never opens the listbox when disabled', () => {
-    render(<Combobox options={options} onChange={vi.fn()} disabled />);
+  it('disables the input and never opens the listbox when disabled', async () => {
+    render(<Combobox options={options} onChange={vi.fn()} disabled ariaLabel="Role" />);
     const input = screen.getByRole('combobox') as HTMLInputElement;
     expect(input).toBeDisabled();
 
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'ed' } });
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    // Another real structural branch -- disabled state.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('reverts to the last selected label on blur when the typed text matches nothing (allowCustomValue false)', () => {
@@ -172,7 +182,7 @@ describe('Combobox Component — async search', () => {
 
   it('debounces onSearch, only opening/showing a loading state once the search actually fires, then replaces the listbox with results', async () => {
     const onSearch = vi.fn().mockResolvedValue([{ label: 'Async Result', value: 'r1' }]);
-    render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} />);
+    render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} ariaLabel="Role" />);
     const input = screen.getByRole('combobox');
 
     fireEvent.change(input, { target: { value: 'query' } });
@@ -185,6 +195,10 @@ describe('Combobox Component — async search', () => {
     await waitFor(() => expect(screen.getByText('Async Result')).toBeInTheDocument());
     expect(onSearch).toHaveBeenCalledWith('query');
     expect(input).toHaveAttribute('aria-expanded', 'true');
+    // A real structural branch -- async-resolved results, distinct from
+    // the client-filtered results test above (different code path,
+    // Listbox's loading->populated transition).
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('ignores a stale response that resolves after a newer request', async () => {
@@ -212,9 +226,9 @@ describe('Combobox Component — async search', () => {
 });
 
 describe('Combobox Component — multiple mode', () => {
-  it('selects options as removable chips instead of filling the input text', () => {
+  it('selects options as removable chips instead of filling the input text', async () => {
     const onChange = vi.fn();
-    render(<Combobox multiple options={options} onChange={onChange} />);
+    render(<Combobox multiple options={options} onChange={onChange} ariaLabel="Skills" />);
     const input = screen.getByRole('combobox') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'ed' } });
@@ -227,6 +241,9 @@ describe('Combobox Component — multiple mode', () => {
     // remove button is what's unambiguous to the chip.
     expect(input.value).toBe('');
     expect(screen.getByLabelText('Remove Editor')).toBeInTheDocument();
+    // A real structural branch -- chip elements + their own remove buttons
+    // present, unique to multi-select mode.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('keeps the listbox open after a selection so multiple picks do not require reopening it', () => {

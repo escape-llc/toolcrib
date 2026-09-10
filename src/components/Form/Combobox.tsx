@@ -505,16 +505,27 @@ export const Combobox: React.FC<ComboboxProps> = ({
             id={effectiveId}
             aria-label={ariaLabel}
             role="combobox"
-            aria-expanded={open}
+            // `open && !disabled`, not `open` alone -- the actual Popover
+            // below is gated on that same combined condition
+            // (`<PopoverPrimitive.Root open={open && !disabled}>`), so
+            // `open` alone can be stale-true (e.g. the input became
+            // disabled while already open, or -- confirmed via a real axe
+            // failure, not assumed -- the onChange handler below could
+            // call setOpen(true) even while disabled) while the popover
+            // itself never actually renders. Reporting aria-expanded="true"
+            // with aria-controls/aria-activedescendant pointing at content
+            // that was never mounted is a real, confirmed dangling-IDREF
+            // bug (axe: aria-valid-attr-value), not just a style issue.
+            aria-expanded={open && !disabled}
             // Only while open -- the listbox this points to (Listbox below,
             // inside PopoverPrimitive.Content) only mounts when open is
             // true, so pointing at its id while closed is a reference to an
             // element that isn't in the DOM (axe: aria-valid-attr-value).
-            aria-controls={open ? listboxId : undefined}
+            aria-controls={open && !disabled ? listboxId : undefined}
             aria-autocomplete="list"
             // Same reasoning as aria-controls above -- the option divs
             // aria-activedescendant would point at only exist while open.
-            aria-activedescendant={open ? activeOptionId : undefined}
+            aria-activedescendant={open && !disabled ? activeOptionId : undefined}
             aria-invalid={isError || undefined}
             aria-describedby={isError ? `${fieldName}-error` : undefined}
             autoComplete="off"
@@ -529,7 +540,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                 // fires, not on every keystroke (and never on mere focus,
                 // see onFocus/onClick below).
                 isUserTypingRef.current = true;
-              } else {
+              } else if (!disabled) {
                 setOpen(true);
               }
             }}
@@ -537,8 +548,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // once the user actually types and a search fires (see the
             // search effect above and its own comment). Client-side mode
             // (a fixed `options` list, nothing to wait on) keeps opening
-            // immediately, unchanged.
-            onFocus={() => { if (!onSearch) setOpen(true); }}
+            // immediately, unchanged. `!disabled` guards both: a real
+            // browser blocks interaction with a disabled input entirely,
+            // but a programmatic event (or `disabled` flipping true while
+            // already open) shouldn't leave `open` state true with nothing
+            // actually rendered to back it.
+            onFocus={() => { if (!onSearch && !disabled) setOpen(true); }}
             // Selecting an option deliberately keeps DOM focus on the input
             // (the option's own onMouseDown preventDefaults specifically so
             // focus never moves) so typing immediately after a selection
@@ -603,6 +618,19 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
           ref={contentRef}
+          // Radix's own Popover.Content hardcodes role="dialog" -- correct
+          // for Popover's usual real-dialog-like usage, wrong here: this
+          // wrapper is purely an anchored-positioning container around a
+          // real role="listbox" (the WAI-ARIA Combobox pattern this
+          // component implements calls for no wrapping role around the
+          // listbox at all). Overriding to role="presentation" strips the
+          // redundant, unnamed "dialog" semantics rather than just adding
+          // a name to silence axe's aria-dialog-name rule -- the listbox
+          // inside already carries the real, correct semantics. Confirmed
+          // this override actually takes effect (not assumed): Radix's own
+          // source spreads consumer props after its own `role: "dialog"`,
+          // so a later `role` here wins.
+          role="presentation"
           side="bottom"
           align="start"
           sideOffset={squaring.sideOffset}

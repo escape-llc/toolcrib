@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Filmstrip } from '../components/Filmstrip/Filmstrip';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -20,7 +21,7 @@ describe('Filmstrip', () => {
     { id: 'p3', content: <span>Photo 3</span>, label: 'Photo 3' },
   ];
 
-  it('renders every item and marks the active one via aria-selected (controlled mode)', () => {
+  it('renders every item and marks the active one via aria-selected (controlled mode)', async () => {
     const handleChange = vi.fn();
     render(<Filmstrip id="demo" items={items} activeId="p1" onChange={handleChange} />);
 
@@ -29,6 +30,7 @@ describe('Filmstrip', () => {
     expect(screen.getByText('Photo 3')).toBeInTheDocument();
     expect(screen.getByLabelText('Photo 1')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByLabelText('Photo 2')).toHaveAttribute('aria-selected', 'false');
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByLabelText('Photo 2'));
     expect(handleChange).toHaveBeenCalledWith('p2');

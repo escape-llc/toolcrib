@@ -3,9 +3,10 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { AlertDialog } from '../components/AlertDialog/AlertDialog';
 import { Button } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('AlertDialog Component', () => {
-  it('opens via trigger, renders slot content, and cannot be dismissed by clicking the overlay', () => {
+  it('opens via trigger, renders slot content, and cannot be dismissed by clicking the overlay', async () => {
     render(
       <AlertDialog trigger={<Button>Delete Record</Button>} ariaLabel="Delete confirmation">
         <AlertDialog.Header>Delete Record</AlertDialog.Header>
@@ -20,11 +21,18 @@ describe('AlertDialog Component', () => {
     );
 
     expect(screen.queryByText('This cannot be undone.')).not.toBeInTheDocument();
+    // Closed-state scan: trigger only, AlertDialog's own portal content absent.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Delete Record'));
     const container = screen.getByTestId('alertdialog-container');
     expect(container).toBeInTheDocument();
     expect(screen.getByRole('alertdialog', { name: 'Delete confirmation' })).toBeInTheDocument();
+    // Open-state scan: full dialog content (header/body/footer/actions) now
+    // mounted. aria-hidden-focus disabled -- same Radix hideOthers()
+    // carve-out DropdownMenu.test.tsx/Overlay.test.tsx's own open-state
+    // scans already need.
+    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
     // Radix's AlertDialog prevents onPointerDownOutside/onInteractOutside
     // by design (see AlertDialog.tsx's own comment on why) — clicking

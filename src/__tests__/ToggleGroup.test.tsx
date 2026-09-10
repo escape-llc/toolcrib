@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Toggle, ToggleGroup } from '../components/ToggleGroup/ToggleGroup';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // Radix's Toggle/ToggleGroup primitives use ResizeObserver internally —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -17,7 +18,7 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 }
 
 describe('Toggle Component', () => {
-  it('toggles pressed state and emits toggle:changed', () => {
+  it('toggles pressed state and emits toggle:changed', async () => {
     const changedFn = vi.fn();
     const onPressedChange = vi.fn();
     const unsub = aiBus.on('toggle:changed', changedFn);
@@ -35,6 +36,7 @@ describe('Toggle Component', () => {
     expect(btn).toHaveAttribute('aria-pressed', 'true');
     expect(onPressedChange).toHaveBeenCalledWith(true);
     expect(changedFn).toHaveBeenCalledWith({ name: 'bold', pressed: true });
+    expect(await axe(document.body)).toHaveNoViolations();
 
     unsub();
   });
@@ -47,7 +49,7 @@ describe('ToggleGroup Component', () => {
     { value: 'right', label: 'Right' },
   ];
 
-  it('type="single": selecting one option deselects the previous one', () => {
+  it('type="single": selecting one option deselects the previous one', async () => {
     const onChange = vi.fn();
     render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={onChange} />);
 
@@ -57,6 +59,7 @@ describe('ToggleGroup Component', () => {
     expect(onChange).toHaveBeenCalledWith('right');
     expect(screen.getByRole('radio', { name: 'Right' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('radio', { name: 'Left' })).toHaveAttribute('aria-checked', 'false');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('type="multiple": options toggle independently and emits togglegroup:changed', () => {

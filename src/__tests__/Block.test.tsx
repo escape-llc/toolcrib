@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Block } from '../components/Layout/Block';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
+import { axe } from './testUtils/axe';
 
 describe('Block', () => {
-  it('renders its children', () => {
+  it('renders its children', async () => {
     render(<Block>Content</Block>);
     expect(screen.getByText('Content')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('defaults to a transparent background with no padding/radius/border', () => {

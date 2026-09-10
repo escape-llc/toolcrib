@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Sidebar, type SidebarItemData } from '../components/Sidebar/Sidebar';
+import { axe } from './testUtils/axe';
 
 const items: SidebarItemData[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
@@ -9,11 +10,12 @@ const items: SidebarItemData[] = [
 ];
 
 describe('Sidebar', () => {
-  it('renders every item label and icon', () => {
+  it('renders every item label and icon', async () => {
     render(<Sidebar items={items} />);
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('🏠')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('marks the active item with aria-current="page"', () => {

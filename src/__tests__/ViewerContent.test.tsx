@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ViewerContent } from '../components/Viewer/ViewerContent';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 const items = [
   { id: 'a', src: '/a.jpg', alt: 'Photo A', caption: 'Caption A' },
@@ -13,10 +14,11 @@ describe('ViewerContent', () => {
   // The whole point of the content/shell split: this must work with no
   // Modal/overlay wrapper at all -- every test in this file renders it
   // standalone, not just this one, but this one names that explicitly.
-  it('renders the active item standalone, with no host at all', () => {
+  it('renders the active item standalone, with no host at all', async () => {
     render(<ViewerContent items={items} defaultActiveIndex={0} />);
     expect(screen.getByAltText('Photo A')).toHaveAttribute('src', '/a.jpg');
     expect(screen.getByText('Caption A')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('hides the prev button at the first item', () => {

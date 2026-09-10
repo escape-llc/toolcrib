@@ -35,6 +35,18 @@ export interface SelectProps {
   name?: string;
   /** Placeholder text when no value is selected. @default 'Select option...' */
   placeholder?: string;
+  /**
+   * Accessible name for the trigger. Only needed when this `Select` isn't
+   * inside a `<FormField label="...">` — the `<label htmlFor>` that
+   * renders provides the accessible name already in that case, the same
+   * way it does for `Input`/`Slider`/`Combobox`. Unlike those, `Select`
+   * had no such escape hatch until this was added — a real gap for any
+   * standalone (non-`FormField`) usage, the trigger's own selected-value
+   * text notwithstanding (axe's `button-name` rule still requires a real
+   * accessible name, and Radix's `Select.Value` text isn't reliably
+   * available to it under every render timing).
+   */
+  'aria-label'?: string;
   /** Array of selectable options. */
   options: SelectOptionData[];
   /** Controlled selected value. */
@@ -59,6 +71,7 @@ export const Select: React.FC<SelectProps> = ({
   id,
   name: propName,
   placeholder = 'Select option...',
+  'aria-label': ariaLabel,
   options,
   value: externalValue,
   defaultValue,
@@ -107,6 +120,21 @@ export const Select: React.FC<SelectProps> = ({
   // same fix `<Input>`'s own `formContext.values[name] ?? ''` already
   // applies.
   const formValue = fieldName && formContext ? formContext.values[fieldName] ?? '' : undefined;
+  // Controlled only when there's a live source that actually re-feeds the
+  // value on every render (an explicit `value` prop, or a real Form
+  // ancestor) -- never merely because `defaultValue` was set. Radix's own
+  // controlled/uncontrolled check (like React Aria's) is `value !==
+  // undefined`, evaluated fresh each render -- folding `defaultValue` into
+  // this same `value` prop (the previous implementation) made a standalone
+  // `<Select defaultValue="...">` look controlled from the first render on,
+  // with nothing ever feeding a newly-picked option back down: Radix's own
+  // internal selection change was silently discarded and the trigger
+  // stayed pinned to the original `defaultValue` forever. The identical
+  // freeze found live in `<DatePicker>`/`<TimeField>` -- see their own
+  // comments -- and fixed the identical way here, since `SelectPrimitive
+  // .Root`, like their own React Aria components, fully manages its own
+  // displayed selection internally once genuinely uncontrolled.
+  const isControlled = externalValue !== undefined || !!(fieldName && formContext);
   const selectedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? String(formValue) : defaultValue;
 
   const handleChange = (val: string) => {
@@ -120,12 +148,13 @@ export const Select: React.FC<SelectProps> = ({
 
   return (
     <SelectPrimitive.Root
-      value={selectedValue}
+      {...(isControlled ? { value: selectedValue } : { defaultValue: defaultValue })}
       onValueChange={handleChange}
       disabled={disabled}
     >
       <SelectPrimitive.Trigger
         id={effectiveId}
+        aria-label={ariaLabel}
         aria-invalid={isError || undefined}
         aria-describedby={isError ? `${fieldName}-error` : undefined}
         className="ai-btn ai-focus-ring"

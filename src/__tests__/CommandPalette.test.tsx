@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CommandPalette, type CommandPaletteItemData } from '../components/CommandPalette/CommandPalette';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -26,18 +27,21 @@ const items: CommandPaletteItemData[] = [
 ];
 
 describe('CommandPalette', () => {
-  it('renders nothing when closed (Modal not open)', () => {
+  it('renders nothing when closed (Modal not open)', async () => {
     render(<CommandPalette items={items} isOpen={false} />);
     expect(screen.queryByPlaceholderText('Type a command or search...')).not.toBeInTheDocument();
+    // Closed-state scan: CommandPalette is built on Modal (Portal-rendered).
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('renders all items grouped by their `group` field when open', () => {
+  it('renders all items grouped by their `group` field when open', async () => {
     render(<CommandPalette items={items} isOpen={true} onOpenChange={() => {}} />);
     expect(screen.getByText('New File')).toBeInTheDocument();
     expect(screen.getByText('Open File')).toBeInTheDocument();
     expect(screen.getByText('Toggle Theme')).toBeInTheDocument();
     expect(screen.getByText('File')).toBeInTheDocument();
     expect(screen.getByText('View')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('fuzzy-filters the list as the user types, without this wrapper redundantly managing selection', () => {

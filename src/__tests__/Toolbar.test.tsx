@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Toolbar } from '../components/Toolbar/Toolbar';
+import { axe } from './testUtils/axe';
 
 describe('Toolbar Component', () => {
-  it('renders Toolbar with Left, Center, and Right slots', () => {
+  it('renders Toolbar with Left, Center, and Right slots', async () => {
     render(
       <Toolbar>
         <Toolbar.Left>
@@ -21,6 +22,7 @@ describe('Toolbar Component', () => {
     expect(screen.getByText('Title Text')).toBeInTheDocument();
     expect(screen.getByText('Center Nav')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   // Regression: orientation="vertical" previously only affected Radix's

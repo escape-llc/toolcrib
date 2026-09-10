@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AppShell } from '../components/AppShell/AppShell';
 import { Sidebar } from '../components/Sidebar/Sidebar';
+import { axe } from './testUtils/axe';
 
 describe('AppShell Component', () => {
-  it('renders AppShell with Header and Main slots', () => {
+  it('renders AppShell with Header and Main slots', async () => {
     render(
       <AppShell>
         <AppShell.Header>
@@ -18,6 +19,7 @@ describe('AppShell Component', () => {
 
     expect(screen.getByText('App Title')).toBeInTheDocument();
     expect(screen.getByText('Page Content')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('fills the full viewport as a flex column, so consumers never hand-roll this frame themselves', () => {

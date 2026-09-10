@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Select } from '../components/Form/Select';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
+import { axe } from './testUtils/axe';
 
 const options = [
   { label: 'Admin', value: 'admin' },
@@ -12,9 +13,48 @@ const options = [
 ];
 
 describe('Select Component', () => {
-  it('renders with the current selected label', () => {
-    render(<Select value="editor" onChange={vi.fn()} options={options} />);
+  it('renders with the current selected label', async () => {
+    render(<Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" />);
     expect(screen.getByText('Editor')).toBeInTheDocument();
+    // Closed-state scan: Select's own listbox is Portal-rendered.
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  // No existing test here ever actually opened the dropdown -- its real
+  // listbox markup had never been axe-scanned at all (the same class of
+  // gap aria-compliance-review's own §1 finding is about). Also the real
+  // trigger it was: run bare (no aria-label, no FormField), it fails
+  // axe's button-name rule -- Select was the only Form control in this
+  // codebase with no standalone-labeling escape hatch, fixed alongside
+  // this test.
+  it('opens the listbox on trigger click, with no automatable WCAG violations', async () => {
+    render(<Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" />);
+    fireEvent.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  // Regression: a standalone <Select defaultValue="..."> (no Form ancestor,
+  // no `value` prop) has no live source that ever re-feeds the selection
+  // back into the trigger after picking a different option -- passing
+  // `defaultValue` through the `value` prop (the previous implementation)
+  // made the trigger look controlled from the very first render, so
+  // Radix's own internal selection change was silently discarded and the
+  // trigger stayed pinned to the original `defaultValue` forever. The
+  // identical freeze found live in `<DatePicker>`/`<TimeField>` (see their
+  // own component comments) and in `<RadioGroup>`.
+  it('lets a standalone defaultValue-only select actually switch its displayed value on pick (no Form, no value prop)', async () => {
+    const onChange = vi.fn();
+    render(<Select defaultValue="editor" onChange={onChange} options={options} aria-label="Role" />);
+    expect(screen.getByText('Editor')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('option', { name: 'Viewer' }));
+
+    expect(onChange).toHaveBeenCalledWith('viewer');
+    await waitFor(() => expect(screen.getByText('Viewer')).toBeInTheDocument());
+    expect(screen.queryByText('Editor')).not.toBeInTheDocument();
   });
 
   describe('regression: FormField name inheritance and touched-on-submit', () => {

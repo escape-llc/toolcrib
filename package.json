@@ -13,7 +13,7 @@
     "test": "vitest run",
     "coverage:unit": "vitest run --coverage",
     "lint": "node scripts/node_modules/eslint/bin/eslint.js --config scripts/eslint.config.js src demo",
-    "test-eslint-rules": "node scripts/eslint-rules/no-missing-use-client.rule-check.mjs",
+    "test-eslint-rules": "node scripts/eslint-rules/no-missing-use-client.rule-check.mjs && node scripts/eslint-rules/no-frozen-controlled-prop.rule-check.mjs",
     "check-manifest": "node scripts/generate-manifest.js",
     "generate-manifest": "node scripts/generate-manifest.js --write",
     "check-docs": "node scripts/generate-docs.js",
@@ -67,6 +67,7 @@
     "playwright": "^1.62.1",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "vitest-axe": "^0.1.0"
   }
 }

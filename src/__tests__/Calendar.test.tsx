@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { CalendarDate } from '@internationalized/date';
 import { Calendar } from '../components/DatePicker/Calendar';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // React Aria Components renders each day as a real `role="button"` cell
 // whose accessible name is the full formatted date ("Sunday, March 15,
@@ -22,9 +23,10 @@ function getDayCell(container: HTMLElement, day: number): HTMLElement {
 }
 
 describe('Calendar', () => {
-  it('renders the given month and marks the selected date', () => {
+  it('renders the given month and marks the selected date', async () => {
     const { container } = render(<Calendar name="meetingDate" value={new CalendarDate(2026, 3, 15)} />);
     expect(getDayCell(container, 15)).toHaveAttribute('data-selected', 'true');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('selects a date via click and calls onChange with a CalendarDate, not a raw Date', () => {

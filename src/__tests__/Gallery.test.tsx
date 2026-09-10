@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Gallery } from '../components/Gallery/Gallery';
+import { axe } from './testUtils/axe';
 
 const items = [
   { id: 'a', thumbnailSrc: '/a-thumb.jpg', fullSrc: '/a-full.jpg', alt: 'Photo A', caption: 'Caption A' },
@@ -9,7 +10,7 @@ const items = [
 ];
 
 describe('Gallery', () => {
-  it('renders every thumbnail, deferred, and no Viewer content until a thumbnail is clicked', () => {
+  it('renders every thumbnail, deferred, and no Viewer content until a thumbnail is clicked', async () => {
     render(<Gallery items={items} />);
     expect(screen.getByAltText('Photo A')).toHaveAttribute('src', '/a-thumb.jpg');
     expect(screen.getByAltText('Photo B')).toHaveAttribute('src', '/b-thumb.jpg');
@@ -18,6 +19,9 @@ describe('Gallery', () => {
     // Viewer (which would render a *second* element with matching alt
     // text, the full-res image) hasn't opened.
     expect(screen.getAllByAltText('Photo A')).toHaveLength(1);
+    // Closed-state scan: Gallery's internal Viewer is built on Modal
+    // (Portal-rendered), genuinely absent from this closed-state markup.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('wraps each thumbnail in DeferredContent (content-visibility: auto) -- the actual lazy-render mechanism, not a second one', () => {
@@ -28,7 +32,7 @@ describe('Gallery', () => {
     expect(deferredRoot.style.contentVisibility).toBe('auto');
   });
 
-  it('clicking a thumbnail opens the internal Viewer at that item\'s index', () => {
+  it('clicking a thumbnail opens the internal Viewer at that item\'s index', async () => {
     render(<Gallery items={items} />);
     fireEvent.click(screen.getByLabelText('Photo B'));
 
@@ -37,6 +41,7 @@ describe('Gallery', () => {
     const matches = screen.getAllByAltText('Photo B');
     expect(matches).toHaveLength(2);
     expect(matches.some(el => el.getAttribute('src') === '/b-full.jpg')).toBe(true);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('calls a custom onItemClick instead of opening the Viewer, when provided', () => {

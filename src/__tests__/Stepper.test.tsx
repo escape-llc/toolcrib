@@ -5,18 +5,20 @@ import { Stepper, type StepperStepData } from '../components/Stepper/Stepper';
 import { Form } from '../components/Form/FormContext';
 import { FormField, Input } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Stepper', () => {
-  it('renders the first step active by default', () => {
+  it('renders the first step active by default', async () => {
     const steps: StepperStepData[] = [
       { id: 'a', label: 'Step A', content: <div>Content A</div> },
       { id: 'b', label: 'Step B', content: <div>Content B</div> },
     ];
     render(<Stepper steps={steps} />);
     expect(screen.getByText('Content A')).toBeVisible();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('advances via the Next button for an ungated step', () => {
+  it('advances via the Next button for an ungated step', async () => {
     const steps: StepperStepData[] = [
       { id: 'a', label: 'Step A', content: <div>Content A</div> },
       { id: 'b', label: 'Step B', content: <div>Content B</div> },
@@ -24,6 +26,10 @@ describe('Stepper', () => {
     render(<Stepper steps={steps} />);
     fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Content B')).toBeVisible();
+    // A "paging" control -- the step-2 DOM (active-step indicator,
+    // Previous now enabled) is genuinely different from step 1's, worth
+    // its own scan.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('cannot advance past a step containing an invalid Form', () => {

@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Spinner } from '../components/Spinner/Spinner';
+import { axe } from './testUtils/axe';
 
 describe('Spinner', () => {
-  it('renders with a status role and accessible label', () => {
+  it('renders with a status role and accessible label', async () => {
     render(<Spinner />);
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('defaults to the theme primary colour with no subtheme', () => {

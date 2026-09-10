@@ -6,6 +6,7 @@ import { DropdownMenu } from '../components/DropdownMenu/DropdownMenu';
 import { Select } from '../components/Form/Select';
 import { Slider } from '../components/Form/Slider';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -18,7 +19,7 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 }
 
 describe('Radix Primitives Subsystem', () => {
-  it('renders Accordion and handles item expansion', () => {
+  it('renders Accordion and handles item expansion', async () => {
     const openedFn = vi.fn();
     const unsub = aiBus.on('accordion:opened', openedFn);
 
@@ -41,6 +42,7 @@ describe('Radix Primitives Subsystem', () => {
         itemValue: 'item-1',
       })
     );
+    expect(await axe(document.body)).toHaveNoViolations();
 
     unsub();
   });

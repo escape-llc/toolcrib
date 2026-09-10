@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Link } from '../components/Link/Link';
+import { axe } from './testUtils/axe';
 
 describe('Link', () => {
-  it('renders its children as a real <a>, with href passed through', () => {
+  it('renders its children as a real <a>, with href passed through', async () => {
     render(<Link href="/docs">Docs</Link>);
     const link = screen.getByText('Docs');
     expect(link.tagName).toBe('A');
     expect(link.getAttribute('href')).toBe('/docs');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('applies the ai-link/ai-focus-ring classes so the ambient link-color and focus-ring rules both apply', () => {
