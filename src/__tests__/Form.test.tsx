@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Form, useFormContext } from '../components/Form/FormContext';
 import { FormField, Input, Textarea, Checkbox, Switch, FormError, SubmitButton, Button } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // Switch (Radix Switch) uses react-use-size internally, which relies on
 // ResizeObserver — not implemented in jsdom. Same polyfill pattern already
@@ -45,12 +46,21 @@ describe('Form & Zod Validation Engine', () => {
       </Form>
     );
 
+    // Clean/untouched-state scan: no aria-invalid, no aria-describedby, no
+    // error text yet -- genuinely different DOM from the errored state
+    // scanned below.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
       expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument();
       expect(screen.getByText('Invalid email address')).toBeInTheDocument();
     });
+
+    // Errored-state scan: aria-invalid + aria-describedby now wired up on
+    // both inputs, plus the visible error text itself.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     expect(validatedSpy).toHaveBeenCalledWith({ formId: 'test-form', isValid: false });
     expect(erroredSpy).toHaveBeenCalledWith({

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { Carousel } from '../components/Carousel/Carousel';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 // embla-carousel's real behavior (drag physics, loop index math, snap-point
 // computation from measured slide widths) fundamentally depends on real
@@ -77,11 +78,12 @@ describe('Carousel', () => {
     { id: 's3', content: <span>Slide 3</span> },
   ];
 
-  it('renders every slide\'s content', () => {
+  it('renders every slide\'s content', async () => {
     render(<Carousel slides={slides} />);
     expect(screen.getByText('Slide 1')).toBeInTheDocument();
     expect(screen.getByText('Slide 2')).toBeInTheDocument();
     expect(screen.getByText('Slide 3')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders one dot per scroll snap, with the current one marked active', async () => {
@@ -112,6 +114,10 @@ describe('Carousel', () => {
 
     fireEvent.click(screen.getByLabelText('Go to slide 3'));
     expect(mocks.scrollTo).toHaveBeenCalledWith(2);
+    // A "paging" control -- the post-navigation DOM (active dot moved,
+    // both arrows now visible) is genuinely different from slide 1's.
+    await waitFor(() => expect(screen.getByLabelText('Go to slide 3')).toHaveAttribute('aria-selected', 'true'));
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('reacts to embla\'s own "select" event: updates the active dot, calls onSlideChange, and emits carousel:changed', async () => {

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Viewer } from '../components/Viewer/Viewer';
 import { Modal } from '../components/Overlay/Modal';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 const items = [
   { id: 'a', src: '/a.jpg', alt: 'Photo A' },
@@ -10,12 +11,17 @@ const items = [
 ];
 
 describe('Viewer', () => {
-  it('renders nothing when closed, and its ViewerContent when open (controlled)', () => {
+  it('renders nothing when closed, and its ViewerContent when open (controlled)', async () => {
     const { rerender } = render(<Viewer id="v1" items={items} isOpen={false} onOpenChange={() => {}} />);
     expect(screen.queryByAltText('Photo A')).not.toBeInTheDocument();
+    // Closed-state scan: Viewer is built on Modal (Portal-rendered), so
+    // this is real DOM the closed state genuinely omits -- distinct from
+    // the open-state scan below.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     rerender(<Viewer id="v1" items={items} isOpen={true} onOpenChange={() => {}} />);
     expect(screen.getByAltText('Photo A')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('emits viewer:shown/viewer:hidden, mirroring modal:shown/modal:hidden\'s id-targeted shape', () => {

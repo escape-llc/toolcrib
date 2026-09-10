@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { VStack, HStack } from '../components/Layout/Stack';
 import { Grid } from '../components/Layout/Grid';
+import { axe } from './testUtils/axe';
 
 describe('Layout Idiom Components (Stack & Grid)', () => {
-  it('renders VStack with vertical flex direction and gap spacing', () => {
+  it('renders VStack with vertical flex direction and gap spacing', async () => {
     render(
       <VStack gap="lg">
         <div>Item 1</div>
@@ -14,6 +15,7 @@ describe('Layout Idiom Components (Stack & Grid)', () => {
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Item 2')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders HStack with horizontal flex direction', () => {

@@ -4,6 +4,7 @@ import { render, screen, fireEvent, within, waitFor } from '@testing-library/rea
 import { ThemeProvider } from '../theme/themeContext';
 import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
 import { globalThemeSliceRegistry } from '../theme/slice';
+import { axe } from './testUtils/axe';
 
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -27,7 +28,7 @@ function renderEditor(props?: ComponentProps<typeof ThemeEditor>) {
 }
 
 describe('ThemeEditor', () => {
-  it('renders the top-level category groups, and the Global group (open by default) shows its sections', () => {
+  it('renders the top-level category groups, and the Global group (open by default) shows its sections', async () => {
     renderEditor();
 
     // Top-level categories, mirroring ThemeSliceCategory — each is its own
@@ -48,9 +49,12 @@ describe('ThemeEditor', () => {
     expect(screen.getByText(/Motion, Transitions & Physics/)).toBeInTheDocument();
     expect(screen.getByText(/Color Harmony & Hue Spread/)).toBeInTheDocument();
     expect(screen.getByText(/Monochromatic Subthemes/)).toBeInTheDocument();
+    // Default-state scan: Global category's sections open, everything else
+    // collapsed.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('opening the Containers category then the Card section shows its current padding and header style values', () => {
+  it('opening the Containers category then the Card section shows its current padding and header style values', async () => {
     renderEditor();
 
     // Radix Accordion.Content isn't mounted while its item is closed, so
@@ -66,6 +70,10 @@ describe('ThemeEditor', () => {
     // "renders Select component with Radix UI options").
     expect(screen.getByText('Normal (1.25rem 1.5rem)')).toBeInTheDocument();
     expect(screen.getByText('Bordered (Bottom Border)')).toBeInTheDocument();
+    // Different structural branch from the default-open scan above: a
+    // second, non-default top-level category plus a nested section
+    // actually expanded, not just the initial default render.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('opening the Overlays category then the Tooltip section shows its current theme and size values', () => {
@@ -160,12 +168,15 @@ describe('ThemeEditor', () => {
   });
 
   describe('"Save current theme" popup', () => {
-    it('opens on trigger click, saves via OK, and closes itself afterward', () => {
+    it('opens on trigger click, saves via OK, and closes itself afterward', async () => {
       renderEditor();
 
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
       expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument();
+      // Open-portal-state scan: the "Save current theme" Popup's real
+      // content now mounted.
+      expect(await axe(document.body)).toHaveNoViolations();
 
       // OK stays disabled until a non-empty name is entered — same
       // guard the old inline Save button had.

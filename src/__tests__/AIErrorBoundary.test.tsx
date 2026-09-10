@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { AIErrorBoundary } from '../components/ErrorBoundary/AIErrorBoundary';
 import { TargetDocumentContext } from '../theme/targetDocumentContext';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 function Bomb(): React.ReactElement {
   throw new Error('boom');
@@ -15,13 +16,14 @@ describe('AIErrorBoundary', () => {
   const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   afterEach(() => consoleErrorSpy.mockClear());
 
-  it('renders children normally when nothing throws', () => {
+  it('renders children normally when nothing throws', async () => {
     render(
       <AIErrorBoundary componentName="Test">
         <div>All good</div>
       </AIErrorBoundary>
     );
     expect(screen.getByText('All good')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('catches a render error and shows the default fallback', () => {

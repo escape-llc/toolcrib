@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Slider } from '../components/Form/Slider';
 import { FormField } from '../components/Form/FormComponents';
+import { axe } from './testUtils/axe';
 
 // Radix Slider's internal useSize hook uses ResizeObserver — not
 // implemented in jsdom. Same polyfill pattern already used in
@@ -51,9 +52,16 @@ describe('Slider Component', () => {
       expect(screen.getByText('Volume')).toHaveAttribute('for', 'volume');
     });
 
-    it('applies an explicit ariaLabel for standalone use outside a FormField', () => {
+    it('applies an explicit ariaLabel for standalone use outside a FormField', async () => {
       render(<Slider name="brightness" ariaLabel="Brightness" onChange={vi.fn()} />);
       expect(screen.getByRole('slider')).toHaveAttribute('aria-label', 'Brightness');
+      // Scanned here, not the plain "renders a slider" test above -- that
+      // one has no FormField and no ariaLabel, so it has no accessible name
+      // at all (a real, separate, already-covered gap the regression suite
+      // right above this one exists for) and would fail axe's own
+      // accessible-name rule for exactly that reason, unrelated to this
+      // sweep.
+      expect(await axe(document.body)).toHaveNoViolations();
     });
   });
 });

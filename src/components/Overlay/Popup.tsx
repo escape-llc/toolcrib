@@ -145,6 +145,18 @@ export const Popup: React.FC<PopupProps> = ({
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
           ref={contentRef}
+          // Radix's Popover.Content hardcodes role="dialog" internally
+          // (confirmed directly in its source), which needs an accessible
+          // name axe's aria-dialog-name rule enforces -- but Popup is a
+          // generic, non-modal, light-dismiss anchored container (no focus
+          // trap, no forced modality), used for arbitrary content
+          // (DatePicker's calendar, ThemeEditor's color picker, HoverCard,
+          // Gallery) that's semantically nothing like an application
+          // dialog. role="presentation" here is the identical fix already
+          // applied to Combobox's own Popover wrapper for the same reason
+          // -- overriding Radix's literal default, not adding a name to a
+          // role that doesn't actually fit this component's real semantics.
+          role="presentation"
           side={side}
           align={align}
           sideOffset={squaring.sideOffset}

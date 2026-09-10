@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Listbox, type ListboxOptionData } from '../components/Listbox/Listbox';
+import { axe } from './testUtils/axe';
 
 const options: ListboxOptionData[] = [
   { label: 'Admin', value: 'admin' },
@@ -16,9 +17,14 @@ describe('Listbox', () => {
     expect(screen.getByText('Viewer')).toBeInTheDocument();
   });
 
-  it('supports aria-label/aria-labelledby for standalone use — no wrapping FormField convention applies here the way it does for other Form controls', () => {
+  it('supports aria-label/aria-labelledby for standalone use — no wrapping FormField convention applies here the way it does for other Form controls', async () => {
     render(<Listbox id="lb" options={options} onSelect={vi.fn()} aria-label="Choose a role" />);
     expect(screen.getByRole('listbox', { name: 'Choose a role' })).toBeInTheDocument();
+    // Populated-state scan. The plain "renders every option's label" test
+    // above is deliberately not scanned -- it has no accessible name (not
+    // this sweep's concern; already covered separately) and would fail for
+    // that unrelated reason.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('derives each option\'s id from the listbox\'s own id, so a caller can predict it for aria-activedescendant', () => {
@@ -66,18 +72,23 @@ describe('Listbox', () => {
   // exactly those two states. Only ever surfaced once a real axe scan
   // finally reached an open, loading/empty Combobox listbox (never true
   // before -- see aria-compliance-review's own §1 coverage-gap finding).
-  it('renders the loading message with role="option" and aria-disabled, satisfying aria-required-children', () => {
-    render(<Listbox id="lb" options={options} loading onSelect={vi.fn()} />);
+  it('renders the loading message with role="option" and aria-disabled, satisfying aria-required-children', async () => {
+    render(<Listbox id="lb" options={options} loading onSelect={vi.fn()} aria-label="Choose a role" />);
     const loadingRow = screen.getByText('Loading…');
     expect(loadingRow).toHaveAttribute('role', 'option');
     expect(loadingRow).toHaveAttribute('aria-disabled', 'true');
+    // Loading-state scan: genuinely different structural branch (a single
+    // disabled option row instead of the real option set).
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('renders the empty message with role="option" and aria-disabled, satisfying aria-required-children', () => {
-    render(<Listbox id="lb" options={[]} emptyMessage="Nothing here" onSelect={vi.fn()} />);
+  it('renders the empty message with role="option" and aria-disabled, satisfying aria-required-children', async () => {
+    render(<Listbox id="lb" options={[]} emptyMessage="Nothing here" onSelect={vi.fn()} aria-label="Choose a role" />);
     const emptyRow = screen.getByText('Nothing here');
     expect(emptyRow).toHaveAttribute('role', 'option');
     expect(emptyRow).toHaveAttribute('aria-disabled', 'true');
+    // Empty-state scan: another genuinely distinct structural branch.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders a trailing checkmark and a tinted background for a selected option, single-select or multi', () => {

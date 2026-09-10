@@ -3,6 +3,7 @@ import { type ReactElement } from 'react';
 import { render, screen } from '@testing-library/react';
 import { UIGroup } from '../components/UIGroup/UIGroup';
 import { Button, Input } from '../components/Form/FormComponents';
+import { axe } from './testUtils/axe';
 
 // Wraps its own `trigger` child in an intermediate <div>, the same shape
 // Modal/Popup/AlertDialog's own internal trigger wrapper takes (see their
@@ -22,7 +23,7 @@ function WrappedTrigger({ trigger }: { trigger: ReactElement }) {
 // the configured radius, children rendered unmodified) — the actual
 // visual corner-squaring is verified separately in a real browser.
 describe('UIGroup Component', () => {
-  it('renders all children inside a single group wrapper with the right orientation attribute', () => {
+  it('renders all children inside a single group wrapper with the right orientation attribute', async () => {
     render(
       <UIGroup borderRadius="0.375rem">
         <button>First</button>
@@ -33,6 +34,7 @@ describe('UIGroup Component', () => {
 
     expect(screen.getByText('First')).toBeInTheDocument();
     expect(screen.getByText('Middle')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
     expect(screen.getByText('Last')).toBeInTheDocument();
 
     const group = screen.getByRole('group');

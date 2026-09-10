@@ -2,9 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Collapsible } from '../components/Collapsible/Collapsible';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Collapsible Component', () => {
-  it('starts closed by default and toggles open/closed on trigger click', () => {
+  it('starts closed by default and toggles open/closed on trigger click', async () => {
     render(
       <Collapsible trigger="Show more options">
         <div>Extra content</div>
@@ -12,9 +13,11 @@ describe('Collapsible Component', () => {
     );
 
     expect(screen.queryByText('Extra content')).not.toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Show more options'));
     expect(screen.getByText('Extra content')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Show more options'));
     expect(screen.queryByText('Extra content')).not.toBeInTheDocument();

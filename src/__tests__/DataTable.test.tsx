@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 interface TestItem {
   id: number;
@@ -19,18 +20,23 @@ const testColumns: Column<TestItem>[] = [
 ];
 
 describe('DataTable Virtualized Component', () => {
-  it('renders paginated data correctly', () => {
+  it('renders paginated data correctly', async () => {
     render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('navigates through pages using glyph buttons', () => {
+  it('navigates through pages using glyph buttons', async () => {
     render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
 
     fireEvent.click(screen.getByLabelText('Next page'));
     expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
+    // A mid-range page (Previous now enabled, Next still enabled, the live
+    // region's own text updated) is a genuinely different DOM shape than
+    // page 1 -- worth its own scan, not just the initial render's.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByLabelText('Previous page'));
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();

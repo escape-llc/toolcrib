@@ -3,17 +3,19 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Pagination } from '../components/Pagination/Pagination';
 import { LocaleProvider } from '../components/Locale/LocaleContext';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Pagination', () => {
-  it('renders page number buttons and marks the current one with aria-current="page"', () => {
+  it('renders page number buttons and marks the current one with aria-current="page"', async () => {
     render(<Pagination totalItems={50} pageSize={10} />);
 
     const page1 = screen.getByLabelText('Page 1');
     expect(page1).toHaveAttribute('aria-current', 'page');
     expect(screen.getByLabelText('Page 2')).not.toHaveAttribute('aria-current');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('disables Previous on the first page and Next on the last page', () => {
+  it('disables Previous on the first page and Next on the last page', async () => {
     render(<Pagination totalItems={20} pageSize={10} />);
 
     expect(screen.getByLabelText('Previous page')).toBeDisabled();
@@ -22,6 +24,9 @@ describe('Pagination', () => {
     fireEvent.click(screen.getByLabelText('Next page'));
     expect(screen.getByLabelText('Previous page')).not.toBeDisabled();
     expect(screen.getByLabelText('Next page')).toBeDisabled();
+    // A "paging" control -- the last-page DOM (Next disabled, aria-current
+    // moved) is genuinely different from page 1's.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('collapses a large page range with an ellipsis around the current page', () => {

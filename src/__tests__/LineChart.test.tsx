@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { LineChart } from '../components/Chart/LineChart';
+import { axe } from './testUtils/axe';
 
 const categories = ['Jan', 'Feb', 'Mar'];
 const oneSeries = [{ label: 'Revenue', values: [10, 20, 15] }];
@@ -10,9 +11,10 @@ const twoSeries = [
 ];
 
 describe('LineChart', () => {
-  it('renders one line path per series', () => {
+  it('renders one line path per series', async () => {
     const { container } = render(<LineChart categories={categories} series={twoSeries} />);
     expect(container.querySelectorAll('path')).toHaveLength(2);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('shows no legend for a single series, but shows one for multiple', () => {

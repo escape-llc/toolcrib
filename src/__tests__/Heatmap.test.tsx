@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Heatmap } from '../components/Chart/Heatmap';
+import { axe } from './testUtils/axe';
 
 const columns = ['Mon', 'Tue', 'Wed'];
 const rows = ['AM', 'PM'];
@@ -10,9 +11,10 @@ const values = [
 ];
 
 describe('Heatmap', () => {
-  it('renders one cell per row-column pair', () => {
+  it('renders one cell per row-column pair', async () => {
     const { container } = render(<Heatmap columns={columns} rows={rows} values={values} />);
     expect(container.querySelectorAll('[aria-roledescription="cell"]')).toHaveLength(6);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('colors cells from the theme-tracking sequential ramp, not the fixed categorical palette', () => {

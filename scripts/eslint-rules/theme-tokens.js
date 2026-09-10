@@ -6,19 +6,20 @@
 // catches these in-editor, not just at CI/pre-commit time -- the standalone
 // script duplicated this logic and is retired now that these exist.
 //
-// no-unexplained-zindex, no-computed-prop-before-spread, and
-// no-missing-use-client are imported from ../../eslint-rules/, not
-// reimplemented here -- that directory is the single canonical
-// implementation, vendored as-is to consumers (the same way ai-docs/ is)
-// so real apps can catch the identical bug shapes in their own code. This
-// repo runs the exact same rules against its own source rather than a
-// hand-maintained duplicate that could drift out of sync with them.
-// no-unscaled-boxshadow and no-unscaled-pill-radius stay here: both need
-// cross-file awareness of Toolcrib's own *Slice.tsx files, which has no
-// consumer-facing equivalent.
+// no-unexplained-zindex, no-computed-prop-before-spread,
+// no-missing-use-client, and no-frozen-controlled-prop are imported from
+// ../../eslint-rules/, not reimplemented here -- that directory is the
+// single canonical implementation, vendored as-is to consumers (the same
+// way ai-docs/ is) so real apps can catch the identical bug shapes in their
+// own code. This repo runs the exact same rules against its own source
+// rather than a hand-maintained duplicate that could drift out of sync with
+// them. no-unscaled-boxshadow and no-unscaled-pill-radius stay here: both
+// need cross-file awareness of Toolcrib's own *Slice.tsx files, which has
+// no consumer-facing equivalent.
 import { noUnexplainedZindex } from '../../eslint-rules/no-unexplained-zindex.js';
 import { noComputedPropBeforeSpread } from '../../eslint-rules/no-computed-prop-before-spread.js';
 import { noMissingUseClient } from '../../eslint-rules/no-missing-use-client.js';
+import { noFrozenControlledProp } from '../../eslint-rules/no-frozen-controlled-prop.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -129,5 +130,6 @@ export const themeTokensPlugin = {
     'no-unscaled-pill-radius': noUnscaledPillRadius,
     'no-computed-prop-before-spread': noComputedPropBeforeSpread,
     'no-missing-use-client': noMissingUseClient,
+    'no-frozen-controlled-prop': noFrozenControlledProp,
   },
 };

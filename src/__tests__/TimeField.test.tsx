@@ -55,6 +55,36 @@ describe('TimeField', () => {
     unsub();
   });
 
+  // Regression: a standalone <TimeField defaultValue={...}> (no Form
+  // ancestor, no `value` prop) has no live source that ever re-feeds the
+  // time back into the field after an edit -- passing `defaultValue`
+  // through the `value` prop (the previous implementation) made the field
+  // look controlled from the very first render, so React Aria's own
+  // internal state update on each keyboard edit was silently discarded and
+  // the segment snapped back to the original `defaultValue` every time.
+  // Found live in the demo app: the field could never be edited via the
+  // keyboard at all. The test above only ever asserted the `onChange`
+  // callback fired (which happens regardless of the bug, since React Aria
+  // computes the new value and calls onChange even while discarding it) --
+  // this one asserts on the segment's own displayed text after the edit,
+  // which is the assertion that actually would have caught the bug.
+  it('reflects a keyboard edit in its own displayed segment text when only defaultValue is set', () => {
+    render(<TimeField name="startTime" aria-label="Start time" defaultValue={new Time(9, 0)} />);
+    const hour = screen.getAllByRole('spinbutton')[0];
+    expect(hour).toHaveTextContent('9');
+
+    act(() => {
+      hour.focus();
+      fireEvent.keyDown(hour, { key: 'ArrowUp' });
+    });
+    expect(hour).toHaveTextContent('10');
+
+    act(() => {
+      fireEvent.keyDown(hour, { key: 'ArrowUp' });
+    });
+    expect(hour).toHaveTextContent('11');
+  });
+
   it('is disabled when isDisabled is set', async () => {
     render(<TimeField name="startTime" aria-label="Start time" isDisabled defaultValue={new Time(9, 0)} />);
     const hour = screen.getAllByRole('spinbutton')[0];

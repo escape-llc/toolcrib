@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { EmptyState } from '../components/EmptyState/EmptyState';
+import { axe } from './testUtils/axe';
 
 describe('EmptyState', () => {
-  it('renders sensibly with only Title provided', () => {
+  it('renders sensibly with only Title provided', async () => {
     render(
       <EmptyState>
         <EmptyState.Title>No results found</EmptyState.Title>
       </EmptyState>
     );
     expect(screen.getByText('No results found')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders the full slot set together', () => {

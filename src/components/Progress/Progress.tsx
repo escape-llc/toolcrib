@@ -20,12 +20,13 @@ export interface ProgressProps {
   id?: string;
   /**
    * Accessible name for the underlying `role="progressbar"` element.
-   * Required in practice, not just in principle: unlike a `<button>`, a
-   * progressbar has no visible text content ARIA can derive a name from, so
-   * without this every instance is nameless to assistive tech regardless of
-   * what's rendered next to it visually.
+   * Required, not optional: unlike a `<button>`, a progressbar has no
+   * visible text content ARIA can derive a name from, and unlike
+   * `Slider`/`Input`, Progress has no `FormField`/`htmlFor` fallback
+   * labeling path — there is no case where omitting this yields a real,
+   * correctly-named instance.
    */
-  'aria-label'?: string;
+  'aria-label': string;
   /** Current progress value, between 0 and `max`. */
   value: number;
   /** Value representing 100% completion. @default 100 */

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BarChart } from '../components/Chart/BarChart';
+import { axe } from './testUtils/axe';
 
 const categories = ['Q1', 'Q2'];
 const oneSeries = [{ label: 'Revenue', values: [10, 20] }];
@@ -10,9 +11,10 @@ const twoSeries = [
 ];
 
 describe('BarChart', () => {
-  it('renders one bar per category-series pair', () => {
+  it('renders one bar per category-series pair', async () => {
     const { container } = render(<BarChart categories={categories} series={twoSeries} />);
     expect(container.querySelectorAll('[aria-roledescription="bar"]')).toHaveLength(4);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('shows no legend for a single series, but shows one for multiple', () => {

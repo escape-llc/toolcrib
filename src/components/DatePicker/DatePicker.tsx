@@ -182,7 +182,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const formValue: CalendarDate | null | undefined =
     fieldName && formContext ? (formContext.values[fieldName] as CalendarDate | null | undefined) : undefined;
-  const resolvedValue = externalValue !== undefined ? externalValue : formValue !== undefined ? formValue : defaultValue;
+  // See TimeField's identical comment -- controlled only when there's a
+  // live value source (an explicit `value` prop, or a real Form ancestor),
+  // never merely because `defaultValue` was set, or the field freezes
+  // after its first keyboard edit.
+  const isControlled = externalValue !== undefined || !!(fieldName && formContext);
+  const controlledValue = externalValue !== undefined ? externalValue : formValue !== undefined ? formValue : defaultValue;
 
   const handleChange = (val: CalendarDate | null) => {
     if (fieldName && formContext) {
@@ -196,7 +201,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <I18nProvider locale={locale}>
       <AriaDatePicker
-        value={resolvedValue ?? undefined}
+        {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
         onChange={handleChange}
         granularity="day"
         minValue={minValue}

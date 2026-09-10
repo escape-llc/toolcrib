@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PieChart } from '../components/Chart/PieChart';
+import { axe } from './testUtils/axe';
 
 describe('PieChart', () => {
-  it('renders one slice per datum', () => {
+  it('renders one slice per datum', async () => {
     const { container } = render(
       <PieChart data={[{ label: 'A', value: 10 }, { label: 'B', value: 20 }, { label: 'C', value: 30 }]} />
     );
     expect(container.querySelectorAll('[aria-roledescription="slice"]')).toHaveLength(3);
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('folds more than 8 slices into "Other", keeping the largest 7 as their own slice', () => {

@@ -4,28 +4,35 @@ import { Progress } from '../components/Progress/Progress';
 import { Separator } from '../components/Separator/Separator';
 import { Avatar } from '../components/Avatar/Avatar';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Progress Component', () => {
-  it('reflects value/max via aria attributes and clamps out-of-range values', () => {
-    const { rerender } = render(<Progress value={40} max={80} />);
+  it('reflects value/max via aria attributes and clamps out-of-range values', async () => {
+    // aria-label is documented as "required in practice" (Progress.tsx's
+    // own prop doc) -- a progressbar has no visible text content ARIA can
+    // derive a name from, so omitting it (as this test originally did)
+    // renders a real, nameless progressbar. Caught by the axe assertion
+    // below on this test's own first real run, not assumed.
+    const { rerender } = render(<Progress value={40} max={80} aria-label="Upload progress" />);
     const bar = screen.getByRole('progressbar');
     expect(bar).toHaveAttribute('aria-valuenow', '40');
     expect(bar).toHaveAttribute('aria-valuemax', '80');
 
     // Clamped, not passed straight through — a value above max (or below
     // 0) would otherwise push Radix's own indicator transform past 100%.
-    rerender(<Progress value={999} max={80} />);
+    rerender(<Progress value={999} max={80} aria-label="Upload progress" />);
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '80');
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('emits progress:changed whenever value/max change', () => {
     const changedFn = vi.fn();
     const unsub = aiBus.on('progress:changed', changedFn);
 
-    const { rerender } = render(<Progress id="upload" value={10} />);
+    const { rerender } = render(<Progress id="upload" value={10} aria-label="Upload progress" />);
     expect(changedFn).toHaveBeenCalledWith({ id: 'upload', value: 10, max: 100 });
 
-    rerender(<Progress id="upload" value={55} />);
+    rerender(<Progress id="upload" value={55} aria-label="Upload progress" />);
     expect(changedFn).toHaveBeenCalledWith({ id: 'upload', value: 55, max: 100 });
 
     unsub();

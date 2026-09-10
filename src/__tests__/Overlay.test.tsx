@@ -5,9 +5,10 @@ import { Drawer } from '../components/Overlay/Drawer';
 import { Modal } from '../components/Overlay/Modal';
 import { Button } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () => {
-  it('opens and light-dismisses Popup on Escape key', () => {
+  it('opens and light-dismisses Popup on Escape key', async () => {
     render(
       <Popup trigger={<Button>Open Popup</Button>}>
         <div>Popup Content</div>
@@ -15,9 +16,13 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     );
 
     expect(screen.queryByText('Popup Content')).not.toBeInTheDocument();
+    // Closed-state scan: trigger only, Popup's own portal content absent.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Open Popup'));
     expect(screen.getByText('Popup Content')).toBeInTheDocument();
+    // Open-state scan: real portal content now mounted.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByText('Popup Content')).not.toBeInTheDocument();
@@ -68,9 +73,14 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       </Drawer>
     );
 
+    // Closed-state scan: trigger only, Drawer's own portal content absent.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.click(screen.getByText('Open Drawer'));
     expect(screen.getByText('Test Drawer')).toBeInTheDocument();
     expect(screen.getByText('Drawer Body')).toBeInTheDocument();
+    // Open-state scan: real dialog content now mounted.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('×'));
     await waitFor(() => expect(screen.queryByText('Drawer Body')).not.toBeInTheDocument());
@@ -88,7 +98,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(dialog.style.borderBottomLeftRadius).toBe('var(--ai-radius-lg, 0.75rem)');
   });
 
-  it('renders Modal dialog with background lockout and focus trap', () => {
+  it('renders Modal dialog with background lockout and focus trap', async () => {
     render(
       <Modal trigger={<Button>Open Modal</Button>}>
         <Modal.Header>Modal Title</Modal.Header>
@@ -101,11 +111,21 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       </Modal>
     );
 
+    // Closed-state scan: trigger only, Modal's own portal content absent.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.click(screen.getByText('Open Modal'));
     const container = screen.getByTestId('modal-container');
     expect(container).toBeInTheDocument();
     expect(container.style.borderRadius).toBe('var(--ai-radius-lg, 0.75rem)');
     expect(screen.getByText('Modal Title')).toBeInTheDocument();
+    // Open-state scan: full dialog content (header/body/footer/close
+    // button) now mounted. aria-hidden-focus disabled -- Radix's own
+    // hideOthers() (real focus-trap behavior neither axe variant can
+    // observe) reads as an aria-hidden ancestor with a focusable
+    // descendant to static analysis, same carve-out DropdownMenu.test.tsx's
+    // own open-state scan already needs.
+    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();

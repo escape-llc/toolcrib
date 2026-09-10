@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Card } from '../components/Card/Card';
+import { axe } from './testUtils/axe';
 
 describe('Card Component & layout="auto" Bounding Box Integration', () => {
-  it('renders standard Card with header, content, footer and actions', () => {
+  it('renders standard Card with header, content, footer and actions', async () => {
     render(
       <Card>
         <Card.Header>Header Title</Card.Header>
@@ -21,6 +22,7 @@ describe('Card Component & layout="auto" Bounding Box Integration', () => {
     expect(screen.getByText('Card Body')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('applies auto layout flex styles when layout="auto" is passed to Card and Card.Content', () => {

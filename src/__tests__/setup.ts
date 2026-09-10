@@ -1,5 +1,13 @@
 import '@testing-library/jest-dom';
-import { beforeEach, afterEach } from 'vitest';
+import * as axeMatchers from 'vitest-axe/matchers';
+import { beforeEach, afterEach, expect } from 'vitest';
+
+// Registers vitest-axe's toHaveNoViolations() matcher centrally, same
+// treatment as @testing-library/jest-dom's own matchers above -- every
+// component test file's own axe(document.body) assertion (see
+// testUtils/axe.ts) relies on this being registered once here, not
+// per-file.
+expect.extend(axeMatchers);
 
 // jsdom has no layout engine, so it never implements scrollIntoView.
 // Radix Select's Content calls it on mount (to scroll the selected item

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Breadcrumb, computeVisibleCrumbs } from '../components/Breadcrumb/Breadcrumb';
+import { axe } from './testUtils/axe';
 
 describe('computeVisibleCrumbs (pure collapse decision)', () => {
   const crumbs = ['a', 'b', 'c', 'd', 'e'].map((key, i, arr) => ({
@@ -30,7 +31,7 @@ describe('computeVisibleCrumbs (pure collapse decision)', () => {
 });
 
 describe('Breadcrumb', () => {
-  it('renders each item and the default separator between them', () => {
+  it('renders each item and the default separator between them', async () => {
     render(
       <Breadcrumb>
         <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
@@ -42,6 +43,7 @@ describe('Breadcrumb', () => {
     expect(screen.getByText('Products')).toBeInTheDocument();
     expect(screen.getByText('Widget')).toBeInTheDocument();
     expect(screen.getAllByText('›')).toHaveLength(2); // one separator between each of the 3 items
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('renders every non-last item as a real link, and the last as plain non-interactive text', () => {
@@ -99,7 +101,7 @@ describe('Breadcrumb', () => {
   // component's overflow check runs inside a useEffect on its very first
   // commit -- patching a specific instance's properties after render()
   // returns would be too late for that first check to see them.
-  it('collapses into a DropdownMenu when the container reports real overflow, and the menu holds the hidden items', () => {
+  it('collapses into a DropdownMenu when the container reports real overflow, and the menu holds the hidden items', async () => {
     const scrollWidthSpy = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1000);
     const clientWidthSpy = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300);
 
@@ -135,6 +137,21 @@ describe('Breadcrumb', () => {
       // doesn't clone it onto the real trigger element either.
       const trigger = screen.getByLabelText('Show hidden breadcrumb items');
       expect(trigger).toBeInTheDocument();
+      // Closed-state scan: the collapsed trigger is present, but the
+      // DropdownMenu's own portal content is absent until opened.
+      expect(await axe(document.body)).toHaveNoViolations();
+
+      // Radix's DropdownMenu trigger opens on pointerdown, not click (see
+      // this file's own comment above) -- matches DropdownMenu.test.tsx's
+      // own established fix for actually exercising the open state.
+      fireEvent.pointerDown(trigger, { button: 0 });
+      await waitFor(() => expect(screen.getByText('Category')).toBeInTheDocument());
+      // aria-hidden-focus disabled here for the identical reason
+      // DropdownMenu.test.tsx's own open-state scan already needs it: Radix's
+      // hideOthers() (real focus-trap behavior neither axe variant can
+      // observe) reads as an aria-hidden ancestor with a focusable
+      // descendant to static analysis.
+      expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
     } finally {
       scrollWidthSpy.mockRestore();
       clientWidthSpy.mockRestore();

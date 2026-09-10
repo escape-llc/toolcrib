@@ -194,6 +194,7 @@ export const Drawer: React.FC<DrawerProps> = ({
               ref={drawerRef}
               role="dialog"
               aria-modal="true"
+              aria-labelledby={`${id}-title`}
               onClick={e => e.stopPropagation()}
               style={{
                 position: 'fixed',
@@ -223,7 +224,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                   background: 'var(--ai-bg-surface, #ffffff)',
                 }}
               >
-                <div style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
+                <div id={`${id}-title`} style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
                   {title || 'Drawer Panel'}
                 </div>
                 <button

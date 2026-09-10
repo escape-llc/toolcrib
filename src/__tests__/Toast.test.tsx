@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { type ToastAnchor, ToastProvider, useToast } from '../components/Toast/ToastContext';
 import { ToastContainer } from '../components/Toast/Toast';
 import { aiBus } from '../eventBus/eventBus';
+import { axe } from './testUtils/axe';
 
 const TestComponent = ({ onActionClick }: { onActionClick?: () => void }) => {
   const { addToast } = useToast();
@@ -200,16 +201,30 @@ describe('Toast Subsystem Event Generation', () => {
   // on the rendered node's own inline style, which is what a jsdom test can
   // actually observe (jsdom doesn't compute real inherited pointer-events
   // the way a browser's hit-testing does).
-  it('sets pointerEvents: auto directly on the toast root, not on a wrapper the portal bypasses', () => {
+  it('sets pointerEvents: auto directly on the toast root, not on a wrapper the portal bypasses', async () => {
     render(
       <ToastProvider>
         <TestComponent />
       </ToastProvider>
     );
 
+    // Closed/empty-state scan: ToastContainer's own Viewport portal is
+    // mounted but holds no toast yet -- genuinely different DOM from the
+    // populated state scanned below. Not done in the fake-timers tests
+    // above -- vi.useFakeTimers() there starves axe-core's own internal
+    // async scheduling (a real, confirmed deadlock: the scan never
+    // resolves until the 5s real-time test-timeout watchdog fires), so
+    // this plain, real-timers test is where both states get scanned
+    // instead.
+    expect(await axe(document.body)).toHaveNoViolations();
+
     fireEvent.click(screen.getByText('Trigger Toast'));
     const toastEl = screen.getByTestId('toast-item');
     expect(toastEl.style.pointerEvents).toBe('auto');
+    // Open/populated-state scan: a real toast with a message, an action
+    // button, and the always-present dismiss button -- the portal's real
+    // content, not just its empty shell.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   describe.each(['success', 'warning'] as const)('%s toast type', (type) => {

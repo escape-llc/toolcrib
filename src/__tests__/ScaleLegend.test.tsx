@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ScaleLegend } from '../components/Chart/ScaleLegend';
+import { axe } from './testUtils/axe';
 
 describe('ScaleLegend', () => {
-  it('shows the min and max labels', () => {
+  it('shows the min and max labels', async () => {
     render(<ScaleLegend min={0} max={100} />);
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('formats labels with a custom formatter', () => {
