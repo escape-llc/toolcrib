@@ -85,7 +85,7 @@ describe('buildServer', () => {
     }
   });
 
-  it('registers all ten tools', async () => {
+  it('registers all thirteen tools', async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -95,10 +95,13 @@ describe('buildServer', () => {
         'get_event_channels',
         'get_example',
         'get_install_info',
+        'get_test_dependencies_patch',
+        'get_test_source',
         'get_theme_system',
         'list_categories',
         'list_components',
         'list_examples',
+        'list_test_source',
         'search_components',
       ].sort()
     );
@@ -110,6 +113,11 @@ describe('buildServer', () => {
     expect(parsed.version).toBe('0.12.0');
     expect(parsed.vendoredRoot).toContain('toolcrib');
     expect(parsed.compatibilityWarning).toBe(null);
+  });
+
+  it('get_install_info reports testsInstalled: false for a fixture that never opted into --with-tests', async () => {
+    const result = await client.callTool({ name: 'get_install_info', arguments: {} });
+    expect(JSON.parse(textOf(result)).testsInstalled).toBe(false);
   });
 
   it('get_install_info reports no compatibility warning for an unusual version number alone — compatibility is about schema shape, not version', async () => {
@@ -215,6 +223,86 @@ describe('buildServer', () => {
   it('get_theme_system returns the reference data', async () => {
     const theme = JSON.parse(textOf(await client.callTool({ name: 'get_theme_system', arguments: {} })));
     expect(theme.themeSystem.colorSpace).toBe('HSV');
+  });
+
+  it('list_test_source reports not installed when the fixture never opted into --with-tests', async () => {
+    const result = JSON.parse(textOf(await client.callTool({ name: 'list_test_source', arguments: {} })));
+    expect(result).toEqual({ isInstalled: false, files: [] });
+  });
+
+  it('get_test_source reports an error when no test suite is installed at all', async () => {
+    const result = await client.callTool({ name: 'get_test_source', arguments: { path: 'Button.test.tsx' } });
+    expect(result.isError).toBe(true);
+  });
+
+  it('get_test_dependencies_patch reports a clear error (not a crash) when no test suite is installed', async () => {
+    const result = await client.callTool({ name: 'get_test_dependencies_patch', arguments: {} });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('--with-tests');
+  });
+});
+
+describe('buildServer — --with-tests install', () => {
+  let projectRoot, client;
+
+  beforeEach(async () => {
+    const built = buildFakeProject({ withTests: true });
+    projectRoot = built.projectRoot;
+    client = await connectedClient(built.vendoredRoot, parserMapFor(built.vendoredRoot));
+  });
+
+  afterEach(() => cleanupFakeProject(projectRoot));
+
+  it('get_install_info reports testsInstalled: true once --with-tests is vendored', async () => {
+    const result = await client.callTool({ name: 'get_install_info', arguments: {} });
+    expect(JSON.parse(textOf(result)).testsInstalled).toBe(true);
+  });
+
+  it('list_test_source and get_test_source round-trip real vendored test content', async () => {
+    const list = JSON.parse(textOf(await client.callTool({ name: 'list_test_source', arguments: {} })));
+    expect(list.isInstalled).toBe(true);
+    expect(list.files).toEqual(
+      expect.arrayContaining([
+        { path: 'Button.test.tsx', componentName: 'Button' },
+        { path: 'testUtils/axe.ts', componentName: null },
+      ])
+    );
+
+    const file = await client.callTool({ name: 'get_test_source', arguments: { path: 'Button.test.tsx' } });
+    expect(textOf(file)).toContain("import { Button } from '#toolcrib'");
+
+    const missing = await client.callTool({ name: 'get_test_source', arguments: { path: 'Nope.test.tsx' } });
+    expect(missing.isError).toBe(true);
+  });
+
+  it('get_test_dependencies_patch computes a real patch against the project\'s actual package.json', async () => {
+    const result = await client.callTool({ name: 'get_test_dependencies_patch', arguments: {} });
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toContain('+    "vitest": "^4.0.0"');
+    expect(textOf(result)).toContain('+    "@testing-library/react": "^16.0.0"');
+    // react was already declared in the fixture's package.json -- shows up
+    // only as unchanged diff context (no leading +/-), never modified.
+    expect(textOf(result)).toContain('    "react": "^19.0.0"');
+    expect(textOf(result)).not.toMatch(/^[+-].*"react": "\^19\.0\.0"/m);
+  });
+
+  it('get_test_dependencies_patch reports nothing to propose once every dependency is already declared', async () => {
+    const built = buildFakeProject({ withTests: true });
+    try {
+      fs.writeFileSync(
+        path.join(built.projectRoot, 'package.json'),
+        JSON.stringify({
+          name: 'already-set-up',
+          devDependencies: { vitest: '^3.0.0', '@testing-library/react': '^15.0.0' },
+        })
+      );
+      const alreadySetUpClient = await connectedClient(built.vendoredRoot, parserMapFor(built.vendoredRoot));
+      const result = await alreadySetUpClient.callTool({ name: 'get_test_dependencies_patch', arguments: {} });
+      expect(result.isError).toBeFalsy();
+      expect(textOf(result)).toContain('already present');
+    } finally {
+      cleanupFakeProject(built.projectRoot);
+    }
   });
 });
 

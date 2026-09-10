@@ -40,7 +40,21 @@ try {
   mkdirSync(vendoredRoot, { recursive: true });
   cpSync(join(repoRoot, 'ai-docs'), join(vendoredRoot, 'ai-docs'), { recursive: true });
   const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
-  writeFileSync(join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version: rootPkg.version }));
+
+  // --with-tests-shaped fixture, from this repo's own real __tests__/ files
+  // (a couple, not the whole suite — enough for a real, meaningful
+  // assertion) -- same "real content, not a hand-written stand-in"
+  // principle as the ai-docs/ copy above.
+  const testsDir = join(vendoredRoot, '__tests__');
+  mkdirSync(testsDir, { recursive: true });
+  cpSync(join(repoRoot, 'src', '__tests__', 'zIndex.test.ts'), join(testsDir, 'zIndex.test.ts'));
+  writeFileSync(
+    join(vendoredRoot, '.toolcrib-tests-config.json'),
+    JSON.stringify({ version: rootPkg.version, peerDependencies: { vitest: '^4.1.11' } })
+  );
+  writeFileSync(join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version: rootPkg.version, testsVersion: rootPkg.version }));
+  // A real package.json this server can read for get_test_dependencies_patch.
+  writeFileSync(join(fixtureRoot, 'package.json'), JSON.stringify({ name: 'fixture-app', dependencies: {} }));
 
   console.log('Spawning real toolcrib-mcp subprocess ...');
   const transport = new StdioClientTransport({ command: process.execPath, args: [indexJs, '--root', vendoredRoot] });
@@ -49,10 +63,24 @@ try {
 
   const info = JSON.parse((await client.callTool({ name: 'get_install_info', arguments: {} })).content[0].text);
   assert(info.version === rootPkg.version, `get_install_info reports the real vendored version (${rootPkg.version})`);
+  assert(info.testsInstalled === true, 'get_install_info reports testsInstalled: true for the --with-tests fixture');
   assert(
     info.compatibilityWarning === null,
     `no compatibility warning for this repo's own current version (${rootPkg.version}) -- if this fails, this repo's real schema shape changed in a way PARSER_MAP in src/lib/compatibility.js doesn't recognize yet (see LEGACY_FINGERPRINT's own comment for how to verify and add a new entry)`
   );
+
+  const testList = JSON.parse((await client.callTool({ name: 'list_test_source', arguments: {} })).content[0].text);
+  assert(testList.isInstalled === true, 'list_test_source reports isInstalled: true');
+  assert(
+    testList.files.some((f) => f.path === 'zIndex.test.ts' && f.componentName === 'zIndex'),
+    'list_test_source lists the real zIndex.test.ts file with its inferred name'
+  );
+
+  const testContent = (await client.callTool({ name: 'get_test_source', arguments: { path: 'zIndex.test.ts' } })).content[0].text;
+  assert(testContent.includes('describe'), 'get_test_source returns the real file content');
+
+  const depsPatch = (await client.callTool({ name: 'get_test_dependencies_patch', arguments: {} })).content[0].text;
+  assert(depsPatch.includes('vitest'), 'get_test_dependencies_patch computes a real patch adding vitest to devDependencies');
 
   const categories = JSON.parse((await client.callTool({ name: 'list_categories', arguments: {} })).content[0].text);
   assert(categories.includes('Overlays'), 'list_categories includes the real "Overlays" category');

@@ -41,7 +41,7 @@ looking for `toolcrib/.toolcrib-lock.json`.
 
 | Tool | What it returns |
 |---|---|
-| `get_install_info` | The exact vendored version and directory path this server is serving, plus `compatibilityWarning` (`null`, or a message) if the vendored install's real `ai-docs/` shape doesn't match one this server release has actually been verified against — see `src/lib/compatibility.js`. |
+| `get_install_info` | The exact vendored version and directory path this server is serving, whether the test suite (`--with-tests`) is installed, plus `compatibilityWarning` (`null`, or a message) if the vendored install's real `ai-docs/` shape doesn't match one this server release has actually been verified against — see `src/lib/compatibility.js`. |
 | `list_categories` | Every component category. |
 | `list_components` | Component names + one-line descriptions, optionally filtered by category. |
 | `get_component` | Full detail for one component — props, types, defaults, required flags, slots, constraints. |
@@ -51,6 +51,9 @@ looking for `toolcrib/.toolcrib-lock.json`.
 | `get_core_doc` | `CORE.md`, whole or one section. |
 | `get_event_channels` | The event bus's channel/payload reference and helper methods, or one channel by name. |
 | `get_theme_system` | The theme system *reference* (CSS variable names/roles, supported harmonies, theme slices) and the z-index scale. This is documentation, not a live resolver — it does not compute actual CSS values for a given theme config. |
+| `list_test_source` | The real component test files vendored by `toolcrib init --with-tests`, with an inferred component name where the filename follows the `X.test.tsx` convention. Reports `isInstalled: false` with an empty list if this project never opted in. |
+| `get_test_source` | One vendored test file's full content by its exact relative path. Real reference source — not guaranteed runnable as-is if your project uses a different test runner than Vitest. |
+| `get_test_dependencies_patch` | A real unified diff proposing the test suite's own peer dependencies (`vitest`, `@testing-library/react`, etc.) be added to your project's `package.json` `devDependencies` — computed by reading your real `package.json` directly, never modified. This server has no write access to your project at all; the calling agent decides whether to apply, adapt, or ignore it. |
 
 ## Development
 

@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { resolveVendoredRoot, readLockInfo } from './lib/localInstall.js';
 import { checkCompatibility } from './lib/compatibility.js';
+import { loadTestSource } from './lib/testSource.js';
 
 const json = (value) => ({ content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
 const text = (value) => ({ content: [{ type: 'text', text: value }] });
@@ -51,6 +52,12 @@ export function buildServer({ root, parserMap } = {}) {
   let manifestIndex = compat.parsers.loadManifestIndex(vendoredRoot);
   let coreDoc = compat.parsers.loadCoreDoc(vendoredRoot);
   let examples = compat.parsers.loadExamples(vendoredRoot);
+  // Deliberately NOT routed through PARSER_MAP/checkCompatibility -- the
+  // schema-fingerprint mechanism exists specifically for ai-docs/ shape
+  // drift (component-manifest.json/CORE.md/examples), which --with-tests'
+  // __tests__/ + .toolcrib-tests-config.json have no relationship to at
+  // all; they're a wholly separate, orthogonal vendored artifact.
+  let testSource = loadTestSource(vendoredRoot);
 
   /**
    * Re-reads .toolcrib-lock.json (a few bytes) before every tool call and
@@ -72,9 +79,11 @@ export function buildServer({ root, parserMap } = {}) {
       const nextManifestIndex = nextCompat.parsers.loadManifestIndex(vendoredRoot);
       const nextCoreDoc = nextCompat.parsers.loadCoreDoc(vendoredRoot);
       const nextExamples = nextCompat.parsers.loadExamples(vendoredRoot);
+      const nextTestSource = loadTestSource(vendoredRoot);
       manifestIndex = nextManifestIndex;
       coreDoc = nextCoreDoc;
       examples = nextExamples;
+      testSource = nextTestSource;
       lock = currentLock;
       compatibilityWarning = nextCompat.warning;
     } catch {
@@ -88,11 +97,16 @@ export function buildServer({ root, parserMap } = {}) {
     'get_install_info',
     {
       description:
-        'Reports which vendored toolcrib install this server is serving — the exact version and directory path, so a caller can confirm it is talking to the right project — plus a compatibility warning if that version is outside the range this server has actually been verified against.',
+        'Reports which vendored toolcrib install this server is serving — the exact version and directory path, so a caller can confirm it is talking to the right project — plus whether the test suite (`toolcrib init --with-tests`) is installed, and a compatibility warning if that version is outside the range this server has actually been verified against.',
     },
     async () => {
       refreshIfStale();
-      return json({ vendoredRoot, version: lock?.version ?? null, compatibilityWarning });
+      return json({
+        vendoredRoot,
+        version: lock?.version ?? null,
+        testsInstalled: testSource.isInstalled,
+        compatibilityWarning,
+      });
     }
   );
 
@@ -214,6 +228,59 @@ export function buildServer({ root, parserMap } = {}) {
     async () => {
       refreshIfStale();
       return json(manifestIndex.getThemeSystem());
+    }
+  );
+
+  server.registerTool(
+    'list_test_source',
+    {
+      description:
+        "Lists the real component test files vendored by `toolcrib init --with-tests` (Vitest + Testing Library), with an inferred component name where the filename follows the X.test.tsx convention. Returns isInstalled: false with an empty list if this project never opted into --with-tests.",
+    },
+    async () => {
+      refreshIfStale();
+      return json({ isInstalled: testSource.isInstalled, files: testSource.listTestSource() });
+    }
+  );
+
+  server.registerTool(
+    'get_test_source',
+    {
+      description:
+        "Returns one vendored test file's full content by its exact relative path (see list_test_source). This is real reference source, not guaranteed runnable as-is in your own project's test runner — adapt it to whatever you actually use if it isn't Vitest.",
+      inputSchema: { path: z.string().describe('Exact relative path from list_test_source, e.g. "Button.test.tsx" or "testUtils/axe.ts"') },
+    },
+    async ({ path: relPath }) => {
+      refreshIfStale();
+      const content = testSource.getTestSource(relPath);
+      if (content === null) return errorText(`No test source at "${relPath}". Call list_test_source first.`);
+      return text(content);
+    }
+  );
+
+  server.registerTool(
+    'get_test_dependencies_patch',
+    {
+      description:
+        "Computes a real unified diff proposing the vendored test suite's own peer dependencies (vitest, testing-library, etc.) be added to this project's package.json devDependencies — reads the project's real package.json directly, never modifies it. Returns null/a clear message if nothing needs proposing (no --with-tests install, or every dependency is already declared). The calling agent decides whether to apply it, adapt it, or ignore it — this server never writes to the project itself.",
+    },
+    async () => {
+      refreshIfStale();
+      if (!testSource.isInstalled) {
+        return errorText('No --with-tests install found — nothing to propose. Run `toolcrib init --with-tests` first.');
+      }
+      const packageJsonPath = join(dirname(vendoredRoot), 'package.json');
+      let packageJsonContent;
+      try {
+        packageJsonContent = readFileSync(packageJsonPath, 'utf8');
+      } catch (err) {
+        return errorText(`Could not read ${packageJsonPath}: ${err.message}`);
+      }
+      const patch = testSource.computeDevDependenciesPatch(packageJsonContent);
+      if (patch === null) {
+        return text('Every declared peer dependency is already present in package.json — nothing to propose.');
+      }
+      return text(patch);
     }
   );
 

@@ -9,14 +9,46 @@ import os from 'node:os';
  * directory pattern (real fs.mkdtempSync, not mocked fs) so the code under
  * test exercises real file I/O.
  */
-export function buildFakeProject({ version = '0.12.0' } = {}) {
+export function buildFakeProject({ version = '0.12.0', withTests = false } = {}) {
   const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-mcp-test-'));
   const vendoredRoot = path.join(projectRoot, 'toolcrib');
   const aiDocsRoot = path.join(vendoredRoot, 'ai-docs');
   const examplesDir = path.join(aiDocsRoot, 'examples');
   fs.mkdirSync(examplesDir, { recursive: true });
 
-  fs.writeFileSync(path.join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version }));
+  fs.writeFileSync(
+    path.join(vendoredRoot, '.toolcrib-lock.json'),
+    JSON.stringify(withTests ? { version, testsVersion: version } : { version })
+  );
+
+  // A real vendored install always sits alongside the consumer's own
+  // package.json (one directory up) -- written here so tests exercising
+  // anything that reads it (e.g. get_test_dependencies_patch) have a real
+  // file to find, the same "real fs, not mocked" principle this fixture
+  // already follows for everything else.
+  fs.writeFileSync(
+    path.join(projectRoot, 'package.json'),
+    JSON.stringify({ name: 'fake-consumer-app', dependencies: { react: '^19.0.0' } }, null, 2) + '\n'
+  );
+
+  // --with-tests-shaped install: real, if minimal, __tests__/ content plus
+  // the sibling .toolcrib-tests-config.json (see cli/src/commands/init.js's
+  // step 4b) -- only written when a test explicitly asks for it, matching
+  // the feature's own opt-in shape.
+  if (withTests) {
+    const testsDir = path.join(vendoredRoot, '__tests__');
+    fs.mkdirSync(path.join(testsDir, 'testUtils'), { recursive: true });
+    fs.writeFileSync(path.join(testsDir, 'Button.test.tsx'), "import { Button } from '#toolcrib';\nexpect(1).toBe(1);\n");
+    fs.writeFileSync(path.join(testsDir, 'testUtils', 'axe.ts'), 'export const axe = {};\n');
+    fs.writeFileSync(
+      path.join(vendoredRoot, '.toolcrib-tests-config.json'),
+      JSON.stringify({
+        version,
+        requiresToolkitVersion: version,
+        peerDependencies: { vitest: '^4.0.0', '@testing-library/react': '^16.0.0' },
+      })
+    );
+  }
 
   const manifest = {
     $schema: 'https://example.test/schema',
