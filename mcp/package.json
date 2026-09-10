@@ -1,6 +1,6 @@
 {
   "name": "toolcrib-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local MCP server exposing an already-vendored toolcrib install's ai-docs content to AI coding agents",
   "type": "module",
   "license": "MIT",
