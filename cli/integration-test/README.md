@@ -78,6 +78,47 @@ the CLI recognizes — unset, everything targets real GitHub. They exist
 specifically to make this kind of test possible without a published
 release or real network access.
 
+### Testing `merge` for real (multi-version fixtures)
+
+The flat layout above (a single `toolcrib.zip` at `releases/`) is enough
+for `init`/`apply`, but `merge` needs to diff *two different* releases —
+whatever's currently installed vs. the target — and the flat layout serves
+the identical file for both requests, so `merge`'s own three-way
+classification (`unchanged`/`safe-update`/`keep-local`/`conflict` in
+`src/commands/merge.js`) never has real drift to detect. Confirmed
+directly, not assumed: an early version of a real release-verification
+pass reported "74 files updated cleanly," and every one of those updates
+turned out to be a silent no-op once checked, because old and new were
+byte-identical.
+
+Serve distinct fixtures per version instead, in a subfolder keyed by
+exactly what the requested URL names:
+
+```
+mkdir -p integration-test/releases/latest
+mkdir -p integration-test/releases/v0.12.0
+cp /path/to/new/toolcrib.zip integration-test/releases/latest/
+cp /path/to/new/toolcrib.zip.sha256 integration-test/releases/latest/
+cp /path/to/old/toolcrib.zip integration-test/releases/v0.12.0/
+cp /path/to/old/toolcrib.zip.sha256 integration-test/releases/v0.12.0/
+MOCK_LATEST_VERSION=0.14.0 node integration-test/mock-github-server.js
+```
+
+A real historical version's real assets are still published on GitHub —
+`https://github.com/escape-llc/toolcrib/releases/download/v0.12.0/toolcrib.zip`
+— so the "old" side doesn't need building locally, just downloading.
+`MOCK_LATEST_VERSION` controls what the `/releases/latest` JSON endpoint
+reports (defaults to `1.0.0`, matching this server's original hardcoded
+value, so nothing above needs it set). The asset route falls back to the
+flat `releases/{asset}` layout when no matching versioned subfolder
+exists, so the simpler init/apply walkthrough above keeps working
+unchanged either way.
+
+Then point a real install already on the "old" version at this server and
+run `merge`/`apply` as normal — `toolcrib/.toolcrib-lock.json` in that
+project records which version it's currently on, which is what `merge`
+requests as the "old" side.
+
 ## Bugs found by actually running this (not caught by unit tests alone)
 
 Worth keeping this integration test around, since it already found three

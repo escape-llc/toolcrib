@@ -6,6 +6,15 @@ import { fileURLToPath } from 'node:url';
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 9999;
 
+// The reported "latest" version, and (see the asset route below) which
+// releases/ subfolder a bare, unversioned toolcrib.zip/.sha256 pair is
+// treated as belonging to. Defaults to '1.0.0' to keep every existing use
+// of this server (the documented init/apply flow in this directory's own
+// README.md) working unchanged with the original flat
+// releases/toolcrib.zip layout. Override to exercise `merge`'s real
+// cross-version diff logic -- see "Multi-version fixtures" below.
+const LATEST_VERSION = process.env.MOCK_LATEST_VERSION || '1.0.0';
+
 const server = http.createServer((req, res) => {
   // Mimics: GET /api/repos/{repo}/releases/latest -> GitHub's single-release
   // JSON (a plain object, not an array) for the dedicated "latest" endpoint
@@ -17,7 +26,7 @@ const server = http.createServer((req, res) => {
   if (req.url.endsWith('/releases/latest') && req.url.startsWith('/api')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      tag_name: 'v1.0.0',
+      tag_name: `v${LATEST_VERSION}`,
       published_at: '2026-08-01T00:00:00Z',
       prerelease: false,
       draft: false,
@@ -30,7 +39,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify([
       {
-        tag_name: 'v1.0.0',
+        tag_name: `v${LATEST_VERSION}`,
         published_at: '2026-08-01T00:00:00Z',
         prerelease: false,
         draft: false,
@@ -52,23 +61,69 @@ const server = http.createServer((req, res) => {
   }
 
   // Mimics: GET /releases/latest/download/{asset} and /releases/download/v{x}/{asset}
+  //
+  // Multi-version fixtures: `merge` diffs an "old" release (whatever
+  // `.toolcrib-lock.json` says is installed) against a "new" one (the
+  // requested target) -- two *different* zips, fetched via two differently-
+  // shaped URLs (see assetUrl() in cli/src/lib/github.js: `.../latest/
+  // download/{asset}` vs `.../download/v{version}/{asset}`). The original
+  // version of this route ignored that distinction entirely
+  // (`req.url.split('/').pop()` reads only the trailing asset filename),
+  // so every requested version -- old or new, "latest" or a specific tag --
+  // silently received the exact same single fixture file. That's fine for
+  // this directory's own documented init/apply walkthrough (which only
+  // ever needs one release to exist), but it means `merge`'s actual
+  // cross-version diff logic had no real E2E coverage at all: old and new
+  // always compared identical content, so every file classified as either
+  // 'unchanged' or 'keep-local', never a real 'safe-update' -- confirmed
+  // directly, not assumed, running a real merge against this exact gap.
+  //
+  // Fixed by keying on the version segment when a matching versioned
+  // fixture exists: drop a real release zip+checksum into
+  // `releases/v0.12.0/` (for a `.../download/v0.12.0/{asset}` request) or
+  // `releases/latest/` (for a `.../latest/download/{asset}` request), and
+  // this route serves that specific pair instead of the flat one. Falls
+  // back to the original flat `releases/{asset}` layout when no matching
+  // versioned subfolder exists, so every contributor following this
+  // directory's own README.md (which only ever populates the flat layout)
+  // sees no behavior change at all.
   if (req.url.startsWith('/releases/')) {
-    const assetName = req.url.split('/').pop();
+    const segments = req.url.split('/').filter(Boolean); // ['releases', ...]
+    const assetName = segments[segments.length - 1];
 
-    // `.split('/').pop()` only strips '/'-delimited segments — on Windows,
+    // segments[1] is 'latest' (…/releases/latest/download/{asset}) or
+    // 'download' (…/releases/download/v{x}/{asset}, version at index 2).
+    const versionKey = segments[1] === 'latest' ? 'latest' : segments[1] === 'download' ? segments[2] : undefined;
+
+    // `.split('/')` only strips '/'-delimited segments — on Windows,
     // `path.join`/`path.resolve` (the native, non-posix module) also treats
     // backslash as a separator, so a segment like `..\..\Windows\System32\...`
     // survives the split intact and would otherwise escape `releasesDir`.
     // Rejecting anything whose basename differs from itself catches that,
-    // plus any other embedded separator.
-    if (!assetName || path.basename(assetName) !== assetName) {
+    // plus any other embedded separator — applied to both path components
+    // now, not just the asset name, since versionKey is equally
+    // attacker/typo-controlled input.
+    //
+    // `path.basename('..') === '..'` and `path.basename('.') === '.'`, so
+    // basename-equality alone does NOT reject a bare '.'/'..' segment --
+    // caught in real review (Gemini, PR #283) before this ever shipped.
+    // Reject both literally rather than relying on the containment check
+    // further down to catch it after the fact: that check runs only after
+    // `fs.existsSync`/`fs.statSync` have already been called on the
+    // unvalidated, possibly-outside-releasesDir path.
+    const isSafeSegment = (s) => s !== undefined && s !== '.' && s !== '..' && path.basename(s) === s;
+    if (!isSafeSegment(assetName) || (versionKey !== undefined && !isSafeSegment(versionKey))) {
       res.writeHead(400);
       res.end('Bad Request');
       return;
     }
 
     const releasesDir = path.resolve(DIR, 'releases');
-    const filePath = path.resolve(releasesDir, assetName);
+    const versionedPath = versionKey ? path.resolve(releasesDir, versionKey, assetName) : undefined;
+    const flatPath = path.resolve(releasesDir, assetName);
+    const filePath = versionedPath && fs.existsSync(versionedPath) && fs.statSync(versionedPath).isFile()
+      ? versionedPath
+      : flatPath;
     const relativePath = path.relative(releasesDir, filePath);
     // Segment-aware containment check: a plain `startsWith('..')` would also
     // reject legitimate filenames that merely start with two dots (e.g.
