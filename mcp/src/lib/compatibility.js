@@ -19,14 +19,32 @@ import { loadExamples } from './examples.js';
 const LEGACY_FINGERPRINT = '739139651467f91e117b2564d3b00dd76dee49c17379f55755006852f7a19e52';
 
 /**
+ * The second real fingerprint, added 2026-09-10 once real drift actually
+ * shipped and was verified, not speculatively — exactly the trigger this
+ * map's own doc comment below describes. v0.14.0's CORE.md inserted a new
+ * "2. Recommended Complementary Packages" section, shifting the number
+ * prefix on every heading after it ("2. Core Principles" -> "3. Core
+ * Principles", etc.) -- precisely the benign-renumbering case
+ * `schemaFingerprint.js`'s own `computeCoreDocFacts` comment already
+ * named as a known, accepted limitation (heading *text* changes even
+ * though no section was actually renamed or removed). Confirmed directly
+ * against this repo's real, current ai-docs/ (not assumed): computed via
+ * `computeSchemaFingerprint` against the real repo root, and the only
+ * diff versus `LEGACY_FINGERPRINT` is exactly that heading-set shift --
+ * `loadManifestIndex`/`loadCoreDoc`/`loadExamples` all still parse this
+ * shape correctly, so the same parser set is reused, not replaced.
+ */
+const V0_14_0_FINGERPRINT = 'a35f7c3ab30b4b4a1fc9c6d6a7397a73e6ef6dc93664cf27805abd56da033e6d';
+
+/**
  * Maps a known schema fingerprint to the loader functions verified to
- * parse it correctly. Every real toolcrib release to date shares one
- * fingerprint (`LEGACY_FINGERPRINT`) and therefore one entry here — a
- * second entry gets added only once a real future schema change both
- * ships and gets verified against, never speculatively. Growing this map
- * over time is how compatibility widens; nothing already here is ever
- * removed, since an older vendored install doesn't stop being real just
- * because a newer schema was also verified.
+ * parse it correctly. Every real toolcrib release through v0.13.0 shares
+ * `LEGACY_FINGERPRINT`; v0.14.0 introduced real, verified drift (see
+ * `V0_14_0_FINGERPRINT`'s own comment) — new entries get added only once
+ * a real schema change both ships and gets verified against, never
+ * speculatively. Growing this map over time is how compatibility widens;
+ * nothing already here is ever removed, since an older vendored install
+ * doesn't stop being real just because a newer schema was also verified.
  *
  * Deliberately one-way: this file (and `computeSchemaFingerprint`) is the
  * only place a fingerprint value exists anywhere. A consumer's own
@@ -35,7 +53,10 @@ const LEGACY_FINGERPRINT = '739139651467f91e117b2564d3b00dd76dee49c17379f5575500
  * `checkCompatibility` runs, which is exactly what lets it work
  * identically for a release that predates this mechanism's own existence.
  */
-export const PARSER_MAP = new Map([[LEGACY_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }]]);
+export const PARSER_MAP = new Map([
+  [LEGACY_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
+  [V0_14_0_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
+]);
 
 /**
  * Computes the real fingerprint of whatever is actually vendored at

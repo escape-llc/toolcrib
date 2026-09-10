@@ -28,7 +28,13 @@ export function resolveVendoredRoot(startDir) {
 
 /**
  * Reads `.toolcrib-lock.json` from an already-resolved vendored root.
- * Returns `{ version }` or `null` if the file is missing or malformed.
+ * Returns `{ version }` (plus `testsVersion` when the lock file has one —
+ * set by `toolcrib init --with-tests`/a later `toolcrib merge` that kept
+ * it in sync, see cli/src/lib/project.js's proposeLockUpdate) or `null` if
+ * the file is missing or malformed. `testsVersion` is omitted entirely
+ * rather than included as `null` when absent, matching the CLI's own lock
+ * file shape exactly — an install that never opted into `--with-tests`
+ * has a lock file with no such key at all, not one set to `null`.
  */
 export function readLockInfo(vendoredRoot) {
   const lockPath = join(vendoredRoot, LOCK_FILENAME);
@@ -36,7 +42,9 @@ export function readLockInfo(vendoredRoot) {
     const raw = readFileSync(lockPath, 'utf8');
     const parsed = JSON.parse(raw);
     if (typeof parsed?.version !== 'string') return null;
-    return { version: parsed.version };
+    const info = { version: parsed.version };
+    if (typeof parsed.testsVersion === 'string') info.testsVersion = parsed.testsVersion;
+    return info;
   } catch {
     return null;
   }

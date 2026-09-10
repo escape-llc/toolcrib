@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { checkCompatibility, PARSER_MAP } from '../src/lib/compatibility.js';
 import { computeSchemaFingerprint } from '../src/lib/schemaFingerprint.js';
 import { loadManifestIndex } from '../src/lib/manifestIndex.js';
@@ -121,5 +122,24 @@ describe('checkCompatibility', () => {
     projectRoot = built.projectRoot;
     const result = checkCompatibility(built.vendoredRoot);
     expect(result.warning).not.toBe(null);
+  });
+
+  it('the real PARSER_MAP recognizes this repo\'s own current, real ai-docs/ content with no warning', () => {
+    // Regression coverage for a real, previously-shipped gap: this exact
+    // scenario (v0.14.0's CORE.md inserting a new numbered section, which
+    // benignly renumbers every heading after it -- see
+    // V0_14_0_FINGERPRINT's own comment in compatibility.js) went
+    // undetected until manually running mcp/integration-test/run.mjs,
+    // which isn't wired into `npm test` and so isn't part of normal CI.
+    // This test IS wired in, against the real repo root directly (which
+    // already has the `ai-docs/` layout computeSchemaFingerprint expects,
+    // no fixture-copying needed) -- the next time CORE.md's heading set
+    // (or anything else this fingerprint tracks) changes without a
+    // matching PARSER_MAP update, this fails the normal test suite
+    // immediately instead of silently shipping a warning to every real
+    // consumer.
+    const repoRoot = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
+    const result = checkCompatibility(repoRoot);
+    expect(result.warning).toBe(null);
   });
 });

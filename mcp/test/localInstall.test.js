@@ -59,4 +59,13 @@ describe('readLockInfo', () => {
     fs.writeFileSync(path.join(vendoredRoot, '.toolcrib-lock.json'), JSON.stringify({ version: 12 }));
     expect(readLockInfo(vendoredRoot)).toBe(null);
   });
+
+  it('includes testsVersion when the lock file has one (a --with-tests install)', () => {
+    ({ projectRoot, vendoredRoot } = buildFakeProject());
+    fs.writeFileSync(
+      path.join(vendoredRoot, '.toolcrib-lock.json'),
+      JSON.stringify({ version: '0.14.0', testsVersion: '0.14.0' })
+    );
+    expect(readLockInfo(vendoredRoot)).toEqual({ version: '0.14.0', testsVersion: '0.14.0' });
+  });
 });
