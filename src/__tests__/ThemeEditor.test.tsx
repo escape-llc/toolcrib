@@ -305,6 +305,22 @@ describe('ThemeEditor', () => {
       }
     });
 
+    // Regression: none of these 5 sliders passed an ariaLabel (unlike
+    // Master Font Size/Line Height elsewhere in this file, which always
+    // had one) -- each rendered as an unnamed role="slider" with only a
+    // plain, unassociated visual <span> label. Found via a real axe scan
+    // finally reaching this drawer's content while open (aria-compliance-review's
+    // own §1 coverage-gap finding) -- axe's aria-input-field-name rule
+    // caught it immediately once the scan actually got there.
+    it('each Appearance & Base Color slider has its own distinct accessible name', () => {
+      renderEditor();
+      expect(screen.getByRole('slider', { name: 'Hue (H)' })).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Saturation (S)' })).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Brightness (V)' })).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Darken / Lighten Factor' })).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Saturation Factor' })).toBeInTheDocument();
+    });
+
     it('Density, Spacing & Elevation FieldRow selects (padding/margin/corner radius/shadow) each update on selection', () => {
       renderEditor();
       fireEvent.click(screen.getByText(/Density, Spacing & Elevation/));
@@ -389,7 +405,10 @@ describe('ThemeEditor', () => {
       fireEvent.click(target);
       expect(combo.textContent).toContain(targetLabel);
 
-      const slider = screen.getByRole('slider');
+      // Named query, not a bare getByRole('slider') -- regression: this
+      // slider had no ariaLabel either (see the Appearance & Base Color
+      // sliders' own regression test above for the same class of fix).
+      const slider = screen.getByRole('slider', { name: 'Hue Spread Angle' });
       const before = slider.getAttribute('aria-valuenow');
       fireEvent.keyDown(slider, { key: 'ArrowRight' });
       expect(slider.getAttribute('aria-valuenow')).not.toBe(before);

@@ -223,6 +223,27 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('ContextMenu', ARIA_HIDDEN_FOCUS_DISABLED);
   await page.keyboard.press('Escape');
 
+  // aria-compliance-review's own §1 finding: Combobox's real listbox
+  // markup (both instances) was never axe-scanned -- its content only
+  // renders once `open` is true, and no prior test ever typed into or
+  // clicked either demo instance.
+  await page.getByPlaceholder('Search users...').fill('a');
+  // 300ms debounce (searchDebounceMs) + 200ms simulated server round-trip,
+  // plus margin -- see the Combobox demo's own onSearch above.
+  await page.waitForTimeout(700);
+  await scanNamed('Combobox (async search)');
+  await page.keyboard.press('Escape');
+
+  // Static `options`, no onSearch -- opens immediately on click (see
+  // Combobox.tsx's own onClick, exempted from the async-only guard). Its
+  // own placeholder never renders (defaultValue already has 2 chips
+  // selected, and Combobox.tsx's placeholder={hasValue && multiple ?
+  // undefined : placeholder} suppresses it whenever that's true) -- the
+  // demo's own ariaLabel="Skills" is the reliable locator instead.
+  await page.getByRole('combobox', { name: 'Skills' }).click();
+  await scanNamed('Combobox (multi-select)');
+  await page.keyboard.press('Escape');
+
   // HoverCard opens on focus as well as hover (Radix default) -- focus is
   // the keyboard-reachable path and what a screen-reader user actually
   // triggers, so exercise that path rather than a mouse hover.
@@ -247,6 +268,20 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await expect(page.getByRole('button', { name: 'View profile' })).not.toBeFocused();
 
   await page.keyboard.press('Escape');
+
+  // aria-compliance-review's own §4 finding: the dark-mode test below opens
+  // this same Theme Designer drawer only long enough to click its
+  // light/dark toggle, then immediately Escapes -- its ThemeEditor content
+  // (the exact component the FieldRow label-association bug, fixed in
+  // commit fb041d7, once lived inside) has never actually been scanned
+  // while genuinely open. Reachable from every tab (the sidebar's own
+  // trigger), so no gotoTab needed first.
+  await page.getByRole('button', { name: 'Open Theme Designer' }).click();
+  await scanNamed('Theme Designer drawer (ThemeEditor content)');
+  await page.keyboard.press('Escape');
+  // Drawer's own 250ms JS close timer, not a real animationend -- see the
+  // dark-mode test's identical wait below.
+  await page.waitForTimeout(300);
 
   expect(failures, `WCAG AA violations (overlay content):\n${failures.join('\n')}`).toEqual([]);
 });
