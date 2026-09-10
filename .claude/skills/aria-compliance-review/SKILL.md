@@ -26,18 +26,25 @@ call sites, and may have drifted since.
 
 **This is the first thing to check, before auditing any component**, because
 it changes what "axe passes" even means. Read `scanEveryTab()` in
-`e2e/accessibility.spec.ts`: it navigates the 12 top-level demo tabs and,
-in the dark-mode test only, transiently opens the Theme Designer drawer
-just long enough to click its light/dark toggle before closing it again
-with Escape — the drawer's own content is **never scanned while open**.
-Anything that only renders inside a closed-by-default `<Drawer>`/`<Modal>`/
-`<Popup>`/`<ContextMenu>`/collapsed `<Accordion>`/`<Collapsible>` section is
-invisible to axe regardless of how thorough its ruleset is, because there's
-nothing in the DOM for it to inspect. This is exactly why the `FieldRow`
-unassociated-label bug (~50 call sites inside the Theme Designer's own
-drawer content, fixed in commit `1b17cd3`) survived until a full manual
-audit found it — the standing axe gate was never actually looking at that
-surface.
+`e2e/accessibility.spec.ts`: it navigates the 12 top-level demo tabs and, as
+of commit `fc35c62` (PR #267), opens the Theme Designer drawer and genuinely
+scans its `ThemeEditor` content while open (`scanNamed('Theme Designer
+drawer (ThemeEditor content)')`) — the dark-mode test's own transient
+open-toggle-Escape sequence is separate and still doesn't scan, but the main
+pass now does. Before `fc35c62`, the drawer's content was never scanned
+while open at all; this is exactly why the `FieldRow` unassociated-label bug
+(~50 call sites inside the Theme Designer's own drawer content, fixed in
+commit `1b17cd3`) survived until a full manual audit found it — the standing
+axe gate wasn't looking at that surface yet when that bug shipped. The
+general lesson still holds even though this specific surface is now
+covered: anything that only renders inside a closed-by-default
+`<Drawer>`/`<Modal>`/`<Popup>`/`<ContextMenu>`/collapsed
+`<Accordion>`/`<Collapsible>` section is invisible to axe regardless of how
+thorough its ruleset is, because there's nothing in the DOM for it to
+inspect, unless a test actually opens it before scanning — verify this
+against current source for whatever surface you're auditing, since new
+overlay/gated content can reintroduce the same gap the Theme Designer drawer
+and Combobox's listbox (also fixed in `fc35c62`) once had.
 
 Enumerate every overlay/gated surface in `demo/App.tsx` and cross-check
 against `scanEveryTab()`'s navigation: for each one, is its content actually
