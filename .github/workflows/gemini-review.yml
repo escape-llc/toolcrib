@@ -194,7 +194,7 @@ jobs:
           REVIEW: ${{ steps.gemini_review.outputs.summary }}
         run: |
           {
-            echo '🔎 **Gemini review** (best-effort, non-blocking -- see issue #176 for why this does not gate merge)'
+            echo '🔎 **Gemini review**'
             echo ''
             echo "$REVIEW"
           } > "${RUNNER_TEMP}/review-comment.md"
