@@ -157,6 +157,44 @@ jobs:
         run: npm test
         working-directory: cli
 
+  # mcp/ had zero CI coverage of any kind before this job existed -- its own
+  # test suite only ever ran when someone happened to run `cd mcp && npm
+  # test` by hand. Found the hard way, not hypothetically: PR #280 added a
+  # new numbered section to ai-docs/CORE.md, benignly renumbering every
+  # heading after it -- exactly the "CORE.md's heading convention" trigger
+  # AGENTS.md's own "mcp/'s parsing code has no automated check... check it
+  # by hand whenever that shape changes" note already names -- and nothing
+  # caught it. toolcrib-mcp@0.3.0 shipped warning for every real v0.14.0
+  # consumer as a result, undetected until someone manually ran
+  # mcp/integration-test/run.mjs weeks later. mcp/test/compatibility.test.js
+  # now has a regression test computing the real fingerprint against this
+  # repo's own actual ai-docs/ directly (not a fixture) -- this job is what
+  # makes that test actually run automatically instead of only when someone
+  # remembers to. Runs unconditionally on every PR, not path-filtered to
+  # ai-docs/mcp changes specifically -- this repo has no existing
+  # path-filtering convention anywhere in its workflows, and mcp/'s suite is
+  # fast and fully offline (no network calls, matching cli-windows' own
+  # unconditional-on-every-PR precedent), so scoping it narrower would add
+  # real complexity for no measurable savings.
+  mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+
+      - name: Install toolcrib-mcp dependencies
+        run: npm ci
+        working-directory: mcp
+
+      - name: Run toolcrib-mcp test suite
+        run: npm test
+        working-directory: mcp
+
   # A real Next.js App Router build -- catches two defect classes nothing
   # else in this workflow can see, because none of tsc/vitest/eslint
   # understand React Server Component boundaries at all: (1) a vendored
