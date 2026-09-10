@@ -53,7 +53,7 @@ const mocks = vi.hoisted(() => {
     },
   };
 
-  return { state, emblaApi, scrollTo, scrollNext, scrollPrev };
+  return { state, emblaApi, scrollTo, scrollNext, scrollPrev, emit };
 });
 
 vi.mock('embla-carousel-react', () => ({
@@ -163,5 +163,87 @@ describe('Carousel', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('clicking the previous arrow calls embla\'s scrollPrev, once scrolled off the first slide', async () => {
+    render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+    // "Previous slide" only renders once canScrollPrev is true -- scroll
+    // forward first, same as the "prev hidden at the start" test above
+    // confirms it's absent initially.
+    fireEvent.click(screen.getByLabelText('Go to slide 2'));
+    await waitFor(() => expect(screen.getByLabelText('Previous slide')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText('Previous slide'));
+    expect(mocks.scrollPrev).toHaveBeenCalledTimes(1);
+  });
+
+  describe('dot tablist keyboard navigation (hand-rolled roving tabindex)', () => {
+    it('ArrowRight moves to the next dot and moves focus to it', async () => {
+      render(<Carousel slides={slides} />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 1'), { key: 'ArrowRight' });
+      expect(mocks.scrollTo).toHaveBeenCalledWith(1);
+      await waitFor(() => expect(screen.getByLabelText('Go to slide 2')).toHaveFocus());
+    });
+
+    it('ArrowLeft is a no-op on the first dot when loop is false', async () => {
+      render(<Carousel slides={slides} />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 1'), { key: 'ArrowLeft' });
+      expect(mocks.scrollTo).not.toHaveBeenCalled();
+    });
+
+    it('ArrowRight wraps to the first dot on the last dot when loop is true', async () => {
+      render(<Carousel slides={slides} loop />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 3'), { key: 'ArrowRight' });
+      expect(mocks.scrollTo).toHaveBeenCalledWith(0);
+    });
+
+    it('ArrowLeft wraps to the last dot on the first dot when loop is true', async () => {
+      render(<Carousel slides={slides} loop />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 1'), { key: 'ArrowLeft' });
+      expect(mocks.scrollTo).toHaveBeenCalledWith(2);
+    });
+
+    it('Home jumps to the first dot, End jumps to the last', async () => {
+      render(<Carousel slides={slides} />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 2'), { key: 'End' });
+      expect(mocks.scrollTo).toHaveBeenLastCalledWith(2);
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 3'), { key: 'Home' });
+      expect(mocks.scrollTo).toHaveBeenLastCalledWith(0);
+    });
+
+    it('an unhandled key does nothing', async () => {
+      render(<Carousel slides={slides} />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+      fireEvent.keyDown(screen.getByLabelText('Go to slide 1'), { key: 'a' });
+      expect(mocks.scrollTo).not.toHaveBeenCalled();
+    });
+  });
+
+  it('re-measures scroll snaps and re-selects on embla\'s "reInit" event (e.g. a resize)', async () => {
+    render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+
+    // Simulates what a real resize-triggered Embla reInit reports: the
+    // snap-point count itself changed (e.g. a responsive slidesToScroll).
+    mocks.state.scrollSnaps = [0, 1];
+    act(() => {
+      mocks.emit('reInit');
+    });
+
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(2));
   });
 });
