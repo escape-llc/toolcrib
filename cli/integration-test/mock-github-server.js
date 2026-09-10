@@ -103,7 +103,16 @@ const server = http.createServer((req, res) => {
     // plus any other embedded separator — applied to both path components
     // now, not just the asset name, since versionKey is equally
     // attacker/typo-controlled input.
-    if (!assetName || path.basename(assetName) !== assetName || (versionKey !== undefined && path.basename(versionKey) !== versionKey)) {
+    //
+    // `path.basename('..') === '..'` and `path.basename('.') === '.'`, so
+    // basename-equality alone does NOT reject a bare '.'/'..' segment --
+    // caught in real review (Gemini, PR #283) before this ever shipped.
+    // Reject both literally rather than relying on the containment check
+    // further down to catch it after the fact: that check runs only after
+    // `fs.existsSync`/`fs.statSync` have already been called on the
+    // unvalidated, possibly-outside-releasesDir path.
+    const isSafeSegment = (s) => s !== undefined && s !== '.' && s !== '..' && path.basename(s) === s;
+    if (!isSafeSegment(assetName) || (versionKey !== undefined && !isSafeSegment(versionKey))) {
       res.writeHead(400);
       res.end('Bad Request');
       return;
