@@ -58,6 +58,16 @@ name: Gemini Review
 # the job's own permissions carry nothing more sensitive than a
 # pull-requests:write-scoped GITHUB_TOKEN and a review-only Gemini API key
 # -- neither is a deploy/publish credential.
+#
+# Also reads the PR's own prior comment thread (a second read_file target,
+# same zero-additional-tool treatment as the diff) so a later push
+# (`synchronize`) doesn't repeat a finding a human/AI already resolved --
+# real observed behavior from this exact PR, not hypothetical: an earlier
+# run's false-positive claim got repeated verbatim on a later push with no
+# memory of the refutation. See AGENTS.md's Gemini-breadcrumbs paragraph
+# for the other half of this loop: whoever evaluates a finding should
+# reply on the PR thread with the resolution, not just act on it silently,
+# or the next automated run still has nothing to read.
 
 on:
   pull_request:
@@ -106,6 +116,30 @@ jobs:
         run: |
           gh pr diff "${{ github.event.pull_request.number }}" > "${GITHUB_WORKSPACE}/.gemini-review-diff.txt"
 
+      # `synchronize` (a new push to the same PR) re-runs this whole
+      # workflow from scratch -- without this, each run has no memory of
+      # what an earlier run already said, so a finding a human/AI already
+      # evaluated and refuted (or already fixed) gets flagged again
+      # verbatim on the next push. Real observed behavior, not
+      # hypothetical: this exact workflow's own PR #278 had Gemini repeat
+      # an already-refuted false-positive (a markdown-indentation claim,
+      # verified wrong against the actual posted comment) on a later push.
+      # `gh pr view --json comments` returns the same flat, chronological
+      # issue-comment list `gh pr comment` posts into (both this workflow's
+      # own past reviews and any human/AI reply addressing one) -- fetched
+      # BEFORE this run's own Gemini step executes, so it never includes a
+      # comment from the run currently in progress, only genuinely prior
+      # ones. Empty on a PR's first run (`opened`, no comments yet) -- the
+      # prompt below handles that case explicitly rather than assuming
+      # history always exists.
+      - name: Write prior PR review history to a file
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh pr view "${{ github.event.pull_request.number }}" --json comments \
+            --jq '.comments[] | "--- \(.author.login) (\(.createdAt)) ---\n\(.body)\n"' \
+            > "${GITHUB_WORKSPACE}/.gemini-review-history.txt"
+
       - name: Run Gemini review (read_file only -- no shell, no write, no other tool)
         id: gemini_review
         # Never fails the job even if the API errors/times out/rate-limits --
@@ -136,10 +170,12 @@ jobs:
           prompt: |-
             You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.
             The full diff is in the file ${{ github.workspace }}/.gemini-review-diff.txt -- read it with your read_file tool first; that is the only tool available to you, and it is the only thing you need.
-            Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed.
+            Also read ${{ github.workspace }}/.gemini-review-history.txt -- the prior comment thread on this exact PR, including any of your own earlier reviews and any human or AI reply addressing one of your findings (confirming it, fixing it, or explaining why it's not a real issue). It may be empty if this is the first review on this PR.
+            Do not repeat a finding from your own prior review unless the current diff still contains the exact issue AND no later comment in the history already addressed it. If a prior finding of yours was refuted, fixed, or marked not-applicable in a later comment, treat that as settled and do not raise it again -- trust the human/AI's resolution over your own earlier guess. Only raise a prior finding again if the current diff shows genuinely new evidence that changes the picture.
+            Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed beyond the two files named above.
             Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.
             Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.
-            If you find nothing worth flagging, say so in one short line -- do not invent a finding to have something to say.
+            If you find nothing new worth flagging, say so in one short line -- do not invent a finding to have something to say, and do not restate an already-settled prior finding just to have content.
             Output ONLY the final review itself -- no reasoning, no plan, no description of what you are about to do. Keep the whole response under 400 words, plain text (no markdown headers).
 
       # Written to a file and posted via `--body-file`, not a `${{ }}`-

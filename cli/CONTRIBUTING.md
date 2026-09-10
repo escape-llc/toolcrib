@@ -138,6 +138,13 @@ this CLI recognizes — unset, everything targets real GitHub. They exist
 specifically to make this kind of test possible without a published
 release or real network access.
 
+**Testing `merge` specifically needs a second, differently-versioned
+fixture** — the flat single-zip layout above serves identical content for
+every requested version, so `merge`'s real cross-version diff logic has
+nothing to detect against it. See
+[`integration-test/README.md`](integration-test/README.md#testing-merge-for-real-multi-version-fixtures)
+for the versioned-subfolder layout that fixes this.
+
 ### Bugs this integration test has already found
 
 Worth keeping this test around — it already found three real issues that
