@@ -34,15 +34,23 @@ name: Gemini Review
 # (unlike the 48KB/256KB limits that apply to configured repo/org Actions
 # *variables*, a completely different mechanism), and this repo's own real
 # PRs (a 76-file, 1166-insertion axe-testing sweep, e.g.) are exactly the
-# shape that would stress it. Writing the diff to $RUNNER_TEMP and pointing
-# the prompt at that path removes diff size as a constraint entirely.
+# shape that would stress it. Writing the diff to a file removes diff size
+# as a constraint entirely. It's written INSIDE the checked-out workspace,
+# not $RUNNER_TEMP -- a second real finding from that same first PR:
+# GEMINI_CLI_TRUST_WORKSPACE scopes read_file access to the trusted
+# workspace directory specifically, so a file outside it (an earlier
+# version used $RUNNER_TEMP) silently failed to read at all. A useful
+# confirmation, not just a bug: the sandbox is real and enforced, narrowing
+# the residual risk below to "files already inside this public repo's own
+# checkout," not the whole runner filesystem.
 #
 # Accepted residual risk, named directly rather than glossed over: a PR
 # diff is untrusted input (this repo's own actions-injection-review skill
 # exists for exactly this reason), and read_file is real tool access, not
 # none -- a sufficiently adversarial diff could in principle prompt-inject
-# Gemini into reading some OTHER file on the runner and echoing its content
-# back into the review comment. The blast radius stays bounded even then:
+# Gemini into reading some OTHER file inside the checkout and echoing its
+# content back into the review comment. The blast radius stays bounded even
+# then, and more so now that the workspace sandbox is confirmed real:
 # read_file cannot write, execute, or exfiltrate anything itself -- the
 # worst case is a misleading comment quoting file content, which still has
 # to sit there for a human/AI to evaluate before anyone acts on it, the
@@ -83,16 +91,20 @@ jobs:
 
       # `gh pr diff` (GitHub's own API), not a manual `git diff
       # origin/<base>...HEAD` -- avoids depending on fetch-depth/remote-ref
-      # gymnastics entirely. Written to a file in $RUNNER_TEMP (outside the
-      # checked-out working tree, so it can never accidentally get treated
-      # as repo content) rather than into $GITHUB_ENV -- see this file's own
-      # header comment for why size, not just injection-safety, ruled that
-      # out.
+      # gymnastics entirely. Written INSIDE the checked-out workspace, not
+      # $RUNNER_TEMP -- a real finding from this exact workflow's own first
+      # run of this design: GEMINI_CLI_TRUST_WORKSPACE scopes read_file
+      # access to the trusted workspace directory specifically, and
+      # $RUNNER_TEMP sits outside it, so the tool call silently failed
+      # ("could not be read due to file access restrictions"). The leading
+      # dot keeps it visually distinct as tool-generated, matching the
+      # `.gemini/` gitignore convention already in this repo; it's never
+      # committed, and the runner is discarded after the job either way.
       - name: Write the PR diff to a file
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          gh pr diff "${{ github.event.pull_request.number }}" > "${RUNNER_TEMP}/pr-diff.txt"
+          gh pr diff "${{ github.event.pull_request.number }}" > "${GITHUB_WORKSPACE}/.gemini-review-diff.txt"
 
       - name: Run Gemini review (read_file only -- no shell, no write, no other tool)
         id: gemini_review
@@ -123,7 +135,7 @@ jobs:
           # was added.
           prompt: |-
             You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.
-            The full diff is in the file ${{ runner.temp }}/pr-diff.txt -- read it with your read_file tool first; that is the only tool available to you, and it is the only thing you need.
+            The full diff is in the file ${{ github.workspace }}/.gemini-review-diff.txt -- read it with your read_file tool first; that is the only tool available to you, and it is the only thing you need.
             Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed.
             Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.
             Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.
