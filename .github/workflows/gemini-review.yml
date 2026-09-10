@@ -21,18 +21,35 @@ name: Gemini Review
 # Docker-run github-mcp-server plus an unpinned third-party extension
 # (github.com/gemini-cli-extensions/code-review) to give Gemini direct
 # gh/GitHub-API tool-calling with real write scope (pull_request_review_write).
-# This workflow gives Gemini ZERO tool access instead ("tools": {"core": []},
-# no mcpServers configured) -- the PR diff is embedded directly as plain text
-# in the prompt (via `gh pr diff`, not a raw `${{ }}` interpolation -- see
-# the "Post review" step's own comment for why that distinction matters), and
+# This workflow gives Gemini exactly ONE tool -- "read_file", nothing else
+# ("tools": {"core": ["read_file"]}, no mcpServers configured) -- and
 # Gemini's only output is the review text itself, posted by a separate,
 # code-controlled step using the workflow's own token. Gemini never acts on
-# its own. A PR's diff content is untrusted input (this repo's own
-# actions-injection-review skill exists for exactly this reason); with zero
-# tools, even a deliberately prompt-injected diff can, at worst, produce a
-# misleading comment -- never an executed command. It has to sit there for a
-# human/AI to evaluate either way, the same trust boundary as any other
-# review comment.
+# its own; the review is code-controlled data all the way to the PR comment.
+#
+# The diff is handed over as a FILE, not embedded as text in the prompt --
+# real first-run feedback (this workflow's own first PR, #278) was "we
+# generate pretty large diffs by design so allow for that": GitHub Actions
+# publishes no documented size guarantee for $GITHUB_ENV specifically
+# (unlike the 48KB/256KB limits that apply to configured repo/org Actions
+# *variables*, a completely different mechanism), and this repo's own real
+# PRs (a 76-file, 1166-insertion axe-testing sweep, e.g.) are exactly the
+# shape that would stress it. Writing the diff to $RUNNER_TEMP and pointing
+# the prompt at that path removes diff size as a constraint entirely.
+#
+# Accepted residual risk, named directly rather than glossed over: a PR
+# diff is untrusted input (this repo's own actions-injection-review skill
+# exists for exactly this reason), and read_file is real tool access, not
+# none -- a sufficiently adversarial diff could in principle prompt-inject
+# Gemini into reading some OTHER file on the runner and echoing its content
+# back into the review comment. The blast radius stays bounded even then:
+# read_file cannot write, execute, or exfiltrate anything itself -- the
+# worst case is a misleading comment quoting file content, which still has
+# to sit there for a human/AI to evaluate before anyone acts on it, the
+# same trust boundary as any other review comment. Judged acceptable given
+# the job's own permissions carry nothing more sensitive than a
+# pull-requests:write-scoped GITHUB_TOKEN and a review-only Gemini API key
+# -- neither is a deploy/publish credential.
 
 on:
   pull_request:
@@ -51,12 +68,11 @@ jobs:
   review:
     runs-on: ubuntu-latest
     # Same-repo PRs only -- a fork's own diff is the least-trusted possible
-    # input to hand an LLM, even a tool-less one; matches
-    # google-github-actions/run-gemini-cli's own official dispatcher's
-    # identical `head.repo.fork == false` guard. Dependabot PRs skipped too
-    # (same reasoning as ci.yml's existing Dependabot carve-outs) -- a
-    # version-bump diff doesn't need a code-quality second opinion the way a
-    # hand-written change does.
+    # input to hand an LLM; matches google-github-actions/run-gemini-cli's
+    # own official dispatcher's identical `head.repo.fork == false` guard.
+    # Dependabot PRs skipped too (same reasoning as ci.yml's existing
+    # Dependabot carve-outs) -- a version-bump diff doesn't need a
+    # code-quality second opinion the way a hand-written change does.
     if: |
       github.event.pull_request.head.repo.fork == false &&
       github.event.pull_request.user.login != 'dependabot[bot]'
@@ -65,35 +81,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # Uses `gh pr diff` (GitHub's own API), not a manual `git diff
+      # `gh pr diff` (GitHub's own API), not a manual `git diff
       # origin/<base>...HEAD` -- avoids depending on fetch-depth/remote-ref
-      # gymnastics entirely. The diff (untrusted content) is written into
-      # $GITHUB_ENV behind a per-run random delimiter, not a fixed one --
-      # GitHub's own documented safe pattern for multiline env vars carrying
-      # untrusted content, so a diff that happened to contain a line
-      # matching a *guessable* delimiter can't break out of the heredoc and
-      # inject additional env var assignments.
-      - name: Build the review prompt (diff embedded as plain text -- no tool access needed to read it)
-        id: prompt
+      # gymnastics entirely. Written to a file in $RUNNER_TEMP (outside the
+      # checked-out working tree, so it can never accidentally get treated
+      # as repo content) rather than into $GITHUB_ENV -- see this file's own
+      # header comment for why size, not just injection-safety, ruled that
+      # out.
+      - name: Write the PR diff to a file
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          DELIM="GEMINI_PROMPT_$(date +%s%N)_${RANDOM}"
-          {
-            echo "PROMPT<<${DELIM}"
-            echo 'You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.'
-            echo 'You have NO tools available in this session -- everything you need is the diff text below. Do not narrate an intent to run a command, search the repo, or check another file; you cannot. Base your entire review only on the diff text given.'
-            echo 'Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.'
-            echo 'Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.'
-            echo 'If you find nothing worth flagging, say so in one short line -- do not invent a finding to have something to say.'
-            echo 'Output ONLY the final review itself -- no reasoning, no plan, no description of what you are about to do. Keep the whole response under 400 words, plain text (no markdown headers).'
-            echo ''
-            echo '--- DIFF ---'
-            gh pr diff "${{ github.event.pull_request.number }}"
-            echo "${DELIM}"
-          } >> "$GITHUB_ENV"
+          gh pr diff "${{ github.event.pull_request.number }}" > "${RUNNER_TEMP}/pr-diff.txt"
 
-      - name: Run Gemini review (zero tool access -- text in, text out only)
+      - name: Run Gemini review (read_file only -- no shell, no write, no other tool)
         id: gemini_review
         # Never fails the job even if the API errors/times out/rate-limits --
         # this check is best-effort by design (see this file's own header
@@ -108,30 +109,54 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_pr_number: ${{ github.event.pull_request.number }}
-          prompt: ${{ env.PROMPT }}
           workflow_name: 'gemini-review'
           settings: |
             {
-              "tools": { "core": [] }
+              "tools": { "core": ["read_file"] }
             }
+          # A real, previous run of this exact workflow (PR #278) is the
+          # source for two of these instructions: Gemini narrated wanting to
+          # call a tool it didn't have ("I will run a command to check...")
+          # before the "no tools, don't narrate" line was added; the
+          # "read_file first" line is what replaced the earlier
+          # embedded-diff-as-text design once the file-based handoff above
+          # was added.
+          prompt: |-
+            You are reviewing a pull request diff for "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation.
+            The full diff is in the file ${{ runner.temp }}/pr-diff.txt -- read it with your read_file tool first; that is the only tool available to you, and it is the only thing you need.
+            Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed.
+            Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.
+            Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.
+            If you find nothing worth flagging, say so in one short line -- do not invent a finding to have something to say.
+            Output ONLY the final review itself -- no reasoning, no plan, no description of what you are about to do. Keep the whole response under 400 words, plain text (no markdown headers).
 
-      # Posts via a plain `env:` + `$REVIEW` shell reference, never a raw
-      # `${{ steps.gemini_review.outputs.summary }}` interpolated directly
-      # into the run script -- that output is LLM text generated from
-      # untrusted diff content, so treating it as literal script text (the
-      # way `${{ }}` substitution works, before the shell ever runs) would
-      # be exactly the script-injection shape this repo's own
-      # actions-injection-review skill exists to catch. Routing it through
-      # env keeps it as inert variable data the whole way through.
+      # Written to a file and posted via `--body-file`, not a `${{ }}`-
+      # interpolated or inline-quoted --body string -- avoids the whole
+      # class of shell-quoting/YAML-indentation fragility a multi-line,
+      # LLM-generated string is otherwise exposed to (matches this repo's
+      # own established `gh ... --body-file`/`-F body=@file` convention for
+      # any multi-paragraph body). $REVIEW is LLM text generated from
+      # untrusted diff content, so it's routed through `env:`, never
+      # interpolated directly into a `run:` script via `${{ }}` -- that
+      # would be exactly the script-injection shape this repo's own
+      # actions-injection-review skill exists to catch.
+      - name: Write the comment body to a file
+        if: steps.gemini_review.outcome == 'success'
+        env:
+          REVIEW: ${{ steps.gemini_review.outputs.summary }}
+        run: |
+          {
+            echo '🔎 **Gemini review** (best-effort, non-blocking -- see issue #176 for why this does not gate merge)'
+            echo ''
+            echo "$REVIEW"
+          } > "${RUNNER_TEMP}/review-comment.md"
+
       - name: Post review as a PR comment (code-controlled, not Gemini-driven)
         if: steps.gemini_review.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          REVIEW: ${{ steps.gemini_review.outputs.summary }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body "🔎 **Gemini review** (best-effort, non-blocking -- see [issue #176](https://github.com/escape-llc/toolcrib/issues/176) for why this doesn't gate merge)
-
-          ${REVIEW}"
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file "${RUNNER_TEMP}/review-comment.md"
 
       - name: Note a skipped/failed review without failing the job
         if: steps.gemini_review.outcome != 'success'
