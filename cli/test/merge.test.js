@@ -106,10 +106,10 @@ describe('mergeCommand — lock file update (regression)', () => {
 });
 
 /** Matches the real shape returned by lib/release.js's fetchTestsRelease. */
-function fakeTestsRelease(version, files) {
+function fakeTestsRelease(version, files, peerDependencies = {}) {
   return {
     version,
-    config: { version, peerDependencies: {} },
+    config: { version, peerDependencies },
     readFile: (relPath) => {
       if (files[relPath] === undefined) throw new Error(`no such file in fake tests release: ${relPath}`);
       return files[relPath];
@@ -220,6 +220,27 @@ describe('mergeCommand — --with-tests auto-continue', () => {
     const lockPatch = findPatchFor(patchDir, 'toolcrib/.toolcrib-lock.json');
     const patchContent = fs.readFileSync(path.join(patchDir, lockPatch), 'utf-8');
     expect(patchContent).toContain('+  "testsVersion": "2.0.0"');
+  });
+
+  it('keeps .toolcrib-tests-config.json in sync alongside the test files themselves', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0', testsVersion: '1.0.0' }, null, 2) + '\n'
+    );
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v, { 'index.ts': 'export {};\n' })));
+    fetchTestsRelease.mockImplementation((v) =>
+      Promise.resolve(
+        fakeTestsRelease(v, { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' }, { vitest: '^5.0.0' })
+      )
+    );
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const configPatch = findPatchFor(patchDir, 'toolcrib/.toolcrib-tests-config.json');
+    expect(configPatch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, configPatch), 'utf-8');
+    expect(patchContent).toContain('"vitest": "^5.0.0"');
   });
 });
 

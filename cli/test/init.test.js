@@ -352,6 +352,16 @@ describe('initCommand — --with-tests', () => {
     expect(fetchRelease).toHaveBeenCalledWith('1.0.0');
     expect(fetchTestsRelease).toHaveBeenCalledWith('1.0.0');
   });
+
+  it('vendors .toolcrib-tests-config.json itself, not just the test files, so a local reader (e.g. toolcrib-mcp) can see the declared peerDependencies later', async () => {
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const configPatch = findPatchFor(patchDir, 'toolcrib/.toolcrib-tests-config.json');
+    expect(configPatch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, configPatch), 'utf-8');
+    expect(patchContent).toContain('"vitest": "^4.0.0"');
+  });
 });
 
 /** Find the written patch for a given relPath among writeAll()'s numbered filenames. */

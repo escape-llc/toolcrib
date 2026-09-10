@@ -152,6 +152,29 @@ export async function initCommand(options) {
   );
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
 
+  // 4b. --with-tests: also vendor toolcrib-tests.config.json's own content
+  // (as .toolcrib-tests-config.json, alongside the lock file) -- not just
+  // the test files themselves. release.js's allFiles() deliberately
+  // excludes this filename from the file loop above (same reason
+  // fetchRelease's own allFiles() excludes toolcrib.config.json), since
+  // it's fetch-time metadata, not vendored source -- but its
+  // peerDependencies are the one piece of that metadata a later consumer
+  // (a toolcrib-mcp get_test_source tool, e.g.) has no other way to ever
+  // see, since toolcrib-mcp only ever reads what's already on disk in a
+  // vendored install, never a live fetch. Proposed unconditionally, like
+  // the lock file itself -- this is meta-configuration a consumer has no
+  // reason to hand-edit, not vendored source meant to be customized.
+  if (testsRelease) {
+    const testsConfigPath = 'toolcrib/.toolcrib-tests-config.json';
+    const proposedTestsConfig = JSON.stringify(testsRelease.config, null, 2) + '\n';
+    changes.propose(
+      testsConfigPath,
+      readTextIfExists(path.join(projectRoot, testsConfigPath)),
+      proposedTestsConfig,
+      '.toolcrib-tests-config.json'
+    );
+  }
+
   // 5. AI instruction file — always propose the "core" managed block. The
   //    situational docs (new-app / refactor-app) need --situation since the
   //    CLI can't infer which applies; without it, the outro just tells the

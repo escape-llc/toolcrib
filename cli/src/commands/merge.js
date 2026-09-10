@@ -311,6 +311,21 @@ export async function mergeCommand(options) {
   );
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
 
+  // Keeps .toolcrib-tests-config.json in sync too, same reasoning and same
+  // unconditional-overwrite treatment as init.js's own step 4b — this is
+  // meta-configuration (peerDependencies) a tool like toolcrib-mcp reads
+  // directly off disk, not vendored source meant to be hand-customized.
+  if (newTestsRelease) {
+    const testsConfigPath = 'toolcrib/.toolcrib-tests-config.json';
+    const proposedTestsConfig = JSON.stringify(newTestsRelease.config, null, 2) + '\n';
+    changes.propose(
+      testsConfigPath,
+      readTextIfExists(path.join(projectRoot, testsConfigPath)),
+      proposedTestsConfig,
+      '.toolcrib-tests-config.json'
+    );
+  }
+
   // Conflicts get their own patch showing the *upstream* diff (local vs.
   // untouched), so the human/AI can see exactly what upstream changed
   // without it silently overwriting local customizations.

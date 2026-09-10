@@ -120,6 +120,12 @@ could otherwise auto-discover these files and fail on missing Vitest
 globals. Either way, they're real reference source: read them, run them, or
 hand them to your AI assistant to adapt to whatever you actually use.
 
+A `toolcrib/.toolcrib-tests-config.json` file is also vendored alongside
+the lock file — it records the exact peer dependencies the test suite
+declares, so a tool reading your project locally (e.g. a future
+`toolcrib-mcp` capability) has something to check against without needing
+network access. You shouldn't need to read or edit it directly.
+
 Nothing is written to your project yet — see [Reviewing and applying
 patches](#reviewing-and-applying-patches) below.
 
