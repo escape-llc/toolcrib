@@ -3,15 +3,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-// mergeCommand imports fetchRelease directly from lib/release.js — mock it
-// at the module level (before importing mergeCommand) so both calls it
-// makes (one for the currently-installed version, one for the target)
-// resolve to fakes instead of hitting the network.
+// mergeCommand imports fetchRelease/fetchTestsRelease directly from
+// lib/release.js — mock it at the module level (before importing
+// mergeCommand) so both calls it makes (one for the currently-installed
+// version, one for the target) resolve to fakes instead of hitting the
+// network. github.js's resolveVersion is deliberately left unmocked here
+// (unlike init.test.js) — every test in this file passes a concrete
+// version string, and resolveVersion's real implementation is a pure,
+// network-free pass-through for anything other than the literal string
+// 'latest', so there's nothing to mock for these tests to stay offline.
 vi.mock('../src/lib/release.js', () => ({
   fetchRelease: vi.fn(),
+  fetchTestsRelease: vi.fn(),
 }));
 
-import { fetchRelease } from '../src/lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../src/lib/release.js';
 import { mergeCommand } from '../src/commands/merge.js';
 import { buildManagedBlock } from '../src/lib/managedDocs.js';
 
@@ -96,6 +102,124 @@ describe('mergeCommand — lock file update (regression)', () => {
     // Already-on-this-version is an early return in mergeCommand before any
     // patches are computed at all — no patches directory should appear.
     expect(fs.existsSync(path.join(tmpDir, 'toolcrib-patches'))).toBe(false);
+  });
+});
+
+/** Matches the real shape returned by lib/release.js's fetchTestsRelease. */
+function fakeTestsRelease(version, files) {
+  return {
+    version,
+    config: { version, peerDependencies: {} },
+    readFile: (relPath) => {
+      if (files[relPath] === undefined) throw new Error(`no such file in fake tests release: ${relPath}`);
+      return files[relPath];
+    },
+    allFiles: () => Object.keys(files),
+    cleanup: async () => {},
+  };
+}
+
+describe('mergeCommand — --with-tests auto-continue', () => {
+  let tmpDir;
+  let originalCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-merge-tests-flag-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', dependencies: {} }, null, 2) + '\n');
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib', '__tests__'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('never calls fetchTestsRelease when the lock has no testsVersion (tests were never opted into)', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0' }, null, 2) + '\n'
+    );
+    fetchRelease.mockImplementation((v) =>
+      Promise.resolve(fakeRelease(v, { 'index.ts': 'export {};\n' }))
+    );
+
+    await mergeCommand({ version: '2.0.0' });
+
+    expect(fetchTestsRelease).not.toHaveBeenCalled();
+  });
+
+  it('auto-fetches and diffs the test suite (no --with-tests-equivalent flag on merge itself) when testsVersion is set', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0', testsVersion: '1.0.0' }, null, 2) + '\n'
+    );
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', '__tests__', 'Button.test.tsx'), 'expect(1).toBe(1);\n');
+
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v, { 'index.ts': 'export {};\n' })));
+    fetchTestsRelease.mockImplementation((v) =>
+      Promise.resolve(
+        fakeTestsRelease(v, {
+          '__tests__/Button.test.tsx': v === '1.0.0' ? 'expect(1).toBe(1);\n' : 'expect(1).toBe(1);\nexpect(2).toBe(2);\n',
+        })
+      )
+    );
+
+    await mergeCommand({ version: '2.0.0' });
+
+    expect(fetchTestsRelease).toHaveBeenCalledWith('1.0.0'); // old side
+    expect(fetchTestsRelease).toHaveBeenCalledWith('2.0.0'); // new side
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const patch = findPatchFor(patchDir, 'toolcrib/__tests__/Button.test.tsx');
+    expect(patch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, patch), 'utf-8');
+    expect(patchContent).toContain('+expect(2).toBe(2);');
+  });
+
+  it('keeps a hand-edited vendored test file untouched (keep-local) the same as any other vendored file', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0', testsVersion: '1.0.0' }, null, 2) + '\n'
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '__tests__', 'Button.test.tsx'),
+      'expect(1).toBe(1); // my own tweak\n'
+    );
+
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v, { 'index.ts': 'export {};\n' })));
+    fetchTestsRelease.mockImplementation((v) =>
+      Promise.resolve(fakeTestsRelease(v, { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' }))
+    );
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    expect(findPatchFor(patchDir, 'toolcrib/__tests__/Button.test.tsx')).toBeUndefined();
+    expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', '__tests__', 'Button.test.tsx'), 'utf-8')).toContain('my own tweak');
+  });
+
+  it('advances testsVersion in the lock file alongside version', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0', testsVersion: '1.0.0' }, null, 2) + '\n'
+    );
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v, { 'index.ts': 'export {};\n' })));
+    fetchTestsRelease.mockImplementation((v) =>
+      Promise.resolve(fakeTestsRelease(v, { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' }))
+    );
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const lockPatch = findPatchFor(patchDir, 'toolcrib/.toolcrib-lock.json');
+    const patchContent = fs.readFileSync(path.join(patchDir, lockPatch), 'utf-8');
+    expect(patchContent).toContain('+  "testsVersion": "2.0.0"');
   });
 });
 

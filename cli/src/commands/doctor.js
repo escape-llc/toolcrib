@@ -1,7 +1,7 @@
 import path from 'node:path';
 import semver from 'semver';
 import * as p from '@clack/prompts';
-import { fetchRelease } from '../lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../lib/release.js';
 import { normalize } from '../lib/patches.js';
 import { readJsonIfExists, readLock, readTextIfExists, fileExists } from '../lib/project.js';
 import { fetchLatestVersion, fetchSecurityAdvisories } from '../lib/github.js';
@@ -52,6 +52,27 @@ export function checkImportsCompatibility(projectRoot) {
  */
 export function checkTypeScriptAdopted(projectRoot) {
   return fileExists(path.join(projectRoot, 'tsconfig.json'));
+}
+
+/**
+ * Which vendored files (under TOOLKIT_DIR) differ from what `release`
+ * actually shipped — shared by the core-toolkit drift check and the
+ * --with-tests drift check below, since both are the exact same
+ * "local vs. shipped, normalized" comparison over a different file set
+ * (test relPaths are already `__tests__/`-prefixed, same as init.js/
+ * merge.js's handling — see release.js's fetchTestsRelease).
+ */
+function computeDrift(projectRoot, release) {
+  const drifted = [];
+  for (const relPath of release.allFiles()) {
+    const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
+    const local = readTextIfExists(targetPath);
+    const shipped = release.readFile(relPath);
+    if (normalize(local) !== normalize(shipped)) {
+      drifted.push(relPath);
+    }
+  }
+  return drifted;
 }
 
 /**
@@ -191,24 +212,28 @@ export async function doctorCommand(options = {}) {
   // release. A failure here (rate limit, network down, bad release asset)
   // should only skip *this* check, not abort bundler detection/root-provider
   // check/etc. below — those are 100% local and would otherwise succeed.
+  // Also fetches the --with-tests artifact when lock.testsVersion is set —
+  // same "only skip this one check" failure isolation, independently of
+  // whether the core fetch itself succeeded.
   let release = null;
   let releaseFetchError = null;
+  let testsRelease = null;
+  let testsReleaseFetchError = null;
   try {
     release = await fetchRelease(lock.version);
   } catch (err) {
     releaseFetchError = err;
   }
+  if (lock.testsVersion) {
+    try {
+      testsRelease = await fetchTestsRelease(lock.testsVersion);
+    } catch (err) {
+      testsReleaseFetchError = err;
+    }
+  }
 
   if (release) {
-    const drifted = [];
-    for (const relPath of release.allFiles()) {
-      const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
-      const local = readTextIfExists(targetPath);
-      const shipped = release.readFile(relPath);
-      if (normalize(local) !== normalize(shipped)) {
-        drifted.push(relPath);
-      }
-    }
+    const drifted = computeDrift(projectRoot, release);
     const managedBlockMessages = await checkManagedBlocks(projectRoot, release);
     await release.cleanup();
     spinner.stop('Drift check complete');
@@ -232,6 +257,29 @@ export async function doctorCommand(options = {}) {
   } else {
     spinner.stop('Drift check skipped');
     p.log.warn(`Could not fetch v${lock.version} to check for drift: ${releaseFetchError.message}`);
+  }
+
+  // --with-tests drift check — only runs when lock.testsVersion is set
+  // (i.e. the test suite was ever vendored via `toolcrib init --with-tests`
+  // or kept in sync by a later `toolcrib merge`). Reported separately from
+  // the core-drift block above, worded distinctly, so a reader can't
+  // mistake test-source drift for core-toolkit drift or vice versa.
+  if (lock.testsVersion) {
+    if (testsRelease) {
+      const testsDrifted = computeDrift(projectRoot, testsRelease);
+      await testsRelease.cleanup();
+
+      if (testsDrifted.length === 0) {
+        p.log.success(`No local drift detected in the vendored test suite (v${lock.testsVersion}).`);
+      } else {
+        p.log.warn(
+          `${testsDrifted.length} test-suite file(s) differ from the shipped v${lock.testsVersion}:\n` +
+            testsDrifted.map((f) => `  ${f}`).join('\n')
+        );
+      }
+    } else {
+      p.log.warn(`Could not fetch test-suite v${lock.testsVersion} to check for drift: ${testsReleaseFetchError.message}`);
+    }
   }
 
   // Network-dependent section 2 of 2: "is a newer version available."

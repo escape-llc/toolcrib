@@ -79,6 +79,7 @@ toolcrib init
 toolcrib init --version 1.2.0        # a specific release instead of latest
 toolcrib init --situation new        # greenfield project, no existing UI
 toolcrib init --situation refactor   # adopting toolcrib into an existing app
+toolcrib init --with-tests           # also vendor the real component test suite
 ```
 
 What it does: downloads the requested release (`latest` by default),
@@ -99,6 +100,25 @@ One thing worth knowing up front: **`init` doesn't take a target folder
 argument.** It always vendors into `./toolcrib` relative to wherever you
 run it — there's no way to point it at, say, `./src/ui` instead. Run it
 from your project root.
+
+#### `--with-tests`
+
+toolcrib vendors component *source*, not an npm package — the real test
+suite (Vitest + React Testing Library + jsdom) can't be vendored the same
+unconditional way every other file is, since your project may not use
+Vitest at all. `--with-tests` is opt-in: it stages the real test files
+under `./toolcrib/__tests__/`, adds their peer dependencies (`vitest`,
+`@testing-library/react`, etc.) to your `devDependencies`, and records that
+this happened in `.toolcrib-lock.json` (`testsVersion`) so a later `toolcrib
+merge` — no extra flag needed — keeps the vendored tests in sync
+automatically alongside the core toolkit, once you've opted in.
+
+If your project already uses Vitest, these run as-is. If it uses a
+different test runner (Jest, etc.), **exclude `./toolcrib/__tests__/` from
+that runner's own config before running your test suite** — a broad glob
+could otherwise auto-discover these files and fail on missing Vitest
+globals. Either way, they're real reference source: read them, run them, or
+hand them to your AI assistant to adapt to whatever you actually use.
 
 Nothing is written to your project yet — see [Reviewing and applying
 patches](#reviewing-and-applying-patches) below.
@@ -152,6 +172,9 @@ anything. It reports:
   project it'll remind you that any file rendering toolcrib components
   needs a `'use client'` directive, since Next's App Router treats
   components as server-only by default.
+- **Vendored test-suite drift**, only if you've installed it via `--with-tests`
+  — reported separately from core drift, so the two never read as one
+  merged list.
 
 **`--reprint-managed-block [docId]`** re-prints the current managed block(s)
 to stdout instead of running the checks above — for re-injecting the
@@ -184,6 +207,10 @@ the new version ships — and sorts each file into one of three outcomes:
   guess which version wins. Instead it writes a `.upstream-diff` note
   explaining what upstream changed, so you (or your AI assistant) can
   reconcile it by hand.
+
+If you installed the test suite via `toolcrib init --with-tests`, `merge`
+keeps it in sync automatically — no separate flag needed here; it checks
+`.toolcrib-lock.json` for you.
 
 As with `init`, nothing is written until you run `apply` afterward.
 

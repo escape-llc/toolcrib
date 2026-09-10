@@ -73,6 +73,13 @@ describe('buildProposedPackageJson', () => {
     const proposed = buildProposedPackageJson(userPkg, [{ name: 'zod', range: '^4.0.0' }]);
     expect(proposed.dependencies).toEqual({ zod: '^4.0.0' });
   });
+
+  it('writes into devDependencies instead when depsField is passed — used by --with-tests for test-suite peer deps', () => {
+    const userPkg = { name: 'my-app', dependencies: { react: '^18.0.0' } };
+    const proposed = buildProposedPackageJson(userPkg, [{ name: 'vitest', range: '^4.0.0' }], 'devDependencies');
+    expect(proposed.devDependencies).toEqual({ vitest: '^4.0.0' });
+    expect(proposed.dependencies).toEqual({ react: '^18.0.0' }); // untouched
+  });
 });
 
 describe('mergeImportsField', () => {

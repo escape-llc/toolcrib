@@ -16,6 +16,7 @@ import path from 'node:path';
 vi.mock('../src/lib/github.js', () => ({
   resolveVersion: vi.fn(),
   downloadReleaseZip: vi.fn(),
+  TESTS_ASSET_NAME: 'toolcrib-tests.zip',
 }));
 vi.mock('../src/lib/zip.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -24,7 +25,7 @@ vi.mock('../src/lib/zip.js', async (importOriginal) => {
 
 import { resolveVersion, downloadReleaseZip } from '../src/lib/github.js';
 import { extractZip } from '../src/lib/zip.js';
-import { fetchRelease } from '../src/lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../src/lib/release.js';
 
 describe('fetchRelease', () => {
   beforeEach(() => {
@@ -121,5 +122,76 @@ describe('fetchRelease', () => {
     // would have deleted releaseB's files out from under it too.
     expect(() => releaseB.readFile('index.ts')).not.toThrow();
     await releaseB.cleanup();
+  });
+});
+
+describe('fetchTestsRelease', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    downloadReleaseZip.mockResolvedValue(Buffer.from('fake tests zip bytes'));
+    // Same shape as build-tests-release.js's real output layout: a config
+    // file plus __tests__/-prefixed test files, written for real into
+    // targetDir the same way fetchRelease's own mock above does.
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(targetDir, 'toolcrib-tests.config.json'),
+        JSON.stringify({ version: '1.0.0', peerDependencies: { vitest: '^4.0.0' } })
+      );
+      fs.mkdirSync(path.join(targetDir, '__tests__'), { recursive: true });
+      fs.writeFileSync(path.join(targetDir, '__tests__', 'Button.test.tsx'), 'export {};\n');
+    });
+  });
+
+  it('takes an already-concrete version directly, never calling resolveVersion itself', async () => {
+    const release = await fetchTestsRelease('1.0.0');
+    expect(resolveVersion).not.toHaveBeenCalled();
+    expect(release.version).toBe('1.0.0');
+    await release.cleanup();
+  });
+
+  it('downloads via the TESTS_ASSET_NAME asset, not the core toolkit zip', async () => {
+    await (await fetchTestsRelease('1.0.0')).cleanup();
+    expect(downloadReleaseZip).toHaveBeenCalledWith('1.0.0', 'toolcrib-tests.zip');
+  });
+
+  it('parses and returns toolcrib-tests.config.json as the config', async () => {
+    const release = await fetchTestsRelease('1.0.0');
+    expect(release.config).toEqual({ version: '1.0.0', peerDependencies: { vitest: '^4.0.0' } });
+    await release.cleanup();
+  });
+
+  it('allFiles lists every extracted file except toolcrib-tests.config.json itself, __tests__/-prefixed', async () => {
+    const release = await fetchTestsRelease('1.0.0');
+    const files = release.allFiles();
+    expect(files).toEqual(['__tests__/Button.test.tsx']);
+    expect(files).not.toContain('toolcrib-tests.config.json');
+    await release.cleanup();
+  });
+
+  it('readFile returns a test file\'s content, BOM-stripped', async () => {
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      fs.mkdirSync(path.join(targetDir, '__tests__'), { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'toolcrib-tests.config.json'), JSON.stringify({ peerDependencies: {} }));
+      fs.writeFileSync(path.join(targetDir, '__tests__', 'Button.test.tsx'), '﻿export {};\n');
+    });
+
+    const release = await fetchTestsRelease('1.0.0');
+    expect(release.readFile('__tests__/Button.test.tsx')).toBe('export {};\n');
+    await release.cleanup();
+  });
+
+  it('cleanup removes the temp directory entirely', async () => {
+    let capturedTempDir;
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      capturedTempDir = targetDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'toolcrib-tests.config.json'), JSON.stringify({ peerDependencies: {} }));
+    });
+
+    const release = await fetchTestsRelease('1.0.0');
+    expect(fs.existsSync(capturedTempDir)).toBe(true);
+    await release.cleanup();
+    expect(fs.existsSync(capturedTempDir)).toBe(false);
   });
 });

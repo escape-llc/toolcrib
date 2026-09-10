@@ -145,6 +145,18 @@ nothing to detect against it. See
 [`integration-test/README.md`](integration-test/README.md#testing-merge-for-real-multi-version-fixtures)
 for the versioned-subfolder layout that fixes this.
 
+**Testing `--with-tests` needs `toolcrib-tests.zip`/`.sha256` dropped
+alongside the core zip** in the same `releases/` fixture directory (build it
+the same way: `node scripts/build-tests-release.js && node
+scripts/package-tests-release.js` from the repo root). No mock-server code
+change is needed for this — `mock-github-server.js`'s asset route already
+resolves `assetName` generically from the request URL's own final path
+segment, the same mechanism that already serves the core zip. Run `toolcrib
+init --with-tests` against the same dummy project above and confirm
+`toolcrib/__tests__/` contains real test files, the test suite's peer deps
+landed in `devDependencies` (not `dependencies`), and
+`toolcrib/.toolcrib-lock.json` has both `version` and `testsVersion`.
+
 ### Bugs this integration test has already found
 
 Worth keeping this test around — it already found three real issues that

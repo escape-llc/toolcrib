@@ -57,19 +57,34 @@ export function fileExists(filePath) {
 
 /**
  * The ONLY thing persisted locally between CLI runs is the installed
- * version string — no cached hashes, no file-by-file state. Everything
- * else is recomputed on demand against the immutable release artifacts,
- * which is what keeps merge/doctor correct regardless of local
- * environment quirks (line-ending drift, etc.) — see design notes.
+ * version string (plus, optionally, testsVersion — see below) — no cached
+ * hashes, no file-by-file state. Everything else is recomputed on demand
+ * against the immutable release artifacts, which is what keeps
+ * merge/doctor correct regardless of local environment quirks (line-ending
+ * drift, etc.) — see design notes.
  */
 export function readLock(projectRoot) {
   return readJsonIfExists(path.join(projectRoot, LOCK_PATH));
 }
 
-export function proposeLockUpdate(projectRoot, version) {
+/**
+ * `extra` is merged into the written lock JSON alongside `version` —
+ * today, used only for `testsVersion` (recorded when `toolcrib init
+ * --with-tests` vendors the optional test-suite artifact, see
+ * lib/release.js's fetchTestsRelease). Omitted (the default), the output
+ * is exactly `{ version }`, unchanged from before this existed.
+ *
+ * Deliberately no implicit "preserve testsVersion unless told otherwise"
+ * behavior in here — a caller that wants to carry an existing testsVersion
+ * forward reads the current lock itself and passes it through explicitly
+ * via `extra`, keeping that decision visible at each call site rather than
+ * hidden inside this function, matching this file's own "recomputed on
+ * demand, nothing cached implicitly" design principle above.
+ */
+export function proposeLockUpdate(projectRoot, version, extra = {}) {
   const lockPath = path.join(projectRoot, LOCK_PATH);
   const current = readTextIfExists(lockPath);
-  const proposed = JSON.stringify({ version }, null, 2) + '\n';
+  const proposed = JSON.stringify({ version, ...extra }, null, 2) + '\n';
   return { relPath: LOCK_PATH, current, proposed };
 }
 

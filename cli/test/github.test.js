@@ -245,4 +245,40 @@ describe('downloadReleaseZip checksum verification', () => {
 
     await expect(downloadReleaseZip('1.0.0')).rejects.toThrow(/404/);
   });
+
+  it('requests a non-default asset name (and its own .sha256 sibling) when one is passed — used by fetchTestsRelease', async () => {
+    const content = Buffer.from('fake tests zip contents');
+    const crypto = await import('node:crypto');
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+
+    const requestedUrls = [];
+    fetchMock.mockImplementation(async (url) => {
+      requestedUrls.push(String(url));
+      if (String(url).endsWith('.sha256')) {
+        return { ok: true, text: async () => `${hash}  toolcrib-tests.zip\n` };
+      }
+      return { ok: true, arrayBuffer: async () => content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) };
+    });
+
+    const result = await downloadReleaseZip('1.0.0', 'toolcrib-tests.zip');
+    expect(result.equals(content)).toBe(true);
+    expect(requestedUrls.some((u) => u.endsWith('/toolcrib-tests.zip'))).toBe(true);
+    expect(requestedUrls.some((u) => u.endsWith('/toolcrib-tests.zip.sha256'))).toBe(true);
+    // Never requests the core asset's own checksum when a different name was passed.
+    expect(requestedUrls.some((u) => u.endsWith('/toolcrib.zip.sha256'))).toBe(false);
+  });
+
+  it('a checksum mismatch is still detected for a non-default asset name', async () => {
+    const content = Buffer.from('fake tests zip contents');
+    const wrongHash = 'b'.repeat(64);
+
+    fetchMock.mockImplementation(async (url) => {
+      if (String(url).endsWith('.sha256')) {
+        return { ok: true, text: async () => `${wrongHash}  toolcrib-tests.zip\n` };
+      }
+      return { ok: true, arrayBuffer: async () => content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) };
+    });
+
+    await expect(downloadReleaseZip('1.0.0', 'toolcrib-tests.zip')).rejects.toThrow(/Checksum mismatch/);
+  });
 });

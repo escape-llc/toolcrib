@@ -3,14 +3,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-// initCommand imports fetchRelease directly from lib/release.js — mock it
-// at the module level, same approach as merge.test.js, so no real network
-// call happens.
+// initCommand imports fetchRelease/fetchTestsRelease directly from
+// lib/release.js — mock the whole module, same approach as merge.test.js,
+// so no real network call happens. resolveVersion (from lib/github.js) is
+// mocked separately for the identical reason: initCommand now resolves
+// 'latest' itself (once, up front — see init.js's own comment on why),
+// and this repo's release.js mock below replaces the module that would
+// otherwise re-export the real resolveVersion, so nothing here would
+// short-circuit an unmocked real network call without this.
 vi.mock('../src/lib/release.js', () => ({
   fetchRelease: vi.fn(),
+  fetchTestsRelease: vi.fn(),
+}));
+vi.mock('../src/lib/github.js', () => ({
+  resolveVersion: vi.fn(),
 }));
 
-import { fetchRelease } from '../src/lib/release.js';
+import { fetchRelease, fetchTestsRelease } from '../src/lib/release.js';
+import { resolveVersion } from '../src/lib/github.js';
 import { initCommand } from '../src/commands/init.js';
 import { proposeLockUpdate, proposeGitignore } from '../src/lib/project.js';
 import { buildManagedBlock } from '../src/lib/managedDocs.js';
@@ -50,6 +60,7 @@ describe('initCommand — instruction file targeting', () => {
     process.chdir(tmpDir);
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', dependencies: {} }, null, 2) + '\n');
     vi.resetAllMocks();
+    resolveVersion.mockImplementation((v) => Promise.resolve(v === 'latest' ? '1.0.0' : v));
     fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v === 'latest' ? '1.0.0' : v, baseFiles())));
   });
 
@@ -127,6 +138,7 @@ describe('initCommand — dependency conflict exit code', () => {
     originalCwd = process.cwd();
     process.chdir(tmpDir);
     vi.resetAllMocks();
+    resolveVersion.mockImplementation((v) => Promise.resolve(v === 'latest' ? '1.0.0' : v));
     fetchRelease.mockImplementation((v) =>
       Promise.resolve(fakeRelease(v === 'latest' ? '1.0.0' : v, baseFiles(), { react: '^18.3.1 || ^19.0.0' }))
     );
@@ -259,3 +271,92 @@ describe('initCommand — other early-exit and no-op paths', () => {
     expect(fs.existsSync(path.join(tmpDir, 'toolcrib-patches'))).toBe(false);
   });
 });
+
+/** Matches the real shape returned by lib/release.js's fetchTestsRelease. */
+function fakeTestsRelease(version, files, peerDependencies = {}) {
+  return {
+    version,
+    config: { version, peerDependencies },
+    readFile: (relPath) => {
+      if (files[relPath] === undefined) throw new Error(`no such file in fake tests release: ${relPath}`);
+      return files[relPath];
+    },
+    allFiles: () => Object.keys(files).filter((f) => f !== 'toolcrib-tests.config.json'),
+    cleanup: async () => {},
+  };
+}
+
+describe('initCommand — --with-tests', () => {
+  let tmpDir;
+  let originalCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-init-tests-flag-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', dependencies: {} }, null, 2) + '\n');
+    vi.resetAllMocks();
+    resolveVersion.mockImplementation((v) => Promise.resolve(v === 'latest' ? '1.0.0' : v));
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v === 'latest' ? '1.0.0' : v, baseFiles())));
+    fetchTestsRelease.mockImplementation((v) =>
+      Promise.resolve(
+        fakeTestsRelease(v, { '__tests__/Button.test.tsx': 'export {};\n' }, { vitest: '^4.0.0' })
+      )
+    );
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('never calls fetchTestsRelease when the flag is omitted', async () => {
+    await initCommand({ version: 'latest', situation: 'new' });
+    expect(fetchTestsRelease).not.toHaveBeenCalled();
+  });
+
+  it('stages the vendored test files under ./toolcrib/__tests__/ when the flag is passed', async () => {
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    expect(fetchTestsRelease).toHaveBeenCalledWith('1.0.0');
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const patchFiles = fs.readdirSync(patchDir);
+    expect(patchFiles.some((f) => f.includes('Button.test.tsx'))).toBe(true);
+  });
+
+  it('adds the test suite\'s peerDependencies to devDependencies, not dependencies', async () => {
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const pkgPatch = findPatchFor(patchDir, 'package.json');
+    expect(pkgPatch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, pkgPatch), 'utf-8');
+    expect(patchContent).toContain('devDependencies');
+    expect(patchContent).toContain('vitest');
+  });
+
+  it('records testsVersion alongside version in the lock file', async () => {
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const lockPatch = findPatchFor(patchDir, 'toolcrib/.toolcrib-lock.json');
+    expect(lockPatch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, lockPatch), 'utf-8');
+    expect(patchContent).toContain('"testsVersion": "1.0.0"');
+  });
+
+  it('resolves "latest" exactly once and reuses the concrete version for both the core and tests fetch — no independent second resolution', async () => {
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    expect(resolveVersion).toHaveBeenCalledTimes(1);
+    expect(fetchRelease).toHaveBeenCalledWith('1.0.0');
+    expect(fetchTestsRelease).toHaveBeenCalledWith('1.0.0');
+  });
+});
+
+/** Find the written patch for a given relPath among writeAll()'s numbered filenames. */
+function findPatchFor(patchDir, relPath) {
+  const safeName = relPath.replace(/[/\\]/g, '-');
+  const files = fs.readdirSync(patchDir);
+  return files.find((f) => f.endsWith(`${safeName}.patch`));
+}
