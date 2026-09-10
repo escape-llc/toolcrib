@@ -238,7 +238,22 @@ export async function mergeCommand(options) {
     if (lock.testsVersion) {
       fetches.push(fetchTestsRelease(lock.testsVersion), fetchTestsRelease(resolvedVersion));
     }
-    const results = await Promise.all(fetches);
+    // Promise.allSettled, not Promise.all — a real, found-by-review gap:
+    // Promise.all rejects and abandons immediately on the first failure,
+    // so any OTHER fetch among these 2-4 that had already resolved by then
+    // (its own real temp directory already on disk) was never cleaned up,
+    // permanently leaking it. allSettled waits for every fetch to finish
+    // one way or the other, so every successfully-resolved release can
+    // still be cleaned up before this function throws.
+    const settled = await Promise.allSettled(fetches);
+    const firstRejection = settled.find((r) => r.status === 'rejected');
+    if (firstRejection) {
+      await Promise.all(
+        settled.filter((r) => r.status === 'fulfilled').map((r) => r.value.cleanup().catch(() => {}))
+      );
+      throw firstRejection.reason;
+    }
+    const results = settled.map((r) => r.value);
     [oldRelease, newRelease] = results;
     if (lock.testsVersion) {
       [oldTestsRelease, newTestsRelease] = results.slice(2);

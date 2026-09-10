@@ -58,6 +58,13 @@ export async function initCommand(options) {
     }
   } catch (err) {
     spinner.stop(`Failed to resolve/download version "${options.version}"`);
+    // Real, found-by-review gap: if fetchRelease succeeded but
+    // fetchTestsRelease then threw, release's own temp directory was never
+    // cleaned up before this rethrow -- a real leak specifically on the
+    // --with-tests failure path. .catch(() => {}) on the cleanup itself:
+    // a cleanup failure here must never mask the original, more relevant
+    // error being thrown below it.
+    if (release) await release.cleanup().catch(() => {});
     throw err;
   }
   spinner.stop(`Resolved "${options.version}" → v${release.version}`);

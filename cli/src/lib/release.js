@@ -26,10 +26,20 @@ export async function fetchRelease(version) {
   const zipBuffer = await downloadReleaseZip(resolvedVersion);
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-release-'));
-  await extractZip(zipBuffer, tempDir);
 
-  const configPath = path.join(tempDir, 'toolcrib.config.json');
-  const config = JSON.parse(stripBOM(fs.readFileSync(configPath, 'utf-8')));
+  // Same real, found-by-review leak as fetchTestsRelease below (identical
+  // shape, pre-dating it): mkdtemp already created tempDir at this point --
+  // clean it up if extraction or config parsing fails, rather than leaking
+  // it every time this specific failure path is hit.
+  let config;
+  try {
+    await extractZip(zipBuffer, tempDir);
+    const configPath = path.join(tempDir, 'toolcrib.config.json');
+    config = JSON.parse(stripBOM(fs.readFileSync(configPath, 'utf-8')));
+  } catch (err) {
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw err;
+  }
 
   return {
     version: resolvedVersion,
@@ -66,10 +76,23 @@ export async function fetchTestsRelease(version) {
   const zipBuffer = await downloadReleaseZip(version, TESTS_ASSET_NAME);
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-tests-release-'));
-  await extractZip(zipBuffer, tempDir);
 
-  const configPath = path.join(tempDir, 'toolcrib-tests.config.json');
-  const config = JSON.parse(stripBOM(fs.readFileSync(configPath, 'utf-8')));
+  // Real, found-by-review gap: mkdtemp already created tempDir on disk at
+  // this point -- if extractZip or the config parse below throws, the
+  // function would previously propagate that error before ever returning
+  // the object holding cleanup(), permanently leaking the temp directory.
+  // Clean up on that specific failure path, then rethrow the original error
+  // unchanged (the caller's own error message/handling is what matters,
+  // not this cleanup step).
+  let config;
+  try {
+    await extractZip(zipBuffer, tempDir);
+    const configPath = path.join(tempDir, 'toolcrib-tests.config.json');
+    config = JSON.parse(stripBOM(fs.readFileSync(configPath, 'utf-8')));
+  } catch (err) {
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw err;
+  }
 
   return {
     version,

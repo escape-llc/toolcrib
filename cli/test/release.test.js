@@ -123,6 +123,30 @@ describe('fetchRelease', () => {
     expect(() => releaseB.readFile('index.ts')).not.toThrow();
     await releaseB.cleanup();
   });
+
+  it('cleans up the already-created temp directory if extraction fails (regression: this previously leaked it)', async () => {
+    let capturedTempDir;
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      capturedTempDir = targetDir;
+      fs.mkdirSync(targetDir, { recursive: true }); // mkdtemp already did this for real; simulate it here too
+      throw new Error('extraction failed');
+    });
+
+    await expect(fetchRelease('1.0.0')).rejects.toThrow('extraction failed');
+    expect(fs.existsSync(capturedTempDir)).toBe(false);
+  });
+
+  it('cleans up the already-created temp directory if the config file is malformed (regression: this previously leaked it)', async () => {
+    let capturedTempDir;
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      capturedTempDir = targetDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'toolcrib.config.json'), '{not valid json');
+    });
+
+    await expect(fetchRelease('1.0.0')).rejects.toThrow();
+    expect(fs.existsSync(capturedTempDir)).toBe(false);
+  });
 });
 
 describe('fetchTestsRelease', () => {
@@ -192,6 +216,30 @@ describe('fetchTestsRelease', () => {
     const release = await fetchTestsRelease('1.0.0');
     expect(fs.existsSync(capturedTempDir)).toBe(true);
     await release.cleanup();
+    expect(fs.existsSync(capturedTempDir)).toBe(false);
+  });
+
+  it('cleans up the already-created temp directory if extraction fails (regression: this previously leaked it)', async () => {
+    let capturedTempDir;
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      capturedTempDir = targetDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      throw new Error('extraction failed');
+    });
+
+    await expect(fetchTestsRelease('1.0.0')).rejects.toThrow('extraction failed');
+    expect(fs.existsSync(capturedTempDir)).toBe(false);
+  });
+
+  it('cleans up the already-created temp directory if the config file is malformed (regression: this previously leaked it)', async () => {
+    let capturedTempDir;
+    extractZip.mockImplementation(async (zipBuffer, targetDir) => {
+      capturedTempDir = targetDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'toolcrib-tests.config.json'), '{not valid json');
+    });
+
+    await expect(fetchTestsRelease('1.0.0')).rejects.toThrow();
     expect(fs.existsSync(capturedTempDir)).toBe(false);
   });
 });

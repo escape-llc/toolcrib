@@ -362,6 +362,24 @@ describe('initCommand — --with-tests', () => {
     const patchContent = fs.readFileSync(path.join(patchDir, configPatch), 'utf-8');
     expect(patchContent).toContain('"vitest": "^4.0.0"');
   });
+
+  it('cleans up the already-fetched core release if fetchTestsRelease then fails (regression: this previously leaked it)', async () => {
+    let cleanedUp = false;
+    fetchRelease.mockImplementation((v) =>
+      Promise.resolve({
+        ...fakeRelease(v, baseFiles()),
+        cleanup: async () => {
+          cleanedUp = true;
+        },
+      })
+    );
+    fetchTestsRelease.mockRejectedValue(new Error('tests download failed'));
+
+    await expect(initCommand({ version: 'latest', situation: 'new', withTests: true })).rejects.toThrow(
+      'tests download failed'
+    );
+    expect(cleanedUp).toBe(true);
+  });
 });
 
 /** Find the written patch for a given relPath among writeAll()'s numbered filenames. */

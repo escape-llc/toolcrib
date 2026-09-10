@@ -242,6 +242,42 @@ describe('mergeCommand — --with-tests auto-continue', () => {
     const patchContent = fs.readFileSync(path.join(patchDir, configPatch), 'utf-8');
     expect(patchContent).toContain('"vitest": "^5.0.0"');
   });
+
+  it('cleans up every already-fulfilled release if a sibling fetch rejects (regression: Promise.all previously leaked them)', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'),
+      JSON.stringify({ version: '1.0.0', testsVersion: '1.0.0' }, null, 2) + '\n'
+    );
+
+    const cleanedUp = [];
+    fetchRelease.mockImplementation((v) =>
+      Promise.resolve({
+        ...fakeRelease(v, { 'index.ts': 'export {};\n' }),
+        cleanup: async () => {
+          cleanedUp.push(`release:${v}`);
+        },
+      })
+    );
+    fetchTestsRelease.mockImplementation((v) => {
+      // The old-side tests fetch succeeds; the new-side one rejects --
+      // exercises the real "some settled, one didn't" shape Promise.all
+      // can't recover from.
+      if (v === '2.0.0') return Promise.reject(new Error('tests fetch failed'));
+      return Promise.resolve({
+        ...fakeTestsRelease(v, { '__tests__/Button.test.tsx': 'expect(1).toBe(1);\n' }),
+        cleanup: async () => {
+          cleanedUp.push(`tests:${v}`);
+        },
+      });
+    });
+
+    await expect(mergeCommand({ version: '2.0.0' })).rejects.toThrow('tests fetch failed');
+
+    // Both real fetchRelease calls (old + new core) and the one fulfilled
+    // fetchTestsRelease call must all have been cleaned up, even though
+    // the whole operation ultimately failed.
+    expect(cleanedUp.sort()).toEqual(['release:1.0.0', 'release:2.0.0', 'tests:1.0.0'].sort());
+  });
 });
 
 // classify() itself isn't exported (only mergeCommand is) — these exercise
