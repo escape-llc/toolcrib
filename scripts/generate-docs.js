@@ -26,18 +26,23 @@
  *  - Event Bus table: name/payload generated from eventBus.channels;
  *    a handful of channels get an authored extra note (EVENT_NOTES
  *    below), same pattern as Z_INDEX_USAGE.
- *  - Anti-Patterns table (§3): a handful of rows with no single owning
- *    component (a structural convention, or a small set of components
- *    sharing one combined message with no natural per-component split)
- *    are authored in STATIC_ANTI_PATTERNS below; the rest are generated
- *    from any component carrying BOTH `@manifestAntiPatternAvoid` and
- *    `@manifestAntiPatternInstead` — closes the same "shipped with a
- *    @manifest tag but no corresponding doc row" gap the Component
- *    Reference/Event Bus tables were built to close (see AGENTS.md).
+ *  - Anti-Patterns table ("anti-patterns" section): a handful of rows with
+ *    no single owning component (a structural convention, or a small set
+ *    of components sharing one combined message with no natural
+ *    per-component split) are authored in STATIC_ANTI_PATTERNS below; the
+ *    rest are generated from any component carrying BOTH
+ *    `@manifestAntiPatternAvoid` and `@manifestAntiPatternInstead` —
+ *    closes the same "shipped with a @manifest tag but no corresponding
+ *    doc row" gap the Component Reference/Event Bus tables were built to
+ *    close (see AGENTS.md).
  *  - Theme Slices sentence: generated from themeSystem.slices.
- *  - Everything else (Root Setup, Core Principles, §5/§7/§9 prose, code
- *    samples): static template content — no source-of-truth to derive it
- *    from, so it's authored directly in the .hbs file, not templated.
+ *  - Everything else (Root Setup, Core Principles, "layout-auto"/
+ *    "theme-system"/"theme-slices" prose, code samples): static template
+ *    content — no source-of-truth to derive it from, so it's authored
+ *    directly in the .hbs file, not templated. (Section *numbers* like
+ *    "§3" above are deliberately never hand-typed anywhere, including in
+ *    this comment — see CORE_SECTIONS/`sectionNum` below for why, and
+ *    reference a section by its CORE_SECTIONS key instead.)
  *
  * Also renders ai-docs/templates/examples/*.md.hbs into ai-docs/examples/
  * — narrative walkthroughs of the toolkit's bespoke, no-training-data-prior
@@ -115,6 +120,39 @@ const README_PATH = path.join(ROOT, 'README.md');
 const NEW_APP_PATH = path.join(ROOT, 'ai-docs', 'NEW_APP.md');
 const REFACTOR_APP_PATH = path.join(ROOT, 'ai-docs', 'REFACTOR_APP.md');
 
+// CORE.md's own `## N. Title` numbering and internal `§N` cross-references
+// are both driven by this ordered key list, via the `sectionNum` helper
+// registered in main() below -- not hand-typed in the template. Inserting,
+// removing, or reordering a section is now a one-line change here; every
+// heading and cross-reference inside CORE.md.hbs (and the example templates
+// that also cite one, e.g. `(§{{sectionNum "anti-patterns"}})`) recomputes
+// on the next `--write` instead of needing a hand-renumbering pass.
+//
+// Deliberately scoped to *inside* CORE.md.hbs only -- a real, repo-wide
+// grep (not a guess) found ~9 other files (source comments, other ai-docs/
+// pages, a CI workflow) that also cite "CORE.md §N" in hand-written prose
+// outside this generation pipeline entirely; a Handlebars helper can't
+// reach those. Those were converted to name-based references instead
+// (`CORE.md's "Anti-Patterns" section`, not `CORE.md §3`) rather than
+// pulling more files into this template pipeline just to keep one citation
+// each in sync -- a name never goes stale when a section moves, so it's a
+// one-time fix rather than a recurring one, and it doesn't force a React
+// component or a GitHub Actions workflow to become a rendered doc.
+const CORE_SECTIONS = [
+  'root-setup',
+  'recommended-packages',
+  'core-principles',
+  'anti-patterns',
+  'component-reference',
+  'layout-auto',
+  'z-index',
+  'theme-system',
+  'theme-slices',
+  'overrides-style-domains',
+  'event-bus',
+];
+const SECTION_NUMBER_BY_KEY = Object.fromEntries(CORE_SECTIONS.map((key, i) => [key, i + 1]));
+
 // Authored "Used By" text per Z_INDEX tier — the tier/value columns are
 // generated, this prose isn't. Missing an entry here for a real tier is a
 // hard generation error (see assembleZIndexRows), not a silent gap.
@@ -159,7 +197,7 @@ const EVENT_NOTES = {
 const STATIC_ANTI_PATTERNS = [
   {
     avoid: 'Manually wire `<ThemeProvider>` + `<ToastProvider>` + `<ToastContainer>` at the app root',
-    instead: "Use `<ToolcribProvider>` — composes all three in the correct order, so there's no separate `<ToastContainer>` to forget (see §1)",
+    instead: `Use \`<ToolcribProvider>\` — composes all three in the correct order, so there's no separate \`<ToastContainer>\` to forget (see §${SECTION_NUMBER_BY_KEY['root-setup']})`,
   },
   {
     avoid: 'Manually manage overlay open/close with `useState`, create custom popup/modal/drawer components, or use `position: fixed` with manual z-index',
@@ -184,7 +222,7 @@ const STATIC_ANTI_PATTERNS = [
   {
     avoid: 'Pass `style={{...}}` or `className="..."` to a toolcrib component',
     instead:
-      "Use that component's `overrides` prop (§9) if it has theme-controlled axes; if what you need genuinely isn't one of them, a plain `<div>` is still fine — `<Block>` is the same escape hatch with theme-aware background/padding/radius/border defaults",
+      `Use that component's \`overrides\` prop (§${SECTION_NUMBER_BY_KEY['overrides-style-domains']}) if it has theme-controlled axes; if what you need genuinely isn't one of them, a plain \`<div>\` is still fine — \`<Block>\` is the same escape hatch with theme-aware background/padding/radius/border defaults`,
   },
 ];
 
@@ -444,6 +482,22 @@ function renderTemplate(templatePath, data) {
 function main() {
   Handlebars.registerHelper('json', (data) => new Handlebars.SafeString(JSON.stringify(data, null, 2)));
   Handlebars.registerHelper('toon', (rows) => new Handlebars.SafeString(toToon(rows)));
+  // `{{sectionNum "anti-patterns"}}` -- both CORE.md.hbs's own `## N.`
+  // headings and its internal `§N` cross-references resolve through this
+  // one shared lookup (see CORE_SECTIONS above), and so can any example
+  // template registered below, since helpers are global to this Handlebars
+  // instance regardless of which template.compile() call is rendering.
+  // Throws on an unknown key rather than silently rendering "undefined" --
+  // a typo'd key should fail generation loudly, the same bar
+  // assembleZIndexRows/EVENT_NOTES already hold themselves to for a missing
+  // authored entry.
+  Handlebars.registerHelper('sectionNum', (key) => {
+    const n = SECTION_NUMBER_BY_KEY[key];
+    if (n === undefined) {
+      throw new Error(`sectionNum: unknown CORE.md section key "${key}" -- add it to CORE_SECTIONS in scripts/generate-docs.js.`);
+    }
+    return n;
+  });
 
   const mode = process.argv.includes('--write') ? 'write' : 'check';
 

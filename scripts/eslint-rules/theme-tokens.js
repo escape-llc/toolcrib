@@ -1,7 +1,8 @@
 // Real, AST-based ESLint rules replacing scripts/check-theme-tokens.js's
 // regex-based version -- same three defect shapes, found by a real
-// self-audit of Toolcrib's own components against ai-docs/CORE.md §3 (see
-// .plans/toolcrib-gap-closure-plan.md §6b). Wired into scripts/eslint.config.js
+// self-audit of Toolcrib's own components against ai-docs/CORE.md's
+// Anti-Patterns section (see .plans/toolcrib-gap-closure-plan.md §6b).
+// Wired into scripts/eslint.config.js
 // as a local, inline plugin (no npm package needed) so `npm run lint`
 // catches these in-editor, not just at CI/pre-commit time -- the standalone
 // script duplicated this logic and is retired now that these exist.

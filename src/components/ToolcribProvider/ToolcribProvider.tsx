@@ -26,7 +26,7 @@ export interface ToolcribProviderProps {
 /**
  * Composes `<ThemeProvider>` > `<ToastProvider>` > `children` +
  * `<ToastContainer>` in the one correct nesting order — the same order
- * `CORE.md` §1 documents as required for manual wiring. Fixes the exact
+ * `CORE.md`'s Root Setup section documents as required for manual wiring. Fixes the exact
  * failure mode manual wiring invites: omitting `<ToastContainer>` is a
  * silent failure (toasts fire on the bus and update state, but nothing
  * ever renders them), and this composition can't be gotten wrong because
@@ -44,7 +44,7 @@ export interface ToolcribProviderProps {
  * composition, so the usual per-component ground rules don't apply here.
  * Deliberately not tagged for manifest generation (see `component-manifest.json`'s
  * precedent: `ThemeProvider`/`ToastProvider` don't have entries there
- * either — `CORE.md` §1's Root Setup prose is the documentation surface
+ * either — `CORE.md`'s Root Setup prose is the documentation surface
  * for all three, not the generated component-manifest pipeline).
  * @barrelExport
  */

@@ -97,5 +97,5 @@ preset never resets a density/animation/etc. choice made elsewhere — the
 same convention this worked example follows. If a brief calls for a
 specific component-level tweak beyond the global palette, that's a
 `ThemeSlice` override passed as that component's own `overrides` prop
-(see CORE.md §9 and the `overrides-and-style-domains` worked example),
+(see CORE.md §10 and the `overrides-and-style-domains` worked example),
 a separate mechanism from anything here.

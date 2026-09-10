@@ -18,7 +18,7 @@ export type BlockRadius = 'sm' | 'md' | 'lg' | 'xl' | 'none';
  * Props for the `<Block>` themed container.
  *
  * The one deliberate exception to "no toolcrib component accepts `style`/
- * `className`" (see `ai-docs/CORE.md` §2 principle 7) — everywhere else
+ * `className`" (see `ai-docs/CORE.md`'s Core Principles, principle 7) — everywhere else
  * that rule holds so every visual decision stays theme-driven and
  * AI-legible, but there's a real, recurring need underneath it: a plain
  * layout wrapper `<div>` for cases no curated component's own props cover

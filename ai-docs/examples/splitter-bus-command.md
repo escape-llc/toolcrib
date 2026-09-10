@@ -1,6 +1,6 @@
 # Worked Example: Splitter's Imperative Bus Command
 
-`<Splitter>` (CORE.md §2, point 2) has no controlled prop and no ref for
+`<Splitter>` (CORE.md §3, point 2) has no controlled prop and no ref for
 its own split ratio — `initialSplit` only ever seeds the *starting*
 position. The only way to command an already-mounted Splitter from
 outside is `aiBus.emit('splitter:split_changed', { id, split })`, matched

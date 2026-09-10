@@ -43,7 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-Nothing themed will render correctly, and `useToast()` / `aiBus.showToast()` will either throw or silently do nothing, until this is in place. See `CORE.md` §1 for what `ToolcribProvider` composes and why.
+Nothing themed will render correctly, and `useToast()` / `aiBus.showToast()` will either throw or silently do nothing, until this is in place. See `CORE.md`'s Root Setup section for what `ToolcribProvider` composes and why.
 
 ## 3. Build every screen from toolcrib components — there's nothing to preserve
 
