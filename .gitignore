@@ -36,3 +36,10 @@ cli/integration-test/releases/
 # session -- not safely shareable across contributors/machines. Untracked
 # going forward (was previously committed; removed via `git rm --cached`).
 .claude/settings.json
+
+# gemini-cli settings -- written locally if anyone ever runs `gemini`
+# interactively in this repo (the CI-only .github/workflows/gemini-review.yml
+# job doesn't need this; it runs in a fresh runner that's discarded after).
+# Per google-github-actions/run-gemini-cli's own Quick Start step 3.
+.gemini/
+gha-creds-*.json
