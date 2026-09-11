@@ -189,10 +189,69 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
 
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
   await scanNamed('Modal');
-  await page.keyboard.press('Escape');
+
+  // aria-compliance-review's own §1 finding (issue #262): nested Modal
+  // content only renders once its own trigger is clicked -- never scanned
+  // before now. Functional nested-overlay behavior (Escape closes only the
+  // inner dialog, z-index/paint order) is already independently verified
+  // by zindex-stress.spec.ts, so this is markup-scan coverage only.
+  await page.getByRole('button', { name: 'Open Nested Modal' }).click();
+  await scanNamed('Modal (nested)');
+  await page.keyboard.press('Escape'); // closes the inner modal only
+  // The inner dialog's own exit animation (--ai-transition-duration-normal,
+  // 0.2s) has to actually finish -- Radix's Presence keeps its focus scope
+  // mounted until then, and an Escape pressed before that settles gets
+  // swallowed rather than reaching the now-topmost outer dialog. Confirmed
+  // directly: without this wait, the outer dialog was still open (and
+  // "Open Command Palette" unreachable) after this second Escape.
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Escape'); // closes the outer modal
 
   await page.getByRole('button', { name: 'Open Command Palette' }).click();
   await scanNamed('CommandPalette');
+  await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Forms & Zod Engine');
+
+  // aria-compliance-review's own §1 finding (issue #262): neither
+  // DatePicker instance's calendar popover has ever been scanned while
+  // open -- content only renders once its own trigger is clicked. Two
+  // real instances exist on this tab (the Zod-validated "Start Date"
+  // field wired into the form above, and the standalone "Meeting Date"
+  // demo below it) -- both render an identical "Open calendar" icon
+  // button (DatePicker.tsx's own hardcoded aria-label, not overridable
+  // per-instance), so doc order (the Grid with the form renders first)
+  // disambiguates them instead.
+  await page.getByRole('button', { name: 'Open calendar' }).nth(0).click();
+  await scanNamed('DatePicker calendar popover (Start Date, form-wired)');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Open calendar' }).nth(1).click();
+  await scanNamed('DatePicker calendar popover (Meeting Date, standalone)');
+  await page.keyboard.press('Escape');
+
+  // aria-compliance-review's own §1 finding (issue #262): every <Select>
+  // instance's Radix Select.Content dropdown was never scanned. Unlike
+  // Combobox (whose two demo instances genuinely differ -- async search
+  // vs. static multi-select), Select.tsx's Content/Item markup has no
+  // conditional branches driven by instance props, so one representative,
+  // properly-labeled instance covers the real gap.
+  //
+  // Shares the identical aria-hidden-focus carve-out DropdownMenu/
+  // ContextMenu already use above, for the identical underlying reason.
+  // @radix-ui/react-select's own SelectContentImpl calls the same
+  // `hideOthers()` (from the `aria-hidden` package) on mount that Radix's
+  // Menu-family primitives do -- `if (content) return hideOthers(content);`
+  // in node_modules/@radix-ui/react-select/dist/index.mjs -- which is what
+  // flags #root as "aria-hidden with a focusable descendant" here.
+  // Confirmed directly (not just by source reading), same discipline as
+  // the original carve-out above: a real Tab-trace with the dropdown open
+  // (6 presses) left focus on an option inside the listbox every time,
+  // never escaping to the sidebar or anything else nominally tabbable
+  // underneath -- Radix's FocusScope genuinely traps Tab inside
+  // Select.Content while open, axe just can't observe that at runtime.
+  await page.getByRole('combobox', { name: 'Role Level' }).click();
+  await scanNamed('Select (Role Level dropdown)', ARIA_HIDDEN_FOCUS_DISABLED);
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Component Showcase');
@@ -200,6 +259,15 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.getByRole('button', { name: 'Options', exact: true }).click();
   await scanNamed('Popup (Component Showcase tab)');
   await page.keyboard.press('Escape');
+
+  // aria-compliance-review's own §1 finding (issue #262): Accordion's
+  // second panel (`defaultValue="faq-1"` leaves only the first item's
+  // content in the DOM) has never been scanned while expanded -- low
+  // risk (static paragraph text only), but a real gap in the coverage
+  // inventory. type="single" means expanding faq-2 auto-collapses faq-1.
+  await page.getByRole('button', { name: 'How does Event Bus integration work?' }).click();
+  await scanNamed('Accordion (second panel expanded)');
+  await page.getByRole('button', { name: 'Why use Radix UI Primitives?' }).click(); // collapse again, leave state as found
 
   // Two "Delete Record" buttons exist on this tab (the Button Subsystem
   // showcase's own danger-variant example, and this AlertDialog's real
