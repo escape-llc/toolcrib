@@ -1,4 +1,4 @@
-# Worked Example: Wildcard Event Monitoring
+# Worked Example: Wildcard Event Monitoring & Interaction Analytics
 
 `aiBus` already emits a comprehensive, semantic vocabulary of every
 meaningful UI interaction — a modal opening, a form submitting, a
@@ -6,60 +6,97 @@ command-palette item selected. Forwarding that to an analytics or
 telemetry pipeline isn't a new feature to build; it's composition over a
 mechanism that already exists.
 
-## The mechanism: `on('*', ...)`
+## The recommended path: `useInteractionAnalytics`
 
-Subscribing to `'*'` receives every event the bus ever emits, wrapped as
-`{ type, detail }` rather than the event's own bare payload:
+For the common case — report real end-user interactions to your own
+analytics destination — reach for `useInteractionAnalytics` rather than
+hand-rolling the wildcard subscription below. It solves the two caveats
+this file used to require you to handle by hand: several event payloads
+carry real end-user data (`form:submitted.values`, `toast:shown.message`,
+every `*:changed` event's own `value`) or a raw, non-serializable DOM node
+(`element:resized`'s `target`), and a naive forwarder leaks the former and
+crashes on the latter. By default it reports event type plus a small,
+fixed allowlist of static identifier fields only (`id`, `formId`, `name`,
+`componentName`) — never anything else, applied uniformly to every
+channel:
 
-```ts
+```tsx
+import { useInteractionAnalytics } from '#toolcrib';
+
+function App() {
+  useInteractionAnalytics(event => {
+    // event: { type: 'modal:shown', detail: { id: 'confirm-delete' } }
+    myAnalyticsSdk.track(event.type, event.detail);
+  });
+  // ...
+}
+```
+
+`report`'s destination is always something *you* supply — toolcrib itself
+is never in the loop, so there's no transmission-security question to
+solve. Mount it once, typically near the app root.
+
+Need a field the default allowlist doesn't cover? Pass a custom `sanitize`
+— it replaces the default entirely, so call
+`defaultInteractionAnalyticsSanitizer` yourself first if you want the safe
+default plus a few more fields:
+
+```tsx
+import { useInteractionAnalytics, defaultInteractionAnalyticsSanitizer } from '#toolcrib';
+
+useInteractionAnalytics(
+  event => myAnalyticsSdk.track(event.type, event.detail),
+  {
+    sanitize: (type, payload) => ({
+      ...defaultInteractionAnalyticsSanitizer(type, payload),
+      ...(type === 'datatable:sorted' ? { direction: (payload as any).direction } : {}),
+    }),
+  }
+);
+```
+
+## The underlying mechanism, for anything that isn't analytics: `aiBus.onAny(...)` / `useAnyAIEvent(...)`
+
+`useInteractionAnalytics` is itself built on the same wildcard stream
+every event already passes through — reach for `onAny`/`useAnyAIEvent`
+directly for a use case that isn't reporting-shaped (a live debug console,
+the demo app's own event log panel), where you want the raw, unsanitized
+`{ type, detail }` rather than an allowlisted subset:
+
+```tsx
 import { aiBus } from '#toolcrib';
 
-aiBus.on('*', ({ type, detail }) => {
+aiBus.onAny(({ type, detail }) => {
   console.log('bus event:', type, detail);
 });
 ```
 
 `type` is the event name (`'modal:shown'`, `'form:submitted'`, ...);
-`detail` is that event's own payload, unchanged. This is real internal
-plumbing, not a shim built for this example — `openModal`, `showToast`,
-and every other helper method still go through the same `emit()` path,
-so the wildcard subscriber sees them all.
+`detail` is that event's own payload, **unsanitized** — unlike
+`useInteractionAnalytics`, nothing here strips real end-user data or the
+occasional raw DOM node, so treat `onAny`/`useAnyAIEvent` as the low-level
+primitive for cases that genuinely need the full payload, not the default
+choice for analytics/telemetry. This is real internal plumbing, not a shim
+built for this example — `openModal`, `showToast`, and every other helper
+method still go through the same `emit()` path, so the wildcard subscriber
+sees them all.
 
-## Caveat: high-frequency channels flood a naive forwarder
-
-Some channels (`element:resized`, `viewport:resized`) fire constantly —
-forwarding every one of them to an analytics pipeline as its own event
-generates enormous noise for approximately zero insight. Allowlist which
-channels are actually worth tracking, rather than forwarding everything:
-
-```ts
-const TRACKED = new Set(['modal:shown', 'form:submitted', 'toast:shown', 'commandpalette:item_selected']);
-
-aiBus.on('*', ({ type, detail }) => {
-  if (!TRACKED.has(type)) return;
-  analytics.track(type, detail);
-});
-```
-
-## Caveat: not every payload is JSON-serializable
-
-A few payloads carry a live DOM reference — `element:resized`'s own
-shape is:
+A few payloads carry a live DOM reference that a raw forwarder like this
+has to handle itself — `element:resized`'s own shape is:
 
 ```ts
 {{elementResizedPayload}}
 ```
 
 Most analytics SDKs expect a plain JSON-serializable object and will
-throw or silently drop a call carrying an `HTMLElement`. Strip or
-allowlist the fields actually being forwarded rather than passing
-`detail` straight through:
+throw or silently drop a call carrying an `HTMLElement`. This is exactly
+what `useInteractionAnalytics`'s default sanitizer already handles for
+you above; doing it by hand over the raw `onAny` stream looks like:
 
 ```ts
-aiBus.on('*', ({ type, detail }) => {
-  if (!TRACKED.has(type)) return;
+aiBus.onAny(({ type, detail }) => {
   const { target, ...safeDetail } = detail as any;
-  analytics.track(type, safeDetail);
+  console.log(type, safeDetail);
 });
 ```
 

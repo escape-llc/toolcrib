@@ -14,9 +14,9 @@ describe('Strongly-Typed EventBus', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('handles wildcard listener subscriptions (*)', () => {
+  it('handles wildcard listener subscriptions via onAny', () => {
     const wildcardCallback = vi.fn();
-    const unsubscribe = aiBus.on('*' as any, wildcardCallback);
+    const unsubscribe = aiBus.onAny(wildcardCallback);
 
     aiBus.emit('form:validated', { formId: 'demo-form', isValid: true });
     expect(wildcardCallback).toHaveBeenCalledWith({
@@ -25,6 +25,25 @@ describe('Strongly-Typed EventBus', () => {
     });
 
     unsubscribe();
+    aiBus.emit('form:validated', { formId: 'demo-form', isValid: false });
+    expect(wildcardCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('onAny sees every channel, not just one -- and a regular on() subscriber is unaffected by it', () => {
+    const wildcardCallback = vi.fn();
+    const typedCallback = vi.fn();
+    const unsubscribeAny = aiBus.onAny(wildcardCallback);
+    aiBus.on('modal:shown', typedCallback);
+
+    aiBus.emit('modal:shown', { id: 'onany-test-modal' });
+    aiBus.emit('drawer:shown', { id: 'onany-test-drawer' });
+
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'modal:shown', detail: { id: 'onany-test-modal' } });
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'drawer:shown', detail: { id: 'onany-test-drawer' } });
+    expect(typedCallback).toHaveBeenCalledTimes(1);
+    expect(typedCallback).toHaveBeenCalledWith({ id: 'onany-test-modal' });
+
+    unsubscribeAny();
   });
 
   it('provides convenience trigger helpers', () => {

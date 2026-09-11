@@ -111,6 +111,15 @@ export interface AIEventMap {
 export type EventKey = keyof AIEventMap;
 export type EventCallback<K extends EventKey> = (event: AIEventMap[K]) => void;
 
+/** @barrelExport */
+export interface WildcardEvent {
+  /** The event-bus channel name (e.g. `'modal:shown'`, `'form:submitted'`). */
+  type: EventKey;
+  /** That channel's own, unmodified payload. */
+  detail: AIEventMap[EventKey];
+}
+export type WildcardCallback = (event: WildcardEvent) => void;
+
 /**
  * Events marked sticky replay their last-emitted payload(s) to a new
  * subscriber immediately upon `on()`, synchronously, before any future
@@ -135,6 +144,7 @@ const STICKY_EVENTS = new Set<EventKey>(['tab:changed']);
 
 class AIEventBus {
   private listeners: { [K in EventKey]?: Set<EventCallback<K>> } = {};
+  private wildcardListeners = new Set<WildcardCallback>();
   private stickyValues: { [K in EventKey]?: Map<string, AIEventMap[K]> } = {};
   // STICKY_EVENTS is a hand-maintained Set, and stickyDiscriminator reads
   // `.id` through an `any` cast (TypeScript can't express "every AIEventMap
@@ -200,6 +210,23 @@ class AIEventBus {
   }
 
   /**
+   * Subscribe to every event the bus ever emits, receiving `{ type, detail
+   * }` for each one -- `type` is the channel name, `detail` its own
+   * unmodified payload. This is the same wildcard mechanism `emit()`
+   * already dispatches to internally; exposed here as a real, typed API
+   * rather than the `on('*' as any, cb)` cast previously required to reach
+   * it. Intended for cross-cutting concerns spanning every channel at once
+   * (event monitoring, `useInteractionAnalytics`) rather than reacting to
+   * one event.
+   */
+  onAny(callback: WildcardCallback): () => void {
+    this.wildcardListeners.add(callback);
+    return () => {
+      this.wildcardListeners.delete(callback);
+    };
+  }
+
+  /**
    * Emit an event payload to all active subscribers.
    */
   emit<K extends EventKey>(event: K, payload: AIEventMap[K]): void {
@@ -221,17 +248,14 @@ class AIEventBus {
       });
     }
 
-    // Notify wildcard subscribers (e.g. for event monitoring)
-    const wildcardSet = (this.listeners as any)['*'];
-    if (wildcardSet) {
-      wildcardSet.forEach((callback: any) => {
-        try {
-          callback({ type: event, detail: payload });
-        } catch (err) {
-          console.error(`Error in AIEventBus wildcard subscriber for "${event}":`, err);
-        }
-      });
-    }
+    // Notify wildcard subscribers (e.g. for event monitoring, interaction analytics)
+    this.wildcardListeners.forEach(callback => {
+      try {
+        callback({ type: event, detail: payload });
+      } catch (err) {
+        console.error(`Error in AIEventBus wildcard subscriber for "${event}":`, err);
+      }
+    });
   }
 
   /**

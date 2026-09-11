@@ -29,7 +29,7 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
 
   beforeEach(() => {
     trafficSpy = vi.fn();
-    aiBus.on('*' as any, trafficSpy);
+    aiBus.onAny(trafficSpy);
   });
 
   it('verifies Modal emits modal:shown and modal:hidden events', async () => {

@@ -43,6 +43,7 @@ import {
   StyleDomainProvider,
   aiBus,
   useAIEvent,
+  useAnyAIEvent,
   AlertDialog,
   Progress,
   Separator,
@@ -800,9 +801,9 @@ export const App: React.FC = () => {
   ];
 
   // Subscribe to ALL aiBus events for the live event monitor
-  useAIEvent('*' as any, (event: any) => {
+  useAnyAIEvent(event => {
     const timestamp = new Date().toLocaleTimeString();
-    const eventName = event.type || 'aiBus:event';
+    const eventName = event.type;
     const logItem = {
       id: Math.random().toString(36).substring(2, 9),
       event: eventName,
@@ -824,7 +825,7 @@ export const App: React.FC = () => {
       // (Element) is realm-independent, confirmed via a real browser run
       // dragging a live tile's Splitter, which is exactly what triggers a
       // resize event with a foreign-realm target.
-      payload: JSON.stringify(event.detail || event, (_key, value) =>
+      payload: JSON.stringify(event.detail, (_key, value) =>
         value && typeof value === 'object' && value.nodeType === 1 ? `<${value.tagName.toLowerCase()}>` : value
       ),
       time: timestamp,
@@ -839,9 +840,10 @@ export const App: React.FC = () => {
   // is. A toast stands in for a real destination (Sentry, a support queue,
   // your own backend) — same idea, just swap what happens inside the
   // callback. Nothing else about this pattern is error-specific: the same
-  // `aiBus.on`/`useAIEvent` mechanism works for any event, or the wildcard
-  // stream wholesale, if what you want is broader usage telemetry rather
-  // than only crash reports.
+  // `aiBus.on`/`useAIEvent` mechanism works for any event, or
+  // `aiBus.onAny`/`useAnyAIEvent`/`useInteractionAnalytics` for the
+  // wildcard stream wholesale, if what you want is broader usage telemetry
+  // rather than only crash reports.
   useAIEvent('error:boundary', event => {
     addToast({
       type: 'error',
