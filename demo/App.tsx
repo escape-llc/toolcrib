@@ -744,7 +744,6 @@ export const App: React.FC = () => {
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
-  const [showDataTableEmptyState, setShowDataTableEmptyState] = useState(false);
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
@@ -1518,14 +1517,6 @@ export const App: React.FC = () => {
                           <span>Acme Analytics — Team Directory (250 Rows, Adaptive Rem Height)</span>
                         </Toolbar.Left>
                         <Toolbar.Right>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            icon={showDataTableEmptyState ? '👥' : '📭'}
-                            onClick={() => setShowDataTableEmptyState(v => !v)}
-                          >
-                            {showDataTableEmptyState ? 'Show Rows' : 'Show Empty State'}
-                          </Button>
                           <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
                         </Toolbar.Right>
                       </Toolbar>
@@ -1533,12 +1524,7 @@ export const App: React.FC = () => {
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         id="demo-users-table"
-                        // Toggled by the "Show Empty State" button above --
-                        // demonstrates `emptyState`, which only ever renders
-                        // in place of the row set once `data` is genuinely
-                        // empty (post-sort/filter), not as a loading
-                        // indicator.
-                        data={showDataTableEmptyState ? [] : dummyUsers}
+                        data={dummyUsers}
                         columns={columns}
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
@@ -1572,11 +1558,40 @@ export const App: React.FC = () => {
                             Delete Selected
                           </Button>
                         )}
+                      />
+                    </Card.Content>
+                  </Card>
+
+                  {/* A second, permanently-empty instance -- demonstrates
+                      `emptyState` as a static example rather than an
+                      interactive toggle on the main table above.
+                      Deliberately not wired to a live toggle: this tab's
+                      main table is `selectable` with pageSize=15, so
+                      emptying and refilling its `data` live would add/
+                      remove ~15 checkbox `<button>`s in one click --
+                      exactly the shape of DOM churn
+                      e2e/interactive-sweep.spec.ts's fixed-index button
+                      sweep isn't built to absorb cheaply (confirmed via a
+                      real CI run: doing that once blew its 120s budget on
+                      both browsers, from every subsequent iteration
+                      burning its full retry timeout hitting an index that
+                      no longer resolves to anything). `pagination={false}`
+                      here means zero buttons of any kind ever render for
+                      this instance -- nothing for that sweep to trip over. */}
+                  <Card overrides={{ padding: 'compact' }}>
+                    <Card.Header>Empty State (`&lt;DataTable emptyState&gt;`)</Card.Header>
+                    <Card.Content paddingMode="compact">
+                      <DataTable
+                        id="demo-users-table-empty"
+                        data={[]}
+                        columns={columns}
+                        pagination={false}
+                        containerHeight={220}
                         emptyState={
                           <EmptyState>
                             <EmptyState.Icon>👥</EmptyState.Icon>
                             <EmptyState.Title>No team members found</EmptyState.Title>
-                            <EmptyState.Description>Toggle "Show Rows" above to bring the roster back.</EmptyState.Description>
+                            <EmptyState.Description>Adjust your filters, or invite a teammate to get started.</EmptyState.Description>
                           </EmptyState>
                         }
                       />
