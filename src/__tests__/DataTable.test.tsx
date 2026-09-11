@@ -608,4 +608,39 @@ describe('DataTable Virtualized Component', () => {
       expect(arrow).toHaveTextContent('▲');
     });
   });
+
+  describe('empty state', () => {
+    it('renders emptyState in place of the row set when data is empty', () => {
+      render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
+      expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
+    });
+
+    it('renders no emptyState content when data is non-empty, even if emptyState is given', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} emptyState={<span>Nothing here yet</span>} />);
+      expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+    });
+
+    it('renders nothing extra (previous behavior: an empty row area) when emptyState is omitted', () => {
+      const { container } = render(<DataTable data={[]} columns={testColumns} />);
+      const tbody = container.querySelector('tbody')!;
+      expect(tbody.querySelectorAll('tr')).toHaveLength(0);
+    });
+
+    it('the emptyState cell spans every column, including the selection checkbox column when selectable', () => {
+      render(<DataTable data={[]} columns={testColumns} selectable emptyState={<span>Nothing here yet</span>} />);
+      const cell = screen.getByText('Nothing here yet').closest('td')!;
+      expect(cell).toHaveAttribute('colSpan', String(testColumns.length + 1));
+    });
+
+    it('the pagination footer still renders correctly ("0 of 0") alongside emptyState', () => {
+      render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
+      expect(screen.getByText('Showing 0 to 0 of 0 entries')).toBeInTheDocument();
+    });
+
+    it('passes the standing axe scan with emptyState rendered', async () => {
+      render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
+      expect(await axe(document.body)).toHaveNoViolations();
+    });
+  });
 });

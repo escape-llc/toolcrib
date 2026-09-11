@@ -1561,6 +1561,42 @@ export const App: React.FC = () => {
                       />
                     </Card.Content>
                   </Card>
+
+                  {/* A second, permanently-empty instance -- demonstrates
+                      `emptyState` as a static example rather than an
+                      interactive toggle on the main table above.
+                      Deliberately not wired to a live toggle: this tab's
+                      main table is `selectable` with pageSize=15, so
+                      emptying and refilling its `data` live would add/
+                      remove ~15 checkbox `<button>`s in one click --
+                      exactly the shape of DOM churn
+                      e2e/interactive-sweep.spec.ts's fixed-index button
+                      sweep isn't built to absorb cheaply (confirmed via a
+                      real CI run: doing that once blew its 120s budget on
+                      both browsers, from every subsequent iteration
+                      burning its full retry timeout hitting an index that
+                      no longer resolves to anything). `pagination={false}`
+                      here means zero buttons of any kind ever render for
+                      this instance -- nothing for that sweep to trip over. */}
+                  <Card overrides={{ padding: 'compact' }}>
+                    <Card.Header>Empty State (`&lt;DataTable emptyState&gt;`)</Card.Header>
+                    <Card.Content paddingMode="compact">
+                      <DataTable
+                        id="demo-users-table-empty"
+                        data={[]}
+                        columns={columns}
+                        pagination={false}
+                        containerHeight={220}
+                        emptyState={
+                          <EmptyState>
+                            <EmptyState.Icon>👥</EmptyState.Icon>
+                            <EmptyState.Title>No team members found</EmptyState.Title>
+                            <EmptyState.Description>Adjust your filters, or invite a teammate to get started.</EmptyState.Description>
+                          </EmptyState>
+                        }
+                      />
+                    </Card.Content>
+                  </Card>
                 </TabStrip.Panel>
 
                 {/* Tab: Charts -- a fake "Acme Analytics" dashboard, purely

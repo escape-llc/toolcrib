@@ -314,6 +314,10 @@
         "overrides": {
           "type": "Partial<TableSliceState>",
           "description": "Per-instance overrides for density, border style, and striping."
+        },
+        "emptyState": {
+          "type": "ReactNode",
+          "description": "Rendered in place of the row set when there's nothing to show (the\nsorted dataset is empty) — the header and, if `pagination` is true,\nthe pagination footer (correctly showing \"0 of 0\") still render\nnormally around it. Omit for the previous default: an empty `<tbody>`\nwith no message at all."
         }
       },
       "category": "Data Display",

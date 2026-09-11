@@ -218,6 +218,14 @@ export interface DataTableProps<T = any> {
   renderBulkActions?: (selectedKeys: string[]) => ReactNode;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
+  /**
+   * Rendered in place of the row set when there's nothing to show (the
+   * sorted dataset is empty) — the header and, if `pagination` is true,
+   * the pagination footer (correctly showing "0 of 0") still render
+   * normally around it. Omit for the previous default: an empty `<tbody>`
+   * with no message at all.
+   */
+  emptyState?: ReactNode;
 }
 
 /**
@@ -252,6 +260,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   onSelectionChange,
   renderBulkActions,
   overrides,
+  emptyState,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
   const strings = useLocaleStrings().dataTable;
@@ -760,105 +769,121 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </tr>
           </thead>
 
-          {/* Virtual Spacer Top */}
           <tbody>
-            {startIndex > 0 && (
+            {sortedData.length === 0 && emptyState ? (
+              // Header and (if pagination is on) the footer's own "0 of 0"
+              // text already render normally around this -- only the row
+              // area itself needs a stand-in. A single colSpan-ed row (not
+              // replacing the whole <table>) keeps that header visible,
+              // matching what a real user needs to see (sortable columns,
+              // selection controls) even while there's nothing to act on.
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
+                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                  {emptyState}
+                </td>
               </tr>
-            )}
+            ) : (
+              <>
+                {/* Virtual Spacer Top */}
+                {startIndex > 0 && (
+                  <tr>
+                    <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
+                  </tr>
+                )}
 
-            {/* Visible Rows */}
-            {visibleRows.map((record, relativeIndex) => {
-              const actualIndex = startIndex + relativeIndex;
-              const key = rowKey ? rowKey(record, actualIndex) : actualIndex;
-              const subtheme = rowSubtheme?.(record, actualIndex);
-              const subthemeColors: Partial<SubthemeColors> | null =
-                typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
-              const selectionKey = selectable ? getSelectionKey(record, actualIndex) : null;
-              const isRowSelected = selectionKey !== null && selectedKeySet.has(selectionKey);
-              return (
-                <tr
-                  key={key}
-                  onClick={() => {
-                    onRowClick?.(record, actualIndex);
-                    aiBus.emit('datatable:row_clicked', { id, index: actualIndex });
-                  }}
-                  style={{
-                    height: `${itemHeight}px`,
-                    cursor: onRowClick ? 'pointer' : undefined,
-                    borderBottom: subthemeColors?.border
-                      ? effectiveBorderStyle === 'none'
-                        ? 'none'
-                        : `0.0625rem dashed ${subthemeColors.border}`
-                      : '0.0625rem solid var(--ai-border, #f3f4f6)',
-                    background: isRowSelected
-                      ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.08))'
-                      : subthemeColors?.background
-                      ? subthemeColors.background
-                      : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
-                    transition: 'background 0.15s ease',
-                  }}
-                >
-                  {selectable && selectionKey !== null && (
-                    <td
-                      style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
-                      onClick={e => e.stopPropagation()}
+                {/* Visible Rows */}
+                {visibleRows.map((record, relativeIndex) => {
+                  const actualIndex = startIndex + relativeIndex;
+                  const key = rowKey ? rowKey(record, actualIndex) : actualIndex;
+                  const subtheme = rowSubtheme?.(record, actualIndex);
+                  const subthemeColors: Partial<SubthemeColors> | null =
+                    typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
+                  const selectionKey = selectable ? getSelectionKey(record, actualIndex) : null;
+                  const isRowSelected = selectionKey !== null && selectedKeySet.has(selectionKey);
+                  return (
+                    <tr
+                      key={key}
+                      onClick={() => {
+                        onRowClick?.(record, actualIndex);
+                        aiBus.emit('datatable:row_clicked', { id, index: actualIndex });
+                      }}
+                      style={{
+                        height: `${itemHeight}px`,
+                        cursor: onRowClick ? 'pointer' : undefined,
+                        borderBottom: subthemeColors?.border
+                          ? effectiveBorderStyle === 'none'
+                            ? 'none'
+                            : `0.0625rem dashed ${subthemeColors.border}`
+                          : '0.0625rem solid var(--ai-border, #f3f4f6)',
+                        background: isRowSelected
+                          ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.08))'
+                          : subthemeColors?.background
+                          ? subthemeColors.background
+                          : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
+                        transition: 'background 0.15s ease',
+                      }}
                     >
-                      <CheckboxPrimitive.Root
-                        checked={isRowSelected}
-                        onCheckedChange={() => toggleRowSelected(selectionKey)}
-                        aria-label={`Select row ${actualIndex + 1}`}
-                        className="ai-focus-ring"
-                        style={{
-                          all: 'unset',
-                          width: '1.125rem',
-                          height: '1.125rem',
-                          borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                          border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
-                          background: isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <CheckboxPrimitive.Indicator
-                          style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                      {selectable && selectionKey !== null && (
+                        <td
+                          style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
+                          onClick={e => e.stopPropagation()}
                         >
-                          ✓
-                        </CheckboxPrimitive.Indicator>
-                      </CheckboxPrimitive.Root>
-                    </td>
-                  )}
-                  {columns.map(col => {
-                    const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
-                    return (
-                      <td
-                        key={col.key}
-                        style={{
-                          padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
-                          color: subthemeColors?.color ?? 'var(--ai-text-primary, #111827)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          borderRight: 'var(--ai-table-border, none)',
-                        }}
-                      >
-                        {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+                          <CheckboxPrimitive.Root
+                            checked={isRowSelected}
+                            onCheckedChange={() => toggleRowSelected(selectionKey)}
+                            aria-label={`Select row ${actualIndex + 1}`}
+                            className="ai-focus-ring"
+                            style={{
+                              all: 'unset',
+                              width: '1.125rem',
+                              height: '1.125rem',
+                              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                              border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                              background: isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <CheckboxPrimitive.Indicator
+                              style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                            >
+                              ✓
+                            </CheckboxPrimitive.Indicator>
+                          </CheckboxPrimitive.Root>
+                        </td>
+                      )}
+                      {columns.map(col => {
+                        const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
+                        return (
+                          <td
+                            key={col.key}
+                            style={{
+                              padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                              color: subthemeColors?.color ?? 'var(--ai-text-primary, #111827)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              borderRight: 'var(--ai-table-border, none)',
+                            }}
+                          >
+                            {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
 
-            {/* Virtual Spacer Bottom */}
-            {endIndex < totalItems && (
-              <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
-              </tr>
+                {/* Virtual Spacer Bottom */}
+                {endIndex < totalItems && (
+                  <tr>
+                    <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
+                  </tr>
+                )}
+              </>
             )}
           </tbody>
         </table>
