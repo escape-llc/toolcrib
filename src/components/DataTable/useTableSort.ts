@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import type { Column } from './DataTable';
 
-export interface UseTableSortOptions<T> {
+export interface UseTableSortOptions<T extends Record<string, any>> {
   data: T[];
   columns: Column<T>[];
   /** Controlled sort key -- `undefined` means uncontrolled (internal state). */
@@ -17,7 +17,7 @@ export interface UseTableSortOptions<T> {
   tableId: string;
 }
 
-export interface UseTableSortResult<T> {
+export interface UseTableSortResult<T extends Record<string, any>> {
   sortKey: string | null;
   sortDirection: 'asc' | 'desc';
   /** `data`, sorted by `sortKey`/`sortDirection` -- unchanged (same reference) when unsorted. */
@@ -33,7 +33,7 @@ export interface UseTableSortResult<T> {
  * accessorFn-aware comparator DataTable's tests already cover). No public
  * API or behavior change; this is purely an internal-architecture split.
  */
-export function useTableSort<T>({
+export function useTableSort<T extends Record<string, any>>({
   data,
   columns,
   sortKey: controlledSortKey,
@@ -59,7 +59,7 @@ export function useTableSort<T>({
     // direct `record[sortKey]` read — the same function that produces its
     // cell value.
     const sortColumn = columns.find(c => c.key === sortKey);
-    const getValue = (record: T): unknown => (sortColumn?.accessorFn ? sortColumn.accessorFn(record) : (record as any)[sortKey]);
+    const getValue = (record: T): unknown => (sortColumn?.accessorFn ? sortColumn.accessorFn(record) : record[sortKey]);
     return [...data].sort((a, b) => {
       const valA = getValue(a);
       const valB = getValue(b);

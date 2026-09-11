@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 
 export interface UseTableSelectionOptions<T> {
@@ -53,8 +53,16 @@ export function useTableSelection<T>({
   pageOffset,
   currentPageRecords,
 }: UseTableSelectionOptions<T>): UseTableSelectionResult<T> {
-  const getSelectionKey = (record: T, pageRelativeIndex: number): string =>
-    rowKey ? String(rowKey(record, pageRelativeIndex)) : String(pageOffset + pageRelativeIndex);
+  // Wrapped in useCallback (not a plain closure) so it's referentially
+  // stable across renders unless rowKey/pageOffset actually change -- lets
+  // currentPageKeys's own useMemo below list it as a real dependency
+  // instead of needing an eslint-disable to manually track its transitive
+  // deps (rowKey/pageOffset) by hand.
+  const getSelectionKey = useCallback(
+    (record: T, pageRelativeIndex: number): string =>
+      rowKey ? String(rowKey(record, pageRelativeIndex)) : String(pageOffset + pageRelativeIndex),
+    [rowKey, pageOffset]
+  );
 
   const [internalSelectedKeys, setInternalSelectedKeys] = useState<Set<string>>(
     () => new Set(defaultSelectedKeys ?? [])
@@ -81,8 +89,7 @@ export function useTableSelection<T>({
   // any page (selection persists across pages).
   const currentPageKeys = useMemo(
     () => (selectable ? currentPageRecords.map((record, i) => getSelectionKey(record, i)) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectable, currentPageRecords, rowKey, pageOffset]
+    [selectable, currentPageRecords, getSelectionKey]
   );
   const allOnPageSelected = selectable && currentPageKeys.length > 0 && currentPageKeys.every(k => selectedKeySet.has(k));
   const someOnPageSelected = selectable && !allOnPageSelected && currentPageKeys.some(k => selectedKeySet.has(k));
