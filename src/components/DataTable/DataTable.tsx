@@ -684,6 +684,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       fontWeight: 'var(--ai-font-weight-semibold, 600)',
                       color: 'var(--ai-text-primary, #111827)',
                       cursor: isSortable ? undefined : 'default',
+                      // A percentage height on the button below only
+                      // resolves against a <th> with an explicit height of
+                      // its own, not just whatever height the table's row
+                      // algorithm happens to stretch it to -- without this,
+                      // the button could stay at its own auto content
+                      // height inside a <th> a taller sibling column
+                      // stretched, leaving unclickable dead space.
+                      height: isSortable ? '100%' : undefined,
                       width: col.width,
                     }}
                   >
