@@ -45,6 +45,23 @@ jobs:
       - name: Build demo
         run: npm run build
 
+      # llms.txt/llms-full.txt (scripts/generate-docs.js, see AGENTS.md) are
+      # committed at the repo root for pre-adoption discovery by an agent
+      # browsing/cloning the repo -- that's a different audience than the
+      # llmstxt.org convention this step exists for: a crawler fetching
+      # https://<site>/llms.txt directly off a live site root, the same way
+      # robots.txt/sitemap.xml work. `dist/` is that site root (see #290),
+      # so copy both files in verbatim after the build produces it.
+      # Known, deliberately accepted limitation: both files' internal links
+      # are repo-relative (`./README.md`, `./ai-docs/CORE.md`, ...), correct
+      # for GitHub's own rendering/raw-fetch of the committed files, but
+      # `dist/` is a built SPA with no README.md/ai-docs/ of its own -- those
+      # links won't resolve against the deployed copy. Rewriting them to
+      # absolute GitHub blob URLs for a deploy-specific variant was
+      # considered and deferred as a separate concern from placement itself.
+      - name: Copy llms.txt/llms-full.txt to the built site root
+        run: cp llms.txt llms-full.txt dist/
+
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
 
