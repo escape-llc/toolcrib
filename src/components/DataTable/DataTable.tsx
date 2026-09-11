@@ -675,10 +675,23 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         : undefined
                     }
                     style={{
-                      padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
+                      // Padding moves onto the <button> below for a sortable
+                      // column (padding: 0 here) -- see that element's own
+                      // comment on why.
+                      padding: isSortable
+                        ? 0
+                        : 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
                       fontWeight: 'var(--ai-font-weight-semibold, 600)',
                       color: 'var(--ai-text-primary, #111827)',
                       cursor: isSortable ? undefined : 'default',
+                      // A percentage height on the button below only
+                      // resolves against a <th> with an explicit height of
+                      // its own, not just whatever height the table's row
+                      // algorithm happens to stretch it to -- without this,
+                      // the button could stay at its own auto content
+                      // height inside a <th> a taller sibling column
+                      // stretched, leaving unclickable dead space.
+                      height: isSortable ? '100%' : undefined,
                       width: col.width,
                     }}
                   >
@@ -691,7 +704,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // that a plain-looking header is interactive -- the
                       // WAI-ARIA sortable-table pattern's own recommended
                       // shape. aria-sort stays on the <th>, where the
-                      // pattern expects it.
+                      // pattern expects it. The header padding lives on the
+                      // button (not the <th>, which is padding: 0 above)
+                      // and the button is width: 100% + border-box, so the
+                      // whole cell stays clickable, not just the text/arrow
+                      // -- matching the click target the plain <th> gave
+                      // before this was a <button> at all.
                       <button
                         type="button"
                         onClick={() => handleSort(col.key)}
@@ -700,18 +718,35 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
+                          // height: 100% matters whenever this <th> shares
+                          // its row with a taller one (a longer title that
+                          // wraps, e.g.) -- table cells in the same row
+                          // always stretch to the row's tallest cell, so
+                          // without this the button would leave dead
+                          // (unclickable) space above/below it inside a
+                          // <th> taller than the button's own content.
+                          width: '100%',
+                          height: '100%',
+                          boxSizing: 'border-box',
+                          padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
                           cursor: 'pointer',
                           userSelect: 'none',
                           background: 'none',
                           border: 'none',
-                          padding: 0,
                           font: 'inherit',
                           color: 'inherit',
+                          textAlign: 'left',
                         }}
                       >
                         {col.title}
                         {sortKey === col.key && (
-                          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                          // aria-sort on the <th> above already conveys sort
+                          // direction programmatically -- without
+                          // aria-hidden, a screen reader also announces
+                          // this character literally ("black up-pointing
+                          // triangle"), redundant and confusing next to
+                          // that.
+                          <span aria-hidden="true">{sortDirection === 'asc' ? '▲' : '▼'}</span>
                         )}
                       </button>
                     ) : (

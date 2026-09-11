@@ -580,5 +580,32 @@ describe('DataTable Virtualized Component', () => {
       fireEvent.click(sortButton);
       expect(idHeader).toHaveAttribute('aria-sort', 'descending');
     });
+
+    it('keeps the whole header cell clickable (button fills it) and hides the sort arrow from screen readers', () => {
+      // Gemini review on the PR that introduced the sortable <button>
+      // (#306) caught two real regressions jsdom's own layout-blind test
+      // run above couldn't: (1) padding had stayed on the <th> instead of
+      // moving to the <button>, so only the text/arrow -- not the padded
+      // cell around it -- was actually clickable, a real click-target-size
+      // regression from the plain <th> this replaced; (2) the ▲/▼
+      // characters had no aria-hidden, so a screen reader announced them
+      // literally ("black up-pointing triangle") on top of aria-sort
+      // already conveying direction. jsdom has no layout engine (can't
+      // assert the padding area is *visually* clickable), so this asserts
+      // the structural fix instead: the button, not the <th>, carries the
+      // real padding and stretches to fill the cell, and the arrow span is
+      // hidden from assistive tech.
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const idHeader = screen.getByText('ID').closest('th')!;
+      const sortButton = screen.getByRole('button', { name: 'ID' });
+
+      expect(idHeader).toHaveStyle({ padding: '0px' });
+      expect(sortButton).toHaveStyle({ width: '100%', boxSizing: 'border-box' });
+
+      fireEvent.click(sortButton);
+      const arrow = sortButton.querySelector('span')!;
+      expect(arrow).toHaveAttribute('aria-hidden', 'true');
+      expect(arrow).toHaveTextContent('▲');
+    });
   });
 });
