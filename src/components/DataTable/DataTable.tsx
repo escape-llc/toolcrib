@@ -710,7 +710,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
+                          // height: 100% matters whenever this <th> shares
+                          // its row with a taller one (a longer title that
+                          // wraps, e.g.) -- table cells in the same row
+                          // always stretch to the row's tallest cell, so
+                          // without this the button would leave dead
+                          // (unclickable) space above/below it inside a
+                          // <th> taller than the button's own content.
                           width: '100%',
+                          height: '100%',
                           boxSizing: 'border-box',
                           padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
                           cursor: 'pointer',
