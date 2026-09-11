@@ -111,6 +111,15 @@ export interface AIEventMap {
 export type EventKey = keyof AIEventMap;
 export type EventCallback<K extends EventKey> = (event: AIEventMap[K]) => void;
 
+/** @barrelExport */
+export interface WildcardEvent {
+  /** The event-bus channel name (e.g. `'modal:shown'`, `'form:submitted'`). */
+  type: EventKey;
+  /** That channel's own, unmodified payload. */
+  detail: AIEventMap[EventKey];
+}
+export type WildcardCallback = (event: WildcardEvent) => void;
+
 /**
  * Events marked sticky replay their last-emitted payload(s) to a new
  * subscriber immediately upon `on()`, synchronously, before any future
@@ -135,6 +144,7 @@ const STICKY_EVENTS = new Set<EventKey>(['tab:changed']);
 
 class AIEventBus {
   private listeners: { [K in EventKey]?: Set<EventCallback<K>> } = {};
+  private wildcardListeners = new Set<WildcardCallback>();
   private stickyValues: { [K in EventKey]?: Map<string, AIEventMap[K]> } = {};
   // STICKY_EVENTS is a hand-maintained Set, and stickyDiscriminator reads
   // `.id` through an `any` cast (TypeScript can't express "every AIEventMap
@@ -170,8 +180,21 @@ class AIEventBus {
    * Subscribe to a strongly-typed event. Returns an unsubscribe function.
    * For events in `STICKY_EVENTS`, immediately replays any already-known
    * last value(s) to `callback` before returning.
+   *
+   * `'*'` (only reachable via an `as any`/`as EventKey` cast, since it was
+   * never a real member of `EventKey`) is still accepted here and routed
+   * to the same `wildcardListeners` store `onAny` uses -- this was the
+   * only way to reach the wildcard stream before `onAny` existed, and a
+   * vendored library removing it out from under existing consumer app
+   * code would be a silent runtime regression (subscribes successfully,
+   * never actually fires) rather than a compile error. `onAny` is still
+   * the sanctioned, properly-typed way to reach it going forward.
    */
   on<K extends EventKey>(event: K, callback: EventCallback<K>): () => void {
+    if ((event as string) === '*') {
+      return this.onAny(callback as unknown as WildcardCallback);
+    }
+
     if (!this.listeners[event]) {
       this.listeners[event] = new Set() as any;
     }
@@ -190,13 +213,36 @@ class AIEventBus {
   }
 
   /**
-   * Unsubscribe from a strongly-typed event.
+   * Unsubscribe from a strongly-typed event. See `on()`'s own comment for
+   * why `'*'` is still handled here too.
    */
   off<K extends EventKey>(event: K, callback: EventCallback<K>): void {
+    if ((event as string) === '*') {
+      this.wildcardListeners.delete(callback as unknown as WildcardCallback);
+      return;
+    }
+
     const set = this.listeners[event];
     if (set) {
       set.delete(callback as any);
     }
+  }
+
+  /**
+   * Subscribe to every event the bus ever emits, receiving `{ type, detail
+   * }` for each one -- `type` is the channel name, `detail` its own
+   * unmodified payload. This is the same wildcard mechanism `emit()`
+   * already dispatches to internally; exposed here as a real, typed API
+   * rather than the `on('*' as any, cb)` cast previously required to reach
+   * it. Intended for cross-cutting concerns spanning every channel at once
+   * (event monitoring, `useInteractionAnalytics`) rather than reacting to
+   * one event.
+   */
+  onAny(callback: WildcardCallback): () => void {
+    this.wildcardListeners.add(callback);
+    return () => {
+      this.wildcardListeners.delete(callback);
+    };
   }
 
   /**
@@ -221,17 +267,14 @@ class AIEventBus {
       });
     }
 
-    // Notify wildcard subscribers (e.g. for event monitoring)
-    const wildcardSet = (this.listeners as any)['*'];
-    if (wildcardSet) {
-      wildcardSet.forEach((callback: any) => {
-        try {
-          callback({ type: event, detail: payload });
-        } catch (err) {
-          console.error(`Error in AIEventBus wildcard subscriber for "${event}":`, err);
-        }
-      });
-    }
+    // Notify wildcard subscribers (e.g. for event monitoring, interaction analytics)
+    this.wildcardListeners.forEach(callback => {
+      try {
+        callback({ type: event, detail: payload });
+      } catch (err) {
+        console.error(`Error in AIEventBus wildcard subscriber for "${event}":`, err);
+      }
+    });
   }
 
   /**

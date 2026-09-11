@@ -14,9 +14,9 @@ describe('Strongly-Typed EventBus', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('handles wildcard listener subscriptions (*)', () => {
+  it('handles wildcard listener subscriptions via onAny', () => {
     const wildcardCallback = vi.fn();
-    const unsubscribe = aiBus.on('*' as any, wildcardCallback);
+    const unsubscribe = aiBus.onAny(wildcardCallback);
 
     aiBus.emit('form:validated', { formId: 'demo-form', isValid: true });
     expect(wildcardCallback).toHaveBeenCalledWith({
@@ -25,6 +25,53 @@ describe('Strongly-Typed EventBus', () => {
     });
 
     unsubscribe();
+    aiBus.emit('form:validated', { formId: 'demo-form', isValid: false });
+    expect(wildcardCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('onAny sees every channel, not just one -- and a regular on() subscriber is unaffected by it', () => {
+    const wildcardCallback = vi.fn();
+    const typedCallback = vi.fn();
+    const unsubscribeAny = aiBus.onAny(wildcardCallback);
+    aiBus.on('modal:shown', typedCallback);
+
+    aiBus.emit('modal:shown', { id: 'onany-test-modal' });
+    aiBus.emit('drawer:shown', { id: 'onany-test-drawer' });
+
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'modal:shown', detail: { id: 'onany-test-modal' } });
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'drawer:shown', detail: { id: 'onany-test-drawer' } });
+    expect(typedCallback).toHaveBeenCalledTimes(1);
+    expect(typedCallback).toHaveBeenCalledWith({ id: 'onany-test-modal' });
+
+    unsubscribeAny();
+  });
+
+  // Regression: a Gemini review finding on the PR that introduced onAny
+  // flagged that removing wildcard support from on()/off() entirely would
+  // be a silent runtime regression for any vendored consumer app that had
+  // already written `aiBus.on('*' as any, cb)` -- the only way to reach
+  // the wildcard stream before onAny existed. on()/off() still route '*'
+  // to the same wildcardListeners store onAny uses, so both calling
+  // conventions keep working against one source of truth.
+  it('on(\'*\', cb)/off(\'*\', cb) still work, routed to the same store as onAny (backward compatibility)', () => {
+    const wildcardCallback = vi.fn();
+    const unsubscribe = aiBus.on('*' as any, wildcardCallback);
+
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test' });
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'modal:shown', detail: { id: 'legacy-wildcard-test' } });
+
+    unsubscribe();
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test-2' });
+    expect(wildcardCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('off(\'*\', cb) called directly (not via the returned unsubscribe) also works', () => {
+    const wildcardCallback = vi.fn();
+    aiBus.on('*' as any, wildcardCallback);
+    aiBus.off('*' as any, wildcardCallback);
+
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-off-test' });
+    expect(wildcardCallback).not.toHaveBeenCalled();
   });
 
   it('provides convenience trigger helpers', () => {

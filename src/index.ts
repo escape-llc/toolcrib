@@ -36,6 +36,7 @@ export * from './theme/zIndexStack';
 // Event Bus
 export * from './eventBus/eventBus';
 export * from './eventBus/useAIEvent';
+export * from './eventBus/useInteractionAnalytics';
 
 // Observer & Adaptive Sizing
 export * from './observer/observerManager';

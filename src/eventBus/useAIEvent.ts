@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { aiBus, type AIEventMap, type EventKey, type EventCallback } from './eventBus';
+import { aiBus, type AIEventMap, type EventKey, type EventCallback, type WildcardCallback } from './eventBus';
 
 /**
  * Custom React hook for AI consumption.
@@ -35,4 +35,35 @@ export function useAIEvent<K extends EventKey>(
       unsubscribe();
     };
   }, [event]);
+}
+
+/**
+ * Same shape as `useAIEvent`, but for `aiBus.onAny` -- subscribes to every
+ * channel the bus ever emits instead of one. Used for cross-cutting
+ * concerns spanning the whole event vocabulary (event monitoring,
+ * `useInteractionAnalytics`) rather than reacting to a single event.
+ *
+ * @example
+ * useAnyAIEvent(({ type, detail }) => console.log('bus event:', type, detail));
+ */
+/** @barrelExport */
+export function useAnyAIEvent(callback: WildcardCallback): void {
+  const savedCallback = useRef<WildcardCallback>(callback);
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    const handler: WildcardCallback = (event) => {
+      if (savedCallback.current) {
+        savedCallback.current(event);
+      }
+    };
+
+    const unsubscribe = aiBus.onAny(handler);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 }

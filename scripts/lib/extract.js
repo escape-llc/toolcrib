@@ -375,7 +375,7 @@ function findFirstThisEmitArg(node) {
 // Convenience methods only — the generic on/off/emit primitives aren't
 // "helper methods" in the manifest's sense (they're the base API every
 // other channel interaction is built on, documented in full elsewhere).
-const EVENT_BUS_CORE_METHODS = new Set(['on', 'off', 'emit', 'constructor']);
+const EVENT_BUS_CORE_METHODS = new Set(['on', 'off', 'onAny', 'emit', 'constructor']);
 
 export function generateHelperMethods() {
   const sourceFile = parse(path.join(SRC, 'eventBus', 'eventBus.ts'));
