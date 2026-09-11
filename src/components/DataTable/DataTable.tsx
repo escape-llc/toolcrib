@@ -667,16 +667,6 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 return (
                   <th
                     key={col.key}
-                    onClick={() => isSortable && handleSort(col.key)}
-                    onKeyDown={e => {
-                      if (!isSortable) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleSort(col.key);
-                      }
-                    }}
-                    tabIndex={isSortable ? 0 : undefined}
-                    className={isSortable ? 'ai-focus-ring' : undefined}
                     aria-sort={
                       isSortable
                         ? sortKey === col.key
@@ -688,17 +678,47 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
                       fontWeight: 'var(--ai-font-weight-semibold, 600)',
                       color: 'var(--ai-text-primary, #111827)',
-                      cursor: isSortable ? 'pointer' : 'default',
-                      userSelect: 'none',
+                      cursor: isSortable ? undefined : 'default',
                       width: col.width,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                      {col.title}
-                      {isSortable && sortKey === col.key && (
-                        <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                      )}
-                    </div>
+                    {isSortable ? (
+                      // A real <button> here (rather than the <th> itself
+                      // carrying tabIndex/onKeyDown) gets native focusability
+                      // and Enter/Space activation for free, and is
+                      // announced by a screen reader as an actual button
+                      // instead of relying on aria-sort alone to signal
+                      // that a plain-looking header is interactive -- the
+                      // WAI-ARIA sortable-table pattern's own recommended
+                      // shape. aria-sort stays on the <th>, where the
+                      // pattern expects it.
+                      <button
+                        type="button"
+                        onClick={() => handleSort(col.key)}
+                        className="ai-focus-ring"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          font: 'inherit',
+                          color: 'inherit',
+                        }}
+                      >
+                        {col.title}
+                        {sortKey === col.key && (
+                          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        {col.title}
+                      </div>
+                    )}
                   </th>
                 );
               })}
