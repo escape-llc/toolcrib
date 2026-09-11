@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react';
+import { useMemo, useRef, useState, useLayoutEffect, type ReactNode } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Toolbar } from '../Toolbar/Toolbar';
@@ -14,6 +14,9 @@ import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, type TableSliceState } from './DataTableSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
+import { useTableSort } from './useTableSort';
+import { useTableSelection } from './useTableSelection';
+import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -273,16 +276,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
   useInjectInteractionStyles();
 
-  // Sort and page each follow the same controlled/uncontrolled split as
-  // TabStrip's activeId: a prop of `undefined` means "manage it
-  // internally" (seeded from the matching `default*` prop), anything else
-  // means the parent owns that state and this component only ever reads
-  // it back through the resolved `sortKey`/`currentPage` below.
-  const [internalSortKey, setInternalSortKey] = useState<string | null>(defaultSortKey ?? null);
-  const [internalSortDirection, setInternalSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection ?? 'asc');
-  const isSortControlled = controlledSortKey !== undefined;
-  const sortKey = isSortControlled ? controlledSortKey : internalSortKey;
-  const sortDirection = isSortControlled ? controlledSortDirection ?? 'asc' : internalSortDirection;
+  const { sortKey, sortDirection, sortedData, handleSort } = useTableSort({
+    data,
+    columns,
+    sortKey: controlledSortKey,
+    defaultSortKey,
+    sortDirection: controlledSortDirection,
+    defaultSortDirection,
+    onSortChange,
+    tableId: id,
+  });
 
   const [pageSize, setPageSize] = useState(initialPageSize);
   // usePagination's own onPageChange closure runs synchronously inside
@@ -305,50 +308,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   useLayoutEffect(() => {
     pageSizeRef.current = pageSize;
   }, [pageSize]);
-  const [scrollTop, setScrollTop] = useState(0);
-
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
 
-  // Scroll events are throttled to one setScrollTop per animation frame (see
-  // onScroll below) via these two refs.
-  const latestScrollTopRef = useRef(0);
-  const scrollRafRef = useRef<number | null>(null);
-
-  // 1. Sorting
-  const sortedData = useMemo(() => {
-    if (!sortKey) return data;
-    // A column with `accessorFn` sorts by its computed value instead of a
-    // direct `record[sortKey]` read — the same function that produces its
-    // cell value.
-    const sortColumn = columns.find(c => c.key === sortKey);
-    const getValue = (record: T): unknown => (sortColumn?.accessorFn ? sortColumn.accessorFn(record) : record[sortKey]);
-    return [...data].sort((a, b) => {
-      const valA = getValue(a);
-      const valB = getValue(b);
-      if (valA === valB) return 0;
-      if (valA == null) return 1;
-      if (valB == null) return -1;
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        // A NaN operand makes `valA - valB` itself NaN, which
-        // Array.prototype.sort treats as an unspecified (non-crashing but
-        // effectively unsorted) comparison result — sort NaN to the end,
-        // the same place `null`/`undefined` land above, rather than
-        // leaving its position undefined.
-        if (Number.isNaN(valA) && Number.isNaN(valB)) return 0;
-        if (Number.isNaN(valA)) return 1;
-        if (Number.isNaN(valB)) return -1;
-        return sortDirection === 'asc' ? valA - valB : valB - valA;
-      }
-      const strA = String(valA).toLowerCase();
-      const strB = String(valB).toLowerCase();
-      if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
-      if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [data, sortKey, sortDirection, columns]);
-
-  // 2. Pagination — page-index math shared with <Pagination> via the
+  // Pagination — page-index math shared with <Pagination> via the
   // usePagination hook (src/components/shared/usePagination.ts), so there's
   // exactly one page-clamping/controlled-state implementation, not two that
   // can drift. `paginatedData` below still short-circuits entirely when
@@ -366,49 +329,6 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     },
   });
 
-  // Nothing previously reset scrollTop (state or the real DOM scroll
-  // position) when the page changed — scrolling deep into page 1, then
-  // paging forward, left the virtualization window (startIndex/endIndex
-  // below) computed from a scroll offset that belonged to a completely
-  // different page's row count, which could render as an apparently empty
-  // table until the user manually scrolled back up. Sorting reorders the
-  // current page's rows exactly the same way pagination does, so it has to
-  // reset the window too — sortKey/sortDirection are included below for
-  // that reason, not left out as an oversight.
-  //
-  // Also cancels any in-flight scroll rAF and clears latestScrollTopRef:
-  // without this, a scroll on the *old* page that was still waiting for its
-  // throttled frame when the page/sort changed would fire after this reset,
-  // calling setScrollTop with the stale pre-change offset and silently
-  // undoing the reset above — reintroducing the exact blank-table bug this
-  // exists to prevent.
-  //
-  // The scrollTop *state* reset happens during render (React's documented
-  // "adjust state when a dependency changes" pattern), not inside the effect
-  // below -- avoids an extra render-then-effect-then-rerender cascade for
-  // the state half of this reset. The effect still owns the real-DOM/RAF
-  // side effects (cancelling a pending frame, resetting the actual scroll
-  // position), which can only happen after commit regardless. Since both
-  // run synchronously within the same tick (render+commit+effects all
-  // finish before the browser's next animation frame), a still-pending rAF
-  // from the old page is cancelled before it could ever fire with a stale
-  // offset -- same ordering guarantee the original single-effect version had.
-  const paginationSortKey = `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}`;
-  const [prevPaginationSortKey, setPrevPaginationSortKey] = useState(paginationSortKey);
-  if (paginationSortKey !== prevPaginationSortKey) {
-    setPrevPaginationSortKey(paginationSortKey);
-    setScrollTop(0);
-  }
-
-  useEffect(() => {
-    if (scrollRafRef.current !== null) {
-      cancelAnimationFrame(scrollRafRef.current);
-      scrollRafRef.current = null;
-    }
-    latestScrollTopRef.current = 0;
-    if (bodyRef.current) bodyRef.current.scrollTop = 0;
-  }, [validCurrentPage, pageSize, sortKey, sortDirection]);
-
   const paginatedData = useMemo(() => {
     if (!pagination) return sortedData;
     const start = (validCurrentPage - 1) * pageSize;
@@ -423,118 +343,35 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // page-relative index contract (`actualIndex` in the row-render loop),
   // which this doesn't change.
   const pageOffset = pagination ? (validCurrentPage - 1) * pageSize : 0;
-  const getSelectionKey = (record: T, pageRelativeIndex: number): string =>
-    rowKey ? String(rowKey(record, pageRelativeIndex)) : String(pageOffset + pageRelativeIndex);
 
-  const [internalSelectedKeys, setInternalSelectedKeys] = useState<Set<string>>(
-    () => new Set(defaultSelectedKeys ?? [])
-  );
-  const isSelectionControlled = controlledSelectedKeys !== undefined;
-  const selectedKeySet = isSelectionControlled ? new Set(controlledSelectedKeys) : internalSelectedKeys;
+  const { selectedKeySet, getSelectionKey, toggleRowSelected, toggleSelectAllOnPage, allOnPageSelected, someOnPageSelected } =
+    useTableSelection({
+      selectable,
+      selectedKeys: controlledSelectedKeys,
+      defaultSelectedKeys,
+      onSelectionChange,
+      tableId: id,
+      rowKey,
+      pageOffset,
+      currentPageRecords: paginatedData,
+    });
 
-  const updateSelection = (next: Set<string>) => {
-    if (!isSelectionControlled) setInternalSelectedKeys(next);
-    const arr = Array.from(next);
-    onSelectionChange?.(arr);
-    aiBus.emit('datatable:selection_changed', { id, selectedKeys: arr });
-  };
-
-  const toggleRowSelected = (key: string) => {
-    const next = new Set(selectedKeySet);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    updateSelection(next);
-  };
-
-  // Scoped to the *current page* only, per the doc's own spec -- "some but
-  // not all of the current page selected" -- even though `selectedKeySet`
-  // itself holds keys from any page (selection persists across pages).
-  const currentPageKeys = useMemo(
-    () => (selectable ? paginatedData.map((record, i) => getSelectionKey(record, i)) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectable, paginatedData, rowKey, pageOffset]
-  );
-  const allOnPageSelected = selectable && currentPageKeys.length > 0 && currentPageKeys.every(k => selectedKeySet.has(k));
-  const someOnPageSelected = selectable && !allOnPageSelected && currentPageKeys.some(k => selectedKeySet.has(k));
-
-  const toggleSelectAllOnPage = () => {
-    const next = new Set(selectedKeySet);
-    if (allOnPageSelected) currentPageKeys.forEach(k => next.delete(k));
-    else currentPageKeys.forEach(k => next.add(k));
-    updateSelection(next);
-  };
-
-  // 3. Virtualization within current page view & adaptive height
   const totalItems = paginatedData.length;
-  // Fallback used both for virtualization math and as this component's own
-  // minimum visible height below. Necessary because containerHeight="auto"
-  // fills its parent via `flex: 1 1 0px` + `height: 100%` — CSS that only
-  // resolves to something nonzero when the immediate ancestor is itself a
-  // `display: flex; flex-direction: column` box with a definite height
-  // (e.g. a `<Splitter.Panel>`). A plain content wrapper like a bare
-  // `<TabStrip.Panel>` gives a flex-basis-0 child nothing to grow into, so
-  // without this floor the whole table silently collapses to zero height —
-  // correctly-rendered rows clipped inside an invisible 0px scroll box,
-  // rather than an error. The `minHeight` below only ever acts as a floor:
-  // inside an ancestor that DOES provide real flex height, flex-grow still
-  // expands past it exactly as before.
-  const AUTO_HEIGHT_FALLBACK_PX = 350;
-  const effectiveContainerHeight =
-    typeof containerHeight === 'number' ? containerHeight : observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX;
 
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 2);
-  const visibleCount = Math.ceil(effectiveContainerHeight / itemHeight) + 4;
-  const endIndex = Math.min(totalItems, startIndex + visibleCount);
+  const { startIndex, endIndex, isAutoHeight, onScroll } = useTableVirtualization({
+    bodyRef,
+    itemHeight,
+    containerHeight,
+    observedHeight,
+    totalItems,
+    // Changing page, page size, or sort reorders/reslices the dataset the
+    // same way -- the virtualization window has to reset for all three, not
+    // just page changes, or a scroll offset left over from a differently-
+    // sized page/sort order can render as an apparently empty table.
+    resetKey: `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}`,
+  });
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
-
-  const handleSort = (key: string) => {
-    let newKey: string | null;
-    let newDirection: 'asc' | 'desc';
-    if (sortKey === key) {
-      if (sortDirection === 'asc') {
-        newKey = key;
-        newDirection = 'desc';
-      } else {
-        newKey = null;
-        newDirection = sortDirection;
-      }
-    } else {
-      newKey = key;
-      newDirection = 'asc';
-    }
-    if (!isSortControlled) {
-      setInternalSortKey(newKey);
-      setInternalSortDirection(newDirection);
-    }
-    onSortChange?.(newKey, newDirection);
-    aiBus.emit('datatable:sorted', { id, key: newKey, direction: newDirection });
-  };
-
-  // Raw scroll events can fire far faster than one per frame; setting
-  // scrollTop straight from each one re-runs the virtualization math (and
-  // rowSubtheme/resolveSubtheme for every visible row) that often too.
-  // Coalescing to one update per animation frame — keeping only the latest
-  // offset via the ref — cuts that to the rate the browser can actually
-  // paint at. (latestScrollTopRef/scrollRafRef are declared up with
-  // bodyRef, not here, so the page/sort-change reset effect above can
-  // cancel an in-flight frame — see that effect's comment.)
-  useEffect(() => {
-    return () => {
-      if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
-    };
-  }, []);
-
-  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    latestScrollTopRef.current = e.currentTarget.scrollTop;
-    if (scrollRafRef.current !== null) return;
-    scrollRafRef.current = requestAnimationFrame(() => {
-      scrollRafRef.current = null;
-      setScrollTop(latestScrollTopRef.current);
-    });
-  };
-
-  const isAutoHeight = containerHeight === 'auto';
 
   return (
     <div
