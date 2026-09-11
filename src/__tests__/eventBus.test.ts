@@ -46,33 +46,13 @@ describe('Strongly-Typed EventBus', () => {
     unsubscribeAny();
   });
 
-  // Regression: a Gemini review finding on the PR that introduced onAny
-  // flagged that removing wildcard support from on()/off() entirely would
-  // be a silent runtime regression for any vendored consumer app that had
-  // already written `aiBus.on('*' as any, cb)` -- the only way to reach
-  // the wildcard stream before onAny existed. on()/off() still route '*'
-  // to the same wildcardListeners store onAny uses, so both calling
-  // conventions keep working against one source of truth.
-  it('on(\'*\', cb)/off(\'*\', cb) still work, routed to the same store as onAny (backward compatibility)', () => {
-    const wildcardCallback = vi.fn();
-    const unsubscribe = aiBus.on('*' as any, wildcardCallback);
-
-    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test' });
-    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'modal:shown', detail: { id: 'legacy-wildcard-test' } });
-
-    unsubscribe();
-    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test-2' });
-    expect(wildcardCallback).toHaveBeenCalledTimes(1);
-  });
-
-  it('off(\'*\', cb) called directly (not via the returned unsubscribe) also works', () => {
-    const wildcardCallback = vi.fn();
-    aiBus.on('*' as any, wildcardCallback);
-    aiBus.off('*' as any, wildcardCallback);
-
-    aiBus.emit('modal:shown', { id: 'legacy-wildcard-off-test' });
-    expect(wildcardCallback).not.toHaveBeenCalled();
-  });
+  // `on('*' as any, cb)` (the old, internal-only way to reach the
+  // wildcard stream before onAny existed) is deliberately NOT supported
+  // any more, and deliberately not tested as a regression to guard --
+  // see AGENTS.md's "Backward compatibility for existing consumer call
+  // sites is not a goal" note. A prior version of this PR added on()/
+  // off() routing to keep it working after a Gemini review flagged the
+  // removal as a breaking change; the maintainer overturned that call.
 
   it('provides convenience trigger helpers', () => {
     const callback = vi.fn();
