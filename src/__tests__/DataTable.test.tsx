@@ -548,7 +548,14 @@ describe('DataTable Virtualized Component', () => {
 
       const actionsHeader = screen.getByText('Actions').closest('th')!;
       expect(actionsHeader).toHaveStyle({ cursor: 'default' });
-      expect(actionsHeader).not.toHaveAttribute('tabindex');
+      // tabindex="-1" is now expected here (not absent) -- issue #316's grid
+      // keyboard navigation makes every header cell a roving-tabindex
+      // target, sortable or not; "-1" means it's a valid target that isn't
+      // the currently-focused one, which is the real assertion this test
+      // still cares about (this cell never becomes independently
+      // click/Enter-activatable the way a sortable header's own <button>
+      // is).
+      expect(actionsHeader).toHaveAttribute('tabindex', '-1');
       expect(actionsHeader).not.toHaveAttribute('aria-sort');
 
       fireEvent.click(actionsHeader);
@@ -641,6 +648,167 @@ describe('DataTable Virtualized Component', () => {
     it('passes the standing axe scan with emptyState rendered', async () => {
       render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
       expect(await axe(document.body)).toHaveNoViolations();
+    });
+  });
+
+  describe('grid keyboard navigation (issue #316)', () => {
+    // Direct data-grid-row/col queries -- deterministic and matches this
+    // feature's own real contract exactly, rather than relying on text
+    // content that can collide (both the "id" column and pagination text
+    // render plain numbers).
+    const cell = (container: HTMLElement, row: number, col: number): HTMLElement =>
+      container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
+
+    it('marks the table a real ARIA grid, with aria-rowcount/colcount reflecting the FULL dataset, not just this page', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const table = container.querySelector('table')!;
+      expect(table).toHaveAttribute('role', 'grid');
+      // 1 header + all 50 rows across every page, not just this page's 10.
+      expect(table).toHaveAttribute('aria-rowcount', '51');
+      expect(table).toHaveAttribute('aria-colcount', '2');
+    });
+
+    it('selectable adds one to aria-colcount for the checkbox column', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} selectable />);
+      expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '3');
+    });
+
+    it('gives each row a correct aria-rowindex -- header is always 1, body rows reflect their absolute position across pages', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} defaultPage={2} rowKey={r => r.id} />);
+      const headerRow = screen.getByRole('button', { name: 'ID' }).closest('tr')!;
+      expect(headerRow).toHaveAttribute('aria-rowindex', '1');
+      // Page 2 (pageSize 10), first row -- absolute row 12: 1 header + 10
+      // rows from page 1 + this being the 1st row of page 2.
+      const firstBodyRowOnPage2 = screen.getByText('Item 11').closest('tr')!;
+      expect(firstBodyRowOnPage2).toHaveAttribute('aria-rowindex', '12');
+    });
+
+    it('excludes the virtualization spacer rows from the accessible row model (aria-hidden)', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} itemHeight={44} />
+      );
+      const spacerRows = container.querySelectorAll('tr[aria-hidden="true"]');
+      // Scrolled to the very top -- only the bottom spacer exists yet.
+      expect(spacerRows.length).toBeGreaterThan(0);
+      spacerRows.forEach(row => expect(row).not.toHaveAttribute('aria-rowindex'));
+    });
+
+    it('starts with roving tabindex on the first header cell only', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      expect(cell(container, 0, 0)).toHaveAttribute('tabindex', '0');
+      expect(cell(container, 0, 1)).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('ArrowRight/ArrowLeft move the roving tabindex and real focus across header cells', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const idHeader = cell(container, 0, 0);
+      const nameHeader = cell(container, 0, 1);
+      act(() => idHeader.focus());
+
+      fireEvent.keyDown(idHeader, { key: 'ArrowRight' });
+      expect(nameHeader).toHaveAttribute('tabindex', '0');
+      expect(nameHeader).toHaveFocus();
+      expect(idHeader).toHaveAttribute('tabindex', '-1');
+
+      fireEvent.keyDown(nameHeader, { key: 'ArrowLeft' });
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveFocus();
+    });
+
+    it('ArrowDown/ArrowUp move focus between the header and the same column in body rows', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const idHeader = cell(container, 0, 0);
+      act(() => idHeader.focus());
+
+      fireEvent.keyDown(idHeader, { key: 'ArrowDown' });
+      const firstBodyIdCell = cell(container, 1, 0);
+      expect(firstBodyIdCell).toHaveAttribute('tabindex', '0');
+      expect(firstBodyIdCell).toHaveFocus();
+
+      fireEvent.keyDown(firstBodyIdCell, { key: 'ArrowUp' });
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveFocus();
+    });
+
+    it('ArrowDown/ArrowUp do not move focus past the grid boundary', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const idHeader = cell(container, 0, 0);
+      act(() => idHeader.focus());
+      fireEvent.keyDown(idHeader, { key: 'ArrowUp' }); // already at row 0
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveFocus();
+    });
+
+    it('Home/End move focus to the first/last cell of the CURRENT row only', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const nameHeader = cell(container, 0, 1);
+      act(() => nameHeader.focus());
+
+      fireEvent.keyDown(nameHeader, { key: 'Home' });
+      expect(cell(container, 0, 0)).toHaveFocus();
+
+      fireEvent.keyDown(cell(container, 0, 0), { key: 'End' });
+      expect(cell(container, 0, 1)).toHaveFocus();
+    });
+
+    it('Ctrl+Home/Ctrl+End move focus to the first/last cell of the whole grid', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const nameHeader = cell(container, 0, 1);
+      act(() => nameHeader.focus());
+
+      fireEvent.keyDown(nameHeader, { key: 'End', ctrlKey: true });
+      // Last row on this page (pageSize 10) is page-relative row 10, last column 1.
+      expect(cell(container, 10, 1)).toHaveFocus();
+
+      fireEvent.keyDown(cell(container, 10, 1), { key: 'Home', ctrlKey: true });
+      expect(cell(container, 0, 0)).toHaveFocus();
+    });
+
+    it('clicking a cell directly (not via arrow keys) syncs the roving tabindex to it', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const idHeader = cell(container, 0, 0);
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+
+      const targetCell = cell(container, 3, 1);
+      // A real .focus() call is what onFocus/focusin observes, same as a
+      // mouse click would produce -- wrapped in act() per AGENTS.md's own
+      // "raw DOM method call" case: unlike fireEvent, .focus() isn't
+      // auto-wrapped, so the resulting state update needs this to commit
+      // synchronously before the assertions below read it.
+      act(() => targetCell.focus());
+      expect(targetCell).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('navigating to a row outside the current virtualization window scrolls it into view, then focuses it once rendered', async () => {
+      // itemHeight=44, containerHeight=200 -> only a handful of rows render
+      // initially. Row 30 (well outside that window) exercises the
+      // scroll-then-focus path described in useTableKeyboardNav's own
+      // header comment.
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} itemHeight={44} rowKey={r => r.id} />
+      );
+      const idHeader = cell(container, 0, 0);
+      act(() => idHeader.focus());
+
+      fireEvent.keyDown(idHeader, { key: 'End', ctrlKey: true });
+
+      // jsdom does not natively dispatch a `scroll` event just because a
+      // script wrote `.scrollTop` (real browsers do) -- the production
+      // code relies on that real-browser behavior to drive its existing
+      // onScroll -> setScrollTop -> re-render pipeline. Firing it
+      // explicitly here simulates what a real browser does on its own,
+      // so this test exercises this feature's actual logic (did it scroll
+      // to the right place, does the pending focus resolve once the
+      // target row exists) rather than a jsdom quirk unrelated to it.
+      const scrollBody = container.querySelector('table')!.parentElement as HTMLElement;
+      expect(scrollBody.scrollTop).toBe(49 * 44); // row 50 (index 49), top-aligned
+      fireEvent.scroll(scrollBody, { target: { scrollTop: scrollBody.scrollTop } });
+      await act(async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      });
+
+      expect(cell(container, 50, 1)).toHaveFocus();
     });
   });
 });
