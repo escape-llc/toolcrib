@@ -108,11 +108,15 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // itemHeight/containerHeight combination virtualizes to.
     await page.keyboard.press('Control+End');
 
-    const active = await activeElementGridCoords(page);
-    expect(active).toEqual({ row: '15', col: '6', tag: 'TD' });
-    // Confirms it's not just logically "focused" in React state but
-    // genuinely, visibly present and focused in the real page.
-    await expect(page.locator('[data-grid-row="15"][data-grid-col="6"]').first()).toBeFocused();
+    // Auto-retrying, not a one-shot activeElementGridCoords() snapshot --
+    // the real focus change here only lands once the scroll's own native
+    // `scroll` event -> onScroll -> re-render cycle actually completes,
+    // which is measurably slower on WebKit than Chromium (confirmed: a
+    // one-shot check here passed reliably on Chromium but failed on
+    // WebKit in real CI, landing on the pre-scroll header cell instead).
+    const target = page.locator('[data-grid-row="15"][data-grid-col="6"]').first();
+    await expect(target).toBeFocused();
+    expect(await target.evaluate(el => el.tagName)).toBe('TD');
   });
 
   test('clicking a cell directly re-syncs the roving tabindex to it', async ({ page }) => {
