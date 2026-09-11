@@ -55,6 +55,15 @@ export interface UseTableKeyboardNavResult {
  *   the sortable-header button) -- not to arbitrary consumer-supplied
  *   render output, which this hook has no safe way to introspect or
  *   suppress focus within.
+ *
+ * Grid navigation is fully bypassed (no preventDefault, no cell move) when
+ * the actual event target is a real editable control -- an `<input>`,
+ * `<textarea>`, `<select>`, or a `contentEditable` element, which a custom
+ * `column.render` cell is free to contain. Without this, Arrow/Home/End
+ * would hijack native text-cursor movement/selection inside it. Focus
+ * syncing (`handleFocus`) still resolves via the nearest ancestor carrying
+ * `data-grid-row`/`data-grid-col`, so tabbing or clicking into such a
+ * control still correctly updates the roving tabindex to its cell.
  */
 export function useTableKeyboardNav({
   tableRef,
@@ -121,6 +130,18 @@ export function useTableKeyboardNav({
   });
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTableElement>) => {
+    // A custom column.render cell can contain a real editable control
+    // (an <input>, <textarea>, <select>, or a contentEditable element) --
+    // grid navigation must not hijack Arrow/Home/End there, or a user
+    // editing text loses the ability to move the cursor or select text
+    // within it. Bypass entirely rather than trying to special-case which
+    // keys matter for which editable type -- text cursor movement is
+    // exactly the case this exists to protect.
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) {
+      return;
+    }
+
     let nextRow = focusedRow;
     let nextCol = focusedCol;
     let handled = true;
@@ -161,7 +182,15 @@ export function useTableKeyboardNav({
   };
 
   const handleFocus = (e: FocusEvent<HTMLTableElement>) => {
-    const target = e.target as HTMLElement;
+    // closest(), not a direct read off e.target -- a custom column.render
+    // cell can contain its own focusable descendant (a link, an action
+    // button) that a click or Tab can land on directly. That descendant
+    // doesn't carry data-grid-row/col itself (only the <td> wrapper does),
+    // so reading e.target alone would silently fail to resync here,
+    // leaving a subsequent arrow-key press to jump from whatever cell last
+    // held the roving tabindex instead of the one actually focused.
+    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-grid-row][data-grid-col]');
+    if (!target) return;
     const rowAttr = target.dataset.gridRow;
     const colAttr = target.dataset.gridCol;
     if (rowAttr === undefined || colAttr === undefined) return;

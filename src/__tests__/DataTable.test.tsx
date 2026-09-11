@@ -810,5 +810,68 @@ describe('DataTable Virtualized Component', () => {
 
       expect(cell(container, 50, 1)).toHaveFocus();
     });
+
+    // Both regressions below were real findings from Gemini's review of the
+    // PR that introduced this feature -- confirmed and fixed, not just
+    // acted on blindly, per this repo's own "evaluate every finding"
+    // discipline.
+
+    it('regression: focusing a custom column.render cell\'s own nested interactive element still syncs the roving tabindex correctly', () => {
+      const columnsWithButton: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', sortable: true },
+        { key: 'name', title: 'Name', render: () => <button type="button">Action</button> },
+      ];
+      const { container } = render(<DataTable data={testData} columns={columnsWithButton} pageSize={10} />);
+      const idHeader = cell(container, 0, 0);
+      expect(idHeader).toHaveAttribute('tabindex', '0');
+
+      // The actual focusable element here is the nested <button> the
+      // custom render produced, not the <td> wrapper that carries
+      // data-grid-row/col -- handleFocus has to resolve up via closest()
+      // to find it, since e.target itself won't carry those attributes.
+      // Scoped to row 1's own cell specifically -- every row renders an
+      // identical "Action" button, so a global screen query would be
+      // ambiguous.
+      const wrappingCell = cell(container, 1, 1);
+      const nestedButton = wrappingCell.querySelector('button')!;
+      act(() => nestedButton.focus());
+
+      expect(wrappingCell).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toHaveAttribute('tabindex', '-1');
+
+      // Without the fix, a subsequent arrow key would compute its move
+      // from a stale focusedRow/focusedCol (never updated by the failed
+      // sync above) instead of from where focus actually is -- ArrowUp
+      // should land on the SAME column's header (col 1, "Name"), not
+      // col 0 (where focus would incorrectly still "be" if the sync had
+      // silently failed).
+      fireEvent.keyDown(nestedButton, { key: 'ArrowUp' });
+      const nameHeader = cell(container, 0, 1);
+      expect(nameHeader).toHaveAttribute('tabindex', '0');
+      expect(nameHeader).toHaveFocus();
+    });
+
+    it('regression: does not hijack Arrow/Home/End when focus is on a real editable control inside a custom cell', () => {
+      const columnsWithInput: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', sortable: true },
+        { key: 'name', title: 'Name', render: () => <input aria-label="inline edit" defaultValue="edit me" /> },
+      ];
+      const { container } = render(<DataTable data={testData} columns={columnsWithInput} pageSize={10} />);
+
+      // Scoped to row 1's own cell -- every row renders an identical
+      // "inline edit" input, so a global screen query would be ambiguous.
+      const input = cell(container, 1, 1).querySelector('input')!;
+      act(() => input.focus());
+
+      // Native text-cursor movement, not grid navigation -- confirmed by
+      // focus staying on the input itself (a hijack would move it to an
+      // adjacent cell instead).
+      fireEvent.keyDown(input, { key: 'ArrowLeft' });
+      expect(input).toHaveFocus();
+      fireEvent.keyDown(input, { key: 'Home' });
+      expect(input).toHaveFocus();
+      fireEvent.keyDown(input, { key: 'End' });
+      expect(input).toHaveFocus();
+    });
   });
 });
