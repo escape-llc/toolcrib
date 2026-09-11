@@ -68,6 +68,19 @@ name: Gemini Review
 # for the other half of this loop: whoever evaluates a finding should
 # reply on the PR thread with the resolution, not just act on it silently,
 # or the next automated run still has nothing to read.
+#
+# The prompt below tells Gemini not to flag backward-compatibility/
+# breaking-change concerns -- added 2026-09-11 after a real instance
+# (issue #193/PR #310, `AIEventBus.onAny`): Gemini correctly identified
+# that removing the old `on('*' as any, cb)` wildcard path was a breaking
+# change for any consumer app already using it, a fix was written and
+# merged for it, and the maintainer then overturned that call directly --
+# toolcrib is vendored via reviewed patches, never an npm dependency under
+# a semver contract, so "this breaks an existing caller" isn't a defect
+# the way it would be for a published package; it's ordinary evolution the
+# consumer's own AI agent is expected to read and adapt to, the same as
+# any other hand-applied patch. See AGENTS.md's own note on this for the
+# fuller reasoning.
 
 on:
   pull_request:
@@ -174,6 +187,7 @@ jobs:
             Do not repeat a finding from your own prior review unless the current diff still contains the exact issue AND no later comment in the history already addressed it. If a prior finding of yours was refuted, fixed, or marked not-applicable in a later comment, treat that as settled and do not raise it again -- trust the human/AI's resolution over your own earlier guess. Only raise a prior finding again if the current diff shows genuinely new evidence that changes the picture.
             Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed beyond the two files named above.
             Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear violation of an established convention visible in the diff itself.
+            Do not flag backward-compatibility or breaking-change concerns for a consumer project already using toolcrib's vendored source -- toolcrib is vendored via reviewed patches (`toolcrib merge`), never an npm dependency with a semver contract, and the AI agent driving that merge on the consumer's side is expected to read the diff and fix any call site it touches, the same way it would for any other hand-applied patch to its own code. A change that would be a breaking change for a published package is routine, intended evolution here -- do not raise it as a defect.
             Do not comment on style preferences, do not restate what the diff obviously does, and do not suggest changes outside what the diff actually touches.
             If you find nothing new worth flagging, say so in one short line -- do not invent a finding to have something to say, and do not restate an already-settled prior finding just to have content.
             Output ONLY the final review itself -- no reasoning, no plan, no description of what you are about to do. Keep the whole response under 400 words, plain text (no markdown headers).

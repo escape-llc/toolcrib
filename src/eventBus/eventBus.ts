@@ -181,20 +181,17 @@ class AIEventBus {
    * For events in `STICKY_EVENTS`, immediately replays any already-known
    * last value(s) to `callback` before returning.
    *
-   * `'*'` (only reachable via an `as any`/`as EventKey` cast, since it was
-   * never a real member of `EventKey`) is still accepted here and routed
-   * to the same `wildcardListeners` store `onAny` uses -- this was the
-   * only way to reach the wildcard stream before `onAny` existed, and a
-   * vendored library removing it out from under existing consumer app
-   * code would be a silent runtime regression (subscribes successfully,
-   * never actually fires) rather than a compile error. `onAny` is still
-   * the sanctioned, properly-typed way to reach it going forward.
+   * `'*'` is not a real `EventKey` and is no longer accepted here (it
+   * previously reached the wildcard stream via `on('*' as any, cb)`, an
+   * internal, type-cast-only mechanism, before `onAny` existed as its own
+   * sanctioned API) -- use `onAny`/`useAnyAIEvent` instead. Deliberately
+   * not kept as a compatibility shim: toolcrib is vendored via reviewed
+   * patches, not an npm dependency under a semver contract, so a consumer
+   * project's own AI agent reading this diff is expected to update the
+   * one call site rather than have this bus carry a parallel legacy path
+   * indefinitely. See AGENTS.md's own note on this policy.
    */
   on<K extends EventKey>(event: K, callback: EventCallback<K>): () => void {
-    if ((event as string) === '*') {
-      return this.onAny(callback as unknown as WildcardCallback);
-    }
-
     if (!this.listeners[event]) {
       this.listeners[event] = new Set() as any;
     }
@@ -213,15 +210,9 @@ class AIEventBus {
   }
 
   /**
-   * Unsubscribe from a strongly-typed event. See `on()`'s own comment for
-   * why `'*'` is still handled here too.
+   * Unsubscribe from a strongly-typed event.
    */
   off<K extends EventKey>(event: K, callback: EventCallback<K>): void {
-    if ((event as string) === '*') {
-      this.wildcardListeners.delete(callback as unknown as WildcardCallback);
-      return;
-    }
-
     const set = this.listeners[event];
     if (set) {
       set.delete(callback as any);
