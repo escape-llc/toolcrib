@@ -556,17 +556,28 @@ describe('DataTable Virtualized Component', () => {
       unsub();
     });
 
-    it('makes a sortable header keyboard-focusable and Enter-activatable, updating aria-sort', () => {
+    it('exposes a sortable header as a real <button>, not just an aria-sort attribute on the <th>', () => {
+      // Issue #263: relying on aria-sort alone (with the <th> itself
+      // carrying tabIndex/onKeyDown) gives a screen reader a softer signal
+      // than an explicit interactive element would. A real <button> inside
+      // the <th> is announced as an actual button, and gets native
+      // focusability plus Enter/Space activation for free from the
+      // browser -- not something this component's own logic needs to wire
+      // up or this test needs to simulate; jsdom doesn't replicate that
+      // native default-action behavior for a raw keydown anyway. What this
+      // component IS responsible for -- exposing a real button, and
+      // driving aria-sort off a click -- is what's asserted here.
       render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
       const idHeader = screen.getByText('ID').closest('th')!;
+      const sortButton = screen.getByRole('button', { name: 'ID' });
 
-      expect(idHeader).toHaveAttribute('tabindex', '0');
+      expect(idHeader).toContainElement(sortButton);
       expect(idHeader).toHaveAttribute('aria-sort', 'none');
 
-      fireEvent.keyDown(idHeader, { key: 'Enter' });
+      fireEvent.click(sortButton);
       expect(idHeader).toHaveAttribute('aria-sort', 'ascending');
 
-      fireEvent.keyDown(idHeader, { key: 'Enter' });
+      fireEvent.click(sortButton);
       expect(idHeader).toHaveAttribute('aria-sort', 'descending');
     });
   });
