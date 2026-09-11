@@ -17,6 +17,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
+import { useTableKeyboardNav } from './useTableKeyboardNav';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -232,7 +233,7 @@ export interface DataTableProps<T = any> {
 }
 
 /**
- * @manifest Virtualized, sortable, paginated data table with sticky headers
+ * @manifest Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation
  * @manifestCategory Data Display
  * @manifestAntiPatternAvoid Fake per-row emphasis via `column.render` (styling each cell individually to approximate a highlighted row), or hand-roll row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic)
  * @manifestAntiPatternInstead Use `<DataTable rowSubtheme={(record) => ...}>` for row emphasis — classifies a row into `'error'`/`'success'`/`'warning'`/`'info'` and tints the actual row background/border, not a per-cell approximation — and `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` for selection, where the checkbox column, 3-state header checkbox, and cross-page persistence all come built in
@@ -373,6 +374,24 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
 
+  // Grid coordinate layout: column 0 is the selection checkbox column when
+  // `selectable`, otherwise column indices start directly at `columns`;
+  // row 0 is always the header row, rows 1..paginatedData.length are body
+  // rows (page-relative, matching `actualIndex + 1`).
+  const colOffset = selectable ? 1 : 0;
+  const gridColumnCount = columns.length + colOffset;
+  const tableRef = useRef<HTMLTableElement>(null);
+  const { focusedRow, focusedCol, handleKeyDown, handleFocus } = useTableKeyboardNav({
+    tableRef,
+    bodyRef,
+    columnCount: gridColumnCount,
+    pageRowCount: paginatedData.length,
+    itemHeight,
+    startIndex,
+    endIndex,
+  });
+  const isFocusedCell = (row: number, col: number) => focusedRow === row && focusedCol === col;
+
   return (
     <div
       style={{
@@ -453,6 +472,21 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         }}
       >
         <table
+          ref={tableRef}
+          role="grid"
+          // Reflects the FULL dataset (not just the current virtualization
+          // window, and per the W3C APG's own guidance for aria-rowcount --
+          // https://www.w3.org/WAI/ARIA/apg/patterns/grid/ -- explicitly
+          // including pagination as a case where not all rows are in the
+          // DOM), +1 for the header row. aria-colcount is always the real
+          // column count since, unlike rows, columns are never virtualized
+          // -- every column is always present in the DOM, so aria-colindex
+          // per cell isn't needed (the spec only calls for it when the DOM
+          // column set is a subset of the full one).
+          aria-rowcount={1 + sortedData.length}
+          aria-colcount={gridColumnCount}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
           style={{
             width: '100%',
             tableLayout: 'fixed',
@@ -478,7 +512,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
             }}
           >
-            <tr>
+            <tr aria-rowindex={1}>
               {selectable && (
                 <th style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))', width: '2.75rem' }}>
                   <CheckboxPrimitive.Root
@@ -486,6 +520,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     onCheckedChange={toggleSelectAllOnPage}
                     aria-label="Select all rows on this page"
                     className="ai-focus-ring"
+                    data-grid-row={0}
+                    data-grid-col={0}
+                    tabIndex={isFocusedCell(0, 0) ? 0 : -1}
                     style={{
                       all: 'unset',
                       width: '1.125rem',
@@ -508,11 +545,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   </CheckboxPrimitive.Root>
                 </th>
               )}
-              {columns.map(col => {
+              {columns.map((col, colIndex) => {
                 const isSortable = col.sortable === true;
+                const gridCol = colOffset + colIndex;
                 return (
                   <th
                     key={col.key}
+                    // Not itself part of the roving-tabindex/data-grid-*
+                    // scheme when sortable -- the <button> below is the
+                    // real focus target for that case (the APG's own
+                    // "cell contains one widget" pattern), so this <th>
+                    // only carries those attributes for a non-sortable
+                    // column, where it's the cell target itself instead.
+                    {...(!isSortable
+                      ? { 'data-grid-row': 0, 'data-grid-col': gridCol, tabIndex: isFocusedCell(0, gridCol) ? 0 : -1 }
+                      : {})}
+                    className={!isSortable ? 'ai-focus-ring' : undefined}
                     aria-sort={
                       isSortable
                         ? sortKey === col.key
@@ -560,6 +608,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         type="button"
                         onClick={() => handleSort(col.key)}
                         className="ai-focus-ring"
+                        data-grid-row={0}
+                        data-grid-col={gridCol}
+                        tabIndex={isFocusedCell(0, gridCol) ? 0 : -1}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -621,9 +672,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               </tr>
             ) : (
               <>
-                {/* Virtual Spacer Top */}
+                {/* Virtual Spacer Top -- pure layout padding, not a real
+                    grid row, so it's excluded from the accessible row
+                    model entirely rather than getting its own
+                    aria-rowindex. */}
                 {startIndex > 0 && (
-                  <tr>
+                  <tr aria-hidden="true">
                     <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
                   </tr>
                 )}
@@ -637,9 +691,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
                   const selectionKey = selectable ? getSelectionKey(record, actualIndex) : null;
                   const isRowSelected = selectionKey !== null && selectedKeySet.has(selectionKey);
+                  const gridRow = actualIndex + 1;
                   return (
                     <tr
                       key={key}
+                      // +2: 1-based, plus the header row -- see the
+                      // <table>'s own aria-rowcount comment on why this
+                      // reflects the row's position across the whole
+                      // dataset (pageOffset), not just the current page.
+                      aria-rowindex={pageOffset + actualIndex + 2}
                       onClick={() => {
                         onRowClick?.(record, actualIndex);
                         aiBus.emit('datatable:row_clicked', { id, index: actualIndex });
@@ -670,6 +730,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             onCheckedChange={() => toggleRowSelected(selectionKey)}
                             aria-label={`Select row ${actualIndex + 1}`}
                             className="ai-focus-ring"
+                            data-grid-row={gridRow}
+                            data-grid-col={0}
+                            tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
                             style={{
                               all: 'unset',
                               width: '1.125rem',
@@ -692,11 +755,25 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           </CheckboxPrimitive.Root>
                         </td>
                       )}
-                      {columns.map(col => {
+                      {columns.map((col, colIndex) => {
                         const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
+                        const gridCol = colOffset + colIndex;
                         return (
                           <td
                             key={col.key}
+                            // Roving-tabindex target for every data cell,
+                            // uniformly -- including a column with a custom
+                            // `render`. See useTableKeyboardNav's own header
+                            // comment for why this deliberately does not try
+                            // to detect/land on an interactive element a
+                            // custom render might contain: that content is
+                            // still reachable, just via native Tab order
+                            // rather than being folded into the grid's
+                            // single-composite-widget model.
+                            data-grid-row={gridRow}
+                            data-grid-col={gridCol}
+                            tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
+                            className="ai-focus-ring"
                             style={{
                               padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
                               color: subthemeColors?.color ?? 'var(--ai-text-primary, #111827)',
@@ -714,9 +791,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   );
                 })}
 
-                {/* Virtual Spacer Bottom */}
+                {/* Virtual Spacer Bottom -- same reasoning as the top spacer. */}
                 {endIndex < totalItems && (
-                  <tr>
+                  <tr aria-hidden="true">
                     <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
                   </tr>
                 )}
