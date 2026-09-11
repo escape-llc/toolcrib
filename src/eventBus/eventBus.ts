@@ -180,8 +180,21 @@ class AIEventBus {
    * Subscribe to a strongly-typed event. Returns an unsubscribe function.
    * For events in `STICKY_EVENTS`, immediately replays any already-known
    * last value(s) to `callback` before returning.
+   *
+   * `'*'` (only reachable via an `as any`/`as EventKey` cast, since it was
+   * never a real member of `EventKey`) is still accepted here and routed
+   * to the same `wildcardListeners` store `onAny` uses -- this was the
+   * only way to reach the wildcard stream before `onAny` existed, and a
+   * vendored library removing it out from under existing consumer app
+   * code would be a silent runtime regression (subscribes successfully,
+   * never actually fires) rather than a compile error. `onAny` is still
+   * the sanctioned, properly-typed way to reach it going forward.
    */
   on<K extends EventKey>(event: K, callback: EventCallback<K>): () => void {
+    if ((event as string) === '*') {
+      return this.onAny(callback as unknown as WildcardCallback);
+    }
+
     if (!this.listeners[event]) {
       this.listeners[event] = new Set() as any;
     }
@@ -200,9 +213,15 @@ class AIEventBus {
   }
 
   /**
-   * Unsubscribe from a strongly-typed event.
+   * Unsubscribe from a strongly-typed event. See `on()`'s own comment for
+   * why `'*'` is still handled here too.
    */
   off<K extends EventKey>(event: K, callback: EventCallback<K>): void {
+    if ((event as string) === '*') {
+      this.wildcardListeners.delete(callback as unknown as WildcardCallback);
+      return;
+    }
+
     const set = this.listeners[event];
     if (set) {
       set.delete(callback as any);

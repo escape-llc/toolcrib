@@ -46,6 +46,34 @@ describe('Strongly-Typed EventBus', () => {
     unsubscribeAny();
   });
 
+  // Regression: a Gemini review finding on the PR that introduced onAny
+  // flagged that removing wildcard support from on()/off() entirely would
+  // be a silent runtime regression for any vendored consumer app that had
+  // already written `aiBus.on('*' as any, cb)` -- the only way to reach
+  // the wildcard stream before onAny existed. on()/off() still route '*'
+  // to the same wildcardListeners store onAny uses, so both calling
+  // conventions keep working against one source of truth.
+  it('on(\'*\', cb)/off(\'*\', cb) still work, routed to the same store as onAny (backward compatibility)', () => {
+    const wildcardCallback = vi.fn();
+    const unsubscribe = aiBus.on('*' as any, wildcardCallback);
+
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test' });
+    expect(wildcardCallback).toHaveBeenCalledWith({ type: 'modal:shown', detail: { id: 'legacy-wildcard-test' } });
+
+    unsubscribe();
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-test-2' });
+    expect(wildcardCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('off(\'*\', cb) called directly (not via the returned unsubscribe) also works', () => {
+    const wildcardCallback = vi.fn();
+    aiBus.on('*' as any, wildcardCallback);
+    aiBus.off('*' as any, wildcardCallback);
+
+    aiBus.emit('modal:shown', { id: 'legacy-wildcard-off-test' });
+    expect(wildcardCallback).not.toHaveBeenCalled();
+  });
+
   it('provides convenience trigger helpers', () => {
     const callback = vi.fn();
     aiBus.on('toast:shown', callback);
