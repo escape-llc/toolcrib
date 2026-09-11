@@ -744,6 +744,7 @@ export const App: React.FC = () => {
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
+  const [showDataTableEmptyState, setShowDataTableEmptyState] = useState(false);
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
@@ -1517,6 +1518,14 @@ export const App: React.FC = () => {
                           <span>Acme Analytics — Team Directory (250 Rows, Adaptive Rem Height)</span>
                         </Toolbar.Left>
                         <Toolbar.Right>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={showDataTableEmptyState ? '👥' : '📭'}
+                            onClick={() => setShowDataTableEmptyState(v => !v)}
+                          >
+                            {showDataTableEmptyState ? 'Show Rows' : 'Show Empty State'}
+                          </Button>
                           <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
                         </Toolbar.Right>
                       </Toolbar>
@@ -1524,7 +1533,12 @@ export const App: React.FC = () => {
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         id="demo-users-table"
-                        data={dummyUsers}
+                        // Toggled by the "Show Empty State" button above --
+                        // demonstrates `emptyState`, which only ever renders
+                        // in place of the row set once `data` is genuinely
+                        // empty (post-sort/filter), not as a loading
+                        // indicator.
+                        data={showDataTableEmptyState ? [] : dummyUsers}
                         columns={columns}
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
@@ -1558,6 +1572,13 @@ export const App: React.FC = () => {
                             Delete Selected
                           </Button>
                         )}
+                        emptyState={
+                          <EmptyState>
+                            <EmptyState.Icon>👥</EmptyState.Icon>
+                            <EmptyState.Title>No team members found</EmptyState.Title>
+                            <EmptyState.Description>Toggle "Show Rows" above to bring the roster back.</EmptyState.Description>
+                          </EmptyState>
+                        }
                       />
                     </Card.Content>
                   </Card>
