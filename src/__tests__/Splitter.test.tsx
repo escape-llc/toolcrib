@@ -189,7 +189,12 @@ describe('Splitter Component & Corner Squaring', () => {
   });
 
   describe('regression coverage: mouse/pointer drag resizing', () => {
-    it('dragging the handle (mousedown -> window mousemove -> window mouseup) resizes the vertical split and clears isDragging afterward', () => {
+    // fireEvent.pointerDown/Move/Up, not mouseDown/Move/Up -- jsdom's
+    // window has a real PointerEvent constructor (confirmed directly), so
+    // the window-level listeners this component registers are for pointer
+    // events, matching the real-browser-preferred path (see Splitter.tsx's
+    // own comment on why plain mouse events alone are only a fallback now).
+    it('dragging the handle (pointerdown -> window pointermove -> window pointerup) resizes the vertical split and clears isDragging afterward', () => {
       const { container } = render(
         <Splitter orientation="vertical" initialSplit={50} minSize={10}>
           <div>Top</div>
@@ -202,18 +207,18 @@ describe('Splitter Component & Corner Squaring', () => {
         top: 0, left: 0, right: 100, bottom: 200, width: 100, height: 200, x: 0, y: 0, toJSON: () => {},
       });
 
-      fireEvent.mouseDown(handle);
+      fireEvent.pointerDown(handle);
       expect(handle.parentElement).not.toBeNull(); // dragging state now true — background switches to the "active" color
       expect(outer.style.userSelect).toBe('none');
 
-      fireEvent.mouseMove(window, { clientY: 150 }); // 150/200 = 75%
+      fireEvent.pointerMove(window, { clientY: 150 }); // 150/200 = 75%
       expect(handle).toHaveAttribute('aria-valuenow', '75');
 
-      fireEvent.mouseUp(window);
+      fireEvent.pointerUp(window);
       expect(outer.style.userSelect).toBe('auto');
 
-      // A further move after mouseup shouldn't do anything — listeners were removed.
-      fireEvent.mouseMove(window, { clientY: 20 });
+      // A further move after pointerup shouldn't do anything — listeners were removed.
+      fireEvent.pointerMove(window, { clientY: 20 });
       expect(handle).toHaveAttribute('aria-valuenow', '75');
     });
 
@@ -230,10 +235,44 @@ describe('Splitter Component & Corner Squaring', () => {
         top: 0, left: 0, right: 200, bottom: 100, width: 200, height: 100, x: 0, y: 0, toJSON: () => {},
       });
 
-      fireEvent.mouseDown(handle);
-      fireEvent.mouseMove(window, { clientX: 40 }); // 40/200 = 20%, clamped to minSize=10 -> stays 20
+      fireEvent.pointerDown(handle);
+      fireEvent.pointerMove(window, { clientX: 40 }); // 40/200 = 20%, clamped to minSize=10 -> stays 20
       expect(handle).toHaveAttribute('aria-valuenow', '20');
-      fireEvent.mouseUp(window);
+      fireEvent.pointerUp(window);
+    });
+
+    // Regression test for the "found once vs. found forever" shape (see
+    // AGENTS.md): the exact "register both mouse and pointer window
+    // listeners unconditionally" pattern here genuinely double-committed a
+    // sibling component (DataTable's column-resize handle, PR #327/issue
+    // #318). This wasn't reproducible for Splitter in a real browser
+    // (confirmed directly, not assumed -- see Splitter.tsx's own comment),
+    // but the guard added defensively needs its own proof it actually
+    // works, the same way the DataTable fix's guard does.
+    it('regression: does not double-commit/double-emit splitter:split_changed if a duplicate release event fires for the same gesture', () => {
+      const { container } = render(
+        <Splitter id="my-splitter" orientation="vertical" initialSplit={50} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      const outer = container.firstElementChild as HTMLElement;
+      outer.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 100, bottom: 200, width: 100, height: 200, x: 0, y: 0, toJSON: () => {},
+      });
+
+      const listener = vi.fn();
+      const unsubscribe = aiBus.on('splitter:split_changed', listener);
+
+      fireEvent.pointerDown(handle);
+      fireEvent.pointerMove(window, { clientY: 150 });
+      fireEvent.pointerUp(window);
+      fireEvent.pointerUp(window); // simulates a real browser's duplicate dispatch
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({ id: 'my-splitter', split: 75 }));
+      unsubscribe();
     });
   });
 

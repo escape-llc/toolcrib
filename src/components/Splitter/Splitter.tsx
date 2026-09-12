@@ -260,7 +260,16 @@ export const Splitter: React.FC<SplitterProps> & {
     // (the overwhelmingly common one — ownerDocument.defaultView is just
     // the same window) and the portaled-into-another-document case, with
     // no new prop or opt-in required either way.
-    const ownerWindow = containerRef.current.ownerDocument.defaultView ?? window;
+    // Explicit `: Window` annotation, not left inferred -- without it, the
+    // bare global `window` fallback infers `Window & typeof globalThis`,
+    // and TypeScript's `'PointerEvent' in ownerWindow` narrowing (below)
+    // treats that intersection type's `else` branch as unreachable
+    // (`never`), unlike plain `Window`. Confirmed directly: this exact
+    // annotation is the only difference between this file (which needed
+    // it) and useTableColumnResize.ts's identical check (which didn't,
+    // since its `ownerWindow` was already typed `Window` via an interface
+    // field rather than inferred from a `?? window` expression).
+    const ownerWindow: Window = containerRef.current.ownerDocument.defaultView ?? window;
 
     const handlePointerMove = (e: MouseEvent | PointerEvent) => {
       if (!containerRef.current) return;
@@ -284,21 +293,56 @@ export const Splitter: React.FC<SplitterProps> & {
       setSplit(clamped);
     };
 
+    // Guards a real release from being committed twice if a duplicate "up"
+    // dispatch ever reaches handlePointerUp below (see the listener
+    // registration further down for why that's now unlikely in practice,
+    // but not something to rely on unconditionally -- this costs nothing
+    // and covers any input path that doesn't happen to go through it). A
+    // plain local, not a useRef: this whole effect re-runs fresh for every
+    // new drag (isDragging false -> true), so a new one is exactly what's
+    // wanted each time, with no separate reset step to remember.
+    const hasCommittedRef = { current: false };
+
     const handlePointerUp = () => {
+      if (hasCommittedRef.current) return;
+      hasCommittedRef.current = true;
       setIsDragging(false);
       commitSplit(latestSplitRef.current);
     };
 
-    ownerWindow.addEventListener('mousemove', handlePointerMove);
-    ownerWindow.addEventListener('mouseup', handlePointerUp);
-    ownerWindow.addEventListener('pointermove', handlePointerMove);
-    ownerWindow.addEventListener('pointerup', handlePointerUp);
+    // PointerEvent alone already covers mouse, touch, and pen -- registered
+    // in preference to the legacy mouse events, which are kept only as a
+    // fallback for a browser with no PointerEvent support at all.
+    //
+    // This isn't guarding against a live bug found here: a real browser's
+    // "compatibility" mousedown/mousemove/mouseup dispatch for pointer
+    // input is suppressed once `onHandleDown` calls `preventDefault()` on
+    // the (earlier-firing) pointerdown event, per the Pointer Events spec
+    // -- confirmed directly via a real Chromium/WebKit drag on the demo's
+    // own main Splitter, counting `splitter:split_changed` emissions on
+    // aiBus: exactly one per release, both browsers, both before and after
+    // this change. Registering only one listener set is still the more
+    // correct shape regardless (this exact "register both unconditionally"
+    // pattern DID double-fire for a sibling component -- DataTable's
+    // column-resize handle, PR #327/issue #318 -- because its own
+    // `startResize` doesn't call `preventDefault()` on the *keyboard* path
+    // and there's no guarantee every future caller of this same shape
+    // will happen to call preventDefault() the way this one does), and
+    // removes any need to reason about whether that suppression holds for
+    // every input type/browser this code will ever run on.
+    if ('PointerEvent' in ownerWindow) {
+      ownerWindow.addEventListener('pointermove', handlePointerMove);
+      ownerWindow.addEventListener('pointerup', handlePointerUp);
+    } else {
+      ownerWindow.addEventListener('mousemove', handlePointerMove);
+      ownerWindow.addEventListener('mouseup', handlePointerUp);
+    }
 
     return () => {
-      ownerWindow.removeEventListener('mousemove', handlePointerMove);
-      ownerWindow.removeEventListener('mouseup', handlePointerUp);
       ownerWindow.removeEventListener('pointermove', handlePointerMove);
       ownerWindow.removeEventListener('pointerup', handlePointerUp);
+      ownerWindow.removeEventListener('mousemove', handlePointerMove);
+      ownerWindow.removeEventListener('mouseup', handlePointerUp);
     };
   }, [isDragging, isVertical, minSize, commitSplit]);
 
