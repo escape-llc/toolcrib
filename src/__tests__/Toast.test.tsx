@@ -499,7 +499,13 @@ describe('Toast Subsystem Event Generation', () => {
       const [toastA, toastB] = screen.getAllByTestId('toast-item');
       // B was added last -- it's the one closest to the bottom edge (offset 0).
       expect(toastB.style.getPropertyValue('--stack-offset')).toBe('0px');
-      expect(toastA.style.getPropertyValue('--stack-offset')).toBe(`${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
+      // Negative -- translateY always moves DOWN in screen space
+      // regardless of anchor, so stacking UP away from a bottom edge
+      // requires a negative offset (Gemini-caught regression: the first
+      // pass used the same positive sign as a top anchor here, which
+      // would translate every toast past the first further down/off-
+      // screen instead of stacking upward).
+      expect(toastA.style.getPropertyValue('--stack-offset')).toBe(`-${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
     });
   });
 });

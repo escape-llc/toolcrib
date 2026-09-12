@@ -313,7 +313,15 @@ export const ToastItemComponent: React.FC<ToastProps> = ({
           : anchor.endsWith('left')
             ? { left: TOAST_VIEWPORT_PADDING }
             : { right: TOAST_VIEWPORT_PADDING }),
-        ['--stack-offset' as string]: `${stackOffset}px`,
+        // translateY(positive) always moves DOWN in screen space,
+        // regardless of whether `top` or `bottom` anchors this element --
+        // a bottom-anchored toast's stackOffset has to be NEGATED so
+        // stacking additional toasts moves them UP, away from the bottom
+        // edge, instead of further down/off-screen underneath it. Real,
+        // Gemini-caught bug on this PR's first pass: every toast beyond
+        // the first in a bottom-anchored stack translated the wrong
+        // direction.
+        ['--stack-offset' as string]: `${anchor.startsWith('bottom') ? -stackOffset : stackOffset}px`,
         ...(anchor.endsWith('center') ? { ['--toast-transform-base' as string]: 'translateX(-50%)' } : {}),
         // Confirmed via a real browser run (DOM dump + computed-style walk):
         // Radix's ToastPrimitive.Root portals its actual rendered content to

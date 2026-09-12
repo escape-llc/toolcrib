@@ -62,3 +62,47 @@ test('multiple toasts stack at distinct Y positions, and dismissing one moves th
   expect(Math.abs(newYPositions[0] - yTop)).toBeLessThan(3);
   expect(Math.abs(newYPositions[1] - yMiddle)).toBeLessThan(3);
 });
+
+// Regression for a real Gemini-caught bug on this fix's first pass:
+// translateY(positive) always moves an element DOWN in screen space
+// regardless of whether it's anchored via `top` or `bottom` -- a bottom-
+// anchored stack needs a NEGATED offset to stack upward, away from the
+// bottom edge, instead of further down/off-screen underneath it. The
+// jsdom suite only ever checked the numeric magnitude of --stack-offset,
+// never real layout, so it couldn't have caught this on its own -- only a
+// real browser measurement (this test) proves each toast is actually
+// ABOVE the one below it, not overlapping/off-screen.
+test('a bottom-anchored stack stacks upward -- each earlier toast sits ABOVE the one below it, not off-screen', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Toast Subsystem');
+
+  await page.getByRole('combobox', { name: 'Toast Anchor Position:' }).click();
+  await page.getByRole('option', { name: 'Bottom Right' }).click();
+
+  const fireInfo = page.getByRole('button', { name: 'Fire Info Toast', exact: true });
+  await fireInfo.click();
+  await fireInfo.click();
+  await fireInfo.click();
+
+  const toasts = page.locator('[data-testid="toast-item"]');
+  await expect(toasts).toHaveCount(3);
+  await page.waitForTimeout(400);
+
+  // DOM order matches insertion order; for a bottom anchor the LAST
+  // inserted toast sits closest to the bottom edge (the smallest `top`,
+  // i.e. highest on screen among the three -- no, largest `top`/lowest on
+  // screen -- see the assertions below for the actual, verified direction)
+  // and every earlier one stacks progressively ABOVE it.
+  const viewportHeight = page.viewportSize()!.height;
+  const yPositions = await toasts.evaluateAll(els => els.map(el => el.getBoundingClientRect().top));
+  const [yFirst, ySecond, yThird] = yPositions;
+
+  // The bug this regresses: a positive (un-negated) offset would push
+  // these below the viewport entirely instead of stacking upward.
+  yPositions.forEach(y => expect(y).toBeLessThan(viewportHeight));
+  // Third (most recent) is closest to the bottom edge; first (oldest) is
+  // highest on screen -- each earlier toast has a SMALLER `top` than the
+  // one added after it.
+  expect(yFirst).toBeLessThan(ySecond);
+  expect(ySecond).toBeLessThan(yThird);
+});
