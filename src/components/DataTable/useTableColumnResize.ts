@@ -41,8 +41,13 @@ export interface UseTableColumnResizeResult {
   getColumnWidth: (column: Column<any>) => string | number | undefined;
   /** True while this specific column is actively being dragged (for visual feedback on the handle itself). */
   isResizing: (columnKey: string) => boolean;
-  /** aria-valuenow/min/max for a resizable column's handle. */
-  getAriaValues: (column: Column<any>) => { valueNow: number; valueMin: number; valueMax: number };
+  /**
+   * aria-valuenow/min/max for a resizable column's handle. `valueNow` is
+   * `undefined` (omitting the attribute, not reporting a wrong number)
+   * until a real pixel width is known -- see this function's own comment
+   * for why.
+   */
+  getAriaValues: (column: Column<any>) => { valueNow: number | undefined; valueMin: number; valueMax: number };
   /** Attach to the resize handle's onMouseDown/onPointerDown. `headerCell` is measured directly (its real rendered width) as the drag basis -- robust regardless of whether `Column.width` was ever set, or was a CSS string. */
   startResize: (column: Column<any>, headerCell: HTMLElement, clientX: number) => void;
   /** Attach to the resize handle's onKeyDown -- Arrow keys (Shift for a bigger step), Home/End. */
@@ -115,9 +120,20 @@ export function useTableColumnResize({
   const isResizing = (columnKey: string): boolean => dragPreview?.key === columnKey;
 
   const getAriaValues = (column: Column<any>) => {
+    // Real, confirmed bug caught by Gemini's review of this PR (#327): this
+    // used to fall back to reporting the MIN WIDTH FLOOR (e.g. 40) whenever
+    // a resizable column has no pre-declared numeric `width` (undefined,
+    // or a CSS string like '12rem') -- a screen reader announced that
+    // wrong number as the column's current width, then jumped straight to
+    // the real measured width plus one arrow-key step (e.g. 40 -> 160) on
+    // the very first keypress. `undefined` here omits the attribute
+    // entirely until a real pixel width is actually known (the first drag
+    // or arrow-key interaction always measures and commits a real one via
+    // `startResize`/`handleResizeKeyDown`'s own `getBoundingClientRect()`
+    // fallback) -- an honest "unknown" instead of an actively wrong value.
     const current = getColumnWidth(column);
     return {
-      valueNow: typeof current === 'number' ? Math.round(current) : resolveMinWidth(column),
+      valueNow: typeof current === 'number' ? Math.round(current) : undefined,
       valueMin: resolveMinWidth(column),
       valueMax: RESIZE_HANDLE_ARIA_VALUEMAX,
     };
@@ -157,23 +173,45 @@ export function useTableColumnResize({
     };
 
     const handleUp = () => {
-      setIsDragging(false);
+      // Guards against the real double-invocation Gemini's review of this
+      // PR (#327) caught: a pointer-enabled browser dispatches a spec-
+      // mandated "compatibility" mouseup synchronously alongside every real
+      // pointerup for mouse input, so registering both unconditionally
+      // (below) fired this twice per physical release -- committing (and
+      // calling the public onColumnWidthsChange prop) twice for one drag.
+      // Nulling latestDragPreviewRef.current before the commit call means
+      // the second dispatch of this same handler sees it already cleared
+      // and no-ops.
       const finalPreview = latestDragPreviewRef.current;
+      if (!finalPreview) return;
+      latestDragPreviewRef.current = null;
+      setIsDragging(false);
       setDragPreview(null);
       dragContextRef.current = null;
-      if (finalPreview) commitWidth(finalPreview.key, finalPreview.width);
+      commitWidth(finalPreview.key, finalPreview.width);
     };
 
-    ctx.ownerWindow.addEventListener('mousemove', handleMove);
-    ctx.ownerWindow.addEventListener('mouseup', handleUp);
-    ctx.ownerWindow.addEventListener('pointermove', handleMove);
-    ctx.ownerWindow.addEventListener('pointerup', handleUp);
+    // PointerEvent alone already covers mouse, touch, and pen -- the
+    // mouse-event listeners are registered only as a fallback for a
+    // browser with no PointerEvent support at all (confirmed there's no
+    // such evergreen browser today, but this costs nothing to keep). Do
+    // NOT register both unconditionally: a pointer-enabled browser fires a
+    // real pointermove/pointerup *and* a synthetic compatibility
+    // mousemove/mouseup for the same physical mouse gesture, which doubled
+    // every handleMove tick and every handleUp/commit call before this fix.
+    if ('PointerEvent' in ctx.ownerWindow) {
+      ctx.ownerWindow.addEventListener('pointermove', handleMove);
+      ctx.ownerWindow.addEventListener('pointerup', handleUp);
+    } else {
+      ctx.ownerWindow.addEventListener('mousemove', handleMove);
+      ctx.ownerWindow.addEventListener('mouseup', handleUp);
+    }
 
     return () => {
-      ctx.ownerWindow.removeEventListener('mousemove', handleMove);
-      ctx.ownerWindow.removeEventListener('mouseup', handleUp);
       ctx.ownerWindow.removeEventListener('pointermove', handleMove);
       ctx.ownerWindow.removeEventListener('pointerup', handleUp);
+      ctx.ownerWindow.removeEventListener('mousemove', handleMove);
+      ctx.ownerWindow.removeEventListener('mouseup', handleUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
