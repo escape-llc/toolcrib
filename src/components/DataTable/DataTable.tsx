@@ -1,6 +1,14 @@
 'use client';
 
-import { useMemo, useRef, useState, useLayoutEffect, type ReactNode } from 'react';
+import {
+  useMemo,
+  useRef,
+  useState,
+  useLayoutEffect,
+  type ReactNode,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Toolbar } from '../Toolbar/Toolbar';
@@ -18,6 +26,7 @@ import { useTableSort } from './useTableSort';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
+import { useTableColumnResize } from './useTableColumnResize';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -61,6 +70,23 @@ export interface Column<T = any> {
   sortable?: boolean;
   /** Column width as CSS value (e.g. `'12rem'`) or number (px). */
   width?: string | number;
+  /**
+   * If true, shows a drag handle on this column's trailing edge, resizable
+   * by mouse/touch or (with the handle focused) Left/Right arrow keys
+   * (Shift for a bigger step), Home (minimum), and End. Works regardless
+   * of whether `width` above is set, a CSS string, or omitted entirely --
+   * a drag measures this column's own real rendered width as its starting
+   * point rather than requiring a pre-declared pixel value. @default false
+   */
+  resizable?: boolean;
+  /**
+   * Minimum width (px) a drag or arrow-key resize can shrink this column
+   * to -- prevents a variant of the real `table-layout: fixed`
+   * column-collapse defect documented in this project's own competitive
+   * research. Only meaningful alongside `resizable`.
+   * @default 40
+   */
+  minWidth?: number;
 }
 
 /**
@@ -220,6 +246,26 @@ export interface DataTableProps<T = any> {
    * "Delete", "Export"), receiving the current selection to act on.
    */
   renderBulkActions?: (selectedKeys: string[]) => ReactNode;
+  /**
+   * Controlled map of resized column widths (px), keyed by `Column.key`.
+   * Only columns the user has actually resized need appear -- a column
+   * absent from this map keeps rendering its own configured `width`. Pass
+   * to drive resized widths from parent state (e.g. to persist them to
+   * `localStorage`) instead of letting `<DataTable>` manage them
+   * internally. Omit for the common uncontrolled case; `defaultColumnWidths`
+   * seeds that internal state instead. Only meaningful for columns marked
+   * `resizable`.
+   */
+  columnWidths?: Record<string, number>;
+  /** Initial resized widths when uncontrolled (`columnWidths` omitted). */
+  defaultColumnWidths?: Record<string, number>;
+  /**
+   * Called once a resize completes (mouse/touch release, or an
+   * arrow-key/Home/End press), whether controlled or uncontrolled -- never
+   * on every intermediate drag tick, so this is safe to wire straight to a
+   * `localStorage` write without flooding it mid-drag.
+   */
+  onColumnWidthsChange?: (widths: Record<string, number>) => void;
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
   /**
@@ -263,6 +309,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   defaultSelectedKeys,
   onSelectionChange,
   renderBulkActions,
+  columnWidths: controlledColumnWidths,
+  defaultColumnWidths,
+  onColumnWidthsChange,
   overrides,
   emptyState,
 }: DataTableProps<T>) {
@@ -392,6 +441,67 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   });
   const isFocusedCell = (row: number, col: number) => focusedRow === row && focusedCol === col;
 
+  const { getColumnWidth, isResizing, getAriaValues, startResize, handleResizeKeyDown } = useTableColumnResize({
+    columnWidths: controlledColumnWidths,
+    defaultColumnWidths,
+    onColumnWidthsChange,
+  });
+
+  // Shared resize-handle renderer for a resizable column's <th> -- a
+  // role="separator" per the W3C APG Window Splitter pattern (see
+  // useTableColumnResize.ts's own header comment), positioned absolutely
+  // against the <th>'s own `position: relative` (set below wherever this is
+  // rendered). Reads the header cell live via e.currentTarget.closest('th')
+  // rather than a persistent ref -- this renders inside two different <th>
+  // shapes (sortable-button and plain), so there's no single stable ref to
+  // reuse between them. Deliberately NOT part of the roving-tabindex/
+  // data-grid-* coordinate model (no data-grid-row/col, no isFocusedCell) --
+  // same documented scope limit as any other custom interactive content
+  // inside a cell (see useTableKeyboardNav's own header comment): it's a
+  // second focusable target inside the column's header cell, reachable via
+  // native Tab order, not folded into the single-composite-widget model the
+  // sort button/checkbox use.
+  const renderResizeHandle = (col: Column<T>) => {
+    if (!col.resizable) return null;
+    const aria = getAriaValues(col);
+    const onDown = (e: ReactMouseEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const headerCell = (e.currentTarget as HTMLElement).closest('th');
+      if (headerCell) startResize(col, headerCell, e.clientX);
+    };
+    return (
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuenow={aria.valueNow}
+        aria-valuemin={aria.valueMin}
+        aria-valuemax={aria.valueMax}
+        aria-label={`Resize ${col.title} column`}
+        tabIndex={0}
+        className="ai-focus-ring"
+        onMouseDown={onDown}
+        onPointerDown={onDown}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={e => {
+          e.stopPropagation();
+          const headerCell = (e.currentTarget as HTMLElement).closest('th');
+          if (headerCell) handleResizeKeyDown(col, headerCell, e);
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: '0.5rem',
+          cursor: 'col-resize',
+          touchAction: 'none',
+          background: isResizing(col.key) ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
+        }}
+      />
+    );
+  };
+
   return (
     <div
       style={{
@@ -497,9 +607,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         >
           <colgroup>
             {selectable && <col style={{ width: '2.75rem' }} />}
-            {columns.map(col => (
-              <col key={col.key} style={{ width: col.width ? (typeof col.width === 'number' ? `${col.width}px` : col.width) : undefined }} />
-            ))}
+            {columns.map(col => {
+              const resolvedWidth = getColumnWidth(col);
+              return (
+                <col
+                  key={col.key}
+                  style={{ width: resolvedWidth ? (typeof resolvedWidth === 'number' ? `${resolvedWidth}px` : resolvedWidth) : undefined }}
+                />
+              );
+            })}
           </colgroup>
 
           {/* Header */}
@@ -586,7 +702,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // height inside a <th> a taller sibling column
                       // stretched, leaving unclickable dead space.
                       height: isSortable ? '100%' : undefined,
-                      width: col.width,
+                      width: getColumnWidth(col),
+                      // Anchors the resize handle's absolute positioning
+                      // below -- harmless when col.resizable is false since
+                      // nothing renders inside this th to be positioned
+                      // against it either way.
+                      position: col.resizable ? 'relative' : undefined,
                     }}
                   >
                     {isSortable ? (
@@ -651,6 +772,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         {col.title}
                       </div>
                     )}
+                    {renderResizeHandle(col)}
                   </th>
                 );
               })}
