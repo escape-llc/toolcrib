@@ -297,6 +297,44 @@ describe('Toast Subsystem Event Generation', () => {
     });
   });
 
+  // The toast Root itself (not just the Viewport, covered above) is now
+  // ALSO independently positioned per-anchor -- see Toast.tsx's own
+  // comment on why (Root's real rendered output is a portaled direct
+  // child of the Viewport's <ol>, sharing its containing block, so
+  // absolute positioning has to be set on Root directly for the stacking
+  // transform to work at all). All 6 anchors, unlike the Viewport-only
+  // describe.each above (which omits the default 'top-right') -- this is
+  // new logic this PR introduced, so every anchor's own branch matters,
+  // including the default.
+  const INSET = 'var(--ai-padding-xl, 1rem)';
+  describe.each([
+    ['top-right', { top: INSET, right: INSET, left: '', bottom: '' }, false],
+    ['top-left', { top: INSET, left: INSET, right: '', bottom: '' }, false],
+    ['bottom-right', { bottom: INSET, right: INSET, top: '', left: '' }, false],
+    ['bottom-left', { bottom: INSET, left: INSET, top: '', right: '' }, false],
+    ['top-center', { top: INSET, left: '50%', right: '', bottom: '' }, true],
+    ['bottom-center', { bottom: INSET, left: '50%', right: '', top: '' }, true],
+  ] as [ToastAnchor, Record<'top' | 'bottom' | 'left' | 'right', string>, boolean][])(
+    'anchor "%s"',
+    (anchor, expectedEdges, expectsCentering) => {
+      it('positions the toast Root itself at the matching edge(s), and only sets --toast-transform-base for a center anchor', () => {
+        render(
+          <ToastProvider defaultAnchor={anchor}>
+            <TestComponent />
+          </ToastProvider>
+        );
+
+        fireEvent.click(screen.getByText('Trigger Toast'));
+        const toastEl = screen.getByTestId('toast-item');
+        expect(toastEl.style.top).toBe(expectedEdges.top);
+        expect(toastEl.style.bottom).toBe(expectedEdges.bottom);
+        expect(toastEl.style.left).toBe(expectedEdges.left);
+        expect(toastEl.style.right).toBe(expectedEdges.right);
+        expect(toastEl.style.getPropertyValue('--toast-transform-base')).toBe(expectsCentering ? 'translateX(-50%)' : '');
+      });
+    }
+  );
+
   it('clearAll dismisses every visible toast at once', () => {
     const ClearAllComponent = () => {
       const { addToast, clearAll } = useToast();
@@ -353,5 +391,121 @@ describe('Toast Subsystem Event Generation', () => {
     } finally {
       consoleSpy.mockRestore();
     }
+  });
+
+  // Regression for the "toasts jerk around instead of smoothly transitioning"
+  // report -- ToastContainer used to reflow the whole flex list via a
+  // grid-template-rows collapse on every frame of every toast's own exit
+  // animation, a real layout recalculation. It's now pure arithmetic: each
+  // toast's own `--stack-offset` CSS variable, computed from every OTHER
+  // visible toast's own (measured, or -- as here, in jsdom, which has no
+  // ResizeObserver/layout engine -- estimated) height, animated via a plain
+  // `transform: translateY(...)` transition instead of reflow. jsdom can't
+  // observe the actual smoothness (that's what the real-browser e2e spec is
+  // for), but it CAN observe the underlying arithmetic directly.
+  describe('stacking via --stack-offset (Toast transition smoothness)', () => {
+    const StackComponent = () => {
+      const { addToast } = useToast();
+      return (
+        <div>
+          <button onClick={() => addToast({ id: 'a', type: 'info', message: 'Toast A' })}>Add A</button>
+          <button onClick={() => addToast({ id: 'b', type: 'info', message: 'Toast B' })}>Add B</button>
+          <button onClick={() => addToast({ id: 'c', type: 'info', message: 'Toast C' })}>Add C</button>
+          <ToastContainer />
+        </div>
+      );
+    };
+
+    // jsdom's getBoundingClientRect always returns an all-zero rect (no real
+    // layout engine) and has no ResizeObserver at all -- useAdaptiveSize's
+    // height guard (`height > 0`) means onHeightChange never actually fires
+    // here, so every toast falls back to TOAST_ESTIMATED_HEIGHT_PX (72) for
+    // this whole describe block. That's fine: these tests are about the
+    // OFFSET ARITHMETIC being correct given whatever heights are known, not
+    // about real measurement (which the e2e spec covers in a real browser).
+    const ESTIMATED_HEIGHT_PX = 72;
+    const GAP_PX = 10;
+
+    it('stacks toasts by cumulative (estimated) height + gap, first toast at offset 0', () => {
+      render(
+        <ToastProvider>
+          <StackComponent />
+        </ToastProvider>
+      );
+
+      fireEvent.click(screen.getByText('Add A'));
+      fireEvent.click(screen.getByText('Add B'));
+      fireEvent.click(screen.getByText('Add C'));
+
+      const toasts = screen.getAllByTestId('toast-item');
+      expect(toasts).toHaveLength(3);
+      expect(toasts[0].style.getPropertyValue('--stack-offset')).toBe('0px');
+      expect(toasts[1].style.getPropertyValue('--stack-offset')).toBe(`${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
+      expect(toasts[2].style.getPropertyValue('--stack-offset')).toBe(`${2 * (ESTIMATED_HEIGHT_PX + GAP_PX)}px`);
+    });
+
+    it('dismissing the first toast immediately recomputes the remaining toasts to fill the gap', () => {
+      render(
+        <ToastProvider>
+          <StackComponent />
+        </ToastProvider>
+      );
+
+      fireEvent.click(screen.getByText('Add A'));
+      fireEvent.click(screen.getByText('Add B'));
+      fireEvent.click(screen.getByText('Add C'));
+
+      const [toastA] = screen.getAllByTestId('toast-item');
+      expect(toastA.style.getPropertyValue('--stack-offset')).toBe('0px');
+
+      // Dismiss A. Unlike a real browser -- where Presence keeps a closed
+      // toast mounted (fading in place) until a real animationend fires --
+      // jsdom detects no actual running CSS animation and unmounts A's own
+      // <li> synchronously right here (the same jsdom Presence quirk this
+      // file's own "onAnimationEnd ignores an unrelated animationName"
+      // test/comment already documents). So the one thing THIS test can
+      // observe is what happens to the OTHER toasts, not that A itself
+      // stays frozen in place while fading -- that half is real-browser-
+      // only and covered by e2e/toast-stacking.spec.ts instead.
+      fireEvent.click(screen.getAllByLabelText('Dismiss toast')[0]);
+
+      const [slidB, slidC] = screen.getAllByTestId('toast-item');
+      // B and C each move up by exactly one slot -- the arithmetic a real
+      // browser would render as a smooth translateY transition.
+      expect(slidB.style.getPropertyValue('--stack-offset')).toBe('0px');
+      expect(slidC.style.getPropertyValue('--stack-offset')).toBe(`${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
+    });
+
+    it('a bottom anchor stacks in reverse -- the most recently added toast sits at offset 0, closest to the screen edge', () => {
+      const BottomStackComponent = () => {
+        const { addToast } = useToast();
+        return (
+          <div>
+            <button onClick={() => addToast({ id: 'a', type: 'info', message: 'Toast A' })}>Add A</button>
+            <button onClick={() => addToast({ id: 'b', type: 'info', message: 'Toast B' })}>Add B</button>
+            <ToastContainer />
+          </div>
+        );
+      };
+      render(
+        <ToastProvider defaultAnchor="bottom-right">
+          <BottomStackComponent />
+        </ToastProvider>
+      );
+
+      fireEvent.click(screen.getByText('Add A'));
+      fireEvent.click(screen.getByText('Add B'));
+
+      const [toastA, toastB] = screen.getAllByTestId('toast-item');
+      // B was added last -- it's the one closest to the bottom edge (offset 0).
+      expect(toastB.style.getPropertyValue('--stack-offset')).toBe('0px');
+      // Negative -- translateY always moves DOWN in screen space
+      // regardless of anchor, so stacking UP away from a bottom edge
+      // requires a negative offset (Gemini-caught regression: the first
+      // pass used the same positive sign as a top anchor here, which
+      // would translate every toast past the first further down/off-
+      // screen instead of stacking upward).
+      expect(toastA.style.getPropertyValue('--stack-offset')).toBe(`-${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
+    });
   });
 });

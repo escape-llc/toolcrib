@@ -24,22 +24,64 @@ export function useAdaptiveSize(
   });
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    let cancelled = false;
+    let rafId: number | null = null;
+    let attempts = 0;
+    // The specific element actually passed to observerManager.observe(),
+    // captured here rather than re-reading ref.current at cleanup time --
+    // if the ref's own .current somehow pointed to a DIFFERENT node by
+    // then, unobserving THAT one instead would leave the real observed
+    // element tracked forever and unobserve a node that was never
+    // observed in the first place.
+    let observedEl: HTMLElement | null = null;
+    // A handful of frames is plenty for a portal target to finish
+    // attaching (see this loop's own comment below) without risking a
+    // real infinite retry loop for a ref that's genuinely never assigned.
+    const MAX_ATTACH_RETRY_FRAMES = 10;
 
-    // Initial measurement
-    const rect = el.getBoundingClientRect();
-    setSize(prev => ({
-      ...prev,
-      width: rect.width,
-      height: rect.height,
-      contentHeight: el.scrollHeight,
-    }));
+    const trySetup = () => {
+      if (cancelled) return;
+      const el = ref.current;
+      if (!el) {
+        // ref.current can still be null on this effect's very first run --
+        // confirmed for real (not theoretical) building <Toast>'s own
+        // stacking positions: Radix's ToastPrimitive.Root renders through
+        // an internal portal, and on the FIRST toast ever mounted, the
+        // portal's own target container can still be getting set up in
+        // the same commit, so this component's ref hasn't attached to the
+        // real DOM node yet by the time this effect body runs. Nothing
+        // else would ever re-run this effect once the ref DOES attach --
+        // mutating a ref's .current never triggers a re-render or a
+        // dependency change -- so without this retry, that element's size
+        // silently never gets measured at all, for the rest of its
+        // lifetime. A bounded requestAnimationFrame retry is the fix:
+        // the ref reliably attaches within the next frame or two once its
+        // portal target exists, well inside the retry budget below.
+        if (attempts++ < MAX_ATTACH_RETRY_FRAMES) {
+          rafId = requestAnimationFrame(trySetup);
+        }
+        return;
+      }
 
-    observerManager.observe(el, config);
+      // Initial measurement
+      const rect = el.getBoundingClientRect();
+      setSize(prev => ({
+        ...prev,
+        width: rect.width,
+        height: rect.height,
+        contentHeight: el.scrollHeight,
+      }));
+
+      observerManager.observe(el, config);
+      observedEl = el;
+    };
+
+    trySetup();
 
     return () => {
-      observerManager.unobserve(el);
+      cancelled = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (observedEl) observerManager.unobserve(observedEl);
     };
     // Deliberately destructured, not the whole `config` object -- `config`
     // has a default parameter value (`= {}`), so a caller who omits it
