@@ -125,6 +125,17 @@ export function useTableSelection<T>({
     updateSelection(next);
   };
 
+  // Every row key on the CURRENT page only -- even though `selectedKeySet`
+  // itself holds keys from any page (selection persists across pages).
+  // Declared before handleRowSelectClick below (not just before its other
+  // two call sites further down) because its own Shift-click branch needs
+  // this to scope a range-select to just the current page's keys, rather
+  // than discarding every other page's selection outright.
+  const currentPageKeys = useMemo(
+    () => (selectable ? currentPageRecords.map((record, i) => getSelectionKey(record, i)) : []),
+    [selectable, currentPageRecords, getSelectionKey]
+  );
+
   const handleRowSelectClick = (
     key: string,
     index: number,
@@ -145,7 +156,20 @@ export function useTableSelection<T>({
       // contract.
       const [start, end] = [lastActedIndexRef.current, index].sort((a, b) => a - b);
       const rangeKeys = currentPageRecords.slice(start, end + 1).map((record, i) => getSelectionKey(record, start + i));
-      updateSelection(new Set(rangeKeys));
+      // Real, confirmed bug caught by Gemini's review of this PR (#333):
+      // `updateSelection(new Set(rangeKeys))` here used to REPLACE the
+      // whole selection outright, silently discarding every other page's
+      // already-selected keys -- a direct violation of this hook's own
+      // documented "selection persists across pages" contract. Building
+      // off the existing set, clearing only THIS page's own keys first
+      // (so a previously-selected row on this page that falls OUTSIDE the
+      // new range is correctly dropped, matching a real spreadsheet's own
+      // Shift-click semantics), then adding the range, keeps every other
+      // page's selection untouched.
+      const next = new Set(selectedKeySet);
+      currentPageKeys.forEach(k => next.delete(k));
+      rangeKeys.forEach(k => next.add(k));
+      updateSelection(next);
       // Deliberately does NOT move the anchor -- a second Shift-click
       // should extend/shrink the SAME range from the original anchor, not
       // re-anchor from wherever the previous Shift-click landed (matching
@@ -160,13 +184,6 @@ export function useTableSelection<T>({
     lastActedIndexRef.current = index;
   };
 
-  // Scoped to the *current page* only -- "some but not all of the current
-  // page selected" -- even though `selectedKeySet` itself holds keys from
-  // any page (selection persists across pages).
-  const currentPageKeys = useMemo(
-    () => (selectable ? currentPageRecords.map((record, i) => getSelectionKey(record, i)) : []),
-    [selectable, currentPageRecords, getSelectionKey]
-  );
   // "Select all" has no meaning for a single-choice model -- always false
   // in 'single' mode so DataTable's header control stays hidden/inert
   // rather than needing its own separate selectionMode check.

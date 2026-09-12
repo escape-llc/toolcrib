@@ -659,6 +659,45 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByLabelText('Select row 6')).toHaveAttribute('data-state', 'unchecked');
     });
 
+    // Regression test for a real Gemini-caught defect (PR #333): Shift-click
+    // range-select used to REPLACE the whole selection outright, silently
+    // discarding every other page's already-selected keys -- a direct
+    // violation of this hook's own documented "selection persists across
+    // pages" contract (see the "persists selection across pages" test
+    // above, which covers the checkbox path this same guarantee already
+    // had before Shift-click regressed it).
+    it('Shift-click range-select on the current page does not discard a selection made on a different page', () => {
+      const onSelectionChange = vi.fn();
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          onSelectionChange={onSelectionChange}
+        />
+      );
+      // Select row 11 (page 2's first row) via its checkbox, then return to page 1.
+      fireEvent.click(screen.getByLabelText('Next page'));
+      fireEvent.click(screen.getByLabelText('Select row 1')); // page-relative label -> id 11
+      expect(onSelectionChange).toHaveBeenLastCalledWith(['11']);
+      fireEvent.click(screen.getByLabelText('Previous page'));
+
+      // Shift-click range-select entirely within page 1 -- the anchor is
+      // set via Ctrl-click (an additive toggle), not a plain click, since a
+      // plain click's own job is to REPLACE the whole selection with just
+      // itself; using one here would clear page 2's row before the
+      // Shift-click this test is actually about ever ran.
+      fireEvent.click(screen.getByText('Item 2'), { ctrlKey: true });
+      fireEvent.click(screen.getByText('Item 4'), { shiftKey: true });
+
+      // Page 2's row 11 is still selected, alongside the new page-1 range.
+      const calls = onSelectionChange.mock.calls;
+      const lastCall = calls[calls.length - 1][0] as string[];
+      expect(new Set(lastCall)).toEqual(new Set(['11', '2', '3', '4']));
+    });
+
     it('disableRowClickSelection leaves row clicks alone -- only the checkbox changes selection', () => {
       const onRowClick = vi.fn();
       render(

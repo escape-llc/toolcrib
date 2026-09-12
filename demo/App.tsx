@@ -871,6 +871,13 @@ export const App: React.FC = () => {
     if (event.id !== 'demo-users-table') return;
     if (event.command === 'delete') {
       setTableUsers(prev => prev.filter(u => String(u.id) !== event.key));
+      // Real Gemini-caught bug (PR #333): deleting a row via this
+      // per-row command, without also dropping its key from
+      // selectedUserKeys, left a stale selection behind -- the bulk-action
+      // bar kept showing a count that included a row no longer in the
+      // table at all (or, worse, kept showing itself as "selected" once a
+      // later row happened to reuse that same key from a fresh reload).
+      setSelectedUserKeys(prev => prev.filter(k => k !== event.key));
       addToast({ type: 'warning', message: `Deleted user #${event.key}`, priority: 'low' });
     } else if (event.command === 'view') {
       addToast({ type: 'info', message: `Viewing user #${event.key} (simulated)`, priority: 'low' });
