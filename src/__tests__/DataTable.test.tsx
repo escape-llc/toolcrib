@@ -930,7 +930,12 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
     });
 
-    it('a selected row composes a translucent tint (backgroundImage) with its own rowSubtheme color (backgroundColor), instead of replacing it', () => {
+    // Issue #360: selection used to wash the whole row with a translucent
+    // backgroundImage tint, layered on top of (but still visually muddying)
+    // any custom rowSubtheme color. Replaced with a left indicator + inset
+    // border (each cell's own boxShadow) so a selected row's OWN background
+    // -- a zebra stripe, a rowSubtheme tint -- stays completely untouched.
+    it("selecting a row leaves its own rowSubtheme background completely untouched, and adds the left-indicator boxShadow to its first cell instead", () => {
       render(
         <DataTable
           data={testData}
@@ -942,12 +947,58 @@ describe('DataTable Virtualized Component', () => {
         />
       );
       const row1 = screen.getByText('Item 1').closest('tr') as HTMLElement;
-      expect(row1.style.backgroundImage).toBe('none');
-      fireEvent.click(screen.getByLabelText('Select row 1'));
-      // The subtheme's own background is UNCHANGED -- selection layers a
-      // separate backgroundImage wash on top rather than overwriting it.
+      const firstCell = row1.querySelector('td') as HTMLElement; // the selection checkbox <td>
       expect(row1.style.backgroundColor).toBe('var(--ai-subtheme-error-bg)');
-      expect(row1.style.backgroundImage).not.toBe('none');
+      expect(firstCell.style.boxShadow).toBe('none');
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+
+      // The row's own subtheme background is completely unchanged.
+      expect(row1.style.backgroundColor).toBe('var(--ai-subtheme-error-bg)');
+      // The first cell (the selection <td>, always first when rendered)
+      // now carries a left accent bar AND both top/bottom frame caps --
+      // an isolated selected row with no selected neighbor gets a full
+      // frame.
+      expect(firstCell.style.boxShadow).toContain('0.25rem 0 0 0'); // left accent
+      expect(firstCell.style.boxShadow).toContain('0 0.125rem 0 0'); // top cap
+      expect(firstCell.style.boxShadow).toContain('0 -0.125rem 0 0'); // bottom cap
+    });
+
+    it('contiguous selected rows merge into one framed block: only the first row gets a top cap and only the last gets a bottom cap', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+
+      // Select rows 1, 2, and 3 (contiguous) -- row 4 stays unselected.
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      fireEvent.click(screen.getByLabelText('Select row 2'));
+      fireEvent.click(screen.getByLabelText('Select row 3'));
+
+      const firstCellOf = (label: string) =>
+        (screen.getByText(label).closest('tr') as HTMLElement).querySelector('td') as HTMLElement;
+
+      const row1Shadow = firstCellOf('Item 1').style.boxShadow;
+      const row2Shadow = firstCellOf('Item 2').style.boxShadow;
+      const row3Shadow = firstCellOf('Item 3').style.boxShadow;
+      const row4Shadow = firstCellOf('Item 4').style.boxShadow;
+
+      // Row 1 (start of the run): top cap present, bottom cap absent --
+      // merges seamlessly into row 2 below it.
+      expect(row1Shadow).toContain('0 0.125rem 0 0');
+      expect(row1Shadow).not.toContain('0 -0.125rem 0 0');
+
+      // Row 2 (middle of the run): neither cap -- no divider between two
+      // selected rows sitting next to each other.
+      expect(row2Shadow).not.toContain('0 0.125rem 0 0');
+      expect(row2Shadow).not.toContain('0 -0.125rem 0 0');
+
+      // Row 3 (end of the run): bottom cap present, top cap absent.
+      expect(row3Shadow).not.toContain('0 0.125rem 0 0');
+      expect(row3Shadow).toContain('0 -0.125rem 0 0');
+
+      // All three still carry the left accent bar, continuously.
+      [row1Shadow, row2Shadow, row3Shadow].forEach(s => expect(s).toContain('0.25rem 0 0 0'));
+
+      // Row 4 (unselected, adjacent to the run) has no selection shadow at all.
+      expect(row4Shadow).toBe('none');
     });
 
     describe('rowCommands', () => {

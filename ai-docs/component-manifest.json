@@ -192,7 +192,6 @@
       "--ai-table-cell-padding",
       "--ai-table-header-padding",
       "--ai-table-row-height",
-      "--ai-table-row-selected-tint",
       "--ai-table-stripe-bg",
       "--ai-text-primary",
       "--ai-text-secondary",

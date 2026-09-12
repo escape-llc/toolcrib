@@ -148,4 +148,54 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     await expect(emailCell).toHaveAttribute('tabindex', '0');
     await expect(selectAllCheckbox).toHaveAttribute('tabindex', '-1');
   });
+
+  // Regression for a reported (but, per real-browser measurement below, not
+  // currently reproducible) bug: "the DataTable selection UI column is not
+  // in the tab order, it gets skipped, including the one in the header."
+  // Every other test in this file seeds focus programmatically (`.focus()`)
+  // before exercising arrow-key navigation -- none of them prove the
+  // selection column is actually reachable via a real, native keyboard Tab
+  // sweep from OUTSIDE the table, which is what the report describes. This
+  // drives real `Tab` keypresses starting from a control that sits earlier
+  // in the page's own DOM order and confirms the select-all checkbox is the
+  // very next stop -- the grid's single roving-tabindex entry point, per
+  // the W3C APG composite-widget pattern (Tab moves into/out of the whole
+  // grid as one stop; arrow keys move within it -- confirmed separately by
+  // the roving-tabindex-count assertion above, not a gap this test needs to
+  // re-prove).
+  test('a real Tab keypress from outside the table reaches the header select-all checkbox, not the sortable column headers past it', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Data Table');
+    await loadDemoTableData(page);
+
+    // The density toggle buttons sit in this table's own toolbar, directly
+    // before it in DOM order -- a realistic starting point for a keyboard
+    // user tabbing forward through the page.
+    await page.getByRole('button', { name: 'Normal' }).focus();
+
+    // Tab through whatever real, ordinary focusable controls sit between
+    // the toolbar and the table itself (Reload/Export buttons) until
+    // landing inside the grid -- bounded, not open-ended, so a genuine
+    // regression (the checkbox never gets reached at all) fails loudly
+    // instead of looping forever.
+    let reachedCheckbox = false;
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+      const active = await activeElementGridCoords(page);
+      if (active.row === '0' && active.col === '0') {
+        reachedCheckbox = true;
+        break;
+      }
+      // The only other grid-nav cell reachable via a plain Tab sweep would
+      // be a sortable column header past the checkbox -- landing there
+      // instead is exactly the reported bug (the selection column skipped).
+      expect(active.row).not.toBe('0');
+    }
+    expect(reachedCheckbox).toBe(true);
+
+    const checkbox = page.locator('[data-grid-row="0"][data-grid-col="0"]').first();
+    await expect(checkbox).toBeFocused();
+    await expect(checkbox).toHaveAttribute('role', 'checkbox');
+    await expect(checkbox).toHaveAccessibleName('Select all rows on this page');
+  });
 });
