@@ -17,6 +17,28 @@ How a real change to this repo actually gets from "idea" to "merged," for whoeve
 
 Not every one-line typo fix needs the full ceremony — but a real change (new behavior, a real bug fix, a config/infra change) does, by default. When in doubt, run the sequence; the cost of an extra issue/PR is low, the cost of an undocumented direct-to-`main` change is a future session with no idea why something is the way it is.
 
+## A literal per-issue checklist, not just this file's prose
+
+Added 2026-09-12, after a direct question about long sessions silently drifting away from steps this file already documents. The numbered sequence above is easy to *read* and easy to stop *actively applying in full* once a session has already run it a dozen times — not because the text stops being available (project instruction files like this one are re-injected into context on every turn, including after a mid-session compaction), but because recalling the *right* step at the *right* moment under momentum is a different failure mode than the text being missing. The same "found once vs. found forever" gap `AGENTS.md`'s own "Generalizing lessons" section names for in-repo bugs applies here too, aimed at process instead of code.
+
+The concrete fix: at the start of each issue's own work, write a literal checklist file into the session's own scratchpad directory (never into the repo itself — this is a personal tracking aid, not a project artifact) using the template below, and *update* it — don't just mentally recall it — at each real transition (CI going green, right before merging, right after posting the summary). A file that can be re-*read* to check current state is a stronger anchor across a long, mixed conversation than re-deriving "where was I" from history alone, and it survives a mid-session compaction the same way this file does.
+
+```markdown
+- [ ] Checked recent Discussions (AI Session Summaries category) and recent PRs' Gemini comments for anything relevant before starting
+- [ ] Issue filed/labeled
+- [ ] Branched off a freshly-synced main
+- [ ] Change made; verified locally (npm test, npx tsc --noEmit, npm run lint, check-manifest/check-docs/check-index as relevant)
+- [ ] Committed with the Co-Authored-By trailer, pushed
+- [ ] PR opened (Closes #N only if this PR is the whole fix), labeled
+- [ ] CI green
+- [ ] Gemini's review CONTENT actually read (not just the review check's pass/fail) -- every finding evaluated and replied to on the thread; confirmed-true ones fixed, false positives replied to with the actual verification
+- [ ] Squash-merged, branch deleted, issue closed
+- [ ] Local main synced
+- [ ] Session summary posted to Discussions, back-link comment left on the PR
+```
+
+This doesn't replace the numbered sequence above (or `SESSION_SUMMARIES.md`'s own template for the last step) — it's a tracking aid layered on top, for the specific failure mode of a long session's own momentum carrying a step past without it, not a new source of truth about what the steps actually are.
+
 ## Boundaries this sequence has actually hit
 
 **Repo-security-setting changes need real, explicit maintainer authorization at the moment of the action — not a blanket technical block, corrected 2026-09-09.** Earlier sessions (issues #166, #173) found a `gh api` call to update branch protection and a `gh pr merge --auto` both denied by the harness's own auto-mode classifier, and this file previously stated that as an unconditional block. That's not the whole picture: a later session ran a direct `gh api --method PUT .../branches/main/protection` call successfully — adding a required-pull-request setting — after the maintainer explicitly said "apply if you are able" in response to a specific, already-diagnosed proposal. The real gate appears to be explicit authorization for that specific action at that specific moment, not a mechanism that refuses the call outright regardless of instruction. Doesn't change the practical guidance: repo secrets, PATs, and branch-protection changes still need the maintainer's own explicit go-ahead on the specific change before attempting it, and creating a PAT or toggling a setting through the web UI still isn't something an AI session can do at all — see the `TOOLCRIB_READ_TOKEN` work (issue #166) for that boundary. What's corrected is the "confirmed for real, always blocked" framing itself — don't cite that as settled fact; if it matters, check current behavior rather than trust this paragraph's older claim.
