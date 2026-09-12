@@ -212,7 +212,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<BarChart>` | — | `categories`, `series`, `width`, `height`, `title`, `legendPosition`, `overrides` | Grouped vertical bar chart for categorical comparisons |
 | `<Breadcrumb>` | `.Item`, `.Separator` | `separator`, `overrides` | Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow |
 | `<Carousel>` | — | `id`, `slides`, `loop`, `autoplay`, `onSlideChange`, `overrides` | Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators |
-| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `quickFilter`, `quickFilterValue`, `defaultQuickFilterValue`, `onQuickFilterChange`, `sortKey`, `defaultSortKey`, `sortDirection`, `defaultSortDirection`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectionMode`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `disableRowClickSelection`, `hideSelectionColumn`, `renderBulkActions`, `rowCommands`, `columnWidths`, `defaultColumnWidths`, `onColumnWidthsChange`, `overrides`, `emptyState` | Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation |
+| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `pageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `quickFilter`, `quickFilterValue`, `defaultQuickFilterValue`, `onQuickFilterChange`, `sortBy`, `defaultSortBy`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectionMode`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `disableRowClickSelection`, `hideSelectionColumn`, `renderBulkActions`, `rowCommands`, `columnWidths`, `defaultColumnWidths`, `onColumnWidthsChange`, `overrides`, `emptyState` | Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation |
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
 | `<Filmstrip>` | — | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `thumbnailSize`, `overrides` | Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection |
 | `<Gallery>` | — | `id`, `items`, `columns`, `onItemClick`, `overrides` | Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default |
@@ -477,7 +477,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "viewer:shown","{ id?: string }"
   "viewer:hidden","{ id?: string }"
   "stepper:changed","{ id?: string; activeIndex: number; previousIndex?: number }"
-  "datatable:sorted","{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
+  "datatable:sorted","{ id?: string; sortBy: { key: string; direction: 'asc' | 'desc' }[] }"
   "datatable:filtered","{ id?: string; value: string; matchCount: number }"
   "datatable:paginated","{ id?: string; page: number; pageSize: number }"
   "datatable:selection_changed","{ id?: string; selectedKeys: string[] }"

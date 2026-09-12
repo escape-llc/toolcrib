@@ -75,7 +75,8 @@ export interface AIEventMap {
   'viewer:shown': { id?: string };
   'viewer:hidden': { id?: string };
   'stepper:changed': { id?: string; activeIndex: number; previousIndex?: number };
-  'datatable:sorted': { id?: string; key: string | null; direction: 'asc' | 'desc' };
+  /** `sortBy` is the whole multi-column sort in priority order (empty when unsorted) -- see issue #337; a real payload shape change from the previous single `key`/`direction` pair, not an addition alongside it. */
+  'datatable:sorted': { id?: string; sortBy: { key: string; direction: 'asc' | 'desc' }[] };
   /** Emitted whenever `<DataTable quickFilter>`'s search value changes -- `matchCount` is how many rows matched at that moment (post-filter, pre-sort/pagination). */
   'datatable:filtered': { id?: string; value: string; matchCount: number };
   'datatable:paginated': { id?: string; page: number; pageSize: number };

@@ -262,7 +262,7 @@
         },
         "quickFilterValue": {
           "type": "string",
-          "description": "Controlled quick-filter value. Pass a value to drive it from parent\nstate (e.g. to persist it in a URL) instead of letting `<DataTable>`\nmanage it internally -- the same controlled/uncontrolled shape\n`sortKey`/`page`/`selectedKeys` already use. Omit for the common\nuncontrolled case; `defaultQuickFilterValue` seeds that internal\nstate instead. Has no effect when `quickFilter` is false."
+          "description": "Controlled quick-filter value. Pass a value to drive it from parent\nstate (e.g. to persist it in a URL) instead of letting `<DataTable>`\nmanage it internally -- the same controlled/uncontrolled shape\n`sortBy`/`page`/`selectedKeys` already use. Omit for the common\nuncontrolled case; `defaultQuickFilterValue` seeds that internal\nstate instead. Has no effect when `quickFilter` is false."
         },
         "defaultQuickFilterValue": {
           "type": "string",
@@ -272,27 +272,17 @@
           "type": "(value: string) => void",
           "description": "Called whenever the quick-filter value changes, whether controlled or\nuncontrolled -- mirrors `datatable:filtered`'s payload shape as a\ndirect prop instead of a bus subscription, the same relationship\n`onSortChange` has to `datatable:sorted`. Changing the filter always\nresets the current page back to 1 (matching the page-size dropdown's\nown existing behavior) -- a page number valid for the old, larger\nresult set can easily be past the end of a smaller filtered one."
         },
-        "sortKey": {
-          "type": "string | null",
-          "description": "Controlled sort key. Pass a value (a column's `key`, or `null` for\nunsorted) to drive sorting from parent state — e.g. to persist it in\na URL — instead of letting `<DataTable>` manage it internally. Omit\nentirely for the common uncontrolled case; `defaultSortKey` seeds\nthat internal state instead."
+        "sortBy": {
+          "type": "SortDescriptor[]",
+          "description": "Controlled multi-column sort, in priority order (index 0 = primary\nsort key). Pass an array to drive sorting from parent state — e.g. to\npersist it in a URL — instead of letting `<DataTable>` manage it\ninternally. Omit entirely for the common uncontrolled case;\n`defaultSortBy` seeds that internal state instead.\n\nA plain click on a sortable header replaces the WHOLE array with just\nthat one column -- the same asc -> desc -> unsorted cycle a\nsingle-sort table always had, still true for the common case where\nthis never grows past one entry. Shift+click instead adds/cycles/\nremoves that column as the next sort PRIORITY without disturbing the\nothers, matching the Shift+click convention TanStack Table and AG\nGrid both already use for their own free multi-sort."
         },
-        "defaultSortKey": {
-          "type": "string | null",
-          "description": "Initial sort key when uncontrolled (`sortKey` omitted)."
-        },
-        "sortDirection": {
-          "type": "'asc' | 'desc'",
-          "default": "'asc'",
-          "description": "Controlled sort direction. Only meaningful alongside `sortKey`."
-        },
-        "defaultSortDirection": {
-          "type": "'asc' | 'desc'",
-          "default": "'asc'",
-          "description": "Initial sort direction when uncontrolled."
+        "defaultSortBy": {
+          "type": "SortDescriptor[]",
+          "description": "Initial multi-column sort when uncontrolled (`sortBy` omitted)."
         },
         "onSortChange": {
-          "type": "(key: string | null, direction: 'asc' | 'desc') => void",
-          "description": "Called whenever sort changes, whether controlled or uncontrolled —\nmirrors `datatable:sorted`'s payload shape as direct props instead\nof a bus subscription. `key` is `null` when the cycle lands back on\nunsorted."
+          "type": "(sortBy: SortDescriptor[]) => void",
+          "description": "Called whenever the sort changes, whether controlled or uncontrolled —\nmirrors `datatable:sorted`'s payload shape as a direct prop instead of\na bus subscription."
         },
         "page": {
           "type": "number",
@@ -969,6 +959,16 @@
         "type": "number",
         "default": "40",
         "description": "Minimum width (px) a drag or arrow-key resize can shrink this column\nto -- prevents a variant of the real `table-layout: fixed`\ncolumn-collapse defect documented in this project's own competitive\nresearch. Only meaningful alongside `resizable`."
+      }
+    },
+    "SortDescriptor": {
+      "key": {
+        "type": "string",
+        "required": true
+      },
+      "direction": {
+        "type": "'asc' | 'desc'",
+        "required": true
       }
     },
     "RowCommand": {
