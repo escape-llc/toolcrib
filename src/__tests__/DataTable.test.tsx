@@ -514,7 +514,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('the bulk action bar is always mounted (visibility toggling, not mount/unmount) to avoid a real layout jump on the first selection', () => {
-      const { container } = render(
+      render(
         <DataTable
           data={testData}
           columns={testColumns}
@@ -529,9 +529,12 @@ describe('DataTable Virtualized Component', () => {
       // (selecting row 1 pushed the whole table down by the bar's height).
       // `visibility: hidden` (not display: none) still reserves this div's
       // own box in the layout, so toggling it never moves anything else.
-      const bulkBar = (container.firstElementChild as HTMLElement).firstElementChild as HTMLElement;
+      // Found via the "0 selected" text's own immediate wrapper -- the
+      // element visibility actually toggles on -- rather than a fixed DOM
+      // position, which shifted once the bulk-action content moved into
+      // the shared top toolbar's Center slot alongside search/density.
+      const bulkBar = screen.getByText('0 selected').parentElement as HTMLElement;
       expect(bulkBar).toHaveStyle({ visibility: 'hidden' });
-      expect(screen.getByText('0 selected')).toBeInTheDocument();
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
       expect(bulkBar).toHaveStyle({ visibility: 'visible' });

@@ -347,9 +347,10 @@ export interface DataTableProps<T = any> {
    */
   hideSelectionColumn?: boolean;
   /**
-   * Renders the action buttons in the bulk-action `<Toolbar>` that appears
-   * once at least one row is selected — the selection-count label is
-   * already provided; this renders only the actions themselves (e.g.
+   * Renders the action buttons for the current selection, shown centered
+   * in the same top toolbar row `quickFilter`/`densitySelector` share
+   * (alongside the "N selected" count, already provided) once at least
+   * one row is selected -- this renders only the actions themselves (e.g.
    * "Delete", "Export"), receiving the current selection to act on.
    */
   renderBulkActions?: (selectedKeys: string[]) => ReactNode;
@@ -419,6 +420,17 @@ export interface DataTableProps<T = any> {
   /** Called whenever the live density changes, whether controlled or uncontrolled. */
   onDensityChange?: (density: TableDensity) => void;
   /**
+   * Renders arbitrary caller content into the same top toolbar row
+   * `quickFilter`'s search box and `densitySelector`'s toggle group share
+   * -- alongside density, on the right, since that's the one slot never
+   * claimed by a built-in feature. For a consumer who wants their own
+   * actions (a refresh button, an export button) living in that same bar
+   * instead of a separate one above/below the table. Mounts the bar even
+   * if `quickFilter`/`densitySelector`/`selectable` are all false, so this
+   * alone is enough to get the row at all.
+   */
+  renderToolbarExtra?: () => ReactNode;
+  /**
    * Rendered in place of the row set when there's nothing to show (the
    * sorted dataset is empty) — the header and, if `pagination` is true,
    * the pagination footer (correctly showing "0 of 0") still render
@@ -473,6 +485,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   density: controlledDensity,
   defaultDensity,
   onDensityChange,
+  renderToolbarExtra,
   emptyState,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
@@ -747,12 +760,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ...vars,
       }}
     >
-      {/* Quick Filter / Density Bar — a plain, always-mounted (not toggled
-          by any runtime state, unlike the bulk-action bar below) toolbar;
-          its own presence is entirely driven by the static `quickFilter`/
-          `densitySelector` props, so there's no analogous layout-jump
-          concern to guard against. */}
-      {(quickFilter || densitySelector) && (
+      {/* Top Toolbar — a single, always-mounted (not toggled by any
+          runtime state as a WHOLE) bar combining search, bulk-selection
+          status/actions, density, and any caller-supplied extra content.
+          Its own presence is driven by the static
+          `quickFilter`/`densitySelector`/`selectable`/`renderToolbarExtra`
+          props, so there's no whole-bar layout-jump concern to guard
+          against -- only the Center slot's bulk-action content (below)
+          needs its own narrower visibility trick, the same one this used
+          to apply to a whole separate second row. */}
+      {(quickFilter || densitySelector || selectable || renderToolbarExtra) && (
         <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
           <Toolbar>
             {quickFilter && (
@@ -778,53 +795,55 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 />
               </Toolbar.Left>
             )}
-            {densitySelector && (
-              <Toolbar.Right>
-                <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
-                  <UIGroup>
-                    {(['compact', 'normal', 'spacious'] as const).map(d => (
-                      <Button
-                        key={d}
-                        type="button"
-                        size="sm"
-                        variant={liveDensity === d ? 'secondary' : 'outline'}
-                        aria-pressed={liveDensity === d}
-                        onClick={() => handleDensityChange(d)}
-                      >
-                        {strings.densityOptionLabel(d)}
-                      </Button>
-                    ))}
-                  </UIGroup>
+            {selectable && (
+              <Toolbar.Center>
+                {/* Always mounted once `selectable` (not conditionally, on
+                    selectedKeySet.size > 0), toggling only `visibility` --
+                    a real, confirmed layout-jump found via direct
+                    feedback: mounting/unmounting this on the FIRST
+                    selection pushed the entire table down by its height,
+                    since `visibility: hidden` (unlike `display: none`)
+                    still reserves the element's own box in the layout,
+                    selecting row 1 (or clearing back to 0) never moves
+                    anything else. */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    visibility: selectedKeySet.size > 0 ? 'visible' : 'hidden',
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-primary, #111827)' }}>
+                    {selectedKeySet.size} selected
+                  </span>
+                  {renderBulkActions?.(Array.from(selectedKeySet))}
                 </div>
+              </Toolbar.Center>
+            )}
+            {(densitySelector || renderToolbarExtra) && (
+              <Toolbar.Right>
+                {densitySelector && (
+                  <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
+                    <UIGroup>
+                      {(['compact', 'normal', 'spacious'] as const).map(d => (
+                        <Button
+                          key={d}
+                          type="button"
+                          size="sm"
+                          variant={liveDensity === d ? 'secondary' : 'outline'}
+                          aria-pressed={liveDensity === d}
+                          onClick={() => handleDensityChange(d)}
+                        >
+                          {strings.densityOptionLabel(d)}
+                        </Button>
+                      ))}
+                    </UIGroup>
+                  </div>
+                )}
+                {renderToolbarExtra?.()}
               </Toolbar.Right>
             )}
-          </Toolbar>
-        </div>
-      )}
-
-      {/* Bulk Action Bar — always mounted once `selectable` (not
-          conditionally, on selectedKeySet.size > 0), toggling only
-          `visibility` -- a real, confirmed layout-jump found via direct
-          feedback: mounting/unmounting this whole bar on the FIRST
-          selection pushed the entire table down by its height, since
-          `visibility: hidden` (unlike `display: none`) still reserves the
-          element's own box in the layout, selecting row 1 (or clearing
-          back to 0) never moves anything else. */}
-      {selectable && (
-        <div
-          style={{
-            borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
-            flex: '0 0 auto',
-            visibility: selectedKeySet.size > 0 ? 'visible' : 'hidden',
-          }}
-        >
-          <Toolbar>
-            <Toolbar.Left>
-              <span style={{ fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-primary, #111827)' }}>
-                {selectedKeySet.size} selected
-              </span>
-            </Toolbar.Left>
-            <Toolbar.Right>{renderBulkActions?.(Array.from(selectedKeySet))}</Toolbar.Right>
           </Toolbar>
         </div>
       )}

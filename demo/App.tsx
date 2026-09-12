@@ -1542,19 +1542,7 @@ export const App: React.FC = () => {
                       here, not wrapped together with the table, for the
                       same reason. */}
                   <Card layout="auto">
-                    <Card.Header>
-                      <Toolbar>
-                        <Toolbar.Left>
-                          <span>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</span>
-                        </Toolbar.Left>
-                        <Toolbar.Right>
-                          <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
-                            {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
-                          </Button>
-                          <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
-                        </Toolbar.Right>
-                      </Toolbar>
-                    </Card.Header>
+                    <Card.Header>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</Card.Header>
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         id="demo-users-table"
@@ -1565,6 +1553,22 @@ export const App: React.FC = () => {
                         containerHeight="auto"
                         quickFilter
                         densitySelector
+                        // Reload Data/Export CSV used to live in this Card's
+                        // own header Toolbar, in a separate row above the
+                        // table entirely -- moved into the same row search/
+                        // density/bulk-actions already share, per direct
+                        // feedback ("put the command buttons in the toolbar
+                        // with search, and put them in ui group"). UIGroup
+                        // gives them the same connected-segmented-group look
+                        // density's own toggle buttons already use.
+                        renderToolbarExtra={() => (
+                          <UIGroup>
+                            <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
+                              {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
+                            </Button>
+                            <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
+                          </UIGroup>
+                        )}
                         rowKey={rec => rec.id}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
                         rowCommands={[
