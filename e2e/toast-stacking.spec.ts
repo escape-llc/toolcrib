@@ -183,3 +183,45 @@ test('a stacked toast\'s transform transition includes BOTH outline-color and tr
   const frames: number[] = await page.evaluate(() => (window as any).__toastFrames);
   expect(Math.abs(frames[frames.length - 1] - frames[0])).toBeGreaterThan(10);
 });
+
+// Regression for a real, live-reported bug: a bottom/right-anchored toast
+// rendered near the TOP of the screen instead of near the bottom, clipped
+// off the top edge ("the bottom edge starts off the bottom of the page.
+// the first toast is clipped"). Root cause, confirmed via Chrome DevTools
+// Protocol's CSS.getMatchedStylesForNode (not guessed): the toast's own
+// `bottom`/`right` inset reused TOAST_VIEWPORT_PADDING, whose
+// `--ai-padding-xl` resolves to a two-value, padding-shorthand-style
+// string ("1rem 1.5rem") -- syntactically INVALID for a single-length
+// property. Per the CSS Custom Properties spec, an invalid-at-computed-
+// value-time `var()` substitution falls back the WHOLE declaration to the
+// property's own initial value (`auto`), silently, with no console
+// warning -- so `bottom`/`right` fell back to `auto` while the opposite,
+// unset side's own initial `auto` won instead, pinning the toast near the
+// top-left regardless of the selected anchor. jsdom cannot observe this
+// (see Toast.test.tsx's own INSET assertions, which check the inline
+// style STRING, not resolved CSS validity) -- only a real browser's own
+// CSS engine actually evaluates whether a substituted value is valid for
+// the property it lands in.
+test('a bottom-right-anchored toast renders near the bottom-right of the viewport, not clipped at the top', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Toast Subsystem');
+
+  await page.getByRole('combobox', { name: 'Toast Anchor Position:' }).click();
+  await page.getByRole('option', { name: 'Bottom Right' }).click();
+
+  await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
+  const toast = page.locator('[data-testid="toast-item"]').first();
+  await expect(toast).toBeVisible();
+  await page.waitForTimeout(400);
+
+  const viewportSize = page.viewportSize()!;
+  const rect = await toast.evaluate(el => el.getBoundingClientRect());
+
+  // The bug this regresses would have put the toast within a few px of
+  // the TOP edge instead -- assert it's actually near the BOTTOM, within
+  // a generous tolerance for the ~1rem inset plus stacking transform.
+  expect(viewportSize.height - rect.bottom).toBeLessThan(64);
+  expect(viewportSize.width - rect.right).toBeLessThan(64);
+  // And not clipped off the top -- fully within the viewport vertically.
+  expect(rect.top).toBeGreaterThan(0);
+});

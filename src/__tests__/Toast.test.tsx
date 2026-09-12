@@ -306,14 +306,18 @@ describe('Toast Subsystem Event Generation', () => {
   // describe.each above (which omits the default 'top-right') -- this is
   // new logic this PR introduced, so every anchor's own branch matters,
   // including the default.
-  const INSET = 'var(--ai-padding-xl, 1rem)';
+  const INSET = '1rem';
+  // Every non-anchored side is explicit 'auto' (not omitted / '') -- see
+  // ToastItemComponent's own comment on why: a real, confirmed Chromium
+  // quirk left a stale static-position in place unless the opposite side
+  // is set to 'auto' explicitly, from the very first render.
   describe.each([
-    ['top-right', { top: INSET, right: INSET, left: '', bottom: '' }, false],
-    ['top-left', { top: INSET, left: INSET, right: '', bottom: '' }, false],
-    ['bottom-right', { bottom: INSET, right: INSET, top: '', left: '' }, false],
-    ['bottom-left', { bottom: INSET, left: INSET, top: '', right: '' }, false],
-    ['top-center', { top: INSET, left: '50%', right: '', bottom: '' }, true],
-    ['bottom-center', { bottom: INSET, left: '50%', right: '', top: '' }, true],
+    ['top-right', { top: INSET, right: INSET, left: 'auto', bottom: 'auto' }, false],
+    ['top-left', { top: INSET, left: INSET, right: 'auto', bottom: 'auto' }, false],
+    ['bottom-right', { bottom: INSET, right: INSET, top: 'auto', left: 'auto' }, false],
+    ['bottom-left', { bottom: INSET, left: INSET, top: 'auto', right: 'auto' }, false],
+    ['top-center', { top: INSET, left: '50%', right: 'auto', bottom: 'auto' }, true],
+    ['bottom-center', { bottom: INSET, left: '50%', right: 'auto', top: 'auto' }, true],
   ] as [ToastAnchor, Record<'top' | 'bottom' | 'left' | 'right', string>, boolean][])(
     'anchor "%s"',
     (anchor, expectedEdges, expectsCentering) => {

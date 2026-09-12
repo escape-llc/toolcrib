@@ -20,17 +20,31 @@ const TOAST_STACK_GAP_PX = 10;
 /** Assumed height for a just-mounted toast before its real one is measured (see `useAdaptiveSize` below) -- close enough that the very first frame doesn't visibly jump once the real measurement arrives a tick later. */
 const TOAST_ESTIMATED_HEIGHT_PX = 72;
 /**
- * The Viewport's own inset from the screen edge -- used both on the
- * Viewport itself (`getPositionStyles`, below) AND on each individual
- * toast's own `top`/`right`/`bottom`/`left` (`ToastItemComponent`'s
- * style). One shared constant, not two independently-typed literals of
- * the same value, specifically because a real bug already came from
- * exactly that kind of drift here -- see `ToastItemComponent`'s own
- * comment on why an absolutely positioned toast needs this explicitly:
- * the Viewport's own `padding` alone no longer does anything for it once
- * it's no longer an in-flow child.
+ * The Viewport's own `padding` shorthand. `--ai-padding-xl` is a
+ * density-scaled shorthand TOKEN (e.g. "1rem 1.5rem", two values) --
+ * valid here because `padding` accepts 1-4 values, but NOT safe to reuse
+ * for a single-length property (see TOAST_ITEM_INSET below).
  */
 const TOAST_VIEWPORT_PADDING = 'var(--ai-padding-xl, 1rem)';
+/**
+ * Each individual toast's own `top`/`right`/`bottom`/`left` inset
+ * (`ToastItemComponent`'s style) -- a real bug, found via a real-browser
+ * measurement, not reasoned out in advance: this used to reuse
+ * TOAST_VIEWPORT_PADDING directly, but `--ai-padding-xl` resolves to a
+ * two-value string ("1rem 1.5rem"), which is syntactically INVALID for a
+ * single-length property. Per the CSS Custom Properties spec, a `var()`
+ * substitution that's invalid at computed-value time makes the WHOLE
+ * declaration fall back to the property's own initial value -- silently,
+ * with no console warning -- so every bottom/right-anchored toast's
+ * `bottom`/`right` fell back to `auto` while `top`/`left` (or vice versa)
+ * stayed whatever was explicitly set, producing exactly the "renders near
+ * the top instead of the bottom" bug reported live. A single-length
+ * literal, deliberately decoupled from the theme's padding density scale
+ * (no single-value token in that scale is visually appropriate here --
+ * `--ai-padding-xs` is a real single length but far too tight), closes
+ * this for good.
+ */
+const TOAST_ITEM_INSET = '1rem';
 
 // Every toast is positioned via `transform: translateY(var(--stack-offset))`
 // -- computed arithmetic (each toast's own measured height + a fixed gap,
@@ -312,25 +326,39 @@ export const ToastItemComponent: React.FC<ToastProps> = ({
         // block. `--stack-offset`/`--toast-transform-base` feed the
         // stylesheet rules that actually apply the transform.
         //
-        // The inset below is TOAST_VIEWPORT_PADDING (matching the
-        // Viewport's own `padding` in getPositionStyles), not a literal
-        // `0` -- a real bug found via a real-browser measurement, not
-        // reasoned out in advance: for an absolutely positioned element,
-        // `top`/`right`/etc. are measured from the containing block's
-        // PADDING-BOX edge, which coincides with its BORDER-BOX edge (the
-        // Viewport has no border), not inset by the padding value itself
-        // -- padding only ever creates visual space for genuinely in-flow
-        // children, which these no longer are. `top: 0` rendered every
-        // toast flush against the literal screen edge instead of the
-        // intended ~1rem inset, confirmed via getBoundingClientRect (0,
-        // not ~16) in e2e/toast-stacking.spec.ts.
+        // The inset below is TOAST_ITEM_INSET (see its own comment above
+        // for why this can't just reuse TOAST_VIEWPORT_PADDING), not a
+        // literal `0` -- a real bug found via a real-browser measurement,
+        // not reasoned out in advance: for an absolutely positioned
+        // element, `top`/`right`/etc. are measured from the containing
+        // block's PADDING-BOX edge, which coincides with its BORDER-BOX
+        // edge (the Viewport has no border), not inset by the padding
+        // value itself -- padding only ever creates visual space for
+        // genuinely in-flow children, which these no longer are. `top: 0`
+        // rendered every toast flush against the literal screen edge
+        // instead of the intended ~1rem inset, confirmed via
+        // getBoundingClientRect (0, not ~16) in e2e/toast-stacking.spec.ts.
         position: 'absolute',
-        [anchor.startsWith('bottom') ? 'bottom' : 'top']: TOAST_VIEWPORT_PADDING,
+        // Both axes' OPPOSITE side explicitly set to 'auto' (not just
+        // omitted from this object) -- omitting it left it unresolved on
+        // this element's very first style application, and a real,
+        // confirmed browser quirk (Chromium computes an absolutely
+        // positioned element's initial "static position" once and doesn't
+        // always fully re-resolve it from a later bottom/right-only style
+        // update) then stuck the toast at that stale static position
+        // instead of the intended bottom/right-anchored one -- reported
+        // directly ("the bottom edge starts off the bottom of the page"),
+        // and confirmed by the user's own follow-up ("if i resize the
+        // browser it sticks to the bottom" -- a resize forces the
+        // recomputation this was skipping). Explicit 'auto' from the
+        // first render closes the gap.
+        top: anchor.startsWith('bottom') ? 'auto' : TOAST_ITEM_INSET,
+        bottom: anchor.startsWith('bottom') ? TOAST_ITEM_INSET : 'auto',
         ...(anchor.endsWith('center')
-          ? { left: '50%' }
+          ? { left: '50%', right: 'auto' }
           : anchor.endsWith('left')
-            ? { left: TOAST_VIEWPORT_PADDING }
-            : { right: TOAST_VIEWPORT_PADDING }),
+            ? { left: TOAST_ITEM_INSET, right: 'auto' }
+            : { left: 'auto', right: TOAST_ITEM_INSET }),
         // translateY(positive) always moves DOWN in screen space,
         // regardless of whether `top` or `bottom` anchors this element --
         // a bottom-anchored toast's stackOffset has to be NEGATED so
@@ -544,9 +572,58 @@ export const ToastContainer: React.FC = () => {
     const base: React.CSSProperties = {
       position: 'fixed',
       zIndex: Z_INDEX.TOAST,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.625rem',
+      // Real bug, found via direct feedback ("the bottom edge starts off
+      // the bottom of the page... it appears to work just shifted down"):
+      // since every toast is now individually position:absolute (see
+      // ToastItemComponent's own comment), this Viewport's own box no
+      // longer has any in-flow children to size itself against, and
+      // collapses to a near-zero-height sliver. That's harmless for a
+      // top-anchored toast (`top` only needs the container's TOP EDGE
+      // position, never its height, to resolve correctly) but breaks a
+      // bottom-anchored one: `bottom: Npx` with `top: auto` and an auto
+      // height is resolved by the browser as `top = containingBlockHeight
+      // - bottom - ownHeight`, using the CONTAINING BLOCK's real height --
+      // a near-zero collapsed height there shifts every bottom-anchored
+      // toast down by roughly (real viewport height - that collapsed
+      // sliver), clipping it off the bottom of the screen. `height: 100vh`
+      // gives this Viewport a real, full-viewport-height box regardless of
+      // anchor, so that resolution always has the right number to work
+      // with. (`position: fixed` still anchors it via 100vh, not the
+      // document's own scrollable height, which is what keeps it "stuck"
+      // to the viewport edge under a real window resize -- confirmed
+      // directly, not just via this rule's own presence.)
+      //
+      // display/flexDirection/alignItems/gap are DELIBERATELY gone, not
+      // just unnecessary -- a second real bug, found immediately after the
+      // height fix above ("it appears to work just shifted down" ->
+      // "no wait, now it's pinned to the top"): a `display: flex` container
+      // resolves an absolutely-positioned child's auto inset via its own
+      // STATIC-POSITION algorithm (as if the child were placed in normal
+      // flex flow first), NOT the plain block-container "solve top from
+      // bottom + height" algorithm this component's positioning math
+      // actually depends on -- confirmed directly (top came back as the
+      // container's own padding value, ignoring `bottom` entirely). None
+      // of flex's own layout ever applied to these children anyway (every
+      // toast has been position:absolute since #354, individually
+      // positioned via top/right/bottom/left + the --stack-offset
+      // transform), so this container has no reason to still BE a flex
+      // container at all -- removing it restores plain, correct CSS
+      // absolute-positioning resolution.
+      height: '100vh',
+      // Same collapse, same fix, horizontal axis: with every toast now
+      // position:absolute, this Viewport has no in-flow children to size
+      // its own WIDTH against either, so a right-anchored toast's
+      // `right: TOAST_ITEM_INSET` (with `left: auto`) resolves relative to
+      // a collapsed near-zero-width containing block instead of the real
+      // screen width -- the horizontal counterpart of the height bug
+      // above, confirmed the same way (a real measurement, not assumed).
+      // `width: '100%'` (not `100vw`, which includes the scrollbar
+      // gutter and can introduce its own horizontal-overflow footgun) is
+      // correct here specifically because this element is `position:
+      // fixed`: a percentage width on a fixed element resolves against
+      // the initial containing block (the viewport itself), the same
+      // source `100vh` already resolves height against.
+      width: '100%',
       padding: TOAST_VIEWPORT_PADDING,
       pointerEvents: 'none',
       margin: 0,
@@ -556,17 +633,17 @@ export const ToastContainer: React.FC = () => {
 
     switch (anchor) {
       case 'top-right':
-        return { ...base, top: 0, right: 0, alignItems: 'flex-end' };
+        return { ...base, top: 0, right: 0 };
       case 'top-left':
-        return { ...base, top: 0, left: 0, alignItems: 'flex-start' };
+        return { ...base, top: 0, left: 0 };
       case 'bottom-right':
-        return { ...base, bottom: 0, right: 0, alignItems: 'flex-end' };
+        return { ...base, bottom: 0, right: 0 };
       case 'bottom-left':
-        return { ...base, bottom: 0, left: 0, alignItems: 'flex-start' };
+        return { ...base, bottom: 0, left: 0 };
       case 'top-center':
-        return { ...base, top: 0, left: '50%', transform: 'translateX(-50%)', alignItems: 'center' };
+        return { ...base, top: 0, left: '50%', transform: 'translateX(-50%)' };
       case 'bottom-center':
-        return { ...base, bottom: 0, left: '50%', transform: 'translateX(-50%)', alignItems: 'center' };
+        return { ...base, bottom: 0, left: '50%', transform: 'translateX(-50%)' };
     }
   };
 
