@@ -145,11 +145,11 @@ describe('DataTable Virtualized Component', () => {
     );
 
     const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
-    expect(flaggedRow.style.background).toBe('var(--ai-subtheme-error-bg)');
+    expect(flaggedRow.style.backgroundColor).toBe('var(--ai-subtheme-error-bg)');
     expect(flaggedRow.style.borderBottom).toBe('0.0625rem dashed var(--ai-subtheme-error-border)');
 
     const plainRow = screen.getByText('Item 2').closest('tr') as HTMLElement;
-    expect(plainRow.style.background).not.toBe('var(--ai-subtheme-error-bg)');
+    expect(plainRow.style.backgroundColor).not.toBe('var(--ai-subtheme-error-bg)');
   });
 
   it('suppresses the flagged-row border when overrides disable table borders', () => {
@@ -165,7 +165,7 @@ describe('DataTable Virtualized Component', () => {
 
     const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
     // Still tinted...
-    expect(flaggedRow.style.background).toBe('var(--ai-subtheme-error-bg)');
+    expect(flaggedRow.style.backgroundColor).toBe('var(--ai-subtheme-error-bg)');
     // ...but the dashed border a 'none' borderStyle should suppress is gone.
     // (jsdom normalizes the `border-bottom: none` shorthand rather than
     // echoing the literal string back, so check the longhand style instead.)
@@ -183,7 +183,7 @@ describe('DataTable Virtualized Component', () => {
     );
 
     const flaggedRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
-    expect(flaggedRow.style.background).toBe('rebeccapurple');
+    expect(flaggedRow.style.backgroundColor).toBe('rebeccapurple');
     // border/color weren't set in the slice, so they fall back to the
     // row's normal unflagged appearance rather than to any preset.
     expect(flaggedRow.style.borderBottom).toBe('0.0625rem solid var(--ai-border, #f3f4f6)');
@@ -510,8 +510,8 @@ describe('DataTable Virtualized Component', () => {
       unsub();
     });
 
-    it('shows the bulk action bar with a selection count only once at least one row is selected, rendering the consumer-supplied actions', () => {
-      render(
+    it('the bulk action bar is always mounted (visibility toggling, not mount/unmount) to avoid a real layout jump on the first selection', () => {
+      const { container } = render(
         <DataTable
           data={testData}
           columns={testColumns}
@@ -521,9 +521,17 @@ describe('DataTable Virtualized Component', () => {
           renderBulkActions={keys => <button>{`Delete ${keys.length}`}</button>}
         />
       );
-      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+      // Always mounted -- see DataTable.tsx's own comment on why a
+      // conditionally-mounted version caused a real, confirmed layout jump
+      // (selecting row 1 pushed the whole table down by the bar's height).
+      // `visibility: hidden` (not display: none) still reserves this div's
+      // own box in the layout, so toggling it never moves anything else.
+      const bulkBar = (container.firstElementChild as HTMLElement).firstElementChild as HTMLElement;
+      expect(bulkBar).toHaveStyle({ visibility: 'hidden' });
+      expect(screen.getByText('0 selected')).toBeInTheDocument();
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(bulkBar).toHaveStyle({ visibility: 'visible' });
       expect(screen.getByText('1 selected')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Delete 1' })).toBeInTheDocument();
     });
@@ -613,6 +621,188 @@ describe('DataTable Virtualized Component', () => {
       const arrow = sortButton.querySelector('span')!;
       expect(arrow).toHaveAttribute('aria-hidden', 'true');
       expect(arrow).toHaveTextContent('▲');
+    });
+  });
+
+  describe('click-to-select, modifiers, single-select mode, hideSelectionColumn, and rowCommands (issue #329)', () => {
+    it('a plain row click selects only that row, replacing any prior selection', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+
+      fireEvent.click(screen.getByText('Item 2'));
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('Ctrl/Cmd-click toggles just that row, keeping the rest of the selection', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      fireEvent.click(screen.getByText('Item 1'));
+      fireEvent.click(screen.getByText('Item 2'), { ctrlKey: true });
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+
+      // Ctrl-clicking an already-selected row toggles it OFF, leaving the other alone.
+      fireEvent.click(screen.getByText('Item 1'), { metaKey: true });
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('Shift-click range-selects from the last acted-on row to the clicked one', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      fireEvent.click(screen.getByText('Item 2')); // anchor = row 2
+      fireEvent.click(screen.getByText('Item 5'), { shiftKey: true });
+      for (let i = 2; i <= 5; i++) {
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'checked');
+      }
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 6')).toHaveAttribute('data-state', 'unchecked');
+    });
+
+    it('disableRowClickSelection leaves row clicks alone -- only the checkbox changes selection', () => {
+      const onRowClick = vi.fn();
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          disableRowClickSelection
+          onRowClick={onRowClick}
+        />
+      );
+      fireEvent.click(screen.getByText('Item 1'));
+      expect(onRowClick).toHaveBeenCalled();
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+    });
+
+    describe('selectionMode="single"', () => {
+      it('renders a role="radio" indicator instead of a checkbox, with no "select all" header control', () => {
+        render(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+        );
+        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('role', 'radio');
+        expect(screen.queryByLabelText('Select all rows on this page')).not.toBeInTheDocument();
+      });
+
+      it('selecting a row replaces the whole selection -- modifiers are ignored, and re-clicking the current choice keeps it selected', () => {
+        render(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+        );
+        fireEvent.click(screen.getByText('Item 1'));
+        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
+
+        fireEvent.click(screen.getByText('Item 2'), { shiftKey: true }); // modifiers ignored in single mode
+        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
+        expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
+
+        // A real radio can't be unchecked by clicking the one that's already checked.
+        fireEvent.click(screen.getByText('Item 2'));
+        expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
+      });
+    });
+
+    it('hideSelectionColumn removes the visible checkbox/radio column, but selection still works via click, and aria-selected still marks the row', () => {
+      render(
+        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable hideSelectionColumn />
+      );
+      expect(screen.queryByLabelText(/Select row/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Select all rows on this page')).not.toBeInTheDocument();
+
+      const row1 = screen.getByText('Item 1').closest('tr')!;
+      expect(row1).toHaveAttribute('aria-selected', 'false');
+      fireEvent.click(screen.getByText('Item 1'));
+      expect(row1).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('Space toggles the currently-focused row\'s selection', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />
+      );
+      const idHeader = container.querySelector('[data-grid-row="0"][data-grid-col="1"]') as HTMLElement;
+      act(() => idHeader.focus());
+      fireEvent.keyDown(idHeader, { key: 'ArrowDown' }); // move into row 1's ID cell
+      const idCell = container.querySelector('[data-grid-row="1"][data-grid-col="1"]') as HTMLElement;
+      expect(idCell).toHaveFocus();
+      fireEvent.keyDown(idCell, { key: ' ' });
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('a selected row composes a translucent tint (backgroundImage) with its own rowSubtheme color (backgroundColor), instead of replacing it', () => {
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          selectable
+          rowSubtheme={r => (r.id === 1 ? 'error' : undefined)}
+        />
+      );
+      const row1 = screen.getByText('Item 1').closest('tr') as HTMLElement;
+      expect(row1.style.backgroundImage).toBe('none');
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      // The subtheme's own background is UNCHANGED -- selection layers a
+      // separate backgroundImage wash on top rather than overwriting it.
+      expect(row1.style.backgroundColor).toBe('var(--ai-subtheme-error-bg)');
+      expect(row1.style.backgroundImage).not.toBe('none');
+    });
+
+    describe('rowCommands', () => {
+      it('renders one button per visible command and emits datatable:row_command on click, without triggering row-click-selection', () => {
+        const handler = vi.fn();
+        const unsub = aiBus.on('datatable:row_command', handler);
+        render(
+          <DataTable
+            id="cmd-table"
+            data={testData}
+            columns={testColumns}
+            pageSize={10}
+            rowKey={r => r.id}
+            selectable
+            rowCommands={[
+              { id: 'edit', label: 'Edit' },
+              { id: 'delete', label: 'Delete' },
+            ]}
+          />
+        );
+        const row1 = screen.getByText('Item 1').closest('tr')!;
+        fireEvent.click(row1.querySelector('[aria-label="Edit"]')!);
+        expect(handler).toHaveBeenLastCalledWith({ id: 'cmd-table', command: 'edit', key: '1', index: 0 });
+        // Clicking a command button doesn't also select the row.
+        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+        unsub();
+      });
+
+      it('isVisible hides a specific command for a given row, not just disables it', () => {
+        render(
+          <DataTable
+            data={testData}
+            columns={testColumns}
+            pageSize={10}
+            rowKey={r => r.id}
+            rowCommands={[{ id: 'delete', label: 'Delete', isVisible: r => r.id !== 1 }]}
+          />
+        );
+        const row1 = screen.getByText('Item 1').closest('tr')!;
+        const row2 = screen.getByText('Item 2').closest('tr')!;
+        expect(row1.querySelector('[aria-label="Delete"]')).toBeNull();
+        expect(row2.querySelector('[aria-label="Delete"]')).not.toBeNull();
+      });
+
+      it('adds one column to aria-colcount for the actions column', () => {
+        const { container, rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+        expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '2');
+
+        rerender(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowCommands={[{ id: 'x', label: 'X' }]} />
+        );
+        expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '3');
+      });
     });
   });
 

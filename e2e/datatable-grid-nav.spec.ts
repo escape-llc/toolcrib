@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoTab } from './nav';
+import { gotoTab, loadDemoTableData } from './nav';
 
 // Real-browser confirmation of issue #316's WAI-ARIA grid keyboard
 // navigation -- complements src/__tests__/DataTable.test.tsx's own jsdom
@@ -27,11 +27,15 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
   test('the table exposes real ARIA grid structure', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+    // The table starts empty (see demo/App.tsx) -- load its real dataset
+    // first, since every test below needs actual rows to navigate/click.
+    await loadDemoTableData(page);
 
     const table = page.getByRole('grid').first();
     await expect(table).toBeVisible();
-    // selectable (1) + 6 columns (id/name/email/role/status/score) = 7.
-    await expect(table).toHaveAttribute('aria-colcount', '7');
+    // selectable (1) + 6 columns (id/name/email/role/status/score) +
+    // rowCommands actions column (1) = 8.
+    await expect(table).toHaveAttribute('aria-colcount', '8');
     // Real aria-rowcount reflects the full 250-row dummy dataset (see
     // demo/App.tsx), not just this page's 15 -- confirming the same
     // "full dataset, not just the virtualized/paginated subset" contract
@@ -42,6 +46,9 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
   test('arrow keys move real browser focus across header cells, then into the body, with correct roving tabindex', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+    // The table starts empty (see demo/App.tsx) -- load its real dataset
+    // first, since every test below needs actual rows to navigate/click.
+    await loadDemoTableData(page);
 
     const idHeader = page.locator('[data-grid-row="0"][data-grid-col="1"]').first(); // col 0 is the selection checkbox
     await idHeader.focus();
@@ -60,9 +67,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     expect(active).toEqual({ row: '1', col: '1', tag: 'TD' }); // first body row, ID column
 
     // Roving tabindex: exactly one grid cell/widget should carry
-    // tabindex="0" at a time -- scoped to this one grid, since the Data
-    // Table tab has a second, permanently-empty <DataTable> instance (see
-    // issue #315) with its own independent roving-tabindex state.
+    // tabindex="0" at a time.
     const mainGrid = page.getByRole('grid').first();
     const tabbableCount = await mainGrid.locator('[data-grid-row]:not([tabindex="-1"])').count();
     expect(tabbableCount).toBe(1);
@@ -71,6 +76,9 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
   test('Home/End and Ctrl+Home/Ctrl+End navigate within the row and across the whole grid', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+    // The table starts empty (see demo/App.tsx) -- load its real dataset
+    // first, since every test below needs actual rows to navigate/click.
+    await loadDemoTableData(page);
 
     const nameHeader = page.locator('[data-grid-row="0"][data-grid-col="2"]').first();
     await nameHeader.focus();
@@ -79,7 +87,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '0' }); // the select-all checkbox
 
     await page.keyboard.press('End');
-    expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '6' }); // last column (Score)
+    expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '7' }); // last column (row actions)
 
     await page.keyboard.press('Control+End');
     // Last row on this page (pageSize 15) is page-relative row 15 -- likely
@@ -90,7 +98,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // the resulting scroll's own native `scroll` event -> onScroll ->
     // re-render cycle actually completes, not synchronously when the key
     // is pressed.
-    await expect(page.locator('[data-grid-row="15"][data-grid-col="6"]').first()).toBeFocused();
+    await expect(page.locator('[data-grid-row="15"][data-grid-col="7"]').first()).toBeFocused();
 
     await page.keyboard.press('Control+Home');
     await expect(page.locator('[data-grid-row="0"][data-grid-col="0"]').first()).toBeFocused();
@@ -99,6 +107,9 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
   test('navigating far past the visible window (virtualization) scrolls the target row into view and focuses it -- a real browser exercising the scroll path jsdom cannot', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+    // The table starts empty (see demo/App.tsx) -- load its real dataset
+    // first, since every test below needs actual rows to navigate/click.
+    await loadDemoTableData(page);
 
     const idHeader = page.locator('[data-grid-row="0"][data-grid-col="1"]').first();
     await idHeader.focus();
@@ -114,7 +125,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // which is measurably slower on WebKit than Chromium (confirmed: a
     // one-shot check here passed reliably on Chromium but failed on
     // WebKit in real CI, landing on the pre-scroll header cell instead).
-    const target = page.locator('[data-grid-row="15"][data-grid-col="6"]').first();
+    const target = page.locator('[data-grid-row="15"][data-grid-col="7"]').first();
     await expect(target).toBeFocused();
     expect(await target.evaluate(el => el.tagName)).toBe('TD');
   });
@@ -122,6 +133,9 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
   test('clicking a cell directly re-syncs the roving tabindex to it', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+    // The table starts empty (see demo/App.tsx) -- load its real dataset
+    // first, since every test below needs actual rows to navigate/click.
+    await loadDemoTableData(page);
 
     // The initially-tabbable cell is (0, 0) -- the select-all checkbox,
     // since this table is `selectable` and column 0 is always the grid's

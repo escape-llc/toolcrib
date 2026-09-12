@@ -21,12 +21,12 @@ import { gotoTab } from './nav';
 // useTableColumnResize's own header comment), so it carries no
 // data-grid-row/col of its own to query by.
 //
-// Every locator below is scoped to `page.getByRole('grid').first()` --
-// the Data Table tab has a SECOND, permanently-empty <DataTable> instance
-// (issue #315) sharing the same `columns` config, so an unscoped query
-// resolves two matches and trips Playwright's strict-mode violation
-// (confirmed directly: the first version of this file, without the
-// scoping, did exactly that).
+// These tests only ever touch the header row (sortable buttons, resize
+// handles), which renders from `columns` regardless of whether any data
+// has been loaded -- the table starts empty (see demo/App.tsx's own
+// comment) and the resize handle doesn't need real rows, so no
+// loadDemoTableData() call is needed here the way datatable-grid-nav.spec.ts
+// needs one for its own body-row assertions.
 
 test.describe('DataTable column resize (issue #318)', () => {
   test('a resizable column exposes a real WAI-ARIA separator handle, confirmed against the W3C APG Window Splitter pattern', async ({ page }) => {

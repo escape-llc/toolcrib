@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { gotoTab } from './nav';
+import { gotoTab, loadDemoTableData } from './nav';
 
 // Automated backstop for the "WCAG AA verified across all components" 1.0
 // gate (.plans/toolcrib-roadmap.md) -- turns Discussion #41's one-time
@@ -80,6 +80,13 @@ async function scanEveryTab(page: Page): Promise<string[]> {
 
   for (const tab of TABS) {
     await gotoTab(page, tab);
+    // The Data Table tab's main table starts empty (see demo/App.tsx) --
+    // load its real dataset first so this scan covers the actual loaded
+    // grid (row checkboxes, tinted/selected rows, sortable headers with
+    // real content) instead of just the header row over an empty body,
+    // matching the depth of coverage this scan already had before that
+    // table stopped loading its data on mount.
+    if (tab === 'Data Table') await loadDemoTableData(page);
     // Lets the panel's own entrance transition finish first -- same
     // reasoning as interactive-sweep.spec.ts's identical wait.
     await page.waitForTimeout(300);

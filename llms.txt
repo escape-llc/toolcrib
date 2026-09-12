@@ -2,7 +2,7 @@
 
 > An AI-generated, AI-optimized React UI toolkit — a structural component/theme/event-bus system that gets vendored directly into a consumer's project (`toolcrib init`, full-vendoring like shadcn, not an npm dependency), designed specifically to stop AI-driven UI generation from re-inventing inconsistent Tailwind soup on every turn.
 
-Toolcrib ships 69 production components across five categories (Layout Primitives, Containers, Overlays, Data Display, Form Controls), plus a 68-channel typed event bus for cross-tree communication instead of prop-drilling, an HSV-derived CSS-variable theme system with a four-layer override hierarchy, and a Zod-schema-driven form engine — documented for AI consumption via generated, source-derived docs that can't silently drift from what's actually in the code.
+Toolcrib ships 69 production components across five categories (Layout Primitives, Containers, Overlays, Data Display, Form Controls), plus a 69-channel typed event bus for cross-tree communication instead of prop-drilling, an HSV-derived CSS-variable theme system with a four-layer override hierarchy, and a Zod-schema-driven form engine — documented for AI consumption via generated, source-derived docs that can't silently drift from what's actually in the code.
 
 ## Getting Started
 

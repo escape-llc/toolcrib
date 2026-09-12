@@ -293,7 +293,12 @@
         "selectable": {
           "type": "boolean",
           "default": "false",
-          "description": "Adds a checkbox selection column and a bulk-action bar. Greenfield —\nthere is no selection model on `<DataTable>` without this."
+          "description": "Adds a selection column and a bulk-action bar. Greenfield — there is\nno selection model on `<DataTable>` without this. A row is also\nselectable by clicking anywhere on it (see `disableRowClickSelection`)\n— the checkbox/radio column is a redundant, always-available second\naffordance for the exact same action, not the only way to select."
+        },
+        "selectionMode": {
+          "type": "'single' | 'multiple'",
+          "default": "'multiple'",
+          "description": "`'multiple'` (the default) renders checkboxes, a 3-state \"select all\"\nheader control, and lets a row click/Ctrl-click/Shift-click add to,\ntoggle, or range-select the current selection. `'single'` renders a\nradio-style indicator instead, hides the \"select all\" control\n(meaningless for one choice), and makes every selection action —\nclick, checkbox/radio, keyboard Space — simply replace the whole\nselection with just that one row, matching real `<input\ntype=\"radio\">` semantics (no modifier keys, no un-selecting by\nre-clicking the current choice). `selectedKeys`/`onSelectionChange`\nkeep the same `string[]` shape either way, just constrained to 0 or 1\nentries in `'single'` mode."
         },
         "selectedKeys": {
           "type": "string[]",
@@ -307,9 +312,23 @@
           "type": "(selectedKeys: string[]) => void",
           "description": "Called whenever selection changes, whether controlled or uncontrolled."
         },
+        "disableRowClickSelection": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Set to disable click-to-select entirely, falling back to the\ncheckbox/radio column as the only way to change selection — for a\nconsumer whose `onRowClick` already does something unrelated to\nselection (open a detail panel, navigate) and doesn't want a click\nthere to also select the row. Has no effect when `selectable` is\nfalse. `onRowClick` itself always keeps firing on every row click\neither way, per its own existing contract."
+        },
+        "hideSelectionColumn": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Hides the checkbox/radio column entirely while `selectable` stays in\neffect — selection still works via row click (unless\n`disableRowClickSelection`) and keyboard Space, this just removes the\nvisible per-row widget and the \"select all\" header control, for a\ntable that wants row-highlight-only selection with no dedicated\ncolumn taking up space. Every selected `<tr>` still carries\n`aria-selected=\"true\"` regardless of this flag, so the selection\nstate stays screen-reader-visible either way."
+        },
         "renderBulkActions": {
           "type": "(selectedKeys: string[]) => ReactNode",
           "description": "Renders the action buttons in the bulk-action `<Toolbar>` that appears\nonce at least one row is selected — the selection-count label is\nalready provided; this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
+        },
+        "rowCommands": {
+          "type": "RowCommand<T>[]",
+          "description": "Per-row action buttons rendered in a dedicated trailing column. Each\nclick emits `datatable:row_command` on `aiBus` (`{ id: <table id>,\ncommand: <this RowCommand's own id>, key: <this row's resolved\nselection/row key>, index }`) instead of requiring a bespoke callback\nprop per action — an aiBus listener (an AI agent, an analytics\nsubscriber, anything else) reacts to \"the user clicked Edit/Delete/\nwhatever on row N\" the same generic way it already observes\n`datatable:row_clicked`/`datatable:selection_changed`. Omit for no\nactions column at all."
         },
         "columnWidths": {
           "type": "Record<string, number>",
@@ -933,6 +952,26 @@
         "type": "number",
         "default": "40",
         "description": "Minimum width (px) a drag or arrow-key resize can shrink this column\nto -- prevents a variant of the real `table-layout: fixed`\ncolumn-collapse defect documented in this project's own competitive\nresearch. Only meaningful alongside `resizable`."
+      }
+    },
+    "RowCommand": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Stable id for this action -- becomes `command` in the `datatable:row_command` event emitted on click."
+      },
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Visible label -- also the button's `aria-label`, since the rendered button is icon-only when `icon` is given."
+      },
+      "icon": {
+        "type": "string",
+        "description": "Optional leading icon/glyph shown instead of the text label (the label still becomes `aria-label`/`title`)."
+      },
+      "isVisible": {
+        "type": "(record: T, index: number) => boolean",
+        "description": "Omit this specific command for a given row (e.g. hide \"Delete\" for a protected record) -- returning false skips rendering the button entirely, not just disables it."
       }
     },
     "FilmstripItem": {

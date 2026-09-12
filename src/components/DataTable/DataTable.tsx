@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
+import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
@@ -87,6 +88,18 @@ export interface Column<T = any> {
    * @default 40
    */
   minWidth?: number;
+}
+
+/** One action button rendered per row in `<DataTable rowCommands>`'s trailing actions column. */
+export interface RowCommand<T = any> {
+  /** Stable id for this action -- becomes `command` in the `datatable:row_command` event emitted on click. */
+  id: string;
+  /** Visible label -- also the button's `aria-label`, since the rendered button is icon-only when `icon` is given. */
+  label: string;
+  /** Optional leading icon/glyph shown instead of the text label (the label still becomes `aria-label`/`title`). */
+  icon?: string;
+  /** Omit this specific command for a given row (e.g. hide "Delete" for a protected record) -- returning false skips rendering the button entirely, not just disables it. */
+  isVisible?: (record: T, index: number) => boolean;
 }
 
 /**
@@ -213,11 +226,29 @@ export interface DataTableProps<T = any> {
   /** Called whenever the page changes, whether controlled or uncontrolled. */
   onPageChange?: (page: number) => void;
   /**
-   * Adds a checkbox selection column and a bulk-action bar. Greenfield —
-   * there is no selection model on `<DataTable>` without this.
+   * Adds a selection column and a bulk-action bar. Greenfield — there is
+   * no selection model on `<DataTable>` without this. A row is also
+   * selectable by clicking anywhere on it (see `disableRowClickSelection`)
+   * — the checkbox/radio column is a redundant, always-available second
+   * affordance for the exact same action, not the only way to select.
    * @default false
    */
   selectable?: boolean;
+  /**
+   * `'multiple'` (the default) renders checkboxes, a 3-state "select all"
+   * header control, and lets a row click/Ctrl-click/Shift-click add to,
+   * toggle, or range-select the current selection. `'single'` renders a
+   * radio-style indicator instead, hides the "select all" control
+   * (meaningless for one choice), and makes every selection action —
+   * click, checkbox/radio, keyboard Space — simply replace the whole
+   * selection with just that one row, matching real `<input
+   * type="radio">` semantics (no modifier keys, no un-selecting by
+   * re-clicking the current choice). `selectedKeys`/`onSelectionChange`
+   * keep the same `string[]` shape either way, just constrained to 0 or 1
+   * entries in `'single'` mode.
+   * @default 'multiple'
+   */
+  selectionMode?: 'single' | 'multiple';
   /**
    * Controlled set of selected row keys (matching whatever `rowKey`
    * resolves to, stringified). Pass to drive selection from parent state
@@ -240,12 +271,47 @@ export interface DataTableProps<T = any> {
   /** Called whenever selection changes, whether controlled or uncontrolled. */
   onSelectionChange?: (selectedKeys: string[]) => void;
   /**
+   * Set to disable click-to-select entirely, falling back to the
+   * checkbox/radio column as the only way to change selection — for a
+   * consumer whose `onRowClick` already does something unrelated to
+   * selection (open a detail panel, navigate) and doesn't want a click
+   * there to also select the row. Has no effect when `selectable` is
+   * false. `onRowClick` itself always keeps firing on every row click
+   * either way, per its own existing contract.
+   * @default false
+   */
+  disableRowClickSelection?: boolean;
+  /**
+   * Hides the checkbox/radio column entirely while `selectable` stays in
+   * effect — selection still works via row click (unless
+   * `disableRowClickSelection`) and keyboard Space, this just removes the
+   * visible per-row widget and the "select all" header control, for a
+   * table that wants row-highlight-only selection with no dedicated
+   * column taking up space. Every selected `<tr>` still carries
+   * `aria-selected="true"` regardless of this flag, so the selection
+   * state stays screen-reader-visible either way.
+   * @default false
+   */
+  hideSelectionColumn?: boolean;
+  /**
    * Renders the action buttons in the bulk-action `<Toolbar>` that appears
    * once at least one row is selected — the selection-count label is
    * already provided; this renders only the actions themselves (e.g.
    * "Delete", "Export"), receiving the current selection to act on.
    */
   renderBulkActions?: (selectedKeys: string[]) => ReactNode;
+  /**
+   * Per-row action buttons rendered in a dedicated trailing column. Each
+   * click emits `datatable:row_command` on `aiBus` (`{ id: <table id>,
+   * command: <this RowCommand's own id>, key: <this row's resolved
+   * selection/row key>, index }`) instead of requiring a bespoke callback
+   * prop per action — an aiBus listener (an AI agent, an analytics
+   * subscriber, anything else) reacts to "the user clicked Edit/Delete/
+   * whatever on row N" the same generic way it already observes
+   * `datatable:row_clicked`/`datatable:selection_changed`. Omit for no
+   * actions column at all.
+   */
+  rowCommands?: RowCommand<T>[];
   /**
    * Controlled map of resized column widths (px), keyed by `Column.key`.
    * Only columns the user has actually resized need appear -- a column
@@ -305,10 +371,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   defaultPage,
   onPageChange,
   selectable = false,
+  selectionMode = 'multiple',
   selectedKeys: controlledSelectedKeys,
   defaultSelectedKeys,
   onSelectionChange,
+  disableRowClickSelection = false,
+  hideSelectionColumn = false,
   renderBulkActions,
+  rowCommands,
   columnWidths: controlledColumnWidths,
   defaultColumnWidths,
   onColumnWidthsChange,
@@ -394,17 +464,25 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // which this doesn't change.
   const pageOffset = pagination ? (validCurrentPage - 1) * pageSize : 0;
 
-  const { selectedKeySet, getSelectionKey, toggleRowSelected, toggleSelectAllOnPage, allOnPageSelected, someOnPageSelected } =
-    useTableSelection({
-      selectable,
-      selectedKeys: controlledSelectedKeys,
-      defaultSelectedKeys,
-      onSelectionChange,
-      tableId: id,
-      rowKey,
-      pageOffset,
-      currentPageRecords: paginatedData,
-    });
+  const {
+    selectedKeySet,
+    getSelectionKey,
+    toggleRowSelected,
+    toggleSelectAllOnPage,
+    handleRowSelectClick,
+    allOnPageSelected,
+    someOnPageSelected,
+  } = useTableSelection({
+    selectable,
+    selectionMode,
+    selectedKeys: controlledSelectedKeys,
+    defaultSelectedKeys,
+    onSelectionChange,
+    tableId: id,
+    rowKey,
+    pageOffset,
+    currentPageRecords: paginatedData,
+  });
 
   const totalItems = paginatedData.length;
 
@@ -423,12 +501,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
 
-  // Grid coordinate layout: column 0 is the selection checkbox column when
-  // `selectable`, otherwise column indices start directly at `columns`;
-  // row 0 is always the header row, rows 1..paginatedData.length are body
-  // rows (page-relative, matching `actualIndex + 1`).
-  const colOffset = selectable ? 1 : 0;
-  const gridColumnCount = columns.length + colOffset;
+  // Grid coordinate layout: column 0 is the selection checkbox/radio column
+  // when `selectable` and not `hideSelectionColumn`, otherwise column
+  // indices start directly at `columns`; a trailing rowCommands actions
+  // column (if any) is always the LAST column. Row 0 is always the header
+  // row, rows 1..paginatedData.length are body rows (page-relative,
+  // matching `actualIndex + 1`).
+  const colOffset = selectable && !hideSelectionColumn ? 1 : 0;
+  const hasRowCommands = !!rowCommands && rowCommands.length > 0;
+  const gridColumnCount = columns.length + colOffset + (hasRowCommands ? 1 : 0);
+  // Shared by the empty-state row and both virtualization spacer rows below
+  // -- every one of them spans the table's real, full column count.
+  const totalColSpan = gridColumnCount;
   const tableRef = useRef<HTMLTableElement>(null);
   const { focusedRow, focusedCol, handleKeyDown, handleFocus } = useTableKeyboardNav({
     tableRef,
@@ -519,9 +603,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ...vars,
       }}
     >
-      {/* Bulk Action Bar — appears once at least one row is selected, across any page. */}
-      {selectable && selectedKeySet.size > 0 && (
-        <div style={{ borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
+      {/* Bulk Action Bar — always mounted once `selectable` (not
+          conditionally, on selectedKeySet.size > 0), toggling only
+          `visibility` -- a real, confirmed layout-jump found via direct
+          feedback: mounting/unmounting this whole bar on the FIRST
+          selection pushed the entire table down by its height, since
+          `visibility: hidden` (unlike `display: none`) still reserves the
+          element's own box in the layout, selecting row 1 (or clearing
+          back to 0) never moves anything else. */}
+      {selectable && (
+        <div
+          style={{
+            borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
+            flex: '0 0 auto',
+            visibility: selectedKeySet.size > 0 ? 'visible' : 'hidden',
+          }}
+        >
           <Toolbar>
             <Toolbar.Left>
               <span style={{ fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-primary, #111827)' }}>
@@ -595,7 +692,33 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // column set is a subset of the full one).
           aria-rowcount={1 + sortedData.length}
           aria-colcount={gridColumnCount}
-          onKeyDown={handleKeyDown}
+          onKeyDown={e => {
+            // Space toggles the focused row's own selection -- the
+            // keyboard equivalent of a plain row click. Scoped to
+            // target.tagName === 'TD'/'TH' specifically (a plain cell
+            // itself has focus, not a nested widget) so this doesn't
+            // double-fire on a checkbox/radio (Space already natively
+            // activates a real <button role="checkbox">, which already
+            // calls toggleRowSelected via its own onCheckedChange) or a
+            // rowCommands action button (Space there should trigger THAT
+            // button, not select the row).
+            const target = e.target as HTMLElement;
+            if (
+              selectable &&
+              !disableRowClickSelection &&
+              e.key === ' ' &&
+              focusedRow > 0 &&
+              (target.tagName === 'TD' || target.tagName === 'TH')
+            ) {
+              const rowIndex = focusedRow - 1; // grid row 0 is the header
+              const record = paginatedData[rowIndex];
+              if (record) {
+                e.preventDefault();
+                toggleRowSelected(getSelectionKey(record, rowIndex), rowIndex);
+              }
+            }
+            handleKeyDown(e);
+          }}
           onFocus={handleFocus}
           style={{
             width: '100%',
@@ -606,7 +729,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           }}
         >
           <colgroup>
-            {selectable && <col style={{ width: '2.75rem' }} />}
+            {selectable && !hideSelectionColumn && <col style={{ width: '2.75rem' }} />}
             {columns.map(col => {
               const resolvedWidth = getColumnWidth(col);
               return (
@@ -616,6 +739,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 />
               );
             })}
+            {hasRowCommands && <col style={{ width: `${rowCommands!.length * 2.25 + 1}rem` }} />}
           </colgroup>
 
           {/* Header */}
@@ -629,36 +753,49 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             }}
           >
             <tr aria-rowindex={1}>
-              {selectable && (
-                <th style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))', width: '2.75rem' }}>
-                  <CheckboxPrimitive.Root
-                    checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
-                    onCheckedChange={toggleSelectAllOnPage}
-                    aria-label="Select all rows on this page"
-                    className="ai-focus-ring"
-                    data-grid-row={0}
-                    data-grid-col={0}
-                    tabIndex={isFocusedCell(0, 0) ? 0 : -1}
-                    style={{
-                      all: 'unset',
-                      width: '1.125rem',
-                      height: '1.125rem',
-                      borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                      border: `0.0625rem solid ${allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
-                      background: allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <CheckboxPrimitive.Indicator
-                      style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+              {selectable && !hideSelectionColumn && (
+                <th
+                  style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))', width: '2.75rem' }}
+                  // "Select all" makes no sense for a single-choice model --
+                  // in 'single' mode this <th> renders no widget at all, so
+                  // (mirroring the sortable/non-sortable data-column pattern
+                  // just below) IT carries the grid-nav attributes directly
+                  // instead of a nonexistent child widget.
+                  {...(selectionMode === 'single'
+                    ? { 'data-grid-row': 0, 'data-grid-col': 0, tabIndex: isFocusedCell(0, 0) ? 0 : -1 }
+                    : {})}
+                  className={selectionMode === 'single' ? 'ai-focus-ring' : undefined}
+                >
+                  {selectionMode !== 'single' && (
+                    <CheckboxPrimitive.Root
+                      checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAllOnPage}
+                      aria-label="Select all rows on this page"
+                      className="ai-focus-ring"
+                      data-grid-row={0}
+                      data-grid-col={0}
+                      tabIndex={isFocusedCell(0, 0) ? 0 : -1}
+                      style={{
+                        all: 'unset',
+                        width: '1.125rem',
+                        height: '1.125rem',
+                        borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                        border: `0.0625rem solid ${allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                        background: allOnPageSelected || someOnPageSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                      }}
                     >
-                      {allOnPageSelected ? '✓' : '−'}
-                    </CheckboxPrimitive.Indicator>
-                  </CheckboxPrimitive.Root>
+                      <CheckboxPrimitive.Indicator
+                        style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                      >
+                        {allOnPageSelected ? '✓' : '−'}
+                      </CheckboxPrimitive.Indicator>
+                    </CheckboxPrimitive.Root>
+                  )}
                 </th>
               )}
               {columns.map((col, colIndex) => {
@@ -776,6 +913,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   </th>
                 );
               })}
+              {hasRowCommands && (
+                <th
+                  data-grid-row={0}
+                  data-grid-col={colOffset + columns.length}
+                  tabIndex={isFocusedCell(0, colOffset + columns.length) ? 0 : -1}
+                  className="ai-focus-ring"
+                  style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))' }}
+                >
+                  <VisuallyHidden>Row actions</VisuallyHidden>
+                </th>
+              )}
             </tr>
           </thead>
 
@@ -788,7 +936,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               // matching what a real user needs to see (sortable columns,
               // selection controls) even while there's nothing to act on.
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                <td colSpan={totalColSpan} style={{ padding: '2rem 1rem', textAlign: 'center' }}>
                   {emptyState}
                 </td>
               </tr>
@@ -800,7 +948,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     aria-rowindex. */}
                 {startIndex > 0 && (
                   <tr aria-hidden="true">
-                    <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
+                    <td colSpan={totalColSpan} style={{ height: `${startIndex * itemHeight}px`, padding: 0 }} />
                   </tr>
                 )}
 
@@ -822,59 +970,141 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // reflects the row's position across the whole
                       // dataset (pageOffset), not just the current page.
                       aria-rowindex={pageOffset + actualIndex + 2}
-                      onClick={() => {
+                      // aria-selected reflects real selection state
+                      // regardless of `hideSelectionColumn` -- a screen
+                      // reader user still needs to know a row is selected
+                      // even when there's no visible checkbox/radio widget
+                      // to convey it. `undefined` (not `false`) when
+                      // selection isn't active at all, matching aria-sort's
+                      // own "omit when not applicable" convention elsewhere
+                      // in this file.
+                      aria-selected={selectable ? isRowSelected : undefined}
+                      onClick={e => {
                         onRowClick?.(record, actualIndex);
                         aiBus.emit('datatable:row_clicked', { id, index: actualIndex });
+                        if (selectable && !disableRowClickSelection && selectionKey !== null) {
+                          handleRowSelectClick(selectionKey, actualIndex, {
+                            shiftKey: e.shiftKey,
+                            ctrlKey: e.ctrlKey,
+                            metaKey: e.metaKey,
+                          });
+                        }
                       }}
                       style={{
                         height: `${itemHeight}px`,
-                        cursor: onRowClick ? 'pointer' : undefined,
+                        cursor: onRowClick || (selectable && !disableRowClickSelection) ? 'pointer' : undefined,
                         borderBottom: subthemeColors?.border
                           ? effectiveBorderStyle === 'none'
                             ? 'none'
                             : `0.0625rem dashed ${subthemeColors.border}`
                           : '0.0625rem solid var(--ai-border, #f3f4f6)',
-                        background: isRowSelected
-                          ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.08))'
-                          : subthemeColors?.background
+                        backgroundColor: subthemeColors?.background
                           ? subthemeColors.background
                           : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
-                        transition: 'background 0.15s ease',
+                        // A translucent wash layered ON TOP of the row's own
+                        // base color via backgroundImage (not
+                        // backgroundColor) -- composes with whatever's
+                        // already there (a zebra stripe, a rowSubtheme
+                        // tint) instead of replacing it outright, per real
+                        // feedback that the previous plain-background-swap
+                        // version "wiped out" a row's own subtheme tint the
+                        // instant it was selected. A plain rgba() literal,
+                        // not color-mix() -- see AGENTS.md's own documented
+                        // axe-core false-positive with color-mix()-computed
+                        // backgrounds; this avoids that class of risk
+                        // entirely rather than needing a matching axe
+                        // exemption. Always set to a real value or the
+                        // literal 'none', never omitted, so this never
+                        // mixes a sometimes-present/sometimes-absent
+                        // longhand the way AGENTS.md's own corner-radius
+                        // lesson warns against.
+                        backgroundImage: isRowSelected
+                          ? 'linear-gradient(var(--ai-table-row-selected-tint, rgba(59, 130, 246, 0.14)), var(--ai-table-row-selected-tint, rgba(59, 130, 246, 0.14)))'
+                          : 'none',
+                        transition: 'background-color 0.15s ease, background-image 0.15s ease',
                       }}
                     >
-                      {selectable && selectionKey !== null && (
+                      {selectable && !hideSelectionColumn && selectionKey !== null && (
                         <td
                           style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
                           onClick={e => e.stopPropagation()}
                         >
-                          <CheckboxPrimitive.Root
-                            checked={isRowSelected}
-                            onCheckedChange={() => toggleRowSelected(selectionKey)}
-                            aria-label={`Select row ${actualIndex + 1}`}
-                            className="ai-focus-ring"
-                            data-grid-row={gridRow}
-                            data-grid-col={0}
-                            tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
-                            style={{
-                              all: 'unset',
-                              width: '1.125rem',
-                              height: '1.125rem',
-                              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                              border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
-                              background: isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            <CheckboxPrimitive.Indicator
-                              style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                          {selectionMode === 'single' ? (
+                            // A plain hand-rolled role="radio" button, not
+                            // CheckboxPrimitive -- Radix's Checkbox always
+                            // owns its own role="checkbox" internally, and
+                            // its sibling RadioGroup primitive brings its
+                            // OWN internal arrow-key navigation between
+                            // items, which would compete with this table's
+                            // own custom grid roving-tabindex model for the
+                            // exact same keys. A single real <button> gets
+                            // Space/Enter activation for free with none of
+                            // that conflict -- deliberately not the full
+                            // APG radio-group pattern's own arrow-key
+                            // navigation between radios, since arrow keys
+                            // here already mean "move focus to the
+                            // adjacent grid cell."
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={isRowSelected}
+                              aria-label={`Select row ${actualIndex + 1}`}
+                              onClick={() => toggleRowSelected(selectionKey, actualIndex)}
+                              className="ai-focus-ring"
+                              data-grid-row={gridRow}
+                              data-grid-col={0}
+                              tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
+                              style={{
+                                all: 'unset',
+                                width: '1.125rem',
+                                height: '1.125rem',
+                                borderRadius: '50%',
+                                border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                                background: 'var(--ai-bg-surface, #ffffff)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxSizing: 'border-box',
+                              }}
                             >
-                              ✓
-                            </CheckboxPrimitive.Indicator>
-                          </CheckboxPrimitive.Root>
+                              {isRowSelected && (
+                                <span
+                                  aria-hidden="true"
+                                  style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--ai-color-primary, #3b82f6)' }}
+                                />
+                              )}
+                            </button>
+                          ) : (
+                            <CheckboxPrimitive.Root
+                              checked={isRowSelected}
+                              onCheckedChange={() => toggleRowSelected(selectionKey, actualIndex)}
+                              aria-label={`Select row ${actualIndex + 1}`}
+                              className="ai-focus-ring"
+                              data-grid-row={gridRow}
+                              data-grid-col={0}
+                              tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
+                              style={{
+                                all: 'unset',
+                                width: '1.125rem',
+                                height: '1.125rem',
+                                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                                border: `0.0625rem solid ${isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                                background: isRowSelected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <CheckboxPrimitive.Indicator
+                                style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
+                              >
+                                ✓
+                              </CheckboxPrimitive.Indicator>
+                            </CheckboxPrimitive.Root>
+                          )}
                         </td>
                       )}
                       {columns.map((col, colIndex) => {
@@ -909,6 +1139,53 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           </td>
                         );
                       })}
+                      {hasRowCommands && (
+                        <td
+                          data-grid-row={gridRow}
+                          data-grid-col={colOffset + columns.length}
+                          tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
+                          className="ai-focus-ring"
+                          onClick={e => e.stopPropagation()}
+                          style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
+                        >
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            {rowCommands!
+                              .filter(cmd => cmd.isVisible?.(record, actualIndex) ?? true)
+                              .map(cmd => (
+                                <button
+                                  key={cmd.id}
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    aiBus.emit('datatable:row_command', {
+                                      id,
+                                      command: cmd.id,
+                                      key: getSelectionKey(record, actualIndex),
+                                      index: actualIndex,
+                                    });
+                                  }}
+                                  aria-label={cmd.label}
+                                  title={cmd.label}
+                                  className="ai-focus-ring"
+                                  style={{
+                                    all: 'unset',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '1.75rem',
+                                    height: '1.75rem',
+                                    borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                                    cursor: 'pointer',
+                                    color: 'var(--ai-text-secondary, #6b7280)',
+                                    fontSize: '0.875rem',
+                                  }}
+                                >
+                                  {cmd.icon ? <span aria-hidden="true">{cmd.icon}</span> : cmd.label}
+                                </button>
+                              ))}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -916,7 +1193,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 {/* Virtual Spacer Bottom -- same reasoning as the top spacer. */}
                 {endIndex < totalItems && (
                   <tr aria-hidden="true">
-                    <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
+                    <td colSpan={totalColSpan} style={{ height: `${(totalItems - endIndex) * itemHeight}px`, padding: 0 }} />
                   </tr>
                 )}
               </>
