@@ -12,18 +12,108 @@ export type TableDensity = 'compact' | 'normal' | 'spacious';
 export type TableBorderStyle = 'grid' | 'horizontal' | 'none';
 
 /**
+ * `compact`/`spacious` scale `normal`'s own baseline padding by one number
+ * each, not an independently hand-picked literal -- retuning how tight
+ * `compact` feels relative to `normal` is one multiplier change here
+ * instead of a separately-drifting padding literal. This is deliberately
+ * a SEPARATE multiplier from `DENSITY_ROW_HEIGHT_MULTIPLIER` below, not
+ * one shared number applied to both -- see that constant's own comment
+ * for why coupling them was a real, Gemini-caught bug on this PR's first
+ * pass. `normal` itself is always exactly 1 (it IS the baseline every
+ * other density scales from), kept in the map anyway so a lookup never
+ * needs a special case for it.
+ */
+const DENSITY_PADDING_MULTIPLIER: Record<TableDensity, number> = {
+  compact: 0.4,
+  normal: 1,
+  spacious: 1.3,
+};
+
+/**
+ * `compact`/`spacious` scale `normal`'s own 44px row height by one number
+ * each. This PR's first pass applied this SAME multiplier to padding too
+ * (a single shared `DENSITY_MULTIPLIER`), which produced a real layout
+ * bug Gemini's review caught: `compact`'s 0.65x gave a 29px row height but
+ * only shrank vertical padding to 7px/side (14px total) -- 29 - 14 = 15px
+ * left for content, less than a 14px-font/1.5-line-height cell's real
+ * ~21px line box, so text would visibly clip. Row height and padding
+ * don't actually scale together at a fixed font-size: padding can shrink
+ * as aggressively as the density wants, but row height is structurally
+ * bounded below by `TEXT_LINE_HEIGHT_PX + 2 * verticalPaddingPx` regardless
+ * of what any multiplier says -- see `getTableVariables`'s own `Math.max`
+ * against that floor, which is what actually enforces this, not just this
+ * comment. Splitting the multiplier in two is what let `compact`'s padding
+ * shrink far enough (0.4x here) to reach the tight row height originally
+ * wanted (29px) WITHOUT the floor ever needing to override it -- the floor
+ * stays a real safety net for any future retuning, not the thing doing
+ * the tightening today.
+ */
+const DENSITY_ROW_HEIGHT_MULTIPLIER: Record<TableDensity, number> = {
+  compact: 0.65,
+  normal: 1,
+  spacious: 1.3,
+};
+
+/**
+ * `normal` density's own baseline metrics in px, at this codebase's assumed
+ * 16px root font-size -- the same assumption `<DataTable>`'s `itemHeight`
+ * default already makes (issue #339). Cell/header padding are `[vertical,
+ * horizontal]` pairs. `NORMAL_ROW_HEIGHT_PX` doubles as `normal`'s own
+ * entry in `DENSITY_ROW_HEIGHT_PX` below.
+ */
+const NORMAL_ROW_HEIGHT_PX = 44;
+const NORMAL_CELL_PADDING_PX: readonly [number, number] = [10, 16]; // 0.625rem 1rem
+const NORMAL_HEADER_PADDING_PX: readonly [number, number] = [12, 16]; // 0.75rem 1rem
+
+/**
+ * DataTable cell text renders at a fixed `0.875rem` (14px) regardless of
+ * density -- only padding/row-height change -- so every density's row
+ * height must fit this SAME line box, at this codebase's default
+ * `--ai-line-height` of `1.5` (`theme/typography.tsx`'s own
+ * `baseLineHeight` default): `14 * 1.5 = 21px`. The real minimum, not a
+ * static-fallback assumption the way `itemHeight`'s 16px-root assumption
+ * is -- a consumer who changes the global line-height theme control could
+ * still, in principle, need a taller floor than this, but this at least
+ * guards the default/common case that broke in this PR's first pass.
+ */
+const TEXT_LINE_HEIGHT_PX = 21;
+/**
+ * A deliberate few px of slack ABOVE the bare `TEXT_LINE_HEIGHT_PX` math --
+ * an exact zero-slack fit is one sub-pixel rounding difference or font-
+ * metric quirk away from clipping again on some browser/font combination,
+ * so the floor below targets "comfortably fits," not "fits exactly."
+ */
+const CONTENT_VERTICAL_SAFETY_PX = 2;
+
+function scalePaddingPx(basePx: number, density: TableDensity): number {
+  return Math.round(basePx * DENSITY_PADDING_MULTIPLIER[density]);
+}
+function pxToRem(px: number): string {
+  return `${px / 16}rem`;
+}
+
+/**
  * Each density's real row height in pixels -- the single source of truth
  * `getTableVariables`'s own `--ai-table-row-height` (a `rem` string) derives
  * from below, and the same values `<DataTable>` uses for its default
  * `itemHeight` (issue #339). Kept as a JS-readable px map, not just a CSS
  * variable, specifically so virtualization math (which needs a real number,
  * not a string a browser resolves) can never independently drift from what
- * the density's own padding/row-height CSS actually renders.
+ * the density's own padding/row-height CSS actually renders. Never below
+ * `TEXT_LINE_HEIGHT_PX + 2 * verticalCellPaddingPx` for that density (see
+ * `DENSITY_ROW_HEIGHT_MULTIPLIER`'s own comment) -- a real content-clipping
+ * bug otherwise, not just a cosmetic one.
  */
 export const DENSITY_ROW_HEIGHT_PX: Record<TableDensity, number> = {
-  compact: 36,
-  normal: 44,
-  spacious: 56,
+  compact: Math.max(
+    Math.round(NORMAL_ROW_HEIGHT_PX * DENSITY_ROW_HEIGHT_MULTIPLIER.compact),
+    TEXT_LINE_HEIGHT_PX + CONTENT_VERTICAL_SAFETY_PX + 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'compact')
+  ),
+  normal: NORMAL_ROW_HEIGHT_PX,
+  spacious: Math.max(
+    Math.round(NORMAL_ROW_HEIGHT_PX * DENSITY_ROW_HEIGHT_MULTIPLIER.spacious),
+    TEXT_LINE_HEIGHT_PX + CONTENT_VERTICAL_SAFETY_PX + 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'spacious')
+  ),
 };
 
 export interface TableSliceState {
@@ -35,19 +125,25 @@ export interface TableSliceState {
 export function getTableVariables(state: TableSliceState): Record<string, string> {
   let cellPadding: string;
   let headerPadding: string;
-  const rowHeight = `${DENSITY_ROW_HEIGHT_PX[state.density] / 16}rem`;
+  const rowHeight = pxToRem(DENSITY_ROW_HEIGHT_PX[state.density]);
 
   switch (state.density) {
     case 'compact':
-      cellPadding = '0.375rem 0.625rem';
-      headerPadding = '0.5rem 0.625rem';
+    case 'spacious': {
+      const [cv, ch] = NORMAL_CELL_PADDING_PX;
+      const [hv, hh] = NORMAL_HEADER_PADDING_PX;
+      cellPadding = `${pxToRem(scalePaddingPx(cv, state.density))} ${pxToRem(scalePaddingPx(ch, state.density))}`;
+      headerPadding = `${pxToRem(scalePaddingPx(hv, state.density))} ${pxToRem(scalePaddingPx(hh, state.density))}`;
       break;
-    case 'spacious':
-      cellPadding = '0.875rem 1.25rem';
-      headerPadding = '1rem 1.25rem';
-      break;
+    }
     case 'normal':
     default:
+      // Sourced from the live theme token, not NORMAL_CELL_PADDING_PX --
+      // normal density stays reactive to a global --ai-padding-sm/-md
+      // theme change; compact/spacious scale off the token's OWN fallback
+      // numbers instead (the same static-fallback limitation itemHeight's
+      // 16px-root assumption already documents), since there's no way to
+      // read a live CSS custom property's value back out in JS here.
       cellPadding = 'var(--ai-padding-sm, 0.625rem 1rem)';
       headerPadding = 'var(--ai-padding-md, 0.75rem 1rem)';
       break;
@@ -94,9 +190,9 @@ export const DataTableThemeSlice: ThemeSlice<TableSliceState> = {
         value={state.density}
         onChange={val => onChange({ ...state, density: val as TableDensity })}
         options={[
-          { label: 'Compact (2.25rem Row Height & Tight Cell Padding)', value: 'compact' },
-          { label: 'Normal (2.75rem Row Height & Standard Cell Padding)', value: 'normal' },
-          { label: 'Spacious (3.5rem Row Height & Generous Cell Padding)', value: 'spacious' },
+          { label: `Compact (${DENSITY_ROW_HEIGHT_PX.compact / 16}rem Row Height & Tight Cell Padding)`, value: 'compact' },
+          { label: `Normal (${DENSITY_ROW_HEIGHT_PX.normal / 16}rem Row Height & Standard Cell Padding)`, value: 'normal' },
+          { label: `Spacious (${DENSITY_ROW_HEIGHT_PX.spacious / 16}rem Row Height & Generous Cell Padding)`, value: 'spacious' },
         ]}
       />
       <FieldRow

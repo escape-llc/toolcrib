@@ -21,8 +21,8 @@ describe('DataTable Theme Slice Engine', () => {
       striped: false,
     });
 
-    expect(vars['--ai-table-cell-padding']).toBe('0.375rem 0.625rem');
-    expect(vars['--ai-table-row-height']).toBe('2.25rem');
+    expect(vars['--ai-table-cell-padding']).toBe('0.25rem 0.375rem');
+    expect(vars['--ai-table-row-height']).toBe('1.9375rem');
     expect(vars['--ai-table-stripe-bg']).toBe('transparent');
   });
 
@@ -43,7 +43,40 @@ describe('DataTable Theme Slice Engine', () => {
     });
   });
 
-  it('DENSITY_ROW_HEIGHT_PX has the expected, previously-hardcoded values', () => {
-    expect(DENSITY_ROW_HEIGHT_PX).toEqual({ compact: 36, normal: 44, spacious: 56 });
+  // compact/spacious are DERIVED from normal's 44px baseline via
+  // DENSITY_ROW_HEIGHT_MULTIPLIER (0.65x / 1.3x), clamped to never go
+  // below TEXT_LINE_HEIGHT_PX + CONTENT_VERTICAL_SAFETY_PX + 2x that
+  // density's own (separately-multiplied) vertical padding -- a real
+  // content-clipping bug Gemini caught on this PR's first pass, when both
+  // row height and padding scaled off the SAME multiplier: round(44*0.65)
+  // = 29px row height, but only 14px of padding, leaving less room than a
+  // 14px/1.5-line-height cell's real ~21px line box needs. compact's floor
+  // (21 + 2 + 2*4 = 31) now exceeds its own multiplier's 29px, so 31 wins;
+  // spacious's floor (21 + 2 + 2*13 = 49) stays under its multiplier's
+  // 57px, so the multiplier still wins there, unchanged from before.
+  it('DENSITY_ROW_HEIGHT_PX derives compact/spacious from normal (44px), clamped to a content-fit floor', () => {
+    expect(DENSITY_ROW_HEIGHT_PX).toEqual({ compact: 31, normal: 44, spacious: 57 });
+  });
+
+  // Direct regression for the Gemini-caught clipping bug: proves the
+  // INVARIANT via the actual public CSS output (not the internal
+  // multiplier constants), so a future retune that reintroduces the same
+  // mistake -- scaling row height and padding by one shared multiplier --
+  // fails this test regardless of which specific numbers it picks.
+  it('every density\'s row height comfortably fits a 14px/1.5-line-height cell plus its own vertical padding', () => {
+    const TEXT_LINE_HEIGHT_PX = 21; // 14px font-size * 1.5 default --ai-line-height
+    (['compact', 'spacious'] as TableDensity[]).forEach(density => {
+      const vars = getTableVariables({ density, borderStyle: 'horizontal', striped: true });
+      const rowHeightPx = parseFloat(vars['--ai-table-row-height']) * 16;
+      const verticalPaddingPx = parseFloat(vars['--ai-table-cell-padding']) * 16;
+      expect(rowHeightPx).toBeGreaterThanOrEqual(TEXT_LINE_HEIGHT_PX + 2 * verticalPaddingPx);
+    });
+    // normal sources its padding from a live CSS var() token, not a plain
+    // rem literal parseable the same way -- its own 44px/10px-fallback
+    // combination already comfortably fits (44 >= 21 + 20) and was never
+    // part of this bug, so it's checked directly rather than parsed.
+    const normalVars = getTableVariables({ density: 'normal', borderStyle: 'horizontal', striped: true });
+    const normalRowHeightPx = parseFloat(normalVars['--ai-table-row-height']) * 16;
+    expect(normalRowHeightPx).toBeGreaterThanOrEqual(TEXT_LINE_HEIGHT_PX + 2 * 10);
   });
 });
