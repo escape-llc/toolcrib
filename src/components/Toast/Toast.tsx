@@ -95,7 +95,23 @@ function injectToastAnimations(targetDocument?: Document, nonce?: string): void 
     .ai-toast-root[data-state="open"] {
       animation: toolcrib-toast-slide-in var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1));
       transform: var(--toast-transform-base, ) translateY(var(--stack-offset, 0px));
-      transition: transform var(--ai-toast-stack-duration, 260ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1));
+      /* !important, and outline-color re-declared alongside transform, not
+         just "transition: transform ..." -- a real, confirmed bug (not
+         theoretical): this element also carries the shared .ai-focus-ring
+         class (interactionStyles.ts), whose own transition rule is itself
+         !important. transition is a shorthand -- the cascade picks ONE
+         winning declaration for the whole property, it never merges two
+         separate rules' transition lists together. Without matching that
+         !important, .ai-focus-ring's rule silently won outright (its own
+         higher-in-the-cascade !important beats a plain declaration
+         regardless of specificity), leaving transform with NO transition
+         at all -- confirmed via a real per-frame trace: every stack-offset
+         change was applying instantly, zero interpolation, exactly the
+         "everything jerks into position" report. Re-declaring
+         outline-color here (using .ai-focus-ring's own tokens, so a theme
+         change to either still keeps them in sync) means winning this
+         cascade doesn't cost the focus ring its own fade in exchange. */
+      transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease), transform var(--ai-toast-stack-duration, 260ms) var(--ai-transition-easing, cubic-bezier(0.4, 0, 0.2, 1)) !important;
     }
     .ai-toast-root[data-state="closed"]:not([data-swipe="end"]) {
       animation: toolcrib-toast-fade-out var(--ai-toast-exit-duration, 240ms) ease forwards;
@@ -109,7 +125,9 @@ function injectToastAnimations(targetDocument?: Document, nonce?: string): void 
     }
     .ai-toast-root[data-swipe="cancel"] {
       transform: var(--toast-transform-base, ) translateY(var(--stack-offset, 0px)) translateX(0);
-      transition: transform 0.2s ease-out;
+      /* Same .ai-focus-ring shorthand collision as [data-state="open"]
+         above -- see that rule's own comment. */
+      transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease), transform 0.2s ease-out !important;
     }
     .ai-toast-root[data-swipe="end"] {
       animation: toolcrib-toast-swipe-out var(--ai-toast-swipe-exit-duration, 400ms) ease-out forwards;

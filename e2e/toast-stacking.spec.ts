@@ -106,3 +106,80 @@ test('a bottom-anchored stack stacks upward -- each earlier toast sits ABOVE the
   expect(yFirst).toBeLessThan(ySecond);
   expect(ySecond).toBeLessThan(yThird);
 });
+
+// Regression for a real bug found by frame-by-frame measurement, not by
+// reading the code or by any of this file's own before/after position
+// assertions above (which only ever check the SETTLED state, so they
+// couldn't have caught this either): the shared .ai-focus-ring class
+// (interactionStyles.ts) sets its own `transition` shorthand with
+// `!important`. `transition` doesn't merge across rules -- the cascade
+// picks ONE winning declaration for the whole property -- so without
+// ALSO marking Toast's own `transition: transform ...` rule `!important`
+// (and re-including outline-color's own transition, so winning that
+// cascade doesn't cost the focus ring its fade), .ai-focus-ring's rule
+// silently won outright and every stack-offset change applied with NO
+// transition at all: an instant snap, not motion. jsdom cannot observe
+// this at all (confirmed directly: getComputedStyle(el).transitionProperty
+// on an injected-stylesheet attribute-selector rule comes back as the
+// bare initial value 'all', not the real cascaded result).
+//
+// Asserts the actual CSS mechanism directly (computed transitionProperty/
+// transitionDuration), not inferred smoothness from position sampling --
+// a frame-sampling version of this test was tried first and is
+// deliberately NOT what shipped: it depends on how many real animation
+// frames the browser/CI runner actually delivers during the transition
+// window, which is neither controlled nor guaranteed (confirmed via a
+// real CI run: reliable on Chromium, flaky on WebKit under CI load, where
+// coarser frame delivery undercounts "partial steps" for a transition
+// that's genuinely smooth, just sampled too sparsely to prove it that
+// way). Checking the computed style is resolution-independent -- it
+// proves the fix's actual mechanism is in effect regardless of how many
+// frames happen to land during any single test run.
+test('a stacked toast\'s transform transition includes BOTH outline-color and transform, not just one overriding the other', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Toast Subsystem');
+
+  const fireInfo = page.getByRole('button', { name: 'Fire Info Toast', exact: true });
+  await fireInfo.click();
+  await fireInfo.click();
+  await page.waitForTimeout(400);
+
+  const toastEl = page.locator('[data-testid="toast-item"]').nth(1);
+  const { transitionProperty, transitionDuration } = await toastEl.evaluate(el => {
+    const cs = getComputedStyle(el);
+    return { transitionProperty: cs.transitionProperty, transitionDuration: cs.transitionDuration };
+  });
+
+  // Both properties present in the SAME winning declaration -- if
+  // .ai-focus-ring's !important rule had won instead (the regressed
+  // state), transitionProperty would be just "outline-color", with no
+  // "transform" entry at all.
+  const properties = transitionProperty.split(',').map(s => s.trim());
+  expect(properties).toContain('outline-color');
+  expect(properties).toContain('transform');
+  // A real, non-zero duration on transform specifically (not "0s" from
+  // some other rule filling in a default) -- transitionDuration entries
+  // line up positionally with transitionProperty's own list.
+  const durations = transitionDuration.split(',').map(s => s.trim());
+  const transformDuration = durations[properties.indexOf('transform')];
+  expect(transformDuration).not.toBe('0s');
+
+  // Lighter-weight, best-effort supplement to the computed-style check
+  // above (not the primary evidence, given real frame delivery isn't
+  // controlled): confirm the toast's position does change at all across
+  // more than a single instantaneous jump when a sibling is dismissed.
+  await page.evaluate(() => {
+    (window as any).__toastFrames = [];
+    let n = 0;
+    const sample = () => {
+      const el = document.querySelectorAll('[data-testid="toast-item"]')[1];
+      if (el) (window as any).__toastFrames.push(el.getBoundingClientRect().top);
+      if (n++ < 40) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await page.locator('[data-testid="toast-item"]').first().locator('button[aria-label="Dismiss toast"]').click();
+  await page.waitForTimeout(500);
+  const frames: number[] = await page.evaluate(() => (window as any).__toastFrames);
+  expect(Math.abs(frames[frames.length - 1] - frames[0])).toBeGreaterThan(10);
+});
