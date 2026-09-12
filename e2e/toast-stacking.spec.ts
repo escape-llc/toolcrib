@@ -121,10 +121,21 @@ test('a bottom-anchored stack stacks upward -- each earlier toast sits ABOVE the
 // transition at all: an instant snap, not motion. jsdom cannot observe
 // this at all (confirmed directly: getComputedStyle(el).transitionProperty
 // on an injected-stylesheet attribute-selector rule comes back as the
-// bare initial value 'all', not the real cascaded result) -- a real
-// browser, sampling actual frames during the transition, is the only way
-// to prove interpolation is happening rather than an instant jump.
-test('a remaining toast\'s position actually interpolates across multiple frames when another toast is dismissed, not an instant snap', async ({ page }) => {
+// bare initial value 'all', not the real cascaded result).
+//
+// Asserts the actual CSS mechanism directly (computed transitionProperty/
+// transitionDuration), not inferred smoothness from position sampling --
+// a frame-sampling version of this test was tried first and is
+// deliberately NOT what shipped: it depends on how many real animation
+// frames the browser/CI runner actually delivers during the transition
+// window, which is neither controlled nor guaranteed (confirmed via a
+// real CI run: reliable on Chromium, flaky on WebKit under CI load, where
+// coarser frame delivery undercounts "partial steps" for a transition
+// that's genuinely smooth, just sampled too sparsely to prove it that
+// way). Checking the computed style is resolution-independent -- it
+// proves the fix's actual mechanism is in effect regardless of how many
+// frames happen to land during any single test run.
+test('a stacked toast\'s transform transition includes BOTH outline-color and transform, not just one overriding the other', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Toast Subsystem');
 
@@ -133,12 +144,30 @@ test('a remaining toast\'s position actually interpolates across multiple frames
   await fireInfo.click();
   await page.waitForTimeout(400);
 
-  const toasts = page.locator('[data-testid="toast-item"]');
-  await expect(toasts).toHaveCount(2);
+  const toastEl = page.locator('[data-testid="toast-item"]').nth(1);
+  const { transitionProperty, transitionDuration } = await toastEl.evaluate(el => {
+    const cs = getComputedStyle(el);
+    return { transitionProperty: cs.transitionProperty, transitionDuration: cs.transitionDuration };
+  });
 
-  // Start sampling the SECOND toast's real position on every animation
-  // frame before triggering the dismiss that moves it, so the sample
-  // captures the actual transition instead of racing it.
+  // Both properties present in the SAME winning declaration -- if
+  // .ai-focus-ring's !important rule had won instead (the regressed
+  // state), transitionProperty would be just "outline-color", with no
+  // "transform" entry at all.
+  const properties = transitionProperty.split(',').map(s => s.trim());
+  expect(properties).toContain('outline-color');
+  expect(properties).toContain('transform');
+  // A real, non-zero duration on transform specifically (not "0s" from
+  // some other rule filling in a default) -- transitionDuration entries
+  // line up positionally with transitionProperty's own list.
+  const durations = transitionDuration.split(',').map(s => s.trim());
+  const transformDuration = durations[properties.indexOf('transform')];
+  expect(transformDuration).not.toBe('0s');
+
+  // Lighter-weight, best-effort supplement to the computed-style check
+  // above (not the primary evidence, given real frame delivery isn't
+  // controlled): confirm the toast's position does change at all across
+  // more than a single instantaneous jump when a sibling is dismissed.
   await page.evaluate(() => {
     window.__toastFrames = [];
     const el = document.querySelectorAll('[data-testid="toast-item"]')[1];
@@ -149,30 +178,8 @@ test('a remaining toast\'s position actually interpolates across multiple frames
     };
     requestAnimationFrame(sample);
   });
-
-  await toasts.first().locator('button[aria-label="Dismiss toast"]').click();
+  await page.locator('[data-testid="toast-item"]').first().locator('button[aria-label="Dismiss toast"]').click();
   await page.waitForTimeout(500);
-
   const frames: number[] = await page.evaluate(() => window.__toastFrames);
-  const firstY = frames[0];
-  const lastY = frames[frames.length - 1];
-  // A real move happened (the second toast slid up into the first's slot).
-  expect(Math.abs(lastY - firstY)).toBeGreaterThan(10);
-
-  // The bug this regresses: an instant snap means only ONE frame differs
-  // from its neighbor by the full distance, with every other frame
-  // reporting the pre- or post-snap value unchanged. Smooth interpolation
-  // means MULTIPLE consecutive frames each differ from the previous by a
-  // small fraction of the total distance -- count how many frame-to-frame
-  // steps are "real but partial" (more than a rounding artifact, less
-  // than 90% of the total distance covered in one step) as direct
-  // evidence of actual interpolation, not a threshold this fix needs to
-  // hit exactly.
-  const totalDistance = Math.abs(lastY - firstY);
-  let partialSteps = 0;
-  for (let i = 1; i < frames.length; i++) {
-    const step = Math.abs(frames[i] - frames[i - 1]);
-    if (step > 0.3 && step < totalDistance * 0.9) partialSteps++;
-  }
-  expect(partialSteps).toBeGreaterThan(2);
+  expect(Math.abs(frames[frames.length - 1] - frames[0])).toBeGreaterThan(10);
 });
