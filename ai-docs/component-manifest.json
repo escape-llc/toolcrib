@@ -696,6 +696,10 @@
         "payload": "{ id?: string; command: string; key: string; index: number }"
       },
       {
+        "name": "datatable:density_changed",
+        "payload": "{ id?: string; density: 'compact' | 'normal' | 'spacious' }"
+      },
+      {
         "name": "log:cleared",
         "payload": "{ timestamp: string }"
       },
@@ -1516,7 +1520,7 @@
         "itemHeight": {
           "type": "number",
           "default": "44",
-          "description": "Height of each row in pixels (used for virtualization calculations)."
+          "description": "Height of each row in pixels (used for virtualization calculations).\nLeft unset, this is derived from the active density instead of a fixed\nnumber -- `36`/`44`/`56` for compact/normal/spacious respectively\n(`DataTableSlice.ts`'s own `DENSITY_ROW_HEIGHT_PX`, the same values its\n`--ai-table-row-height` CSS variable is computed from) -- so switching\ndensity doesn't leave the real virtualization window measuring against\nstale numbers (issue #339). An explicit value here always wins over\nthat derivation."
         },
         "containerHeight": {
           "type": "number | 'auto'",
@@ -1632,6 +1636,23 @@
         "overrides": {
           "type": "Partial<TableSliceState>",
           "description": "Per-instance overrides for density, border style, and striping."
+        },
+        "densitySelector": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Renders a built-in compact/normal/spacious toggle-button-group above\nthe table (in the same bar `quickFilter`'s search box occupies) that\ndrives density live -- both the CSS variables (padding/row height) and\nthe real row height virtualization measures against, together (issue\n#339). Uses the `density`/`defaultDensity`/`onDensityChange` trio below\nfor its state, the same controlled/uncontrolled shape every other\n`<DataTable>` feature already uses; enabling this without also passing\n`density`/`defaultDensity` starts from `overrides.density` (if given)\nor `'normal'`."
+        },
+        "density": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Controlled live density -- drives the actual applied density (both the\nCSS variables and the real row height virtualization measures against)\nfrom parent state, taking precedence over `overrides.density` when both\nare given, since this represents an end user's own runtime choice\nrather than a developer-set default. Pairs naturally with your own\nexternal density UI when `densitySelector`'s built-in toggle group\nisn't the right fit. Omit for the common uncontrolled case;\n`defaultDensity` seeds that internal state instead. Passing neither\nthis, `defaultDensity`, nor `densitySelector` leaves density governed\nentirely by `overrides.density` (or the theme's own default), exactly\nas before this feature existed."
+        },
+        "defaultDensity": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Initial live density when uncontrolled (`density` omitted). Falls back to `overrides.density`, then `'normal'`."
+        },
+        "onDensityChange": {
+          "type": "(density: TableDensity) => void",
+          "description": "Called whenever the live density changes, whether controlled or uncontrolled."
         },
         "emptyState": {
           "type": "ReactNode",

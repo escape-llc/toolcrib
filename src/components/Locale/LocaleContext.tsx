@@ -31,6 +31,10 @@ export interface ToolcribLocaleStrings {
     nextPage: string;
     /** Placeholder and accessible name for `<DataTable quickFilter>`'s search input. */
     quickFilterPlaceholder: string;
+    /** Accessible group label for `<DataTable densitySelector>`'s compact/normal/spacious toggle-button-group. */
+    densityLabel: string;
+    /** Accessible name and visible label for one density option button. */
+    densityOptionLabel: (density: 'compact' | 'normal' | 'spacious') => string;
   };
   carousel: {
     previousSlide: string;
@@ -96,6 +100,8 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     previousPage: 'Previous page',
     nextPage: 'Next page',
     quickFilterPlaceholder: 'Search…',
+    densityLabel: 'Row density',
+    densityOptionLabel: (density) => density.charAt(0).toUpperCase() + density.slice(1),
   },
   carousel: {
     previousSlide: 'Previous slide',

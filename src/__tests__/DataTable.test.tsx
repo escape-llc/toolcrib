@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { compareValues } from '../components/DataTable/useTableSort';
 import { aiBus } from '../eventBus/eventBus';
@@ -1130,6 +1130,129 @@ describe('DataTable Virtualized Component', () => {
       expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '51'); // 50 rows + header
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
       expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '2'); // 1 row + header
+    });
+  });
+
+  describe('density selector + itemHeight/density disconnect fix (issue #339)', () => {
+    it('defaults the real row height to normal density (44px) when itemHeight is omitted', () => {
+      render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} rowKey={r => r.id} />);
+      const row = screen.getByText('Item 1').closest('tr')!;
+      expect(row).toHaveStyle({ height: '44px' });
+    });
+
+    it('derives the real row height from overrides.density (compact = 36px) when itemHeight is omitted', () => {
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          rowKey={r => r.id}
+          overrides={{ density: 'compact' }}
+        />
+      );
+      const row = screen.getByText('Item 1').closest('tr')!;
+      expect(row).toHaveStyle({ height: '36px' });
+    });
+
+    it('an explicit itemHeight prop always wins over the density-derived default', () => {
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          rowKey={r => r.id}
+          overrides={{ density: 'compact' }}
+          itemHeight={100}
+        />
+      );
+      const row = screen.getByText('Item 1').closest('tr')!;
+      expect(row).toHaveStyle({ height: '100px' });
+    });
+
+    it('renders no density toggle group by default', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      expect(screen.queryByRole('group', { name: 'Row density' })).not.toBeInTheDocument();
+    });
+
+    it('renders a labeled compact/normal/spacious toggle group when densitySelector is true', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} densitySelector />);
+      const group = screen.getByRole('group', { name: 'Row density' });
+      expect(within(group).getByRole('button', { name: 'Compact' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Normal' })).toBeInTheDocument();
+      expect(within(group).getByRole('button', { name: 'Spacious' })).toBeInTheDocument();
+    });
+
+    it('clicking a density option updates the real row height live, uncontrolled', () => {
+      render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} rowKey={r => r.id} densitySelector />);
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Spacious' }));
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '56px' });
+      expect(screen.getByRole('button', { name: 'Spacious' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Normal' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('supports a controlled density, calling onDensityChange instead of managing its own state', () => {
+      const onDensityChange = vi.fn();
+      const { rerender } = render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          rowKey={r => r.id}
+          densitySelector
+          density="normal"
+          onDensityChange={onDensityChange}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
+      expect(onDensityChange).toHaveBeenLastCalledWith('compact');
+      // Still normal -- the parent hasn't re-rendered with the new value yet.
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
+
+      rerender(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          rowKey={r => r.id}
+          densitySelector
+          density="compact"
+          onDensityChange={onDensityChange}
+        />
+      );
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '36px' });
+    });
+
+    it('a live density change takes precedence over overrides.density once the feature is engaged', () => {
+      render(
+        <DataTable
+          data={testData}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          rowKey={r => r.id}
+          overrides={{ density: 'spacious' }}
+          densitySelector
+        />
+      );
+      // Seeded from overrides.density since no density/defaultDensity was given.
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '56px' });
+      fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '36px' });
+    });
+
+    it('emits datatable:density_changed with this table\'s id and the new density', () => {
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:density_changed', handler);
+      render(<DataTable id="density-table" data={testData} columns={testColumns} pageSize={10} densitySelector />);
+      fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
+      expect(handler).toHaveBeenLastCalledWith({ id: 'density-table', density: 'compact' });
+      unsub();
     });
   });
 

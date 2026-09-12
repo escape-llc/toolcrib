@@ -85,6 +85,8 @@ export interface AIEventMap {
   'datatable:row_clicked': { id?: string; index: number };
   /** Emitted by a `<DataTable rowCommands>` action button click -- `command` is that command's own `id`, `key` is the row's resolved selection/row key (stringified `rowKey`, or the index-based fallback). */
   'datatable:row_command': { id?: string; command: string; key: string; index: number };
+  /** Emitted whenever `<DataTable densitySelector>`'s density changes, whether controlled or uncontrolled -- see issue #339. */
+  'datatable:density_changed': { id?: string; density: 'compact' | 'normal' | 'spacious' };
   'log:cleared': { timestamp: string };
 
   // Routing
