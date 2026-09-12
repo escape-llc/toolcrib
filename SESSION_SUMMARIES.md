@@ -75,6 +75,19 @@ Include, as headers:
    AGENTS.md/CORE.md/the component manifest, or required guessing. Be
    specific and honest here even if it reflects a gap in the toolkit —
    this section is the most valuable part of the post.
+6. **PR Review** — how accurate was `.github/workflows/gemini-review.yml`'s
+   automated review on this PR? For every finding it raised: state whether
+   it was a real, confirmed defect (fixed) or a false positive, and why —
+   call out false positives explicitly and specifically, not just "some
+   findings were wrong." Also note anything a human/agent pass caught that
+   Gemini's review missed entirely, and a plain "reported nothing to flag,
+   correctly" is a valid, useful entry too — absence of findings on a
+   genuinely clean change is itself a data point, not nothing to report.
+   This section is aggregate signal on the review job's own real-world
+   accuracy over time (both directions — false positives AND missed real
+   bugs both matter), not a critique of any single PR. Omit only if the PR
+   genuinely never got a Gemini review comment at all (rare, since `review`
+   is a required check on `main`).
 
 Keep it tight — a maintainer should be able to read the whole thing in
 under a minute. Skip anything not directly relevant to contributing to
