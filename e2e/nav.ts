@@ -45,3 +45,18 @@ export async function gotoTab(page: Page, tabLabel: string): Promise<void> {
     await tab.click();
   }
 }
+
+/**
+ * The Data Table tab's main `<DataTable>` starts empty (see demo/App.tsx's
+ * own comment on why -- it's a genuine, discoverable way to reach
+ * `emptyState`, not an oversight) -- call this right after
+ * `gotoTab(page, 'Data Table')` in any test that needs the real 250-row
+ * dataset actually loaded. Targets the persistent `🔄` toolbar button
+ * specifically (present whether the table is empty or not), not the
+ * `emptyState`'s own `📥 Load Data` action -- both are visible at once
+ * while empty and share the substring "Load Data", so an unscoped name
+ * match resolves two elements and trips Playwright's strict mode.
+ */
+export async function loadDemoTableData(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /🔄 (Load|Reload) Data/ }).click();
+}

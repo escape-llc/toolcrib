@@ -137,6 +137,19 @@ test('no console errors while clicking through every interactive control on ever
       // adds a dismiss button), so indices only stay meaningful against a
       // live, re-evaluated locator.
       const btn = scope.locator('button:visible:not([disabled])').nth(i);
+      // A .count() check first, not straight into clickRobust() -- found
+      // for real once the Data Table tab's "Delete Selected" started
+      // actually removing rows (issue #329): selecting all 15 rows then
+      // deleting them removes ~15 checkbox buttons in one click, leaving
+      // every later index in THIS tab's own frozen `count` stale. A
+      // missing element was already handled correctly (skip, not a
+      // failure), but only after clickRobust()'s own two full click
+      // timeouts (up to ~4.2s each) ran out first -- ~15 stale indices at
+      // that cost is what blew this suite's time budget the first time
+      // this exact shape was tried (see #315's own write-up). `.count()`
+      // resolves near-instantly with no actionability retry loop, so a
+      // genuinely-gone element now costs milliseconds instead of seconds.
+      if ((await btn.count()) === 0) continue;
       if (!(await clickRobust(btn))) continue; // detached/obscured by the time its turn came up — skip, not a failure
       await settle(page);
     }

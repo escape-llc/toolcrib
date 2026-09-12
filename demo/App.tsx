@@ -744,6 +744,15 @@ export const App: React.FC = () => {
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
+  // Starts empty -- the Data Table tab's own emptyState is reached this
+  // way by default (no need to delete anything first to see it), and
+  // "Load Data" doubles as "Reload Data" after a real delete, both driven
+  // by the same handler below.
+  const [tableUsers, setTableUsers] = useState<DemoUser[]>([]);
+  const loadTableUsers = () => {
+    setTableUsers(dummyUsers);
+    setSelectedUserKeys([]);
+  };
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
@@ -851,6 +860,28 @@ export const App: React.FC = () => {
       title: `Caught in <${event.componentName}>`,
       message: event.error,
     });
+  });
+
+  // <DataTable rowCommands> emits datatable:row_command on the bus
+  // instead of taking a per-action callback prop -- this is the listener
+  // side of that same decoupled pattern, reacting to whichever command
+  // was clicked without the table itself needing to know what "delete"
+  // or "view" actually does for this particular consumer.
+  useAIEvent('datatable:row_command', event => {
+    if (event.id !== 'demo-users-table') return;
+    if (event.command === 'delete') {
+      setTableUsers(prev => prev.filter(u => String(u.id) !== event.key));
+      // Real Gemini-caught bug (PR #333): deleting a row via this
+      // per-row command, without also dropping its key from
+      // selectedUserKeys, left a stale selection behind -- the bulk-action
+      // bar kept showing a count that included a row no longer in the
+      // table at all (or, worse, kept showing itself as "selected" once a
+      // later row happened to reuse that same key from a fresh reload).
+      setSelectedUserKeys(prev => prev.filter(k => k !== event.key));
+      addToast({ type: 'warning', message: `Deleted user #${event.key}`, priority: 'low' });
+    } else if (event.command === 'view') {
+      addToast({ type: 'info', message: `Viewing user #${event.key} (simulated)`, priority: 'low' });
+    }
   });
 
   const columns: Column<DemoUser>[] = [
@@ -1514,9 +1545,12 @@ export const App: React.FC = () => {
                     <Card.Header>
                       <Toolbar>
                         <Toolbar.Left>
-                          <span>Acme Analytics — Team Directory (250 Rows, Adaptive Rem Height)</span>
+                          <span>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</span>
                         </Toolbar.Left>
                         <Toolbar.Right>
+                          <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
+                            {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
+                          </Button>
                           <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
                         </Toolbar.Right>
                       </Toolbar>
@@ -1524,13 +1558,17 @@ export const App: React.FC = () => {
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         id="demo-users-table"
-                        data={dummyUsers}
+                        data={tableUsers}
                         columns={columns}
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
                         containerHeight="auto"
                         rowKey={rec => rec.id}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
+                        rowCommands={[
+                          { id: 'view', label: 'View', icon: '👁️' },
+                          { id: 'delete', label: 'Delete', icon: '🗑️' },
+                        ]}
                         rowSubtheme={rec =>
                           rec.status === 'Inactive'
                             // Preset form: one of the four semantic subthemes.
@@ -1551,47 +1589,33 @@ export const App: React.FC = () => {
                             variant="danger"
                             icon="🗑️"
                             onClick={() => {
-                              addToast({ type: 'warning', message: `Deleted ${keys.length} user(s) (simulated)`, priority: 'medium' });
+                              // A REAL delete (not a simulated toast) --
+                              // found via direct feedback that a
+                              // toast-only version left it unclear whether
+                              // the button was doing anything at all.
+                              // Deleting every row reaches the SAME
+                              // <DataTable>'s own emptyState below (no
+                              // separate empty-only instance any more --
+                              // see e2e/interactive-sweep.spec.ts's own
+                              // comment on what that requires of the sweep
+                              // itself), and "Reload Data" above restores
+                              // the full set afterward.
+                              setTableUsers(prev => prev.filter(u => !keys.includes(String(u.id))));
+                              addToast({ type: 'warning', message: `Deleted ${keys.length} user(s)`, priority: 'medium' });
                               setSelectedUserKeys([]);
                             }}
                           >
                             Delete Selected
                           </Button>
                         )}
-                      />
-                    </Card.Content>
-                  </Card>
-
-                  {/* A second, permanently-empty instance -- demonstrates
-                      `emptyState` as a static example rather than an
-                      interactive toggle on the main table above.
-                      Deliberately not wired to a live toggle: this tab's
-                      main table is `selectable` with pageSize=15, so
-                      emptying and refilling its `data` live would add/
-                      remove ~15 checkbox `<button>`s in one click --
-                      exactly the shape of DOM churn
-                      e2e/interactive-sweep.spec.ts's fixed-index button
-                      sweep isn't built to absorb cheaply (confirmed via a
-                      real CI run: doing that once blew its 120s budget on
-                      both browsers, from every subsequent iteration
-                      burning its full retry timeout hitting an index that
-                      no longer resolves to anything). `pagination={false}`
-                      here means zero buttons of any kind ever render for
-                      this instance -- nothing for that sweep to trip over. */}
-                  <Card overrides={{ padding: 'compact' }}>
-                    <Card.Header>Empty State (`&lt;DataTable emptyState&gt;`)</Card.Header>
-                    <Card.Content paddingMode="compact">
-                      <DataTable
-                        id="demo-users-table-empty"
-                        data={[]}
-                        columns={columns}
-                        pagination={false}
-                        containerHeight={220}
                         emptyState={
                           <EmptyState>
                             <EmptyState.Icon>👥</EmptyState.Icon>
-                            <EmptyState.Title>No team members found</EmptyState.Title>
-                            <EmptyState.Description>Adjust your filters, or invite a teammate to get started.</EmptyState.Description>
+                            <EmptyState.Title>No team members to show</EmptyState.Title>
+                            <EmptyState.Description>Load the demo dataset, or reload it if you've deleted everyone.</EmptyState.Description>
+                            <EmptyState.Action>
+                              <Button size="sm" variant="primary" icon="📥" onClick={loadTableUsers}>Load Data</Button>
+                            </EmptyState.Action>
                           </EmptyState>
                         }
                       />

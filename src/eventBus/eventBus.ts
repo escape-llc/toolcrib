@@ -80,6 +80,8 @@ export interface AIEventMap {
   'datatable:selection_changed': { id?: string; selectedKeys: string[] };
   'pagination:changed': { id?: string; page: number; pageSize: number };
   'datatable:row_clicked': { id?: string; index: number };
+  /** Emitted by a `<DataTable rowCommands>` action button click -- `command` is that command's own `id`, `key` is the row's resolved selection/row key (stringified `rowKey`, or the index-based fallback). */
+  'datatable:row_command': { id?: string; command: string; key: string; index: number };
   'log:cleared': { timestamp: string };
 
   // Routing
