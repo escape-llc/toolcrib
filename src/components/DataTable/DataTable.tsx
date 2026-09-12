@@ -91,6 +91,12 @@ export interface Column<T = any> {
   minWidth?: number;
 }
 
+/** One column's priority within a multi-column sort -- see `DataTableProps.sortBy` (issue #337). */
+export interface SortDescriptor {
+  key: string;
+  direction: 'asc' | 'desc';
+}
+
 /** One action button rendered per row in `<DataTable rowCommands>`'s trailing actions column. */
 export interface RowCommand<T = any> {
   /** Stable id for this action -- becomes `command` in the `datatable:row_command` event emitted on click. */
@@ -210,7 +216,7 @@ export interface DataTableProps<T = any> {
    * Controlled quick-filter value. Pass a value to drive it from parent
    * state (e.g. to persist it in a URL) instead of letting `<DataTable>`
    * manage it internally -- the same controlled/uncontrolled shape
-   * `sortKey`/`page`/`selectedKeys` already use. Omit for the common
+   * `sortBy`/`page`/`selectedKeys` already use. Omit for the common
    * uncontrolled case; `defaultQuickFilterValue` seeds that internal
    * state instead. Has no effect when `quickFilter` is false.
    */
@@ -228,26 +234,29 @@ export interface DataTableProps<T = any> {
    */
   onQuickFilterChange?: (value: string) => void;
   /**
-   * Controlled sort key. Pass a value (a column's `key`, or `null` for
-   * unsorted) to drive sorting from parent state — e.g. to persist it in
-   * a URL — instead of letting `<DataTable>` manage it internally. Omit
-   * entirely for the common uncontrolled case; `defaultSortKey` seeds
-   * that internal state instead.
+   * Controlled multi-column sort, in priority order (index 0 = primary
+   * sort key). Pass an array to drive sorting from parent state — e.g. to
+   * persist it in a URL — instead of letting `<DataTable>` manage it
+   * internally. Omit entirely for the common uncontrolled case;
+   * `defaultSortBy` seeds that internal state instead.
+   *
+   * A plain click on a sortable header replaces the WHOLE array with just
+   * that one column -- the same asc -> desc -> unsorted cycle a
+   * single-sort table always had, still true for the common case where
+   * this never grows past one entry. Shift+click instead adds/cycles/
+   * removes that column as the next sort PRIORITY without disturbing the
+   * others, matching the Shift+click convention TanStack Table and AG
+   * Grid both already use for their own free multi-sort.
    */
-  sortKey?: string | null;
-  /** Initial sort key when uncontrolled (`sortKey` omitted). */
-  defaultSortKey?: string | null;
-  /** Controlled sort direction. Only meaningful alongside `sortKey`. @default 'asc' */
-  sortDirection?: 'asc' | 'desc';
-  /** Initial sort direction when uncontrolled. @default 'asc' */
-  defaultSortDirection?: 'asc' | 'desc';
+  sortBy?: SortDescriptor[];
+  /** Initial multi-column sort when uncontrolled (`sortBy` omitted). */
+  defaultSortBy?: SortDescriptor[];
   /**
-   * Called whenever sort changes, whether controlled or uncontrolled —
-   * mirrors `datatable:sorted`'s payload shape as direct props instead
-   * of a bus subscription. `key` is `null` when the cycle lands back on
-   * unsorted.
+   * Called whenever the sort changes, whether controlled or uncontrolled —
+   * mirrors `datatable:sorted`'s payload shape as a direct prop instead of
+   * a bus subscription.
    */
-  onSortChange?: (key: string | null, direction: 'asc' | 'desc') => void;
+  onSortChange?: (sortBy: SortDescriptor[]) => void;
   /**
    * Controlled current page (1-indexed). Pass a value to drive paging
    * from parent state instead of letting `<DataTable>` manage it
@@ -401,10 +410,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   quickFilterValue: controlledQuickFilterValue,
   defaultQuickFilterValue,
   onQuickFilterChange,
-  sortKey: controlledSortKey,
-  defaultSortKey,
-  sortDirection: controlledSortDirection,
-  defaultSortDirection,
+  sortBy: controlledSortBy,
+  defaultSortBy,
   onSortChange,
   page: controlledPage,
   defaultPage,
@@ -449,16 +456,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     tableId: id,
   });
 
-  const { sortKey, sortDirection, sortedData, handleSort } = useTableSort({
+  const { sortBy, sortedData, handleSort } = useTableSort({
     data: filteredData,
     columns,
-    sortKey: controlledSortKey,
-    defaultSortKey,
-    sortDirection: controlledSortDirection,
-    defaultSortDirection,
+    sortBy: controlledSortBy,
+    defaultSortBy,
     onSortChange,
     tableId: id,
   });
+  const getSortDescriptor = (key: string): SortDescriptor | undefined => sortBy.find(d => d.key === key);
 
   const [pageSize, setPageSize] = useState(initialPageSize);
   // usePagination's own onPageChange closure runs synchronously inside
@@ -561,7 +567,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     // for all four, not just page changes, or a scroll offset left over
     // from a differently-sized page/sort/filter result can render as an
     // apparently empty table.
-    resetKey: `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}|${quickFilterValue}`,
+    resetKey: `${validCurrentPage}|${pageSize}|${sortBy.map(d => `${d.key}:${d.direction}`).join(',')}|${quickFilterValue}`,
   });
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
@@ -903,6 +909,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               {columns.map((col, colIndex) => {
                 const isSortable = col.sortable === true;
                 const gridCol = colOffset + colIndex;
+                const sortDescriptor = isSortable ? getSortDescriptor(col.key) : undefined;
+                // 1-indexed priority within the current multi-column sort
+                // -- only shown once a SECOND column is actually part of
+                // the sort (sortBy.length > 1); a lone sorted column looks
+                // exactly like a single-sort table always did, no badge.
+                const sortPriority = sortDescriptor && sortBy.length > 1 ? sortBy.indexOf(sortDescriptor) + 1 : null;
                 return (
                   <th
                     key={col.key}
@@ -918,8 +930,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     className={!isSortable ? 'ai-focus-ring' : undefined}
                     aria-sort={
                       isSortable
-                        ? sortKey === col.key
-                          ? sortDirection === 'asc' ? 'ascending' : 'descending'
+                        ? sortDescriptor
+                          ? sortDescriptor.direction === 'asc' ? 'ascending' : 'descending'
                           : 'none'
                         : undefined
                     }
@@ -966,7 +978,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // before this was a <button> at all.
                       <button
                         type="button"
-                        onClick={() => handleSort(col.key)}
+                        onClick={e => handleSort(col.key, e.shiftKey)}
+                        title="Click to sort. Shift+click to add a secondary sort."
                         className="ai-focus-ring"
                         data-grid-row={0}
                         data-grid-col={gridCol}
@@ -996,14 +1009,42 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         }}
                       >
                         {col.title}
-                        {sortKey === col.key && (
+                        {sortDescriptor && (
                           // aria-sort on the <th> above already conveys sort
                           // direction programmatically -- without
                           // aria-hidden, a screen reader also announces
                           // this character literally ("black up-pointing
                           // triangle"), redundant and confusing next to
                           // that.
-                          <span aria-hidden="true">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                          <span aria-hidden="true">{sortDescriptor.direction === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                        {sortPriority !== null && (
+                          // Only rendered once a second column has actually
+                          // joined the sort (see sortPriority's own comment
+                          // above) -- a screen reader already gets this
+                          // fact from each column's own aria-sort, so this
+                          // small numeral is a purely visual aid for a
+                          // sighted user glancing at the header row, hence
+                          // aria-hidden here too.
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              fontSize: '0.625rem',
+                              fontWeight: 'var(--ai-font-weight-bold, 700)',
+                              color: 'var(--ai-color-primary-text, #ffffff)',
+                              background: 'var(--ai-color-primary, #3b82f6)',
+                              borderRadius: 'var(--ai-radius-xl, 999px)',
+                              minWidth: '1rem',
+                              height: '1rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0 0.25rem',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            {sortPriority}
+                          </span>
                         )}
                       </button>
                     ) : (

@@ -236,20 +236,20 @@ describe('DataTable Virtualized Component', () => {
     expect(order).toEqual(['Gamma', 'Alpha', 'Beta']);
   });
 
-  it('emits datatable:sorted with the resolved key/direction, cycling asc -> desc -> unsorted', () => {
+  it('emits datatable:sorted with the resolved sortBy array, cycling asc -> desc -> unsorted', () => {
     const sortedFn = vi.fn();
     const unsub = aiBus.on('datatable:sorted', sortedFn);
 
     render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
 
     fireEvent.click(screen.getByText('Name'));
-    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: 'name', direction: 'asc' });
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', sortBy: [{ key: 'name', direction: 'asc' }] });
 
     fireEvent.click(screen.getByText('Name'));
-    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: 'name', direction: 'desc' });
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', sortBy: [{ key: 'name', direction: 'desc' }] });
 
     fireEvent.click(screen.getByText('Name'));
-    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', key: null, direction: 'desc' });
+    expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', sortBy: [] });
 
     unsub();
   });
@@ -272,10 +272,10 @@ describe('DataTable Virtualized Component', () => {
     unsub();
   });
 
-  it('supports a controlled sortKey/sortDirection, calling onSortChange instead of managing its own state', () => {
+  it('supports a controlled sortBy, calling onSortChange instead of managing its own state', () => {
     const onSortChange = vi.fn();
     const { rerender } = render(
-      <DataTable data={testData} columns={testColumns} pageSize={10} sortKey="id" sortDirection="asc" onSortChange={onSortChange} />
+      <DataTable data={testData} columns={testColumns} pageSize={10} sortBy={[{ key: 'id', direction: 'asc' }]} onSortChange={onSortChange} />
     );
 
     // The header already reflects the controlled sort (ascending).
@@ -284,12 +284,14 @@ describe('DataTable Virtualized Component', () => {
     // Clicking cycles asc -> desc, but since this is controlled, the
     // component doesn't apply that itself — it only reports it upward.
     fireEvent.click(screen.getByText('ID'));
-    expect(onSortChange).toHaveBeenLastCalledWith('id', 'desc');
+    expect(onSortChange).toHaveBeenLastCalledWith([{ key: 'id', direction: 'desc' }]);
     expect(screen.getByText('▲')).toBeInTheDocument();
 
     // Once the parent actually updates the controlled props, the
     // component reflects that new state.
-    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} sortKey="id" sortDirection="desc" onSortChange={onSortChange} />);
+    rerender(
+      <DataTable data={testData} columns={testColumns} pageSize={10} sortBy={[{ key: 'id', direction: 'desc' }]} onSortChange={onSortChange} />
+    );
     expect(screen.getByText('▼')).toBeInTheDocument();
   });
 
@@ -567,7 +569,7 @@ describe('DataTable Virtualized Component', () => {
       expect(actionsHeader).not.toHaveAttribute('aria-sort');
 
       fireEvent.click(actionsHeader);
-      expect(sortedFn).not.toHaveBeenCalledWith(expect.objectContaining({ key: 'actions' }));
+      expect(sortedFn).not.toHaveBeenCalled();
       unsub();
     });
 
@@ -621,6 +623,101 @@ describe('DataTable Virtualized Component', () => {
       const arrow = sortButton.querySelector('span')!;
       expect(arrow).toHaveAttribute('aria-hidden', 'true');
       expect(arrow).toHaveTextContent('▲');
+    });
+  });
+
+  describe('multi-column sort (issue #337)', () => {
+    interface RankedItem {
+      id: number;
+      group: string;
+      score: number;
+    }
+    const rankedColumns: Column<RankedItem>[] = [
+      { key: 'group', title: 'Group', sortable: true },
+      { key: 'score', title: 'Score', sortable: true },
+    ];
+    const rankedData: RankedItem[] = [
+      { id: 1, group: 'B', score: 20 },
+      { id: 2, group: 'A', score: 30 },
+      { id: 3, group: 'A', score: 10 },
+      { id: 4, group: 'B', score: 5 },
+    ];
+
+    it('Shift-click adds a second column as a secondary sort, breaking ties in the primary', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} rowKey={r => r.id} />);
+      fireEvent.click(screen.getByText('Group')); // primary: group asc
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // secondary: score asc
+
+      const dataRows = screen.getAllByRole('row').slice(1);
+      // Group A first (score asc within it: 10 then 30), then Group B (5 then 20).
+      expect(dataRows.map(row => row.textContent)).toEqual(['A10', 'A30', 'B5', 'B20']);
+    });
+
+    it('Shift-click with nothing currently sorted just adds that column as the first sort priority', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true });
+      expect(screen.getByText('Score').closest('th')).toHaveAttribute('aria-sort', 'ascending');
+    });
+
+    it('Shift-click cycles an already-sorted secondary column asc -> desc -> removed, leaving the primary untouched', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      fireEvent.click(screen.getByText('Group')); // primary asc
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // secondary asc
+      const scoreHeader = screen.getByText('Score').closest('th')!;
+      expect(scoreHeader).toHaveAttribute('aria-sort', 'ascending');
+
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // secondary desc
+      expect(scoreHeader).toHaveAttribute('aria-sort', 'descending');
+
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // removed entirely
+      expect(scoreHeader).toHaveAttribute('aria-sort', 'none');
+
+      const groupHeader = screen.getByText('Group').closest('th')!;
+      expect(groupHeader).toHaveAttribute('aria-sort', 'ascending');
+    });
+
+    it('a plain click while multi-sort is active replaces the whole sort with just that column', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      fireEvent.click(screen.getByText('Group'));
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true });
+
+      fireEvent.click(screen.getByText('Score')); // plain click, no shiftKey
+      expect(screen.getByText('Group').closest('th')).toHaveAttribute('aria-sort', 'none');
+      expect(screen.getByText('Score').closest('th')).toHaveAttribute('aria-sort', 'ascending');
+    });
+
+    it('shows a numbered priority badge only once a second column has actually joined the sort', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      const groupHeader = screen.getByText('Group').closest('th')!;
+      const scoreHeader = screen.getByText('Score').closest('th')!;
+
+      fireEvent.click(screen.getByText('Group'));
+      // Single sort -- exactly one aria-hidden span (the arrow), no badge.
+      expect(groupHeader.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(1);
+
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true });
+      // Now two aria-hidden spans on each sorted header -- the arrow, and the priority badge.
+      expect(groupHeader.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(2);
+      expect(groupHeader).toHaveTextContent('1');
+      expect(scoreHeader.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(2);
+      expect(scoreHeader).toHaveTextContent('2');
+    });
+
+    it('supports a controlled multi-column sortBy', () => {
+      render(
+        <DataTable
+          data={rankedData}
+          columns={rankedColumns}
+          pageSize={10}
+          rowKey={r => r.id}
+          sortBy={[
+            { key: 'group', direction: 'asc' },
+            { key: 'score', direction: 'asc' },
+          ]}
+        />
+      );
+      const dataRows = screen.getAllByRole('row').slice(1);
+      expect(dataRows.map(row => row.textContent)).toEqual(['A10', 'A30', 'B5', 'B20']);
     });
   });
 

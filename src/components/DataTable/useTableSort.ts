@@ -2,111 +2,135 @@
 
 import { useMemo, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
-import type { Column } from './DataTable';
+import type { Column, SortDescriptor } from './DataTable';
 
 export interface UseTableSortOptions<T extends Record<string, any>> {
   data: T[];
   columns: Column<T>[];
-  /** Controlled sort key -- `undefined` means uncontrolled (internal state). */
-  sortKey?: string | null;
-  defaultSortKey?: string | null;
-  sortDirection?: 'asc' | 'desc';
-  defaultSortDirection?: 'asc' | 'desc';
-  onSortChange?: (key: string | null, direction: 'asc' | 'desc') => void;
+  /** Controlled multi-column sort, in priority order -- `undefined` means uncontrolled (internal state). */
+  sortBy?: SortDescriptor[];
+  defaultSortBy?: SortDescriptor[];
+  onSortChange?: (sortBy: SortDescriptor[]) => void;
   /** This table instance's id, for the `datatable:sorted` event payload. */
   tableId: string;
 }
 
 export interface UseTableSortResult<T extends Record<string, any>> {
-  sortKey: string | null;
-  sortDirection: 'asc' | 'desc';
-  /** `data`, sorted by `sortKey`/`sortDirection` -- unchanged (same reference) when unsorted. */
+  sortBy: SortDescriptor[];
+  /** `data`, sorted by `sortBy` in priority order -- unchanged (same reference) when `sortBy` is empty. */
   sortedData: T[];
-  /** Cycles asc -> desc -> unsorted for `key`, same as clicking a sortable header. */
-  handleSort: (key: string) => void;
+  /**
+   * A plain click (`shiftKey: false`) replaces the WHOLE sort with just
+   * `key` -- the exact same asc -> desc -> unsorted cycle a single-sort
+   * table always had, still true for the common case where `sortBy` never
+   * grows past one entry. `shiftKey: true` instead adds/cycles/removes
+   * `key` as the next sort PRIORITY without disturbing the others,
+   * matching the Shift+click convention TanStack Table and AG Grid both
+   * already use for their own multi-sort.
+   */
+  handleSort: (key: string, shiftKey: boolean) => void;
 }
 
 /**
- * Extracted from `DataTable`'s own inline implementation (see issue #322) --
- * owns the controlled/uncontrolled sort-key/direction state, the asc/desc/
- * unsorted cycle, and the actual `data` sort (including the NaN-to-end and
- * accessorFn-aware comparator DataTable's tests already cover). No public
- * API or behavior change; this is purely an internal-architecture split.
+ * Compares two resolved cell values the same way for every sort priority --
+ * `null`/`undefined` and `NaN` both sort to the end regardless of
+ * direction (an absent/invalid value has no meaningful position relative
+ * to real ones), numbers compare numerically, everything else compares as
+ * a case-insensitive string. Extracted as its own function (previously
+ * inlined in the single-column comparator) so the multi-column comparator
+ * below can call it once per sort priority without duplicating the
+ * null/NaN handling at each level.
+ */
+function compareValues(valA: unknown, valB: unknown, direction: 'asc' | 'desc'): number {
+  if (valA === valB) return 0;
+  if (valA == null) return 1;
+  if (valB == null) return -1;
+  if (typeof valA === 'number' && typeof valB === 'number') {
+    if (Number.isNaN(valA) && Number.isNaN(valB)) return 0;
+    if (Number.isNaN(valA)) return 1;
+    if (Number.isNaN(valB)) return -1;
+    return direction === 'asc' ? valA - valB : valB - valA;
+  }
+  const strA = String(valA).toLowerCase();
+  const strB = String(valB).toLowerCase();
+  if (strA < strB) return direction === 'asc' ? -1 : 1;
+  if (strA > strB) return direction === 'asc' ? 1 : -1;
+  return 0;
+}
+
+/**
+ * Extracted from `DataTable`'s own inline implementation (see issue #322),
+ * generalized from a single `sortKey`/`sortDirection` pair to a
+ * `SortDescriptor[]` priority list (see issue #337) -- a real API shape
+ * change, not a backward-compatible addition, per this repo's own
+ * "no shims for vendored source" policy (AGENTS.md): the old single-value
+ * shape is gone, not kept alongside the new one.
  */
 export function useTableSort<T extends Record<string, any>>({
   data,
   columns,
-  sortKey: controlledSortKey,
-  defaultSortKey,
-  sortDirection: controlledSortDirection,
-  defaultSortDirection,
+  sortBy: controlledSortBy,
+  defaultSortBy,
   onSortChange,
   tableId,
 }: UseTableSortOptions<T>): UseTableSortResult<T> {
-  // Same controlled/uncontrolled split as TabStrip's activeId: a prop of
-  // `undefined` means "manage it internally" (seeded from the matching
-  // `default*` prop), anything else means the parent owns that state and
-  // this hook only ever reads it back through the resolved `sortKey` below.
-  const [internalSortKey, setInternalSortKey] = useState<string | null>(defaultSortKey ?? null);
-  const [internalSortDirection, setInternalSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection ?? 'asc');
-  const isSortControlled = controlledSortKey !== undefined;
-  const sortKey = isSortControlled ? controlledSortKey : internalSortKey;
-  const sortDirection = isSortControlled ? controlledSortDirection ?? 'asc' : internalSortDirection;
+  const [internalSortBy, setInternalSortBy] = useState<SortDescriptor[]>(defaultSortBy ?? []);
+  const isSortControlled = controlledSortBy !== undefined;
+  const sortBy = isSortControlled ? controlledSortBy : internalSortBy;
 
   const sortedData = useMemo(() => {
-    if (!sortKey) return data;
+    if (sortBy.length === 0) return data;
+    const columnsByKey = new Map(columns.map(c => [c.key, c]));
     // A column with `accessorFn` sorts by its computed value instead of a
-    // direct `record[sortKey]` read — the same function that produces its
-    // cell value.
-    const sortColumn = columns.find(c => c.key === sortKey);
-    const getValue = (record: T): unknown => (sortColumn?.accessorFn ? sortColumn.accessorFn(record) : record[sortKey]);
+    // direct `record[key]` read — the same function that produces its
+    // cell value. A sort priority naming a column no longer present (e.g.
+    // controlled sortBy state stale after a columns prop change) resolves
+    // to `undefined` for every row, which compareValues treats as a tie
+    // and falls through to the next priority, rather than throwing.
+    const getValue = (key: string, record: T): unknown => {
+      const col = columnsByKey.get(key);
+      return col?.accessorFn ? col.accessorFn(record) : col ? record[col.key] : undefined;
+    };
     return [...data].sort((a, b) => {
-      const valA = getValue(a);
-      const valB = getValue(b);
-      if (valA === valB) return 0;
-      if (valA == null) return 1;
-      if (valB == null) return -1;
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        // A NaN operand makes `valA - valB` itself NaN, which
-        // Array.prototype.sort treats as an unspecified (non-crashing but
-        // effectively unsorted) comparison result — sort NaN to the end,
-        // the same place `null`/`undefined` land above, rather than
-        // leaving its position undefined.
-        if (Number.isNaN(valA) && Number.isNaN(valB)) return 0;
-        if (Number.isNaN(valA)) return 1;
-        if (Number.isNaN(valB)) return -1;
-        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      for (const { key, direction } of sortBy) {
+        const cmp = compareValues(getValue(key, a), getValue(key, b), direction);
+        if (cmp !== 0) return cmp;
       }
-      const strA = String(valA).toLowerCase();
-      const strB = String(valB).toLowerCase();
-      if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
-      if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortKey, sortDirection, columns]);
+  }, [data, sortBy, columns]);
 
-  const handleSort = (key: string) => {
-    let newKey: string | null;
-    let newDirection: 'asc' | 'desc';
-    if (sortKey === key) {
-      if (sortDirection === 'asc') {
-        newKey = key;
-        newDirection = 'desc';
+  const handleSort = (key: string, shiftKey: boolean) => {
+    let newSortBy: SortDescriptor[];
+    if (!shiftKey) {
+      // Plain click: behaves exactly like a single-sort table always did
+      // when `key` is already the SOLE sort (cycle asc -> desc ->
+      // unsorted); otherwise replaces the whole sort with a fresh
+      // ascending sort on just this column, clearing any others.
+      const isSoleSort = sortBy.length === 1 && sortBy[0].key === key;
+      if (isSoleSort) {
+        newSortBy = sortBy[0].direction === 'asc' ? [{ key, direction: 'desc' }] : [];
       } else {
-        newKey = null;
-        newDirection = sortDirection;
+        newSortBy = [{ key, direction: 'asc' }];
       }
     } else {
-      newKey = key;
-      newDirection = 'asc';
+      // Shift+click: adds `key` as the next sort priority, cycles its
+      // direction in place if it's already part of the sort, or drops it
+      // entirely (cycling back to unsorted for just this column) once it
+      // was already descending -- every OTHER priority stays untouched.
+      const existingIndex = sortBy.findIndex(d => d.key === key);
+      if (existingIndex === -1) {
+        newSortBy = [...sortBy, { key, direction: 'asc' }];
+      } else if (sortBy[existingIndex].direction === 'asc') {
+        newSortBy = sortBy.map((d, i) => (i === existingIndex ? { key, direction: 'desc' as const } : d));
+      } else {
+        newSortBy = sortBy.filter((_, i) => i !== existingIndex);
+      }
     }
-    if (!isSortControlled) {
-      setInternalSortKey(newKey);
-      setInternalSortDirection(newDirection);
-    }
-    onSortChange?.(newKey, newDirection);
-    aiBus.emit('datatable:sorted', { id: tableId, key: newKey, direction: newDirection });
+    if (!isSortControlled) setInternalSortBy(newSortBy);
+    onSortChange?.(newSortBy);
+    aiBus.emit('datatable:sorted', { id: tableId, sortBy: newSortBy });
   };
 
-  return { sortKey, sortDirection, sortedData, handleSort };
+  return { sortBy, sortedData, handleSort };
 }
