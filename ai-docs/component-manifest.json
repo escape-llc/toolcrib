@@ -672,6 +672,10 @@
         "payload": "{ id?: string; key: string | null; direction: 'asc' | 'desc' }"
       },
       {
+        "name": "datatable:filtered",
+        "payload": "{ id?: string; value: string; matchCount: number }"
+      },
+      {
         "name": "datatable:paginated",
         "payload": "{ id?: string; page: number; pageSize: number }"
       },
@@ -1530,6 +1534,23 @@
         "onRowClick": {
           "type": "(record: T, index: number) => void",
           "description": "Called when a row is clicked. Every row click also emits\n`datatable:row_clicked` on the event bus regardless of whether this is\ngiven, so an AI agent observing the bus can see row interactions even\nin apps that don't wire up their own handler — this prop is for the\napp's own reaction (open a detail view, select the row, etc.). Rows\nonly show a pointer cursor when this is provided, so the visual\naffordance matches what's actually clickable."
+        },
+        "quickFilter": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Renders a global/quick-filter search box above the table -- a simple\ncase-insensitive substring match against every column's *resolved*\nvalue (`Column.accessorFn(record)` if given, else\n`record[Column.key]`; see `quickFilterValue`'s own doc for why this\nis the resolved value rather than a `Column.render`'s rendered\noutput). Filtering happens before sorting/pagination/virtualization,\nso `aria-rowcount`, the \"Showing X to Y of Z\" footer, and the\nwindowing math all already reflect the filtered count -- nothing\nelse needs to know filtering happened at all."
+        },
+        "quickFilterValue": {
+          "type": "string",
+          "description": "Controlled quick-filter value. Pass a value to drive it from parent\nstate (e.g. to persist it in a URL) instead of letting `<DataTable>`\nmanage it internally -- the same controlled/uncontrolled shape\n`sortKey`/`page`/`selectedKeys` already use. Omit for the common\nuncontrolled case; `defaultQuickFilterValue` seeds that internal\nstate instead. Has no effect when `quickFilter` is false."
+        },
+        "defaultQuickFilterValue": {
+          "type": "string",
+          "description": "Initial quick-filter value when uncontrolled (`quickFilterValue` omitted)."
+        },
+        "onQuickFilterChange": {
+          "type": "(value: string) => void",
+          "description": "Called whenever the quick-filter value changes, whether controlled or\nuncontrolled -- mirrors `datatable:filtered`'s payload shape as a\ndirect prop instead of a bus subscription, the same relationship\n`onSortChange` has to `datatable:sorted`. Changing the filter always\nresets the current page back to 1 (matching the page-size dropdown's\nown existing behavior) -- a page number valid for the old, larger\nresult set can easily be past the end of a smaller filtered one."
         },
         "sortKey": {
           "type": "string | null",

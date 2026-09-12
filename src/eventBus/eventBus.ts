@@ -76,6 +76,8 @@ export interface AIEventMap {
   'viewer:hidden': { id?: string };
   'stepper:changed': { id?: string; activeIndex: number; previousIndex?: number };
   'datatable:sorted': { id?: string; key: string | null; direction: 'asc' | 'desc' };
+  /** Emitted whenever `<DataTable quickFilter>`'s search value changes -- `matchCount` is how many rows matched at that moment (post-filter, pre-sort/pagination). */
+  'datatable:filtered': { id?: string; value: string; matchCount: number };
   'datatable:paginated': { id?: string; page: number; pageSize: number };
   'datatable:selection_changed': { id?: string; selectedKeys: string[] };
   'pagination:changed': { id?: string; page: number; pageSize: number };

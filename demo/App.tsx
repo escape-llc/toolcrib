@@ -1563,6 +1563,7 @@ export const App: React.FC = () => {
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
                         containerHeight="auto"
+                        quickFilter
                         rowKey={rec => rec.id}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
                         rowCommands={[
