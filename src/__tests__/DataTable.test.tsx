@@ -704,6 +704,21 @@ describe('DataTable Virtualized Component', () => {
         fireEvent.click(screen.getByText('Item 2'));
         expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
       });
+
+      // Regression test for a real Gemini-caught defect (PR #333): the
+      // header cell above the radio column renders no "select all" control
+      // in single mode (correctly -- see the test above), but the <th>
+      // itself still carries the grid-nav attributes that make it
+      // focusable, and without a label an empty focusable cell announces
+      // nothing useful to a screen reader.
+      it('the empty "select all" header cell still has a real accessible name (no unlabeled focusable cell)', () => {
+        const { container } = render(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+        );
+        const headerCell = container.querySelector('[data-grid-row="0"][data-grid-col="0"]') as HTMLElement;
+        expect(headerCell.tagName).toBe('TH');
+        expect(headerCell).toHaveAccessibleName('Row selection');
+      });
     });
 
     it('hideSelectionColumn removes the visible checkbox/radio column, but selection still works via click, and aria-selected still marks the row', () => {
@@ -776,6 +791,42 @@ describe('DataTable Virtualized Component', () => {
         // Clicking a command button doesn't also select the row.
         expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
         unsub();
+      });
+
+      // Regression test for a real Gemini-caught defect (PR #333): a command
+      // button's tabIndex used to default to the browser's own 0
+      // (unconditionally tabbable), so a plain page Tab sweep (not this
+      // grid's own arrow-key nav) stopped at every command button on every
+      // visible row before it could ever leave the table. It must instead
+      // follow the same roving-tabindex gating every other grid cell/widget
+      // already uses.
+      it('a command button is only Tab-reachable once its own row is the roving-tabindex target, not unconditionally', () => {
+        const { container } = render(
+          <DataTable
+            data={testData}
+            columns={testColumns}
+            pageSize={10}
+            rowKey={r => r.id}
+            rowCommands={[{ id: 'edit', label: 'Edit' }]}
+          />
+        );
+        const row1Button = screen.getByText('Item 1').closest('tr')!.querySelector('[aria-label="Edit"]')!;
+        const row2Button = screen.getByText('Item 2').closest('tr')!.querySelector('[aria-label="Edit"]')!;
+        // Neither row is the roving-tabindex target yet -- both start non-tabbable.
+        expect(row1Button).toHaveAttribute('tabindex', '-1');
+        expect(row2Button).toHaveAttribute('tabindex', '-1');
+
+        // Navigate to row 1's own actions cell (col 2: id=0, name=1, actions=2).
+        const idHeader = container.querySelector('[data-grid-row="0"][data-grid-col="0"]') as HTMLElement;
+        act(() => idHeader.focus());
+        fireEvent.keyDown(idHeader, { key: 'End', ctrlKey: true }); // whole-grid End -> last row, last column
+        expect(row1Button).not.toHaveFocus(); // Ctrl+End lands on the LAST row's actions cell, not row 1's
+
+        const lastRowButton = container.querySelector('[data-grid-row="10"][data-grid-col="2"]') as HTMLElement;
+        expect(lastRowButton).toHaveFocus();
+        expect(lastRowButton).toHaveAttribute('tabindex', '0');
+        // Every OTHER row's own command button, including row 1's, stays non-tabbable.
+        expect(row1Button).toHaveAttribute('tabindex', '-1');
       });
 
       it('isVisible hides a specific command for a given row, not just disables it', () => {

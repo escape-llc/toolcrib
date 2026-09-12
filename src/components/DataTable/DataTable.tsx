@@ -766,6 +766,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     : {})}
                   className={selectionMode === 'single' ? 'ai-focus-ring' : undefined}
                 >
+                  {/* Real Gemini-caught defect (PR #333): this <th> is
+                      genuinely empty in 'single' mode (no "select all"
+                      control makes sense for one choice), but the grid-nav
+                      attributes above still make it focusable -- an empty,
+                      unlabeled focusable cell announced nothing useful to a
+                      screen reader. A visually-hidden label gives it a real
+                      accessible name without adding visible content next to
+                      every other column's own real header text. */}
+                  {selectionMode === 'single' && <VisuallyHidden>Row selection</VisuallyHidden>}
                   {selectionMode !== 'single' && (
                     <CheckboxPrimitive.Root
                       checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
@@ -1166,6 +1175,28 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                   }}
                                   aria-label={cmd.label}
                                   title={cmd.label}
+                                  // Gated to the SAME isFocusedCell condition
+                                  // as the wrapping <td> above, not left at
+                                  // the browser's own default tabIndex=0 --
+                                  // real Gemini-caught defect (PR #333): an
+                                  // unconditional tabIndex=0 here meant a
+                                  // plain page Tab sweep (not this grid's own
+                                  // arrow-key nav) stopped at every command
+                                  // button on every visible row, one row at a
+                                  // time, before it could ever leave the
+                                  // table. Matches the W3C APG Grid pattern's
+                                  // own intent: Tab moves focus OUT of the
+                                  // composite widget entirely; arrow keys
+                                  // move focus WITHIN it. Reaching this row's
+                                  // actions cell via the grid's arrow-key nav
+                                  // still makes every command button here
+                                  // tabbable together (a real, deliberate
+                                  // exception to "one focus target per grid
+                                  // coordinate" -- there's more than one
+                                  // widget in this one cell), so a keyboard
+                                  // user can still Tab between them once
+                                  // they've actually arrived at this row.
+                                  tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
                                   className="ai-focus-ring"
                                   style={{
                                     all: 'unset',
