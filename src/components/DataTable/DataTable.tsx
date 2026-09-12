@@ -24,6 +24,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, type TableSliceState } from './DataTableSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
+import { useTableQuickFilter } from './useTableQuickFilter';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
@@ -192,6 +193,40 @@ export interface DataTableProps<T = any> {
    * affordance matches what's actually clickable.
    */
   onRowClick?: (record: T, index: number) => void;
+  /**
+   * Renders a global/quick-filter search box above the table -- a simple
+   * case-insensitive substring match against every column's *resolved*
+   * value (`Column.accessorFn(record)` if given, else
+   * `record[Column.key]`; see `quickFilterValue`'s own doc for why this
+   * is the resolved value rather than a `Column.render`'s rendered
+   * output). Filtering happens before sorting/pagination/virtualization,
+   * so `aria-rowcount`, the "Showing X to Y of Z" footer, and the
+   * windowing math all already reflect the filtered count -- nothing
+   * else needs to know filtering happened at all.
+   * @default false
+   */
+  quickFilter?: boolean;
+  /**
+   * Controlled quick-filter value. Pass a value to drive it from parent
+   * state (e.g. to persist it in a URL) instead of letting `<DataTable>`
+   * manage it internally -- the same controlled/uncontrolled shape
+   * `sortKey`/`page`/`selectedKeys` already use. Omit for the common
+   * uncontrolled case; `defaultQuickFilterValue` seeds that internal
+   * state instead. Has no effect when `quickFilter` is false.
+   */
+  quickFilterValue?: string;
+  /** Initial quick-filter value when uncontrolled (`quickFilterValue` omitted). */
+  defaultQuickFilterValue?: string;
+  /**
+   * Called whenever the quick-filter value changes, whether controlled or
+   * uncontrolled -- mirrors `datatable:filtered`'s payload shape as a
+   * direct prop instead of a bus subscription, the same relationship
+   * `onSortChange` has to `datatable:sorted`. Changing the filter always
+   * resets the current page back to 1 (matching the page-size dropdown's
+   * own existing behavior) -- a page number valid for the old, larger
+   * result set can easily be past the end of a smaller filtered one.
+   */
+  onQuickFilterChange?: (value: string) => void;
   /**
    * Controlled sort key. Pass a value (a column's `key`, or `null` for
    * unsorted) to drive sorting from parent state — e.g. to persist it in
@@ -362,6 +397,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   rowKey,
   rowSubtheme,
   onRowClick,
+  quickFilter = false,
+  quickFilterValue: controlledQuickFilterValue,
+  defaultQuickFilterValue,
+  onQuickFilterChange,
   sortKey: controlledSortKey,
   defaultSortKey,
   sortDirection: controlledSortDirection,
@@ -396,8 +435,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
   useInjectInteractionStyles();
 
-  const { sortKey, sortDirection, sortedData, handleSort } = useTableSort({
+  // Filtering happens BEFORE sorting -- useTableSort receives filteredData,
+  // not the raw data prop, so aria-rowcount/the pagination footer/the
+  // virtualization windowing math downstream all already reflect the
+  // filtered count without needing their own separate awareness that
+  // filtering happened at all.
+  const { quickFilterValue, filteredData, handleQuickFilterChange } = useTableQuickFilter({
     data,
+    columns,
+    quickFilterValue: controlledQuickFilterValue,
+    defaultQuickFilterValue,
+    onQuickFilterChange,
+    tableId: id,
+  });
+
+  const { sortKey, sortDirection, sortedData, handleSort } = useTableSort({
+    data: filteredData,
     columns,
     sortKey: controlledSortKey,
     defaultSortKey,
@@ -455,6 +508,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, validCurrentPage, pageSize, pagination]);
 
+  // A page number valid for the old, larger result set can easily be past
+  // the end of a smaller filtered one -- reset to page 1 on every filter
+  // change, the same explicit `paginationGoToPage(1)` call the page-size
+  // dropdown's own onChange already makes for the identical reason, rather
+  // than relying on usePagination's own clamping (which would land on
+  // whatever the new LAST valid page is, not necessarily page 1).
+  const handleQuickFilterInputChange = (value: string) => {
+    handleQuickFilterChange(value);
+    paginationGoToPage(1);
+  };
+
   // Row selection. `pageOffset` is 0 when pagination is disabled
   // (`paginatedData` is already the full sorted array in that case, so its
   // own index is already dataset-absolute) and the current page's starting
@@ -492,11 +556,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     containerHeight,
     observedHeight,
     totalItems,
-    // Changing page, page size, or sort reorders/reslices the dataset the
-    // same way -- the virtualization window has to reset for all three, not
-    // just page changes, or a scroll offset left over from a differently-
-    // sized page/sort order can render as an apparently empty table.
-    resetKey: `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}`,
+    // Changing page, page size, sort, or the quick filter reorders/reslices
+    // the dataset the same way -- the virtualization window has to reset
+    // for all four, not just page changes, or a scroll offset left over
+    // from a differently-sized page/sort/filter result can render as an
+    // apparently empty table.
+    resetKey: `${validCurrentPage}|${pageSize}|${sortKey}|${sortDirection}|${quickFilterValue}`,
   });
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
@@ -603,6 +668,34 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ...vars,
       }}
     >
+      {/* Quick Filter Bar — a plain, always-mounted (not toggled by any
+          runtime state, unlike the bulk-action bar below) search box; its
+          own presence is entirely driven by the static `quickFilter` prop,
+          so there's no analogous layout-jump concern to guard against. */}
+      {quickFilter && (
+        <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
+          <input
+            type="search"
+            value={quickFilterValue}
+            onChange={e => handleQuickFilterInputChange(e.target.value)}
+            placeholder={strings.quickFilterPlaceholder}
+            aria-label={strings.quickFilterPlaceholder}
+            className="ai-focus-ring"
+            style={{
+              width: '100%',
+              maxWidth: '20rem',
+              boxSizing: 'border-box',
+              padding: 'var(--ai-padding-xs, 0.375rem 0.625rem)',
+              border: '0.0625rem solid var(--ai-border, #d1d5db)',
+              borderRadius: 'var(--ai-radius-md, 0.375rem)',
+              fontSize: '0.875rem',
+              background: 'var(--ai-bg-surface, #ffffff)',
+              color: 'var(--ai-text-primary, #111827)',
+            }}
+          />
+        </div>
+      )}
+
       {/* Bulk Action Bar — always mounted once `selectable` (not
           conditionally, on selectedKeySet.size > 0), toggling only
           `visibility` -- a real, confirmed layout-jump found via direct

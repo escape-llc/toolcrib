@@ -29,6 +29,8 @@ export interface ToolcribLocaleStrings {
     perPageOption: (size: number) => string;
     previousPage: string;
     nextPage: string;
+    /** Placeholder and accessible name for `<DataTable quickFilter>`'s search input. */
+    quickFilterPlaceholder: string;
   };
   carousel: {
     previousSlide: string;
@@ -93,6 +95,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     perPageOption: (size) => `${size} per page`,
     previousPage: 'Previous page',
     nextPage: 'Next page',
+    quickFilterPlaceholder: 'Search…',
   },
   carousel: {
     previousSlide: 'Previous slide',

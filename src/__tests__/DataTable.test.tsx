@@ -896,6 +896,102 @@ describe('DataTable Virtualized Component', () => {
     });
   });
 
+  describe('quick filter (issue #317)', () => {
+    it('renders no search input by default', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    });
+
+    it('renders a labeled search input when quickFilter is true', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      expect(screen.getByRole('searchbox', { name: 'Search…' })).toBeInTheDocument();
+    });
+
+    it('filters rows by a case-insensitive substring match against any column, resetting the page to 1', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter rowKey={r => r.id} />);
+
+      // Navigate to page 3 first, to prove filtering resets it.
+      fireEvent.click(screen.getByLabelText('Next page'));
+      fireEvent.click(screen.getByLabelText('Next page'));
+      expect(screen.getByText('3 / 5')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
+      expect(screen.getByText('Item 42')).toBeInTheDocument();
+      expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Item 41')).not.toBeInTheDocument();
+      // Exactly one match -- pagination reflects a single-row result set,
+      // and the page reset back to 1 rather than staying clamped wherever
+      // usePagination's own automatic clamping would have landed it.
+      expect(screen.getByText('Showing 1 to 1 of 1 entries')).toBeInTheDocument();
+      expect(screen.getByText('1 / 1')).toBeInTheDocument();
+    });
+
+    it('matches an accessorFn column by its computed value, not a direct property read', () => {
+      interface ScoredItem {
+        id: number;
+        first: string;
+        last: string;
+      }
+      const people: ScoredItem[] = [
+        { id: 1, first: 'Charlie', last: 'Zulu' },
+        { id: 2, first: 'Alice', last: 'Yankee' },
+        { id: 3, first: 'Bob', last: 'Xray' },
+      ];
+      const nameColumns: Column<ScoredItem>[] = [{ key: 'fullName', title: 'Full Name', accessorFn: r => `${r.first} ${r.last}` }];
+
+      render(<DataTable data={people} columns={nameColumns} pageSize={10} quickFilter />);
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'yankee' } });
+      expect(screen.getByText('Alice Yankee')).toBeInTheDocument();
+      expect(screen.queryByText('Charlie Zulu')).not.toBeInTheDocument();
+    });
+
+    it('clearing the filter shows every row again', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      const input = screen.getByRole('searchbox');
+      fireEvent.change(input, { target: { value: 'item 42' } });
+      expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
+
+      fireEvent.change(input, { target: { value: '' } });
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+      expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+    });
+
+    it('supports a controlled quickFilterValue, calling onQuickFilterChange instead of managing its own state', () => {
+      const onQuickFilterChange = vi.fn();
+      const { rerender } = render(
+        <DataTable data={testData} columns={testColumns} pageSize={10} quickFilter quickFilterValue="" onQuickFilterChange={onQuickFilterChange} />
+      );
+      const input = screen.getByRole('searchbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'item 42' } });
+      expect(onQuickFilterChange).toHaveBeenLastCalledWith('item 42');
+      // Still unfiltered -- the parent hasn't re-rendered with the new value yet.
+      expect(input.value).toBe('');
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+
+      rerender(
+        <DataTable data={testData} columns={testColumns} pageSize={10} quickFilter quickFilterValue="item 42" onQuickFilterChange={onQuickFilterChange} />
+      );
+      expect(screen.getByText('Item 42')).toBeInTheDocument();
+      expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
+    });
+
+    it('emits datatable:filtered with the value and the resulting match count', () => {
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:filtered', handler);
+      render(<DataTable id="filter-table" data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
+      expect(handler).toHaveBeenLastCalledWith({ id: 'filter-table', value: 'item 42', matchCount: 1 });
+      unsub();
+    });
+
+    it('aria-rowcount reflects the filtered count, not the full unfiltered dataset', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '51'); // 50 rows + header
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
+      expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '2'); // 1 row + header
+    });
+  });
+
   describe('empty state', () => {
     it('renders emptyState in place of the row set when data is empty', () => {
       render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
