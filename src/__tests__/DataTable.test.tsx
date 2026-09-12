@@ -1140,7 +1140,7 @@ describe('DataTable Virtualized Component', () => {
       expect(row).toHaveStyle({ height: '44px' });
     });
 
-    it('derives the real row height from overrides.density (compact = 29px) when itemHeight is omitted', () => {
+    it('derives the real row height from overrides.density (compact = 31px) when itemHeight is omitted', () => {
       render(
         <DataTable
           data={testData}
@@ -1152,7 +1152,7 @@ describe('DataTable Virtualized Component', () => {
         />
       );
       const row = screen.getByText('Item 1').closest('tr')!;
-      expect(row).toHaveStyle({ height: '29px' });
+      expect(row).toHaveStyle({ height: '31px' });
     });
 
     it('an explicit itemHeight prop always wins over the density-derived default', () => {
@@ -1225,7 +1225,7 @@ describe('DataTable Virtualized Component', () => {
           onDensityChange={onDensityChange}
         />
       );
-      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '29px' });
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '31px' });
     });
 
     it('a live density change takes precedence over overrides.density once the feature is engaged', () => {
@@ -1243,7 +1243,7 @@ describe('DataTable Virtualized Component', () => {
       // Seeded from overrides.density since no density/defaultDensity was given.
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
       fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
-      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '29px' });
+      expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '31px' });
     });
 
     it('emits datatable:density_changed with this table\'s id and the new density', () => {
