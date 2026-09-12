@@ -753,6 +753,14 @@ export const App: React.FC = () => {
     setTableUsers(dummyUsers);
     setSelectedUserKeys([]);
   };
+  // DataTable already supports pure continuous scrolling today via
+  // pagination={false} -- pagination and virtualization are separate
+  // layers (pagination slices first, virtualization windows within that
+  // slice), so with pagination off, virtualization windows across the
+  // FULL sorted array directly, no page boundaries at all. This toggle
+  // just surfaces that existing capability in the demo; no toolkit
+  // source change needed to support it.
+  const [continuousScroll, setContinuousScroll] = useState(false);
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
@@ -1542,12 +1550,27 @@ export const App: React.FC = () => {
                       here, not wrapped together with the table, for the
                       same reason. */}
                   <Card layout="auto">
-                    <Card.Header>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</Card.Header>
+                    <Card.Header>
+                      <Toolbar>
+                        <Toolbar.Left>
+                          <span>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</span>
+                        </Toolbar.Left>
+                        <Toolbar.Right>
+                          {/* DataTable already supports this today via
+                              pagination={false} -- see the continuousScroll
+                              state's own comment. This switch is the only
+                              new demo wiring; the toolkit itself needed no
+                              change. */}
+                          <Switch label="Continuous Scroll" checked={continuousScroll} onChange={setContinuousScroll} />
+                        </Toolbar.Right>
+                      </Toolbar>
+                    </Card.Header>
                     <Card.Content layout="auto" paddingMode="compact">
                       <DataTable
                         id="demo-users-table"
                         data={tableUsers}
                         columns={columns}
+                        pagination={!continuousScroll}
                         pageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
                         containerHeight="auto"
