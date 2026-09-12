@@ -1582,6 +1582,18 @@
           "type": "(selectedKeys: string[]) => ReactNode",
           "description": "Renders the action buttons in the bulk-action `<Toolbar>` that appears\nonce at least one row is selected — the selection-count label is\nalready provided; this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
         },
+        "columnWidths": {
+          "type": "Record<string, number>",
+          "description": "Controlled map of resized column widths (px), keyed by `Column.key`.\nOnly columns the user has actually resized need appear -- a column\nabsent from this map keeps rendering its own configured `width`. Pass\nto drive resized widths from parent state (e.g. to persist them to\n`localStorage`) instead of letting `<DataTable>` manage them\ninternally. Omit for the common uncontrolled case; `defaultColumnWidths`\nseeds that internal state instead. Only meaningful for columns marked\n`resizable`."
+        },
+        "defaultColumnWidths": {
+          "type": "Record<string, number>",
+          "description": "Initial resized widths when uncontrolled (`columnWidths` omitted)."
+        },
+        "onColumnWidthsChange": {
+          "type": "(widths: Record<string, number>) => void",
+          "description": "Called once a resize completes (mouse/touch release, or an\narrow-key/Home/End press), whether controlled or uncontrolled -- never\non every intermediate drag tick, so this is safe to wire straight to a\n`localStorage` write without flooding it mid-drag."
+        },
         "overrides": {
           "type": "Partial<TableSliceState>",
           "description": "Per-instance overrides for density, border style, and striping."
@@ -3508,6 +3520,16 @@
       "width": {
         "type": "string | number",
         "description": "Column width as CSS value (e.g. `'12rem'`) or number (px)."
+      },
+      "resizable": {
+        "type": "boolean",
+        "default": "false",
+        "description": "If true, shows a drag handle on this column's trailing edge, resizable\nby mouse/touch or (with the handle focused) Left/Right arrow keys\n(Shift for a bigger step), Home (minimum), and End. Works regardless\nof whether `width` above is set, a CSS string, or omitted entirely --\na drag measures this column's own real rendered width as its starting\npoint rather than requiring a pre-declared pixel value."
+      },
+      "minWidth": {
+        "type": "number",
+        "default": "40",
+        "description": "Minimum width (px) a drag or arrow-key resize can shrink this column\nto -- prevents a variant of the real `table-layout: fixed`\ncolumn-collapse defect documented in this project's own competitive\nresearch. Only meaningful alongside `resizable`."
       }
     },
     "FilmstripItem": {

@@ -874,4 +874,208 @@ describe('DataTable Virtualized Component', () => {
       expect(input).toHaveFocus();
     });
   });
+
+  describe('column resize (issue #318)', () => {
+    const resizableColumns: Column<TestItem>[] = [
+      { key: 'id', title: 'ID' },
+      { key: 'name', title: 'Name', resizable: true },
+    ];
+
+    const getHandle = (container: HTMLElement): HTMLElement => container.querySelector('[role="separator"]')!;
+
+    it('renders no resize handle for a column that does not opt in', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      expect(container.querySelector('[role="separator"]')).toBeNull();
+    });
+
+    it('renders a resize handle with the ARIA shape confirmed against the W3C APG Window Splitter pattern', () => {
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const handle = getHandle(container);
+      expect(handle).toHaveAttribute('role', 'separator');
+      expect(handle).toHaveAttribute('aria-orientation', 'vertical');
+      expect(handle).toHaveAttribute('aria-valuemin', '40'); // DEFAULT_MIN_COLUMN_WIDTH
+      expect(handle).toHaveAttribute('tabindex', '0');
+    });
+
+    // Regression test for a real bug Gemini's review of this PR (#327)
+    // caught: `resizableColumns`'s "Name" column has no pre-declared
+    // numeric `width` -- getAriaValues used to fall back to announcing the
+    // MIN WIDTH FLOOR (40) as aria-valuenow in this exact shape, a wrong
+    // number a screen reader would read as the column's current width,
+    // then jump straight past on the very first arrow-key press. Omitting
+    // the attribute until a real width is known is the fix; this proves
+    // both halves of it.
+    it('regression: omits aria-valuenow (rather than reporting the wrong min-width floor) until a real pixel width is known', () => {
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const handle = getHandle(container);
+      expect(handle).not.toHaveAttribute('aria-valuenow');
+
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+      fireEvent.keyDown(handle, { key: 'ArrowRight' }); // measures real width (150), commits 150 + 10
+      expect(handle).toHaveAttribute('aria-valuenow', '160');
+    });
+
+    // Not part of the roving-tabindex/data-grid-* coordinate model -- see
+    // useTableKeyboardNav's own documented scope limit for custom
+    // interactive cell content, reused here for the same reason.
+    it('the resize handle is not part of the roving-tabindex grid coordinate model', () => {
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const handle = getHandle(container);
+      expect(handle).not.toHaveAttribute('data-grid-row');
+      expect(handle).not.toHaveAttribute('data-grid-col');
+    });
+
+    // fireEvent.pointerDown/Move/Up, not mouseDown/Move/Up -- jsdom's
+    // window has a real PointerEvent constructor (confirmed directly), so
+    // the hook's own window-level listeners register for pointer events,
+    // matching the real-browser-preferred path fixed below. See the
+    // "does not double-commit" regression test for exactly why plain mouse
+    // events alone would have masked the real bug this PR shipped with.
+    it('dragging the handle resizes the column and commits once on release, not on every move tick', () => {
+      const onColumnWidthsChange = vi.fn();
+      const { container } = render(
+        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+      );
+      const handle = getHandle(container);
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.pointerDown(handle, { clientX: 100 });
+      fireEvent.pointerMove(window, { clientX: 130 });
+      // Live preview only -- the whole point of separating drag preview
+      // state from committed state (see useTableColumnResize.ts's own
+      // header comment) is to never flood onColumnWidthsChange mid-drag,
+      // for the "persist to localStorage" use case the issue itself names.
+      expect(onColumnWidthsChange).not.toHaveBeenCalled();
+
+      fireEvent.pointerUp(window);
+      expect(onColumnWidthsChange).toHaveBeenCalledTimes(1);
+      expect(onColumnWidthsChange).toHaveBeenCalledWith({ name: 180 }); // 150 + (130 - 100)
+
+      // A further move after pointerup shouldn't do anything -- listeners
+      // were removed, same as Splitter's own established precedent.
+      fireEvent.pointerMove(window, { clientX: 300 });
+      expect(onColumnWidthsChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('never shrinks a column below its minWidth floor while dragging', () => {
+      const onColumnWidthsChange = vi.fn();
+      const columnsWithMin: Column<TestItem>[] = [
+        { key: 'id', title: 'ID' },
+        { key: 'name', title: 'Name', resizable: true, minWidth: 80 },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={columnsWithMin} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+      );
+      const handle = getHandle(container);
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.pointerDown(handle, { clientX: 200 });
+      fireEvent.pointerMove(window, { clientX: 0 }); // a huge shrink attempt
+      fireEvent.pointerUp(window);
+
+      expect(onColumnWidthsChange).toHaveBeenCalledWith({ name: 80 });
+    });
+
+    // Regression test for a real bug Gemini's review of this PR (#327)
+    // caught: a real pointer-enabled browser dispatches a spec-mandated
+    // "compatibility" mouseup synchronously alongside every real pointerup
+    // for mouse input, which fired this hook's handleUp (and therefore
+    // committed/called onColumnWidthsChange) TWICE per physical drag
+    // release. This wasn't (and structurally couldn't be) caught by the
+    // two tests above, which only ever fired one event type per gesture --
+    // simulating the real duplicate dispatch directly, by firing pointerup
+    // twice for one release, is what actually exercises the fix.
+    it('regression: does not double-commit when a duplicate release event fires for the same gesture', () => {
+      const onColumnWidthsChange = vi.fn();
+      const { container } = render(
+        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+      );
+      const handle = getHandle(container);
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.pointerDown(handle, { clientX: 100 });
+      fireEvent.pointerMove(window, { clientX: 130 });
+      fireEvent.pointerUp(window);
+      fireEvent.pointerUp(window); // the real browser's duplicate dispatch, simulated directly
+
+      expect(onColumnWidthsChange).toHaveBeenCalledTimes(1);
+      expect(onColumnWidthsChange).toHaveBeenCalledWith({ name: 180 });
+    });
+
+    it('Arrow keys resize the focused handle by a fixed step, Shift for a larger step, Home/End for min/max', () => {
+      const onColumnWidthsChange = vi.fn();
+      const { container } = render(
+        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+      );
+      const handle = getHandle(container);
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+
+      fireEvent.keyDown(handle, { key: 'ArrowRight' });
+      expect(onColumnWidthsChange).toHaveBeenLastCalledWith({ name: 110 });
+
+      fireEvent.keyDown(handle, { key: 'ArrowRight', shiftKey: true });
+      expect(onColumnWidthsChange).toHaveBeenLastCalledWith({ name: 160 });
+
+      fireEvent.keyDown(handle, { key: 'ArrowLeft' });
+      expect(onColumnWidthsChange).toHaveBeenLastCalledWith({ name: 150 });
+
+      fireEvent.keyDown(handle, { key: 'Home' });
+      expect(onColumnWidthsChange).toHaveBeenLastCalledWith({ name: 40 });
+
+      fireEvent.keyDown(handle, { key: 'End' });
+      expect(onColumnWidthsChange).toHaveBeenLastCalledWith({ name: 800 }); // RESIZE_HANDLE_ARIA_VALUEMAX
+    });
+
+    it('a controlled columnWidths value does not self-update -- the rendered width only changes once the consumer re-renders with the new prop', () => {
+      const onColumnWidthsChange = vi.fn();
+      const { container, rerender } = render(
+        <DataTable
+          data={testData}
+          columns={resizableColumns}
+          pageSize={10}
+          columnWidths={{ name: 100 }}
+          onColumnWidthsChange={onColumnWidthsChange}
+        />
+      );
+      const handle = getHandle(container);
+      fireEvent.keyDown(handle, { key: 'ArrowRight' });
+      expect(onColumnWidthsChange).toHaveBeenCalledWith({ name: 110 });
+
+      // 'id' has no width (index 0); 'name' is the resizable column (index 1).
+      expect(container.querySelectorAll('col')[1].getAttribute('style')).toContain('100px');
+
+      rerender(
+        <DataTable
+          data={testData}
+          columns={resizableColumns}
+          pageSize={10}
+          columnWidths={{ name: 110 }}
+          onColumnWidthsChange={onColumnWidthsChange}
+        />
+      );
+      expect(container.querySelectorAll('col')[1].getAttribute('style')).toContain('110px');
+    });
+
+    it('defaultColumnWidths seeds the uncontrolled initial rendered width', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={resizableColumns} pageSize={10} defaultColumnWidths={{ name: 222 }} />
+      );
+      expect(container.querySelectorAll('col')[1].getAttribute('style')).toContain('222px');
+    });
+  });
 });

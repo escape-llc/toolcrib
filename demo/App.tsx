@@ -855,8 +855,8 @@ export const App: React.FC = () => {
 
   const columns: Column<DemoUser>[] = [
     { key: 'id', title: 'ID', width: 60, sortable: true },
-    { key: 'name', title: 'User Name', width: 140, sortable: true },
-    { key: 'email', title: 'Email Address', width: 220, sortable: true },
+    { key: 'name', title: 'User Name', width: 140, sortable: true, resizable: true },
+    { key: 'email', title: 'Email Address', width: 220, sortable: true, resizable: true },
     { key: 'role', title: 'Role Level', width: 110, sortable: true },
     {
       key: 'status',
