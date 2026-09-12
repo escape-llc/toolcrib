@@ -169,17 +169,17 @@ test('a stacked toast\'s transform transition includes BOTH outline-color and tr
   // controlled): confirm the toast's position does change at all across
   // more than a single instantaneous jump when a sibling is dismissed.
   await page.evaluate(() => {
-    window.__toastFrames = [];
-    const el = document.querySelectorAll('[data-testid="toast-item"]')[1];
+    (window as any).__toastFrames = [];
     let n = 0;
     const sample = () => {
-      window.__toastFrames.push(el.getBoundingClientRect().top);
+      const el = document.querySelectorAll('[data-testid="toast-item"]')[1];
+      if (el) (window as any).__toastFrames.push(el.getBoundingClientRect().top);
       if (n++ < 40) requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
   });
   await page.locator('[data-testid="toast-item"]').first().locator('button[aria-label="Dismiss toast"]').click();
   await page.waitForTimeout(500);
-  const frames: number[] = await page.evaluate(() => window.__toastFrames);
+  const frames: number[] = await page.evaluate(() => (window as any).__toastFrames);
   expect(Math.abs(frames[frames.length - 1] - frames[0])).toBeGreaterThan(10);
 });
