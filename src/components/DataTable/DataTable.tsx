@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
+import { Button } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -21,10 +22,11 @@ import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../t
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
-import { DataTableThemeSlice, type TableSliceState } from './DataTableSlice';
+import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX } from './DataTableSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableQuickFilter } from './useTableQuickFilter';
+import { useTableDensity } from './useTableDensity';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
@@ -149,6 +151,13 @@ export interface DataTableProps<T = any> {
   pageSizeOptions?: number[];
   /**
    * Height of each row in pixels (used for virtualization calculations).
+   * Left unset, this is derived from the active density instead of a fixed
+   * number -- `36`/`44`/`56` for compact/normal/spacious respectively
+   * (`DataTableSlice.ts`'s own `DENSITY_ROW_HEIGHT_PX`, the same values its
+   * `--ai-table-row-height` CSS variable is computed from) -- so switching
+   * density doesn't leave the real virtualization window measuring against
+   * stale numbers (issue #339). An explicit value here always wins over
+   * that derivation.
    * @default 44
    */
   itemHeight?: number;
@@ -379,6 +388,37 @@ export interface DataTableProps<T = any> {
   /** Per-instance overrides for density, border style, and striping. */
   overrides?: Partial<TableSliceState>;
   /**
+   * Renders a built-in compact/normal/spacious toggle-button-group above
+   * the table (in the same bar `quickFilter`'s search box occupies) that
+   * drives density live -- both the CSS variables (padding/row height) and
+   * the real row height virtualization measures against, together (issue
+   * #339). Uses the `density`/`defaultDensity`/`onDensityChange` trio below
+   * for its state, the same controlled/uncontrolled shape every other
+   * `<DataTable>` feature already uses; enabling this without also passing
+   * `density`/`defaultDensity` starts from `overrides.density` (if given)
+   * or `'normal'`.
+   * @default false
+   */
+  densitySelector?: boolean;
+  /**
+   * Controlled live density -- drives the actual applied density (both the
+   * CSS variables and the real row height virtualization measures against)
+   * from parent state, taking precedence over `overrides.density` when both
+   * are given, since this represents an end user's own runtime choice
+   * rather than a developer-set default. Pairs naturally with your own
+   * external density UI when `densitySelector`'s built-in toggle group
+   * isn't the right fit. Omit for the common uncontrolled case;
+   * `defaultDensity` seeds that internal state instead. Passing neither
+   * this, `defaultDensity`, nor `densitySelector` leaves density governed
+   * entirely by `overrides.density` (or the theme's own default), exactly
+   * as before this feature existed.
+   */
+  density?: TableDensity;
+  /** Initial live density when uncontrolled (`density` omitted). Falls back to `overrides.density`, then `'normal'`. */
+  defaultDensity?: TableDensity;
+  /** Called whenever the live density changes, whether controlled or uncontrolled. */
+  onDensityChange?: (density: TableDensity) => void;
+  /**
    * Rendered in place of the row set when there's nothing to show (the
    * sorted dataset is empty) — the header and, if `pagination` is true,
    * the pagination footer (correctly showing "0 of 0") still render
@@ -401,7 +441,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   pagination = true,
   pageSize: initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50, 100],
-  itemHeight = 44,
+  itemHeight: explicitItemHeight,
   containerHeight = 'auto',
   rowKey,
   rowSubtheme,
@@ -429,11 +469,40 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   defaultColumnWidths,
   onColumnWidthsChange,
   overrides,
+  densitySelector = false,
+  density: controlledDensity,
+  defaultDensity,
+  onDensityChange,
   emptyState,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
   const strings = useLocaleStrings().dataTable;
-  const { vars } = useSliceOverrides(DataTableThemeSlice, overrides);
+
+  // The live density feature (issue #339) is only "active" -- i.e. allowed
+  // to override whatever `overrides.density`/the theme's own default would
+  // otherwise apply -- when the consumer actually opted in via one of these
+  // three props. Without that gate, useTableDensity's own internal
+  // 'normal' fallback would silently override a live global theme default
+  // (set via the Theme Editor) for every <DataTable> that never touched
+  // density at all, which is exactly the class of regression `overrides`'s
+  // own sparse-CSS-variable design (useSliceOverrides) exists to avoid.
+  const densityFeatureActive = densitySelector || controlledDensity !== undefined || defaultDensity !== undefined;
+  const { density: liveDensity, handleDensityChange } = useTableDensity({
+    density: controlledDensity,
+    defaultDensity: defaultDensity ?? overrides?.density,
+    onDensityChange,
+    tableId: id,
+  });
+  // Matches `effectiveBorderStyle` below's own established pattern (a
+  // best-effort JS read of what's actually in effect, not a live read of
+  // the current global theme) for the non-feature case, and additionally
+  // folds in the live toggle state when the feature is engaged.
+  const effectiveDensity: TableDensity = densityFeatureActive
+    ? liveDensity
+    : overrides?.density ?? DataTableThemeSlice.defaultState.density;
+  const mergedOverrides = densityFeatureActive ? { ...overrides, density: liveDensity } : overrides;
+  const itemHeight = explicitItemHeight ?? DENSITY_ROW_HEIGHT_PX[effectiveDensity];
+  const { vars } = useSliceOverrides(DataTableThemeSlice, mergedOverrides);
   // Row-level borders below are set directly in JS (not through
   // --ai-table-border, which only reaches the cells' borderRight — see that
   // usage further down), so a flagged row's dashed border needs its own
@@ -566,8 +635,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     // the dataset the same way -- the virtualization window has to reset
     // for all four, not just page changes, or a scroll offset left over
     // from a differently-sized page/sort/filter result can render as an
-    // apparently empty table.
-    resetKey: `${validCurrentPage}|${pageSize}|${sortBy.map(d => `${d.key}:${d.direction}`).join(',')}|${quickFilterValue}`,
+    // apparently empty table. `itemHeight` joins the list for a related but
+    // distinct reason (issue #339): it doesn't reorder anything, but a
+    // density change invalidates what the current scrollTop pixel offset
+    // even means against the new row height, so the same reset-to-top
+    // treatment applies.
+    resetKey: `${validCurrentPage}|${pageSize}|${sortBy.map(d => `${d.key}:${d.direction}`).join(',')}|${quickFilterValue}|${itemHeight}`,
   });
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
@@ -674,31 +747,58 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         ...vars,
       }}
     >
-      {/* Quick Filter Bar — a plain, always-mounted (not toggled by any
-          runtime state, unlike the bulk-action bar below) search box; its
-          own presence is entirely driven by the static `quickFilter` prop,
-          so there's no analogous layout-jump concern to guard against. */}
-      {quickFilter && (
+      {/* Quick Filter / Density Bar — a plain, always-mounted (not toggled
+          by any runtime state, unlike the bulk-action bar below) toolbar;
+          its own presence is entirely driven by the static `quickFilter`/
+          `densitySelector` props, so there's no analogous layout-jump
+          concern to guard against. */}
+      {(quickFilter || densitySelector) && (
         <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
-          <input
-            type="search"
-            value={quickFilterValue}
-            onChange={e => handleQuickFilterInputChange(e.target.value)}
-            placeholder={strings.quickFilterPlaceholder}
-            aria-label={strings.quickFilterPlaceholder}
-            className="ai-focus-ring"
-            style={{
-              width: '100%',
-              maxWidth: '20rem',
-              boxSizing: 'border-box',
-              padding: 'var(--ai-padding-xs, 0.375rem 0.625rem)',
-              border: '0.0625rem solid var(--ai-border, #d1d5db)',
-              borderRadius: 'var(--ai-radius-md, 0.375rem)',
-              fontSize: '0.875rem',
-              background: 'var(--ai-bg-surface, #ffffff)',
-              color: 'var(--ai-text-primary, #111827)',
-            }}
-          />
+          <Toolbar>
+            {quickFilter && (
+              <Toolbar.Left>
+                <input
+                  type="search"
+                  value={quickFilterValue}
+                  onChange={e => handleQuickFilterInputChange(e.target.value)}
+                  placeholder={strings.quickFilterPlaceholder}
+                  aria-label={strings.quickFilterPlaceholder}
+                  className="ai-focus-ring"
+                  style={{
+                    width: '100%',
+                    maxWidth: '20rem',
+                    boxSizing: 'border-box',
+                    padding: 'var(--ai-padding-xs, 0.375rem 0.625rem)',
+                    border: '0.0625rem solid var(--ai-border, #d1d5db)',
+                    borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                    fontSize: '0.875rem',
+                    background: 'var(--ai-bg-surface, #ffffff)',
+                    color: 'var(--ai-text-primary, #111827)',
+                  }}
+                />
+              </Toolbar.Left>
+            )}
+            {densitySelector && (
+              <Toolbar.Right>
+                <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
+                  <UIGroup>
+                    {(['compact', 'normal', 'spacious'] as const).map(d => (
+                      <Button
+                        key={d}
+                        type="button"
+                        size="sm"
+                        variant={liveDensity === d ? 'secondary' : 'outline'}
+                        aria-pressed={liveDensity === d}
+                        onClick={() => handleDensityChange(d)}
+                      >
+                        {strings.densityOptionLabel(d)}
+                      </Button>
+                    ))}
+                  </UIGroup>
+                </div>
+              </Toolbar.Right>
+            )}
+          </Toolbar>
         </div>
       )}
 

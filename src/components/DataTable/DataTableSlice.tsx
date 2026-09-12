@@ -11,6 +11,21 @@ declare module '../../theme/sliceStateMap' {
 export type TableDensity = 'compact' | 'normal' | 'spacious';
 export type TableBorderStyle = 'grid' | 'horizontal' | 'none';
 
+/**
+ * Each density's real row height in pixels -- the single source of truth
+ * `getTableVariables`'s own `--ai-table-row-height` (a `rem` string) derives
+ * from below, and the same values `<DataTable>` uses for its default
+ * `itemHeight` (issue #339). Kept as a JS-readable px map, not just a CSS
+ * variable, specifically so virtualization math (which needs a real number,
+ * not a string a browser resolves) can never independently drift from what
+ * the density's own padding/row-height CSS actually renders.
+ */
+export const DENSITY_ROW_HEIGHT_PX: Record<TableDensity, number> = {
+  compact: 36,
+  normal: 44,
+  spacious: 56,
+};
+
 export interface TableSliceState {
   density: TableDensity;
   borderStyle: TableBorderStyle;
@@ -20,24 +35,21 @@ export interface TableSliceState {
 export function getTableVariables(state: TableSliceState): Record<string, string> {
   let cellPadding: string;
   let headerPadding: string;
-  let rowHeight: string;
+  const rowHeight = `${DENSITY_ROW_HEIGHT_PX[state.density] / 16}rem`;
 
   switch (state.density) {
     case 'compact':
       cellPadding = '0.375rem 0.625rem';
       headerPadding = '0.5rem 0.625rem';
-      rowHeight = '2.25rem';
       break;
     case 'spacious':
       cellPadding = '0.875rem 1.25rem';
       headerPadding = '1rem 1.25rem';
-      rowHeight = '3.5rem';
       break;
     case 'normal':
     default:
       cellPadding = 'var(--ai-padding-sm, 0.625rem 1rem)';
       headerPadding = 'var(--ai-padding-md, 0.75rem 1rem)';
-      rowHeight = '2.75rem';
       break;
   }
 
