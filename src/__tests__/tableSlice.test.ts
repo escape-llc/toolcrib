@@ -21,8 +21,8 @@ describe('DataTable Theme Slice Engine', () => {
       striped: false,
     });
 
-    expect(vars['--ai-table-cell-padding']).toBe('0.375rem 0.625rem');
-    expect(vars['--ai-table-row-height']).toBe('2.25rem');
+    expect(vars['--ai-table-cell-padding']).toBe('0.4375rem 0.625rem');
+    expect(vars['--ai-table-row-height']).toBe('1.8125rem');
     expect(vars['--ai-table-stripe-bg']).toBe('transparent');
   });
 
@@ -43,7 +43,10 @@ describe('DataTable Theme Slice Engine', () => {
     });
   });
 
-  it('DENSITY_ROW_HEIGHT_PX has the expected, previously-hardcoded values', () => {
-    expect(DENSITY_ROW_HEIGHT_PX).toEqual({ compact: 36, normal: 44, spacious: 56 });
+  // compact/spacious are DERIVED from normal's 44px baseline via
+  // DENSITY_MULTIPLIER (0.65x / 1.3x), not independently hand-picked --
+  // round(44 * 0.65) = 29, round(44 * 1.3) = 57.
+  it('DENSITY_ROW_HEIGHT_PX derives compact/spacious from normal (44px) via DENSITY_MULTIPLIER', () => {
+    expect(DENSITY_ROW_HEIGHT_PX).toEqual({ compact: 29, normal: 44, spacious: 57 });
   });
 });

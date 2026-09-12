@@ -12,6 +12,39 @@ export type TableDensity = 'compact' | 'normal' | 'spacious';
 export type TableBorderStyle = 'grid' | 'horizontal' | 'none';
 
 /**
+ * Every non-normal density is `normal`'s own baseline metrics scaled by one
+ * number, not an independently hand-picked literal -- retuning the whole
+ * scale (or how tight `compact` feels relative to `normal`) is one
+ * multiplier change here instead of separately-drifting row-height/padding
+ * literals per density. `normal` itself is always exactly 1 (it IS the
+ * baseline every other density scales from), kept in the map anyway so a
+ * lookup never needs a special case for it.
+ */
+const DENSITY_MULTIPLIER: Record<TableDensity, number> = {
+  compact: 0.65,
+  normal: 1,
+  spacious: 1.3,
+};
+
+/**
+ * `normal` density's own baseline metrics in px, at this codebase's assumed
+ * 16px root font-size -- the same assumption `<DataTable>`'s `itemHeight`
+ * default already makes (issue #339). Cell/header padding are `[vertical,
+ * horizontal]` pairs. `NORMAL_ROW_HEIGHT_PX` doubles as `normal`'s own
+ * entry in `DENSITY_ROW_HEIGHT_PX` below.
+ */
+const NORMAL_ROW_HEIGHT_PX = 44;
+const NORMAL_CELL_PADDING_PX: readonly [number, number] = [10, 16]; // 0.625rem 1rem
+const NORMAL_HEADER_PADDING_PX: readonly [number, number] = [12, 16]; // 0.75rem 1rem
+
+function scalePx(basePx: number, density: TableDensity): number {
+  return Math.round(basePx * DENSITY_MULTIPLIER[density]);
+}
+function pxToRem(px: number): string {
+  return `${px / 16}rem`;
+}
+
+/**
  * Each density's real row height in pixels -- the single source of truth
  * `getTableVariables`'s own `--ai-table-row-height` (a `rem` string) derives
  * from below, and the same values `<DataTable>` uses for its default
@@ -21,9 +54,9 @@ export type TableBorderStyle = 'grid' | 'horizontal' | 'none';
  * the density's own padding/row-height CSS actually renders.
  */
 export const DENSITY_ROW_HEIGHT_PX: Record<TableDensity, number> = {
-  compact: 36,
-  normal: 44,
-  spacious: 56,
+  compact: scalePx(NORMAL_ROW_HEIGHT_PX, 'compact'),
+  normal: NORMAL_ROW_HEIGHT_PX,
+  spacious: scalePx(NORMAL_ROW_HEIGHT_PX, 'spacious'),
 };
 
 export interface TableSliceState {
@@ -35,19 +68,25 @@ export interface TableSliceState {
 export function getTableVariables(state: TableSliceState): Record<string, string> {
   let cellPadding: string;
   let headerPadding: string;
-  const rowHeight = `${DENSITY_ROW_HEIGHT_PX[state.density] / 16}rem`;
+  const rowHeight = pxToRem(DENSITY_ROW_HEIGHT_PX[state.density]);
 
   switch (state.density) {
     case 'compact':
-      cellPadding = '0.375rem 0.625rem';
-      headerPadding = '0.5rem 0.625rem';
+    case 'spacious': {
+      const [cv, ch] = NORMAL_CELL_PADDING_PX;
+      const [hv, hh] = NORMAL_HEADER_PADDING_PX;
+      cellPadding = `${pxToRem(scalePx(cv, state.density))} ${pxToRem(scalePx(ch, state.density))}`;
+      headerPadding = `${pxToRem(scalePx(hv, state.density))} ${pxToRem(scalePx(hh, state.density))}`;
       break;
-    case 'spacious':
-      cellPadding = '0.875rem 1.25rem';
-      headerPadding = '1rem 1.25rem';
-      break;
+    }
     case 'normal':
     default:
+      // Sourced from the live theme token, not NORMAL_CELL_PADDING_PX --
+      // normal density stays reactive to a global --ai-padding-sm/-md
+      // theme change; compact/spacious scale off the token's OWN fallback
+      // numbers instead (the same static-fallback limitation itemHeight's
+      // 16px-root assumption already documents), since there's no way to
+      // read a live CSS custom property's value back out in JS here.
       cellPadding = 'var(--ai-padding-sm, 0.625rem 1rem)';
       headerPadding = 'var(--ai-padding-md, 0.75rem 1rem)';
       break;
@@ -94,9 +133,9 @@ export const DataTableThemeSlice: ThemeSlice<TableSliceState> = {
         value={state.density}
         onChange={val => onChange({ ...state, density: val as TableDensity })}
         options={[
-          { label: 'Compact (2.25rem Row Height & Tight Cell Padding)', value: 'compact' },
-          { label: 'Normal (2.75rem Row Height & Standard Cell Padding)', value: 'normal' },
-          { label: 'Spacious (3.5rem Row Height & Generous Cell Padding)', value: 'spacious' },
+          { label: `Compact (${DENSITY_ROW_HEIGHT_PX.compact / 16}rem Row Height & Tight Cell Padding)`, value: 'compact' },
+          { label: `Normal (${DENSITY_ROW_HEIGHT_PX.normal / 16}rem Row Height & Standard Cell Padding)`, value: 'normal' },
+          { label: `Spacious (${DENSITY_ROW_HEIGHT_PX.spacious / 16}rem Row Height & Generous Cell Padding)`, value: 'spacious' },
         ]}
       />
       <FieldRow
