@@ -1019,32 +1019,44 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           <span aria-hidden="true">{sortDescriptor.direction === 'asc' ? '▲' : '▼'}</span>
                         )}
                         {sortPriority !== null && (
-                          // Only rendered once a second column has actually
-                          // joined the sort (see sortPriority's own comment
-                          // above) -- a screen reader already gets this
-                          // fact from each column's own aria-sort, so this
-                          // small numeral is a purely visual aid for a
-                          // sighted user glancing at the header row, hence
-                          // aria-hidden here too.
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              fontSize: '0.625rem',
-                              fontWeight: 'var(--ai-font-weight-bold, 700)',
-                              color: 'var(--ai-color-primary-text, #ffffff)',
-                              background: 'var(--ai-color-primary, #3b82f6)',
-                              borderRadius: 'var(--ai-radius-xl, 999px)',
-                              minWidth: '1rem',
-                              height: '1rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: '0 0.25rem',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            {sortPriority}
-                          </span>
+                          <>
+                            {/* Only rendered once a second column has
+                                actually joined the sort (see sortPriority's
+                                own comment above). Purely a visual aid for
+                                a sighted user glancing at the header row --
+                                aria-sort conveys THIS column's own
+                                direction, but not its priority relative to
+                                any other sorted column, which is exactly
+                                what a screen reader user is missing
+                                without the VisuallyHidden text alongside
+                                it below (real Gemini-caught defect, PR
+                                #337: this badge was originally
+                                aria-hidden with no accessible replacement
+                                at all, so a screen reader user could tell
+                                "this column is sorted" from aria-sort
+                                alone, but never which one is primary vs.
+                                secondary). */}
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                fontSize: '0.625rem',
+                                fontWeight: 'var(--ai-font-weight-bold, 700)',
+                                color: 'var(--ai-color-primary-text, #ffffff)',
+                                background: 'var(--ai-color-primary, #3b82f6)',
+                                borderRadius: 'var(--ai-radius-xl, 999px)',
+                                minWidth: '1rem',
+                                height: '1rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 0.25rem',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              {sortPriority}
+                            </span>
+                            <VisuallyHidden>{`sort priority ${sortPriority}`}</VisuallyHidden>
+                          </>
                         )}
                       </button>
                     ) : (

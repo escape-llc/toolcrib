@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
+import { compareValues } from '../components/DataTable/useTableSort';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -626,6 +627,34 @@ describe('DataTable Virtualized Component', () => {
     });
   });
 
+  describe('compareValues (useTableSort internal comparator)', () => {
+    // Regression test for a real Gemini-caught defect (PR #337):
+    // `null === undefined` is false, but `== null` is true for both, so
+    // the two single-sided nullish checks used to independently return 1
+    // for BOTH orderings -- compareValues(null, undefined) AND
+    // compareValues(undefined, null) -- violating the anticommutativity
+    // (`compare(a,b) === -compare(b,a)`) Array.prototype.sort's own spec
+    // relies on for predictable results. Tested directly against the
+    // exported comparator rather than only indirectly through a full
+    // <DataTable> render + real sort, since JS engines don't uniformly
+    // reproduce an observable ordering difference from this exact class
+    // of contradiction for a real render's small dataset -- the property
+    // itself is what needs proving, not one possible symptom of breaking it.
+    it('treats null and undefined as equivalent "absent" values -- compare(null, undefined) === -compare(undefined, null) === 0', () => {
+      expect(compareValues(null, undefined, 'asc')).toBe(0);
+      expect(compareValues(undefined, null, 'asc')).toBe(0);
+      expect(compareValues(null, undefined, 'desc')).toBe(0);
+      expect(compareValues(undefined, null, 'desc')).toBe(0);
+    });
+
+    it('still sorts a real value before either null or undefined, regardless of direction', () => {
+      expect(compareValues(5, null, 'asc')).toBeLessThan(0);
+      expect(compareValues(null, 5, 'asc')).toBeGreaterThan(0);
+      expect(compareValues(5, undefined, 'desc')).toBeLessThan(0);
+      expect(compareValues(undefined, 5, 'desc')).toBeGreaterThan(0);
+    });
+  });
+
   describe('multi-column sort (issue #337)', () => {
     interface RankedItem {
       id: number;
@@ -701,6 +730,21 @@ describe('DataTable Virtualized Component', () => {
       expect(groupHeader).toHaveTextContent('1');
       expect(scoreHeader.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(2);
       expect(scoreHeader).toHaveTextContent('2');
+    });
+
+    // Regression test for a real Gemini-caught defect (PR #337): the
+    // visual priority badge above is aria-hidden (correctly -- it's a
+    // redundant visual aid once this accessible text exists), but nothing
+    // else conveyed a column's sort PRIORITY to a screen reader at all --
+    // aria-sort only ever announces THIS column's own ascending/descending
+    // direction, never whether it's the primary or secondary sort key.
+    it('exposes the sort priority to screen readers via visually-hidden text, not just the visual badge', () => {
+      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      fireEvent.click(screen.getByText('Group'));
+      fireEvent.click(screen.getByText('Score'), { shiftKey: true });
+
+      expect(screen.getByRole('button', { name: /^Group/ })).toHaveAccessibleName('Group sort priority 1');
+      expect(screen.getByRole('button', { name: /^Score/ })).toHaveAccessibleName('Score sort priority 2');
     });
 
     it('supports a controlled multi-column sortBy', () => {

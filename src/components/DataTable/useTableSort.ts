@@ -39,10 +39,27 @@ export interface UseTableSortResult<T extends Record<string, any>> {
  * a case-insensitive string. Extracted as its own function (previously
  * inlined in the single-column comparator) so the multi-column comparator
  * below can call it once per sort priority without duplicating the
- * null/NaN handling at each level.
+ * null/NaN handling at each level. Exported (not just used internally) so
+ * its own anticommutativity property (`compare(a, b) === -compare(b, a)`,
+ * required for `Array.prototype.sort` to behave predictably) can be
+ * tested directly, the same way this repo's own `hsv.ts` property tests
+ * verify a pure numeric function's real invariants rather than only its
+ * behavior through whatever calls it.
  */
-function compareValues(valA: unknown, valB: unknown, direction: 'asc' | 'desc'): number {
+export function compareValues(valA: unknown, valB: unknown, direction: 'asc' | 'desc'): number {
   if (valA === valB) return 0;
+  // Real, confirmed bug caught by Gemini's review of this PR (#337):
+  // `null` and `undefined` are both "nullish" (`== null` is true for
+  // either), but `null === undefined` is false, so the two branches below
+  // used to independently return 1 for BOTH `compareValues(null,
+  // undefined, dir)` and `compareValues(undefined, null, dir)` -- an
+  // anticommutative comparator violation (`compare(a, b)` must equal
+  // `-compare(b, a)`), which Array.prototype.sort's spec explicitly
+  // allows to produce unstable, engine-dependent ordering for. Checking
+  // both-nullish first (treating `null` and `undefined` as equivalent
+  // "absent" values, order-independent) closes the gap the two
+  // single-sided checks below left open.
+  if (valA == null && valB == null) return 0;
   if (valA == null) return 1;
   if (valB == null) return -1;
   if (typeof valA === 'number' && typeof valB === 'number') {
