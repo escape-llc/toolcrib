@@ -1615,7 +1615,7 @@
         },
         "renderBulkActions": {
           "type": "(selectedKeys: string[]) => ReactNode",
-          "description": "Renders the action buttons in the bulk-action `<Toolbar>` that appears\nonce at least one row is selected — the selection-count label is\nalready provided; this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
+          "description": "Renders the action buttons for the current selection, shown centered\nin the same top toolbar row `quickFilter`/`densitySelector` share\n(alongside the \"N selected\" count, already provided) once at least\none row is selected -- this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
         },
         "rowCommands": {
           "type": "RowCommand<T>[]",
@@ -1653,6 +1653,10 @@
         "onDensityChange": {
           "type": "(density: TableDensity) => void",
           "description": "Called whenever the live density changes, whether controlled or uncontrolled."
+        },
+        "renderToolbarExtra": {
+          "type": "() => ReactNode",
+          "description": "Renders arbitrary caller content into the same top toolbar row\n`quickFilter`'s search box and `densitySelector`'s toggle group share\n-- alongside density, on the right, since that's the one slot never\nclaimed by a built-in feature. For a consumer who wants their own\nactions (a refresh button, an export button) living in that same bar\ninstead of a separate one above/below the table. Mounts the bar even\nif `quickFilter`/`densitySelector`/`selectable` are all false, so this\nalone is enough to get the row at all."
         },
         "emptyState": {
           "type": "ReactNode",
