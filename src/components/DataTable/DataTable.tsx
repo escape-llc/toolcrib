@@ -1236,6 +1236,56 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   const selectionKey = selectable ? getSelectionKey(record, actualIndex) : null;
                   const isRowSelected = selectionKey !== null && selectedKeySet.has(selectionKey);
                   const gridRow = actualIndex + 1;
+
+                  // Selection visual feedback (issue #360): a left
+                  // indicator + inset border on the cells themselves,
+                  // instead of a full-row background tint -- so a custom
+                  // rowSubtheme/zebra-stripe background stays fully
+                  // visible on a selected row, not washed out underneath
+                  // an overlay. Applied via box-shadow (not border/
+                  // background), deliberately: box-shadow doesn't affect
+                  // box sizing, so toggling selection never causes even a
+                  // 1px content reflow the way a real border would.
+                  //
+                  // Contiguous multi-select regions merge into one
+                  // continuous block rather than drawing a separate frame
+                  // around every row (which would look like a ladder of
+                  // thick lines through an already-dense, zebra-striped
+                  // grid): a selected row's own TOP cap only renders when
+                  // the row immediately above it isn't ALSO selected, and
+                  // its BOTTOM cap only renders when the row immediately
+                  // below it isn't either. An isolated single selected row
+                  // (neither neighbor selected) gets both caps and reads
+                  // as a fully framed row; the middle of a multi-row
+                  // selection gets neither, so no horizontal divider
+                  // appears between two selected rows sitting next to each
+                  // other. Neighbors are looked up directly in
+                  // `paginatedData` (the full current-page array, not
+                  // `visibleRows`) so this merges correctly across a
+                  // virtualization window boundary, not just between rows
+                  // that happen to be rendered at the same time.
+                  const prevRecord = actualIndex > 0 ? paginatedData[actualIndex - 1] : undefined;
+                  const nextRecord = actualIndex < paginatedData.length - 1 ? paginatedData[actualIndex + 1] : undefined;
+                  const prevRowSelected =
+                    isRowSelected && prevRecord !== undefined && selectedKeySet.has(getSelectionKey(prevRecord, actualIndex - 1));
+                  const nextRowSelected =
+                    isRowSelected && nextRecord !== undefined && selectedKeySet.has(getSelectionKey(nextRecord, actualIndex + 1));
+                  const selectionAccentColor = 'var(--ai-color-primary, #3b82f6)';
+                  const selectionFrameShadows: string[] = [];
+                  if (isRowSelected && !prevRowSelected) selectionFrameShadows.push(`inset 0 0.125rem 0 0 ${selectionAccentColor}`);
+                  if (isRowSelected && !nextRowSelected) selectionFrameShadows.push(`inset 0 -0.125rem 0 0 ${selectionAccentColor}`);
+                  // The FIRST cell in the row (the selection checkbox/radio
+                  // <td> when present, otherwise the first data column)
+                  // additionally carries the left accent bar -- box-shadow
+                  // is local to each element's own box, so this can't be
+                  // set once on the row and expected to bleed into every
+                  // cell the way a <tr>-level border would.
+                  const otherCellsSelectionShadow = isRowSelected && selectionFrameShadows.length > 0 ? selectionFrameShadows.join(', ') : 'none';
+                  const firstCellSelectionShadow = isRowSelected
+                    ? [`inset 0.25rem 0 0 0 ${selectionAccentColor}`, ...selectionFrameShadows].join(', ')
+                    : 'none';
+                  const hasSelectionCell = selectable && !hideSelectionColumn && selectionKey !== null;
+
                   return (
                     <tr
                       key={key}
@@ -1275,32 +1325,27 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         backgroundColor: subthemeColors?.background
                           ? subthemeColors.background
                           : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
-                        // A translucent wash layered ON TOP of the row's own
-                        // base color via backgroundImage (not
-                        // backgroundColor) -- composes with whatever's
-                        // already there (a zebra stripe, a rowSubtheme
-                        // tint) instead of replacing it outright, per real
-                        // feedback that the previous plain-background-swap
-                        // version "wiped out" a row's own subtheme tint the
-                        // instant it was selected. A plain rgba() literal,
-                        // not color-mix() -- see AGENTS.md's own documented
-                        // axe-core false-positive with color-mix()-computed
-                        // backgrounds; this avoids that class of risk
-                        // entirely rather than needing a matching axe
-                        // exemption. Always set to a real value or the
-                        // literal 'none', never omitted, so this never
-                        // mixes a sometimes-present/sometimes-absent
-                        // longhand the way AGENTS.md's own corner-radius
-                        // lesson warns against.
-                        backgroundImage: isRowSelected
-                          ? 'linear-gradient(var(--ai-table-row-selected-tint, rgba(59, 130, 246, 0.14)), var(--ai-table-row-selected-tint, rgba(59, 130, 246, 0.14)))'
-                          : 'none',
-                        transition: 'background-color 0.15s ease, background-image 0.15s ease',
+                        // Selection no longer washes the row's own
+                        // background at all (issue #360) -- a custom
+                        // rowSubtheme tint or zebra stripe stays exactly as
+                        // it is regardless of selection state, so a
+                        // selected error/warning row doesn't lose its own
+                        // color coding. The left-indicator + inset-border
+                        // treatment (each <td>'s own boxShadow, computed
+                        // above) is what conveys selection now.
+                        transition: 'background-color 0.15s ease',
                       }}
                     >
                       {selectable && !hideSelectionColumn && selectionKey !== null && (
                         <td
-                          style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
+                          style={{
+                            padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                            // Always the row's first cell when rendered at
+                            // all -- carries the left accent bar as well as
+                            // the top/bottom frame caps (see this row's own
+                            // comment above on how those are computed).
+                            boxShadow: firstCellSelectionShadow,
+                          }}
                           onClick={e => e.stopPropagation()}
                         >
                           {selectionMode === 'single' ? (
@@ -1407,6 +1452,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               borderRight: 'var(--ai-table-border, none)',
+                              // Only the true first cell of the row (this
+                              // column when there's no selection <td>
+                              // rendered before it) carries the left accent
+                              // -- every other cell just carries the
+                              // top/bottom frame caps, if any.
+                              boxShadow: !hasSelectionCell && colIndex === 0 ? firstCellSelectionShadow : otherCellsSelectionShadow,
                             }}
                           >
                             {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
@@ -1420,7 +1471,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
                           className="ai-focus-ring"
                           onClick={e => e.stopPropagation()}
-                          style={{ padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))' }}
+                          style={{
+                            padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                            // Always the last cell, never the first -- only
+                            // the top/bottom frame caps apply here.
+                            boxShadow: otherCellsSelectionShadow,
+                          }}
                         >
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                             {rowCommands!
