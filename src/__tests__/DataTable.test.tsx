@@ -112,6 +112,37 @@ describe('DataTable Virtualized Component', () => {
     expect(scrollBody.style.minHeight).toBe('0px');
   });
 
+  describe('pageSize="auto" (issue #364)', () => {
+    // jsdom has no ResizeObserver/layout engine, so `observedHeight` never
+    // reports a real measurement here -- exactly the same limitation the
+    // `containerHeight="auto"` tests above already document and work
+    // around, by asserting the deterministic fallback computation
+    // (AUTO_HEIGHT_FALLBACK_PX / itemHeight) rather than a real measured
+    // pixel value. That fallback is itself real, load-bearing behavior
+    // (it's what a consumer's very first render shows before the
+    // ResizeObserver's first real report arrives), not just a test
+    // convenience -- worth asserting directly regardless.
+    it('falls back to Math.floor(AUTO_HEIGHT_FALLBACK_PX / itemHeight) before any real measurement arrives', () => {
+      // Default itemHeight (normal density) is 44 -- Math.floor(350/44) = 7.
+      render(<DataTable data={testData} columns={testColumns} pageSize="auto" />);
+      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+    });
+
+    it('respects an explicit itemHeight in the same fallback computation', () => {
+      // Math.floor(350/35) = 10.
+      render(<DataTable data={testData} columns={testColumns} pageSize="auto" itemHeight={35} />);
+      expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+    });
+
+    it('hides the page-size dropdown entirely -- nothing meaningful to pick when the size is computed', () => {
+      render(<DataTable data={testData} columns={testColumns} pageSize="auto" />);
+      expect(screen.queryByLabelText('Rows per page')).not.toBeInTheDocument();
+      // The rest of the pagination footer (Prev/Next) is still present --
+      // pageSize="auto" only removes the dropdown, not pagination itself.
+      expect(screen.getByLabelText('Next page')).toBeInTheDocument();
+    });
+  });
+
   it('regression: does not silently jump back to a stale page after data shrinks then grows again', () => {
     // Reproduces the bug: navigate to a later page, have the parent shrink
     // `data` (e.g. a search/filter above the table), which correctly

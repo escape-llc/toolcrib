@@ -224,14 +224,14 @@
           "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`pageSize`/`pageSizeOptions` are ignored in this mode."
         },
         "pageSize": {
-          "type": "number",
+          "type": "number | 'auto'",
           "default": "10",
-          "description": "Initial number of rows per page."
+          "description": "Initial number of rows per page. `'auto'` computes it live instead of\nusing a fixed number -- `Math.floor(<measured body height> /\nitemHeight)` -- so a page always fills exactly the space it's given\n(no partial row cut off, no empty space at the bottom), recomputing\nwhenever the container is resized or density changes `itemHeight`.\nMirrors `containerHeight`'s own `'auto'` convention, and reuses the\nexact same live measurement (`useAdaptiveSize(bodyRef)`) that already\ndrives it. `pageSizeOptions` and the page-size dropdown are both\nignored in this mode -- there's nothing meaningful to pick when the\nsize is computed from available space, the same \"ignored\" precedent\n`pagination={false}` already sets for both props."
         },
         "pageSizeOptions": {
           "type": "number[]",
           "default": "[5, 10, 25, 50, 100]",
-          "description": "Options shown in the page-size dropdown."
+          "description": "Options shown in the page-size dropdown. Ignored when `pageSize` is `'auto'`."
         },
         "itemHeight": {
           "type": "number",
