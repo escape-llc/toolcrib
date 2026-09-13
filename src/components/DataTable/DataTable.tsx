@@ -1558,9 +1558,50 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                   // user can still Tab between them once
                                   // they've actually arrived at this row.
                                   tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
-                                  className="ai-focus-ring"
+                                  // ai-btn (issue #370) -- a plain `all:
+                                  // 'unset'` icon button had a pointer
+                                  // cursor and nothing else: no hover
+                                  // background, no :active press feedback,
+                                  // nothing to signal it's actually a
+                                  // clickable button rather than a static
+                                  // icon. .ai-btn gives it the same
+                                  // systematic hover-tint/:active-scale
+                                  // treatment every other icon button in
+                                  // the toolkit already has (Carousel's
+                                  // nav arrows, Select's trigger), falling
+                                  // back to a transparent base background
+                                  // via its own --ai-btn-bg fallback --
+                                  // exactly right for a ghost icon button
+                                  // with no background at rest.
+                                  //
+                                  // Explicit resets below (border/background/
+                                  // padding/font), NOT `all: 'unset'` --
+                                  // real, Gemini-caught defect on this PR's
+                                  // first pass, confirmed directly: `all:
+                                  // 'unset'` is itself an INLINE declaration,
+                                  // which (per the CSS cascade's origin/
+                                  // importance rules, not a specificity
+                                  // contest) beats any stylesheet rule that
+                                  // ISN'T `!important`. `.ai-btn:hover`'s
+                                  // background and `.ai-focus-ring`'s
+                                  // outline ARE `!important` (confirmed
+                                  // still working, directly, in a real
+                                  // browser), but `.ai-btn:active`'s own
+                                  // press-down `transform` deliberately
+                                  // isn't -- so the inline `all: 'unset'`
+                                  // silently reset `transform` to `none` and
+                                  // no press feedback ever showed. Matching
+                                  // Carousel's/Select's own established
+                                  // pattern (explicit per-property resets,
+                                  // never `all: 'unset'`) leaves `transform`
+                                  // untouched inline, so `.ai-btn:active`'s
+                                  // class rule is free to apply normally.
+                                  className="ai-btn ai-focus-ring"
                                   style={{
-                                    all: 'unset',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    padding: 0,
+                                    font: 'inherit',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
