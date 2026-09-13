@@ -1518,7 +1518,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                   // user can still Tab between them once
                                   // they've actually arrived at this row.
                                   tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
-                                  className="ai-focus-ring"
+                                  // ai-btn (issue #370) -- a plain `all:
+                                  // 'unset'` icon button had a pointer
+                                  // cursor and nothing else: no hover
+                                  // background, no :active press feedback,
+                                  // nothing to signal it's actually a
+                                  // clickable button rather than a static
+                                  // icon. .ai-btn gives it the same
+                                  // systematic hover-tint/:active-scale
+                                  // treatment every other icon button in
+                                  // the toolkit already has (Carousel's
+                                  // nav arrows, Select's trigger), falling
+                                  // back to a transparent base background
+                                  // via its own --ai-btn-bg fallback --
+                                  // exactly right for a ghost icon button
+                                  // with no background at rest.
+                                  className="ai-btn ai-focus-ring"
                                   style={{
                                     all: 'unset',
                                     display: 'flex',

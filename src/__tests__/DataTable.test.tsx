@@ -1027,6 +1027,21 @@ describe('DataTable Virtualized Component', () => {
         unsub();
       });
 
+      // Regression for issue #370: a row-command button (`all: 'unset'`,
+      // so it starts with zero native button chrome) used to carry only
+      // `ai-focus-ring` -- a real keyboard focus outline, but nothing to
+      // signal a mouse user could click it at all (no hover background, no
+      // :active feedback). `ai-btn` gives it the same systematic
+      // hover-tint/:active-scale treatment every other icon button in the
+      // toolkit already has.
+      it('a row-command button carries ai-btn for real hover/active affordance, not just ai-focus-ring', () => {
+        render(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
+        );
+        const editButton = screen.getByText('Item 1').closest('tr')!.querySelector('[aria-label="Edit"]')!;
+        expect(editButton).toHaveClass('ai-btn', 'ai-focus-ring');
+      });
+
       // Regression test for a real Gemini-caught defect (PR #333): a command
       // button's tabIndex used to default to the browser's own 0
       // (unconditionally tabbable), so a plain page Tab sweep (not this
