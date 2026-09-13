@@ -222,6 +222,14 @@ export interface DataTableProps<T = any> {
    */
   quickFilter?: boolean;
   /**
+   * Restricts which columns `quickFilter` searches against, by `Column.key`
+   * -- omit to search every column (the previous, only behavior). Doesn't
+   * change where the search input itself is rendered (the built-in
+   * `quickFilter` UI, or a consumer's own controlled `quickFilterValue`/
+   * `onQuickFilterChange` input) -- only which columns get matched.
+   */
+  quickFilterFields?: ((keyof T & string) | (string & {}))[];
+  /**
    * Controlled quick-filter value. Pass a value to drive it from parent
    * state (e.g. to persist it in a URL) instead of letting `<DataTable>`
    * manage it internally -- the same controlled/uncontrolled shape
@@ -459,6 +467,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   rowSubtheme,
   onRowClick,
   quickFilter = false,
+  quickFilterFields,
   quickFilterValue: controlledQuickFilterValue,
   defaultQuickFilterValue,
   onQuickFilterChange,
@@ -536,6 +545,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     defaultQuickFilterValue,
     onQuickFilterChange,
     tableId: id,
+    quickFilterFields,
   });
 
   const { sortBy, sortedData, handleSort } = useTableSort({

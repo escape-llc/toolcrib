@@ -1140,6 +1140,67 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.queryByText('Charlie Zulu')).not.toBeInTheDocument();
     });
 
+    // Issue #372: quickFilterFields scopes which columns quickFilter
+    // searches against, defaulting to every column when omitted.
+    it('quickFilterFields restricts matching to only the named columns', () => {
+      interface Contact {
+        id: number;
+        name: string;
+        email: string;
+      }
+      const contacts: Contact[] = [
+        { id: 1, name: 'Alice', email: 'alice@example.com' },
+        { id: 2, name: 'Bob', email: 'zulu@example.com' },
+      ];
+      const contactColumns: Column<Contact>[] = [
+        { key: 'name', title: 'Name' },
+        { key: 'email', title: 'Email' },
+      ];
+
+      render(
+        <DataTable data={contacts} columns={contactColumns} pageSize={10} quickFilter quickFilterFields={['name']} />
+      );
+      // "zulu" only appears in Bob's email, not his name -- with the search
+      // scoped to just `name`, it should match nothing.
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zulu' } });
+      expect(screen.queryByText('Bob')).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'bob' } });
+      expect(screen.getByText('Bob')).toBeInTheDocument();
+    });
+
+    it('quickFilterFields also scopes the matchCount reported on datatable:filtered', () => {
+      interface Contact {
+        id: number;
+        name: string;
+        email: string;
+      }
+      const contacts: Contact[] = [
+        { id: 1, name: 'Alice', email: 'alice@example.com' },
+        { id: 2, name: 'Bob', email: 'zulu@example.com' },
+      ];
+      const contactColumns: Column<Contact>[] = [
+        { key: 'name', title: 'Name' },
+        { key: 'email', title: 'Email' },
+      ];
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:filtered', handler);
+
+      render(
+        <DataTable
+          id="scoped-filter-table"
+          data={contacts}
+          columns={contactColumns}
+          pageSize={10}
+          quickFilter
+          quickFilterFields={['name']}
+        />
+      );
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zulu' } });
+      expect(handler).toHaveBeenLastCalledWith({ id: 'scoped-filter-table', value: 'zulu', matchCount: 0 });
+      unsub();
+    });
+
     it('clearing the filter shows every row again', () => {
       render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
       const input = screen.getByRole('searchbox');

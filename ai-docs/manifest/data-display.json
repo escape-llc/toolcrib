@@ -260,6 +260,10 @@
           "default": "false",
           "description": "Renders a global/quick-filter search box above the table -- a simple\ncase-insensitive substring match against every column's *resolved*\nvalue (`Column.accessorFn(record)` if given, else\n`record[Column.key]`; see `quickFilterValue`'s own doc for why this\nis the resolved value rather than a `Column.render`'s rendered\noutput). Filtering happens before sorting/pagination/virtualization,\nso `aria-rowcount`, the \"Showing X to Y of Z\" footer, and the\nwindowing math all already reflect the filtered count -- nothing\nelse needs to know filtering happened at all."
         },
+        "quickFilterFields": {
+          "type": "((keyof T & string) | (string & {}))[]",
+          "description": "Restricts which columns `quickFilter` searches against, by `Column.key`\n-- omit to search every column (the previous, only behavior). Doesn't\nchange where the search input itself is rendered (the built-in\n`quickFilter` UI, or a consumer's own controlled `quickFilterValue`/\n`onQuickFilterChange` input) -- only which columns get matched."
+        },
         "quickFilterValue": {
           "type": "string",
           "description": "Controlled quick-filter value. Pass a value to drive it from parent\nstate (e.g. to persist it in a URL) instead of letting `<DataTable>`\nmanage it internally -- the same controlled/uncontrolled shape\n`sortBy`/`page`/`selectedKeys` already use. Omit for the common\nuncontrolled case; `defaultQuickFilterValue` seeds that internal\nstate instead. Has no effect when `quickFilter` is false."

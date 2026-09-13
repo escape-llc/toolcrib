@@ -13,6 +13,8 @@ export interface UseTableQuickFilterOptions<T extends Record<string, any>> {
   onQuickFilterChange?: (value: string) => void;
   /** This table instance's id, for the `datatable:filtered` event payload. */
   tableId: string;
+  /** Column keys to restrict matching to -- `undefined` (the default) searches every column, matching the previous, only behavior. */
+  quickFilterFields?: string[];
 }
 
 export interface UseTableQuickFilterResult<T extends Record<string, any>> {
@@ -43,23 +45,33 @@ export function useTableQuickFilter<T extends Record<string, any>>({
   defaultQuickFilterValue,
   onQuickFilterChange,
   tableId,
+  quickFilterFields,
 }: UseTableQuickFilterOptions<T>): UseTableQuickFilterResult<T> {
   const [internalValue, setInternalValue] = useState<string>(defaultQuickFilterValue ?? '');
   const isControlled = controlledValue !== undefined;
   const quickFilterValue = isControlled ? controlledValue! : internalValue;
 
+  // Restricts matching to just the named columns when given (issue #372) --
+  // `undefined`/omitted keeps searching every column, the only behavior
+  // before this. A `Set` for O(1) membership checks below, since this can
+  // run once per row per keystroke.
+  const searchColumns = useMemo(
+    () => (quickFilterFields ? columns.filter(col => quickFilterFields.includes(col.key)) : columns),
+    [columns, quickFilterFields]
+  );
+
   const filteredData = useMemo(() => {
     const query = quickFilterValue.trim().toLowerCase();
     if (!query) return data;
     return data.filter(record =>
-      columns.some(col => {
+      searchColumns.some(col => {
         const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
         return String(value ?? '')
           .toLowerCase()
           .includes(query);
       })
     );
-  }, [data, columns, quickFilterValue]);
+  }, [data, searchColumns, quickFilterValue]);
 
   const handleQuickFilterChange = (value: string) => {
     if (!isControlled) setInternalValue(value);
@@ -73,7 +85,7 @@ export function useTableQuickFilter<T extends Record<string, any>>({
     const matchCount = !query
       ? data.length
       : data.filter(record =>
-          columns.some(col => {
+          searchColumns.some(col => {
             const v = col.accessorFn ? col.accessorFn(record) : record[col.key];
             return String(v ?? '')
               .toLowerCase()
