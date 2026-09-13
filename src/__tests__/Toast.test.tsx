@@ -368,6 +368,49 @@ describe('Toast Subsystem Event Generation', () => {
     expect(screen.queryByText('B')).not.toBeInTheDocument();
   });
 
+  // Regression for issue #379: addToast used to re-sort the WHOLE toasts
+  // array by priority on every insert, so a low-priority toast fired FIRST
+  // could end up stacked visually below a high-priority toast fired LATER
+  // -- direct report was that toasts should simply stack in the order they
+  // were triggered (FIFO), with priority left to independently control
+  // duration/stickiness only (already true via isSticky's own
+  // priority === 'urgent' check, untouched by this fix).
+  it("toasts stack in FIFO (insertion) order, regardless of priority -- a low-priority toast fired first stays ahead of a later high-priority one", () => {
+    const PriorityComponent = () => {
+      const { addToast } = useToast();
+      return (
+        <div>
+          <button
+            onClick={() => {
+              addToast({ id: 'first', type: 'info', message: 'Fired first', priority: 'low' });
+              addToast({ id: 'second', type: 'info', message: 'Fired second', priority: 'urgent' });
+              addToast({ id: 'third', type: 'info', message: 'Fired third', priority: 'medium' });
+            }}
+          >
+            Trigger Three
+          </button>
+          <ToastContainer />
+        </div>
+      );
+    };
+
+    render(
+      <ToastProvider>
+        <PriorityComponent />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByText('Trigger Three'));
+
+    // DOM order reflects the underlying `toasts` array's own insertion
+    // order directly (ToastContainer maps over it with no re-sort of its
+    // own) -- exactly the order they were triggered in, not priority.
+    const messages = screen.getAllByTestId('toast-item').map(el => el.textContent);
+    expect(messages[0]).toContain('Fired first');
+    expect(messages[1]).toContain('Fired second');
+    expect(messages[2]).toContain('Fired third');
+  });
+
   it('the toast:shown event bus channel adds a toast the same way addToast does', () => {
     render(
       <ToastProvider>
