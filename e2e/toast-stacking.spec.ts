@@ -225,3 +225,26 @@ test('a bottom-right-anchored toast renders near the bottom-right of the viewpor
   // And not clipped off the top -- fully within the viewport vertically.
   expect(rect.top).toBeGreaterThan(0);
 });
+
+// Regression for issue #379: addToast used to re-sort the whole toasts
+// array by priority on every insert, so a low/medium-priority toast fired
+// FIRST could end up stacked visually below a higher-priority toast fired
+// LATER. Toasts now always stack in FIFO (insertion) order -- priority
+// still independently controls duration/stickiness (a real, unrelated
+// urgent-toast behavior, confirmed still intact below via the 📌 sticky
+// indicator), just not stacking position.
+test('toasts stack in FIFO order regardless of priority -- a medium-priority toast fired first stays ahead of a later urgent one', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Toast Subsystem');
+
+  await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
+  await page.getByRole('button', { name: 'Fire Urgent Error Toast', exact: true }).click();
+  await page.waitForTimeout(300);
+
+  const messages = await page.locator('[data-testid="toast-item"]').allTextContents();
+  expect(messages).toHaveLength(2);
+  expect(messages[0]).toContain('Informational message');
+  expect(messages[1]).toContain('Critical System Failure');
+  // Priority's own, unrelated effect (stickiness) is still intact.
+  expect(messages[1]).toContain('📌');
+});

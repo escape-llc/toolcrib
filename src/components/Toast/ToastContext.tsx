@@ -5,7 +5,11 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
 import { type SubthemeName } from '../../theme/subtheme';
 
-/** Toast urgency level. Higher priority toasts are displayed first. */
+/**
+ * Toast urgency level -- controls duration/stickiness (`'urgent'` is
+ * always sticky), not stacking position. Toasts always stack in FIFO
+ * (insertion) order regardless of priority.
+ */
 /** @barrelExport */
 export type ToastPriority = 'low' | 'medium' | 'high' | 'urgent';
 /** Visual style variant for toasts — the same vocabulary as `SubthemeName`. */
@@ -45,7 +49,7 @@ export interface ToastItem {
   duration?: number;
   /** If true, toast requires explicit user dismissal and never auto-expires. */
   sticky?: boolean;
-  /** Display priority. Higher-priority toasts sort to top. @default 'medium' */
+  /** Display priority -- affects duration/stickiness only, not stacking order (always FIFO). @default 'medium' */
   priority?: ToastPriority;
   /** Screen corner override for this specific toast. Defaults to provider anchor. */
   anchor?: ToastAnchor;
@@ -75,13 +79,6 @@ export interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-const PRIORITY_WEIGHT: Record<ToastPriority, number> = {
-  urgent: 4,
-  high: 3,
-  medium: 2,
-  low: 1,
-};
 
 export interface ToastProviderProps {
   children: ReactNode;
@@ -130,11 +127,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       duration,
     };
 
-    setToasts(prev => {
-      const updated = [...prev.filter(t => t.id !== id), newToast];
-      // Sort by priority (higher priority first)
-      return updated.sort((a, b) => PRIORITY_WEIGHT[b.priority || 'medium'] - PRIORITY_WEIGHT[a.priority || 'medium']);
-    });
+    // FIFO insertion order (issue #379) -- toasts used to be re-sorted by
+    // priority on every insert, so a low-priority toast fired first could
+    // end up visually below a high-priority one fired later. Priority
+    // still independently controls duration/stickiness (isSticky above),
+    // just not stacking position: a toast always stacks in the order it
+    // was actually triggered.
+    setToasts(prev => [...prev.filter(t => t.id !== id), newToast]);
 
     aiBus.emit('toast:added', {
       id,
