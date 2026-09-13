@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, act, within, renderHook } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { compareValues } from '../components/DataTable/useTableSort';
+import { useTableQuickFilter } from '../components/DataTable/useTableQuickFilter';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -1199,6 +1200,48 @@ describe('DataTable Virtualized Component', () => {
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zulu' } });
       expect(handler).toHaveBeenLastCalledWith({ id: 'scoped-filter-table', value: 'zulu', matchCount: 0 });
       unsub();
+    });
+
+    // Regression for a real, Gemini-caught defect: a consumer passing
+    // quickFilterFields as an inline array literal (an entirely normal way
+    // to pass this prop, e.g. `quickFilterFields={['name', 'email']}`)
+    // gets a NEW array reference every render. Without stabilizing the
+    // internal memo's own dependency (see useTableQuickFilter.ts's own
+    // comment -- serializes to a joined string, the same technique
+    // DataTable.tsx's own resetKey already uses for sortBy), that new
+    // reference would recompute filteredData on every single render
+    // regardless of whether the actual field list changed at all,
+    // defeating the whole point of memoizing it.
+    it("filteredData stays referentially stable across a rerender that passes a new (but equal-content) quickFilterFields array", () => {
+      interface Contact {
+        id: number;
+        name: string;
+        email: string;
+      }
+      const contacts: Contact[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+      const contactColumns: Column<Contact>[] = [
+        { key: 'name', title: 'Name' },
+        { key: 'email', title: 'Email' },
+      ];
+
+      const { result, rerender } = renderHook(
+        ({ quickFilterFields }) =>
+          useTableQuickFilter({
+            data: contacts,
+            columns: contactColumns,
+            tableId: 'stability-test',
+            quickFilterValue: 'alice',
+            quickFilterFields,
+          }),
+        { initialProps: { quickFilterFields: ['name'] } }
+      );
+      const firstFilteredData = result.current.filteredData;
+
+      // A brand-new array literal with the SAME content -- exactly what a
+      // consumer writing `quickFilterFields={['name']}` inline produces on
+      // every one of their own renders.
+      rerender({ quickFilterFields: ['name'] });
+      expect(result.current.filteredData).toBe(firstFilteredData);
     });
 
     it('clearing the filter shows every row again', () => {

@@ -53,12 +53,26 @@ export function useTableQuickFilter<T extends Record<string, any>>({
 
   // Restricts matching to just the named columns when given (issue #372) --
   // `undefined`/omitted keeps searching every column, the only behavior
-  // before this. A `Set` for O(1) membership checks below, since this can
-  // run once per row per keystroke.
-  const searchColumns = useMemo(
-    () => (quickFilterFields ? columns.filter(col => quickFilterFields.includes(col.key)) : columns),
-    [columns, quickFilterFields]
-  );
+  // before this. A `Set` for O(1) membership checks, since this can run
+  // once per row per keystroke.
+  //
+  // The memo's own dependency is `quickFilterFields`'s SERIALIZED form
+  // (`.join(',')`), not the array reference itself -- a real,
+  // Gemini-caught defect: a consumer passing an inline array literal
+  // (`quickFilterFields={['name', 'email']}`, an entirely normal way to
+  // pass this prop) gets a new array reference every render, which would
+  // otherwise recompute this memo -- and everything downstream of it,
+  // including `filteredData` -- on every single render regardless of
+  // whether the actual field list changed at all. Matches this file's own
+  // sibling `resetKey` precedent in DataTable.tsx (`sortBy.map(...).join
+  // (',')`) for the identical reason.
+  const quickFilterFieldsKey = quickFilterFields?.join(',');
+  const searchColumns = useMemo(() => {
+    if (!quickFilterFields) return columns;
+    const fieldSet = new Set(quickFilterFields);
+    return columns.filter(col => fieldSet.has(col.key));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- quickFilterFieldsKey stands in for quickFilterFields itself, see this memo's own comment above.
+  }, [columns, quickFilterFieldsKey]);
 
   const filteredData = useMemo(() => {
     const query = quickFilterValue.trim().toLowerCase();
