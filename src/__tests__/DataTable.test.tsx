@@ -1042,6 +1042,26 @@ describe('DataTable Virtualized Component', () => {
         expect(editButton).toHaveClass('ai-btn', 'ai-focus-ring');
       });
 
+      // Regression for a real, Gemini-caught defect on this same PR's first
+      // pass: the fix above originally used inline `all: 'unset'` to strip
+      // native button chrome. `all: 'unset'` is itself an INLINE
+      // declaration, which beats any stylesheet rule that isn't
+      // `!important` regardless of that rule's own specificity (a cascade
+      // origin/importance rule, not a specificity contest) -- silently
+      // resetting `transform` to `none` and killing `.ai-btn:active`'s own
+      // press-down scale effect (deliberately not `!important`, unlike
+      // `.ai-btn:hover`'s background). Confirmed directly in a real
+      // browser before fixing. The fix: explicit per-property resets
+      // (border/background/padding/font), matching Carousel's/Select's own
+      // established `ai-btn` pattern, never `all: 'unset'`.
+      it('does not use inline all: "unset" -- it would silently defeat .ai-btn:active\'s non-!important transform', () => {
+        render(
+          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
+        );
+        const editButton = screen.getByText('Item 1').closest('tr')!.querySelector('[aria-label="Edit"]') as HTMLElement;
+        expect(editButton.style.all).toBe('');
+      });
+
       // Regression test for a real Gemini-caught defect (PR #333): a command
       // button's tabIndex used to default to the browser's own 0
       // (unconditionally tabbable), so a plain page Tab sweep (not this
