@@ -434,16 +434,27 @@ describe('ThemeEditor', () => {
       renderEditor();
       fireEvent.click(screen.getByText(/Color Harmony & Hue Spread/));
 
-      expect(screen.getByText('Primary')).toBeInTheDocument();
-      expect(screen.getByText('Secondary')).toBeInTheDocument();
-      expect(screen.getByText('Accent')).toBeInTheDocument();
-      expect(screen.getByText('Quaternary')).toBeInTheDocument();
+      // Scoped to each swatch's own data-testid, not a bare getByText --
+      // Gemini-caught, real: a bare `getByText('Secondary')` would throw on
+      // multiple matches the moment any other part of ThemeEditor ever
+      // contains that same word (a dropdown option, a variant label).
+      const primarySwatch = screen.getByTestId('harmony-swatch-primary');
+      const secondarySwatch = screen.getByTestId('harmony-swatch-secondary');
+      const accentSwatch = screen.getByTestId('harmony-swatch-accent');
+      const quaternarySwatch = screen.getByTestId('harmony-swatch-quaternary');
+      expect(within(primarySwatch).getByText('Primary')).toBeInTheDocument();
+      expect(within(secondarySwatch).getByText('Secondary')).toBeInTheDocument();
+      expect(within(accentSwatch).getByText('Accent')).toBeInTheDocument();
+      expect(within(quaternarySwatch).getByText('Quaternary')).toBeInTheDocument();
 
       // Changing the harmony mode changes the underlying HSV colors, so the
       // swatch's own resolved hsl() text should change too -- proving this
-      // is a live readout of theme.palette, not a static label.
-      const secondarySwatchText = screen.getByText('Secondary').nextSibling as HTMLElement;
-      const before = secondarySwatchText.textContent;
+      // is a live readout of theme.palette, not a static label. Read via
+      // the swatch container's own full text (label + value are its only
+      // two children), not DOM-position traversal like `.nextSibling` --
+      // Gemini-caught, real: fragile against any future markup change
+      // between the two.
+      const before = secondarySwatch.textContent;
 
       const combo = screen.getByRole('combobox');
       fireEvent.click(combo);
@@ -451,8 +462,7 @@ describe('ThemeEditor', () => {
       const monochromaticOption = within(listbox).getByRole('option', { name: 'Monochromatic' });
       fireEvent.click(monochromaticOption);
 
-      const afterText = screen.getByText('Secondary').nextSibling as HTMLElement;
-      expect(afterText.textContent).not.toBe(before);
+      expect(secondarySwatch.textContent).not.toBe(before);
 
       // The shared e2e accessibility.spec.ts scan opens the Theme Designer
       // drawer but never expands this specific (collapsed-by-default)

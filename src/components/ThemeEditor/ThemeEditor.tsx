@@ -497,6 +497,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           ).map(({ role, label, main }) => (
             <div
               key={role}
+              data-testid={`harmony-swatch-${role}`}
               style={{
                 padding: 'var(--ai-padding-md, 0.5rem)',
                 background: `var(--ai-color-${role})`,
