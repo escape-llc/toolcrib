@@ -31,6 +31,18 @@ test('a chip remove button\'s focus ring has real contrast against its own chip 
   // its natural tab-order predecessor.
   await page.keyboard.press('Shift+Tab');
 
+  // De-flaked (matches issue #413's own fix in interaction-states.spec.ts):
+  // outline-color *transitions* on --ai-transition-duration-normal (220ms
+  // floor, issue #411), not a snap, so reading it via a single synchronous
+  // page.evaluate() immediately after the keypress races that transition --
+  // under real CI scheduling (WebKit specifically) the snapshot can land
+  // mid-fade, still at its transparent starting value, producing exactly
+  // the "outlineColor is rgba(0,0,0,0)" failure this test is supposed to
+  // rule out. A Playwright web-first assertion polls the real computed
+  // style until the transition actually finishes, instead of sampling at a
+  // guessed instant.
+  await expect(page.locator(':focus')).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
+
   const info = await page.evaluate(() => {
     const el = document.activeElement as HTMLElement;
     const cs = getComputedStyle(el);
