@@ -22,6 +22,28 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    # One job per browser, on separate runners -- previously a single job
+    # ran chromium AND webkit sequentially against the same shared CPU
+    # budget (one runner, both projects' Playwright workers competing for
+    # the same cores). That wasn't just slower than it needed to be: this
+    # suite's own WebKit-specific flakes (issue #413 -- a fixed
+    # `waitForTimeout` sampling a real CSS transition too early, twice)
+    # only ever showed up under real CI scheduling pressure, never
+    # reproduced locally -- a shared runner running two browsers' full
+    # suites at once is exactly the kind of contention that produces that
+    # class of timing-sensitive failure. Splitting the matrix halves
+    # wall-clock time AND gives WebKit -- the more resource-sensitive
+    # engine of the two, per this file's own note in playwright.config.ts
+    # -- a dedicated budget instead of a shared one.
+    #
+    # Reported check names become `e2e (chromium)`/`e2e (webkit)` (job
+    # name + matrix value) -- branch protection's required status checks
+    # were updated from the single prior `e2e` context to both of these;
+    # update it again if this matrix's `browser` values ever change.
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -30,9 +52,28 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      # Keyed on the OS, this matrix leg's own browser (chromium/webkit
+      # binaries are cached independently -- no reason a webkit-only job
+      # should ever restore/write a chromium download), and the exact
+      # @playwright/test version actually installed (package-lock.json,
+      # not package.json's own possibly-unpinned semver range) -- a
+      # version bump invalidates the cache automatically rather than
+      # silently running stale browser binaries against a newer test
+      # runner. `~/.cache/ms-playwright` is the real download target
+      # `playwright install` writes to; caching it turns a ~30-90s+ fresh
+      # binary download into a cache restore on every run after the first
+      # per (OS, browser, version) combination.
+      - name: Cache Playwright browser binaries
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
 
       # Skipped only for a Dependabot-authored PR, never for a push to main
       # (the actor there is whoever performed the merge, not the original
@@ -48,18 +89,28 @@ jobs:
       # not the job -- a job with every step skipped still reports a real
       # completed (success) status, satisfying the required check, rather
       # than never posting one at all and permanently blocking merge.
-      - name: Install Playwright browsers
+      #
+      # `--with-deps` still runs even on a cache hit -- it installs the
+      # browser's real OS-level shared library dependencies (apt packages
+      # on the runner image itself), which the cached path above never
+      # covers and which a fresh runner image doesn't carry pre-installed.
+      # Skipping it on a cache hit would risk a cached browser binary with
+      # no matching system libs to actually launch it (a documented
+      # Playwright caching gotcha, not something confirmed to have hit
+      # this repo specifically) -- keeping the step unconditional avoids
+      # relying on that risk never materializing.
+      - name: Install Playwright browser (${{ matrix.browser }})
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run e2e suite
+      - name: Run e2e suite (${{ matrix.browser }})
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
-        run: npm run test:e2e
+        run: npx playwright test --project=${{ matrix.browser }}
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 14
