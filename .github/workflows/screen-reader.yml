@@ -14,11 +14,28 @@ name: Screen Reader
 # from. Verifies real screen-reader behavior directly -- something no
 # DOM-level check (axe-core's automated scan in e2e/accessibility.spec.ts
 # included) can confirm one way or the other -- see e2e/screen-reader/modal.spec.ts.
+#
+# Trigger scoped to a real release tag (`v*`, matching release.yml's own
+# trigger exactly), not every push/PR -- this is by far the longest job in
+# the whole pipeline (4-6 minutes observed, real NVDA startup + speech
+# capture on a windows-latest runner) and was never a required status check
+# to begin with (confirmed via the branch protection API), so it was paying
+# its full cost on every single push while gating nothing. Deliberately
+# NOT wired as a `needs:` dependency of release.yml's own publish job,
+# despite running at the same trigger -- this file's own comment two
+# paragraphs up already establishes NVDA/speech-capture as "slower and less
+# deterministic than a plain DOM assertion" than the rest of this repo's
+# checks, and hard-blocking an irreversible public release (a real npm
+# publish + GitHub Release, per release.yml) on a self-acknowledged
+# flakier signal risks blocking a legitimate release for the wrong reason.
+# Same non-gating-but-mandatory-to-read precedent this repo already applies
+# to Gemini's PR review (see AGENTS.md's own write-up of issue #176/#283) --
+# AGENTS.md's release checklist now explicitly names checking this run
+# before considering a release done, the human-in-the-loop half of that
+# same tradeoff.
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags: ['v*']
 
 # Least-privilege default -- see ci.yml's identical comment. This workflow
 # only checks out the repo and runs tests.
@@ -44,14 +61,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Skipped only for a Dependabot-authored PR, never for a push to main
-      # -- same reasoning as e2e.yml's identical condition. screen-reader
-      # isn't a required status check (unlike e2e), so skipping its steps
-      # entirely here is lower-risk than that case, but the same
-      # step-not-job pattern is used for consistency and in case it's ever
-      # promoted to required later.
       - name: Install Playwright browsers
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx playwright install --with-deps chromium
 
       # Downloads and extracts a portable NVDA build compatible with
@@ -60,18 +70,15 @@ jobs:
       # and wasn't verified on a shared interactive dev machine vs. what
       # only a clean CI runner can confirm).
       - name: Install NVDA (via guidepup)
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx guidepup install
 
       # Configures NVDA settings Guidepup needs (verbosity, disabling
       # first-run dialogs, etc.) -- mirrors mui/base-ui's own
       # test:screen-reader:setup script.
       - name: Configure NVDA (via guidepup)
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npx guidepup setup
 
       - name: Run screen-reader suite
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
         run: npm run test:screen-reader
 
       - name: Upload Playwright report
