@@ -424,6 +424,43 @@ describe('ThemeEditor', () => {
       fireEvent.keyDown(slider, { key: 'ArrowRight' });
       expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
     });
+
+    // Issue #376: harmony palette swatches -- the most direct way to
+    // actually see the 4 hue-derived color roles the harmony controls
+    // compute, given issue #375's own investigation found very little
+    // surface elsewhere in the toolkit for secondary/accent/quaternary to
+    // visibly manifest on.
+    it('Color Harmony & Hue Spread section: shows a live swatch for each of the 4 harmony roles', async () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Color Harmony & Hue Spread/));
+
+      expect(screen.getByText('Primary')).toBeInTheDocument();
+      expect(screen.getByText('Secondary')).toBeInTheDocument();
+      expect(screen.getByText('Accent')).toBeInTheDocument();
+      expect(screen.getByText('Quaternary')).toBeInTheDocument();
+
+      // Changing the harmony mode changes the underlying HSV colors, so the
+      // swatch's own resolved hsl() text should change too -- proving this
+      // is a live readout of theme.palette, not a static label.
+      const secondarySwatchText = screen.getByText('Secondary').nextSibling as HTMLElement;
+      const before = secondarySwatchText.textContent;
+
+      const combo = screen.getByRole('combobox');
+      fireEvent.click(combo);
+      const listbox = screen.getByRole('listbox');
+      const monochromaticOption = within(listbox).getByRole('option', { name: 'Monochromatic' });
+      fireEvent.click(monochromaticOption);
+
+      const afterText = screen.getByText('Secondary').nextSibling as HTMLElement;
+      expect(afterText.textContent).not.toBe(before);
+
+      // The shared e2e accessibility.spec.ts scan opens the Theme Designer
+      // drawer but never expands this specific (collapsed-by-default)
+      // accordion section, so it never actually exercises this new
+      // markup's own DOM -- a direct axe check here, with the section
+      // already expanded above, is this content's real coverage.
+      expect(await axe(document.body)).toHaveNoViolations();
+    });
   });
 
   describe('regression coverage: Save & Load Themes toolbar handlers', () => {
