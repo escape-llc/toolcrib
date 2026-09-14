@@ -7,6 +7,7 @@ import {
   TOOLCRIB_LINK_STYLE_ID,
   TOOLCRIB_RESPONSIVE_STYLE_ID,
   TOOLCRIB_THEME_TRANSITIONS_STYLE_ID,
+  TOOLCRIB_SCROLLBAR_STYLE_ID,
 } from '../theme/themeContext';
 import { computeServerThemeCSS } from '../theme/serverThemeCSS';
 import { TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID } from '../theme/animationKeyframes';
@@ -181,6 +182,26 @@ describe('computeServerThemeCSS', () => {
 
     expect(withoutMargin.rootVariablesCSS).toBe(explicitNormal.rootVariablesCSS);
   });
+
+  // Issue #353: scrollbarCSS applies the modern scrollbar-color property
+  // ambiently at :root, referencing the palette-derived
+  // --ai-scrollbar-thumb/--ai-scrollbar-track variables (both already
+  // present in rootVariablesCSS, same as every other palette variable).
+  // Deliberately does NOT also set scrollbar-width -- Gemini's PR review
+  // correctly flagged an earlier `scrollbar-width: thin` here as a real,
+  // global WCAG Target Size regression with no opt-out (see
+  // TOOLCRIB_SCROLLBAR_CSS's own doc comment); scrollbar-color alone
+  // already closes the "default light scrollbar in a dark UI" gap this
+  // issue exists for.
+  it('includes scrollbarCSS applying scrollbar-color at :root, without shrinking scrollbar-width', () => {
+    const { rootVariablesCSS, scrollbarCSS } = computeServerThemeCSS();
+
+    expect(scrollbarCSS).toContain(':root');
+    expect(scrollbarCSS).toContain('scrollbar-color: var(--ai-scrollbar-thumb');
+    expect(scrollbarCSS).not.toContain('scrollbar-width');
+    expect(rootVariablesCSS).toMatch(/--ai-scrollbar-thumb:/);
+    expect(rootVariablesCSS).toMatch(/--ai-scrollbar-track:/);
+  });
 });
 
 describe('computeServerThemeCSS hydration safety', () => {
@@ -196,6 +217,7 @@ describe('computeServerThemeCSS hydration safety', () => {
     document.getElementById(TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_RESPONSIVE_STYLE_ID)?.remove();
     document.getElementById(TOOLCRIB_THEME_TRANSITIONS_STYLE_ID)?.remove();
+    document.getElementById(TOOLCRIB_SCROLLBAR_STYLE_ID)?.remove();
     document.documentElement.removeAttribute('style');
   };
   beforeEach(clearInjectedStyles);
@@ -224,6 +246,11 @@ describe('computeServerThemeCSS hydration safety', () => {
     transitionsEl.textContent = ssr.transitionsCSS;
     document.head.appendChild(transitionsEl);
 
+    const scrollbarEl = document.createElement('style');
+    scrollbarEl.id = TOOLCRIB_SCROLLBAR_STYLE_ID;
+    scrollbarEl.textContent = ssr.scrollbarCSS;
+    document.head.appendChild(scrollbarEl);
+
     render(
       <ThemeProvider>
         <div>content</div>
@@ -233,10 +260,12 @@ describe('computeServerThemeCSS hydration safety', () => {
     expect(document.querySelectorAll(`#${TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID}`).length).toBe(1);
     expect(document.querySelectorAll(`#${TOOLCRIB_SHARED_KEYFRAMES_STYLE_ID}`).length).toBe(1);
     expect(document.querySelectorAll(`#${TOOLCRIB_THEME_TRANSITIONS_STYLE_ID}`).length).toBe(1);
+    expect(document.querySelectorAll(`#${TOOLCRIB_SCROLLBAR_STYLE_ID}`).length).toBe(1);
     // injectGlobalStyle no-op'd against the pre-existing element rather
     // than re-creating it — content is exactly what was seeded, untouched.
     expect(document.getElementById(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID)!.textContent).toBe(ssr.typographyCSS);
     expect(document.getElementById(TOOLCRIB_LINK_STYLE_ID)!.textContent).toBe(ssr.linkCSS);
+    expect(document.getElementById(TOOLCRIB_SCROLLBAR_STYLE_ID)!.textContent).toBe(ssr.scrollbarCSS);
   });
 
   it('recognizes the pre-existing responsive <style> tag on mount (no duplicate), then removes it once a live setter switches away from responsive control', () => {

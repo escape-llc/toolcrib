@@ -64,4 +64,24 @@ describe('Color Harmonies Engine', () => {
     expect(darkVars['--ai-chart-series-1']).toBe('#3987e5');
     expect(lightVars['--ai-chart-series-1']).not.toBe(darkVars['--ai-chart-series-1']);
   });
+
+  // Issue #353: --ai-scrollbar-thumb/--ai-scrollbar-track react to
+  // light/dark mode automatically, the same as every other palette-derived
+  // variable -- no separate scrollbar-specific mode toggle needed.
+  it('derives --ai-scrollbar-thumb/--ai-scrollbar-track from the palette, reacting to light/dark mode', () => {
+    const lightPalette = generateHarmonyPalette({ ...baseParams, isDarkMode: false });
+    const darkPalette = generateHarmonyPalette({ ...baseParams, isDarkMode: true });
+    const lightVars = paletteToCSSVariables(lightPalette, 'normal', 'rounded', 'normal', false);
+    const darkVars = paletteToCSSVariables(darkPalette, 'normal', 'rounded', 'normal', true);
+
+    expect(lightVars['--ai-scrollbar-thumb']).toBeDefined();
+    expect(lightVars['--ai-scrollbar-track']).toBeDefined();
+    expect(lightVars['--ai-scrollbar-thumb']).not.toBe(darkVars['--ai-scrollbar-thumb']);
+    expect(lightVars['--ai-scrollbar-track']).not.toBe(darkVars['--ai-scrollbar-track']);
+    // The track reuses bgContainer directly (see GeneratedPalette's own
+    // doc comment on scrollbarThumb for why) -- not a separate computation
+    // that could silently drift from it.
+    expect(lightVars['--ai-scrollbar-track']).toBe(lightVars['--ai-bg-container']);
+    expect(darkVars['--ai-scrollbar-track']).toBe(darkVars['--ai-bg-container']);
+  });
 });
