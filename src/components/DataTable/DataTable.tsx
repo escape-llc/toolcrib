@@ -746,8 +746,33 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // testing bug on this feature's first pass: the emit call used to sit
   // behind the same `!onEndReached` guard as the prop callback itself, so
   // a bus-only listener (no onEndReached prop at all) never saw the event.
+  //
+  // Gemini-caught edge case, addressed: `totalItems` shrinking (a filter
+  // narrowing the result set, e.g.) and later growing back to the exact
+  // same count it was at when this last fired used to leave
+  // firedEndReachedForRef still pinned at that count, silently skipping
+  // the re-fire a genuinely-different pass through that same number
+  // deserves. Tracking the last-OBSERVED totalItems separately (regardless
+  // of whether it fired) and clearing firedEndReachedForRef on any
+  // decrease closes this: growing back to a previously-fired-for count
+  // after a real dip now correctly re-arms.
+  //
+  // Deliberately NOT keyed off `data`'s own array reference (the
+  // alternative fix for the narrower case this doesn't cover -- a
+  // same-length swap to an entirely different, unrelated dataset with no
+  // accompanying totalItems change at all) -- `data` is exactly the kind
+  // of prop a consumer very commonly passes as a fresh array literal or
+  // freshly-mapped/filtered array on every render (this exact class of
+  // instability already bit `quickFilterFields` earlier in this same
+  // file's own history), which would make this fire on nearly every
+  // render past the threshold instead of once, a substantially worse
+  // regression than the narrow case it would fix.
   const firedEndReachedForRef = useRef<number | null>(null);
+  const lastObservedTotalItemsRef = useRef<number>(totalItems);
   useEffect(() => {
+    if (totalItems < lastObservedTotalItemsRef.current) firedEndReachedForRef.current = null;
+    lastObservedTotalItemsRef.current = totalItems;
+
     if (pagination || totalItems === 0) return;
     if (endIndex < totalItems - endReachedThreshold) return;
     if (firedEndReachedForRef.current === totalItems) return;

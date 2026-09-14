@@ -244,6 +244,70 @@ describe('DataTable Virtualized Component', () => {
       expect(onEndReached).toHaveBeenCalledTimes(2);
     });
 
+    // Regression for a real, Gemini-caught edge case: if totalItems shrinks
+    // (a filter narrowing the result set, e.g.) and later grows BACK to the
+    // exact same count it had already fired for, the fired-for ref used to
+    // stay pinned at that count and silently skip the re-fire a genuinely
+    // new pass through it deserves.
+    it('re-arms after data shrinks then grows back to the SAME count it already fired for', async () => {
+      const onEndReached = vi.fn();
+      const { container, rerender } = render(
+        <DataTable
+          data={testData.slice(0, 30)}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          onEndReached={onEndReached}
+        />
+      );
+      const scrollBody = scrollBodyOf(container);
+
+      fireEvent.scroll(scrollBody, { target: { scrollTop: 600 } });
+      await act(async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      });
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+
+      // Scroll back to the top before shrinking, so the shrink itself
+      // isn't ALSO already past its own (smaller) threshold -- keeps this
+      // test isolated to just the regrow-re-arm behavior.
+      fireEvent.scroll(scrollBody, { target: { scrollTop: 0 } });
+      await act(async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      });
+
+      // Shrinks to 20 rows (a filter narrowing the result set, e.g.).
+      rerender(
+        <DataTable
+          data={testData.slice(0, 20)}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          onEndReached={onEndReached}
+        />
+      );
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+
+      // Grows back to the ORIGINAL 30 -- the exact count that already fired.
+      rerender(
+        <DataTable
+          data={testData.slice(0, 30)}
+          columns={testColumns}
+          pagination={false}
+          containerHeight={200}
+          onEndReached={onEndReached}
+        />
+      );
+      expect(onEndReached).toHaveBeenCalledTimes(1); // not yet -- still scrolled near the top
+
+      // The exact same scroll position that already fired once before.
+      fireEvent.scroll(scrollBody, { target: { scrollTop: 600 } });
+      await act(async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      });
+      expect(onEndReached).toHaveBeenCalledTimes(2);
+    });
+
     it('never fires when pagination is true (the default) -- a paginated table has a complete, known page, not a reason to load more', async () => {
       const onEndReached = vi.fn();
       const { container } = render(
