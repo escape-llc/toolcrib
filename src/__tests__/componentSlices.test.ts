@@ -43,13 +43,18 @@ describe('Component Slices Engine (Accordion, Card, Tooltip)', () => {
     expect(vars['--ai-card-header-bg']).toBe('var(--ai-bg-container, #f9fafb)');
   });
 
+  // Regression for issue #402: theme: 'accent' used to resolve to
+  // --ai-color-primary despite its own name (and the editor's own
+  // field-row label) -- now genuinely resolves to the harmony palette's
+  // accent role.
   it('generates correct Tooltip variables for accent theme and sm size', () => {
     const vars = getTooltipVariables({
       theme: 'accent',
       size: 'sm',
     });
 
-    expect(vars['--ai-tooltip-bg']).toBe('var(--ai-color-primary, #3b82f6)');
+    expect(vars['--ai-tooltip-bg']).toBe('var(--ai-color-accent, #8b5cf6)');
+    expect(vars['--ai-tooltip-color']).toBe('var(--ai-color-accent-text, #ffffff)');
     expect(vars['--ai-tooltip-padding']).toBe('0.25rem 0.5rem');
   });
 

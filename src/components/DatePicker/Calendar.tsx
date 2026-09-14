@@ -157,8 +157,21 @@ export const Calendar: React.FC<CalendarProps> = ({
                   opacity: isOutsideMonth ? 0.35 : cellDisabled ? 0.4 : 1,
                   textDecoration: isUnavailable ? 'line-through' : 'none',
                   background: isSelected ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
-                  color: isSelected ? 'var(--ai-color-on-primary, #ffffff)' : 'var(--ai-text-primary, #111827)',
-                  border: isToday && !isSelected ? '0.0625rem solid var(--ai-color-primary, #3b82f6)' : '0.0625rem solid transparent',
+                  // --ai-color-on-primary was never actually a real
+                  // variable (paletteToCSSVariables only ever defined
+                  // --ai-color-primary-text) -- this always fell back to
+                  // its hardcoded #ffffff default, silently skipping the
+                  // theme's real WCAG-computed text color for a bright/
+                  // high-luminance primary hue. Fixed to the real variable.
+                  color: isSelected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
+                  // Issue #402: quaternary, not primary, for "today" --
+                  // "today" and "selected" are already two different
+                  // concepts (a ring vs. a fill); giving them two distinct
+                  // colors makes that existing distinction clearer instead
+                  // of using the same hue for both. The selected date's own
+                  // background above is untouched -- selection identity
+                  // stays primary everywhere.
+                  border: isToday && !isSelected ? '0.0625rem solid var(--ai-color-quaternary, #f97316)' : '0.0625rem solid transparent',
                 })}
               />
             )}

@@ -2074,6 +2074,26 @@ describe('DataTable Virtualized Component', () => {
       expect(onColumnWidthsChange).toHaveBeenCalledTimes(1);
     });
 
+    // Issue #402: the resize handle's own "active" background is accent,
+    // not primary -- a momentary active-resize highlight distinct from
+    // DataTable's own persistent row-selection color (which stays primary).
+    it('the resize handle background resolves to the accent color while actively resizing, not primary', () => {
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
+      const handle = getHandle(container);
+      const headerCell = handle.closest('th')!;
+      headerCell.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
+      });
+
+      expect(handle.style.background).not.toContain('--ai-color-accent');
+
+      fireEvent.pointerDown(handle, { clientX: 100 });
+      expect(handle.style.background).toContain('--ai-color-accent');
+
+      fireEvent.pointerUp(window);
+      expect(handle.style.background).not.toContain('--ai-color-accent');
+    });
+
     it('never shrinks a column below its minWidth floor while dragging', () => {
       const onColumnWidthsChange = vi.fn();
       const columnsWithMin: Column<TestItem>[] = [

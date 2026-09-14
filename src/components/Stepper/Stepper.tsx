@@ -152,7 +152,11 @@ export const Stepper: React.FC<StepperProps> = ({
                     fontWeight: 'var(--ai-font-weight-semibold, 600)',
                     flexShrink: 0,
                     background: isActive || isCompleted ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-container, #f3f4f6)',
-                    color: isActive || isCompleted ? 'var(--ai-color-on-primary, #ffffff)' : 'var(--ai-text-secondary, #6b7280)',
+                    // --ai-color-on-primary was never a real variable (see
+                    // Calendar.tsx's identical fix) -- was always silently
+                    // falling back to a hardcoded #ffffff instead of the
+                    // theme's real WCAG-computed primary text color.
+                    color: isActive || isCompleted ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-secondary, #6b7280)',
                   }}
                 >
                   {isCompleted ? '✓' : index + 1}
@@ -214,7 +218,7 @@ export const Stepper: React.FC<StepperProps> = ({
             padding: 'var(--ai-padding-md, 0.5rem 1rem)',
             border: 'none',
             background: 'var(--ai-color-primary, #3b82f6)',
-            color: 'var(--ai-color-on-primary, #ffffff)',
+            color: 'var(--ai-color-primary-text, #ffffff)',
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             cursor: canAdvance ? 'pointer' : 'not-allowed',
             opacity: canAdvance ? 1 : 0.5,

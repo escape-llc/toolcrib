@@ -275,8 +275,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           width: '100%',
           padding: 'var(--ai-fileupload-dropzone-padding, 1.5rem)',
           borderRadius: 'var(--ai-radius-md, 0.375rem)',
-          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
-          background: isDragOver ? 'color-mix(in srgb, var(--ai-color-primary, #3b82f6) 8%, transparent)' : 'var(--ai-bg-container, #f9fafb)',
+          // Issue #402: accent, not primary -- a drag-over highlight is a
+          // momentary active-interaction cue, distinct from the toolkit's
+          // persistent selected/checked identity color, so it reuses the
+          // same accent role Splitter's own drag-handle just adopted for
+          // the identical reason.
+          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-accent, #8b5cf6)' : 'var(--ai-border, #d1d5db)'}`,
+          background: isDragOver ? 'color-mix(in srgb, var(--ai-color-accent, #8b5cf6) 8%, transparent)' : 'var(--ai-bg-container, #f9fafb)',
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,

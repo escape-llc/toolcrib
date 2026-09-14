@@ -222,6 +222,32 @@ describe('Splitter Component & Corner Squaring', () => {
       expect(handle).toHaveAttribute('aria-valuenow', '75');
     });
 
+    // Issue #402: the dragging handle's own "active" background is accent,
+    // not primary -- a momentary active-drag highlight is a different kind
+    // of feedback than the toolkit's persistent selected/checked identity
+    // color (which stays primary elsewhere).
+    it('the handle background resolves to the accent color while dragging, not primary', () => {
+      const { container } = render(
+        <Splitter orientation="vertical" initialSplit={50} minSize={10}>
+          <div>Top</div>
+          <div>Bottom</div>
+        </Splitter>
+      );
+      const handle = screen.getByRole('separator');
+      const outer = container.firstElementChild as HTMLElement;
+      outer.getBoundingClientRect = () => ({
+        top: 0, left: 0, right: 100, bottom: 200, width: 100, height: 200, x: 0, y: 0, toJSON: () => {},
+      });
+
+      expect(handle.style.background).not.toContain('--ai-color-accent');
+
+      fireEvent.pointerDown(handle);
+      expect(handle.style.background).toContain('--ai-color-accent');
+
+      fireEvent.pointerUp(window);
+      expect(handle.style.background).not.toContain('--ai-color-accent');
+    });
+
     it('dragging horizontally uses clientX/width instead of clientY/height', () => {
       const { container } = render(
         <Splitter orientation="horizontal" initialSplit={50} minSize={10}>

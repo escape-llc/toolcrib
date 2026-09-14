@@ -443,7 +443,12 @@ export const Splitter: React.FC<SplitterProps> & {
         className="ai-focus-ring"
         style={{
           flex: '0 0 0.625rem',
-          background: isDragging ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #e5e7eb)',
+          // Issue #402: accent, not primary -- a momentary "you're actively
+          // dragging this" highlight is a genuinely different kind of
+          // feedback than a persistent selected/checked identity state
+          // (which stays primary everywhere else), so a distinct hue here
+          // is a deliberate, legible signal rather than arbitrary variety.
+          background: isDragging ? 'var(--ai-color-accent, #8b5cf6)' : 'var(--ai-border, #e5e7eb)',
           cursor: isVertical ? 'row-resize' : 'col-resize',
           display: 'flex',
           alignItems: 'center',

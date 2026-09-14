@@ -39,8 +39,13 @@ export function getTooltipVariables(state: TooltipSliceState = defaultTooltipSta
     bg = 'var(--ai-bg-surface, #ffffff)';
     color = 'var(--ai-text-primary, #111827)';
   } else if (theme === 'accent') {
-    bg = 'var(--ai-color-primary, #3b82f6)';
-    color = '#ffffff';
+    // Issue #402: this was wired to --ai-color-primary despite being named
+    // (and labeled in the editor below) "accent" -- a self-documented
+    // mismatch the field-row label's own old "(Primary Colour)"
+    // parenthetical admitted. Now genuinely resolves to the harmony
+    // palette's accent role.
+    bg = 'var(--ai-color-accent, #8b5cf6)';
+    color = 'var(--ai-color-accent-text, #ffffff)';
   }
 
   const padding = size === 'sm' ? '0.25rem 0.5rem' : '0.375rem 0.625rem';
@@ -70,7 +75,7 @@ export const TooltipThemeSlice: ThemeSlice<TooltipSliceState, TooltipCSSVariable
         options={[
           { label: 'Dark (Default)', value: 'dark' },
           { label: 'Light (Surface Colour)', value: 'light' },
-          { label: 'Accent (Primary Colour)', value: 'accent' },
+          { label: 'Accent (Harmony Accent Colour)', value: 'accent' },
         ]}
       />
       <FieldRow

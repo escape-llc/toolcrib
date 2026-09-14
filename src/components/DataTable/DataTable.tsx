@@ -868,7 +868,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           width: '0.5rem',
           cursor: 'col-resize',
           touchAction: 'none',
-          background: isResizing(col.key) ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
+          // Issue #402: accent, not primary -- same reasoning as
+          // Splitter's own drag-handle and FileUpload's dropzone: a
+          // momentary active-resize highlight, distinct from DataTable's
+          // own persistent row-selection color (which stays primary).
+          background: isResizing(col.key) ? 'var(--ai-color-accent, #8b5cf6)' : 'transparent',
         }}
       />
     );
