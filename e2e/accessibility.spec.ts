@@ -172,7 +172,18 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // open at a time, scanned, then closed (Escape closes basically everything
   // in this codebase -- see interactive-sweep.spec.ts's identical note) --
   // never two overlapping, to keep each scan attributable to one component.
-  test.setTimeout(60_000);
+  //
+  // Issue #423: bumped from 60_000 to 120_000, matching the other two
+  // heavy axe-scan tests in this file (the full 12-tab light/dark sweeps).
+  // This test opens/scans/closes 7 real overlays across two tabs -- flaked
+  // repeatedly under real CI load (5+ occurrences this session, always
+  // WebKit, always right at the old 60s budget: a click timeout in one
+  // run, a `frame.evaluate` timeout mid-axe-scan in another). Each axe
+  // scan itself takes real wall-clock time under CI's own resource
+  // constraints, so this is a genuine cumulative-work budget adjustment,
+  // not a guessed-wait fix -- every wait in this test already targets a
+  // real signal (see AGENTS.md's e2e section from issue #413).
+  test.setTimeout(120_000);
   await page.goto('/');
   const failures: string[] = [];
 
