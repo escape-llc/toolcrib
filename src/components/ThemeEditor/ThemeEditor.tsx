@@ -509,8 +509,18 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
               {/* Reads the resolved HSVColor object directly (not the CSS
                   variable), so this stays accurate even where hsvToCSS's
                   own alpha default or rounding differs from what a
-                  getComputedStyle read of the live variable would show. */}
-              <div style={{ fontSize: '0.6875rem', opacity: 0.85 }}>{hsvToCSS(main)}</div>
+                  getComputedStyle read of the live variable would show.
+                  No opacity here (Gemini-caught, real) -- this text sits on
+                  a dynamic, user-configurable background using the SAME
+                  `--ai-color-{role}-text` variable as the label above,
+                  already computed via pickReadableTextColor specifically to
+                  guarantee contrast against that exact background; blending
+                  it toward its own background via opacity would silently
+                  undercut that guarantee for some theme configurations even
+                  though it happened to still read fine for the one base
+                  color this was visually spot-checked against. Font size
+                  alone differentiates it from the label now. */}
+              <div style={{ fontSize: '0.6875rem' }}>{hsvToCSS(main)}</div>
             </div>
           ))}
         </div>
