@@ -28,10 +28,51 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { computeCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useNonce } from '../../theme/nonceContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useLocaleStrings } from '../Locale/LocaleContext';
+
+const COMBOBOX_CHIP_REMOVE_STYLE_ID = 'toolcrib-combobox-chip-remove-focus';
+
+// Issue #425: the chip remove button sits ON var(--ai-color-primary) (the
+// chip's own background -- correctly primary-hued, a selected chip is
+// persistent bucket-1 identity per AGENTS.md's color-buckets taxonomy, not
+// something to recolor). The shared `.ai-focus-ring` mechanism's own ring
+// color (--ai-focus-ring) is *also* primary-hued by design (this session's
+// own confirmed ruling: focus rings stay primary-anchored everywhere,
+// specifically so "this is keyboard-focused" reads as one consistent
+// signal regardless of context) -- so applying it here would produce a
+// ring with almost no contrast against its own surface, not a real fix.
+// This button previously had no focus styling at all, falling back to the
+// browser's plain default outline (also incidentally blue), which has the
+// identical problem.
+//
+// --ai-color-primary-text is not an alternate harmony/bucket color -- it's
+// the existing WCAG-contrast-checked *utility* value for "readable content
+// on a primary surface" (pickReadableTextColor, harmonies.ts; the same
+// mechanism Calendar's today-marker and Stepper already lean on), which is
+// exactly the guarantee needed here: a ring color proven to contrast
+// against the one background it will always sit on.
+function injectComboboxChipRemoveStyles(targetDocument?: Document, nonce?: string): void {
+  injectGlobalStyle(
+    COMBOBOX_CHIP_REMOVE_STYLE_ID,
+    `
+    .ai-combobox-chip-remove {
+      outline: var(--ai-focus-ring-width, 0.125rem) solid transparent;
+      outline-offset: var(--ai-focus-ring-offset, 0.125rem);
+      transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-combobox-chip-remove:focus-visible {
+      outline-color: var(--ai-color-primary-text, #ffffff);
+    }
+    `,
+    targetDocument,
+    nonce
+  );
+}
 
 /**
  * Props for the `<Combobox>` filterable text input + listbox.
@@ -151,6 +192,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   useInjectInteractionStyles();
+  const nonce = useNonce();
+  useEffect(() => {
+    injectComboboxChipRemoveStyles(targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   const baseId = useId();
   const listboxId = `${baseId}-listbox`;
@@ -488,6 +533,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                     e.stopPropagation();
                     removeChip(v);
                   }}
+                  className="ai-combobox-chip-remove"
                   style={{
                     display: 'inline-flex',
                     background: 'transparent',

@@ -40,12 +40,27 @@ body {
 /* Focus Visible for Buttons & Interactive Controls — a generic a11y
    baseline for any consumer's own plain <button>/<a> markup outside the
    toolkit's own components (which already carry .ai-btn/.ai-focus-ring
-   and don't need this); left as an app-level default, not a library gap. */
+   and don't need this); left as an app-level default, not a library gap.
+
+   Deliberately NOT !important (issue #425) -- this rule's own comment
+   already states its intent is to apply "outside the toolkit's own
+   components," but !important made it win regardless, including over a
+   toolkit-internal button with its OWN deliberate, dedicated focus
+   treatment (Combobox's chip remove-button, which needs a contrast-
+   specific ring color rather than this rule's fixed --ai-color-primary --
+   see Combobox.tsx's own injectComboboxChipRemoveStyles comment for why).
+   A plain, non-!important author-stylesheet rule already always beats the
+   browser's native UA-stylesheet focus outline regardless of specificity,
+   which is all this rule's own stated purpose ever needed -- dropping
+   !important costs it nothing for a truly-plain consumer button while
+   correctly deferring to any more specific or !important toolkit-internal
+   rule when one exists, present or future, without this file needing an
+   ever-growing :not() exclusion list naming each one by hand. */
 button:focus-visible,
 [role="button"]:focus-visible,
 a:focus-visible {
-  outline: 0.125rem solid var(--ai-color-primary, #3b82f6) !important;
-  outline-offset: 0.125rem !important;
+  outline: 0.125rem solid var(--ai-color-primary, #3b82f6);
+  outline-offset: 0.125rem;
 }
 
 /* NOTE: the @keyframes for Modal/AlertDialog/Popup/Drawer/TabStrip.Panel

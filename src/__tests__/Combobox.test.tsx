@@ -281,6 +281,23 @@ describe('Combobox Component — multiple mode', () => {
     expect(onChange).toHaveBeenCalledWith(['editor']);
   });
 
+  // Issue #425: the chip remove button sits on var(--ai-color-primary) --
+  // the same hue --ai-focus-ring itself uses (focus rings stay
+  // primary-anchored everywhere, by design), so the shared .ai-focus-ring
+  // treatment would have almost no contrast against its own surface here.
+  // A dedicated class with its own contrast-guaranteed ring color
+  // (--ai-color-primary-text) is what actually fixes it -- jsdom can't
+  // resolve the real cascaded outline-color (see this repo's own
+  // established note on that limitation elsewhere), so this only proves
+  // the class is present; e2e/combobox-chip-focus.spec.ts covers the real
+  // computed-style/contrast half in a real browser.
+  it('gives the chip remove button its own dedicated focus class, not the shared primary-hued ring', () => {
+    render(<Combobox multiple defaultValue={['admin']} options={options} onChange={vi.fn()} />);
+    const removeBtn = screen.getByLabelText('Remove Admin');
+    expect(removeBtn.className).toContain('ai-combobox-chip-remove');
+    expect(removeBtn.className).not.toContain('ai-focus-ring');
+  });
+
   it('clears every chip via the clear button', () => {
     const onChange = vi.fn();
     render(<Combobox multiple defaultValue={['admin', 'editor']} options={options} onChange={onChange} />);
