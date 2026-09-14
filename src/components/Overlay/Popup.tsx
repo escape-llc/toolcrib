@@ -147,6 +147,18 @@ export const Popup: React.FC<PopupProps> = ({
   // (which only accepts 'start'|'center'|'end') with no cast.
   const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
   const contentRef = useRef<HTMLDivElement>(null);
+  // Issue #421: Radix's own default close-autofocus returns focus to
+  // whatever it stored as "the trigger" -- but `asChild` (below) binds
+  // that ref to the plain, non-focusable wrapper `<div>` around the real
+  // trigger, not the real trigger itself (see that div's own comment on
+  // why the wrapper exists at all). Focusing a non-focusable div is a
+  // silent no-op in every real browser, so focus fell through to
+  // <body> on every close -- confirmed directly (not assumed) against
+  // the plain Popup demo, independent of any specific consumer like
+  // DatePicker. A ref on the wrapper div itself (a real DOM node this
+  // component already owns) lets onCloseAutoFocus below find and focus
+  // the real interactive element actually nested inside it instead.
+  const triggerWrapperRef = useRef<HTMLDivElement>(null);
   // Corner-squaring must key off the side Radix actually rendered, not
   // just the one requested -- Radix auto-flips on collision by default,
   // and nothing about the requested `side` changes when it does. See
@@ -180,12 +192,24 @@ export const Popup: React.FC<PopupProps> = ({
             nulling these here doesn't lose anything an AT user actually
             had -- these attributes were never reaching the element that's
             actually focused either way. */}
-        <div aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
+        <div ref={triggerWrapperRef} aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
           ref={contentRef}
+          // Issue #421: overrides Radix's own default close-autofocus,
+          // which targets the non-focusable wrapper div above (see
+          // triggerWrapperRef's own comment) and silently fails. Finds
+          // the real focusable trigger nested inside that same div instead.
+          // preventDefault() stops Radix's own (broken) attempt from
+          // running first and fighting this one.
+          onCloseAutoFocus={e => {
+            e.preventDefault();
+            triggerWrapperRef.current
+              ?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+              ?.focus();
+          }}
           // Radix's Popover.Content hardcodes role="dialog" internally
           // (confirmed directly in its source), which needs an accessible
           // name axe's aria-dialog-name rule enforces -- but Popup is a
