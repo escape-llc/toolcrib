@@ -265,7 +265,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
         borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
-        transition: 'var(--ai-transition-normal, all 0.2s cubic-bezier(0.4, 0, 0.2, 1))',
+        // No inline transition -- .ai-btn's own shared rule
+        // (interactionStyles.ts) already covers background-color,
+        // border-color, border-radius, and transform, and is !important,
+        // so this would be silently discarded outright, not just
+        // redundant (issue #411).
         ...getSizeStyles(),
         ...variantStyles,
         // Hover's actual colour is computed live in CSS (see interactionStyles.ts's
@@ -388,7 +392,10 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
         fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+        // No inline transition -- .ai-focus-ring's own shared rule
+        // (interactionStyles.ts) already covers border-color and
+        // box-shadow and is !important, so this would be silently
+        // discarded outright, not just redundant (issue #411).
         ...inputVars,
       }}
     />
@@ -457,7 +464,11 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           justifyContent: 'center',
           cursor: 'pointer',
           boxSizing: 'border-box',
-          transition: 'all 0.15s ease',
+          // No inline transition -- .ai-focus-ring's own shared rule
+          // (interactionStyles.ts) already covers background-color and
+          // border-color and is !important, so this (like the `all: 'unset'`
+          // above) would be silently discarded outright, not just
+          // redundant (issue #411).
           ...checkboxVars,
         }}
       >
@@ -528,7 +539,10 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           borderRadius: 'var(--ai-radius-lg, 0.625rem)',
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
           position: 'relative',
-          transition: 'background 0.2s ease',
+          // No inline transition -- .ai-focus-ring's own shared rule
+          // (interactionStyles.ts) already covers background-color and is
+          // !important, so this (like the `all: 'unset'` above) would be
+          // silently discarded outright, not just redundant (issue #411).
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
@@ -550,7 +564,10 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
             transform: checked
               ? 'translateX(var(--ai-togglecontrol-switch-thumb-travel, 1.25rem))'
               : 'translateX(var(--ai-togglecontrol-switch-thumb-inset, 0.125rem))',
-            transition: 'transform 0.2s ease',
+            // No shared class on this element (it's SwitchPrimitive.Thumb,
+            // not .Root) -- no collision, so this transition genuinely
+            // applies, just needed the floored duration token (issue #411).
+            transition: 'transform var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.1875rem rgba(0,0,0,0.2))',
           }}
         />

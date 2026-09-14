@@ -227,7 +227,11 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'all 0.15s ease',
+          // No inline transition -- .ai-focus-ring's own shared rule
+          // (interactionStyles.ts) already covers border-color and
+          // box-shadow and is !important, so this (like the `all: 'unset'`
+          // above) would be silently discarded outright, not just
+          // redundant (issue #411).
           boxShadow: isChecked ? '0 0 0 0.125rem var(--ai-focus-ring, rgba(59, 130, 246, 0.2))' : 'none',
           marginTop: '0.125rem',
           flexShrink: 0,

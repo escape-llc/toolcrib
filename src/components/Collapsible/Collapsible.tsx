@@ -144,7 +144,10 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           color: 'var(--ai-text-primary, #111827)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
-          transition: 'background 0.15s ease',
+          // No inline transition here -- .ai-btn's own shared rule
+          // (interactionStyles.ts) already covers background-color and
+          // is !important, so this component's own attempt would be
+          // silently discarded outright, not just redundant (issue #411).
           ['--ai-btn-bg' as string]: 'var(--ai-bg-container, #f9fafb)',
         }}
       >
@@ -154,7 +157,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
             fontSize: '0.75rem',
             color: 'var(--ai-text-secondary, #6b7280)',
             transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.15s ease',
+            transition: 'transform var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
           }}
         >
           ▼

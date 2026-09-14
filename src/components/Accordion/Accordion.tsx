@@ -48,7 +48,7 @@ function injectAccordionStyles(targetDocument?: Document, nonce?: string): void 
       color: var(--ai-color-primary, #3b82f6) !important;
     }
     .ai-accordion-chevron {
-      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform var(--ai-transition-duration-normal, 0.22s) var(--ai-transition-easing, cubic-bezier(0.16, 1, 0.3, 1));
       display: inline-block;
     }
     .ai-accordion-trigger[data-state="open"] .ai-accordion-chevron {
@@ -181,7 +181,7 @@ export const Accordion: React.FC<AccordionProps> = ({
                 color: 'var(--ai-text-primary, #111827)',
                 cursor: item.disabled ? 'not-allowed' : 'pointer',
                 background: 'var(--ai-bg-container, #f9fafb)',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                transition: 'background var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease), color var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
               }}
             >
               <span>{item.title}</span>

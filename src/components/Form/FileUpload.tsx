@@ -287,7 +287,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           opacity: disabled ? 0.6 : 1,
           outline: 'none',
           textAlign: 'center',
-          transition: 'border-color 0.15s ease, background 0.15s ease',
+          // No inline transition -- .ai-focus-ring's own shared rule
+          // (interactionStyles.ts) already covers background-color and
+          // border-color and is !important, so this would be silently
+          // discarded outright, not just redundant (issue #411).
           ...fileUploadVars,
         }}
       >

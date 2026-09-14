@@ -71,7 +71,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             padding: '0.125rem',
             width: 'var(--ai-scrollarea-thumb-size, 0.5rem)',
             background: 'transparent',
-            transition: 'background 160ms ease',
+            transition: 'background var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease)',
           }}
         >
           <ScrollAreaPrimitive.Thumb
@@ -94,7 +94,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             padding: '0.125rem',
             height: 'var(--ai-scrollarea-thumb-size, 0.5rem)',
             background: 'transparent',
-            transition: 'background 160ms ease',
+            transition: 'background var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease)',
           }}
         >
           <ScrollAreaPrimitive.Thumb

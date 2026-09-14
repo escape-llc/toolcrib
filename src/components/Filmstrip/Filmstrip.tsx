@@ -224,7 +224,10 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
                   : '0.0625rem solid var(--ai-border, #d1d5db)',
                 cursor: item.disabled ? 'not-allowed' : 'pointer',
                 opacity: item.disabled ? 0.5 : 1,
-                transition: 'var(--ai-transition-fast, all 0.15s ease)',
+                // No inline transition -- .ai-btn's own shared rule
+                // (interactionStyles.ts) already covers border-color and
+                // is !important, so this would be silently discarded
+                // outright, not just redundant (issue #411).
                 ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
               }}
             >

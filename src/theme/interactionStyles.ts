@@ -65,6 +65,48 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  * `!important` is only used where a component's own inline `style` already
  * sets that exact property (documented per-rule below) — inline style
  * always outranks an external stylesheet rule otherwise, override or not.
+ *
+ * Issue #411 — the base `.ai-btn`/`.ai-tab-trigger`/`.ai-focus-ring` rule's
+ * own `transition` declaration is `!important` (see that rule's own comment
+ * for why), and `transition` is a shorthand: cascade resolves it as ONE
+ * winning declaration per element, never merged across competing rules —
+ * confirmed the same way Toast's identical bug (#358) was. That meant
+ * EVERY consumer of these three classes that also set its own inline
+ * `transition` (for its own background-color/border-color/color/transform
+ * hover or selection feedback) had that transition completely discarded,
+ * not just shortened — only `outline-color` was ever actually animated.
+ * 14 real components had this (ToggleGroup, Button, Input, Checkbox,
+ * Switch, RadioGroup, Rating, Combobox, FileUpload, Splitter, Collapsible,
+ * Filmstrip, TabStrip — see the issue for the full investigation).
+ *
+ * Fixed by centralizing here instead of making every consumer's own rule
+ * `!important` too (which would just spread the same collision N more
+ * times) — this is the ONE shared rule already winning the cascade for
+ * these classes, so it now names every property a real consumer needs,
+ * and each of those 14 components' own now-fully-redundant inline
+ * `transition` was deleted rather than left as dead, misleading code.
+ * Longhand `transition-property`/`-duration`/`-timing-function` (not the
+ * shorthand), matching `TOOLCRIB_THEME_TRANSITIONS_CSS`'s own established
+ * pattern (`serverThemeCSS.ts`) — and reusing that exact same
+ * `--ai-theme-transition-properties` token, so a consumer who already
+ * customizes the ambient default (documented there) gets the identical
+ * customization honored here rather than a second, silently-diverging
+ * hardcoded list. `border-radius` and `transform` are appended as fixed
+ * literals rather than folded into that token: they're functional
+ * requirements specific to THIS shared class's own behavior (Combobox's
+ * corner-squaring shape morph, `:active`'s press-scale below), not general
+ * ambient color theming, so they stay present even if a consumer trims the
+ * ambient token down for unrelated reasons. One shared duration
+ * (`--ai-transition-duration-normal`) for the whole list, not a
+ * per-property split — CSS's own transition-property/-duration positional
+ * alignment only works cleanly for statically-known-length lists, and
+ * `--ai-theme-transition-properties` resolves to a variable-length list at
+ * the consumer's own discretion, so a fixed 1:1 pairing can't be
+ * guaranteed; a single shared duration sidesteps that entirely and matches
+ * this file's own established preference for `-normal` over `-fast` on
+ * anything that must reliably register (see the focus-ring rule's own
+ * comment on why `-fast`'s unfloored range was rejected there for the
+ * identical reason).
  */
 export function injectInteractionStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
@@ -115,7 +157,9 @@ export function injectInteractionStyles(targetDocument?: Document, nonce?: strin
     .ai-focus-ring {
       outline: var(--ai-focus-ring-width, 0.125rem) solid transparent !important;
       outline-offset: var(--ai-focus-ring-offset, 0.125rem);
-      transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) !important;
+      transition-property: var(--ai-theme-transition-properties, background-color, color, border-color, box-shadow, fill, stroke, outline-color, text-decoration-color), border-radius, transform !important;
+      transition-duration: var(--ai-transition-duration-normal, 0.2s) !important;
+      transition-timing-function: var(--ai-transition-easing, ease) !important;
     }
     .ai-btn:focus-visible,
     .ai-tab-trigger:focus-visible,
@@ -125,7 +169,10 @@ export function injectInteractionStyles(targetDocument?: Document, nonce?: strin
     }
 
     /* :active — neither element sets an inline \`transform\`, so no
-       !important needed for either rule. */
+       !important needed for either rule to set the VALUE here; the base
+       rule above already guarantees \`transform\` is in the winning
+       transition-property list (issue #411), so the press-scale this sets
+       actually animates instead of snapping. */
     .ai-btn:active:not(:disabled) {
       transform: var(--ai-active-transform, scale(0.98));
     }

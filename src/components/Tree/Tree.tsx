@@ -269,7 +269,7 @@ export const Tree: React.FC<TreeProps> = ({
                     justifyContent: 'center',
                     color: 'var(--ai-text-secondary, #6b7280)',
                     transform: isExpanded ? 'rotate(90deg)' : 'none',
-                    transition: 'transform 0.15s ease',
+                    transition: 'transform var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
                   }}
                 >
                   ▶
