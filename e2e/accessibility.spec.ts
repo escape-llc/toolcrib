@@ -211,7 +211,19 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // swallowed rather than reaching the now-topmost outer dialog. Confirmed
   // directly: without this wait, the outer dialog was still open (and
   // "Open Command Palette" unreachable) after this second Escape.
-  await page.waitForTimeout(300);
+  //
+  // De-flaked (issue #413): a fixed `waitForTimeout(300)` raced that exit
+  // animation + Presence teardown directly -- under real CI scheduling
+  // (WebKit specifically), 300ms of wall-clock time wasn't always enough,
+  // so this flaked with the exact symptom the comment above already
+  // predicted ("Open Command Palette" unreachable), just intermittently
+  // rather than always. Waiting for the inner dialog to actually be gone
+  // -- its own already-distinct accessible name (`ariaLabel="Nested
+  // Confirmation"`, demo/App.tsx) needs no new DOM markers -- is a real
+  // completion signal instead of a wall-clock guess, the same principle
+  // this repo's own animationend-listener e2e tests already establish
+  // (see toast-animation.spec.ts).
+  await expect(page.getByRole('dialog', { name: 'Nested Confirmation' })).not.toBeAttached();
   await page.keyboard.press('Escape'); // closes the outer modal
 
   await page.getByRole('button', { name: 'Open Command Palette' }).click();
