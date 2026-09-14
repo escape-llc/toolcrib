@@ -90,7 +90,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '7' }); // last column (row actions)
 
     await page.keyboard.press('Control+End');
-    // Last row on this page (pageSize 15) is page-relative row 15 -- likely
+    // Last row on this page (defaultPageSize 15) is page-relative row 15 -- likely
     // outside the initial virtualization window at this viewport size, so
     // (unlike the plain Home/End checks above, both header-row moves that
     // never leave the DOM) this needs an auto-retrying assertion rather
@@ -114,7 +114,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     const idHeader = page.locator('[data-grid-row="0"][data-grid-col="1"]').first();
     await idHeader.focus();
 
-    // pageSize=15 means Ctrl+End targets page-relative row 15 -- likely
+    // defaultPageSize=15 means Ctrl+End targets page-relative row 15 -- likely
     // outside the initial small render window this table's own
     // itemHeight/containerHeight combination virtualizes to.
     await page.keyboard.press('Control+End');

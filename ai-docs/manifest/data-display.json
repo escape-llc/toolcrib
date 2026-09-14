@@ -221,7 +221,7 @@
         "pagination": {
           "type": "boolean",
           "default": "true",
-          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`pageSize`/`pageSizeOptions` are ignored in this mode."
+          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`defaultPageSize`/`pageSizeOptions` are ignored in this mode."
         },
         "onEndReached": {
           "type": "() => void",
@@ -232,15 +232,15 @@
           "default": "10",
           "description": "How many rows from the end of `data` the virtualization window's\ntrailing edge must come within before `onEndReached` fires. Only\nmeaningful alongside `onEndReached`."
         },
-        "pageSize": {
+        "defaultPageSize": {
           "type": "number | 'auto'",
           "default": "10",
-          "description": "Initial number of rows per page. `'auto'` computes it live instead of\nusing a fixed number -- `Math.floor(<measured body height> /\nitemHeight)` -- so a page always fills exactly the space it's given\n(no partial row cut off, no empty space at the bottom), recomputing\nwhenever the container is resized or density changes `itemHeight`.\nMirrors `containerHeight`'s own `'auto'` convention, and reuses the\nexact same live measurement (`useAdaptiveSize(bodyRef)`) that already\ndrives it. `pageSizeOptions` and the page-size dropdown are both\nignored in this mode -- there's nothing meaningful to pick when the\nsize is computed from available space, the same \"ignored\" precedent\n`pagination={false}` already sets for both props."
+          "description": "Initial number of rows per page. Named `default*` (issue #391 --\nrenamed from the original `pageSize`) because that's exactly its\ncontract: it seeds this table's internal page-size state once, the\nsame uncontrolled-initial-value shape `defaultPage`/`defaultSortBy`/\n`defaultSelectedKeys`/`defaultQuickFilterValue`/`defaultColumnWidths`/\n`defaultDensity` all already use elsewhere in this component -- a\nlater change to this prop's own value does NOT propagate; there is no\nlive-syncing \"controlled\" counterpart for page size the way `page`\nitself has one. `'auto'` computes it live instead of using a fixed\nnumber -- `Math.floor(<measured body height> / itemHeight)` -- so a\npage always fills exactly the space it's given (no partial row cut\noff, no empty space at the bottom), recomputing whenever the container\nis resized or density changes `itemHeight`. Mirrors `containerHeight`'s\nown `'auto'` convention, and reuses the exact same live measurement\n(`useAdaptiveSize(bodyRef)`) that already drives it. `pageSizeOptions`\nand the page-size dropdown are both ignored in this mode -- there's\nnothing meaningful to pick when the size is computed from available\nspace, the same \"ignored\" precedent `pagination={false}` already sets\nfor both props."
         },
         "pageSizeOptions": {
           "type": "number[]",
           "default": "[5, 10, 25, 50, 100]",
-          "description": "Options shown in the page-size dropdown. Ignored when `pageSize` is `'auto'`."
+          "description": "Options shown in the page-size dropdown. Ignored when `defaultPageSize` is `'auto'`."
         },
         "itemHeight": {
           "type": "number",

@@ -23,7 +23,7 @@ const testColumns: Column<TestItem>[] = [
 
 describe('DataTable Virtualized Component', () => {
   it('renders paginated data correctly', async () => {
-    render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
@@ -31,7 +31,7 @@ describe('DataTable Virtualized Component', () => {
   });
 
   it('navigates through pages using glyph buttons', async () => {
-    render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
     fireEvent.click(screen.getByLabelText('Next page'));
     expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe('DataTable Virtualized Component', () => {
   });
 
   it('sorts columns on click', () => {
-    render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
     fireEvent.click(screen.getByText('Name'));
     expect(screen.getByText('Name')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('DataTable Virtualized Component', () => {
     // own floor is what guarantees the *whole* component (header, body,
     // footer together) still renders usefully when its ancestor gives it
     // nothing at all.
-    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
     const outerWrapper = scrollBody.parentElement as HTMLElement;
@@ -94,7 +94,7 @@ describe('DataTable Virtualized Component', () => {
     // shrink) rather than measured pixel geometry — the same "assert the
     // CSS a real browser will resolve" approach the rest of this file's
     // height-related tests already use.
-    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
     const footer = scrollBody.nextElementSibling as HTMLElement;
@@ -107,13 +107,13 @@ describe('DataTable Virtualized Component', () => {
     // The floor is specifically an auto-mode safety net — an explicit
     // pixel height already guarantees visibility on its own, and forcing
     // a floor here would fight a deliberately small containerHeight.
-    const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} containerHeight={500} />);
+    const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} containerHeight={500} />);
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
     expect(scrollBody.style.minHeight).toBe('0px');
   });
 
-  describe('pageSize="auto" (issue #364)', () => {
+  describe('defaultPageSize="auto" (issue #364)', () => {
     // jsdom has no ResizeObserver/layout engine, so `observedHeight` never
     // reports a real measurement here -- exactly the same limitation the
     // `containerHeight="auto"` tests above already document and work
@@ -125,21 +125,21 @@ describe('DataTable Virtualized Component', () => {
     // convenience -- worth asserting directly regardless.
     it('falls back to Math.floor(AUTO_HEIGHT_FALLBACK_PX / itemHeight) before any real measurement arrives', () => {
       // Default itemHeight (normal density) is 44 -- Math.floor(350/44) = 7.
-      render(<DataTable data={testData} columns={testColumns} pageSize="auto" />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" />);
       expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
     });
 
     it('respects an explicit itemHeight in the same fallback computation', () => {
       // Math.floor(350/35) = 10.
-      render(<DataTable data={testData} columns={testColumns} pageSize="auto" itemHeight={35} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" itemHeight={35} />);
       expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
     });
 
     it('hides the page-size dropdown entirely -- nothing meaningful to pick when the size is computed', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize="auto" />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" />);
       expect(screen.queryByLabelText('Rows per page')).not.toBeInTheDocument();
       // The rest of the pagination footer (Prev/Next) is still present --
-      // pageSize="auto" only removes the dropdown, not pagination itself.
+      // defaultPageSize="auto" only removes the dropdown, not pagination itself.
       expect(screen.getByLabelText('Next page')).toBeInTheDocument();
     });
   });
@@ -314,7 +314,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData.slice(0, 30)}
           columns={testColumns}
-          pageSize={5}
+          defaultPageSize={5}
           containerHeight={200}
           onEndReached={onEndReached}
         />
@@ -383,17 +383,17 @@ describe('DataTable Virtualized Component', () => {
     // derived display value) back when totalPages changes, the table used
     // to jump straight back to the stale page instead of staying on the
     // page the user was actually looking at.
-    const { rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    const { rerender } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
     for (let i = 0; i < 4; i++) fireEvent.click(screen.getByLabelText('Next page'));
     expect(screen.getByText('5 / 5')).toBeInTheDocument();
 
     const filtered = testData.slice(0, 5);
-    rerender(<DataTable data={filtered} columns={testColumns} pageSize={10} />);
+    rerender(<DataTable data={filtered} columns={testColumns} defaultPageSize={10} />);
     expect(screen.getByText('1 / 1')).toBeInTheDocument();
     expect((screen.getByLabelText('Previous page') as HTMLButtonElement).disabled).toBe(true);
 
-    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+    rerender(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
     expect(screen.getByText('1 / 5')).toBeInTheDocument();
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
   });
@@ -403,7 +403,7 @@ describe('DataTable Virtualized Component', () => {
       <DataTable
         data={testData}
         columns={testColumns}
-        pageSize={10}
+        defaultPageSize={10}
         rowSubtheme={(record: TestItem) => (record.id === 1 ? 'error' : undefined)}
       />
     );
@@ -421,7 +421,7 @@ describe('DataTable Virtualized Component', () => {
       <DataTable
         data={testData}
         columns={testColumns}
-        pageSize={10}
+        defaultPageSize={10}
         overrides={{ borderStyle: 'none' }}
         rowSubtheme={(record: TestItem) => (record.id === 1 ? 'error' : undefined)}
       />
@@ -441,7 +441,7 @@ describe('DataTable Virtualized Component', () => {
       <DataTable
         data={testData}
         columns={testColumns}
-        pageSize={10}
+        defaultPageSize={10}
         rowSubtheme={(record: TestItem) => (record.id === 1 ? { background: 'rebeccapurple' } : undefined)}
       />
     );
@@ -458,7 +458,7 @@ describe('DataTable Virtualized Component', () => {
 
   it('does not let a stale in-flight scroll frame stomp the reset when sorting mid-scroll', async () => {
     const { container } = render(
-      <DataTable data={testData} columns={testColumns} pageSize={50} containerHeight={200} />
+      <DataTable data={testData} columns={testColumns} defaultPageSize={50} containerHeight={200} />
     );
     const table = container.querySelector('table');
     const scrollBody = table?.parentElement as HTMLElement;
@@ -492,7 +492,7 @@ describe('DataTable Virtualized Component', () => {
       { key: 'score', title: 'Score', sortable: true },
     ];
 
-    render(<DataTable data={nanData} columns={scoredColumns} pageSize={10} />);
+    render(<DataTable data={nanData} columns={scoredColumns} defaultPageSize={10} />);
     fireEvent.click(screen.getByText('Score')); // ascending
 
     const dataRows = screen.getAllByRole('row').slice(1); // drop the header row
@@ -504,7 +504,7 @@ describe('DataTable Virtualized Component', () => {
     const sortedFn = vi.fn();
     const unsub = aiBus.on('datatable:sorted', sortedFn);
 
-    render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+    render(<DataTable id="my-table" data={testData} columns={testColumns} defaultPageSize={10} />);
 
     fireEvent.click(screen.getByText('Name'));
     expect(sortedFn).toHaveBeenLastCalledWith({ id: 'my-table', sortBy: [{ key: 'name', direction: 'asc' }] });
@@ -522,7 +522,7 @@ describe('DataTable Virtualized Component', () => {
     const paginatedFn = vi.fn();
     const unsub = aiBus.on('datatable:paginated', paginatedFn);
 
-    render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+    render(<DataTable id="my-table" data={testData} columns={testColumns} defaultPageSize={10} />);
 
     fireEvent.click(screen.getByLabelText('Next page'));
     expect(paginatedFn).toHaveBeenLastCalledWith({ id: 'my-table', page: 2, pageSize: 10 });
@@ -539,7 +539,7 @@ describe('DataTable Virtualized Component', () => {
   it('supports a controlled sortBy, calling onSortChange instead of managing its own state', () => {
     const onSortChange = vi.fn();
     const { rerender } = render(
-      <DataTable data={testData} columns={testColumns} pageSize={10} sortBy={[{ key: 'id', direction: 'asc' }]} onSortChange={onSortChange} />
+      <DataTable data={testData} columns={testColumns} defaultPageSize={10} sortBy={[{ key: 'id', direction: 'asc' }]} onSortChange={onSortChange} />
     );
 
     // The header already reflects the controlled sort (ascending).
@@ -554,14 +554,14 @@ describe('DataTable Virtualized Component', () => {
     // Once the parent actually updates the controlled props, the
     // component reflects that new state.
     rerender(
-      <DataTable data={testData} columns={testColumns} pageSize={10} sortBy={[{ key: 'id', direction: 'desc' }]} onSortChange={onSortChange} />
+      <DataTable data={testData} columns={testColumns} defaultPageSize={10} sortBy={[{ key: 'id', direction: 'desc' }]} onSortChange={onSortChange} />
     );
     expect(screen.getByText('▼')).toBeInTheDocument();
   });
 
   it('supports a controlled page, calling onPageChange instead of managing its own state', () => {
     const onPageChange = vi.fn();
-    const { rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} page={2} onPageChange={onPageChange} />);
+    const { rerender } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} page={2} onPageChange={onPageChange} />);
 
     expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
 
@@ -570,7 +570,7 @@ describe('DataTable Virtualized Component', () => {
     // Still on page 2 — the parent hasn't re-rendered with the new page yet.
     expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
 
-    rerender(<DataTable data={testData} columns={testColumns} pageSize={10} page={3} onPageChange={onPageChange} />);
+    rerender(<DataTable data={testData} columns={testColumns} defaultPageSize={10} page={3} onPageChange={onPageChange} />);
     expect(screen.getByText('Showing 21 to 30 of 50 entries')).toBeInTheDocument();
   });
 
@@ -581,7 +581,7 @@ describe('DataTable Virtualized Component', () => {
       { key: 'upper', title: 'Upper', accessorFn: r => r.name.toUpperCase(), render: renderSpy },
     ];
 
-    render(<DataTable data={testData} columns={computedColumns} pageSize={10} />);
+    render(<DataTable data={testData} columns={computedColumns} defaultPageSize={10} />);
 
     expect(screen.getByText('ITEM 1')).toBeInTheDocument();
     expect(renderSpy).toHaveBeenCalledWith({ value: 'ITEM 1', row: testData[0], index: 0 });
@@ -602,7 +602,7 @@ describe('DataTable Virtualized Component', () => {
       { key: 'fullName', title: 'Full Name', sortable: true, accessorFn: r => `${r.first} ${r.last}` },
     ];
 
-    render(<DataTable data={people} columns={nameColumns} pageSize={10} />);
+    render(<DataTable data={people} columns={nameColumns} defaultPageSize={10} />);
     fireEvent.click(screen.getByText('Full Name'));
 
     const dataRows = screen.getAllByRole('row').slice(1);
@@ -636,14 +636,14 @@ describe('DataTable Virtualized Component', () => {
     const onRowClick = vi.fn();
     const unsub = aiBus.on('datatable:row_clicked', rowClickedFn);
 
-    const { rerender } = render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} />);
+    const { rerender } = render(<DataTable id="my-table" data={testData} columns={testColumns} defaultPageSize={10} />);
     const plainRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
     expect(plainRow.style.cursor).toBe('');
     fireEvent.click(plainRow);
     expect(rowClickedFn).toHaveBeenLastCalledWith({ id: 'my-table', index: 0 });
     expect(onRowClick).not.toHaveBeenCalled();
 
-    rerender(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} onRowClick={onRowClick} />);
+    rerender(<DataTable id="my-table" data={testData} columns={testColumns} defaultPageSize={10} onRowClick={onRowClick} />);
     const clickableRow = screen.getByText('Item 1').closest('tr') as HTMLElement;
     expect(clickableRow.style.cursor).toBe('pointer');
     fireEvent.click(clickableRow);
@@ -655,7 +655,7 @@ describe('DataTable Virtualized Component', () => {
 
   describe('row selection', () => {
     it('renders no selection checkboxes when selectable is false (the default)', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
     });
 
@@ -665,7 +665,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           onSelectionChange={onSelectionChange}
@@ -678,14 +678,14 @@ describe('DataTable Virtualized Component', () => {
     it('clicking a row checkbox does not also trigger onRowClick', () => {
       const onRowClick = vi.fn();
       render(
-        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable onRowClick={onRowClick} />
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable onRowClick={onRowClick} />
       );
       fireEvent.click(screen.getByLabelText('Select row 1'));
       expect(onRowClick).not.toHaveBeenCalled();
     });
 
     it('the header checkbox reflects unchecked/indeterminate/checked for the current page only', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       const headerCheckbox = screen.getByLabelText('Select all rows on this page');
       expect(headerCheckbox).toHaveAttribute('data-state', 'unchecked');
 
@@ -701,7 +701,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('the header checkbox selects/deselects every row on the current page at once', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByLabelText('Select all rows on this page'));
       for (let i = 1; i <= 10; i++) {
         expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'checked');
@@ -716,7 +716,7 @@ describe('DataTable Virtualized Component', () => {
     // The doc's own acceptance bar for this item: proves selection actually
     // persists across pages, not just that the feature was decided that way.
     it('persists selection across pages — selecting a row, changing page, then returning shows it still checked', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
       expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
@@ -739,7 +739,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           selectedKeys={['1']}
@@ -757,7 +757,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           selectedKeys={['1', '2']}
@@ -770,7 +770,7 @@ describe('DataTable Virtualized Component', () => {
     it('emits datatable:selection_changed', () => {
       const changedFn = vi.fn();
       const unsub = aiBus.on('datatable:selection_changed', changedFn);
-      render(<DataTable id="my-table" data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable id="my-table" data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByLabelText('Select row 1'));
       expect(changedFn).toHaveBeenLastCalledWith({ id: 'my-table', selectedKeys: ['1'] });
       unsub();
@@ -781,7 +781,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           renderBulkActions={keys => <button>{`Delete ${keys.length}`}</button>}
@@ -821,7 +821,7 @@ describe('DataTable Virtualized Component', () => {
     it('does not treat an omitted sortable key as sortable', () => {
       const sortedFn = vi.fn();
       const unsub = aiBus.on('datatable:sorted', sortedFn);
-      render(<DataTable data={testData} columns={nonSortableColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={nonSortableColumns} defaultPageSize={10} />);
 
       const actionsHeader = screen.getByText('Actions').closest('th')!;
       expect(actionsHeader).toHaveStyle({ cursor: 'default' });
@@ -851,7 +851,7 @@ describe('DataTable Virtualized Component', () => {
       // native default-action behavior for a raw keydown anyway. What this
       // component IS responsible for -- exposing a real button, and
       // driving aria-sort off a click -- is what's asserted here.
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const idHeader = screen.getByText('ID').closest('th')!;
       const sortButton = screen.getByRole('button', { name: 'ID' });
 
@@ -879,7 +879,7 @@ describe('DataTable Virtualized Component', () => {
       // the structural fix instead: the button, not the <th>, carries the
       // real padding and stretches to fill the cell, and the arrow span is
       // hidden from assistive tech.
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const idHeader = screen.getByText('ID').closest('th')!;
       const sortButton = screen.getByRole('button', { name: 'ID' });
 
@@ -939,7 +939,7 @@ describe('DataTable Virtualized Component', () => {
     ];
 
     it('Shift-click adds a second column as a secondary sort, breaking ties in the primary', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} rowKey={r => r.id} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} rowKey={r => r.id} />);
       fireEvent.click(screen.getByText('Group')); // primary: group asc
       fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // secondary: score asc
 
@@ -949,13 +949,13 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('Shift-click with nothing currently sorted just adds that column as the first sort priority', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} />);
       fireEvent.click(screen.getByText('Score'), { shiftKey: true });
       expect(screen.getByText('Score').closest('th')).toHaveAttribute('aria-sort', 'ascending');
     });
 
     it('Shift-click cycles an already-sorted secondary column asc -> desc -> removed, leaving the primary untouched', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} />);
       fireEvent.click(screen.getByText('Group')); // primary asc
       fireEvent.click(screen.getByText('Score'), { shiftKey: true }); // secondary asc
       const scoreHeader = screen.getByText('Score').closest('th')!;
@@ -972,7 +972,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('a plain click while multi-sort is active replaces the whole sort with just that column', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} />);
       fireEvent.click(screen.getByText('Group'));
       fireEvent.click(screen.getByText('Score'), { shiftKey: true });
 
@@ -982,7 +982,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('shows a numbered priority badge only once a second column has actually joined the sort', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} />);
       const groupHeader = screen.getByText('Group').closest('th')!;
       const scoreHeader = screen.getByText('Score').closest('th')!;
 
@@ -1005,7 +1005,7 @@ describe('DataTable Virtualized Component', () => {
     // aria-sort only ever announces THIS column's own ascending/descending
     // direction, never whether it's the primary or secondary sort key.
     it('exposes the sort priority to screen readers via visually-hidden text, not just the visual badge', () => {
-      render(<DataTable data={rankedData} columns={rankedColumns} pageSize={10} />);
+      render(<DataTable data={rankedData} columns={rankedColumns} defaultPageSize={10} />);
       fireEvent.click(screen.getByText('Group'));
       fireEvent.click(screen.getByText('Score'), { shiftKey: true });
 
@@ -1018,7 +1018,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={rankedData}
           columns={rankedColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           sortBy={[
             { key: 'group', direction: 'asc' },
@@ -1033,7 +1033,7 @@ describe('DataTable Virtualized Component', () => {
 
   describe('click-to-select, modifiers, single-select mode, hideSelectionColumn, and rowCommands (issue #329)', () => {
     it('a plain row click selects only that row, replacing any prior selection', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByLabelText('Select row 1'));
       expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
 
@@ -1043,7 +1043,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('Ctrl/Cmd-click toggles just that row, keeping the rest of the selection', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByText('Item 1'));
       fireEvent.click(screen.getByText('Item 2'), { ctrlKey: true });
       expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
@@ -1056,7 +1056,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('Shift-click range-selects from the last acted-on row to the clicked one', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByText('Item 2')); // anchor = row 2
       fireEvent.click(screen.getByText('Item 5'), { shiftKey: true });
       for (let i = 2; i <= 5; i++) {
@@ -1079,7 +1079,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           onSelectionChange={onSelectionChange}
@@ -1111,7 +1111,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           disableRowClickSelection
@@ -1129,7 +1129,7 @@ describe('DataTable Virtualized Component', () => {
     describe('selectionMode="single"', () => {
       it('renders a role="radio" indicator instead of a checkbox, with no "select all" header control', () => {
         render(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
         );
         expect(screen.getByLabelText('Select row 1')).toHaveAttribute('role', 'radio');
         expect(screen.queryByLabelText('Select all rows on this page')).not.toBeInTheDocument();
@@ -1137,7 +1137,7 @@ describe('DataTable Virtualized Component', () => {
 
       it('selecting a row replaces the whole selection -- modifiers are ignored, and re-clicking the current choice keeps it selected', () => {
         render(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
         );
         fireEvent.click(screen.getByText('Item 1'));
         expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
@@ -1159,7 +1159,7 @@ describe('DataTable Virtualized Component', () => {
       // nothing useful to a screen reader.
       it('the empty "select all" header cell still has a real accessible name (no unlabeled focusable cell)', () => {
         const { container } = render(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
         );
         const headerCell = container.querySelector('[data-grid-row="0"][data-grid-col="0"]') as HTMLElement;
         expect(headerCell.tagName).toBe('TH');
@@ -1169,7 +1169,7 @@ describe('DataTable Virtualized Component', () => {
 
     it('hideSelectionColumn removes the visible checkbox/radio column, but selection still works via click, and aria-selected still marks the row', () => {
       render(
-        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable hideSelectionColumn />
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable hideSelectionColumn />
       );
       expect(screen.queryByLabelText(/Select row/)).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Select all rows on this page')).not.toBeInTheDocument();
@@ -1182,7 +1182,7 @@ describe('DataTable Virtualized Component', () => {
 
     it('Space toggles the currently-focused row\'s selection', () => {
       const { container } = render(
-        <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />
       );
       const idHeader = container.querySelector('[data-grid-row="0"][data-grid-col="1"]') as HTMLElement;
       act(() => idHeader.focus());
@@ -1203,7 +1203,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={testColumns}
-          pageSize={10}
+          defaultPageSize={10}
           rowKey={r => r.id}
           selectable
           rowSubtheme={r => (r.id === 1 ? 'error' : undefined)}
@@ -1228,7 +1228,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('contiguous selected rows merge into one framed block: only the first row gets a top cap and only the last gets a bottom cap', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} selectable />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
 
       // Select rows 1, 2, and 3 (contiguous) -- row 4 stays unselected.
       fireEvent.click(screen.getByLabelText('Select row 1'));
@@ -1273,7 +1273,7 @@ describe('DataTable Virtualized Component', () => {
             id="cmd-table"
             data={testData}
             columns={testColumns}
-            pageSize={10}
+            defaultPageSize={10}
             rowKey={r => r.id}
             selectable
             rowCommands={[
@@ -1299,7 +1299,7 @@ describe('DataTable Virtualized Component', () => {
       // toolkit already has.
       it('a row-command button carries ai-btn for real hover/active affordance, not just ai-focus-ring', () => {
         render(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
         );
         const editButton = screen.getByText('Item 1').closest('tr')!.querySelector('[aria-label="Edit"]')!;
         expect(editButton).toHaveClass('ai-btn', 'ai-focus-ring');
@@ -1319,7 +1319,7 @@ describe('DataTable Virtualized Component', () => {
       // established `ai-btn` pattern, never `all: 'unset'`.
       it('does not use inline all: "unset" -- it would silently defeat .ai-btn:active\'s non-!important transform', () => {
         render(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'edit', label: 'Edit' }]} />
         );
         const editButton = screen.getByText('Item 1').closest('tr')!.querySelector('[aria-label="Edit"]') as HTMLElement;
         expect(editButton.style.all).toBe('');
@@ -1337,7 +1337,7 @@ describe('DataTable Virtualized Component', () => {
           <DataTable
             data={testData}
             columns={testColumns}
-            pageSize={10}
+            defaultPageSize={10}
             rowKey={r => r.id}
             rowCommands={[{ id: 'edit', label: 'Edit' }]}
           />
@@ -1366,7 +1366,7 @@ describe('DataTable Virtualized Component', () => {
           <DataTable
             data={testData}
             columns={testColumns}
-            pageSize={10}
+            defaultPageSize={10}
             rowKey={r => r.id}
             rowCommands={[{ id: 'delete', label: 'Delete', isVisible: r => r.id !== 1 }]}
           />
@@ -1378,11 +1378,11 @@ describe('DataTable Virtualized Component', () => {
       });
 
       it('adds one column to aria-colcount for the actions column', () => {
-        const { container, rerender } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+        const { container, rerender } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
         expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '2');
 
         rerender(
-          <DataTable data={testData} columns={testColumns} pageSize={10} rowCommands={[{ id: 'x', label: 'X' }]} />
+          <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowCommands={[{ id: 'x', label: 'X' }]} />
         );
         expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '3');
       });
@@ -1391,17 +1391,17 @@ describe('DataTable Virtualized Component', () => {
 
   describe('quick filter (issue #317)', () => {
     it('renders no search input by default', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     });
 
     it('renders a labeled search input when quickFilter is true', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter />);
       expect(screen.getByRole('searchbox', { name: 'Search…' })).toBeInTheDocument();
     });
 
     it('filters rows by a case-insensitive substring match against any column, resetting the page to 1', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter rowKey={r => r.id} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter rowKey={r => r.id} />);
 
       // Navigate to page 3 first, to prove filtering resets it.
       fireEvent.click(screen.getByLabelText('Next page'));
@@ -1432,7 +1432,7 @@ describe('DataTable Virtualized Component', () => {
       ];
       const nameColumns: Column<ScoredItem>[] = [{ key: 'fullName', title: 'Full Name', accessorFn: r => `${r.first} ${r.last}` }];
 
-      render(<DataTable data={people} columns={nameColumns} pageSize={10} quickFilter />);
+      render(<DataTable data={people} columns={nameColumns} defaultPageSize={10} quickFilter />);
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'yankee' } });
       expect(screen.getByText('Alice Yankee')).toBeInTheDocument();
       expect(screen.queryByText('Charlie Zulu')).not.toBeInTheDocument();
@@ -1456,7 +1456,7 @@ describe('DataTable Virtualized Component', () => {
       ];
 
       render(
-        <DataTable data={contacts} columns={contactColumns} pageSize={10} quickFilter quickFilterFields={['name']} />
+        <DataTable data={contacts} columns={contactColumns} defaultPageSize={10} quickFilter quickFilterFields={['name']} />
       );
       // "zulu" only appears in Bob's email, not his name -- with the search
       // scoped to just `name`, it should match nothing.
@@ -1489,7 +1489,7 @@ describe('DataTable Virtualized Component', () => {
           id="scoped-filter-table"
           data={contacts}
           columns={contactColumns}
-          pageSize={10}
+          defaultPageSize={10}
           quickFilter
           quickFilterFields={['name']}
         />
@@ -1542,7 +1542,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('clearing the filter shows every row again', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter />);
       const input = screen.getByRole('searchbox');
       fireEvent.change(input, { target: { value: 'item 42' } });
       expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
@@ -1555,7 +1555,7 @@ describe('DataTable Virtualized Component', () => {
     it('supports a controlled quickFilterValue, calling onQuickFilterChange instead of managing its own state', () => {
       const onQuickFilterChange = vi.fn();
       const { rerender } = render(
-        <DataTable data={testData} columns={testColumns} pageSize={10} quickFilter quickFilterValue="" onQuickFilterChange={onQuickFilterChange} />
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter quickFilterValue="" onQuickFilterChange={onQuickFilterChange} />
       );
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       fireEvent.change(input, { target: { value: 'item 42' } });
@@ -1565,7 +1565,7 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByText('Item 1')).toBeInTheDocument();
 
       rerender(
-        <DataTable data={testData} columns={testColumns} pageSize={10} quickFilter quickFilterValue="item 42" onQuickFilterChange={onQuickFilterChange} />
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter quickFilterValue="item 42" onQuickFilterChange={onQuickFilterChange} />
       );
       expect(screen.getByText('Item 42')).toBeInTheDocument();
       expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
@@ -1574,14 +1574,14 @@ describe('DataTable Virtualized Component', () => {
     it('emits datatable:filtered with the value and the resulting match count', () => {
       const handler = vi.fn();
       const unsub = aiBus.on('datatable:filtered', handler);
-      render(<DataTable id="filter-table" data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      render(<DataTable id="filter-table" data={testData} columns={testColumns} defaultPageSize={10} quickFilter />);
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
       expect(handler).toHaveBeenLastCalledWith({ id: 'filter-table', value: 'item 42', matchCount: 1 });
       unsub();
     });
 
     it('aria-rowcount reflects the filtered count, not the full unfiltered dataset', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} quickFilter />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} quickFilter />);
       expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '51'); // 50 rows + header
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'item 42' } });
       expect(container.querySelector('table')).toHaveAttribute('aria-rowcount', '2'); // 1 row + header
@@ -1627,12 +1627,12 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('renders no density toggle group by default', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       expect(screen.queryByRole('group', { name: 'Row density' })).not.toBeInTheDocument();
     });
 
     it('renders a labeled compact/normal/spacious toggle group when densitySelector is true', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} densitySelector />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
       const group = screen.getByRole('group', { name: 'Row density' });
       expect(within(group).getByRole('button', { name: 'Compact' })).toBeInTheDocument();
       expect(within(group).getByRole('button', { name: 'Normal' })).toBeInTheDocument();
@@ -1704,7 +1704,7 @@ describe('DataTable Virtualized Component', () => {
     it('emits datatable:density_changed with this table\'s id and the new density', () => {
       const handler = vi.fn();
       const unsub = aiBus.on('datatable:density_changed', handler);
-      render(<DataTable id="density-table" data={testData} columns={testColumns} pageSize={10} densitySelector />);
+      render(<DataTable id="density-table" data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
       fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
       expect(handler).toHaveBeenLastCalledWith({ id: 'density-table', density: 'compact' });
       unsub();
@@ -1718,7 +1718,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('renders no emptyState content when data is non-empty, even if emptyState is given', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} emptyState={<span>Nothing here yet</span>} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />);
       expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
       expect(screen.getByText('Item 1')).toBeInTheDocument();
     });
@@ -1755,7 +1755,7 @@ describe('DataTable Virtualized Component', () => {
       container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
 
     it('marks the table a real ARIA grid, with aria-rowcount/colcount reflecting the FULL dataset, not just this page', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const table = container.querySelector('table')!;
       expect(table).toHaveAttribute('role', 'grid');
       // 1 header + all 50 rows across every page, not just this page's 10.
@@ -1764,15 +1764,15 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('selectable adds one to aria-colcount for the checkbox column', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} selectable />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} selectable />);
       expect(container.querySelector('table')).toHaveAttribute('aria-colcount', '3');
     });
 
     it('gives each row a correct aria-rowindex -- header is always 1, body rows reflect their absolute position across pages', () => {
-      render(<DataTable data={testData} columns={testColumns} pageSize={10} defaultPage={2} rowKey={r => r.id} />);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} defaultPage={2} rowKey={r => r.id} />);
       const headerRow = screen.getByRole('button', { name: 'ID' }).closest('tr')!;
       expect(headerRow).toHaveAttribute('aria-rowindex', '1');
-      // Page 2 (pageSize 10), first row -- absolute row 12: 1 header + 10
+      // Page 2 (defaultPageSize 10), first row -- absolute row 12: 1 header + 10
       // rows from page 1 + this being the 1st row of page 2.
       const firstBodyRowOnPage2 = screen.getByText('Item 11').closest('tr')!;
       expect(firstBodyRowOnPage2).toHaveAttribute('aria-rowindex', '12');
@@ -1789,13 +1789,13 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('starts with roving tabindex on the first header cell only', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       expect(cell(container, 0, 0)).toHaveAttribute('tabindex', '0');
       expect(cell(container, 0, 1)).toHaveAttribute('tabindex', '-1');
     });
 
     it('ArrowRight/ArrowLeft move the roving tabindex and real focus across header cells', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const idHeader = cell(container, 0, 0);
       const nameHeader = cell(container, 0, 1);
       act(() => idHeader.focus());
@@ -1811,7 +1811,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('ArrowDown/ArrowUp move focus between the header and the same column in body rows', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} />);
       const idHeader = cell(container, 0, 0);
       act(() => idHeader.focus());
 
@@ -1826,7 +1826,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('ArrowDown/ArrowUp do not move focus past the grid boundary', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const idHeader = cell(container, 0, 0);
       act(() => idHeader.focus());
       fireEvent.keyDown(idHeader, { key: 'ArrowUp' }); // already at row 0
@@ -1835,7 +1835,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('Home/End move focus to the first/last cell of the CURRENT row only', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       const nameHeader = cell(container, 0, 1);
       act(() => nameHeader.focus());
 
@@ -1847,12 +1847,12 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('Ctrl+Home/Ctrl+End move focus to the first/last cell of the whole grid', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} />);
       const nameHeader = cell(container, 0, 1);
       act(() => nameHeader.focus());
 
       fireEvent.keyDown(nameHeader, { key: 'End', ctrlKey: true });
-      // Last row on this page (pageSize 10) is page-relative row 10, last column 1.
+      // Last row on this page (defaultPageSize 10) is page-relative row 10, last column 1.
       expect(cell(container, 10, 1)).toHaveFocus();
 
       fireEvent.keyDown(cell(container, 10, 1), { key: 'Home', ctrlKey: true });
@@ -1860,7 +1860,7 @@ describe('DataTable Virtualized Component', () => {
     });
 
     it('clicking a cell directly (not via arrow keys) syncs the roving tabindex to it', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} rowKey={r => r.id} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} />);
       const idHeader = cell(container, 0, 0);
       expect(idHeader).toHaveAttribute('tabindex', '0');
 
@@ -1916,7 +1916,7 @@ describe('DataTable Virtualized Component', () => {
         { key: 'id', title: 'ID', sortable: true },
         { key: 'name', title: 'Name', render: () => <button type="button">Action</button> },
       ];
-      const { container } = render(<DataTable data={testData} columns={columnsWithButton} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={columnsWithButton} defaultPageSize={10} />);
       const idHeader = cell(container, 0, 0);
       expect(idHeader).toHaveAttribute('tabindex', '0');
 
@@ -1951,7 +1951,7 @@ describe('DataTable Virtualized Component', () => {
         { key: 'id', title: 'ID', sortable: true },
         { key: 'name', title: 'Name', render: () => <input aria-label="inline edit" defaultValue="edit me" /> },
       ];
-      const { container } = render(<DataTable data={testData} columns={columnsWithInput} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={columnsWithInput} defaultPageSize={10} />);
 
       // Scoped to row 1's own cell -- every row renders an identical
       // "inline edit" input, so a global screen query would be ambiguous.
@@ -1979,12 +1979,12 @@ describe('DataTable Virtualized Component', () => {
     const getHandle = (container: HTMLElement): HTMLElement => container.querySelector('[role="separator"]')!;
 
     it('renders no resize handle for a column that does not opt in', () => {
-      const { container } = render(<DataTable data={testData} columns={testColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
       expect(container.querySelector('[role="separator"]')).toBeNull();
     });
 
     it('renders a resize handle with the ARIA shape confirmed against the W3C APG Window Splitter pattern', () => {
-      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
       expect(handle).toHaveAttribute('role', 'separator');
       expect(handle).toHaveAttribute('aria-orientation', 'vertical');
@@ -2001,7 +2001,7 @@ describe('DataTable Virtualized Component', () => {
     // the attribute until a real width is known is the fix; this proves
     // both halves of it.
     it('regression: omits aria-valuenow (rather than reporting the wrong min-width floor) until a real pixel width is known', () => {
-      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
       expect(handle).not.toHaveAttribute('aria-valuenow');
 
@@ -2017,7 +2017,7 @@ describe('DataTable Virtualized Component', () => {
     // useTableKeyboardNav's own documented scope limit for custom
     // interactive cell content, reused here for the same reason.
     it('the resize handle is not part of the roving-tabindex grid coordinate model', () => {
-      const { container } = render(<DataTable data={testData} columns={resizableColumns} pageSize={10} />);
+      const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
       expect(handle).not.toHaveAttribute('data-grid-row');
       expect(handle).not.toHaveAttribute('data-grid-col');
@@ -2032,7 +2032,7 @@ describe('DataTable Virtualized Component', () => {
     it('dragging the handle resizes the column and commits once on release, not on every move tick', () => {
       const onColumnWidthsChange = vi.fn();
       const { container } = render(
-        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+        <DataTable data={testData} columns={resizableColumns} defaultPageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
       );
       const handle = getHandle(container);
       const headerCell = handle.closest('th')!;
@@ -2065,7 +2065,7 @@ describe('DataTable Virtualized Component', () => {
         { key: 'name', title: 'Name', resizable: true, minWidth: 80 },
       ];
       const { container } = render(
-        <DataTable data={testData} columns={columnsWithMin} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+        <DataTable data={testData} columns={columnsWithMin} defaultPageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
       );
       const handle = getHandle(container);
       const headerCell = handle.closest('th')!;
@@ -2092,7 +2092,7 @@ describe('DataTable Virtualized Component', () => {
     it('regression: does not double-commit when a duplicate release event fires for the same gesture', () => {
       const onColumnWidthsChange = vi.fn();
       const { container } = render(
-        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+        <DataTable data={testData} columns={resizableColumns} defaultPageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
       );
       const handle = getHandle(container);
       const headerCell = handle.closest('th')!;
@@ -2112,7 +2112,7 @@ describe('DataTable Virtualized Component', () => {
     it('Arrow keys resize the focused handle by a fixed step, Shift for a larger step, Home/End for min/max', () => {
       const onColumnWidthsChange = vi.fn();
       const { container } = render(
-        <DataTable data={testData} columns={resizableColumns} pageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
+        <DataTable data={testData} columns={resizableColumns} defaultPageSize={10} onColumnWidthsChange={onColumnWidthsChange} />
       );
       const handle = getHandle(container);
       const headerCell = handle.closest('th')!;
@@ -2142,7 +2142,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={resizableColumns}
-          pageSize={10}
+          defaultPageSize={10}
           columnWidths={{ name: 100 }}
           onColumnWidthsChange={onColumnWidthsChange}
         />
@@ -2158,7 +2158,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable
           data={testData}
           columns={resizableColumns}
-          pageSize={10}
+          defaultPageSize={10}
           columnWidths={{ name: 110 }}
           onColumnWidthsChange={onColumnWidthsChange}
         />
@@ -2168,7 +2168,7 @@ describe('DataTable Virtualized Component', () => {
 
     it('defaultColumnWidths seeds the uncontrolled initial rendered width', () => {
       const { container } = render(
-        <DataTable data={testData} columns={resizableColumns} pageSize={10} defaultColumnWidths={{ name: 222 }} />
+        <DataTable data={testData} columns={resizableColumns} defaultPageSize={10} defaultColumnWidths={{ name: 222 }} />
       );
       expect(container.querySelectorAll('col')[1].getAttribute('style')).toContain('222px');
     });

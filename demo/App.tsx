@@ -1571,7 +1571,7 @@ export const App: React.FC = () => {
                         data={tableUsers}
                         columns={columns}
                         pagination={!continuousScroll}
-                        pageSize={15}
+                        defaultPageSize={15}
                         pageSizeOptions={[5, 10, 15, 25, 50]}
                         containerHeight="auto"
                         quickFilter
