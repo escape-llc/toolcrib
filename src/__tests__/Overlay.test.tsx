@@ -28,6 +28,27 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.queryByText('Popup Content')).not.toBeInTheDocument();
   });
 
+  // Issue #421: Radix's own default close-autofocus targets whatever it
+  // stored as "the trigger" -- but `asChild` (Popup.tsx) binds that ref to
+  // the plain, non-focusable wrapper <div> around the real trigger, not
+  // the real trigger itself. Focusing a non-focusable div is a silent
+  // no-op, so focus fell through to <body> on every close before this fix
+  // (confirmed directly against a real running demo, not assumed).
+  it('returns focus to the real trigger element after closing, not <body> (issue #421)', async () => {
+    render(
+      <Popup trigger={<Button>Open Popup</Button>}>
+        <div>Popup Content</div>
+      </Popup>
+    );
+
+    const trigger = screen.getByText('Open Popup');
+    fireEvent.click(trigger);
+    expect(screen.getByText('Popup Content')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
   it('preserves trigger button border-radius when Popup is closed', () => {
     render(
       <Popup trigger={<Button>Trigger Button</Button>}>
