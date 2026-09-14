@@ -29,6 +29,27 @@ describe('Calendar', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  // Issue #402: "today" and "selected" are two different concepts (a ring
+  // vs. a fill) -- today's own marker is now quaternary, distinct from the
+  // selected date's own primary fill, instead of both using the same hue.
+  it('marks today with a quaternary ring, distinct from a selected date\'s own primary fill', () => {
+    // No value/defaultValue -- lets the real system clock's own "today"
+    // render naturally, matched via React Aria's real data-today attribute
+    // (confirmed directly against the rendered DOM, not assumed).
+    const { container } = render(<Calendar name="meetingDate" />);
+    const todayCell = container.querySelector('[data-today="true"]') as HTMLElement;
+    expect(todayCell).not.toBeNull();
+    expect(todayCell.style.border).toContain('--ai-color-quaternary');
+    expect(todayCell.style.background).not.toContain('--ai-color-primary');
+
+    // A selected date (deliberately NOT today, so the two states don't
+    // overlap in this assertion) still resolves to primary, untouched.
+    const selectedDate = new CalendarDate(2020, 1, 1);
+    const { container: selectedContainer } = render(<Calendar name="meetingDate" value={selectedDate} />);
+    const selectedCell = getDayCell(selectedContainer, 1);
+    expect(selectedCell.style.background).toContain('--ai-color-primary');
+  });
+
   it('selects a date via click and calls onChange with a CalendarDate, not a raw Date', () => {
     const onChange = vi.fn();
     const { container } = render(<Calendar name="meetingDate" defaultValue={new CalendarDate(2026, 3, 15)} onChange={onChange} />);

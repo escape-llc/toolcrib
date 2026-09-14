@@ -18,6 +18,24 @@ describe('Stepper', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  // Regression: --ai-color-on-primary was never a real variable
+  // (paletteToCSSVariables only ever defines --ai-color-primary-text), so
+  // the active step's own number circle and the Next button both silently
+  // fell back to a hardcoded #ffffff instead of the theme's real
+  // WCAG-computed primary text color.
+  it('the active step indicator and Next button both resolve their text color to the real --ai-color-primary-text variable', () => {
+    const steps: StepperStepData[] = [
+      { id: 'a', label: 'Step A', content: <div>Content A</div> },
+      { id: 'b', label: 'Step B', content: <div>Content B</div> },
+    ];
+    render(<Stepper steps={steps} />);
+    const activeCircle = screen.getByText('1');
+    expect(activeCircle.style.color).toBe('var(--ai-color-primary-text, #ffffff)');
+
+    const nextButton = screen.getByText('Next');
+    expect(nextButton.style.color).toBe('var(--ai-color-primary-text, #ffffff)');
+  });
+
   it('advances via the Next button for an ungated step', async () => {
     const steps: StepperStepData[] = [
       { id: 'a', label: 'Step A', content: <div>Content A</div> },

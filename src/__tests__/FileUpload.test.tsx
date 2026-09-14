@@ -129,6 +129,27 @@ describe('FileUpload Component — selecting files', () => {
   });
 });
 
+describe('FileUpload Component — drag-over highlight (issue #402)', () => {
+  // The drag-over highlight is accent, not primary -- a momentary
+  // active-interaction cue distinct from the toolkit's persistent
+  // selected/checked identity color.
+  it('resolves the dropzone border/background to the accent color while a file is dragged over it, not primary', () => {
+    render(<FileUpload />);
+    const dropzone = screen.getByRole('button');
+
+    expect(dropzone.style.border).not.toContain('--ai-color-accent');
+    expect(dropzone.style.background).not.toContain('--ai-color-accent');
+
+    fireEvent.dragOver(dropzone);
+    expect(dropzone.style.border).toContain('--ai-color-accent');
+    expect(dropzone.style.background).toContain('--ai-color-accent');
+
+    fireEvent.dragLeave(dropzone);
+    expect(dropzone.style.border).not.toContain('--ai-color-accent');
+    expect(dropzone.style.background).not.toContain('--ai-color-accent');
+  });
+});
+
 describe('FileUpload Component — upload transport', () => {
   it('reports progress and transitions to done on a successful upload', async () => {
     let reportProgress: (pct: number) => void = () => {};
