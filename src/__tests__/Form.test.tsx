@@ -525,4 +525,55 @@ describe('Form & Zod Validation Engine', () => {
       expect(screen.getByText('Large').style.fontSize).toBe('var(--ai-control-font-size-lg, 1rem)');
     });
   });
+
+  // Issue #428.
+  describe('Input clearable', () => {
+    it('renders no clear button by default, even with a value', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable={false} />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+    });
+
+    it('shows the clear button only once the value is non-empty', () => {
+      const { rerender } = render(<Input value="" onChange={vi.fn()} clearable />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+
+      rerender(<Input value="hello" onChange={vi.fn()} clearable />);
+      expect(screen.getByLabelText('Clear')).toBeInTheDocument();
+    });
+
+    it('clears an externally-controlled value through the same onChange a keystroke would use', () => {
+      const onChange = vi.fn();
+      render(<Input value="hello" onChange={onChange} clearable />);
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ value: '' }) }));
+    });
+
+    it('clears a Form-bound value through formContext.setFieldValue, and calls the extra onClear side effect', () => {
+      const onClear = vi.fn();
+      render(
+        <Form schema={z.object({ q: z.string() })} onSubmit={vi.fn()} initialValues={{ q: 'typed text' }}>
+          <Input name="q" clearable onClear={onClear} />
+        </Form>
+      );
+      const input = screen.getByDisplayValue('typed text') as HTMLInputElement;
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(input.value).toBe('');
+      expect(onClear).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render the clear button while disabled, even with a value', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable disabled />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+    });
+
+    it('returns focus to the input after clearing', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable />);
+      const input = screen.getByDisplayValue('hello');
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(input).toHaveFocus();
+    });
+  });
 });
