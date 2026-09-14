@@ -26,6 +26,49 @@ test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }
   expect(animationName).toBe('ai-scale-in');
 });
 
+// Regression for issue #373: "Modal fades in nicely, but closing has no
+// counter-transition -- it just slams shut." Root cause was that Content/
+// Overlay only ever carried a static, unconditional inline `animation`
+// string (ai-scale-in/ai-fade-in) -- already finished by the time Radix
+// flipped data-state to "closed", leaving nothing for Radix's own internal
+// Presence to detect and wait for before tearing the node down instantly.
+// Fixed by injectModalAnimations (Modal.tsx), a real [data-state]-keyed
+// stylesheet mirroring Tooltip's own injectTooltipAnimations mechanism.
+// Filtered animationend listeners installed BEFORE triggering the close --
+// see toast-animation.spec.ts's identical reasoning for why that beats
+// polling data-state after the fact.
+test('closing a Modal plays real ai-fade-out/ai-scale-out exit animations before removal', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Overlays & Actions');
+  await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
+
+  const modal = page.getByTestId('modal-container');
+  await modal.waitFor({ state: 'visible', timeout: 2000 });
+  const overlay = page.locator('.ai-modal-overlay');
+
+  const contentExitPromise = modal.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-scale-out') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+  const overlayExitPromise = overlay.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-fade-out') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  expect(await contentExitPromise).toBe('ai-scale-out');
+  expect(await overlayExitPromise).toBe('ai-fade-out');
+  await expect(modal).not.toBeAttached({ timeout: 2000 });
+});
+
 test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animations', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Component Showcase');
@@ -105,6 +148,43 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
   await page.getByRole('button', { name: 'Close Drawer' }).click();
   expect(await exitAnimationEndPromise).toBe('ai-fade-out');
   await expect(panel).not.toBeAttached({ timeout: 2000 });
+});
+
+// Regression for issue #374: "Popup's transitions (if any) happen too fast
+// to actually perceive" -- unlike Modal/AlertDialog (which at least had a
+// broken entrance-only animation), Popup.Content had NO animation
+// whatsoever: open/close were both an instant, un-eased DOM swap. Fixed by
+// injectPopupAnimations (Popup.tsx), the same [data-state]-keyed stylesheet
+// mechanism as Tooltip's own injectTooltipAnimations, using a plain fade
+// (matching Tooltip, the closest architectural analog -- a small anchored
+// panel via Portal, not a centered dialog) rather than Modal/AlertDialog's
+// scale.
+test('a Popup plays real ai-fade-in/ai-fade-out entrance/exit animations and is cleanly removed after', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Overlays & Actions');
+  await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
+
+  const popup = page.locator('.ai-popup-content');
+  await popup.waitFor({ state: 'visible', timeout: 2000 });
+  const openInfo = await popup.evaluate(el => ({
+    animationName: getComputedStyle(el).animationName,
+    dataState: el.getAttribute('data-state'),
+  }));
+  expect(openInfo.animationName).toBe('ai-fade-in');
+  expect(openInfo.dataState).toBe('open');
+
+  const exitAnimationEndPromise = popup.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-fade-out') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+
+  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+  expect(await exitAnimationEndPromise).toBe('ai-fade-out');
+  await expect(popup).not.toBeAttached({ timeout: 2000 });
 });
 
 test('a Tooltip plays real entrance/exit animations and is cleanly removed after, never stuck', async ({ page }) => {
