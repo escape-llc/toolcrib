@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useEffect,
   useLayoutEffect,
   type ReactNode,
   type MouseEvent as ReactMouseEvent,
@@ -139,6 +140,33 @@ export interface DataTableProps<T = any> {
    * @default true
    */
   pagination?: boolean;
+  /**
+   * Called once whenever the virtualization window's own trailing edge
+   * comes within `endReachedThreshold` rows of the end of `data` -- the
+   * signal a `pagination={false}` (continuous-scroll) consumer needs to
+   * lazy-load more rows from a server as the user scrolls near the end of
+   * what's currently loaded (issue #365). The actual continuous-scroll
+   * rendering/windowing needs no help from this -- `pagination={false}`
+   * already virtualizes across the whole `data` array with no page
+   * boundaries; this is purely an early-warning callback layered on top.
+   *
+   * Fires at most once per distinct `data.length` -- appending more rows
+   * (growing `data`) re-arms it for the next threshold crossing;
+   * scrolling back and forth within the same loaded set does not
+   * re-trigger it. Has no effect when `pagination` is true: a paginated
+   * table already has a complete, known page of data and Prev/Next
+   * navigation, so "near the end of the current page" isn't a signal to
+   * load more from a server the way it is in continuous-scroll mode.
+   * Also mirrored on the event bus as `datatable:end_reached`.
+   */
+  onEndReached?: () => void;
+  /**
+   * How many rows from the end of `data` the virtualization window's
+   * trailing edge must come within before `onEndReached` fires. Only
+   * meaningful alongside `onEndReached`.
+   * @default 10
+   */
+  endReachedThreshold?: number;
   /**
    * Initial number of rows per page. `'auto'` computes it live instead of
    * using a fixed number -- `Math.floor(<measured body height> /
@@ -469,6 +497,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   data,
   columns,
   pagination = true,
+  onEndReached,
+  endReachedThreshold = 10,
   pageSize: initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50, 100],
   itemHeight: explicitItemHeight,
@@ -697,6 +727,34 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   });
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
+
+  // onEndReached (issue #365) -- fires once per distinct totalItems value,
+  // not on every render/scroll event while already past the threshold, so
+  // a consumer's own in-flight fetch isn't re-triggered repeatedly while
+  // it's still loading. Appending more rows changes totalItems, which
+  // re-arms this for the next crossing. Only meaningful in continuous-
+  // scroll mode (pagination={false}) -- totalItems is `paginatedData.length`,
+  // which in paginated mode is just the current PAGE's row count, so
+  // "near the end" there means "near the end of this page," not "running
+  // low on loaded data," and firing on that would be actively misleading.
+  //
+  // The bus event fires whenever the threshold is genuinely crossed,
+  // regardless of whether `onEndReached` itself was given -- matching
+  // every other datatable:* event (datatable:sorted/filtered/paginated all
+  // fire unconditionally, independent of whether the matching onSortChange/
+  // onQuickFilterChange/onPageChange prop exists). A real, found-via-e2e-
+  // testing bug on this feature's first pass: the emit call used to sit
+  // behind the same `!onEndReached` guard as the prop callback itself, so
+  // a bus-only listener (no onEndReached prop at all) never saw the event.
+  const firedEndReachedForRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (pagination || totalItems === 0) return;
+    if (endIndex < totalItems - endReachedThreshold) return;
+    if (firedEndReachedForRef.current === totalItems) return;
+    firedEndReachedForRef.current = totalItems;
+    onEndReached?.();
+    aiBus.emit('datatable:end_reached', { id, loadedCount: totalItems });
+  }, [pagination, totalItems, endIndex, endReachedThreshold, onEndReached, id]);
 
   // Grid coordinate layout: column 0 is the selection checkbox/radio column
   // when `selectable` and not `hideSelectionColumn`, otherwise column

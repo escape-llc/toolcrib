@@ -87,6 +87,8 @@ export interface AIEventMap {
   'datatable:row_command': { id?: string; command: string; key: string; index: number };
   /** Emitted whenever `<DataTable densitySelector>`'s density changes, whether controlled or uncontrolled -- see issue #339. */
   'datatable:density_changed': { id?: string; density: 'compact' | 'normal' | 'spacious' };
+  /** Emitted once per crossing of `endReachedThreshold` while continuous-scrolling (`pagination={false}`) -- see issue #365 and `onEndReached`'s own doc. `loadedCount` is how many rows are currently loaded (the same number a listener would otherwise re-derive from `data.length`). */
+  'datatable:end_reached': { id?: string; loadedCount: number };
   'log:cleared': { timestamp: string };
 
   // Routing

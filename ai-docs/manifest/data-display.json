@@ -223,6 +223,15 @@
           "default": "true",
           "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`pageSize`/`pageSizeOptions` are ignored in this mode."
         },
+        "onEndReached": {
+          "type": "() => void",
+          "description": "Called once whenever the virtualization window's own trailing edge\ncomes within `endReachedThreshold` rows of the end of `data` -- the\nsignal a `pagination={false}` (continuous-scroll) consumer needs to\nlazy-load more rows from a server as the user scrolls near the end of\nwhat's currently loaded (issue #365). The actual continuous-scroll\nrendering/windowing needs no help from this -- `pagination={false}`\nalready virtualizes across the whole `data` array with no page\nboundaries; this is purely an early-warning callback layered on top.\n\nFires at most once per distinct `data.length` -- appending more rows\n(growing `data`) re-arms it for the next threshold crossing;\nscrolling back and forth within the same loaded set does not\nre-trigger it. Has no effect when `pagination` is true: a paginated\ntable already has a complete, known page of data and Prev/Next\nnavigation, so \"near the end of the current page\" isn't a signal to\nload more from a server the way it is in continuous-scroll mode.\nAlso mirrored on the event bus as `datatable:end_reached`."
+        },
+        "endReachedThreshold": {
+          "type": "number",
+          "default": "10",
+          "description": "How many rows from the end of `data` the virtualization window's\ntrailing edge must come within before `onEndReached` fires. Only\nmeaningful alongside `onEndReached`."
+        },
         "pageSize": {
           "type": "number | 'auto'",
           "default": "10",
