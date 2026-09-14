@@ -136,7 +136,7 @@ export interface DataTableProps<T = any> {
    * default). Set to false to virtualize across the *entire* sorted
    * dataset instead — no pagination footer, no page slicing — the
    * better fit once a dataset is too large to page through usefully.
-   * `pageSize`/`pageSizeOptions` are ignored in this mode.
+   * `defaultPageSize`/`pageSizeOptions` are ignored in this mode.
    * @default true
    */
   pagination?: boolean;
@@ -168,22 +168,30 @@ export interface DataTableProps<T = any> {
    */
   endReachedThreshold?: number;
   /**
-   * Initial number of rows per page. `'auto'` computes it live instead of
-   * using a fixed number -- `Math.floor(<measured body height> /
-   * itemHeight)` -- so a page always fills exactly the space it's given
-   * (no partial row cut off, no empty space at the bottom), recomputing
-   * whenever the container is resized or density changes `itemHeight`.
-   * Mirrors `containerHeight`'s own `'auto'` convention, and reuses the
-   * exact same live measurement (`useAdaptiveSize(bodyRef)`) that already
-   * drives it. `pageSizeOptions` and the page-size dropdown are both
-   * ignored in this mode -- there's nothing meaningful to pick when the
-   * size is computed from available space, the same "ignored" precedent
-   * `pagination={false}` already sets for both props.
+   * Initial number of rows per page. Named `default*` (issue #391 --
+   * renamed from the original `pageSize`) because that's exactly its
+   * contract: it seeds this table's internal page-size state once, the
+   * same uncontrolled-initial-value shape `defaultPage`/`defaultSortBy`/
+   * `defaultSelectedKeys`/`defaultQuickFilterValue`/`defaultColumnWidths`/
+   * `defaultDensity` all already use elsewhere in this component -- a
+   * later change to this prop's own value does NOT propagate; there is no
+   * live-syncing "controlled" counterpart for page size the way `page`
+   * itself has one. `'auto'` computes it live instead of using a fixed
+   * number -- `Math.floor(<measured body height> / itemHeight)` -- so a
+   * page always fills exactly the space it's given (no partial row cut
+   * off, no empty space at the bottom), recomputing whenever the container
+   * is resized or density changes `itemHeight`. Mirrors `containerHeight`'s
+   * own `'auto'` convention, and reuses the exact same live measurement
+   * (`useAdaptiveSize(bodyRef)`) that already drives it. `pageSizeOptions`
+   * and the page-size dropdown are both ignored in this mode -- there's
+   * nothing meaningful to pick when the size is computed from available
+   * space, the same "ignored" precedent `pagination={false}` already sets
+   * for both props.
    * @default 10
    */
-  pageSize?: number | 'auto';
+  defaultPageSize?: number | 'auto';
   /**
-   * Options shown in the page-size dropdown. Ignored when `pageSize` is `'auto'`.
+   * Options shown in the page-size dropdown. Ignored when `defaultPageSize` is `'auto'`.
    * @default [5, 10, 25, 50, 100]
    */
   pageSizeOptions?: number[];
@@ -499,7 +507,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   pagination = true,
   onEndReached,
   endReachedThreshold = 10,
-  pageSize: initialPageSize = 10,
+  defaultPageSize: initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50, 100],
   itemHeight: explicitItemHeight,
   containerHeight = 'auto',
@@ -617,7 +625,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
 
-  // pageSize="auto" (issue #364): reuses the exact same live measurement
+  // defaultPageSize="auto" (issue #364): reuses the exact same live measurement
   // that already drives containerHeight="auto" -- Math.floor(<real body
   // height> / itemHeight) fills a page with exactly as many rows as fit,
   // recomputing whenever the container resizes or density changes
@@ -1747,7 +1755,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <UIGroup>
-            {/* pageSize="auto" (issue #364): the page size is computed
+            {/* defaultPageSize="auto" (issue #364): the page size is computed
                 live from measured space, not chosen -- a dropdown here
                 would let a user pick a fixed value that immediately
                 conflicts with (and would be silently overridden by) that
