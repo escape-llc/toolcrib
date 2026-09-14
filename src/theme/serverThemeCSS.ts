@@ -51,6 +51,8 @@ export interface ServerThemeCSS {
   transitionsCSS: string;
   /** Render as `<style id={TOOLCRIB_LIVING_COLOR_STYLE_ID}>` (that id is exported from `./livingColorStyles`, not this file). */
   livingColorCSS: string;
+  /** Render as `<style id={TOOLCRIB_SCROLLBAR_STYLE_ID}>`. */
+  scrollbarCSS: string;
 }
 
 /**
@@ -143,6 +145,36 @@ export const TOOLCRIB_THEME_TRANSITIONS_CSS = `:where(*) {
   transition-property: var(--ai-theme-transition-properties, background-color, color, border-color, box-shadow, fill, stroke, outline-color, text-decoration-color);
   transition-duration: var(--ai-transition-duration-normal, 0.2s);
   transition-timing-function: var(--ai-transition-easing, ease);
+}`;
+
+/**
+ * Themed scrollbars via the modern, cross-browser-standard `scrollbar-color`/
+ * `scrollbar-width` properties (issue #353) -- an AI generating fresh CSS
+ * rarely thinks to style scrollbars at all, so a themed dark UI commonly
+ * ships with the browser's default light native scrollbar, a visible,
+ * common tell for "uncontrolled generation." `--ai-scrollbar-thumb`/
+ * `--ai-scrollbar-track` (`harmonies.ts`) already react to light/dark mode
+ * automatically, the same as every other palette-derived variable.
+ *
+ * Applied to `:root` (not a bare `*`/`html`): `scrollbar-color`/
+ * `scrollbar-width` are inherited properties, per spec, so setting them
+ * once at the root already themes every scrollable element in the
+ * document (the root `<html>` scrollbar included) without needing a
+ * universal selector -- and unlike `TOOLCRIB_THEME_TRANSITIONS_CSS` above,
+ * there's no inline-style collision risk to guard against here, since no
+ * toolcrib component (or realistic consumer markup) sets `scrollbar-color`
+ * inline.
+ *
+ * Deliberately excludes `::-webkit-scrollbar` pseudo-elements (rounded
+ * thumb, hover state, finer per-axis control) -- vendor-prefixed, no
+ * Firefox equivalent, real browser-specific CSS surface area this toolkit
+ * has generally avoided elsewhere. A deliberate, separate follow-up if
+ * ever wanted, not part of this first pass.
+ * @barrelExport
+ */
+export const TOOLCRIB_SCROLLBAR_CSS = `:root {
+  scrollbar-color: var(--ai-scrollbar-thumb, #9ca3af) var(--ai-scrollbar-track, #f3f4f6);
+  scrollbar-width: thin;
 }`;
 
 // Shared with ThemeProvider (./themeContext, imports these back from here)
@@ -262,5 +294,6 @@ export function computeServerThemeCSS(
     keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
     transitionsCSS: TOOLCRIB_THEME_TRANSITIONS_CSS,
     livingColorCSS: TOOLCRIB_LIVING_COLOR_CSS,
+    scrollbarCSS: TOOLCRIB_SCROLLBAR_CSS,
   };
 }
