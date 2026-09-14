@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, type ReactNode, type ReactElement } from 'react';
+import React, { useEffect, useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -10,10 +10,59 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, type ModalSliceState } from './ModalSlice';
+
+const MODAL_STYLE_ID = 'toolcrib-modal-animations';
+
+// Issue #373: Modal's Overlay/Content used to carry a static, unconditional
+// inline `animation: ai-fade-in`/`ai-scale-in` string -- exactly the same
+// shape Tooltip.tsx's own injectTooltipAnimations comment already documents
+// as broken for a node that persists across a state change: the animation
+// plays once on mount and has already finished by the time Radix flips
+// data-state to "closed", so there's nothing left running for Radix's
+// internal Presence (which Dialog.Content/Overlay already use -- no
+// `forceMount` needed here) to detect and wait for before it tears the node
+// down. Confirmed directly: "fades in nicely... closing just slams shut" is
+// the exact symptom of Presence finding zero active/pending animation on
+// unmount, not a missing transition. A real stylesheet keyed on
+// [data-state="open"/"closed"] (same mechanism as Tooltip's) gives Presence
+// a fresh, genuinely-triggered animation to wait for on the way out too.
+// Reuses the same shared ai-fade-in/-out and ai-scale-in/-out keyframes
+// already injected by ThemeProvider -- no new keyframes needed.
+//
+// NOT a `.ai-focus-ring` transition-shorthand collision (the other thing
+// issue #373 asks to check, per Toast's issue #358): that bug was specific
+// to the `transition` property, which `.ai-focus-ring` sets with
+// `!important` and which doesn't merge shorthands across rules. This fix
+// uses `animation`, a wholly separate CSS property with no such collision
+// -- confirmed against interactionStyles.ts directly, which never sets
+// `animation` anywhere.
+function injectModalAnimations(targetDocument?: Document, nonce?: string): void {
+  injectGlobalStyle(
+    MODAL_STYLE_ID,
+    `
+    .ai-modal-overlay[data-state="open"] {
+      animation: ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-modal-overlay[data-state="closed"] {
+      animation: ai-fade-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
+    }
+    .ai-modal-content[data-state="open"] {
+      animation: ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-modal-content[data-state="closed"] {
+      animation: ai-scale-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
+    }
+    `,
+    targetDocument,
+    nonce
+  );
+}
 
 /**
  * Props for the `<Modal>` dialog overlay.
@@ -107,6 +156,7 @@ export const Modal: React.FC<ModalProps> & {
 }) => {
   const id = useStableId(propId, 'modal');
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   // Always called, regardless of whether zIndexProp ends up used (rules of
   // hooks) -- see useStackedZIndex's own doc comment for why this is what
   // makes nested/simultaneous Modals stack deterministically instead of by
@@ -114,6 +164,9 @@ export const Modal: React.FC<ModalProps> & {
   const autoZIndex = useStackedZIndex('MODAL');
   const zIndex = zIndexProp ?? autoZIndex;
   useInjectInteractionStyles();
+  useEffect(() => {
+    injectModalAnimations(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const { vars: modalVars } = useSliceOverrides(ModalThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -157,6 +210,7 @@ export const Modal: React.FC<ModalProps> & {
 
       <DialogPrimitive.Portal container={targetDocument?.body}>
         <DialogPrimitive.Overlay
+          className="ai-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -168,7 +222,6 @@ export const Modal: React.FC<ModalProps> & {
             justifyContent: 'center',
             padding: 'var(--ai-padding-lg, 1.25rem)',
             paddingTop: align === 'top' ? '10vh' : 'var(--ai-padding-lg, 1.25rem)',
-            animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             ...modalVars,
           }}
         >
@@ -176,7 +229,7 @@ export const Modal: React.FC<ModalProps> & {
             aria-describedby={undefined}
             aria-modal="true"
             data-testid="modal-container"
-            className="ai-focus-ring"
+            className="ai-focus-ring ai-modal-content"
             style={{
               background: 'var(--ai-bg-surface, #ffffff)',
               borderRadius: 'var(--ai-radius-lg, 0.75rem)',
@@ -192,7 +245,6 @@ export const Modal: React.FC<ModalProps> & {
               position: 'relative',
               zIndex: zIndex + 1,
               outline: 'none',
-              animation: 'ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
               // A self-contained dialog panel: its own children's layout/
               // paint never needs to affect the rest of the page, and
               // nothing inside relies on escaping this box (any further
