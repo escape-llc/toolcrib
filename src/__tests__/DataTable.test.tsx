@@ -1744,6 +1744,22 @@ describe('DataTable Virtualized Component', () => {
       render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
       expect(await axe(document.body)).toHaveNoViolations();
     });
+
+    // Crossfade (issue #371) -- an instant hard swap between the emptyState
+    // placeholder and the real row set used to have no transition at all.
+    // A plain CSS `animation` (not Presence -- see this wrapper's own
+    // comment on why a true two-sided overlap isn't achievable inside a
+    // valid <tbody>), reusing the already-shared `ai-scale-in` keyframe and
+    // the same --ai-transition-* tokens the focus-ring fade/Toast's own
+    // animations already use (which collapse to 0s under reducedMotion
+    // automatically, with no separate branch needed here).
+    it('crossfades the emptyState placeholder in via the shared ai-scale-in keyframe', () => {
+      render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
+      const wrapper = screen.getByText('Nothing here yet').parentElement as HTMLElement;
+      expect(wrapper.style.animation).toContain('ai-scale-in');
+      expect(wrapper.style.animation).toContain('var(--ai-transition-duration-normal, 200ms)');
+      expect(wrapper.style.animation).toContain('var(--ai-transition-easing, ease)');
+    });
   });
 
   describe('grid keyboard navigation (issue #316)', () => {
