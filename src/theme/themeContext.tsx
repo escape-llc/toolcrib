@@ -42,6 +42,7 @@ import {
   TOOLCRIB_TYPOGRAPHY_BASE_CSS,
   TOOLCRIB_LINK_CSS,
   TOOLCRIB_THEME_TRANSITIONS_CSS,
+  TOOLCRIB_SCROLLBAR_CSS,
 } from './serverThemeCSS';
 import './registerThemeSlices';
 
@@ -103,6 +104,9 @@ export const TOOLCRIB_LINK_STYLE_ID = 'toolcrib-link-base';
 
 /** @barrelExport */
 export const TOOLCRIB_THEME_TRANSITIONS_STYLE_ID = 'toolcrib-theme-transitions';
+
+/** @barrelExport */
+export const TOOLCRIB_SCROLLBAR_STYLE_ID = 'toolcrib-scrollbar';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -325,6 +329,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // always win) and why it only covers color-bearing properties.
   useEffect(() => {
     injectGlobalStyle(TOOLCRIB_THEME_TRANSITIONS_STYLE_ID, TOOLCRIB_THEME_TRANSITIONS_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
+
+  // See TOOLCRIB_SCROLLBAR_CSS's own doc comment for why this is safe to
+  // apply ambiently at :root (scrollbar-color/-width are inherited, no
+  // inline-style collision risk the way the transitions rule above has to
+  // guard against) and why ::-webkit-scrollbar pseudo-elements are
+  // deliberately out of scope for this first pass.
+  useEffect(() => {
+    injectGlobalStyle(TOOLCRIB_SCROLLBAR_STYLE_ID, TOOLCRIB_SCROLLBAR_CSS, targetDocument, nonce);
   }, [targetDocument, nonce]);
 
   // The sole injection point for the shared entrance/exit @keyframes

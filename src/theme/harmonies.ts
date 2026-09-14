@@ -85,6 +85,16 @@ export interface GeneratedPalette {
   textSecondary: HSVColor;
   border: HSVColor;
   focusRing: HSVColor;
+  /**
+   * The scrollbar thumb's own tone (issue #353) -- a neutral, grabbable
+   * gray tinted with the theme's own base hue, distinctly more visible
+   * than `border` (which is tuned for a subtle divider, not something a
+   * user needs to see and grab). The scrollbar *track* deliberately has no
+   * dedicated field here -- it reuses `bgContainer` directly in
+   * `paletteToCSSVariables`, since a track is exactly a recessed container
+   * surface with nothing scrollbar-specific to tune.
+   */
+  scrollbarThumb: HSVColor;
   subThemes: {
     error: SubThemeColorGroup;
     success: SubThemeColorGroup;
@@ -229,6 +239,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
   let textSecondary: HSVColor;
   let border: HSVColor;
   let focusRing: HSVColor;
+  let scrollbarThumb: HSVColor;
 
   if (isDarkMode) {
     bgPrimary = normalizeHSV({ h: base.h, s: 25, v: 6 });
@@ -247,6 +258,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 10, v: 72 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 25, v: 22 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(80, primary.s), v: Math.min(100, primary.v * 1.1) });
+    scrollbarThumb = normalizeHSV({ h: base.h, s: 20, v: 35 });
   } else {
     bgPrimary = normalizeHSV({ h: base.h, s: 4, v: 98 });
     bgSurface = normalizeHSV({ h: base.h, s: 6, v: 100 });
@@ -256,6 +268,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 15, v: 45 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 12, v: 85 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(60, primary.s), v: Math.max(50, primary.v) });
+    scrollbarThumb = normalizeHSV({ h: base.h, s: 15, v: 70 });
   }
 
   // See primaryReadable's own doc comment on GeneratedPalette -- computed
@@ -291,6 +304,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     textSecondary,
     border,
     focusRing,
+    scrollbarThumb,
     subThemes,
   };
 }
@@ -395,6 +409,11 @@ export function paletteToCSSVariables(
     '--ai-text-secondary': hsvToCSS(palette.textSecondary),
     '--ai-border': hsvToCSS(palette.border),
     '--ai-focus-ring': hsvToCSS(palette.focusRing),
+    // Issue #353 -- track reuses bgContainer directly (see
+    // GeneratedPalette.scrollbarThumb's own doc comment for why there's no
+    // separate scrollbarTrack field).
+    '--ai-scrollbar-thumb': hsvToCSS(palette.scrollbarThumb),
+    '--ai-scrollbar-track': hsvToCSS(palette.bgContainer),
 
     // Subthemes (Monochromatic schemes carrying base SV with WCAG compliance)
     '--ai-subtheme-error': hsvToCSS(palette.subThemes.error.main),

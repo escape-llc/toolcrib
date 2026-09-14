@@ -44,14 +44,23 @@ test('real keyboard Tab navigation shows a :focus-visible ring on the first .ai-
   // outline-style alone no longer distinguishes focused/unfocused (it's
   // unconditionally 'solid' now -- see interactionStyles.ts's own comment);
   // outline-color actually being the real ring colour, not transparent, is
-  // what proves the ring is genuinely visible here. Read after a short
-  // settle, not synchronously in the loop above -- outline-color now
-  // *transitions* (--ai-transition-duration-fast) rather than snapping, so
-  // an immediate read can race the very first frame of that fade and still
-  // see the pre-focus transparent value.
-  await page.waitForTimeout(150);
-  const outlineColor = await page.evaluate(() => getComputedStyle(document.activeElement as HTMLElement).outlineColor);
-  expect(outlineColor).not.toBe('rgba(0, 0, 0, 0)');
+  // what proves the ring is genuinely visible here. outline-color
+  // *transitions* on --ai-transition-duration-normal (220ms floor, issue
+  // #411), not a snap, so this can't be read synchronously in the loop
+  // above.
+  //
+  // De-flaked (issue #413): a fixed `waitForTimeout(150)` here raced that
+  // 220ms transition directly -- under real CI scheduling (WebKit
+  // specifically), 150ms of wall-clock time isn't a reliable proxy for
+  // "the transition has produced a non-transparent value yet," so this
+  // flaked repeatedly. `expect(...).not.toHaveCSS(...)` is a Playwright
+  // web-first assertion -- it polls the real computed style until the
+  // condition holds or its own timeout elapses, so it resolves the moment
+  // the fade has progressed enough rather than sampling at a guessed
+  // instant, the same "wait for a real signal, not a wall-clock guess"
+  // principle this repo's own animationend-listener e2e tests already
+  // establish elsewhere (see toast-animation.spec.ts).
+  await expect(page.locator(':focus')).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
 });
 
 test('a mouse click does NOT leave a :focus-visible ring behind (matches native browser behavior)', async ({ page }) => {

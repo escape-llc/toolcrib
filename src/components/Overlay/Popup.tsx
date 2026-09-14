@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -10,11 +10,48 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
+
+const POPUP_STYLE_ID = 'toolcrib-popup-animations';
+
+// Issue #374: unlike Modal/AlertDialog (which at least had a broken
+// entrance-only animation, see Modal.tsx's own injectModalAnimations
+// comment for the full "slams shut" diagnosis), Popup.Content had NO
+// animation at all -- open and close were both an instant, un-eased DOM
+// swap, exactly the "transitions happen too fast to perceive" report.
+// Radix's Popover.Content already uses Presence internally (no
+// `forceMount` needed), so a real, [data-state]-conditioned stylesheet is
+// all that's needed to give both directions genuine motion, the same
+// mechanism Tooltip.tsx's own injectTooltipAnimations already established
+// for this exact shape (a persisting node that needs a DIFFERENT animation
+// on the way in vs. out, which a static inline `animation` string can't
+// express). A plain fade, not a scale, deliberately matches Tooltip rather
+// than Modal/AlertDialog's scale-in/-out -- Popup is architecturally the
+// same "small anchored panel via Portal" shape as Tooltip (not a
+// centered, full-attention dialog), and a fade reads as the more natural,
+// less attention-grabbing motion for that role. Reuses the shared
+// ai-fade-in/-out keyframes ThemeProvider already injects.
+function injectPopupAnimations(targetDocument?: Document, nonce?: string): void {
+  injectGlobalStyle(
+    POPUP_STYLE_ID,
+    `
+    .ai-popup-content[data-state="open"] {
+      animation: ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-popup-content[data-state="closed"] {
+      animation: ai-fade-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
+    }
+    `,
+    targetDocument,
+    nonce
+  );
+}
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -67,7 +104,11 @@ export const Popup: React.FC<PopupProps> = ({
   const id = useStableId(propId, 'popup');
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useInjectInteractionStyles();
+  useEffect(() => {
+    injectPopupAnimations(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -160,7 +201,7 @@ export const Popup: React.FC<PopupProps> = ({
           side={side}
           align={align}
           sideOffset={squaring.sideOffset}
-          className="ai-focus-ring"
+          className="ai-focus-ring ai-popup-content"
           style={{
             zIndex,
             background: 'var(--ai-bg-surface, #ffffff)',

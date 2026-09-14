@@ -147,6 +147,8 @@
       "--ai-rating-gap",
       "--ai-rating-icon-size",
       "--ai-scrollarea-thumb-size",
+      "--ai-scrollbar-thumb",
+      "--ai-scrollbar-track",
       "--ai-select-item-padding",
       "--ai-select-trigger-padding",
       "--ai-separator-thickness",

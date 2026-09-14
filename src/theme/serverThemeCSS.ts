@@ -51,6 +51,8 @@ export interface ServerThemeCSS {
   transitionsCSS: string;
   /** Render as `<style id={TOOLCRIB_LIVING_COLOR_STYLE_ID}>` (that id is exported from `./livingColorStyles`, not this file). */
   livingColorCSS: string;
+  /** Render as `<style id={TOOLCRIB_SCROLLBAR_STYLE_ID}>`. */
+  scrollbarCSS: string;
 }
 
 /**
@@ -143,6 +145,46 @@ export const TOOLCRIB_THEME_TRANSITIONS_CSS = `:where(*) {
   transition-property: var(--ai-theme-transition-properties, background-color, color, border-color, box-shadow, fill, stroke, outline-color, text-decoration-color);
   transition-duration: var(--ai-transition-duration-normal, 0.2s);
   transition-timing-function: var(--ai-transition-easing, ease);
+}`;
+
+/**
+ * Themed scrollbars via the modern, cross-browser-standard `scrollbar-color`
+ * property (issue #353) -- an AI generating fresh CSS rarely thinks to style
+ * scrollbars at all, so a themed dark UI commonly ships with the browser's
+ * default light native scrollbar, a visible, common tell for "uncontrolled
+ * generation." `--ai-scrollbar-thumb`/`--ai-scrollbar-track` (`harmonies.ts`)
+ * already react to light/dark mode automatically, the same as every other
+ * palette-derived variable.
+ *
+ * Applied to `:root` (not a bare `*`/`html`): `scrollbar-color` is an
+ * inherited property, per spec, so setting it once at the root already
+ * themes every scrollable element in the document (the root `<html>`
+ * scrollbar included) without needing a universal selector -- and unlike
+ * `TOOLCRIB_THEME_TRANSITIONS_CSS` above, there's no inline-style collision
+ * risk to guard against here, since no toolcrib component (or realistic
+ * consumer markup) sets `scrollbar-color` inline.
+ *
+ * Deliberately does NOT also set `scrollbar-width: thin` -- an earlier
+ * version of this rule did, and Gemini's review on the PR that introduced
+ * this file correctly flagged it as a real accessibility regression, not a
+ * style nitpick: shrinking the scrollbar thumb globally, with no opt-out,
+ * reduces a frequently-used drag target's size across the *entire*
+ * document (WCAG Target Size, SC 2.5.5/2.5.8) purely as a side effect of a
+ * feature whose actual goal is matching the scrollbar's *color* to the
+ * theme, not its size -- the two are unrelated and shouldn't have been
+ * bundled. `scrollbar-color` alone already fully closes the "default light
+ * scrollbar in a dark UI" gap this issue exists for; the width was never
+ * load-bearing for that goal.
+ *
+ * Deliberately excludes `::-webkit-scrollbar` pseudo-elements (rounded
+ * thumb, hover state, finer per-axis control) -- vendor-prefixed, no
+ * Firefox equivalent, real browser-specific CSS surface area this toolkit
+ * has generally avoided elsewhere. A deliberate, separate follow-up if
+ * ever wanted, not part of this first pass.
+ * @barrelExport
+ */
+export const TOOLCRIB_SCROLLBAR_CSS = `:root {
+  scrollbar-color: var(--ai-scrollbar-thumb, #9ca3af) var(--ai-scrollbar-track, #f3f4f6);
 }`;
 
 // Shared with ThemeProvider (./themeContext, imports these back from here)
@@ -262,5 +304,6 @@ export function computeServerThemeCSS(
     keyframesCSS: TOOLCRIB_SHARED_KEYFRAMES_CSS,
     transitionsCSS: TOOLCRIB_THEME_TRANSITIONS_CSS,
     livingColorCSS: TOOLCRIB_LIVING_COLOR_CSS,
+    scrollbarCSS: TOOLCRIB_SCROLLBAR_CSS,
   };
 }
