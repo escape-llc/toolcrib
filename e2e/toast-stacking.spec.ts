@@ -164,24 +164,19 @@ test('a stacked toast\'s transform transition includes BOTH outline-color and tr
   const transformDuration = durations[properties.indexOf('transform')];
   expect(transformDuration).not.toBe('0s');
 
-  // Lighter-weight, best-effort supplement to the computed-style check
-  // above (not the primary evidence, given real frame delivery isn't
-  // controlled): confirm the toast's position does change at all across
-  // more than a single instantaneous jump when a sibling is dismissed.
-  await page.evaluate(() => {
-    (window as any).__toastFrames = [];
-    let n = 0;
-    const sample = () => {
-      const el = document.querySelectorAll('[data-testid="toast-item"]')[1];
-      if (el) (window as any).__toastFrames.push(el.getBoundingClientRect().top);
-      if (n++ < 40) requestAnimationFrame(sample);
-    };
-    requestAnimationFrame(sample);
-  });
-  await page.locator('[data-testid="toast-item"]').first().locator('button[aria-label="Dismiss toast"]').click();
-  await page.waitForTimeout(500);
-  const frames: number[] = await page.evaluate(() => (window as any).__toastFrames);
-  expect(Math.abs(frames[frames.length - 1] - frames[0])).toBeGreaterThan(10);
+  // Issue #417: a frame-sampling "does the position actually move"
+  // supplement used to live here, on top of the computed-style assertions
+  // above. Removed -- it was always documented as best-effort, not primary
+  // evidence, and kept flaking on WebKit (confirmed repeatedly, including
+  // after the e2e matrix split gave WebKit its own dedicated runner --
+  // this is real per-transition frame-delivery variance, not shared-runner
+  // contention) for zero real marginal coverage: once transform is
+  // confirmed present in the winning transition-property list with a real
+  // non-zero duration (both asserted above), a real browser reliably
+  // animates the resulting value change -- there's no known browser
+  // behavior where duration+property are correctly set but no visual
+  // interpolation occurs. Follows AGENTS.md's own "wait for a real signal,
+  // never a time/frame-count guess" e2e rule.
 });
 
 // Regression for a real, live-reported bug: a bottom/right-anchored toast
