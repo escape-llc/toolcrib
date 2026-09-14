@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, type ReactNode, type ReactElement } from 'react';
+import React, { useEffect, useState, type ReactNode, type ReactElement } from 'react';
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -10,9 +10,50 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
 import { AlertDialogThemeSlice, type AlertDialogSliceState } from './AlertDialogSlice';
+
+const ALERTDIALOG_STYLE_ID = 'toolcrib-alertdialog-animations';
+
+// Issue #408: identical bug shape to Modal.tsx (issue #373) -- see that
+// component's own injectModalAnimations comment for the full diagnosis.
+// Overlay/Content used to carry a static, unconditional inline `animation`
+// string (entrance only) that's already finished by the time Radix flips
+// data-state to "closed", so Radix's internal Presence (which
+// AlertDialogPrimitive.Content/Overlay already use -- no `forceMount`
+// needed) finds nothing running to wait for and tears the node down
+// instantly. A real stylesheet keyed on [data-state="open"/"closed"]
+// (same mechanism as Modal's/Tooltip's) gives Presence a fresh,
+// genuinely-triggered animation on the way out too. Reuses the same
+// shared ai-fade-in/-out and ai-scale-in/-out keyframes already injected
+// by ThemeProvider -- no new keyframes needed. Not a `.ai-focus-ring`
+// transition-shorthand collision (see Modal.tsx's identical note) --
+// this uses `animation`, a separate property from the `transition`
+// that bug is specific to.
+function injectAlertDialogAnimations(targetDocument?: Document, nonce?: string): void {
+  injectGlobalStyle(
+    ALERTDIALOG_STYLE_ID,
+    `
+    .ai-alertdialog-overlay[data-state="open"] {
+      animation: ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-alertdialog-overlay[data-state="closed"] {
+      animation: ai-fade-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
+    }
+    .ai-alertdialog-content[data-state="open"] {
+      animation: ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
+    }
+    .ai-alertdialog-content[data-state="closed"] {
+      animation: ai-scale-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
+    }
+    `,
+    targetDocument,
+    nonce
+  );
+}
 
 /**
  * Props for the `<AlertDialog>` blocking confirmation dialog.
@@ -94,7 +135,11 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   const zIndex = zIndexProp ?? autoZIndex;
   const id = useStableId(propId, 'alertdialog');
   const targetDocument = useTargetDocument();
+  const nonce = useNonce();
   useInjectInteractionStyles();
+  useEffect(() => {
+    injectAlertDialogAnimations(targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const { vars: alertDialogVars } = useSliceOverrides(AlertDialogThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -137,6 +182,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
 
       <AlertDialogPrimitive.Portal container={targetDocument?.body}>
         <AlertDialogPrimitive.Overlay
+          className="ai-alertdialog-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -147,14 +193,13 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
             alignItems: 'center',
             justifyContent: 'center',
             padding: 'var(--ai-padding-lg, 1.25rem)',
-            animation: 'ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             ...alertDialogVars,
           }}
         >
           <AlertDialogPrimitive.Content
             aria-modal="true"
             data-testid="alertdialog-container"
-            className="ai-focus-ring"
+            className="ai-focus-ring ai-alertdialog-content"
             style={{
               background: 'var(--ai-bg-surface, #ffffff)',
               borderRadius: 'var(--ai-radius-lg, 0.75rem)',
@@ -169,7 +214,6 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
               position: 'relative',
               zIndex: zIndex + 1,
               outline: 'none',
-              animation: 'ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
               // See Modal.tsx's identical comment — same self-contained
               // dialog-panel shape.
               contain: 'content',

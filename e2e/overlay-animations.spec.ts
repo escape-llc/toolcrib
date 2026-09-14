@@ -41,6 +41,45 @@ test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animation
   expect(animationName).toBe('ai-scale-in');
 });
 
+// Regression for issue #408: identical bug shape to Modal's #373 (see
+// that test's own comment) -- AlertDialog.Overlay/Content also carried a
+// static, unconditional inline `animation` string with no exit
+// counterpart, so Radix's internal Presence found nothing running on
+// close and tore the node down instantly. Fixed by
+// injectAlertDialogAnimations (AlertDialog.tsx), mirroring Modal's own
+// injectModalAnimations mechanism exactly.
+test('closing an AlertDialog plays real ai-fade-out/ai-scale-out exit animations before removal', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Component Showcase');
+  await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
+
+  const dialog = page.getByTestId('alertdialog-container');
+  await dialog.waitFor({ state: 'visible', timeout: 2000 });
+  const overlay = page.locator('.ai-alertdialog-overlay');
+
+  const contentExitPromise = dialog.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-scale-out') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+  const overlayExitPromise = overlay.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-fade-out') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  expect(await contentExitPromise).toBe('ai-scale-out');
+  expect(await overlayExitPromise).toBe('ai-fade-out');
+  await expect(dialog).not.toBeAttached({ timeout: 2000 });
+});
+
 test('expanding an Accordion item plays its ai-accordion-slide-down animation', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Component Showcase');
