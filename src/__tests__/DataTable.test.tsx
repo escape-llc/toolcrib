@@ -135,12 +135,59 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
     });
 
-    it('hides the page-size dropdown entirely -- nothing meaningful to pick when the size is computed', () => {
+    it('shows the page-size dropdown with "Auto" selected, not hidden (issue #419)', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" />);
-      expect(screen.queryByLabelText('Rows per page')).not.toBeInTheDocument();
-      // The rest of the pagination footer (Prev/Next) is still present --
-      // defaultPageSize="auto" only removes the dropdown, not pagination itself.
+      const dropdown = screen.getByLabelText('Rows per page') as HTMLSelectElement;
+      expect(dropdown).toBeInTheDocument();
+      expect(dropdown.value).toBe('auto');
+      expect(screen.getByRole('option', { name: 'Auto' })).toBeInTheDocument();
       expect(screen.getByLabelText('Next page')).toBeInTheDocument();
+    });
+  });
+
+  describe('page-size dropdown "Auto" option (issue #419)', () => {
+    it('defaults to "auto" when defaultPageSize is omitted entirely', () => {
+      // Math.floor(AUTO_HEIGHT_FALLBACK_PX / itemHeight) = Math.floor(350/44) = 7,
+      // same fallback computation as the describe block above -- proving
+      // the *default* (no defaultPageSize prop at all) is now 'auto', not
+      // the old fixed 10.
+      render(<DataTable data={testData} columns={testColumns} />);
+      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+      expect((screen.getByLabelText('Rows per page') as HTMLSelectElement).value).toBe('auto');
+    });
+
+    it('switches a fixed-size table into auto mode live, resetting to page 1', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+      fireEvent.click(screen.getByLabelText('Next page'));
+      expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: 'auto' } });
+      // Back to page 1, now sized via the auto fallback computation (7 rows).
+      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+      expect((screen.getByLabelText('Rows per page') as HTMLSelectElement).value).toBe('auto');
+    });
+
+    it('switches an auto-sized table into a fixed size live, resetting to page 1', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" />);
+      fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '25' } });
+      expect(screen.getByText('Showing 1 to 25 of 50 entries')).toBeInTheDocument();
+      expect((screen.getByLabelText('Rows per page') as HTMLSelectElement).value).toBe('25');
+    });
+
+    it('emits datatable:paginated with the correct pageSize immediately after switching to auto, not a stale value', () => {
+      // Regression guard for the exact race pageSizeRef's own comment
+      // documents: goToPage's onPageChange runs synchronously inside the
+      // same change event, before React's async state update would
+      // otherwise reach a closure -- pageSizeRef has to be written
+      // synchronously first, same as the pre-existing numeric branch.
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:paginated', handler);
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+
+      fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: 'auto' } });
+
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 7 }));
+      unsub();
     });
   });
 

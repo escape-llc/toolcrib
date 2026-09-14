@@ -27,6 +27,8 @@ export interface ToolcribLocaleStrings {
     showingEntries: (from: number, to: number, total: number) => string;
     rowsPerPage: string;
     perPageOption: (size: number) => string;
+    /** Label for the page-size dropdown's live-computed-page-size option (issue #419). */
+    perPageAutoOption: string;
     previousPage: string;
     nextPage: string;
     /** Placeholder and accessible name for `<DataTable quickFilter>`'s search input. */
@@ -97,6 +99,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     showingEntries: (from, to, total) => `Showing ${from} to ${to} of ${total} entries`,
     rowsPerPage: 'Rows per page',
     perPageOption: (size) => `${size} per page`,
+    perPageAutoOption: 'Auto',
     previousPage: 'Previous page',
     nextPage: 'Next page',
     quickFilterPlaceholder: 'Search…',

@@ -182,16 +182,22 @@ export interface DataTableProps<T = any> {
    * off, no empty space at the bottom), recomputing whenever the container
    * is resized or density changes `itemHeight`. Mirrors `containerHeight`'s
    * own `'auto'` convention, and reuses the exact same live measurement
-   * (`useAdaptiveSize(bodyRef)`) that already drives it. `pageSizeOptions`
-   * and the page-size dropdown are both ignored in this mode -- there's
-   * nothing meaningful to pick when the size is computed from available
-   * space, the same "ignored" precedent `pagination={false}` already sets
-   * for both props.
-   * @default 10
+   * (`useAdaptiveSize(bodyRef)`) that already drives it.
+   *
+   * Also the default (issue #419) -- an AI (or a human) reaching for
+   * `<DataTable>` with no opinion at all about page size gets a page that
+   * already fills its own container exactly, rather than an arbitrary
+   * fixed 10 that might leave half the available space empty or cut a row
+   * off. `'Auto'` is also always present as a real option in the
+   * page-size dropdown (alongside `pageSizeOptions`, not instead of it) --
+   * an end user can switch the table into or out of auto-sizing
+   * interactively; this prop only controls which one is selected first.
+   * @default 'auto'
    */
   defaultPageSize?: number | 'auto';
   /**
-   * Options shown in the page-size dropdown. Ignored when `defaultPageSize` is `'auto'`.
+   * Options shown in the page-size dropdown, alongside the always-present
+   * "Auto" choice.
    * @default [5, 10, 25, 50, 100]
    */
   pageSizeOptions?: number[];
@@ -507,7 +513,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   pagination = true,
   onEndReached,
   endReachedThreshold = 10,
-  defaultPageSize: initialPageSize = 10,
+  defaultPageSize: initialPageSize = 'auto',
   pageSizeOptions = [5, 10, 25, 50, 100],
   itemHeight: explicitItemHeight,
   containerHeight = 'auto',
@@ -606,13 +612,25 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   });
   const getSortDescriptor = (key: string): SortDescriptor | undefined => sortBy.find(d => d.key === key);
 
-  // Only meaningful when pageSize itself isn't 'auto' -- see
+  // Issue #419: 'auto' is now a live-selectable dropdown choice, not just
+  // a one-time uncontrolled seed -- `defaultPageSize="auto"` still seeds
+  // the *initial* selection the same way `defaultPage`/`defaultSortBy`/etc.
+  // already do (a later change to the prop itself still doesn't propagate,
+  // same as before), but the dropdown below can now switch the table
+  // between 'auto' and any fixed size interactively, which it couldn't do
+  // at all previously (the dropdown was simply absent whenever the prop
+  // said 'auto'). One state variable for the whole selection, not two
+  // (a boolean + a number), so there's exactly one source of truth for
+  // "what does the dropdown currently show" -- the previous two-variable
+  // shape independently tracked a boolean derived only from the initial
+  // prop (never updated after mount) and a number, which made "the
+  // dropdown picked auto" inexpressible as a state transition at all.
+  const [pageSizeSelection, setPageSizeSelection] = useState<number | 'auto'>(initialPageSize);
+  const isAutoPageSize = pageSizeSelection === 'auto';
+  // Only meaningful when pageSizeSelection itself isn't 'auto' -- see
   // effectivePageSize below, which is what every real page-size
-  // computation downstream actually uses. Seeded with a plain numeric
-  // fallback in 'auto' mode since this state is simply never read from
-  // then (the dropdown that would change it is hidden in that mode too).
-  const isAutoPageSize = initialPageSize === 'auto';
-  const [pageSize, setPageSize] = useState(typeof initialPageSize === 'number' ? initialPageSize : 10);
+  // computation downstream actually uses.
+  const pageSize = typeof pageSizeSelection === 'number' ? pageSizeSelection : 10;
   // usePagination's own onPageChange closure runs synchronously inside
   // whatever event handler called goToPage — including the page-size
   // select's handler below, which changes pageSize and resets to page 1 in
@@ -625,18 +643,23 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
 
-  // defaultPageSize="auto" (issue #364): reuses the exact same live measurement
-  // that already drives containerHeight="auto" -- Math.floor(<real body
-  // height> / itemHeight) fills a page with exactly as many rows as fit,
-  // recomputing whenever the container resizes or density changes
-  // itemHeight. Falls back to AUTO_HEIGHT_FALLBACK_PX (the same constant
-  // useTableVirtualization itself falls back to) before the very first
-  // ResizeObserver report, so the initial render isn't a jarring 0-row
-  // page. Math.max(1, ...) guards a pathologically short/hidden container
-  // from computing a page size of 0 (no rows would ever be reachable).
-  const effectivePageSize = isAutoPageSize
-    ? Math.max(1, Math.floor((observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) / itemHeight))
-    : pageSize;
+  // defaultPageSize="auto" / the dropdown's own "Auto" option (issue #364,
+  // #419): reuses the exact same live measurement that already drives
+  // containerHeight="auto" -- Math.floor(<real body height> / itemHeight)
+  // fills a page with exactly as many rows as fit, recomputing whenever
+  // the container resizes or density changes itemHeight. Falls back to
+  // AUTO_HEIGHT_FALLBACK_PX (the same constant useTableVirtualization
+  // itself falls back to) before the very first ResizeObserver report, so
+  // the initial render isn't a jarring 0-row page. Math.max(1, ...) guards
+  // a pathologically short/hidden container from computing a page size of
+  // 0 (no rows would ever be reachable). Factored into a named function,
+  // not inlined only where effectivePageSize needs it -- the dropdown's
+  // own onChange handler below also needs this exact value synchronously,
+  // the moment a user switches TO "Auto", for the same reason pageSizeRef
+  // has to be written before goToPage runs (see that ref's own comment).
+  const computeAutoPageSize = () =>
+    Math.max(1, Math.floor((observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) / itemHeight));
+  const effectivePageSize = isAutoPageSize ? computeAutoPageSize() : pageSize;
 
   const pageSizeRef = useRef(effectivePageSize);
   // useLayoutEffect, not a bare assignment during render -- writing to a
@@ -1789,45 +1812,46 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <UIGroup>
-            {/* defaultPageSize="auto" (issue #364): the page size is computed
-                live from measured space, not chosen -- a dropdown here
-                would let a user pick a fixed value that immediately
-                conflicts with (and would be silently overridden by) that
-                computation. pageSizeOptions is ignored in this mode too,
-                matching pagination={false}'s own existing "ignored"
-                precedent for the same prop. */}
-            {!isAutoPageSize && (
-              <select
-                aria-label={strings.rowsPerPage}
-                value={pageSize}
-                onChange={e => {
+            {/* Issue #419: "Auto" is a real, always-present option here now,
+                not a state the dropdown disappears for. Switching to it
+                writes pageSizeRef synchronously via computeAutoPageSize()
+                for the exact same reason the numeric branch already writes
+                the ref before calling goToPage (see that comment) --
+                goToPage's onPageChange callback runs synchronously, before
+                React's async state update reaches either closure
+                variable. */}
+            <select
+              aria-label={strings.rowsPerPage}
+              value={isAutoPageSize ? 'auto' : pageSize}
+              onChange={e => {
+                if (e.target.value === 'auto') {
+                  pageSizeRef.current = computeAutoPageSize();
+                  setPageSizeSelection('auto');
+                } else {
                   const newSize = Number(e.target.value);
-                  // Write the ref before setPageSize/goToPage -- see
-                  // pageSizeRef's own comment on why: goToPage's onPageChange
-                  // callback runs synchronously, before setPageSize's async
-                  // update reaches the `pageSize` closure variable.
                   pageSizeRef.current = newSize;
-                  setPageSize(newSize);
-                  paginationGoToPage(1);
-                }}
-                className="ai-btn"
-                style={{
-                  padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
-                  border: '0.0625rem solid var(--ai-border, #d1d5db)',
-                  background: 'var(--ai-bg-surface, #ffffff)',
-                  color: 'var(--ai-text-primary, #111827)',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
-                }}
-              >
-                {pageSizeOptions.map(opt => (
-                  <option key={opt} value={opt}>
-                    {strings.perPageOption(opt)}
-                  </option>
-                ))}
-              </select>
-            )}
+                  setPageSizeSelection(newSize);
+                }
+                paginationGoToPage(1);
+              }}
+              className="ai-btn"
+              style={{
+                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
+                border: '0.0625rem solid var(--ai-border, #d1d5db)',
+                background: 'var(--ai-bg-surface, #ffffff)',
+                color: 'var(--ai-text-primary, #111827)',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
+              }}
+            >
+              <option value="auto">{strings.perPageAutoOption}</option>
+              {pageSizeOptions.map(opt => (
+                <option key={opt} value={opt}>
+                  {strings.perPageOption(opt)}
+                </option>
+              ))}
+            </select>
 
             <button
               onClick={() => paginationGoToPage(validCurrentPage - 1)}
