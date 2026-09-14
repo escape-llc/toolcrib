@@ -453,7 +453,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
             cursor: disabled ? 'not-allowed' : 'text',
             opacity: disabled ? 0.6 : 1,
             outline: 'none',
-            transition: 'border-radius 0.15s ease',
+            // No inline transition -- .ai-focus-ring's own shared rule
+            // (interactionStyles.ts) already covers border-radius
+            // specifically for this reason (Combobox's own corner-squaring
+            // morph) and is !important, so this would be silently
+            // discarded outright, not just redundant (issue #411).
             ...squaring.triggerCornerStyle,
             ...comboboxVars,
           }}

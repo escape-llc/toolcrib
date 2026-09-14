@@ -72,7 +72,12 @@ export const Toggle: React.FC<ToggleProps> = ({
         fontWeight: 'var(--ai-font-weight-semibold, 600)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: 'all 0.15s ease',
+        // No inline transition -- .ai-btn's own shared rule
+        // (interactionStyles.ts) already covers background-color and
+        // border-color and is !important, so this would be silently
+        // discarded outright, not just redundant (issue #411 -- this
+        // was the originally-reported component: a segmented control
+        // whose hover/selection color changes snapped instantly).
         outline: 'none',
         ['--ai-btn-bg' as string]: isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
         ...toggleVars,
@@ -199,7 +204,11 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               opacity: itemDisabled ? 0.5 : 1,
               position: 'relative',
               zIndex: selected ? 1 : 0,
-              transition: 'all 0.15s ease',
+              // No inline transition -- .ai-btn's own shared rule
+              // (interactionStyles.ts) already covers background-color,
+              // color, and border-radius, and is !important, so this
+              // would be silently discarded outright, not just redundant
+              // (issue #411).
               outline: 'none',
               ['--ai-btn-bg' as string]: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
               ...toggleGroupVars,

@@ -453,7 +453,10 @@ export const Splitter: React.FC<SplitterProps> & {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'background 0.15s ease',
+          // No inline transition -- .ai-focus-ring's own shared rule
+          // (interactionStyles.ts) already covers background-color and is
+          // !important, so this would be silently discarded outright, not
+          // just redundant (issue #411).
           zIndex: Z_INDEX.SPLITTER,
           touchAction: 'none',
           userSelect: 'none',

@@ -1498,7 +1498,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         // color coding. The left-indicator + inset-border
                         // treatment (each <td>'s own boxShadow, computed
                         // above) is what conveys selection now.
-                        transition: 'background-color 0.15s ease',
+                        transition: 'background-color var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
                       }}
                     >
                       {selectable && !hideSelectionColumn && selectionKey !== null && (

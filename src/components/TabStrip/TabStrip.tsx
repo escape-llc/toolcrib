@@ -260,7 +260,11 @@ export const TabStrip: React.FC<TabStripProps> & {
                   cursor: item.disabled ? 'not-allowed' : 'pointer',
                   opacity: item.disabled ? 0.5 : 1,
                   whiteSpace: 'nowrap',
-                  transition: 'var(--ai-transition-fast, all 0.15s ease)',
+                  // No inline transition -- .ai-tab-trigger's own shared
+                  // rule (interactionStyles.ts) already covers
+                  // background-color and is !important, so this would be
+                  // silently discarded outright, not just redundant
+                  // (issue #411).
                   flexShrink: 0,
                   outline: 'none',
                   // Same live color-mix hover as `.ai-btn` (see interactionStyles.ts)

@@ -47,6 +47,19 @@ function collectSourceFiles(dir: string): string[] {
 // value in an inline style object or CSS-in-JS template literal.
 const TRANSITION_VALUE_RE = /(?<![\w-])transition\s*:\s*(['"`])((?:(?!\1)[\s\S])*?)\1/g;
 
+// Only the three COMPOSITE tokens (a complete shorthand value, e.g. "all
+// 0.2s cubic-bezier(...)") are unsafe to prefix -- matched by exact name,
+// not by the shared "--ai-transition-" prefix every variable in this
+// family happens to start with. A plain `value.includes('var(--ai-transition-')`
+// substring check (the original version of this test) also matched
+// `--ai-transition-duration-fast`/`--ai-transition-easing` -- the DIFFERENT,
+// fragment pair this test's own doc comment above already says is fine to
+// prefix -- producing 8 false-positive failures the moment real code
+// started using that established, correct pattern (issue #411). `(?=[,)])`
+// confirms the match ends exactly at the composite token's own name, not
+// partway into a longer variable that happens to share the same start.
+const COMPOSITE_TOKEN_RE = /var\(--ai-transition-(?:normal|fast|slow)(?=[,)])/;
+
 describe('CSS `transition:` values referencing --ai-transition-normal/-fast must not be prefixed', () => {
   const files = collectSourceFiles(COMPONENTS_ROOT);
   expect(files.length).toBeGreaterThan(0);
@@ -60,7 +73,7 @@ describe('CSS `transition:` values referencing --ai-transition-normal/-fast must
       TRANSITION_VALUE_RE.lastIndex = 0;
       while ((match = TRANSITION_VALUE_RE.exec(source)) !== null) {
         const value = match[2].trim();
-        if (value.includes('var(--ai-transition-') && !value.startsWith('var(--ai-transition-')) {
+        if (COMPOSITE_TOKEN_RE.test(value) && !value.startsWith('var(--ai-transition-')) {
           violations.push(value);
         }
       }

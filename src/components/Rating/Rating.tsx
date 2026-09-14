@@ -145,7 +145,11 @@ export const Rating: React.FC<RatingProps> = ({
               ...iconStyle,
               cursor: 'pointer',
               color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
-              transition: 'color 0.15s ease',
+              // No inline transition -- .ai-focus-ring's own shared rule
+              // (interactionStyles.ts) already covers color and is
+              // !important, so this (like the `all: 'unset'` above) would
+              // be silently discarded outright, not just redundant
+              // (issue #411).
             }}
           >
             {icon ?? DEFAULT_ICON}

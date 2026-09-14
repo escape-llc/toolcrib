@@ -160,7 +160,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   cursor: item.disabled ? 'not-allowed' : 'pointer',
                   opacity: item.disabled ? 0.5 : 1,
                   outline: 'none',
-                  transition: 'background 0.12s ease',
+                  transition: 'background var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
                 }}
               >
                 {item.icon && <span>{item.icon}</span>}
