@@ -3,6 +3,7 @@
 import React, { type ReactNode, useMemo, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
 import { type HarmonyMode } from '../../theme/harmonies';
+import { hsvToCSS } from '../../theme/hsv';
 import { type PaddingMode } from '../../theme/padding';
 import { type MarginMode } from '../../theme/margin';
 import { type CornerRadiusMode } from '../../theme/radius';
@@ -465,6 +466,65 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           onChange={val => setHueSpread(val)}
           ariaLabel="Hue Spread Angle"
         />
+      </div>
+
+      {/* Harmony Palette Swatches (issue #376) -- the most direct way to
+          actually SEE the 4 hue-derived roles this section's own controls
+          above compute, since most of them (secondary/accent/quaternary --
+          see issue #375's own investigation) have very little surface
+          elsewhere in the toolkit to visibly manifest on: --ai-color-primary
+          is referenced by ~26 component files, --ai-color-secondary by 4,
+          --ai-color-accent by 1, and --ai-color-quaternary by zero --
+          correctly computed here, just rarely consumed downstream.
+          Mirrors subthemeContent's own tile-grid pattern below for visual
+          consistency, but each tile's own resolved hsl() string is also
+          shown (theme.palette holds the real HSVColor objects, not just
+          the CSS variable names) -- letting a HarmonyMode/Hue-Spread change
+          be visually confirmed as producing 4 genuinely DISTINCT colors,
+          not just an abstract expectation. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
+          Harmony palette preview — the 4 hue-derived color roles the controls above compute.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          {(
+            [
+              { role: 'primary', label: 'Primary', main: theme.palette.primary },
+              { role: 'secondary', label: 'Secondary', main: theme.palette.secondary },
+              { role: 'accent', label: 'Accent', main: theme.palette.accent },
+              { role: 'quaternary', label: 'Quaternary', main: theme.palette.quaternary },
+            ] as const
+          ).map(({ role, label, main }) => (
+            <div
+              key={role}
+              data-testid={`harmony-swatch-${role}`}
+              style={{
+                padding: 'var(--ai-padding-md, 0.5rem)',
+                background: `var(--ai-color-${role})`,
+                color: `var(--ai-color-${role}-text)`,
+                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>{label}</div>
+              {/* Reads the resolved HSVColor object directly (not the CSS
+                  variable), so this stays accurate even where hsvToCSS's
+                  own alpha default or rounding differs from what a
+                  getComputedStyle read of the live variable would show.
+                  No opacity here (Gemini-caught, real) -- this text sits on
+                  a dynamic, user-configurable background using the SAME
+                  `--ai-color-{role}-text` variable as the label above,
+                  already computed via pickReadableTextColor specifically to
+                  guarantee contrast against that exact background; blending
+                  it toward its own background via opacity would silently
+                  undercut that guarantee for some theme configurations even
+                  though it happened to still read fine for the one base
+                  color this was visually spot-checked against. Font size
+                  alone differentiates it from the label now. */}
+              <div style={{ fontSize: '0.6875rem' }}>{hsvToCSS(main)}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -424,6 +424,53 @@ describe('ThemeEditor', () => {
       fireEvent.keyDown(slider, { key: 'ArrowRight' });
       expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
     });
+
+    // Issue #376: harmony palette swatches -- the most direct way to
+    // actually see the 4 hue-derived color roles the harmony controls
+    // compute, given issue #375's own investigation found very little
+    // surface elsewhere in the toolkit for secondary/accent/quaternary to
+    // visibly manifest on.
+    it('Color Harmony & Hue Spread section: shows a live swatch for each of the 4 harmony roles', async () => {
+      renderEditor();
+      fireEvent.click(screen.getByText(/Color Harmony & Hue Spread/));
+
+      // Scoped to each swatch's own data-testid, not a bare getByText --
+      // Gemini-caught, real: a bare `getByText('Secondary')` would throw on
+      // multiple matches the moment any other part of ThemeEditor ever
+      // contains that same word (a dropdown option, a variant label).
+      const primarySwatch = screen.getByTestId('harmony-swatch-primary');
+      const secondarySwatch = screen.getByTestId('harmony-swatch-secondary');
+      const accentSwatch = screen.getByTestId('harmony-swatch-accent');
+      const quaternarySwatch = screen.getByTestId('harmony-swatch-quaternary');
+      expect(within(primarySwatch).getByText('Primary')).toBeInTheDocument();
+      expect(within(secondarySwatch).getByText('Secondary')).toBeInTheDocument();
+      expect(within(accentSwatch).getByText('Accent')).toBeInTheDocument();
+      expect(within(quaternarySwatch).getByText('Quaternary')).toBeInTheDocument();
+
+      // Changing the harmony mode changes the underlying HSV colors, so the
+      // swatch's own resolved hsl() text should change too -- proving this
+      // is a live readout of theme.palette, not a static label. Read via
+      // the swatch container's own full text (label + value are its only
+      // two children), not DOM-position traversal like `.nextSibling` --
+      // Gemini-caught, real: fragile against any future markup change
+      // between the two.
+      const before = secondarySwatch.textContent;
+
+      const combo = screen.getByRole('combobox');
+      fireEvent.click(combo);
+      const listbox = screen.getByRole('listbox');
+      const monochromaticOption = within(listbox).getByRole('option', { name: 'Monochromatic' });
+      fireEvent.click(monochromaticOption);
+
+      expect(secondarySwatch.textContent).not.toBe(before);
+
+      // The shared e2e accessibility.spec.ts scan opens the Theme Designer
+      // drawer but never expands this specific (collapsed-by-default)
+      // accordion section, so it never actually exercises this new
+      // markup's own DOM -- a direct axe check here, with the section
+      // already expanded above, is this content's real coverage.
+      expect(await axe(document.body)).toHaveNoViolations();
+    });
   });
 
   describe('regression coverage: Save & Load Themes toolbar handlers', () => {
