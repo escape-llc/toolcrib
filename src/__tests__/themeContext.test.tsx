@@ -183,16 +183,22 @@ describe('computeServerThemeCSS', () => {
     expect(withoutMargin.rootVariablesCSS).toBe(explicitNormal.rootVariablesCSS);
   });
 
-  // Issue #353: scrollbarCSS applies the modern scrollbar-color/-width
-  // properties ambiently at :root, referencing the palette-derived
+  // Issue #353: scrollbarCSS applies the modern scrollbar-color property
+  // ambiently at :root, referencing the palette-derived
   // --ai-scrollbar-thumb/--ai-scrollbar-track variables (both already
   // present in rootVariablesCSS, same as every other palette variable).
-  it('includes scrollbarCSS applying scrollbar-color/-width at :root', () => {
+  // Deliberately does NOT also set scrollbar-width -- Gemini's PR review
+  // correctly flagged an earlier `scrollbar-width: thin` here as a real,
+  // global WCAG Target Size regression with no opt-out (see
+  // TOOLCRIB_SCROLLBAR_CSS's own doc comment); scrollbar-color alone
+  // already closes the "default light scrollbar in a dark UI" gap this
+  // issue exists for.
+  it('includes scrollbarCSS applying scrollbar-color at :root, without shrinking scrollbar-width', () => {
     const { rootVariablesCSS, scrollbarCSS } = computeServerThemeCSS();
 
     expect(scrollbarCSS).toContain(':root');
     expect(scrollbarCSS).toContain('scrollbar-color: var(--ai-scrollbar-thumb');
-    expect(scrollbarCSS).toContain('scrollbar-width: thin');
+    expect(scrollbarCSS).not.toContain('scrollbar-width');
     expect(rootVariablesCSS).toMatch(/--ai-scrollbar-thumb:/);
     expect(rootVariablesCSS).toMatch(/--ai-scrollbar-track:/);
   });
