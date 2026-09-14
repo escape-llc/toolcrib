@@ -1334,7 +1334,37 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               // selection controls) even while there's nothing to act on.
               <tr>
                 <td colSpan={totalColSpan} style={{ padding: '2rem 1rem', textAlign: 'center' }}>
-                  {emptyState}
+                  {/* Crossfade (issue #371) -- a plain CSS `animation`, not
+                      Presence: the empty <tr> and the real virtualized row
+                      set are two entirely different element structures at
+                      the same tree position (this ternary's two branches),
+                      so React always unmounts one and mounts the other on
+                      every flip -- there's no way to keep both mounted at
+                      once inside a valid <tbody> to animate a true, both-
+                      sides-fading overlap (a stray wrapper <div> around
+                      multiple <tr> siblings isn't valid table markup, and
+                      Presence itself only ever wraps a single element).
+                      This mount-only entrance (no exit animation attempted
+                      for the same structural reason) is the honest, safe
+                      version: reuses ai-scale-in (opacity + transform,
+                      already shared/injected by ThemeProvider -- no new
+                      keyframe needed) and the same --ai-transition-* tokens
+                      the focus-ring fade/Toast's own animations already
+                      use, which collapse to 0s automatically under
+                      reducedMotion (theme/animation.tsx's own token
+                      derivation), so no separate reduced-motion branch is
+                      needed here either. Applied to an inner <div>, not the
+                      <td> itself -- `transform` on a table CELL has real
+                      cross-browser rendering quirks (border/background
+                      distortion) that a plain block-level wrapper avoids
+                      entirely. Not sharing a class with any focusable
+                      element (plain content, no .ai-focus-ring), so the
+                      transition-shorthand collision class of bug fixed for
+                      Toast (issue #358) doesn't apply here -- checked, not
+                      assumed. */}
+                  <div style={{ animation: 'ai-scale-in var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)' }}>
+                    {emptyState}
+                  </div>
                 </td>
               </tr>
             ) : (
