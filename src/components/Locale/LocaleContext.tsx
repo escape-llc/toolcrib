@@ -37,6 +37,8 @@ export interface ToolcribLocaleStrings {
     densityLabel: string;
     /** Accessible name and visible label for one density option button. */
     densityOptionLabel: (density: 'compact' | 'normal' | 'spacious') => string;
+    /** Visible label and accessible name for `<DataTable csvExport>`'s built-in export button. */
+    exportCsvLabel: string;
   };
   carousel: {
     previousSlide: string;
@@ -109,6 +111,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     quickFilterPlaceholder: 'Search…',
     densityLabel: 'Row density',
     densityOptionLabel: (density) => density.charAt(0).toUpperCase() + density.slice(1),
+    exportCsvLabel: 'Export CSV',
   },
   carousel: {
     previousSlide: 'Previous slide',

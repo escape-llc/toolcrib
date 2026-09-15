@@ -1576,21 +1576,28 @@ export const App: React.FC = () => {
                         containerHeight="auto"
                         quickFilter
                         densitySelector
-                        // Reload Data/Export CSV used to live in this Card's
-                        // own header Toolbar, in a separate row above the
-                        // table entirely -- moved into the same row search/
-                        // density/bulk-actions already share, per direct
-                        // feedback ("put the command buttons in the toolbar
-                        // with search, and put them in ui group"). UIGroup
-                        // gives them the same connected-segmented-group look
-                        // density's own toggle buttons already use.
+                        // Real CSV export (issue #338) -- this used to be a
+                        // hand-rolled button in renderToolbarExtra below that
+                        // only showed a toast, no actual file. csvExport
+                        // renders its own built-in toolbar button, so the
+                        // fake one is gone; renderToolbarExtra now carries
+                        // only Reload Data, which has no toolkit-native
+                        // equivalent.
+                        csvExport
+                        csvExportFileName="users.csv"
+                        // Reload Data used to live in this Card's own header
+                        // Toolbar, in a separate row above the table entirely
+                        // -- moved into the same row search/density/
+                        // bulk-actions already share, per direct feedback
+                        // ("put the command buttons in the toolbar with
+                        // search"). No longer wrapped in <UIGroup> -- that
+                        // was for the segmented look of two adjacent buttons
+                        // (this one + the old fake Export CSV button); with
+                        // just Reload Data left, a plain <Button> is enough.
                         renderToolbarExtra={() => (
-                          <UIGroup>
-                            <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
-                              {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
-                            </Button>
-                            <Button size="sm" variant="outline" icon="📊" onClick={() => addToast({ type: 'info', message: 'Table exported!' })}>Export CSV</Button>
-                          </UIGroup>
+                          <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
+                            {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
+                          </Button>
                         )}
                         rowKey={rec => rec.id}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}

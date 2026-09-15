@@ -89,6 +89,8 @@ export interface AIEventMap {
   'datatable:density_changed': { id?: string; density: 'compact' | 'normal' | 'spacious' };
   /** Emitted once per crossing of `endReachedThreshold` while continuous-scrolling (`pagination={false}`) -- see issue #365 and `onEndReached`'s own doc. `loadedCount` is how many rows are currently loaded (the same number a listener would otherwise re-derive from `data.length`). */
   'datatable:end_reached': { id?: string; loadedCount: number };
+  /** Emitted whenever `<DataTable csvExport>`'s built-in export button downloads a CSV -- `rowCount` is the full filtered + sorted dataset's size (every exported row, across every page), not just the current page's. See issue #338. */
+  'datatable:exported': { id?: string; rowCount: number };
   'log:cleared': { timestamp: string };
 
   // Routing
