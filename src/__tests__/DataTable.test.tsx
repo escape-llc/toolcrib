@@ -2047,6 +2047,95 @@ describe('DataTable Virtualized Component', () => {
     });
   });
 
+  describe('column pin/freeze (issue #341)', () => {
+    // jsdom has no real layout engine -- getBoundingClientRect() always
+    // returns all-zero rects, so useTableColumnPinning's own real pixel
+    // offset measurement can't be meaningfully asserted here (see
+    // e2e/datatable-column-pinning.spec.ts for that, a real browser).
+    // What jsdom CAN verify: the CSS `position: sticky` is applied at all,
+    // that render ORDER moves a pinned column to its own edge regardless of
+    // its declared position, and that the selection/rowCommands columns
+    // auto-pin alongside a pinned data column -- all DOM-shape assertions,
+    // not layout-dependent ones.
+    const pinnableColumns: Column<TestItem>[] = [
+      { key: 'id', title: 'ID', sortable: true, pinned: 'left' },
+      { key: 'name', title: 'Name', sortable: true },
+    ];
+
+    it('a pinned column gets position: sticky; an unpinned one does not', () => {
+      render(<DataTable data={testData} columns={pinnableColumns} defaultPageSize={10} rowKey={r => r.id} />);
+      expect(screen.getByRole('columnheader', { name: 'ID' })).toHaveStyle({ position: 'sticky', left: '0px' });
+      expect(screen.getByRole('columnheader', { name: 'Name' })).not.toHaveStyle({ position: 'sticky' });
+    });
+
+    it('a right-pinned column gets position: sticky with a right offset, not a left one', () => {
+      const cols: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', sortable: true },
+        { key: 'name', title: 'Name', sortable: true, pinned: 'right' },
+      ];
+      render(<DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} />);
+      expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveStyle({ position: 'sticky', right: '0px' });
+    });
+
+    it('reorders a pinned column to its own edge in DOM order, regardless of its position in `columns`', () => {
+      // "Name" is declared SECOND but pinned left -- it must render FIRST
+      // among the data columns (right after the header's own leading
+      // cells), not in its originally-declared position. This is the
+      // exact real-browser-confirmed fix for a genuine sticky-positioning
+      // rendering bug (a non-sticky cell sitting between two sticky ones
+      // in the same row renders with a wrong stuck offset) -- see
+      // DataTable.tsx's own `displayColumns` comment for the full account.
+      const cols: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', sortable: true },
+        { key: 'name', title: 'Name', sortable: true, pinned: 'left' },
+      ];
+      render(<DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} />);
+      const headers = screen.getAllByRole('columnheader').map(h => h.textContent);
+      expect(headers).toEqual(['Name', 'ID']);
+    });
+
+    it('the selection column auto-pins (sticky, left: 0) when a data column is pinned left', () => {
+      render(<DataTable data={testData} columns={pinnableColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
+      const selectAllCheckbox = screen.getByRole('checkbox', { name: 'Select all rows on this page' });
+      expect(selectAllCheckbox.closest('th')).toHaveStyle({ position: 'sticky', left: '0px' });
+    });
+
+    it('the selection column does NOT pin when no data column is pinned left', () => {
+      const cols: Column<TestItem>[] = [{ key: 'id', title: 'ID', sortable: true }, { key: 'name', title: 'Name', sortable: true }];
+      render(<DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} selectable />);
+      const selectAllCheckbox = screen.getByRole('checkbox', { name: 'Select all rows on this page' });
+      expect(selectAllCheckbox.closest('th')).not.toHaveStyle({ position: 'sticky' });
+    });
+
+    it('the rowCommands actions column auto-pins (sticky, right: 0) when a data column is pinned right', () => {
+      const cols: Column<TestItem>[] = [{ key: 'id', title: 'ID', sortable: true, pinned: 'right' }, { key: 'name', title: 'Name', sortable: true }];
+      render(
+        <DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} rowCommands={[{ id: 'view', label: 'View' }]} />
+      );
+      const actionsHeader = screen.getByText('Row actions').closest('th');
+      expect(actionsHeader).toHaveStyle({ position: 'sticky', right: '0px' });
+    });
+
+    it('data-grid-col coordinates stay contiguous (0..N-1) after reordering for pinning', () => {
+      const cols: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', sortable: true },
+        { key: 'name', title: 'Name', sortable: true, pinned: 'left' },
+      ];
+      render(<DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} />);
+      // 'Name' rendered first (pinned) -> data-grid-col 0; 'ID' second -> 1.
+      const nameButton = screen.getByRole('button', { name: /^Name/ });
+      const idButton = screen.getByRole('button', { name: /^ID/ });
+      expect(nameButton).toHaveAttribute('data-grid-col', '0');
+      expect(idButton).toHaveAttribute('data-grid-col', '1');
+    });
+
+    it('body cells for a pinned column also get position: sticky', () => {
+      render(<DataTable data={testData} columns={pinnableColumns} defaultPageSize={10} rowKey={r => r.id} />);
+      const firstBodyCell = screen.getByText('1').closest('td');
+      expect(firstBodyCell).toHaveStyle({ position: 'sticky', left: '0px' });
+    });
+  });
+
   describe('empty state', () => {
     it('renders emptyState in place of the row set when data is empty', () => {
       render(<DataTable data={[]} columns={testColumns} emptyState={<span>Nothing here yet</span>} />);
