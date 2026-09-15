@@ -44,7 +44,7 @@ export function columnsToCsv<T extends Record<string, any>>(columns: Column<T>[]
  * hypothetical one.
  */
 export function downloadCsvFile(filename: string, content: string): void {
-  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
