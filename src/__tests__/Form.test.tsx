@@ -620,5 +620,22 @@ describe('Form & Zod Validation Engine', () => {
       fireEvent.click(screen.getByLabelText('Clear'));
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ value: '', name: 'q' }) }));
     });
+
+    // Regression for a Gemini PR #430 follow-up finding: a generic handler
+    // that unconditionally calls e.stopPropagation()/e.preventDefault(), or
+    // destructures from e.currentTarget, must not crash against the clear
+    // button's synthesized event.
+    it('does not throw when onChange calls stopPropagation/preventDefault or reads currentTarget', () => {
+      const onChange = vi.fn((e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const { name } = e.currentTarget;
+        expect(name).toBe('q');
+      });
+      render(<Input name="q" value="hello" onChange={onChange} clearable />);
+
+      expect(() => fireEvent.click(screen.getByLabelText('Clear'))).not.toThrow();
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
   });
 });

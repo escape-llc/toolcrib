@@ -392,13 +392,22 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   // falls back to '' at minimum even with no `externalValue`/Form binding),
   // so there's no native DOM value to separately reset, and the next render
   // already picks up whatever the write below settles on. Still includes
-  // name/id alongside value so a generic multi-input handler keyed on
-  // `e.target.name` doesn't break just because this particular change came
-  // from the clear button rather than a keystroke.
+  // name/id alongside value (mirrored onto both target and currentTarget)
+  // so a generic multi-input handler keyed on `e.target.name` doesn't break
+  // just because this particular change came from the clear button rather
+  // than a keystroke -- and still provides no-op preventDefault/
+  // stopPropagation so a handler that unconditionally calls either doesn't
+  // throw against this synthesized stand-in.
   const handleClear = () => {
     if (name && formContext) formContext.setFieldValue(name, '');
     if (onChange) {
-      onChange({ target: { value: '', name: name || undefined, id: id ?? (name || undefined) } } as unknown as React.ChangeEvent<HTMLInputElement>);
+      const mockTarget = { value: '', name: name || undefined, id: id ?? (name || undefined) };
+      onChange({
+        target: mockTarget,
+        currentTarget: mockTarget,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      } as unknown as React.ChangeEvent<HTMLInputElement>);
     }
     onClear?.();
     inputRef.current?.focus();
