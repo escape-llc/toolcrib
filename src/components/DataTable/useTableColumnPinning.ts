@@ -82,7 +82,16 @@ export function useTableColumnPinning<T>(
       if (!col.pinned) continue;
       const el = cellsRef.current.get(col.key);
       if (!el) continue;
-      const width = el.getBoundingClientRect().width;
+      // Rounded, not the raw fractional getBoundingClientRect() value --
+      // Gemini's review of this PR correctly flagged that a sub-pixel
+      // measurement can jitter by fractions of a px across successive
+      // layouts under fractional browser zoom or non-integer display
+      // scaling (125%/150%), which the strict `!==` comparison below would
+      // otherwise treat as a real change forever, re-triggering setWidths
+      // every commit. Rounding first also has no real downside: a sticky
+      // offset in fractional pixels isn't any more "correct" than the
+      // nearest integer one, so this is a strict improvement either way.
+      const width = Math.round(el.getBoundingClientRect().width);
       if (next.get(col.key) !== width) {
         next.set(col.key, width);
         changed = true;
