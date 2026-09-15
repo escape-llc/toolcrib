@@ -1831,7 +1831,7 @@ describe('DataTable Virtualized Component', () => {
         render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport />);
         fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
         const text = await mock.getBlob().text();
-        const lines = text.replace(/^﻿/, '').split('\r\n');
+        const lines = text.replace(/^\uFEFF/, '').split('\r\n');
         expect(lines[0]).toBe('ID,Name');
         expect(lines).toHaveLength(1 + testData.length); // header + all 50 rows, not just the 10-row page
         expect(lines[1]).toBe('1,Item 1');
@@ -1847,7 +1847,7 @@ describe('DataTable Virtualized Component', () => {
         render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport sortBy={[{ key: 'id', direction: 'desc' }]} />);
         fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
         const text = await mock.getBlob().text();
-        const lines = text.replace(/^﻿/, '').split('\r\n');
+        const lines = text.replace(/^\uFEFF/, '').split('\r\n');
         expect(lines[1]).toBe('50,Item 50');
         expect(lines[2]).toBe('49,Item 49');
       } finally {
@@ -1909,6 +1909,141 @@ describe('DataTable Virtualized Component', () => {
     it('renders null/undefined as an empty field, not the literal string "null"/"undefined"', () => {
       const csv = columnsToCsv(cols, [{ id: 1, name: 'Ada', note: undefined as unknown as null }]);
       expect(csv).toBe('ID,Name,Note\r\n1,Ada,');
+    });
+  });
+
+  describe('column show/hide (issue #340)', () => {
+    // <DropdownMenu> (and Radix menu primitives generally) open on
+    // pointerdown, not click -- see AGENTS.md's own documented jsdom
+    // gotcha for this exact shape (a plain fireEvent.click on the trigger
+    // is a silent no-op, no error, the menu just never opens).
+    function openColumnsMenu() {
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'Columns' }));
+    }
+
+    // The menu deliberately stays open across a CheckboxItem toggle (see
+    // the component's own onSelect-prevented comment) -- while it's open,
+    // Radix marks the rest of the page aria-hidden (the same modal-overlay
+    // mechanism Modal/Popup already use), so a query against background
+    // content (a columnheader, the Export CSV button) has to close the
+    // menu first or it comes back empty even though the DOM node is still
+    // there, just hidden from the accessibility tree.
+    function closeColumnsMenu() {
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    }
+
+    it('renders no Columns button by default', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+      expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument();
+    });
+
+    it('renders a Columns button when columnVisibility is true, listing every column as a checked item', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility />);
+      openColumnsMenu();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'ID' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Name' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('unchecking a column removes its header and body cells, uncontrolled', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility rowKey={r => r.id} />);
+      expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+      closeColumnsMenu();
+
+      expect(screen.queryByRole('columnheader', { name: 'Name' })).not.toBeInTheDocument();
+      // ID column (and its data) is still there -- only Name was hidden.
+      expect(screen.getByRole('columnheader', { name: 'ID' })).toBeInTheDocument();
+      expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
+
+    it('re-checking a hidden column brings its header and body cells back', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility rowKey={r => r.id} />);
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+      closeColumnsMenu();
+      expect(screen.queryByRole('columnheader', { name: 'Name' })).not.toBeInTheDocument();
+
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+      closeColumnsMenu();
+      expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+    });
+
+    it('defaultHiddenColumns seeds a column as hidden from the very first render', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility defaultHiddenColumns={['name']} rowKey={r => r.id} />);
+      expect(screen.queryByRole('columnheader', { name: 'Name' })).not.toBeInTheDocument();
+      openColumnsMenu();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Name' })).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('supports a controlled hiddenColumns, calling onHiddenColumnsChange instead of managing its own state', () => {
+      const onHiddenColumnsChange = vi.fn();
+      const { rerender } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility hiddenColumns={[]} onHiddenColumnsChange={onHiddenColumnsChange} rowKey={r => r.id} />
+      );
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+      closeColumnsMenu();
+      expect(onHiddenColumnsChange).toHaveBeenLastCalledWith(['name']);
+      // Still visible -- the parent hasn't re-rendered with the new value yet.
+      expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+
+      rerender(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility hiddenColumns={['name']} onHiddenColumnsChange={onHiddenColumnsChange} rowKey={r => r.id} />
+      );
+      expect(screen.queryByRole('columnheader', { name: 'Name' })).not.toBeInTheDocument();
+    });
+
+    it('emits datatable:columns_changed with this table\'s id and the FULL current hidden-column set', () => {
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:columns_changed', handler);
+      render(<DataTable id="columns-table" data={testData} columns={testColumns} defaultPageSize={10} columnVisibility />);
+      try {
+        openColumnsMenu();
+        fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'ID' }));
+        expect(handler).toHaveBeenLastCalledWith({ id: 'columns-table', hiddenColumns: ['id'] });
+      } finally {
+        unsub();
+      }
+    });
+
+    it('hiding a column shrinks aria-colcount by exactly one', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility rowKey={r => r.id} />);
+      const grid = screen.getByRole('grid');
+      const before = Number(grid.getAttribute('aria-colcount'));
+
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+      expect(Number(grid.getAttribute('aria-colcount'))).toBe(before - 1);
+    });
+
+    it('CSV export only includes currently visible columns', async () => {
+      const createObjectURL = vi.fn((blob: Blob) => {
+        capturedBlob = blob;
+        return 'blob:mock-url';
+      });
+      let capturedBlob: Blob | undefined;
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = createObjectURL as any;
+      URL.revokeObjectURL = vi.fn() as any;
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      try {
+        render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility csvExport rowKey={r => r.id} />);
+        openColumnsMenu();
+        fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+        closeColumnsMenu();
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        const text = await capturedBlob!.text();
+        expect(text.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('ID');
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+      }
     });
   });
 

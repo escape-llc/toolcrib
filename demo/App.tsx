@@ -1576,6 +1576,8 @@ export const App: React.FC = () => {
                         containerHeight="auto"
                         quickFilter
                         densitySelector
+                        // Column show/hide (issue #340).
+                        columnVisibility
                         // Real CSV export (issue #338) -- this used to be a
                         // hand-rolled button in renderToolbarExtra below that
                         // only showed a toast, no actual file. csvExport

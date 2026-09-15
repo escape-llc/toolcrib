@@ -39,6 +39,8 @@ export interface ToolcribLocaleStrings {
     densityOptionLabel: (density: 'compact' | 'normal' | 'spacious') => string;
     /** Visible label and accessible name for `<DataTable csvExport>`'s built-in export button. */
     exportCsvLabel: string;
+    /** Visible label and accessible name for `<DataTable columnVisibility>`'s built-in "Columns" trigger button. */
+    columnsButtonLabel: string;
   };
   carousel: {
     previousSlide: string;
@@ -112,6 +114,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     densityLabel: 'Row density',
     densityOptionLabel: (density) => density.charAt(0).toUpperCase() + density.slice(1),
     exportCsvLabel: 'Export CSV',
+    columnsButtonLabel: 'Columns',
   },
   carousel: {
     previousSlide: 'Previous slide',
