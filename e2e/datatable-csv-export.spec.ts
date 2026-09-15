@@ -25,7 +25,7 @@ test.describe('DataTable CSV export (issue #338)', () => {
     const stream = await download.createReadStream();
     const chunks: Buffer[] = [];
     for await (const chunk of stream) chunks.push(chunk as Buffer);
-    const text = Buffer.concat(chunks).toString('utf-8').replace(/^﻿/, '');
+    const text = Buffer.concat(chunks).toString('utf-8').replace(/^\uFEFF/, '');
     const lines = text.split('\r\n').filter(Boolean);
 
     // Header line reflects the demo's real column titles, not raw keys.
