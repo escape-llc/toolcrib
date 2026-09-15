@@ -73,6 +73,7 @@ import {
   generateComponents,
   getCollectedTypeDefs,
 } from './lib/extract.js';
+import { splitByCategory } from './lib/manifestSplit.js';
 
 const MANIFEST_PATH = path.join(ROOT, 'ai-docs', 'component-manifest.json');
 const MANIFEST_SPLIT_DIR = path.join(ROOT, 'ai-docs', 'manifest');
@@ -100,39 +101,6 @@ function buildManifestSplitPointer() {
       '— smaller to load when only one category is needed.',
     categories: Object.fromEntries(VALID_CATEGORIES.map((c) => [c, `manifest/${CATEGORY_SLUGS[c]}.json`])),
   };
-}
-
-/**
- * Filter the root manifest's `components`/`$defs` down to one
- * manifest-shaped object per category. A `$defs` entry is included in a
- * category's file if its name appears anywhere (whole-word) in that
- * category's own filtered components' serialized JSON — cheap and
- * correct-by-construction (can never miss a real reference), at the small,
- * accepted cost of occasionally over-including a def whose name happens to
- * also appear in an unrelated prop's prose. A missed reference would be a
- * real bug; a few stray extra bytes are not.
- */
-function splitByCategory(manifest) {
-  const defs = manifest.$defs ?? {};
-  const result = {};
-  for (const category of VALID_CATEGORIES) {
-    const categoryComponents = manifest.components.filter((c) => c.category === category);
-    const categoryText = JSON.stringify(categoryComponents);
-    const categoryDefs = {};
-    for (const [defName, defBody] of Object.entries(defs)) {
-      if (new RegExp(`\\b${defName}\\b`).test(categoryText)) categoryDefs[defName] = defBody;
-    }
-    result[CATEGORY_SLUGS[category]] = {
-      $schema: SCHEMA_URL,
-      name: manifest.name,
-      version: manifest.version,
-      description: categorySplitDescription(category),
-      category,
-      components: categoryComponents,
-      ...(Object.keys(categoryDefs).length > 0 ? { $defs: categoryDefs } : {}),
-    };
-  }
-  return result;
 }
 
 function generateManifest() {
@@ -170,7 +138,7 @@ function generateManifest() {
 function main() {
   const mode = process.argv.includes('--write') ? 'write' : 'check';
   const generated = generateManifest();
-  const categoryManifests = splitByCategory(generated);
+  const categoryManifests = splitByCategory(generated, VALID_CATEGORIES, CATEGORY_SLUGS, categorySplitDescription, SCHEMA_URL);
 
   const targets = [
     { filePath: MANIFEST_PATH, data: generated, label: 'ai-docs/component-manifest.json' },
