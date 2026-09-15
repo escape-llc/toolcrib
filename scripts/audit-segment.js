@@ -48,10 +48,20 @@ function buildComponentIndex() {
   return index;
 }
 
-/** Tracked (git-known) files under a repo-relative dir -- never pulls in node_modules/build output, without needing an explicit exclude list for either. */
+/**
+ * Tracked (git-known) files under a repo-relative dir -- never pulls in
+ * node_modules/build output, without needing an explicit exclude list for
+ * either. Splits on `/\r?\n/`, not a bare `\n` -- confirmed for real on
+ * this repo's own Windows dev machine that `git ls-files` itself always
+ * emits LF-only path lists regardless of `core.autocrlf` (that setting
+ * only affects file *content* on checkout, not a plumbing command's own
+ * output), so this specific failure mode doesn't reproduce here, but
+ * there's no reason to depend on that -- accepting `\r\n` too costs
+ * nothing and CI runs this on ubuntu-latest, not the dev machine anyway.
+ */
 function gitLsFiles(repoRelativeDir) {
   const out = execFileSync('git', ['ls-files', '--', repoRelativeDir], { cwd: ROOT, encoding: 'utf-8' });
-  return out.split('\n').filter(Boolean);
+  return out.split(/\r?\n/).filter(Boolean);
 }
 
 // A 'dirs'-kind segment walks a whole directory tree via git ls-files, which
@@ -92,7 +102,7 @@ function resolveSegmentFiles(segment, componentIndex) {
 function warnOnCategorySplitDrift(componentIndex) {
   for (const category of Object.values(SPLIT_CATEGORIES)) {
     const realNames = componentIndex.filter((c) => c.category === category).map((c) => c.name);
-    const { unassigned, duplicated } = findCategorySplitDrift(category, realNames);
+    const { unassigned, duplicated, stale } = findCategorySplitDrift(category, realNames);
     if (unassigned.length > 0) {
       console.warn(
         `[audit-segment] "${category}" has ${unassigned.length} component(s) not assigned to either of its audit sub-segments (never reviewed by this rotation until scripts/lib/auditSegments.js is updated): ${unassigned.join(', ')}`
@@ -101,6 +111,11 @@ function warnOnCategorySplitDrift(componentIndex) {
     if (duplicated.length > 0) {
       console.warn(
         `[audit-segment] "${category}" has component(s) assigned to more than one audit sub-segment: ${duplicated.map((d) => `${d.name} (${d.segmentIds.join(', ')})`).join('; ')}`
+      );
+    }
+    if (stale.length > 0) {
+      console.warn(
+        `[audit-segment] "${category}" has audit sub-segment name(s) that no longer match any real component (renamed or removed -- scripts/lib/auditSegments.js is stale): ${stale.map((d) => `${d.name} (${d.segmentIds.join(', ')})`).join('; ')}`
       );
     }
   }

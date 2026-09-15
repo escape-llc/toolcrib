@@ -94,18 +94,32 @@ describe('findCategorySplitDrift', () => {
     expect(result.unassigned).toEqual([]);
   });
 
+  // The inverse of "unassigned": a name in a segment's `names` list that no
+  // longer matches any real component -- the component was renamed or
+  // removed, and the hand-maintained list wasn't updated to match. Found by
+  // an external Gemini review of the PR that introduced this file (#432) --
+  // the original version only checked the "real component missing from
+  // every segment" direction, not this one.
+  it('flags a segment name that no longer exists in the real category (renamed/removed component)', () => {
+    const fixtureSegments = [{ id: 'seg-a', kind: 'components', category: 'Fixture', names: ['Widget', 'OldGadgetName'] }];
+    const result = findCategorySplitDrift('Fixture', ['Widget'], fixtureSegments);
+    expect(result.stale).toEqual([{ name: 'OldGadgetName', segmentIds: ['seg-a'] }]);
+    expect(result.unassigned).toEqual([]);
+  });
+
   // Regression guard: the two split categories' hand-maintained `names` lists
   // (data-display-charts-media/lists-status, form-controls-value-inputs/composite)
   // must account for every component the real, current manifest has in that
   // category -- this is exactly the drift issue #407 itself anticipates ("re-verify
   // the proposed segment file lists against the real tree at implementation time").
   for (const category of Object.values(SPLIT_CATEGORIES)) {
-    it(`"${category}"'s audit segments have no unassigned/duplicated components, against the real committed manifest`, () => {
+    it(`"${category}"'s audit segments have no unassigned/duplicated/stale components, against the real committed manifest`, () => {
       const realNames = readCommittedManifestComponentNames(category);
       expect(realNames.length).toBeGreaterThan(0); // sanity: the manifest read actually found something
-      const { unassigned, duplicated } = findCategorySplitDrift(category, realNames);
+      const { unassigned, duplicated, stale } = findCategorySplitDrift(category, realNames);
       expect(unassigned).toEqual([]);
       expect(duplicated).toEqual([]);
+      expect(stale).toEqual([]);
     });
   }
 });

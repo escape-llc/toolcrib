@@ -160,12 +160,16 @@ export function findSegmentById(id) {
  * against the real, current component names in that category (as read from
  * component-manifest.json at run time by the caller) -- returns any
  * component present in the category but named in none of its segments'
- * `names` lists ("unassigned"), and any component named in more than one
- * segment's list ("duplicated"). Both are drift signals: a real new
- * component (unassigned) or a hand-editing mistake (duplicated). Neither is
- * a hard failure here -- see audit-segment.js, which logs this as a warning
- * rather than exiting non-zero, since this is a best-effort audit job, not
- * a release-blocking check like check-manifest.
+ * `names` lists ("unassigned"), any component named in more than one
+ * segment's list ("duplicated"), and any name in a segment's `names` list
+ * that no longer exists in the category at all ("stale" -- the component
+ * was renamed or removed, and the hand-maintained list wasn't updated to
+ * match; without this check a stale name would silently sit in SEGMENTS
+ * forever, contributing nothing, since audit-segment.js's own file
+ * resolution already only ever matches names that ARE real). All three are
+ * drift signals; none is a hard failure here -- see audit-segment.js, which
+ * logs this as a warning rather than exiting non-zero, since this is a
+ * best-effort audit job, not a release-blocking check like check-manifest.
  */
 export function findCategorySplitDrift(category, realComponentNamesInCategory, segments = SEGMENTS) {
   const segmentsForCategory = segments.filter((s) => s.kind === 'components' && s.category === category && s.names);
@@ -177,7 +181,9 @@ export function findCategorySplitDrift(category, realComponentNamesInCategory, s
     }
   }
   const assignedNames = new Set(seen.keys());
+  const realNames = new Set(realComponentNamesInCategory);
   const unassigned = realComponentNamesInCategory.filter((n) => !assignedNames.has(n));
   const duplicated = [...seen.entries()].filter(([, segmentIds]) => segmentIds.length > 1).map(([name, segmentIds]) => ({ name, segmentIds }));
-  return { unassigned, duplicated };
+  const stale = [...seen.entries()].filter(([name]) => !realNames.has(name)).map(([name, segmentIds]) => ({ name, segmentIds }));
+  return { unassigned, duplicated, stale };
 }
