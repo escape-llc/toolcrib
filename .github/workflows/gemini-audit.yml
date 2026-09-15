@@ -1,0 +1,175 @@
+name: Gemini Audit
+
+# Weekly scheduled, proactive counterpart to gemini-review.yml -- see issue
+# #407 for the full design reasoning. gemini-review.yml only ever sees one
+# PR's diff; nothing else looks at code that already merged and just sits
+# there unreviewed. A single "review the whole repo" run either gets
+# shallow (skims everything, catches little) or overwhelming (a
+# finding-dump nobody triages), so this instead reviews one fixed segment
+# of the codebase per week, on a 13-week rotation (scripts/lib/
+# auditSegments.js), and files a normal GitHub issue when it finds
+# something real -- from there it's the standard issue -> branch -> PR
+# cycle, no special-cased handling.
+#
+# Reuses gemini-review.yml's exact trust model, not a new one: Gemini gets
+# exactly ONE tool (read_file), no shell/write/other-tool access, and never
+# acts on its own -- issue creation is a separate, code-controlled step
+# using the workflow's own token, driven off Gemini's plain-text output.
+# See that workflow's own header comment for the fuller reasoning (diff-
+# as-a-file / workspace-scoped read_file / residual-risk accounting); the
+# same reasoning applies here to "this week's segment bundle" in place of
+# "this PR's diff".
+#
+# Segment selection is entirely mechanical, not hand-maintained per run:
+# `node scripts/audit-segment.js` resolves the ISO-week-number-mod-13
+# segment to a real, current file list (component-shaped segments via the
+# same TypeScript-Compiler-API scan generate-manifest.js itself uses;
+# directory-shaped segments via `git ls-files`, tracked files only) and
+# bundles their real content into one file, the same "hand Gemini a FILE,
+# not embedded text or many individual tool calls" shape the diff already
+# uses. No persisted rotation-state file -- the same date always resolves
+# to the same segment, so there's nothing to keep in sync or drift out of.
+
+on:
+  schedule:
+    # Monday 06:00 UTC -- arbitrary but consistent; matches this repo's own
+    # "start of week" framing in the issue title below.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      segment:
+        description: 'Segment id to audit (optional -- overrides the week-based rotation). See `node scripts/audit-segment.js --list` for valid ids.'
+        required: false
+        type: string
+
+# Least-privilege: read the repo, file an issue. Nothing else -- this
+# workflow never touches a PR, a release, or pushes any code itself.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # Don't let a manual workflow_dispatch run race the scheduled one (or two
+  # manual runs race each other) and file duplicate issues for the same
+  # segment -- but don't cancel either; a scheduled run that's already
+  # partway through calling Gemini shouldn't be killed by someone poking
+  # workflow_dispatch a minute later.
+  group: gemini-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+
+      # scripts/audit-segment.js imports scripts/lib/extract.js, which
+      # needs the classic TypeScript Compiler API pinned in scripts/'s own
+      # isolated node_modules -- see root AGENTS.md's TypeScript section
+      # and extract.js's own preflight check for why root's node_modules
+      # alone isn't enough (root runs TS 7.x, whose package export dropped
+      # that API entirely). Nothing in this workflow needs root's own
+      # node_modules at all, so it's never installed here.
+      - name: Install scripts/ dependencies
+        run: npm ci
+        working-directory: scripts
+
+      # Written INSIDE the checked-out workspace, not $RUNNER_TEMP --
+      # matches gemini-review.yml's own diff-file placement, for the same
+      # reason: GEMINI_CLI_TRUST_WORKSPACE scopes read_file access to the
+      # trusted workspace directory specifically, confirmed for real on
+      # that workflow's own first run.
+      - name: Resolve this week's audit segment and bundle its source
+        id: segment
+        # SEGMENT_INPUT is routed through `env:`, never interpolated
+        # directly into the script via `${{ }}` -- a workflow_dispatch
+        # string input is still untrusted text as far as shell-injection
+        # goes (this repo's own actions-injection-review skill exists for
+        # exactly this class of bug), even though only someone with write
+        # access can trigger this workflow at all.
+        env:
+          SEGMENT_INPUT: ${{ github.event.inputs.segment }}
+        run: |
+          SEGMENT_ARG=()
+          if [ -n "$SEGMENT_INPUT" ]; then
+            SEGMENT_ARG=(--segment "$SEGMENT_INPUT")
+          fi
+          node scripts/audit-segment.js "${SEGMENT_ARG[@]}" \
+            --out "${GITHUB_WORKSPACE}/.gemini-audit-segment.json" \
+            --bundle-out "${GITHUB_WORKSPACE}/.gemini-audit-bundle.txt"
+          echo "id=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).id")" >> "$GITHUB_OUTPUT"
+          echo "title=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).title")" >> "$GITHUB_OUTPUT"
+          echo "fileCount=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).fileCount")" >> "$GITHUB_OUTPUT"
+          echo "weekOf=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Run Gemini audit (read_file only -- no shell, no write, no other tool)
+        id: gemini_audit
+        # Best-effort by design, same as gemini-review.yml -- an API
+        # hiccup here should never leave the workflow itself red; it just
+        # means no issue gets filed this week, same as a "nothing to flag"
+        # outcome.
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
+        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          workflow_name: 'gemini-audit'
+          settings: |
+            {
+              "tools": { "core": ["read_file"] }
+            }
+          prompt: |-
+            You are doing a deep, proactive code-quality audit of one segment of "toolcrib", a React component library vendored (not npm-installed) into consumer projects for AI-driven UI code generation. This is not a pull-request diff review -- it is a read-through of source that already merged and has had no dedicated review pass since.
+            This week's segment is "${{ steps.segment.outputs.title }}" (${{ steps.segment.outputs.fileCount }} files). Its full, real, current source is bundled in the file ${{ github.workspace }}/.gemini-audit-bundle.txt -- read it with your read_file tool first; that is the only tool available to you. Each file's content is preceded by a "--- <repo-relative path> ---" header line so you can cite exact file paths in your findings.
+            Also read ${{ github.workspace }}/AGENTS.md -- this repo's own contributor guide. Its "Core rules" section catalogs real, previously-found defect patterns specific to this codebase (a trailing `{...props}` spread silently overriding a computed value; a bare `process.env` reference instead of the `isDevBuild()` helper; a component wrapping a third-party accessibility primitive while omitting a spec-recommended ARIA attribute; a flex child inside a scrollable container missing `flex-shrink: 0`; and others). Check this week's segment specifically against every pattern documented there, not just for defects in the abstract -- a documented anti-pattern only helps once something actually looks for it by name, which is the whole reason this scheduled audit exists.
+            Do not narrate an intent to run a command, search the repo, or check any other file; you cannot, and it isn't needed beyond the two files named above.
+            Point out only real, specific defects: correctness bugs, accessibility regressions, security issues, or a clear, concrete violation of an established convention visible in the bundled source (including a Core Rules pattern above). Do not comment on style preferences, do not restate what the code obviously does, and do not invent a finding to have something to say.
+            Do not flag backward-compatibility or breaking-change concerns for a consumer project already using toolcrib's vendored source -- toolcrib is vendored via reviewed patches (`toolcrib merge`), never an npm dependency with a semver contract, and a change that would be a breaking change for a published package is routine, intended evolution here, not a defect. AGENTS.md's own section on this explains why in full if you need it.
+            If you find nothing worth flagging after checking thoroughly, output exactly the single line "NO_FINDINGS" and nothing else.
+            Otherwise, output ONLY the findings themselves -- no preamble, no "I will now...", no summary of what you read. For each finding: the file path (from its bundle header), a one-line description of the concrete defect, and why it's a real problem (not a style opinion). Keep the whole response under 800 words, plain text with simple "- " bullet points (no markdown headers).
+
+      - name: Ensure the audit-issue labels exist
+        if: steps.gemini_audit.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Idempotent -- `gh label create` fails if the label already exists,
+        # which is the expected/common case after the first run, so that
+        # failure is swallowed rather than treated as a workflow error.
+        run: |
+          gh label create gemini-audit --color "8B5CF6" --description "Filed by the scheduled Gemini codebase audit (see AGENTS.md / issue #407)." 2>/dev/null || true
+
+      - name: File an issue if the audit found something real
+        if: steps.gemini_audit.outcome == 'success' && !startsWith(steps.gemini_audit.outputs.summary, 'NO_FINDINGS')
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FINDINGS: ${{ steps.gemini_audit.outputs.summary }}
+        run: |
+          {
+            echo "Filed automatically by \`.github/workflows/gemini-audit.yml\` (see issue #407) -- this week's segment: **${{ steps.segment.outputs.title }}** (\`${{ steps.segment.outputs.id }}\`, ${{ steps.segment.outputs.fileCount }} files)."
+            echo ""
+            echo "Normal issue -> branch -> PR triage from here: verify each finding against current source before acting on it (the same discipline AGENTS.md's own Gemini-review section already asks for reactive review comments), and reply/close per finding rather than treating this issue as one atomic unit if only some findings are real."
+            echo ""
+            echo '## Findings'
+            echo ""
+            echo "$FINDINGS"
+          } > "${RUNNER_TEMP}/audit-issue-body.md"
+          gh issue create \
+            --title "Weekly Gemini audit: ${{ steps.segment.outputs.title }} (week of ${{ steps.segment.outputs.weekOf }})" \
+            --label "gemini-audit" \
+            --label "reviewed" \
+            --body-file "${RUNNER_TEMP}/audit-issue-body.md"
+
+      - name: Note a skipped/failed/empty audit without failing the job
+        if: steps.gemini_audit.outcome != 'success' || startsWith(steps.gemini_audit.outputs.summary, 'NO_FINDINGS')
+        run: |
+          echo "No issue filed this run for segment '${{ steps.segment.outputs.id }}' (Gemini outcome=${{ steps.gemini_audit.outcome }}). Not failing the job; this audit is best-effort by design, same as gemini-review.yml."
