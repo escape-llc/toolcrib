@@ -525,4 +525,117 @@ describe('Form & Zod Validation Engine', () => {
       expect(screen.getByText('Large').style.fontSize).toBe('var(--ai-control-font-size-lg, 1rem)');
     });
   });
+
+  // Issue #428.
+  describe('Input clearable', () => {
+    it('renders no clear button by default, even with a value', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable={false} />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+    });
+
+    it('shows the clear button only once the value is non-empty', () => {
+      const { rerender } = render(<Input value="" onChange={vi.fn()} clearable />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+
+      rerender(<Input value="hello" onChange={vi.fn()} clearable />);
+      expect(screen.getByLabelText('Clear')).toBeInTheDocument();
+    });
+
+    it('clears an externally-controlled value through the same onChange a keystroke would use', () => {
+      const onChange = vi.fn();
+      render(<Input value="hello" onChange={onChange} clearable />);
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ value: '' }) }));
+    });
+
+    it('clears a Form-bound value through formContext.setFieldValue, and calls the extra onClear side effect', () => {
+      const onClear = vi.fn();
+      render(
+        <Form schema={z.object({ q: z.string() })} onSubmit={vi.fn()} initialValues={{ q: 'typed text' }}>
+          <Input name="q" clearable onClear={onClear} />
+        </Form>
+      );
+      const input = screen.getByDisplayValue('typed text') as HTMLInputElement;
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(input.value).toBe('');
+      expect(onClear).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render the clear button while disabled, even with a value', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable disabled />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+    });
+
+    it('returns focus to the input after clearing', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable />);
+      const input = screen.getByDisplayValue('hello');
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(input).toHaveFocus();
+    });
+
+    // Regression for Gemini's PR #430 review, finding 3: `!!value` hides
+    // the button for a real, valid numeric value of exactly 0.
+    it('shows the clear button for a numeric value of 0, not just a truthy value', () => {
+      render(<Input type="number" value={0} onChange={vi.fn()} clearable />);
+      expect(screen.getByLabelText('Clear')).toBeInTheDocument();
+    });
+
+    // Regression for Gemini's PR #430 review, finding 2: the clear button
+    // must not offer to modify a read-only field.
+    it('does not render the clear button while read-only, even with a value', () => {
+      render(<Input value="hello" onChange={vi.fn()} clearable readOnly />);
+      expect(screen.queryByLabelText('Clear')).not.toBeInTheDocument();
+    });
+
+    // Regression for Gemini's PR #430 review, finding 1: standard typing
+    // must forward the real SyntheticEvent (so a consumer's own
+    // e.stopPropagation()/e.target.name reads keep working), not a
+    // synthesized stand-in -- that's only used by the clear button itself,
+    // which has no real DOM event to forward.
+    it('forwards the real SyntheticEvent to onChange for standard typing, with stopPropagation intact', () => {
+      const onChange = vi.fn((e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+      });
+      render(<Input name="q" value="" onChange={onChange} clearable />);
+      const input = screen.getByRole('textbox');
+
+      expect(() => fireEvent.change(input, { target: { value: 'typed' } })).not.toThrow();
+      expect(onChange).toHaveBeenCalledTimes(1);
+      const receivedEvent = onChange.mock.calls[0][0];
+      expect(receivedEvent.target.name).toBe('q');
+      expect(typeof receivedEvent.stopPropagation).toBe('function');
+    });
+
+    // Regression for Gemini's PR #430 review, finding 4: the clear
+    // button's own synthesized event should still carry name/id, so a
+    // generic multi-input handler keyed on e.target.name doesn't break
+    // just because the change came from the clear button.
+    it('includes name on the clear button\'s own synthesized onChange event', () => {
+      const onChange = vi.fn();
+      render(<Input name="q" value="hello" onChange={onChange} clearable />);
+
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ value: '', name: 'q' }) }));
+    });
+
+    // Regression for a Gemini PR #430 follow-up finding: a generic handler
+    // that unconditionally calls e.stopPropagation()/e.preventDefault(), or
+    // destructures from e.currentTarget, must not crash against the clear
+    // button's synthesized event.
+    it('does not throw when onChange calls stopPropagation/preventDefault or reads currentTarget', () => {
+      const onChange = vi.fn((e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const { name } = e.currentTarget;
+        expect(name).toBe('q');
+      });
+      render(<Input name="q" value="hello" onChange={onChange} clearable />);
+
+      expect(() => fireEvent.click(screen.getByLabelText('Clear'))).not.toThrow();
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+  });
 });

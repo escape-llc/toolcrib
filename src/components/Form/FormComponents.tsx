@@ -1,6 +1,6 @@
 'use client';
 
-import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect } from 'react';
+import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useRef } from 'react';
 import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
 import { useOptionalFormContext } from './FormContext';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
@@ -17,6 +17,7 @@ import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { FieldContext } from './FieldContext';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
 import { InputThemeSlice, type InputSliceState } from './InputSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 import { ToggleControlThemeSlice, type ToggleControlSliceState } from './ToggleControlSlice';
 import { Label } from './Label';
 export * from './RadioGroup';
@@ -326,15 +327,31 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
   squareCorners?: SquareCornerOption;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /**
+   * Shows a small "✕" clear button at the trailing edge once the input has
+   * a non-empty value — clicking it resets the value through the same
+   * onChange/Form-context path a real clear keystroke would take, then
+   * returns focus to the input. Mirrors `<Combobox>`'s own established
+   * single-select clear button (`strings.clearSelection`) — same
+   * `tabIndex={-1}` (mouse-only; Backspace/select-all already provide a
+   * keyboard path, so this doesn't add an extra required Tab stop for
+   * something with an easy keyboard alternative).
+   * @default false
+   */
+  clearable?: boolean;
+  /** Extra side effect to run when the clear button is clicked — e.g. also resetting a related piece of state (an active-descendant index, a filter). Runs after the value itself is cleared. Only meaningful alongside `clearable`. */
+  onClear?: () => void;
 }
 
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', ...props }) => {
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', clearable = false, onClear, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const { vars: inputVars } = useSliceOverrides(InputThemeSlice, overrides);
+  const strings = useLocaleStrings().input;
   useInjectInteractionStyles();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -346,6 +363,10 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
 
   const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
+  // Not `!!value` -- a numeric controlled value of exactly 0 (a real,
+  // valid input.type="number" value) is falsy but not empty; the clear
+  // button must still show for it.
+  const hasValue = value !== '' && value !== undefined && value !== null;
 
   // squareCorners was previously destructured but never actually applied
   // anywhere below — dead since the prop was added, confirmed by reading
@@ -357,9 +378,45 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
-  return (
+  // Real typing forwards the real SyntheticEvent unchanged -- a consumer's
+  // handler may call e.preventDefault()/e.stopPropagation() or read other
+  // target fields (name, id) beyond value, and a synthesized stand-in would
+  // silently break all of that.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (name && formContext) formContext.setFieldValue(name, e.target.value);
+    if (onChange) onChange(e);
+  };
+
+  // The clear button has no real DOM change event to forward, so it
+  // synthesizes one -- Input is always controlled (`value` above already
+  // falls back to '' at minimum even with no `externalValue`/Form binding),
+  // so there's no native DOM value to separately reset, and the next render
+  // already picks up whatever the write below settles on. Still includes
+  // name/id alongside value (mirrored onto both target and currentTarget)
+  // so a generic multi-input handler keyed on `e.target.name` doesn't break
+  // just because this particular change came from the clear button rather
+  // than a keystroke -- and still provides no-op preventDefault/
+  // stopPropagation so a handler that unconditionally calls either doesn't
+  // throw against this synthesized stand-in.
+  const handleClear = () => {
+    if (name && formContext) formContext.setFieldValue(name, '');
+    if (onChange) {
+      const mockTarget = { value: '', name: name || undefined, id: id ?? (name || undefined) };
+      onChange({
+        target: mockTarget,
+        currentTarget: mockTarget,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      } as unknown as React.ChangeEvent<HTMLInputElement>);
+    }
+    onClear?.();
+    inputRef.current?.focus();
+  };
+
+  const inputElement = (
     <input
       {...props}
+      ref={inputRef}
       id={id ?? (name || undefined)}
       name={name || undefined}
       type={type}
@@ -367,10 +424,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       aria-invalid={isError || undefined}
       aria-describedby={isError ? `${name}-error` : undefined}
       className="ai-focus-ring"
-      onChange={e => {
-        if (name && formContext) formContext.setFieldValue(name, e.target.value);
-        if (onChange) onChange(e);
-      }}
+      onChange={handleChange}
       onBlur={e => {
         if (name && formContext) formContext.setFieldTouched(name, true);
         if (onBlur) onBlur(e);
@@ -378,6 +432,9 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       style={{
         width: '100%',
         padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
+        // Extra trailing room for the clear button so typed text never
+        // renders underneath it -- only when it can ever actually show.
+        paddingRight: clearable ? '1.75rem' : undefined,
         // Explicit per-corner longhands, always all four -- same reason as
         // Button's own identical pattern (see its comment): a sparse
         // spread would add/remove style keys across renders as
@@ -399,6 +456,48 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
         ...inputVars,
       }}
     />
+  );
+
+  // Only wrapped in a positioning container when clearable is actually
+  // set (issue #428) -- every existing non-clearable <Input> usage keeps
+  // its current bare <input> DOM shape unchanged.
+  if (!clearable) return inputElement;
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      {inputElement}
+      {hasValue && !props.disabled && !props.readOnly && (
+        <button
+          type="button"
+          aria-label={strings.clear}
+          // Mouse-only, matching Combobox's own established clear button
+          // (strings.clearSelection) -- Backspace/select-all already
+          // provide a keyboard path, so this doesn't add an extra
+          // required Tab stop for something with an easy alternative.
+          tabIndex={-1}
+          onClick={handleClear}
+          style={{
+            ...ICON_WRAPPER_STYLE,
+            position: 'absolute',
+            top: '50%',
+            right: '0.5rem',
+            transform: 'translateY(-50%)',
+            justifyContent: 'center',
+            width: '1.125rem',
+            height: '1.125rem',
+            background: 'var(--ai-bg-container, #f3f4f6)',
+            border: 'none',
+            borderRadius: 'var(--ai-radius-xl, 9999px)',
+            cursor: 'pointer',
+            color: 'var(--ai-text-secondary, #6b7280)',
+            fontSize: '0.6875rem',
+            padding: 0,
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
   );
 };
 

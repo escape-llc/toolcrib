@@ -2737,6 +2737,7 @@ export const App: React.FC = () => {
                             <Input
                               value={listboxQuery}
                               placeholder="Filter teammates..."
+                              clearable
                               aria-controls="demo-listbox-team"
                               aria-activedescendant={listboxActiveIndex !== undefined ? `demo-listbox-team-option-${listboxActiveIndex}` : undefined}
                               onChange={e => {

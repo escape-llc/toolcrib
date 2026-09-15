@@ -71,6 +71,10 @@ export interface ToolcribLocaleStrings {
     clearSelection: string;
     removeItem: (label: string) => string;
   };
+  /** `<Input clearable>`'s own trailing-edge clear button (issue #428). */
+  input: {
+    clear: string;
+  };
   listbox: {
     /** Announced via a visually-hidden `aria-live` region whenever `loading` transitions to true -- a debounced async search (`Combobox`'s own `onSearch`) starting, with no other signal a screen-reader user would get. */
     loadingAnnouncement: string;
@@ -136,6 +140,9 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   combobox: {
     clearSelection: 'Clear selection',
     removeItem: (label) => `Remove ${label}`,
+  },
+  input: {
+    clear: 'Clear',
   },
   listbox: {
     loadingAnnouncement: 'Loading results…',
