@@ -363,6 +363,10 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
 
   const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
+  // Not `!!value` -- a numeric controlled value of exactly 0 (a real,
+  // valid input.type="number" value) is falsy but not empty; the clear
+  // button must still show for it.
+  const hasValue = value !== '' && value !== undefined && value !== null;
 
   // squareCorners was previously destructured but never actually applied
   // anywhere below — dead since the prop was added, confirmed by reading
@@ -374,17 +378,30 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
-  // Shared by the real onChange handler below and the clear button, so
-  // clearing goes through the exact same Form-context-write +
-  // consumer-notification path a real backspace-to-empty keystroke would
-  // take, not a separate, parallel implementation that could drift.
-  // Input is always controlled (`value` above already falls back to '' at
-  // minimum even with no `externalValue`/Form binding), so there's no
-  // native DOM value to separately reset -- the next render already picks
-  // up whatever the write below settles on.
-  const applyValueChange = (newValue: string) => {
-    if (name && formContext) formContext.setFieldValue(name, newValue);
-    if (onChange) onChange({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>);
+  // Real typing forwards the real SyntheticEvent unchanged -- a consumer's
+  // handler may call e.preventDefault()/e.stopPropagation() or read other
+  // target fields (name, id) beyond value, and a synthesized stand-in would
+  // silently break all of that.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (name && formContext) formContext.setFieldValue(name, e.target.value);
+    if (onChange) onChange(e);
+  };
+
+  // The clear button has no real DOM change event to forward, so it
+  // synthesizes one -- Input is always controlled (`value` above already
+  // falls back to '' at minimum even with no `externalValue`/Form binding),
+  // so there's no native DOM value to separately reset, and the next render
+  // already picks up whatever the write below settles on. Still includes
+  // name/id alongside value so a generic multi-input handler keyed on
+  // `e.target.name` doesn't break just because this particular change came
+  // from the clear button rather than a keystroke.
+  const handleClear = () => {
+    if (name && formContext) formContext.setFieldValue(name, '');
+    if (onChange) {
+      onChange({ target: { value: '', name: name || undefined, id: id ?? (name || undefined) } } as unknown as React.ChangeEvent<HTMLInputElement>);
+    }
+    onClear?.();
+    inputRef.current?.focus();
   };
 
   const inputElement = (
@@ -398,7 +415,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       aria-invalid={isError || undefined}
       aria-describedby={isError ? `${name}-error` : undefined}
       className="ai-focus-ring"
-      onChange={e => applyValueChange(e.target.value)}
+      onChange={handleChange}
       onBlur={e => {
         if (name && formContext) formContext.setFieldTouched(name, true);
         if (onBlur) onBlur(e);
@@ -440,7 +457,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {inputElement}
-      {!!value && !props.disabled && (
+      {hasValue && !props.disabled && !props.readOnly && (
         <button
           type="button"
           aria-label={strings.clear}
@@ -449,11 +466,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
           // provide a keyboard path, so this doesn't add an extra
           // required Tab stop for something with an easy alternative.
           tabIndex={-1}
-          onClick={() => {
-            applyValueChange('');
-            onClear?.();
-            inputRef.current?.focus();
-          }}
+          onClick={handleClear}
           style={{
             ...ICON_WRAPPER_STYLE,
             position: 'absolute',
