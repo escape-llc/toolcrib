@@ -894,7 +894,14 @@ export const App: React.FC = () => {
 
   const columns: Column<DemoUser>[] = [
     { key: 'id', title: 'ID', width: 60, sortable: true },
-    { key: 'name', title: 'User Name', width: 140, sortable: true, resizable: true },
+    // Pinned left (issue #341) -- freezes User Name in place while ID and
+    // every column to its right scroll away underneath it horizontally.
+    // Deliberately NOT the first column (`id` isn't pinned) to demonstrate
+    // that a pinned column doesn't have to be declared first for it to
+    // render flush against the grid's own left edge -- DataTable.tsx's
+    // `displayColumns` reorders pinned columns to the visual edges
+    // regardless of their position in `columns`.
+    { key: 'name', title: 'User Name', width: 140, sortable: true, resizable: true, pinned: 'left' },
     { key: 'email', title: 'Email Address', width: 220, sortable: true, resizable: true },
     { key: 'role', title: 'Role Level', width: 110, sortable: true },
     {
@@ -918,7 +925,9 @@ export const App: React.FC = () => {
         </span>
       ),
     },
-    { key: 'score', title: 'Score', width: 90, sortable: true },
+    // Pinned right, the mirror case -- freezes Score at the grid's own
+    // right edge while every column to its left scrolls away underneath it.
+    { key: 'score', title: 'Score', width: 90, sortable: true, pinned: 'right' },
   ];
 
   return (

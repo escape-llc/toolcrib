@@ -3643,6 +3643,10 @@
         "type": "number",
         "default": "40",
         "description": "Minimum width (px) a drag or arrow-key resize can shrink this column\nto -- prevents a variant of the real `table-layout: fixed`\ncolumn-collapse defect documented in this project's own competitive\nresearch. Only meaningful alongside `resizable`."
+      },
+      "pinned": {
+        "type": "'left' | 'right'",
+        "description": "Freezes this column at the left or right edge of the scrollable grid\nbody, staying visible (via CSS `position: sticky`) while the user\nscrolls the rest of the columns horizontally underneath it -- the same\nmechanism `<DataTable>`'s own sticky header already uses, extended to\nthe horizontal axis (issue #341). Multiple columns can be pinned to the\nsame side; they stack in `columns` order (left-pinned) or reverse order\n(right-pinned, so the last-declared right-pinned column sits flush\nagainst the grid's own right edge). When `selectable` is on and at\nleast one column is pinned `'left'`, the selection checkbox/radio\ncolumn automatically pins alongside it too (there's no reason to freeze\na data column but let selection scroll away); the same applies to\n`rowCommands`' trailing actions column whenever any column is pinned\n`'right'`."
       }
     },
     "SortDescriptor": {

@@ -7,6 +7,7 @@ import {
   useEffect,
   useLayoutEffect,
   type ReactNode,
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
@@ -34,6 +35,7 @@ import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtu
 import { useTableKeyboardNav } from './useTableKeyboardNav';
 import { useTableColumnResize } from './useTableColumnResize';
 import { useTableColumnVisibility } from './useTableColumnVisibility';
+import { useTableColumnPinning } from './useTableColumnPinning';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 /** Argument passed to a `Column.render` callback for one cell. */
@@ -95,6 +97,22 @@ export interface Column<T = any> {
    * @default 40
    */
   minWidth?: number;
+  /**
+   * Freezes this column at the left or right edge of the scrollable grid
+   * body, staying visible (via CSS `position: sticky`) while the user
+   * scrolls the rest of the columns horizontally underneath it -- the same
+   * mechanism `<DataTable>`'s own sticky header already uses, extended to
+   * the horizontal axis (issue #341). Multiple columns can be pinned to the
+   * same side; they stack in `columns` order (left-pinned) or reverse order
+   * (right-pinned, so the last-declared right-pinned column sits flush
+   * against the grid's own right edge). When `selectable` is on and at
+   * least one column is pinned `'left'`, the selection checkbox/radio
+   * column automatically pins alongside it too (there's no reason to freeze
+   * a data column but let selection scroll away); the same applies to
+   * `rowCommands`' trailing actions column whenever any column is pinned
+   * `'right'`.
+   */
+  pinned?: 'left' | 'right';
 }
 
 /** One column's priority within a multi-column sort -- see `DataTableProps.sortBy` (issue #337). */
@@ -666,6 +684,26 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // anyway; a plain filter() over a typically-small columns array costs
   // nothing extra by skipping the memoization machinery here.
   const visibleColumns = columns.filter(c => !hiddenColumnSet.has(c.key));
+  // Render order for the header/body loops (issue #341) -- every
+  // `pinned: 'left'` column first (in their relative `columns` order), then
+  // every unpinned column, then every `pinned: 'right'` column last.
+  // Deliberately NOT the same as `visibleColumns`'s own declared order:
+  // confirmed via a real, live browser (not assumed) that `position: sticky`
+  // on adjacent `<table>` cells breaks -- the second sticky cell's stuck
+  // position renders wrong -- the moment a non-sticky cell sits BETWEEN two
+  // sticky ones in the same row, which is exactly what happens if a pinned
+  // column stays in its original declared position instead of moving next
+  // to its own edge. This matches how every real production data grid
+  // (AG Grid, TanStack Table, MUI X) already handles pinned columns --
+  // rendered in dedicated left/center/right sections, never interleaved --
+  // not a Toolcrib-specific workaround. `visibleColumns` itself (declared
+  // order) stays what CSV export/quickFilter/sorting use -- this reordering
+  // is purely a rendering concern, not a data-shape one.
+  const displayColumns = [
+    ...visibleColumns.filter(c => c.pinned === 'left'),
+    ...visibleColumns.filter(c => !c.pinned),
+    ...visibleColumns.filter(c => c.pinned === 'right'),
+  ];
 
   // Filtering happens BEFORE sorting -- useTableSort receives filteredData,
   // not the raw data prop, so aria-rowcount/the pagination footer/the
@@ -937,6 +975,56 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     defaultColumnWidths,
     onColumnWidthsChange,
   });
+
+  // Column pin/freeze (issue #341). SELECTION_COLUMN_WIDTH_PX/
+  // rowCommandsColumnWidthPx are the exact same values the colgroup's own
+  // `<col>` widths already use ('2.75rem' / `${rowCommands!.length * 2.25 +
+  // 1}rem`), just pre-converted to px at this codebase's established 16px
+  // root-font assumption (the same one itemHeight's own default already
+  // makes) -- needed here because the selection/rowCommands columns
+  // auto-pin alongside a left/right-pinned data column (see Column.pinned's
+  // own doc) using a KNOWN width, with no need for the real DOM measurement
+  // useTableColumnPinning uses for actual data columns (whose width can
+  // come from several different sources -- see that hook's own comment).
+  const hasLeftPinnedColumn = visibleColumns.some(c => c.pinned === 'left');
+  const hasRightPinnedColumn = visibleColumns.some(c => c.pinned === 'right');
+  const SELECTION_COLUMN_WIDTH_PX = 44; // 2.75rem
+  const selectionColumnPinned = hasLeftPinnedColumn && selectable && !hideSelectionColumn;
+  const rowCommandsColumnWidthPx = hasRowCommands ? (rowCommands!.length * 2.25 + 1) * 16 : 0;
+  const rowCommandsColumnPinned = hasRightPinnedColumn && hasRowCommands;
+  const { registerHeaderCellRef, offsets: pinnedOffsets } = useTableColumnPinning(
+    displayColumns,
+    selectionColumnPinned ? SELECTION_COLUMN_WIDTH_PX : 0,
+    rowCommandsColumnPinned ? rowCommandsColumnWidthPx : 0
+  );
+
+  /**
+   * Sticky positioning + opaque background + stacking for one pinned
+   * column's `<th>`/`<td>`, shared by header and body render loops below.
+   * The opaque background is the real reason this can't just be `position:
+   * sticky` alone: a `<tr>`'s shared background paints at the ROW's actual
+   * horizontal layout position, not wherever a sticky descendant visually
+   * ends up once "stuck" -- without an explicit background on the sticky
+   * cell itself, scrolled-under sibling cells would show through it. The
+   * header's own non-pinned `<th>`s rely on `<thead>`'s shared background
+   * instead (fine there, since `<thead>` only sticks vertically, not
+   * horizontally) -- a pinned `<th>` needs its own, for the identical
+   * reason a pinned `<td>` does. z-index: header-pinned > header-plain (the
+   * `<thead>`'s own Z_INDEX.STICKY) > body-pinned > body-plain, so a pinned
+   * header cell wins the stacking fight against a scrolling body cell
+   * passing underneath it during a simultaneous vertical+horizontal scroll.
+   */
+  function getPinnedCellStyle(col: Column<T>, isHeader: boolean, rowBackground?: string): CSSProperties | undefined {
+    if (!col.pinned) return undefined;
+    const isLeft = col.pinned === 'left';
+    const offset = (isLeft ? pinnedOffsets.left : pinnedOffsets.right).get(col.key) ?? 0;
+    return {
+      position: 'sticky',
+      [isLeft ? 'left' : 'right']: `${offset}px`,
+      zIndex: isHeader ? Z_INDEX.STICKY + 1 : 1,
+      background: isHeader ? 'var(--ai-bg-container, #f9fafb)' : rowBackground,
+    };
+  }
 
   // Shared resize-handle renderer for a resizable column's <th> -- a
   // role="separator" per the W3C APG Window Splitter pattern (see
@@ -1285,7 +1373,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         >
           <colgroup>
             {selectable && !hideSelectionColumn && <col style={{ width: '2.75rem' }} />}
-            {visibleColumns.map(col => {
+            {displayColumns.map(col => {
               const resolvedWidth = getColumnWidth(col);
               return (
                 <col
@@ -1310,7 +1398,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             <tr aria-rowindex={1}>
               {selectable && !hideSelectionColumn && (
                 <th
-                  style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))', width: '2.75rem' }}
+                  style={{
+                    padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
+                    width: '2.75rem',
+                    ...(selectionColumnPinned
+                      ? { position: 'sticky', left: 0, zIndex: Z_INDEX.STICKY + 1, background: 'var(--ai-bg-container, #f9fafb)' }
+                      : {}),
+                  }}
                   // "Select all" makes no sense for a single-choice model --
                   // in 'single' mode this <th> renders no widget at all, so
                   // (mirroring the sortable/non-sortable data-column pattern
@@ -1362,7 +1456,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   )}
                 </th>
               )}
-              {visibleColumns.map((col, colIndex) => {
+              {displayColumns.map((col, colIndex) => {
                 const isSortable = col.sortable === true;
                 const gridCol = colOffset + colIndex;
                 const sortDescriptor = isSortable ? getSortDescriptor(col.key) : undefined;
@@ -1371,9 +1465,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 // the sort (sortBy.length > 1); a lone sorted column looks
                 // exactly like a single-sort table always did, no badge.
                 const sortPriority = sortDescriptor && sortBy.length > 1 ? sortBy.indexOf(sortDescriptor) + 1 : null;
+                const pinnedStyle = getPinnedCellStyle(col, true);
                 return (
                   <th
                     key={col.key}
+                    ref={col.pinned ? registerHeaderCellRef(col.key) : undefined}
                     // Not itself part of the roving-tabindex/data-grid-*
                     // scheme when sortable -- the <button> below is the
                     // real focus target for that case (the APG's own
@@ -1413,8 +1509,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // Anchors the resize handle's absolute positioning
                       // below -- harmless when col.resizable is false since
                       // nothing renders inside this th to be positioned
-                      // against it either way.
-                      position: col.resizable ? 'relative' : undefined,
+                      // against it either way. A pinned column's own
+                      // `position: sticky` (via pinnedStyle, spread after)
+                      // works equally well as that anchor, so this only
+                      // needs to apply when NOT pinned.
+                      position: col.resizable && !col.pinned ? 'relative' : undefined,
+                      ...pinnedStyle,
                     }}
                   >
                     {isSortable ? (
@@ -1530,7 +1630,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   data-grid-col={colOffset + visibleColumns.length}
                   tabIndex={isFocusedCell(0, colOffset + visibleColumns.length) ? 0 : -1}
                   className="ai-focus-ring"
-                  style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))' }}
+                  style={{
+                    padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
+                    ...(rowCommandsColumnPinned
+                      ? { position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY + 1, background: 'var(--ai-bg-container, #f9fafb)' }
+                      : {}),
+                  }}
                 >
                   <VisuallyHidden>Row actions</VisuallyHidden>
                 </th>
@@ -1652,6 +1757,35 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     ? [`inset 0.25rem 0 0 0 ${selectionAccentColor}`, ...selectionFrameShadows].join(', ')
                     : 'none';
                   const hasSelectionCell = selectable && !hideSelectionColumn && selectionKey !== null;
+                  // Reused by both the <tr> itself (below) and, for a
+                  // PINNED cell specifically, a real-browser-screenshot-
+                  // caught variant that flattens it to a guaranteed-opaque
+                  // color -- see getPinnedCellStyle's own comment for why a
+                  // sticky cell needs its own explicit opaque background
+                  // rather than relying on the row's shared one.
+                  const rowBackgroundColor = subthemeColors?.background
+                    ? subthemeColors.background
+                    : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))';
+                  // A naive `rowBackgroundColor === 'transparent' ? <opaque
+                  // fallback> : rowBackgroundColor` substitution (this
+                  // code's own first version) missed a real case, found via
+                  // a real browser screenshot, not reasoning: a custom
+                  // `rowSubtheme` background can ALSO be semi-transparent
+                  // (the demo's own "top performer" highlight is `rgba(...,
+                  // 0.12)`) -- not the literal string 'transparent', so that
+                  // check passed it through unchanged, and 12%-opacity is
+                  // still transparent enough for scrolled-under sibling-cell
+                  // content to visibly bleed through a pinned cell. A
+                  // stacked `linear-gradient(X, X)` image layer OVER a
+                  // plain opaque `background-color` is the general fix for
+                  // ANY row background, not just the literal-transparent
+                  // special case: the gradient layer paints
+                  // `rowBackgroundColor` exactly as authored (including any
+                  // alpha), and the solid color underneath is only ever
+                  // visible through whatever alpha that top layer leaves --
+                  // never through to actual scrolled-under DOM content,
+                  // which is the whole point.
+                  const pinnedCellBackgroundColor = `linear-gradient(${rowBackgroundColor}, ${rowBackgroundColor}), var(--ai-bg-surface, #ffffff)`;
 
                   return (
                     <tr
@@ -1689,9 +1823,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             ? 'none'
                             : `0.0625rem dashed ${subthemeColors.border}`
                           : '0.0625rem solid var(--ai-border, #f3f4f6)',
-                        backgroundColor: subthemeColors?.background
-                          ? subthemeColors.background
-                          : actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
+                        backgroundColor: rowBackgroundColor,
                         // Selection no longer washes the row's own
                         // background at all (issue #360) -- a custom
                         // rowSubtheme tint or zebra stripe stays exactly as
@@ -1712,6 +1844,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             // the top/bottom frame caps (see this row's own
                             // comment above on how those are computed).
                             boxShadow: firstCellSelectionShadow,
+                            ...(selectionColumnPinned
+                              ? { position: 'sticky', left: 0, zIndex: 1, background: pinnedCellBackgroundColor }
+                              : {}),
                           }}
                           onClick={e => e.stopPropagation()}
                         >
@@ -1793,7 +1928,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           )}
                         </td>
                       )}
-                      {visibleColumns.map((col, colIndex) => {
+                      {displayColumns.map((col, colIndex) => {
                         const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
                         const gridCol = colOffset + colIndex;
                         return (
@@ -1825,6 +1960,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               // -- every other cell just carries the
                               // top/bottom frame caps, if any.
                               boxShadow: !hasSelectionCell && colIndex === 0 ? firstCellSelectionShadow : otherCellsSelectionShadow,
+                              ...getPinnedCellStyle(col, false, pinnedCellBackgroundColor),
                             }}
                           >
                             {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
@@ -1843,6 +1979,9 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             // Always the last cell, never the first -- only
                             // the top/bottom frame caps apply here.
                             boxShadow: otherCellsSelectionShadow,
+                            ...(rowCommandsColumnPinned
+                              ? { position: 'sticky', right: 0, zIndex: 1, background: pinnedCellBackgroundColor }
+                              : {}),
                           }}
                         >
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
