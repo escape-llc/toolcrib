@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import type { AxeResults, RunOptions } from 'axe-core';
 
 // vitest-axe's own bundled types (vitest-axe/extend-expect) augment a `Vi`
-// namespace that doesn't match vitest 4.x's real Assertion<T> interface
+// namespace that doesn't match vitest's real Assertion<T> interface
 // (confirmed directly: tsc reported toHaveNoViolations as unknown on every
 // call site even with the runtime matcher correctly registered -- that
 // package, 0.1.0, was last built against vitest ^0.17.0 and simply
@@ -11,13 +11,37 @@ import type { AxeResults, RunOptions } from 'axe-core';
 // same fix separately didn't apply either -- nothing actually imports a
 // bare .d.ts file, so it never entered the real compilation graph despite
 // matching tsconfig.json's `include`. Declared here instead, in the one
-// file every test actually imports for real, augmenting @vitest/expect's
-// own Assertion<T> directly (confirmed via
-// node_modules/@vitest/expect/dist/index.d.ts as the real interface
-// `expect(x)`'s return type resolves to in this vitest version).
-declare module '@vitest/expect' {
-  interface Assertion<T = any> {
-    toHaveNoViolations(): T extends AxeResults ? void : never;
+// file every test actually imports for real, augmenting vitest's own
+// Assertion<T> directly.
+//
+// Targets the 'vitest' module itself, not '@vitest/expect' (this file's
+// own previous version, written against vitest 4.x) -- the vitest 5
+// upgrade (tending to Dependabot PRs #225/#441) removed `@vitest/expect`
+// as a separately-installable package entirely, folding its types into
+// the main `vitest` package.
+//
+// Augments `Matchers<R, T>`, not `Assertion<R, T>` directly -- vitest's
+// own real `Assertion` interface (node_modules/vitest/dist/chunks/
+// config.d.*.d.ts) already `extends ... Matchers<R, T>` among several
+// other interfaces specifically as the intended custom-matcher extension
+// point (empty by design: `interface Matchers<R = void | Promise<void>,
+// T = unknown> {}`). Declaration merging requires every merged
+// declaration of the SAME interface name to have IDENTICAL type
+// parameters (arity and defaults) -- confirmed the hard way: an initial
+// version of this file augmented `Assertion<T = any>` directly (matching
+// `@testing-library/jest-dom`'s own vitest.d.ts, which does the same) and
+// hit `TS2428: All declarations of 'Assertion' must have identical type
+// parameters` the moment `skipLibCheck` wasn't there to hide it -- jest-dom's
+// own copy of this mistake lives in a `.d.ts` file, exempted from
+// checking by this repo's own `skipLibCheck: true`, while this file (a
+// plain `.ts` source file) is not. `Matchers<R, T>` -- vitest's own
+// dedicated, always-empty extension interface -- sidesteps needing to
+// replicate `Assertion`'s own exact (and separately different: `R
+// extends void | Promise<void> = void`, not `= void | Promise<void>`)
+// parameter defaults at all.
+declare module 'vitest' {
+  interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown> {
+    toHaveNoViolations(): T extends AxeResults ? R : never;
   }
 }
 
