@@ -24,6 +24,7 @@ import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
 import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX } from './DataTableSlice';
+import { columnsToCsv, downloadCsvFile } from './csvExport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableQuickFilter } from './useTableQuickFilter';
@@ -480,6 +481,24 @@ export interface DataTableProps<T = any> {
   /** Called whenever the live density changes, whether controlled or uncontrolled. */
   onDensityChange?: (density: TableDensity) => void;
   /**
+   * Renders a built-in "Export CSV" button (in the same top toolbar row
+   * `quickFilter`/`densitySelector` share) that downloads the *entire*
+   * currently filtered + sorted dataset -- every matching row across every
+   * page, not just the current page -- as a CSV file, using each column's
+   * `title` as its header and the same resolved cell value
+   * (`accessorFn(record)` if given, else `record[key]`) sorting already
+   * uses. A column's custom `render` output is never used for the CSV,
+   * since it can return arbitrary JSX with no meaningful plain-text form to
+   * fall back on. Also emits `datatable:exported` on the event bus.
+   * @default false
+   */
+  csvExport?: boolean;
+  /**
+   * File name for the CSV download triggered by `csvExport`.
+   * @default 'export.csv'
+   */
+  csvExportFileName?: string;
+  /**
    * Renders arbitrary caller content into the same top toolbar row
    * `quickFilter`'s search box and `densitySelector`'s toggle group share
    * -- alongside density, on the right, since that's the one slot never
@@ -548,6 +567,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   density: controlledDensity,
   defaultDensity,
   onDensityChange,
+  csvExport = false,
+  csvExportFileName = 'export.csv',
   renderToolbarExtra,
   emptyState,
 }: DataTableProps<T>) {
@@ -706,6 +727,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const handleQuickFilterInputChange = (value: string) => {
     handleQuickFilterChange(value);
     paginationGoToPage(1);
+  };
+
+  // CSV export (issue #338) -- exports `sortedData`, the FULL filtered +
+  // sorted dataset (post-quickFilter, post-sort, pre-pagination-slice), not
+  // just `paginatedData` (the current page). "Export everything I'm
+  // currently looking at, filtered and ordered the way I set it up" is the
+  // useful default every competitor's own free CSV export already matches;
+  // exporting only the current page would silently drop every other page's
+  // rows, which is not what a user reaching for "export" expects.
+  const handleCsvExport = () => {
+    downloadCsvFile(csvExportFileName, columnsToCsv(columns, sortedData));
+    aiBus.emit('datatable:exported', { id, rowCount: sortedData.length });
   };
 
   // Row selection. `pageOffset` is 0 when pagination is disabled
@@ -920,14 +953,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     >
       {/* Top Toolbar — a single, always-mounted (not toggled by any
           runtime state as a WHOLE) bar combining search, bulk-selection
-          status/actions, density, and any caller-supplied extra content.
-          Its own presence is driven by the static
-          `quickFilter`/`densitySelector`/`selectable`/`renderToolbarExtra`
-          props, so there's no whole-bar layout-jump concern to guard
-          against -- only the Center slot's bulk-action content (below)
-          needs its own narrower visibility trick, the same one this used
-          to apply to a whole separate second row. */}
-      {(quickFilter || densitySelector || selectable || renderToolbarExtra) && (
+          status/actions, density, CSV export, and any caller-supplied extra
+          content. Its own presence is driven by the static
+          `quickFilter`/`densitySelector`/`csvExport`/`selectable`/
+          `renderToolbarExtra` props, so there's no whole-bar layout-jump
+          concern to guard against -- only the Center slot's bulk-action
+          content (below) needs its own narrower visibility trick, the same
+          one this used to apply to a whole separate second row. */}
+      {(quickFilter || densitySelector || csvExport || selectable || renderToolbarExtra) && (
         <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
           <Toolbar>
             {quickFilter && (
@@ -979,7 +1012,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 </div>
               </Toolbar.Center>
             )}
-            {(densitySelector || renderToolbarExtra) && (
+            {(densitySelector || csvExport || renderToolbarExtra) && (
               <Toolbar.Right>
                 {densitySelector && (
                   <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
@@ -998,6 +1031,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       ))}
                     </UIGroup>
                   </div>
+                )}
+                {csvExport && (
+                  <Button type="button" size="sm" variant="outline" onClick={handleCsvExport}>
+                    {strings.exportCsvLabel}
+                  </Button>
                 )}
                 {renderToolbarExtra?.()}
               </Toolbar.Right>

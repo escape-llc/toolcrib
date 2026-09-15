@@ -383,6 +383,16 @@
           "type": "(density: TableDensity) => void",
           "description": "Called whenever the live density changes, whether controlled or uncontrolled."
         },
+        "csvExport": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Renders a built-in \"Export CSV\" button (in the same top toolbar row\n`quickFilter`/`densitySelector` share) that downloads the *entire*\ncurrently filtered + sorted dataset -- every matching row across every\npage, not just the current page -- as a CSV file, using each column's\n`title` as its header and the same resolved cell value\n(`accessorFn(record)` if given, else `record[key]`) sorting already\nuses. A column's custom `render` output is never used for the CSV,\nsince it can return arbitrary JSX with no meaningful plain-text form to\nfall back on. Also emits `datatable:exported` on the event bus."
+        },
+        "csvExportFileName": {
+          "type": "string",
+          "default": "'export.csv'",
+          "description": "File name for the CSV download triggered by `csvExport`."
+        },
         "renderToolbarExtra": {
           "type": "() => ReactNode",
           "description": "Renders arbitrary caller content into the same top toolbar row\n`quickFilter`'s search box and `densitySelector`'s toggle group share\n-- alongside density, on the right, since that's the one slot never\nclaimed by a built-in feature. For a consumer who wants their own\nactions (a refresh button, an export button) living in that same bar\ninstead of a separate one above/below the table. Mounts the bar even\nif `quickFilter`/`densitySelector`/`selectable` are all false, so this\nalone is enough to get the row at all."

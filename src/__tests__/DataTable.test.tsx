@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act, within, renderHook } from '@testing-lib
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { compareValues } from '../components/DataTable/useTableSort';
 import { useTableQuickFilter } from '../components/DataTable/useTableQuickFilter';
+import { columnsToCsv } from '../components/DataTable/csvExport';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -1755,6 +1756,159 @@ describe('DataTable Virtualized Component', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Compact' }));
       expect(handler).toHaveBeenLastCalledWith({ id: 'density-table', density: 'compact' });
       unsub();
+    });
+  });
+
+  describe('CSV export (issue #338)', () => {
+    // Shared setup for every test that actually triggers a download --
+    // jsdom implements neither URL.createObjectURL/revokeObjectURL nor real
+    // <a> navigation, the same gap FileUpload/ThemeEditor/themeFileTransfer's
+    // own existing tests already work around with this exact pattern (see
+    // ThemeEditor.test.tsx's "Export theme downloads a .json snapshot" test).
+    function mockDownload() {
+      let capturedBlob: Blob | undefined;
+      const createObjectURL = vi.fn((blob: Blob) => {
+        capturedBlob = blob;
+        return 'blob:mock-url';
+      });
+      const revokeObjectURL = vi.fn();
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = createObjectURL as any;
+      URL.revokeObjectURL = revokeObjectURL as any;
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+      return {
+        getBlob: () => capturedBlob!,
+        getAnchor: () =>
+          appendSpy.mock.calls.map(([el]) => el).find((el): el is HTMLAnchorElement => el instanceof HTMLAnchorElement)!,
+        revokeObjectURL,
+        restore: () => {
+          clickSpy.mockRestore();
+          appendSpy.mockRestore();
+          URL.createObjectURL = originalCreate;
+          URL.revokeObjectURL = originalRevoke;
+        },
+      };
+    }
+
+    it('renders no export button by default', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+      expect(screen.queryByRole('button', { name: 'Export CSV' })).not.toBeInTheDocument();
+    });
+
+    it('renders an "Export CSV" button when csvExport is true', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport />);
+      expect(screen.getByRole('button', { name: 'Export CSV' })).toBeInTheDocument();
+    });
+
+    it('clicking Export CSV downloads a file named export.csv by default', () => {
+      const mock = mockDownload();
+      try {
+        render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport />);
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        expect(mock.getAnchor().download).toBe('export.csv');
+        expect(mock.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it('csvExportFileName overrides the default download file name', () => {
+      const mock = mockDownload();
+      try {
+        render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport csvExportFileName="people.csv" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        expect(mock.getAnchor().download).toBe('people.csv');
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it('exports the FULL filtered + sorted dataset, not just the current page, verified via the Blob text (async .text())', async () => {
+      const mock = mockDownload();
+      try {
+        render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport />);
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        const text = await mock.getBlob().text();
+        const lines = text.replace(/^﻿/, '').split('\r\n');
+        expect(lines[0]).toBe('ID,Name');
+        expect(lines).toHaveLength(1 + testData.length); // header + all 50 rows, not just the 10-row page
+        expect(lines[1]).toBe('1,Item 1');
+        expect(lines[50]).toBe('50,Item 50');
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it('respects the current sort order in the exported rows', async () => {
+      const mock = mockDownload();
+      try {
+        render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} csvExport sortBy={[{ key: 'id', direction: 'desc' }]} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        const text = await mock.getBlob().text();
+        const lines = text.replace(/^﻿/, '').split('\r\n');
+        expect(lines[1]).toBe('50,Item 50');
+        expect(lines[2]).toBe('49,Item 49');
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it('emits datatable:exported with this table\'s id and the full row count', () => {
+      const mock = mockDownload();
+      const handler = vi.fn();
+      const unsub = aiBus.on('datatable:exported', handler);
+      try {
+        render(<DataTable id="export-table" data={testData} columns={testColumns} defaultPageSize={10} csvExport />);
+        fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+        expect(handler).toHaveBeenCalledWith({ id: 'export-table', rowCount: 50 });
+      } finally {
+        unsub();
+        mock.restore();
+      }
+    });
+  });
+
+  describe('columnsToCsv (csvExport.ts internal, issue #338)', () => {
+    interface Person {
+      id: number;
+      name: string;
+      note: string | null;
+    }
+    const cols: Column<Person>[] = [
+      { key: 'id', title: 'ID' },
+      { key: 'name', title: 'Name' },
+      { key: 'note', title: 'Note' },
+    ];
+
+    it('joins header + rows with \\r\\n, per RFC 4180', () => {
+      const csv = columnsToCsv(cols, [{ id: 1, name: 'Ada', note: null }]);
+      expect(csv).toBe('ID,Name,Note\r\n1,Ada,');
+    });
+
+    it('quotes a field containing a comma, doubling any embedded quote', () => {
+      const csv = columnsToCsv(cols, [{ id: 1, name: 'Ada, "The First"', note: null }]);
+      expect(csv).toBe('ID,Name,Note\r\n1,"Ada, ""The First""",');
+    });
+
+    it('quotes a field containing an embedded newline', () => {
+      const csv = columnsToCsv(cols, [{ id: 1, name: 'Line1\nLine2', note: null }]);
+      expect(csv).toBe('ID,Name,Note\r\n1,"Line1\nLine2",');
+    });
+
+    it('resolves a value via accessorFn when given, over a plain record[key] read', () => {
+      const derivedCols: Column<Person>[] = [
+        { key: 'id', title: 'ID' },
+        { key: 'name', title: 'Upper Name', accessorFn: r => r.name.toUpperCase() },
+      ];
+      const csv = columnsToCsv(derivedCols, [{ id: 1, name: 'ada', note: null }]);
+      expect(csv).toBe('ID,Upper Name\r\n1,ADA');
+    });
+
+    it('renders null/undefined as an empty field, not the literal string "null"/"undefined"', () => {
+      const csv = columnsToCsv(cols, [{ id: 1, name: 'Ada', note: undefined as unknown as null }]);
+      expect(csv).toBe('ID,Name,Note\r\n1,Ada,');
     });
   });
 
