@@ -393,6 +393,23 @@
           "default": "'export.csv'",
           "description": "File name for the CSV download triggered by `csvExport`."
         },
+        "columnVisibility": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Renders a built-in \"Columns\" button (same top toolbar row) that opens a\nchecklist menu letting an end user show/hide any column live -- every\ncolumn from `columns` is listed, regardless of its current visibility,\nso a hidden column can always be re-shown from the same menu. A hidden\ncolumn occupies no grid position at all (not just a visually-hidden\none) -- it's skipped in the header, every body row, and CSV export\n(`csvExport` above) alike, and keyboard-nav column coordinates stay\ncontiguous with no gap left behind. Uses the\n`hiddenColumns`/`defaultHiddenColumns`/`onHiddenColumnsChange` trio\nbelow for its state, the same controlled/uncontrolled shape every other\nbuilt-in `<DataTable>` feature already uses."
+        },
+        "hiddenColumns": {
+          "type": "string[]",
+          "description": "Controlled set of hidden column keys (`Column.key`). Pass to drive\ncolumn visibility from parent state (e.g. to persist it to\n`localStorage`) instead of letting `<DataTable>` manage it internally.\nOmit for the common uncontrolled case; `defaultHiddenColumns` seeds\nthat internal state instead. Has an effect regardless of whether\n`columnVisibility`'s own built-in menu is rendered -- a consumer can\ndrive column visibility entirely from their own external UI."
+        },
+        "defaultHiddenColumns": {
+          "type": "string[]",
+          "description": "Initial hidden columns when uncontrolled (`hiddenColumns` omitted)."
+        },
+        "onHiddenColumnsChange": {
+          "type": "(hiddenColumns: string[]) => void",
+          "description": "Called whenever the hidden-column set changes, whether controlled or uncontrolled -- always the FULL current set, not just the one column that changed."
+        },
         "renderToolbarExtra": {
           "type": "() => ReactNode",
           "description": "Renders arbitrary caller content into the same top toolbar row\n`quickFilter`'s search box and `densitySelector`'s toggle group share\n-- alongside density, on the right, since that's the one slot never\nclaimed by a built-in feature. For a consumer who wants their own\nactions (a refresh button, an export button) living in that same bar\ninstead of a separate one above/below the table. Mounts the bar even\nif `quickFilter`/`densitySelector`/`selectable` are all false, so this\nalone is enough to get the row at all."

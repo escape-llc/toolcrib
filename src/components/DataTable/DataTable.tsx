@@ -10,7 +10,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { Checkbox as CheckboxPrimitive } from 'radix-ui';
+import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { Button } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
@@ -33,6 +33,8 @@ import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
 import { useTableColumnResize } from './useTableColumnResize';
+import { useTableColumnVisibility } from './useTableColumnVisibility';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -499,6 +501,35 @@ export interface DataTableProps<T = any> {
    */
   csvExportFileName?: string;
   /**
+   * Renders a built-in "Columns" button (same top toolbar row) that opens a
+   * checklist menu letting an end user show/hide any column live -- every
+   * column from `columns` is listed, regardless of its current visibility,
+   * so a hidden column can always be re-shown from the same menu. A hidden
+   * column occupies no grid position at all (not just a visually-hidden
+   * one) -- it's skipped in the header, every body row, and CSV export
+   * (`csvExport` above) alike, and keyboard-nav column coordinates stay
+   * contiguous with no gap left behind. Uses the
+   * `hiddenColumns`/`defaultHiddenColumns`/`onHiddenColumnsChange` trio
+   * below for its state, the same controlled/uncontrolled shape every other
+   * built-in `<DataTable>` feature already uses.
+   * @default false
+   */
+  columnVisibility?: boolean;
+  /**
+   * Controlled set of hidden column keys (`Column.key`). Pass to drive
+   * column visibility from parent state (e.g. to persist it to
+   * `localStorage`) instead of letting `<DataTable>` manage it internally.
+   * Omit for the common uncontrolled case; `defaultHiddenColumns` seeds
+   * that internal state instead. Has an effect regardless of whether
+   * `columnVisibility`'s own built-in menu is rendered -- a consumer can
+   * drive column visibility entirely from their own external UI.
+   */
+  hiddenColumns?: string[];
+  /** Initial hidden columns when uncontrolled (`hiddenColumns` omitted). */
+  defaultHiddenColumns?: string[];
+  /** Called whenever the hidden-column set changes, whether controlled or uncontrolled -- always the FULL current set, not just the one column that changed. */
+  onHiddenColumnsChange?: (hiddenColumns: string[]) => void;
+  /**
    * Renders arbitrary caller content into the same top toolbar row
    * `quickFilter`'s search box and `densitySelector`'s toggle group share
    * -- alongside density, on the right, since that's the one slot never
@@ -569,11 +600,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   onDensityChange,
   csvExport = false,
   csvExportFileName = 'export.csv',
+  columnVisibility = false,
+  hiddenColumns: controlledHiddenColumns,
+  defaultHiddenColumns,
+  onHiddenColumnsChange,
   renderToolbarExtra,
   emptyState,
 }: DataTableProps<T>) {
   const id = useStableId(propId, 'datatable');
   const strings = useLocaleStrings().dataTable;
+  const targetDocument = useTargetDocument();
 
   // The live density feature (issue #339) is only "active" -- i.e. allowed
   // to override whatever `overrides.density`/the theme's own default would
@@ -607,6 +643,29 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // 'none' }}` instead of always drawing a border regardless.
   const effectiveBorderStyle = overrides?.borderStyle ?? DataTableThemeSlice.defaultState.borderStyle;
   useInjectInteractionStyles();
+
+  // Column show/hide (issue #340). `visibleColumns` is what every render
+  // loop below (colgroup, header row, body cells) actually iterates over --
+  // a hidden column occupies no grid position at all, not just a
+  // display:none one, so keyboard-nav column coordinates stay contiguous
+  // (0..N-1) with no gap left behind by a hidden column. Sorting/quick-filter
+  // deliberately keep using the FULL `columns` array (below), not
+  // `visibleColumns` -- hiding a column doesn't clear a sort already applied
+  // to it, and quickFilterFields is the one dedicated, explicit mechanism
+  // for scoping which columns quick-filter searches, independent of display
+  // visibility.
+  const { hiddenColumnSet, toggleColumnVisibility } = useTableColumnVisibility({
+    hiddenColumns: controlledHiddenColumns,
+    defaultHiddenColumns,
+    onHiddenColumnsChange,
+    tableId: id,
+  });
+  // Not wrapped in useMemo -- hiddenColumnSet is itself a fresh Set on every
+  // render (useTableColumnVisibility recomputes it from the hiddenColumns
+  // array each call), so a useMemo keyed on it would recompute every render
+  // anyway; a plain filter() over a typically-small columns array costs
+  // nothing extra by skipping the memoization machinery here.
+  const visibleColumns = columns.filter(c => !hiddenColumnSet.has(c.key));
 
   // Filtering happens BEFORE sorting -- useTableSort receives filteredData,
   // not the raw data prop, so aria-rowcount/the pagination footer/the
@@ -735,9 +794,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // currently looking at, filtered and ordered the way I set it up" is the
   // useful default every competitor's own free CSV export already matches;
   // exporting only the current page would silently drop every other page's
-  // rows, which is not what a user reaching for "export" expects.
+  // rows, which is not what a user reaching for "export" expects. Uses
+  // `visibleColumns` (issue #340), not the full `columns` -- a column the
+  // user has explicitly hidden shouldn't reappear in the exported file
+  // either, matching "export what I can currently see."
   const handleCsvExport = () => {
-    downloadCsvFile(csvExportFileName, columnsToCsv(columns, sortedData));
+    downloadCsvFile(csvExportFileName, columnsToCsv(visibleColumns, sortedData));
     aiBus.emit('datatable:exported', { id, rowCount: sortedData.length });
   };
 
@@ -847,13 +909,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   // Grid coordinate layout: column 0 is the selection checkbox/radio column
   // when `selectable` and not `hideSelectionColumn`, otherwise column
-  // indices start directly at `columns`; a trailing rowCommands actions
-  // column (if any) is always the LAST column. Row 0 is always the header
-  // row, rows 1..paginatedData.length are body rows (page-relative,
-  // matching `actualIndex + 1`).
+  // indices start directly at `visibleColumns` (a hidden column occupies no
+  // grid position, see `visibleColumns`'s own comment above); a trailing
+  // rowCommands actions column (if any) is always the LAST column. Row 0 is
+  // always the header row, rows 1..paginatedData.length are body rows
+  // (page-relative, matching `actualIndex + 1`).
   const colOffset = selectable && !hideSelectionColumn ? 1 : 0;
   const hasRowCommands = !!rowCommands && rowCommands.length > 0;
-  const gridColumnCount = columns.length + colOffset + (hasRowCommands ? 1 : 0);
+  const gridColumnCount = visibleColumns.length + colOffset + (hasRowCommands ? 1 : 0);
   // Shared by the empty-state row and both virtualization spacer rows below
   // -- every one of them spans the table's real, full column count.
   const totalColSpan = gridColumnCount;
@@ -953,14 +1016,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     >
       {/* Top Toolbar — a single, always-mounted (not toggled by any
           runtime state as a WHOLE) bar combining search, bulk-selection
-          status/actions, density, CSV export, and any caller-supplied extra
-          content. Its own presence is driven by the static
-          `quickFilter`/`densitySelector`/`csvExport`/`selectable`/
-          `renderToolbarExtra` props, so there's no whole-bar layout-jump
-          concern to guard against -- only the Center slot's bulk-action
-          content (below) needs its own narrower visibility trick, the same
-          one this used to apply to a whole separate second row. */}
-      {(quickFilter || densitySelector || csvExport || selectable || renderToolbarExtra) && (
+          status/actions, density, CSV export, column visibility, and any
+          caller-supplied extra content. Its own presence is driven by the
+          static `quickFilter`/`densitySelector`/`csvExport`/
+          `columnVisibility`/`selectable`/`renderToolbarExtra` props, so
+          there's no whole-bar layout-jump concern to guard against -- only
+          the Center slot's bulk-action content (below) needs its own
+          narrower visibility trick, the same one this used to apply to a
+          whole separate second row. */}
+      {(quickFilter || densitySelector || csvExport || columnVisibility || selectable || renderToolbarExtra) && (
         <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
           <Toolbar>
             {quickFilter && (
@@ -1012,7 +1076,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 </div>
               </Toolbar.Center>
             )}
-            {(densitySelector || csvExport || renderToolbarExtra) && (
+            {(densitySelector || csvExport || columnVisibility || renderToolbarExtra) && (
               <Toolbar.Right>
                 {densitySelector && (
                   <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
@@ -1036,6 +1100,81 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   <Button type="button" size="sm" variant="outline" onClick={handleCsvExport}>
                     {strings.exportCsvLabel}
                   </Button>
+                )}
+                {columnVisibility && (
+                  // A bespoke Radix DropdownMenu built directly from the
+                  // primitive (not the toolkit's own <DropdownMenu>) --
+                  // matching this file's own established precedent
+                  // (CheckboxPrimitive above, for row selection) of reaching
+                  // for a raw Radix primitive when a grid-integrated control
+                  // needs a shape the shared component doesn't offer. Here:
+                  // <DropdownMenu>'s own MenuItemData is action-item-only
+                  // (onSelect always closes the menu), but toggling several
+                  // columns in sequence needs the menu to STAY open across
+                  // each click -- Radix's own CheckboxItem is built for
+                  // exactly that (onSelect prevented below), and the shared
+                  // component doesn't expose it.
+                  <DropdownMenuPrimitive.Root>
+                    <DropdownMenuPrimitive.Trigger asChild>
+                      <Button type="button" size="sm" variant="outline">
+                        {strings.columnsButtonLabel}
+                      </Button>
+                    </DropdownMenuPrimitive.Trigger>
+                    <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
+                      <DropdownMenuPrimitive.Content
+                        align="end"
+                        sideOffset={4}
+                        className="ai-focus-ring"
+                        style={{
+                          zIndex: Z_INDEX.DROPDOWN,
+                          minWidth: '11.25rem',
+                          padding: 'var(--ai-padding-sm, 0.375rem)',
+                          background: 'var(--ai-bg-surface, #ffffff)',
+                          border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                          borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                          boxShadow: 'var(--ai-shadow-md, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.125rem',
+                          outline: 'none',
+                          contain: 'content',
+                        }}
+                      >
+                        {columns.map(col => (
+                          <DropdownMenuPrimitive.CheckboxItem
+                            key={col.key}
+                            checked={!hiddenColumnSet.has(col.key)}
+                            onCheckedChange={() => toggleColumnVisibility(col.key)}
+                            // Keeps the menu open across multiple toggles --
+                            // a checklist, not a one-shot action list (see
+                            // this feature's own comment above).
+                            onSelect={e => e.preventDefault()}
+                            className="ai-menu-item"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
+                              fontSize: '0.875rem',
+                              fontWeight: 'var(--ai-font-weight-medium, 500)',
+                              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                              color: 'var(--ai-text-primary, #111827)',
+                              cursor: 'pointer',
+                              outline: 'none',
+                            }}
+                          >
+                            {/* Fixed-width reserved space so the label
+                                doesn't visually shift left/right as items
+                                toggle in and out of the checked state. */}
+                            <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
+                              <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
+                            </span>
+                            {col.title}
+                          </DropdownMenuPrimitive.CheckboxItem>
+                        ))}
+                      </DropdownMenuPrimitive.Content>
+                    </DropdownMenuPrimitive.Portal>
+                  </DropdownMenuPrimitive.Root>
                 )}
                 {renderToolbarExtra?.()}
               </Toolbar.Right>
@@ -1099,11 +1238,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // window, and per the W3C APG's own guidance for aria-rowcount --
           // https://www.w3.org/WAI/ARIA/apg/patterns/grid/ -- explicitly
           // including pagination as a case where not all rows are in the
-          // DOM), +1 for the header row. aria-colcount is always the real
-          // column count since, unlike rows, columns are never virtualized
-          // -- every column is always present in the DOM, so aria-colindex
-          // per cell isn't needed (the spec only calls for it when the DOM
-          // column set is a subset of the full one).
+          // DOM), +1 for the header row. aria-colcount reflects the real
+          // rendered column count -- every VISIBLE column (see
+          // `visibleColumns`'s own comment: a `columnVisibility`-hidden
+          // column occupies no grid position at all) is always present in
+          // the DOM, unlike rows, so aria-colindex per cell isn't needed
+          // (the spec only calls for it when the DOM column set is a
+          // subset of the full one).
           aria-rowcount={1 + sortedData.length}
           aria-colcount={gridColumnCount}
           onKeyDown={e => {
@@ -1144,7 +1285,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         >
           <colgroup>
             {selectable && !hideSelectionColumn && <col style={{ width: '2.75rem' }} />}
-            {columns.map(col => {
+            {visibleColumns.map(col => {
               const resolvedWidth = getColumnWidth(col);
               return (
                 <col
@@ -1221,7 +1362,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   )}
                 </th>
               )}
-              {columns.map((col, colIndex) => {
+              {visibleColumns.map((col, colIndex) => {
                 const isSortable = col.sortable === true;
                 const gridCol = colOffset + colIndex;
                 const sortDescriptor = isSortable ? getSortDescriptor(col.key) : undefined;
@@ -1386,8 +1527,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               {hasRowCommands && (
                 <th
                   data-grid-row={0}
-                  data-grid-col={colOffset + columns.length}
-                  tabIndex={isFocusedCell(0, colOffset + columns.length) ? 0 : -1}
+                  data-grid-col={colOffset + visibleColumns.length}
+                  tabIndex={isFocusedCell(0, colOffset + visibleColumns.length) ? 0 : -1}
                   className="ai-focus-ring"
                   style={{ padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))' }}
                 >
@@ -1652,7 +1793,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           )}
                         </td>
                       )}
-                      {columns.map((col, colIndex) => {
+                      {visibleColumns.map((col, colIndex) => {
                         const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
                         const gridCol = colOffset + colIndex;
                         return (
@@ -1693,8 +1834,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       {hasRowCommands && (
                         <td
                           data-grid-row={gridRow}
-                          data-grid-col={colOffset + columns.length}
-                          tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
+                          data-grid-col={colOffset + visibleColumns.length}
+                          tabIndex={isFocusedCell(gridRow, colOffset + visibleColumns.length) ? 0 : -1}
                           className="ai-focus-ring"
                           onClick={e => e.stopPropagation()}
                           style={{
@@ -1743,7 +1884,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                   // widget in this one cell), so a keyboard
                                   // user can still Tab between them once
                                   // they've actually arrived at this row.
-                                  tabIndex={isFocusedCell(gridRow, colOffset + columns.length) ? 0 : -1}
+                                  tabIndex={isFocusedCell(gridRow, colOffset + visibleColumns.length) ? 0 : -1}
                                   // ai-btn (issue #370) -- a plain `all:
                                   // 'unset'` icon button had a pointer
                                   // cursor and nothing else: no hover

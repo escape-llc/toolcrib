@@ -91,6 +91,8 @@ export interface AIEventMap {
   'datatable:end_reached': { id?: string; loadedCount: number };
   /** Emitted whenever `<DataTable csvExport>`'s built-in export button downloads a CSV -- `rowCount` is the full filtered + sorted dataset's size (every exported row, across every page), not just the current page's. See issue #338. */
   'datatable:exported': { id?: string; rowCount: number };
+  /** Emitted whenever `<DataTable columnVisibility>`'s show/hide state changes, whether controlled or uncontrolled -- `hiddenColumns` is the FULL current set of hidden `Column.key`s, not just the one that changed. See issue #340. */
+  'datatable:columns_changed': { id?: string; hiddenColumns: string[] };
   'log:cleared': { timestamp: string };
 
   // Routing
