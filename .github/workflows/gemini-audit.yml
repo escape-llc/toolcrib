@@ -104,10 +104,10 @@ jobs:
           node scripts/audit-segment.js "${SEGMENT_ARG[@]}" \
             --out "${GITHUB_WORKSPACE}/.gemini-audit-segment.json" \
             --bundle-out "${GITHUB_WORKSPACE}/.gemini-audit-bundle.txt"
-          echo "id=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).id")" >> "$GITHUB_OUTPUT"
-          echo "title=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).title")" >> "$GITHUB_OUTPUT"
-          echo "fileCount=$(node -p "JSON.parse(require('fs').readFileSync('.gemini-audit-segment.json', 'utf-8')).fileCount")" >> "$GITHUB_OUTPUT"
-          echo "weekOf=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          {
+            node -e "const s = require('./.gemini-audit-segment.json'); console.log('id=' + s.id); console.log('title=' + s.title); console.log('fileCount=' + s.fileCount);"
+            echo "weekOf=$(date -u +%Y-%m-%d)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Gemini audit (read_file only -- no shell, no write, no other tool)
         id: gemini_audit
