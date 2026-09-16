@@ -796,12 +796,16 @@ export const App: React.FC = () => {
   // be "small enough" for ONE specific container height by luck -- it has
   // no way to track a real pixel target as the viewport actually varies.
   // mainSplitterContainerRef wraps the whole <Splitter> below (Splitter
-  // itself doesn't forward a ref); eventLogToolbarRef wraps just the
-  // toolbar row inside the bottom panel's Card.Header, which stays
-  // mounted (and therefore measured) regardless of eventLogCollapsed,
-  // since only Card.Content is conditionally omitted below, not the
-  // header -- so a fresh, accurate height is already on hand the instant
-  // Collapse is clicked, never a stale/zero reading from the first frame.
+  // itself doesn't forward a ref); eventLogToolbarRef wraps the bottom
+  // panel's whole Card.Header (its own padding included, not just the
+  // <Toolbar> inside it -- see that wrapper's own comment below for a
+  // real, second instance of this exact "measured the wrong box" bug,
+  // found live via a real screenshot after the first version of this fix
+  // had already shipped). Card.Header stays mounted (and therefore
+  // measured) regardless of eventLogCollapsed, since only Card.Content is
+  // conditionally omitted below, not the header -- so a fresh, accurate
+  // height is already on hand the instant Collapse is clicked, never a
+  // stale/zero reading from the first frame.
   const mainSplitterContainerRef = useRef<HTMLDivElement>(null);
   const eventLogToolbarRef = useRef<HTMLDivElement>(null);
   const { height: mainSplitterContainerHeight } = useAdaptiveSize(mainSplitterContainerRef);
@@ -3149,13 +3153,27 @@ export const App: React.FC = () => {
           {/* Bottom Panel: Live Event Bus Monitor */}
           <Splitter.Panel squareCorners="top">
             <Card layout="auto" squareCorners="top">
+              {/* Card.Header doesn't forward a ref of its own -- this
+                  wrapper exists solely so eventLogToolbarRef (above) can
+                  measure the header's real, unclipped height for the
+                  collapse fix. Wraps Card.Header ITSELF, not just the
+                  <Toolbar> inside it -- a real bug found live, from a
+                  real screenshot, in the first version of this fix: that
+                  inner placement measured only the Toolbar's own content
+                  box (28px), missing Card.Header's own `paddingMode`
+                  padding (8px top + 8px bottom) entirely. The collapsed
+                  panel landed at exactly that measured 28px, correct by
+                  its own math, but Card.Header's real rendered box needed
+                  45px (its padding included) -- the panel's own
+                  `overflow:hidden` clipped the difference, visible as the
+                  toolbar's bottom edge sitting flush against nothing
+                  instead of its own normal padding. Confirmed directly
+                  (not assumed) via a real Playwright measurement of
+                  Card.Header's own getComputedStyle before applying this
+                  fix. A plain block div, no styling of its own, so it
+                  doesn't change Card.Header's own layout at all. */}
+              <div ref={eventLogToolbarRef}>
               <Card.Header paddingMode="compact">
-                {/* Card.Header doesn't forward a ref of its own -- this
-                    wrapper exists solely so eventLogToolbarRef (above) can
-                    measure the toolbar's real, unclipped height for the
-                    collapse fix. Plain block div, no styling of its own, so
-                    it doesn't change Toolbar's own layout at all. */}
-                <div ref={eventLogToolbarRef}>
                 <Toolbar>
                   <Toolbar.Left>
                     <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
@@ -3226,8 +3244,8 @@ export const App: React.FC = () => {
                     </UIGroup>
                   </Toolbar.Right>
                 </Toolbar>
-                </div>
               </Card.Header>
+              </div>
               {/* Omitted entirely (not just hidden) while collapsed --
                   Splitter's own minSize floor still leaves a couple of
                   percent of viewport height for this panel (a hard floor
