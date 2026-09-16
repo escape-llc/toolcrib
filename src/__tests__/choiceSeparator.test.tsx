@@ -27,4 +27,23 @@ describe('choiceSeparator', () => {
     expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn');
     expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn');
   });
+
+  // Regression: the default gray divider is unreadable against a selected
+  // option's own solid primary-colored fill -- reported directly, from a
+  // real screenshot, for the exact "divider between an unselected and a
+  // selected option" case. A second, higher-specificity rule must switch
+  // to --ai-color-primary-text (the same WCAG-contrast-computed "readable
+  // on primary" variable Calendar/Stepper already use) whenever the
+  // divider's own owning item is selected OR its immediately preceding
+  // sibling is -- covering both directions, since which one "owns" the
+  // seam's ::before depends on which item isn't :first-child.
+  it('switches the divider to a primary-contrast color when it would otherwise sit on a selected fill', () => {
+    render(<Probe />);
+    const style = document.getElementById('toolcrib-choice-separator');
+    expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn[data-state="on"]:not(:first-child)::before');
+    expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn[data-state="on"]:not(:first-child)::before');
+    expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn[data-state="on"] + .ai-btn::before');
+    expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn[data-state="on"] + .ai-btn::before');
+    expect(style?.textContent).toContain('--ai-color-primary-text');
+  });
 });
