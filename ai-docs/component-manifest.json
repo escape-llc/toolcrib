@@ -57,6 +57,7 @@
       "--ai-chart-series-8",
       "--ai-chart-tooltip-shadow",
       "--ai-choice-separator",
+      "--ai-choice-separator-selected",
       "--ai-collapsible-content-padding",
       "--ai-collapsible-header-padding",
       "--ai-color-accent",

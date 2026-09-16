@@ -72,6 +72,35 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * of that role element (always nested one level deeper inside
  * `Toolbar.Left`/`.Center`/`.Right`), so the direct-child (`>`) combinator
  * here can't accidentally match it.
+ *
+ * A THIRD real gap, reported directly with a screenshot: the default gray
+ * (`--ai-text-secondary`) divider, tuned to read clearly against a plain
+ * surface, all but disappears against a SELECTED option's own solid
+ * `--ai-color-primary` fill -- confirmed exactly the "Spacious" case in
+ * that screenshot (a divider between an unselected and a selected option).
+ * A single static color can't satisfy both backdrops at once (the same
+ * reason the ORIGINAL "barely visible" bug happened was too little
+ * contrast against a plain surface -- swapping to a light color would just
+ * recreate that same failure against a plain surface instead of a colored
+ * one). Considered and rejected: hiding the divider entirely wherever a
+ * neighbor is selected, since the color change alone already marks that
+ * boundary -- but this rule's own `[role="toolbar"]` support means TWO
+ * ADJACENT items can both be selected at once (`type="multiple"`, e.g.
+ * Bold + Italic both active), where hiding it would put two
+ * identically-colored fills flush against each other with no boundary
+ * mark left at all -- the exact failure this rule exists to prevent.
+ *
+ * The actual fix: this rule's own `::before` is a pseudo-element of
+ * whichever option is NOT `:first-child` (the "owning" item, positioned at
+ * its own `left: 0`) -- combined with that item's `zIndex: selected ? 1 : 0`
+ * (`ToggleGroup.tsx`), a divider whose OWNING item is selected, or whose
+ * immediately PRECEDING sibling is selected (Radix's own `data-state="on"`
+ * attribute marks this directly), ends up painted over a primary-colored
+ * fill either way. Both cases get a second, higher-specificity rule
+ * switching the divider to `--ai-color-primary-text` -- the same
+ * WCAG-contrast-computed "readable on a primary fill" utility variable
+ * `Calendar`'s today-marker and `Stepper` already lean on for the identical
+ * guarantee, not an arbitrarily-picked light color.
  */
 const CHOICE_SEPARATOR_STYLE_ID = 'toolcrib-choice-separator';
 function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string): void {
@@ -88,6 +117,12 @@ function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string):
       width: 0.09375rem;
       background: var(--ai-choice-separator, var(--ai-text-secondary, #6b7280));
       pointer-events: none;
+    }
+    [role="radiogroup"] > .ai-btn[data-state="on"]:not(:first-child)::before,
+    [role="toolbar"] > .ai-btn[data-state="on"]:not(:first-child)::before,
+    [role="radiogroup"] > .ai-btn[data-state="on"] + .ai-btn::before,
+    [role="toolbar"] > .ai-btn[data-state="on"] + .ai-btn::before {
+      background: var(--ai-choice-separator-selected, var(--ai-color-primary-text, #ffffff));
     }
     `,
     targetDocument,
