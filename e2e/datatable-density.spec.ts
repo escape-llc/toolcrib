@@ -17,23 +17,29 @@ test.describe('DataTable density selector (issue #339)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    const group = page.getByRole('group', { name: 'Row density' });
-    await expect(group).toBeVisible();
+    // No wrapping role="group" anymore -- issue #439 (connecting the whole
+    // toolbar-right row into one merged UIGroup pill) removed it; each
+    // button's own aria-label now carries the "Row density" context that
+    // wrapper's aria-label used to (see DataTable.tsx's own comment right
+    // where these buttons render).
+    const compactBtn = page.getByRole('button', { name: 'Row density: Compact' });
+    await expect(compactBtn).toBeVisible();
 
     const firstRow = page.getByRole('grid').first().locator('tbody tr[aria-rowindex]').first();
     const normalHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
 
-    await group.getByRole('button', { name: 'Compact' }).click();
-    await expect(group.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'true');
+    await compactBtn.click();
+    await expect(compactBtn).toHaveAttribute('aria-pressed', 'true');
     const compactHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(compactHeight).toBeLessThan(normalHeight);
 
-    await group.getByRole('button', { name: 'Spacious' }).click();
-    await expect(group.getByRole('button', { name: 'Spacious' })).toHaveAttribute('aria-pressed', 'true');
+    const spaciousBtn = page.getByRole('button', { name: 'Row density: Spacious' });
+    await spaciousBtn.click();
+    await expect(spaciousBtn).toHaveAttribute('aria-pressed', 'true');
     const spaciousHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(spaciousHeight).toBeGreaterThan(normalHeight);
 
     // Back to normal, for any test that runs after this one against the same worker/page.
-    await group.getByRole('button', { name: 'Normal' }).click();
+    await page.getByRole('button', { name: 'Row density: Normal' }).click();
   });
 });
