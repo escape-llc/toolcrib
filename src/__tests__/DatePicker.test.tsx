@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CalendarDate } from '@internationalized/date';
 import { DatePicker } from '../components/DatePicker/DatePicker';
 import { Modal } from '../components/Overlay/Modal';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 
 function openCalendar() {
@@ -138,5 +139,31 @@ describe('DatePicker', () => {
   it('ignores aria-label once a visible label is set, so the two can never disagree', () => {
     render(<DatePicker name="meetingDate" label="Meeting date" aria-label="Something else" />);
     expect(document.querySelector('[aria-label="Something else"]')).not.toBeInTheDocument();
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
+  describe('UIGroup awareness', () => {
+    it('squares its field group corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <DatePicker name="meetingDate" aria-label="Meeting date" />
+          <button>Clear</button>
+        </UIGroup>
+      );
+      const group = document.querySelector('.react-aria-Group') as HTMLElement;
+      // First/leading member -- squares its own trailing (right) side only.
+      expect(group.style.borderTopRightRadius).toBe('0px');
+      expect(group.style.borderBottomRightRadius).toBe('0px');
+      expect(group.style.borderTopLeftRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+      render(<DatePicker name="meetingDate" aria-label="Meeting date" squareCorners="all" />);
+      const group = document.querySelector('.react-aria-Group') as HTMLElement;
+      expect(group.style.borderTopLeftRadius).toBe('0px');
+      expect(group.style.borderTopRightRadius).toBe('0px');
+    });
   });
 });

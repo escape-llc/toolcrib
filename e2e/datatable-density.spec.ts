@@ -17,29 +17,30 @@ test.describe('DataTable density selector (issue #339)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    // No wrapping role="group" anymore -- issue #439 (connecting the whole
-    // toolbar-right row into one merged UIGroup pill) removed it; each
-    // button's own aria-label now carries the "Row density" context that
-    // wrapper's aria-label used to (see DataTable.tsx's own comment right
-    // where these buttons render).
-    const compactBtn = page.getByRole('button', { name: 'Row density: Compact' });
+    // DataTable composes the shared <ToggleGroup> for this now, not 3
+    // hand-rolled Buttons -- the real WAI-ARIA "Radio Group" pattern
+    // (role="radiogroup" on the whole strip, role="radio" + aria-checked
+    // per option), not role="button" + aria-pressed. The group's own
+    // aria-label ("Row density") carries that context at the group level;
+    // each option's own accessible name is just its plain label.
+    const compactBtn = page.getByRole('radio', { name: 'Compact' });
     await expect(compactBtn).toBeVisible();
 
     const firstRow = page.getByRole('grid').first().locator('tbody tr[aria-rowindex]').first();
     const normalHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
 
     await compactBtn.click();
-    await expect(compactBtn).toHaveAttribute('aria-pressed', 'true');
+    await expect(compactBtn).toHaveAttribute('aria-checked', 'true');
     const compactHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(compactHeight).toBeLessThan(normalHeight);
 
-    const spaciousBtn = page.getByRole('button', { name: 'Row density: Spacious' });
+    const spaciousBtn = page.getByRole('radio', { name: 'Spacious' });
     await spaciousBtn.click();
-    await expect(spaciousBtn).toHaveAttribute('aria-pressed', 'true');
+    await expect(spaciousBtn).toHaveAttribute('aria-checked', 'true');
     const spaciousHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(spaciousHeight).toBeGreaterThan(normalHeight);
 
     // Back to normal, for any test that runs after this one against the same worker/page.
-    await page.getByRole('button', { name: 'Row density: Normal' }).click();
+    await page.getByRole('radio', { name: 'Normal' }).click();
   });
 });

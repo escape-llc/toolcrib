@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
+import { ToggleGroup } from '../ToggleGroup/ToggleGroup';
 import { Button } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Toolbar } from '../Toolbar/Toolbar';
@@ -1177,48 +1178,39 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     wraps unconditionally rather than needing its own
                     enabled-feature branching. */}
                 <UIGroup>
-                {densitySelector && (['compact', 'normal', 'spacious'] as const).map(d => (
-                  // No wrapping role="group" div around these three
-                  // anymore -- confirmed by a real, direct browser
-                  // measurement (not assumed) that one defeats correct
-                  // per-button corner-squaring no matter how it's styled:
-                  // UIGroup's own CSS selectors (`.toolcrib-group > *`,
-                  // `:first-child`/`:last-child`) are DOM-tree-based per
-                  // the Selectors spec, so they still only ever match the
-                  // WRAPPER (one level too shallow), not the three real
-                  // buttons inside it, regardless of that wrapper's own
-                  // `display` value -- a `display:contents` first attempt
-                  // here assumed otherwise and measured wrong: all three
-                  // buttons rendered with the SAME border-radius (the
-                  // wrapper's own single computed value), not each one's
-                  // own correct position-based treatment.
-                  // UIGroupContext has the identical shape of problem for
-                  // the same underlying reason: Children.toArray on the
-                  // outer UIGroup sees any wrapper as exactly one item, so
-                  // every descendant of it receives the same single
-                  // Context value regardless of its own true position.
-                  // These three now have to be genuine, individual direct
-                  // children of the outer UIGroup for each to get its own
-                  // correct corner treatment -- which is what actually
-                  // merges the whole row into one connected pill, the
-                  // point of this change in the first place. The "these
-                  // three are collectively Row density" context that the
-                  // wrapper's aria-label used to carry moves into each
-                  // button's own aria-label instead (below) -- a screen
-                  // reader still gets the same information, just per
-                  // button rather than via a surrounding role="group".
-                  <Button
-                    key={d}
-                    type="button"
+                {densitySelector && (
+                  // Composes the shared <ToggleGroup> rather than hand-
+                  // rolling 3 individual Buttons (the previous version of
+                  // this code) -- DataTable should compose other toolkit
+                  // components, not reimplement a second "connected
+                  // single-select strip" that only approximately matches
+                  // the real one. This also gets the interior choice-
+                  // separator treatment (between Compact|Normal|Spacious)
+                  // for free from ToggleGroup's own implementation,
+                  // instead of DataTable needing its own copy of that fix.
+                  //
+                  // No wrapping div/role="group" around it -- ToggleGroup
+                  // itself now consults the ambient UIGroupContext (see
+                  // its own component-level comment) to square only its
+                  // OWN outermost edges against this outer UIGroup, the
+                  // same way Button/Input already do, while keeping its
+                  // own internal per-option corner logic independent. A
+                  // real DOM wrapper here would still only be able to
+                  // give ITSELF (not the real options inside it) the
+                  // outer squaring -- confirmed the hard way for the
+                  // three individual buttons this replaces, before
+                  // ToggleGroup grew Context support.
+                  <ToggleGroup
                     size="sm"
-                    variant={liveDensity === d ? 'secondary' : 'outline'}
-                    aria-pressed={liveDensity === d}
-                    aria-label={`${strings.densityLabel}: ${strings.densityOptionLabel(d)}`}
-                    onClick={() => handleDensityChange(d)}
-                  >
-                    {strings.densityOptionLabel(d)}
-                  </Button>
-                ))}
+                    aria-label={strings.densityLabel}
+                    options={(['compact', 'normal', 'spacious'] as const).map(d => ({
+                      value: d,
+                      label: strings.densityOptionLabel(d),
+                    }))}
+                    value={liveDensity}
+                    onChange={next => handleDensityChange(next as TableDensity)}
+                  />
+                )}
                 {csvExport && (
                   <Button type="button" size="sm" variant="outline" onClick={handleCsvExport}>
                     {strings.exportCsvLabel}

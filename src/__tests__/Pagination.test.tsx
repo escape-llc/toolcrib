@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Pagination } from '../components/Pagination/Pagination';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { LocaleProvider } from '../components/Locale/LocaleContext';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
@@ -84,5 +85,71 @@ describe('Pagination', () => {
     expect(screen.getByLabelText('Volgende')).toBeInTheDocument();
     expect(screen.queryByLabelText('Next page')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Pagina 1')).toBeInTheDocument();
+  });
+
+  // Pagination renders its own internal <UIGroup> (Prev/page-numbers/Next),
+  // which shadows an ambient UIGroupContext from a consumer's own outer
+  // <UIGroup> -- see Pagination.tsx's own comment on why Prev/Next
+  // explicitly re-read and forward the ambient value. These regression
+  // tests prove that composition actually squares the right corners, not
+  // just that the plumbing compiles -- same jsdom-observable-inline-style
+  // convention as UIGroup.test.tsx's own "automatic corner-squaring via
+  // context" suite (resolveSquareCorners emits real inline longhand corner
+  // styles, so no real browser/CSS engine is needed to verify it here).
+  describe('composes correctly inside an outer UIGroup', () => {
+    it('squares Prev fully (both sides) when Pagination is the LAST member of an outer group', () => {
+      render(
+        <UIGroup>
+          <button>Page size</button>
+          <Pagination totalItems={50} pageSize={10} />
+        </UIGroup>
+      );
+
+      // Pagination is the outer group's trailing/last member, so its own
+      // ambient value is 'left' (square only the side touching the
+      // sibling before it). Prev is Pagination's own leading element, so
+      // it picks up BOTH its permanent local need (square its right side
+      // against the page-number buttons) AND the ambient one (square its
+      // left side against "Page size") -- all four corners squared.
+      const prev = screen.getByLabelText('Previous page');
+      expect(prev.style.borderTopLeftRadius).toBe('0px');
+      expect(prev.style.borderBottomLeftRadius).toBe('0px');
+      expect(prev.style.borderTopRightRadius).toBe('0px');
+      expect(prev.style.borderBottomRightRadius).toBe('0px');
+
+      // Next is Pagination's own trailing element and sits at the outer
+      // group's real trailing edge -- unaffected by the ambient value,
+      // its right side stays rounded exactly as it would standalone.
+      const next = screen.getByLabelText('Next page');
+      expect(next.style.borderTopLeftRadius).toBe('0px');
+      expect(next.style.borderTopRightRadius).not.toBe('0px');
+      expect(next.style.borderBottomRightRadius).not.toBe('0px');
+    });
+
+    it('squares Next fully (both sides) when Pagination is the FIRST member of an outer group', () => {
+      render(
+        <UIGroup>
+          <Pagination totalItems={50} pageSize={10} />
+          <button>Go</button>
+        </UIGroup>
+      );
+
+      // Pagination is now the outer group's leading/first member, so its
+      // ambient value is 'right'. Prev sits at the outer group's real
+      // leading edge -- unaffected, its left side stays rounded.
+      const prev = screen.getByLabelText('Previous page');
+      expect(prev.style.borderTopRightRadius).toBe('0px');
+      expect(prev.style.borderTopLeftRadius).not.toBe('0px');
+      expect(prev.style.borderBottomLeftRadius).not.toBe('0px');
+
+      // Next picks up both its permanent local need (square its left side
+      // against the page-number buttons) and the ambient one (square its
+      // right side against "Go") -- all four corners squared.
+      const next = screen.getByLabelText('Next page');
+      expect(next.style.borderTopLeftRadius).toBe('0px');
+      expect(next.style.borderBottomLeftRadius).toBe('0px');
+      expect(next.style.borderTopRightRadius).toBe('0px');
+      expect(next.style.borderBottomRightRadius).toBe('0px');
+    });
   });
 });

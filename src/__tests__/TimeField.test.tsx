@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Time } from '@internationalized/date';
 import { TimeField } from '../components/DatePicker/TimeField';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 
 describe('TimeField', () => {
@@ -103,5 +104,31 @@ describe('TimeField', () => {
   it('ignores aria-label once a visible label is set, so the two can never disagree', () => {
     render(<TimeField name="startTime" label="Start time" aria-label="Something else" />);
     expect(document.querySelector('[aria-label="Something else"]')).not.toBeInTheDocument();
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
+  describe('UIGroup awareness', () => {
+    it('squares its segmented-input corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <button>Clear</button>
+          <TimeField name="startTime" aria-label="Start time" />
+        </UIGroup>
+      );
+      const input = document.querySelector('.react-aria-DateInput') as HTMLElement;
+      // Last/trailing member -- squares its own leading (left) side only.
+      expect(input.style.borderTopLeftRadius).toBe('0px');
+      expect(input.style.borderBottomLeftRadius).toBe('0px');
+      expect(input.style.borderTopRightRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+      render(<TimeField name="startTime" aria-label="Start time" squareCorners="all" />);
+      const input = document.querySelector('.react-aria-DateInput') as HTMLElement;
+      expect(input.style.borderTopLeftRadius).toBe('0px');
+      expect(input.style.borderTopRightRadius).toBe('0px');
+    });
   });
 });

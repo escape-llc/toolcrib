@@ -56,6 +56,7 @@
       "--ai-chart-series-7",
       "--ai-chart-series-8",
       "--ai-chart-tooltip-shadow",
+      "--ai-choice-separator",
       "--ai-collapsible-content-padding",
       "--ai-collapsible-header-padding",
       "--ai-color-accent",
@@ -1406,6 +1407,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
       "category": "Form Controls",
@@ -1770,6 +1775,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
       "category": "Form Controls",
@@ -1933,6 +1942,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control — maps onto the same `density` scale as `overrides.density` (`sm`→`'compact'`, `md`→`'normal'`, `lg`→`'spacious'`) and scales the dropzone's own label text."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
       "category": "Form Controls",
@@ -2747,6 +2760,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
       "category": "Form Controls",
@@ -3134,6 +3151,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
       "category": "Form Controls",
@@ -3221,6 +3242,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. when this ToggleGroup is a\n`<UIGroup>` member and an ambient value from context isn't correct\nfor some other reason. Takes precedence over the value `<UIGroup>`\nitself supplies automatically — see `<Button>`'s own identical prop\nfor the general pattern."
         }
       },
       "category": "Form Controls",

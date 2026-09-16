@@ -2,6 +2,7 @@
 export * from './theme/StyleDomainContext';
 export * from './theme/animation';
 export * from './theme/animationKeyframes';
+export * from './theme/choiceSeparator';
 export * from './theme/colorVariant';
 export * from './theme/connectedPopoverStyles';
 export * from './theme/controlSize';

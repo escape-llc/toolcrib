@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act, renderHook } from '@testing-library/react';
+import { render, screen, fireEvent, act, within, renderHook } from '@testing-library/react';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { compareValues } from '../components/DataTable/useTableSort';
 import { useTableQuickFilter } from '../components/DataTable/useTableQuickFilter';
@@ -1674,33 +1674,36 @@ describe('DataTable Virtualized Component', () => {
       expect(row).toHaveStyle({ height: '100px' });
     });
 
-    it('renders no density toggle buttons by default', () => {
+    it('renders no density toggle group by default', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
-      expect(screen.queryByRole('button', { name: 'Row density: Compact' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('radiogroup', { name: 'Row density' })).not.toBeInTheDocument();
     });
 
-    it('renders labeled compact/normal/spacious toggle buttons when densitySelector is true', () => {
-      // No wrapping role="group" anymore -- see this feature's own comment
-      // in DataTable.tsx (right where these buttons are rendered) for why:
-      // these three are direct children of the same outer <UIGroup> as
-      // Export CSV/Columns/renderToolbarExtra now, so they visually merge
-      // into one connected pill across the whole toolbar-right row.
-      // aria-label carries the "Row density" context each button's own
-      // accessible name now, in place of the removed wrapper's aria-label.
+    it('renders a labeled compact/normal/spacious radio group when densitySelector is true', () => {
+      // Composes <ToggleGroup> (see DataTable.tsx's own comment right
+      // where it's rendered) rather than 3 hand-rolled Buttons -- Radix's
+      // own single-select ToggleGroup renders the real WAI-ARIA "Radio
+      // Group" pattern (role="radiogroup" on the root, role="radio" +
+      // aria-checked on each option), not role="button" +
+      // aria-pressed. The group's own aria-label ("Row density") now
+      // carries that context at the group level, the same way a native
+      // <fieldset><legend> does -- each option's own accessible name is
+      // just its plain label, no per-item prefix needed anymore.
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
-      expect(screen.getByRole('button', { name: 'Row density: Compact' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Row density: Normal' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Row density: Spacious' })).toBeInTheDocument();
+      const group = screen.getByRole('radiogroup', { name: 'Row density' });
+      expect(within(group).getByRole('radio', { name: 'Compact' })).toBeInTheDocument();
+      expect(within(group).getByRole('radio', { name: 'Normal' })).toBeInTheDocument();
+      expect(within(group).getByRole('radio', { name: 'Spacious' })).toBeInTheDocument();
     });
 
     it('clicking a density option updates the real row height live, uncontrolled', () => {
       render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} rowKey={r => r.id} densitySelector />);
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Row density: Spacious' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Spacious' }));
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
-      expect(screen.getByRole('button', { name: 'Row density: Spacious' })).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: 'Row density: Normal' })).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('radio', { name: 'Spacious' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Normal' })).toHaveAttribute('aria-checked', 'false');
     });
 
     it('supports a controlled density, calling onDensityChange instead of managing its own state', () => {
@@ -1717,7 +1720,7 @@ describe('DataTable Virtualized Component', () => {
           onDensityChange={onDensityChange}
         />
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Row density: Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(onDensityChange).toHaveBeenLastCalledWith('compact');
       // Still normal -- the parent hasn't re-rendered with the new value yet.
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
@@ -1751,7 +1754,7 @@ describe('DataTable Virtualized Component', () => {
       );
       // Seeded from overrides.density since no density/defaultDensity was given.
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
-      fireEvent.click(screen.getByRole('button', { name: 'Row density: Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '31px' });
     });
 
@@ -1759,7 +1762,7 @@ describe('DataTable Virtualized Component', () => {
       const handler = vi.fn();
       const unsub = aiBus.on('datatable:density_changed', handler);
       render(<DataTable id="density-table" data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
-      fireEvent.click(screen.getByRole('button', { name: 'Row density: Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(handler).toHaveBeenLastCalledWith({ id: 'density-table', density: 'compact' });
       unsub();
     });

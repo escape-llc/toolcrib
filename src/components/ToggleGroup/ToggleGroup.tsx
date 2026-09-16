@@ -7,6 +7,9 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { ToggleThemeSlice, type ToggleSliceState } from './ToggleSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
+import { useInjectChoiceSeparatorStyles } from '../../theme/choiceSeparator';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
 export interface ToggleProps {
@@ -131,6 +134,22 @@ export interface ToggleGroupProps {
   overrides?: Partial<ToggleSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /**
+   * Explicit corner-squaring override, e.g. when this ToggleGroup is a
+   * `<UIGroup>` member and an ambient value from context isn't correct
+   * for some other reason. Takes precedence over the value `<UIGroup>`
+   * itself supplies automatically — see `<Button>`'s own identical prop
+   * for the general pattern.
+   */
+  squareCorners?: SquareCornerOption;
+  /**
+   * Accessible name for the whole group (Radix's own `role="group"` on
+   * the root) — e.g. "Row density" for a set of density options. Distinct
+   * from each option's own accessible name (its `label`), the same way a
+   * native `<fieldset><legend>` names the group without repeating into
+   * every `<input>` inside it.
+   */
+  'aria-label'?: string;
 }
 
 /**
@@ -147,6 +166,8 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   disabled = false,
   overrides,
   size = 'md',
+  squareCorners,
+  'aria-label': ariaLabel,
 }) => {
   const [internalValue, setInternalValue] = useState<string | string[]>(
     defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : ''
@@ -154,6 +175,23 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   const currentValue = externalValue !== undefined ? externalValue : internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
+  useInjectChoiceSeparatorStyles();
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- ToggleGroup is a COMPOUND control (its own
+  // per-option first/middle/last corner logic below, independent of any
+  // ancestor), so unlike Button/Input (which apply the group's own
+  // squareCorners value to their one single element directly), only the
+  // group's OUTERMOST edges -- this ToggleGroup's own first option's
+  // leading corners, and its own last option's trailing corners -- should
+  // ever be affected by an ANCESTOR <UIGroup>. Composed correctly below by
+  // spreading resolveSquareCorners(...) onto every option's own style
+  // AFTER its already-computed per-option radius: whichever corner the
+  // ancestor group says should be squared was ALREADY 0 for every option
+  // except the one genuine internal edge that needs to be forced flat, so
+  // the same single spread is a no-op everywhere except that one case,
+  // for every possible ancestor position (first/middle/last/standalone).
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const outerCornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
   const handleValueChange = (next: string | string[]) => {
     if (externalValue === undefined) setInternalValue(next);
@@ -170,6 +208,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
       value={currentValue as any}
       onValueChange={handleValueChange as any}
       disabled={disabled}
+      aria-label={ariaLabel}
       style={{ display: 'inline-flex', alignItems: 'stretch' }}
     >
       {options.map((opt, index) => {
@@ -190,6 +229,20 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               justifyContent: 'center',
               gap: 'var(--ai-toggle-gap, 0.375rem)',
               padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
+              // Plain shorthand -- the interior choice divider (a short,
+              // inset vertical rule marking the seam between adjacent
+              // options, distinct from the strip's own true outer edge;
+              // reported directly, from a real screenshot, that the
+              // absence of any such marker read as ambiguous) now lives
+              // entirely in a separate ::before rule
+              // (useInjectChoiceSeparatorStyles, theme/choiceSeparator.ts)
+              // rather than a per-side border-color override, so every
+              // side of THIS element's own border uses the identical,
+              // ordinary value again -- no shorthand/longhand mixing to
+              // worry about (see AGENTS.md's own borderRadius-shorthand
+              // entry for why that combination is a real React warning,
+              // not just a style nit, confirmed directly here too before
+              // this simplification).
               border: `0.0625rem solid ${selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
               borderTopLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
@@ -212,6 +265,11 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               outline: 'none',
               ['--ai-btn-bg' as string]: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
               ...toggleGroupVars,
+              // Last -- wins over this option's own first/middle/last
+              // radius above when an ancestor <UIGroup> says this whole
+              // strip isn't the true outer edge at that position. See
+              // this component's own comment on uiGroupSquareCorners.
+              ...outerCornerOverrides,
             }}
           >
             {opt.icon}

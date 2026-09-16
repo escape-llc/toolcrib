@@ -516,15 +516,22 @@ export interface CheckboxProps {
   onChange?: (e: { target: { checked: boolean } }) => void;
   /** Per-instance size override. Shared with `<Switch>`. */
   overrides?: Partial<ToggleControlSliceState>;
+  /**
+   * Explicit corner-squaring override, e.g. for a `<UIGroup>` member.
+   * See `<Button>`'s own identical prop for the general pattern.
+   */
+  squareCorners?: SquareCornerOption;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides }) => {
+export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -555,7 +562,15 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           all: 'unset',
           width: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
           height: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
-          borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+          // Explicit per-corner longhands, always all four -- lets
+          // cornerOverrides below (a `<UIGroup>` member) win on just the
+          // corners it names. See Button's own identical comment on why
+          // this can't be a plain `borderRadius` shorthand mixed with a
+          // sometimes-present longhand override.
+          borderTopLeftRadius: 'var(--ai-radius-sm, 0.25rem)',
+          borderTopRightRadius: 'var(--ai-radius-sm, 0.25rem)',
+          borderBottomLeftRadius: 'var(--ai-radius-sm, 0.25rem)',
+          borderBottomRightRadius: 'var(--ai-radius-sm, 0.25rem)',
           border: `0.0625rem solid ${checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
           display: 'flex',
@@ -569,6 +584,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           // above) would be silently discarded outright, not just
           // redundant (issue #411).
           ...checkboxVars,
+          ...cornerOverrides,
         }}
       >
         <CheckboxPrimitive.Indicator style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -592,15 +608,22 @@ export interface SwitchProps {
   onChange?: (checked: boolean) => void;
   /** Per-instance size override. Shared with `<Checkbox>`. */
   overrides?: Partial<ToggleControlSliceState>;
+  /**
+   * Explicit corner-squaring override, e.g. for a `<UIGroup>` member.
+   * See `<Button>`'s own identical prop for the general pattern.
+   */
+  squareCorners?: SquareCornerOption;
 }
 
-export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides }) => {
+export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -635,7 +658,15 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           all: 'unset',
           width: 'var(--ai-togglecontrol-switch-width, 2.375rem)',
           height: 'var(--ai-togglecontrol-switch-height, 1.25rem)',
-          borderRadius: 'var(--ai-radius-lg, 0.625rem)',
+          // Explicit per-corner longhands, always all four -- see
+          // Checkbox's own identical comment just above in this file for
+          // why (a `<UIGroup>` member's cornerOverrides needs to win on
+          // just the corners it names, never mixed with a plain
+          // `borderRadius` shorthand).
+          borderTopLeftRadius: 'var(--ai-radius-lg, 0.625rem)',
+          borderTopRightRadius: 'var(--ai-radius-lg, 0.625rem)',
+          borderBottomLeftRadius: 'var(--ai-radius-lg, 0.625rem)',
+          borderBottomRightRadius: 'var(--ai-radius-lg, 0.625rem)',
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
           position: 'relative',
           // No inline transition -- .ai-focus-ring's own shared rule
@@ -647,6 +678,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           alignItems: 'center',
           boxSizing: 'border-box',
           ...switchVars,
+          ...cornerOverrides,
         }}
       >
         <SwitchPrimitive.Thumb

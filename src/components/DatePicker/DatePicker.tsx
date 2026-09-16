@@ -18,6 +18,8 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { Popup } from '../Overlay/Popup';
 import { Z_INDEX } from '../../theme/zIndex';
 import { Calendar } from './Calendar';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type DatePickerSliceState } from './DatePickerSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
@@ -70,6 +72,8 @@ export interface DatePickerProps {
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
   'aria-labelledby'?: string;
+  /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
+  squareCorners?: SquareCornerOption;
 }
 
 /**
@@ -78,8 +82,10 @@ export interface DatePickerProps {
  * (only available *inside* `<DatePicker>`, not from the props this
  * component's caller has direct access to).
  */
-const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceState>; size: ControlSize }> = ({ overrides, size }) => {
+const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceState>; size: ControlSize; squareCorners?: SquareCornerOption }> = ({ overrides, size, squareCorners }) => {
   const state = useContext(DatePickerStateContext)!;
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
   return (
     <Group
@@ -89,9 +95,13 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
         gap: '0.5rem',
         padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         border: '0.0625rem solid var(--ai-border, #d1d5db)',
-        borderRadius: 'var(--ai-radius-md, 0.375rem)',
+        borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+        borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+        borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+        borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
         background: 'var(--ai-bg-surface, #ffffff)',
         width: 'fit-content',
+        ...cornerOverrides,
       }}
     >
       <DateInput style={{ display: 'flex', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
@@ -174,6 +184,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  squareCorners,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -217,7 +228,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             {label}
           </Label>
         )}
-        <DatePickerFieldAndCalendar overrides={overrides} size={size} />
+        <DatePickerFieldAndCalendar overrides={overrides} size={size} squareCorners={squareCorners} />
       </AriaDatePicker>
     </I18nProvider>
   );

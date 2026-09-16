@@ -30,6 +30,8 @@ import { computeCornerSquaring, useActualPopoverSide } from '../../theme/connect
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useNonce } from '../../theme/nonceContext';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
@@ -142,6 +144,8 @@ export interface ComboboxProps {
   overrides?: Partial<ComboboxSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
+  squareCorners?: SquareCornerOption;
 }
 
 /**
@@ -165,6 +169,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   noResultsMessage = 'No results',
   overrides,
   size = 'md',
+  squareCorners,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -173,6 +178,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const registerField = formContext?.registerField;
   const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   const strings = useLocaleStrings().combobox;
   const targetDocument = useTargetDocument();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -505,6 +512,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // discarded outright, not just redundant (issue #411).
             ...squaring.triggerCornerStyle,
             ...comboboxVars,
+            ...cornerOverrides,
           }}
         >
           {multiple &&

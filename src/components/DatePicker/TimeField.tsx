@@ -14,6 +14,8 @@ import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 
 /** Props for the `<TimeField>` segmented time input. */
 export interface TimeFieldProps {
@@ -60,6 +62,8 @@ export interface TimeFieldProps {
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
   'aria-labelledby'?: string;
+  /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
+  squareCorners?: SquareCornerOption;
 }
 
 /**
@@ -81,10 +85,13 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  squareCorners,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
 
   const formValue: Time | null | undefined =
@@ -138,11 +145,15 @@ export const TimeField: React.FC<TimeFieldProps> = ({
             display: 'flex',
             padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
             border: `0.0625rem solid var(--ai-border, #d1d5db)`,
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
             background: isDisabled ? 'var(--ai-bg-container, #f3f4f6)' : 'var(--ai-bg-surface, #ffffff)',
             fontSize: CONTROL_FONT_SIZE_VAR[size],
             color: 'var(--ai-text-primary, #111827)',
             width: 'fit-content',
+            ...cornerOverrides,
           }}
         >
           {segment => (

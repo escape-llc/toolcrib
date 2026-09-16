@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Select } from '../components/Form/Select';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { axe } from './testUtils/axe';
 
 const options = [
@@ -141,5 +142,31 @@ describe('Select Component', () => {
         expect(document.getElementById(describedBy!)).toHaveTextContent('Please select a role');
       });
     });
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite:
+  // resolveSquareCorners emits real inline longhand corner styles, so no
+  // real browser/CSS engine is needed to verify this here.
+  it('squares its trigger corners as an ambient UIGroup member', () => {
+    render(
+      <UIGroup>
+        <Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" />
+        <button>Go</button>
+      </UIGroup>
+    );
+    const trigger = screen.getByRole('combobox');
+    // First/leading member -- squares its own trailing (right) side only.
+    expect(trigger.style.borderTopRightRadius).toBe('0px');
+    expect(trigger.style.borderBottomRightRadius).toBe('0px');
+    expect(trigger.style.borderTopLeftRadius).not.toBe('0px');
+  });
+
+  it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+    render(<Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" squareCorners="all" />);
+    const trigger = screen.getByRole('combobox');
+    expect(trigger.style.borderTopLeftRadius).toBe('0px');
+    expect(trigger.style.borderTopRightRadius).toBe('0px');
   });
 });
