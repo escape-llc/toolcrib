@@ -570,6 +570,30 @@ export interface DataTableProps<T = any> {
 }
 
 /**
+ * Shared style for the pagination footer's First/Prev/Next/Last buttons --
+ * pulled out once four near-identical copies (First/Last, issue #485,
+ * joined the pre-existing Prev/Next) made "three similar lines is better
+ * than a premature abstraction" (this repo's own stated default) tip the
+ * other way: four independently-hand-maintained copies is a real risk of
+ * one drifting from the others, not just a style preference. Pure and
+ * module-level (not a component-scoped closure) since it depends only on
+ * its own `disabled` argument, not on anything from `<DataTable>`'s own
+ * render.
+ */
+function paginationNavButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
+    border: '0.0625rem solid var(--ai-border, #d1d5db)',
+    background: 'var(--ai-bg-surface, #ffffff)',
+    color: 'var(--ai-text-primary, #111827)',
+    fontSize: '0.75rem',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
+  };
+}
+
+/**
  * @manifest Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation
  * @manifestCategory Data Display
  * @manifestAntiPatternAvoid Fake per-row emphasis via `column.render` (styling each cell individually to approximate a highlighted row), or hand-roll row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic)
@@ -2350,21 +2374,28 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               ))}
             </select>
 
+            {/* First/Last (issue #485) join the same UIGroup as Prev/Next --
+                plain elements, not toolcrib <Button>s, so they pick up
+                UIGroup's own CSS-based corner-squaring automatically
+                (scoped to direct children via :first-child/:last-child)
+                the same way the page-size <select> and Prev/Next already
+                do, with no manual corner-radius styling needed here. */}
+            <button
+              onClick={() => paginationGoToPage(1)}
+              disabled={validCurrentPage === 1}
+              aria-label={strings.firstPage}
+              className="ai-btn"
+              style={paginationNavButtonStyle(validCurrentPage === 1)}
+            >
+              ⏮
+            </button>
+
             <button
               onClick={() => paginationGoToPage(validCurrentPage - 1)}
               disabled={validCurrentPage === 1}
               aria-label={strings.previousPage}
               className="ai-btn"
-              style={{
-                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
-                border: '0.0625rem solid var(--ai-border, #d1d5db)',
-                background: 'var(--ai-bg-surface, #ffffff)',
-                color: 'var(--ai-text-primary, #111827)',
-                fontSize: '0.75rem',
-                cursor: validCurrentPage === 1 ? 'not-allowed' : 'pointer',
-                opacity: validCurrentPage === 1 ? 0.5 : 1,
-                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
-              }}
+              style={paginationNavButtonStyle(validCurrentPage === 1)}
             >
               ◀
             </button>
@@ -2387,18 +2418,19 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               disabled={validCurrentPage === totalPages}
               aria-label={strings.nextPage}
               className="ai-btn"
-              style={{
-                padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
-                border: '0.0625rem solid var(--ai-border, #d1d5db)',
-                background: 'var(--ai-bg-surface, #ffffff)',
-                color: 'var(--ai-text-primary, #111827)',
-                fontSize: '0.75rem',
-                cursor: validCurrentPage === totalPages ? 'not-allowed' : 'pointer',
-                opacity: validCurrentPage === totalPages ? 0.5 : 1,
-                ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
-              }}
+              style={paginationNavButtonStyle(validCurrentPage === totalPages)}
             >
               ▶
+            </button>
+
+            <button
+              onClick={() => paginationGoToPage(totalPages)}
+              disabled={validCurrentPage === totalPages}
+              aria-label={strings.lastPage}
+              className="ai-btn"
+              style={paginationNavButtonStyle(validCurrentPage === totalPages)}
+            >
+              ⏭
             </button>
           </UIGroup>
         </div>

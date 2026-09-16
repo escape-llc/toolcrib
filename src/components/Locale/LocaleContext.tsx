@@ -29,8 +29,10 @@ export interface ToolcribLocaleStrings {
     perPageOption: (size: number) => string;
     /** Label for the page-size dropdown's live-computed-page-size option (issue #419). */
     perPageAutoOption: string;
+    firstPage: string;
     previousPage: string;
     nextPage: string;
+    lastPage: string;
     /** Placeholder and accessible name for `<DataTable quickFilter>`'s search input. */
     quickFilterPlaceholder: string;
     /** Accessible group label for `<DataTable densitySelector>`'s compact/normal/spacious toggle-button-group. */
@@ -108,8 +110,10 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     rowsPerPage: 'Rows per page',
     perPageOption: (size) => `${size} per page`,
     perPageAutoOption: 'Auto',
+    firstPage: 'First page',
     previousPage: 'Previous page',
     nextPage: 'Next page',
+    lastPage: 'Last page',
     quickFilterPlaceholder: 'Search…',
     densityLabel: 'Row density',
     densityOptionLabel: (density) => density.charAt(0).toUpperCase() + density.slice(1),
