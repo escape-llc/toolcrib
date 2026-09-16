@@ -111,11 +111,27 @@ jobs:
 
       - name: Run Gemini audit (read_file only -- no shell, no write, no other tool)
         id: gemini_audit
-        # Best-effort by design, same as gemini-review.yml -- an API
-        # hiccup here should never leave the workflow itself red; it just
-        # means no issue gets filed this week, same as a "nothing to flag"
-        # outcome.
-        continue-on-error: true
+        # Updated 2026-09-16: deliberately fails the job on a genuine
+        # tool/API-level error (quota, auth, infra, timeout), same ruling
+        # and reasoning as gemini-review.yml's identical step -- a
+        # human reviewer flagged that both jobs used to swallow this
+        # class of error via `continue-on-error: true`, silently. This
+        # job isn't merge-gating the way `review` is, but it has its own
+        # version of the same problem: no persisted rotation state, no
+        # separate check that a given week's segment was actually looked
+        # at, so a silently-swallowed error here doesn't just skip an
+        # issue -- it burns an entire 13-week rotation slot with zero
+        # trace, indistinguishable from a genuinely clean week. A failed
+        # *scheduled* workflow run is the one thing that reliably reaches
+        # a maintainer unprompted (GitHub's own default failure
+        # notification on scheduled runs); a quietly-green "no issue
+        # filed" run doesn't. Still never fails on Gemini's own free-text
+        # judgment -- a real "NO_FINDINGS" week is a clean, successful
+        # run and stays one; see the trailing steps below for how that's
+        # kept distinct from a genuine failure. Nothing blocks on this
+        # job, so a red run here costs nothing beyond re-running (plain
+        # re-run, or `workflow_dispatch` with an explicit `segment`
+        # override) once the underlying issue clears.
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -169,7 +185,27 @@ jobs:
             --label "reviewed" \
             --body-file "${RUNNER_TEMP}/audit-issue-body.md"
 
-      - name: Note a skipped/failed/empty audit without failing the job
-        if: steps.gemini_audit.outcome != 'success' || startsWith(steps.gemini_audit.outputs.summary, 'NO_FINDINGS')
-        run: |
-          echo "No issue filed this run for segment '${{ steps.segment.outputs.id }}' (Gemini outcome=${{ steps.gemini_audit.outcome }}). Not failing the job; this audit is best-effort by design, same as gemini-review.yml."
+      # A genuine "nothing worth flagging" week is a clean, successful run
+      # and stays one -- distinct from the genuine-failure case below,
+      # which now fails the job (see the Gemini step's own 2026-09-16
+      # comment). Splitting these two into separate steps (rather than the
+      # single either/or step this used to be) is what keeps that
+      # distinction real instead of collapsing them back into the same
+      # "no issue filed" log line the original gap was about in the first
+      # place.
+      - name: Note a clean audit (no issue filed) without failing the job
+        if: steps.gemini_audit.outcome == 'success' && startsWith(steps.gemini_audit.outputs.summary, 'NO_FINDINGS')
+        run: echo "No issue filed this run for segment '${{ steps.segment.outputs.id }}' -- the audit ran successfully and found nothing worth flagging. Not a failure."
+
+      # Runs even though the job already failed at the Gemini step above
+      # (no `continue-on-error` there) -- an explicit `if:` on a step is
+      # evaluated on its own terms regardless of a prior failure, unlike
+      # the implicit default (which only runs on success). Can't change
+      # the job's own conclusion (already 'failure') -- exists purely so
+      # the reason is legible at a glance (a GitHub-native ::error::
+      # annotation) instead of requiring a click into the raw Gemini CLI
+      # step's own log output to find out why this week's segment has no
+      # issue and the run is red.
+      - name: Surface why no issue was filed, if the audit step failed
+        if: steps.gemini_audit.outcome != 'success'
+        run: echo "::error::Gemini audit step failed (outcome=${{ steps.gemini_audit.outcome }}) for segment '${{ steps.segment.outputs.id }}' -- no issue filed this week, and this job is failing accordingly so the failure is actually visible instead of silently burning this segment's rotation slot. See the 'Run Gemini audit' step's own log above for the actual API/tool error. Re-run via workflow_dispatch (optionally pinning the segment input to '${{ steps.segment.outputs.id }}') once the underlying issue clears."
