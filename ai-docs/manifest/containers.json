@@ -233,6 +233,8 @@
       },
       "constraints": "Requires exactly 2 children",
       "category": "Containers",
+      "antiPatternAvoid": "When computing a pixel-exact `split` via `splitter:split_changed` (e.g. \"collapse this panel to exactly its own header's height\"), measuring an inner child's content box instead of the actual outermost element whose full rendered box (padding/border included) needs to fit",
+      "antiPatternInstead": "Measure the real outer element (e.g. a `Card.Header`, not the `<Toolbar>` inside it) with `getBoundingClientRect()`, and add half of `SPLITTER_HANDLE_SIZE_REM` (in px) before converting the target height to a percentage — both omissions clip the panel identically regardless of viewport size, confirmed directly via real Playwright measurement, not assumed",
       "description": "Resizable two-panel layout with automatic corner-squaring domain"
     }
   ],

@@ -62,6 +62,31 @@ const CORNER_SQUARING_STYLE_ID = 'toolcrib-corner-squaring';
 // percentage, or their own real result will fall short by exactly this
 // amount -- confirmed directly (not assumed) via the Playwright
 // measurement that found this whole bug in the first place.
+//
+// A SECOND, independent bug was found live on that same demo button after
+// this fix had already shipped (reported directly, from a real screenshot,
+// at a real deployed URL -- not local dev) -- worth recording here since
+// it's the other half of the same "collapse to fit a real element" recipe,
+// and just as easy to get wrong the same way this file's own bug was.
+// demo/App.tsx measured the *inner* <Toolbar>'s own content box (28px) as
+// its pixel target, not the *outer* <Card.Header> that actually wraps it
+// -- Card.Header's own `paddingMode` padding (8px top + 8px bottom) was
+// never included, so the real box that needed to fit (45px) was 17px
+// taller than what got measured. The panel landed exactly on its own
+// (wrong) 28px target, correctly by its own math, and still clipped --
+// visually indistinguishable from this file's own handle-overlap bug
+// (both show as "the toolbar row gets cut off, consistently, regardless
+// of window size"), but a different root cause needing a different fix:
+// there, the SOURCE (Splitter) wasn't reserving space it should have;
+// here, the CONSUMER was measuring the wrong DOM node -- an inner child
+// instead of the actual bordered/padded box whose real rendered size is
+// what needs to fit. The general lesson for anyone doing this kind of
+// pixel-exact "collapse to fit X" computation: measure the outermost
+// element whose full rendered box (including its own padding/border) is
+// what actually needs to fit inside the target space, never an inner
+// child that only covers its unpadded content -- and verify with a real
+// `getBoundingClientRect()`/`getComputedStyle()` measurement, not by
+// eyeballing which `<div>` "looks about right" to wrap in a ref.
 /** @barrelExport */
 export const SPLITTER_HANDLE_SIZE_REM = 0.625;
 const HALF_HANDLE_SIZE_REM = SPLITTER_HANDLE_SIZE_REM / 2;
@@ -171,6 +196,8 @@ export interface SplitterPanelProps {
  * @manifest Resizable two-panel layout with automatic corner-squaring domain
  * @manifestConstraints Requires exactly 2 children
  * @manifestCategory Containers
+ * @manifestAntiPatternAvoid When computing a pixel-exact `split` via `splitter:split_changed` (e.g. "collapse this panel to exactly its own header's height"), measuring an inner child's content box instead of the actual outermost element whose full rendered box (padding/border included) needs to fit
+ * @manifestAntiPatternInstead Measure the real outer element (e.g. a `Card.Header`, not the `<Toolbar>` inside it) with `getBoundingClientRect()`, and add half of `SPLITTER_HANDLE_SIZE_REM` (in px) before converting the target height to a percentage — both omissions clip the panel identically regardless of viewport size, confirmed directly via real Playwright measurement, not assumed
  */
 export const Splitter: React.FC<SplitterProps> & {
   Panel: React.FC<SplitterPanelProps>;
