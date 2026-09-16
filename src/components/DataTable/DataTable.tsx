@@ -982,7 +982,21 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     wasShowingEmptyStateRef.current = isShowingEmptyState;
     if (wasEmpty && !isShowingEmptyState) setJustLeftEmptyState(true);
   }, [isShowingEmptyState]);
-  const handleRowEntranceAnimationEnd = () => setJustLeftEmptyState(false);
+  // e.target === e.currentTarget guards against a real, not just
+  // theoretical, bubbling hazard -- caught by an external review, then
+  // verified against this component's own actual design before applying
+  // the fix: React's onAnimationEnd bubbles the same way the native DOM
+  // event does, and `render` (a column's cell content) is fully
+  // consumer-controlled -- nothing stops a consumer from putting their
+  // own animated content (a Spinner, a pulsing Badge, anything with a
+  // real CSS `animation`) inside a cell. Without this guard, THAT child's
+  // own animationend would bubble up to this row's handler and reset
+  // justLeftEmptyState prematurely, cutting the row's own entrance
+  // animation short the moment any nested animation anywhere in that row
+  // happened to finish first.
+  const handleRowEntranceAnimationEnd = (e: React.AnimationEvent<HTMLTableRowElement>) => {
+    if (e.target === e.currentTarget) setJustLeftEmptyState(false);
+  };
   // Real-browser measurement (not assumed) confirms onAnimationEnd alone
   // is both precise and safe for THIS animation specifically: all
   // currently-visible rows' animations start and end within ~0.1ms of
