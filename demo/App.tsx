@@ -97,6 +97,25 @@ import {
   ScaleLegend,
 } from '#toolcrib';
 
+// Ambient, erased at compile time (`declare const` emits zero runtime
+// code) -- deliberately local to this file, not demo/vite-env.d.ts, and
+// deliberately `| undefined` rather than plain `string`. Both choices
+// exist for the same reason: cli/integration-test/run-nextjs-fixture.mjs
+// copies this file RAW into a real Next.js project to smoke-test it there
+// (see that script's own comment) -- vite-env.d.ts never travels with it,
+// and neither does vite.config.ts's `define` (which is what actually
+// replaces the bare `__COMMIT_HASH__` token below with a real string
+// literal during the real Vite build/dev of this demo). A local ambient
+// declaration keeps that Next.js copy's own, unrelated tsc run compiling
+// cleanly regardless; the `typeof ... !== 'undefined'` guard on the one
+// real reference below (rather than referencing __COMMIT_HASH__ directly)
+// keeps it safe at RUNTIME too, in that same environment where nothing
+// ever replaces the token: `typeof` on a genuinely undeclared identifier
+// is the one JS construct guaranteed never to throw a ReferenceError,
+// unlike touching the bare identifier itself would.
+declare const __COMMIT_HASH__: string | undefined;
+const commitHash = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : undefined;
+
 // Named so the "collapse event log" toolbar button (in the AppShell.Main
 // render below) can target this specific Splitter's `id` over aiBus,
 // without hardcoding the same magic numbers/string in two places.
@@ -953,6 +972,30 @@ export const App: React.FC = () => {
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
               React UI Component Package Tailored for AI Consumption
+              {/* Only useful once this is actually deployed (the GitHub
+                  Pages build, via deploy-demo.yml) -- a local dev server
+                  has `git status` one command away, but the deployed page
+                  has no local checkout to compare against, so there's no
+                  other way to tell "am I looking at the latest push" short
+                  of this. `commitHash` (module scope, above) is 'unknown'
+                  in a real Vite build/dev with no .git (vite.config.ts's
+                  own fallback), or undefined entirely outside a Vite
+                  build (the Next.js fixture copy, where the bare
+                  __COMMIT_HASH__ token this reads was never replaced) --
+                  hide the link for both, not just one. */}
+              {commitHash && commitHash !== 'unknown' && (
+                <>
+                  {' · '}
+                  <a
+                    href={`https://github.com/escape-llc/toolcrib/commit/${commitHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'inherit' }}
+                  >
+                    {commitHash}
+                  </a>
+                </>
+              )}
             </p>
           </div>
         </HStack>
