@@ -83,6 +83,21 @@ export function parse(filePath) {
   return ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, /* setParentNodes */ true);
 }
 
+// `fs.readdirSync` makes no ordering guarantee -- POSIX/Node's own docs
+// don't promise alphabetical order, and real directory-entry order can
+// differ by filesystem/OS (confirmed as the real cause of a flaky
+// `check-manifest`/`check-docs` CI failure: two back-to-back CI runs
+// against the IDENTICAL committed manifest disagreed on whether it had
+// drifted). `buildTypeIndex()` below populates its `aliases`/`interfaces`
+// Maps by iterating `listSourceFiles(SRC)` in whatever order this function
+// returns, and a Map's insertion order is directly observable (its own
+// `!interfaces.has(...)` first-write-wins guard, and iteration order for
+// anything downstream that walks it) -- so an unsorted file list here was
+// a real source of run-to-run non-determinism in generated output, not
+// just a hypothetical one. Sorted once, at every return (recursion makes
+// "the outermost return" not structurally distinct from any other), so
+// every caller gets a stable, deterministic file order regardless of the
+// underlying filesystem's own directory-entry order.
 export function listSourceFiles(dir) {
   let results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -90,7 +105,7 @@ export function listSourceFiles(dir) {
     if (entry.isDirectory()) results = results.concat(listSourceFiles(full));
     else if (/\.tsx?$/.test(entry.name)) results.push(full);
   }
-  return results;
+  return results.sort();
 }
 
 export function leadingJsDoc(node) {
