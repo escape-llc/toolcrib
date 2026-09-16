@@ -236,15 +236,20 @@ jobs:
         run: |
           gh pr comment "${{ github.event.pull_request.number }}" --body-file "${RUNNER_TEMP}/review-comment.md"
 
-      # Runs even though the job already failed at the step above (no
-      # `continue-on-error` there) -- an explicit `if:` on a step is
-      # evaluated on its own terms regardless of a prior failure, unlike
-      # the implicit default (which only runs on success). This step can't
-      # change the job's own conclusion (already 'failure' from the step
-      # above) -- it exists purely so the reason is legible at a glance
-      # (a GitHub-native ::error:: annotation, surfaced directly on the
-      # PR's checks tab) instead of requiring a click into the raw Gemini
-      # CLI step's own log output to find out why.
+      # Needs `always()` explicitly -- confirmed against GitHub's own docs
+      # (a Gemini review on this exact PR caught this the first time
+      # around, real finding, not a false positive): a step's default `if`
+      # is `success()`, and a CUSTOM `if:` condition does NOT override that
+      # default on its own just by referencing `outcome` -- only an actual
+      # status-check function (`always()`, `failure()`, `cancelled()`,
+      # `success()`) does. Without `always()` here, this step would have
+      # been silently skipped after the step above fails, the exact same
+      # silent-failure shape this whole change exists to close. This step
+      # can't change the job's own conclusion (already 'failure' from the
+      # step above) -- it exists purely so the reason is legible at a
+      # glance (a GitHub-native ::error:: annotation, surfaced directly on
+      # the PR's checks tab) instead of requiring a click into the raw
+      # Gemini CLI step's own log output to find out why.
       - name: Surface why no review was posted, if the step above failed
-        if: steps.gemini_review.outcome != 'success'
+        if: always() && steps.gemini_review.outcome != 'success'
         run: echo "::error::Gemini review step failed (outcome=${{ steps.gemini_review.outcome }}) -- no review posted, and this job is failing accordingly since 'review' is a required status check. See the 'Run Gemini review' step's own log above for the actual API/tool error. Retry the job once the underlying issue (quota, auth, infra) clears."

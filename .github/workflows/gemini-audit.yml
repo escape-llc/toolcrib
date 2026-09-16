@@ -197,15 +197,20 @@ jobs:
         if: steps.gemini_audit.outcome == 'success' && startsWith(steps.gemini_audit.outputs.summary, 'NO_FINDINGS')
         run: echo "No issue filed this run for segment '${{ steps.segment.outputs.id }}' -- the audit ran successfully and found nothing worth flagging. Not a failure."
 
-      # Runs even though the job already failed at the Gemini step above
-      # (no `continue-on-error` there) -- an explicit `if:` on a step is
-      # evaluated on its own terms regardless of a prior failure, unlike
-      # the implicit default (which only runs on success). Can't change
-      # the job's own conclusion (already 'failure') -- exists purely so
-      # the reason is legible at a glance (a GitHub-native ::error::
-      # annotation) instead of requiring a click into the raw Gemini CLI
-      # step's own log output to find out why this week's segment has no
-      # issue and the run is red.
+      # Needs `always()` explicitly -- confirmed against GitHub's own docs
+      # (a Gemini review on this workflow's own sibling PR caught this the
+      # first time around, real finding, not a false positive): a step's
+      # default `if` is `success()`, and a CUSTOM `if:` condition does NOT
+      # override that default on its own just by referencing `outcome` --
+      # only an actual status-check function (`always()`, `failure()`,
+      # `cancelled()`, `success()`) does. Without `always()` here, this
+      # step would have been silently skipped after the step above fails,
+      # the exact same silent-failure shape this whole change exists to
+      # close. Can't change the job's own conclusion (already 'failure')
+      # -- exists purely so the reason is legible at a glance (a
+      # GitHub-native ::error:: annotation) instead of requiring a click
+      # into the raw Gemini CLI step's own log output to find out why this
+      # week's segment has no issue and the run is red.
       - name: Surface why no issue was filed, if the audit step failed
-        if: steps.gemini_audit.outcome != 'success'
+        if: always() && steps.gemini_audit.outcome != 'success'
         run: echo "::error::Gemini audit step failed (outcome=${{ steps.gemini_audit.outcome }}) for segment '${{ steps.segment.outputs.id }}' -- no issue filed this week, and this job is failing accordingly so the failure is actually visible instead of silently burning this segment's rotation slot. See the 'Run Gemini audit' step's own log above for the actual API/tool error. Re-run via workflow_dispatch (optionally pinning the segment input to '${{ steps.segment.outputs.id }}') once the underlying issue clears."
