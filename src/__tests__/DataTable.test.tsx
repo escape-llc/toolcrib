@@ -2223,6 +2223,48 @@ describe('DataTable Virtualized Component', () => {
       expect(wrapper.style.animation).toContain('var(--ai-transition-duration-normal, 200ms)');
       expect(wrapper.style.animation).toContain('var(--ai-transition-easing, ease)');
     });
+
+    // Regression: reported directly -- clicking "Load Data" from the
+    // empty view "just slams" the real grid into place, no transition at
+    // all. The OTHER direction of the crossfade above: this one only ever
+    // played on ARRIVING at empty, nothing played on LEAVING it. Uses
+    // ai-fade-in (opacity only), not ai-scale-in -- this animation applies
+    // directly to a real <tr>, and transform on a table row/cell has real
+    // cross-browser rendering quirks the emptyState's own wrapper <div>
+    // avoids by not being a table element at all.
+    it('crossfades the real row set in via ai-fade-in when leaving the empty state', () => {
+      const { rerender } = render(
+        <DataTable data={[]} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />
+      );
+      expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
+
+      rerender(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />
+      );
+
+      const row = screen.getByText('Item 1').closest('tr') as HTMLElement;
+      expect(row.style.animation).toContain('ai-fade-in');
+      expect(row.style.animation).toContain('var(--ai-transition-duration-normal, 200ms)');
+      expect(row.style.animation).toContain('var(--ai-transition-easing, ease)');
+    });
+
+    // jsdom cannot reliably deliver a real `animationend` DOM event through
+    // to React's own onAnimationEnd synthetic handler (confirmed directly
+    // -- a handler wired the same way never fired under fireEvent.animationEnd
+    // here, matching Toast.test.tsx's own documented finding that "jsdom
+    // never reports a real running CSS animation," which is why that file
+    // relies on setTimeout backstops instead of real animation events for
+    // its own dismiss flow). So the reset-after-the-real-animation-
+    // completes half of this behavior is verified in a real browser
+    // instead (e2e/datatable-load-transition.spec.ts) -- what jsdom CAN
+    // reliably assert is the other half: the animation only ever applies
+    // on an actual empty->populated TRANSITION, never on an ordinary
+    // first render that already has data.
+    it('does not apply the entrance animation on an ordinary render that was never empty to begin with', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />);
+      const row = screen.getByText('Item 1').closest('tr') as HTMLElement;
+      expect(row.style.animation).toBeFalsy();
+    });
   });
 
   describe('grid keyboard navigation (issue #316)', () => {
