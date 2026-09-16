@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { FileUpload } from '../components/Form/FileUpload';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -284,5 +285,31 @@ describe('FileUpload Component — Form binding', () => {
       expect(screen.getByText('At least one file is required')).toBeInTheDocument();
     });
     expect(handleSubmit).not.toHaveBeenCalled();
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
+  describe('UIGroup awareness', () => {
+    it('squares its dropzone corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <FileUpload name="attachment" />
+          <button>Clear</button>
+        </UIGroup>
+      );
+      const dropzone = screen.getByRole('button', { name: /drag and drop/i });
+      // First/leading member -- squares its own trailing (right) side only.
+      expect(dropzone.style.borderTopRightRadius).toBe('0px');
+      expect(dropzone.style.borderBottomRightRadius).toBe('0px');
+      expect(dropzone.style.borderTopLeftRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+      render(<FileUpload name="attachment" squareCorners="all" />);
+      const dropzone = screen.getByRole('button', { name: /drag and drop/i });
+      expect(dropzone.style.borderTopLeftRadius).toBe('0px');
+      expect(dropzone.style.borderTopRightRadius).toBe('0px');
+    });
   });
 });

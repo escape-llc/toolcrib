@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Combobox } from '../components/Form/Combobox';
 import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -366,6 +367,32 @@ describe('Combobox Component — Form binding', () => {
         expect(describedBy).toBe('role-error');
         expect(document.getElementById(describedBy!)).toHaveTextContent('Please choose a role');
       });
+    });
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
+  describe('UIGroup awareness', () => {
+    it('squares its input wrapper corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <button>Go</button>
+          <Combobox options={options} onChange={vi.fn()} ariaLabel="Role" />
+        </UIGroup>
+      );
+      const wrapper = screen.getByRole('combobox').parentElement!;
+      // Last/trailing member -- squares its own leading (left) side only.
+      expect(wrapper.style.borderTopLeftRadius).toBe('0px');
+      expect(wrapper.style.borderBottomLeftRadius).toBe('0px');
+      expect(wrapper.style.borderTopRightRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
+      render(<Combobox options={options} onChange={vi.fn()} ariaLabel="Role" squareCorners="all" />);
+      const wrapper = screen.getByRole('combobox').parentElement!;
+      expect(wrapper.style.borderTopLeftRadius).toBe('0px');
+      expect(wrapper.style.borderTopRightRadius).toBe('0px');
     });
   });
 });

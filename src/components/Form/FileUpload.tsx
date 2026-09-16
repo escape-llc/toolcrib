@@ -20,6 +20,8 @@ import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { FileUploadThemeSlice, type FileUploadSliceState, type FileUploadDensity } from './FileUploadSlice';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 
 const SIZE_TO_DENSITY: Record<ControlSize, FileUploadDensity> = {
   sm: 'compact',
@@ -66,6 +68,8 @@ export interface FileUploadProps {
   overrides?: Partial<FileUploadSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control — maps onto the same `density` scale as `overrides.density` (`sm`→`'compact'`, `md`→`'normal'`, `lg`→`'spacious'`) and scales the dropzone's own label text. @default 'md' */
   size?: ControlSize;
+  /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
+  squareCorners?: SquareCornerOption;
 }
 
 function formatBytes(bytes: number): string {
@@ -89,12 +93,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   onFilesChange,
   overrides,
   size = 'md',
+  squareCorners,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const fileUploadVars = getSparseVariables(FileUploadThemeSlice, { density: SIZE_TO_DENSITY[size], ...overrides });
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   const inputRef = useRef<HTMLInputElement>(null);
   const nextIdRef = useRef(0);
   const previewUrlsRef = useRef<Map<string, string>>(new Map());
@@ -274,7 +281,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           gap: '0.5rem',
           width: '100%',
           padding: 'var(--ai-fileupload-dropzone-padding, 1.5rem)',
-          borderRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
           // Issue #402: accent, not primary -- a drag-over highlight is a
           // momentary active-interaction cue, distinct from the toolkit's
           // persistent selected/checked identity color, so it reuses the
@@ -292,6 +302,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           // border-color and is !important, so this would be silently
           // discarded outright, not just redundant (issue #411).
           ...fileUploadVars,
+          ...cornerOverrides,
         }}
       >
         <input

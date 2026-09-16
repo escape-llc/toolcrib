@@ -10,6 +10,8 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
+import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { SelectThemeSlice, type SelectSliceState } from './SelectSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 
@@ -61,6 +63,8 @@ export interface SelectProps {
   overrides?: Partial<SelectSliceState> & { subtheme?: SubthemeName };
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
+  squareCorners?: SquareCornerOption;
 }
 
 /**
@@ -79,6 +83,7 @@ export const Select: React.FC<SelectProps> = ({
   disabled = false,
   overrides,
   size = 'md',
+  squareCorners,
 }) => {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
@@ -88,6 +93,8 @@ export const Select: React.FC<SelectProps> = ({
   const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
+  const uiGroupSquareCorners = useUIGroupSquareCorners();
+  const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
 
   // Without this, a Select's name is never added to the form's `values`
@@ -164,7 +171,10 @@ export const Select: React.FC<SelectProps> = ({
           justifyContent: 'space-between',
           width: '100%',
           padding: resolveControlPadding(size, 'var(--ai-select-trigger-padding, 0.5rem 0.75rem)'),
-          borderRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+          borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
           border: '0.0625rem solid var(--ai-border, #d1d5db)',
           background: 'var(--ai-bg-surface, #ffffff)',
           color: 'var(--ai-text-primary, #111827)',
@@ -175,6 +185,7 @@ export const Select: React.FC<SelectProps> = ({
           opacity: disabled ? 0.6 : 1,
           ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           ...selectVars,
+          ...cornerOverrides,
         }}
       >
         <SelectPrimitive.Value placeholder={placeholder} />

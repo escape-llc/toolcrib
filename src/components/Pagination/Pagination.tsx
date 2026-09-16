@@ -7,6 +7,8 @@ import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
 import { useLocaleStrings } from '../Locale/LocaleContext';
+import { type SquareCornerOption } from '../Card/Card';
+import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 
 /** A page number, or a collapsed run of skipped pages. */
 type PageToken = number | 'ellipsis';
@@ -72,6 +74,27 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const id = useStableId(propId, 'pagination');
   const strings = useLocaleStrings().pagination;
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- Pagination renders its OWN internal <UIGroup>
+  // (Prev/page-numbers/Next), which shadows any AMBIENT UIGroupContext a
+  // consumer's own outer <UIGroup> might be providing (React Context
+  // always resolves to the NEAREST Provider -- see ToggleGroup's own
+  // identical comment on this exact mechanism). Without reading the
+  // ambient value here and forwarding it explicitly, nesting
+  // <Pagination> inside a consumer's own <UIGroup> (e.g. alongside a
+  // page-size <Select>) would leave Pagination's own Prev/Next buttons
+  // squared only against EACH OTHER, never against whatever sits outside
+  // Pagination itself.
+  const outerSquareCorners = useUIGroupSquareCorners();
+  // Prev is Pagination's own LEADING edge; only needs the ambient
+  // group's OWN leading-edge signal ('left' or 'all' -- see UIGroup.tsx's
+  // own leadingEdge/trailingEdge naming) folded in, on top of its
+  // permanent LOCAL need to square its own trailing side (page-number
+  // buttons always follow it). Next is the mirror image.
+  const prevSquareCorners: SquareCornerOption =
+    outerSquareCorners === 'left' || outerSquareCorners === 'all' ? 'all' : 'right';
+  const nextSquareCorners: SquareCornerOption =
+    outerSquareCorners === 'right' || outerSquareCorners === 'all' ? 'all' : 'left';
 
   const { currentPage, totalPages, goToPage } = usePagination({
     totalItems,
@@ -110,6 +133,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
           aria-label={strings.previousPage}
+          squareCorners={prevSquareCorners}
         >
           ◀
         </Button>
@@ -139,6 +163,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
           aria-label={strings.nextPage}
+          squareCorners={nextSquareCorners}
         >
           ▶
         </Button>

@@ -168,15 +168,16 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    // The density toggle buttons sit in this table's own toolbar, directly
+    // The density radio group sits in this table's own toolbar, directly
     // before it in DOM order -- a realistic starting point for a keyboard
-    // user tabbing forward through the page. Full accessible name, not
-    // just the visible label -- each density button carries its own
-    // "Row density: <option>" aria-label (see DataTable.tsx's own comment
-    // where these render) since the wrapping role="group" that used to
-    // carry that context was removed to merge the whole toolbar-right row
-    // into one connected UIGroup pill.
-    await page.getByRole('button', { name: 'Row density: Normal' }).focus();
+    // user tabbing forward through the page. role="radio" + plain label,
+    // not role="button" -- DataTable composes the shared <ToggleGroup>
+    // for this now (the real WAI-ARIA "Radio Group" pattern), not 3
+    // hand-rolled Buttons. `.focus()` still works directly on a
+    // tabindex="-1" option despite Radix's own roving-tabindex management
+    // (only one option is a real Tab stop at a time) -- tabindex="-1"
+    // elements remain focusable via script, just not via sequential Tab.
+    await page.getByRole('radio', { name: 'Normal' }).focus();
 
     // Tab through whatever real, ordinary focusable controls sit between
     // the toolbar and the table itself (Reload/Export buttons) until

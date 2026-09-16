@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import { Form, useFormContext } from '../components/Form/FormContext';
 import { FormField, Input, Textarea, Checkbox, Switch, FormError, SubmitButton, Button } from '../components/Form/FormComponents';
+import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -636,6 +637,53 @@ describe('Form & Zod Validation Engine', () => {
 
       expect(() => fireEvent.click(screen.getByLabelText('Clear'))).not.toThrow();
       expect(onChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // "components should integrate seamlessly inside ui group with outer
+  // border squaring" -- same jsdom-observable-inline-style convention as
+  // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
+  describe('Checkbox/Switch UIGroup awareness', () => {
+    it('squares Checkbox corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <Checkbox label="I accept" />
+          <button>Go</button>
+        </UIGroup>
+      );
+      const checkbox = screen.getByRole('checkbox');
+      // First/leading member -- squares its own trailing (right) side only.
+      expect(checkbox.style.borderTopRightRadius).toBe('0px');
+      expect(checkbox.style.borderBottomRightRadius).toBe('0px');
+      expect(checkbox.style.borderTopLeftRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value for Checkbox', () => {
+      render(<Checkbox label="I accept" squareCorners="all" />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox.style.borderTopLeftRadius).toBe('0px');
+      expect(checkbox.style.borderTopRightRadius).toBe('0px');
+    });
+
+    it('squares Switch corners as an ambient UIGroup member', () => {
+      render(
+        <UIGroup>
+          <button>Go</button>
+          <Switch label="Enable" />
+        </UIGroup>
+      );
+      const toggle = screen.getByRole('switch');
+      // Last/trailing member -- squares its own leading (left) side only.
+      expect(toggle.style.borderTopLeftRadius).toBe('0px');
+      expect(toggle.style.borderBottomLeftRadius).toBe('0px');
+      expect(toggle.style.borderTopRightRadius).not.toBe('0px');
+    });
+
+    it('lets an explicit squareCorners prop win over the automatic UIGroup value for Switch', () => {
+      render(<Switch label="Enable" squareCorners="all" />);
+      const toggle = screen.getByRole('switch');
+      expect(toggle.style.borderTopLeftRadius).toBe('0px');
+      expect(toggle.style.borderTopRightRadius).toBe('0px');
     });
   });
 });
