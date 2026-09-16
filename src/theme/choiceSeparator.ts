@@ -52,18 +52,34 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  *
  * Implemented as a `::before` pseudo-element (inline `style` props can
  * never target one -- a fundamental CSS/DOM limit, not a React one), via
- * this codebase's own established `injectGlobalStyle` mechanism. Scoped
- * by the real WAI-ARIA shape a "radio-strip" control renders as
- * (`[role="radiogroup"] > .ai-btn`), not by any one component's own class
- * -- correct for `<ToggleGroup>` today and for any future component that
- * renders the identical shape, with nothing further to opt into.
+ * this codebase's own established `injectGlobalStyle` mechanism. Scoped by
+ * the real WAI-ARIA shape a "radio-strip" control renders as -- but that
+ * shape isn't just `role="radiogroup"`: Radix's own `ToggleGroupPrimitive`
+ * renders `role="radiogroup"` for `type="single"` but `role="toolbar"` for
+ * `type="multiple"` (confirmed directly against Radix's own source, not
+ * assumed), so a `type="multiple"` ToggleGroup matched neither this rule
+ * NOR the old always-on full border it used to (transparent) rely on --
+ * caught by an external review, once `ToggleGroup.tsx`'s own interior
+ * borders went transparent: a multi-select group rendered with literally
+ * no visible division between any of its options at all, a real
+ * regression this rule's selector alone was responsible for. `role="group"`
+ * (the reviewer's own guess) isn't actually what Radix renders either --
+ * verify a primitive's real DOM shape directly before matching a selector
+ * to it, the same discipline AGENTS.md already asks for elsewhere.
+ * `[role="toolbar"] > .ai-btn` is safe to add alongside `[role="radiogroup"]`
+ * -- confirmed the plain `<Toolbar>` component (`Toolbar.tsx`) also renders
+ * `role="toolbar"`, but its own `Toolbar.Button`s are never DIRECT children
+ * of that role element (always nested one level deeper inside
+ * `Toolbar.Left`/`.Center`/`.Right`), so the direct-child (`>`) combinator
+ * here can't accidentally match it.
  */
 const CHOICE_SEPARATOR_STYLE_ID = 'toolcrib-choice-separator';
 function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     CHOICE_SEPARATOR_STYLE_ID,
     `
-    [role="radiogroup"] > .ai-btn:not(:first-child)::before {
+    [role="radiogroup"] > .ai-btn:not(:first-child)::before,
+    [role="toolbar"] > .ai-btn:not(:first-child)::before {
       content: '';
       position: absolute;
       left: 0;
