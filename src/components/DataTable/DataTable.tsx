@@ -1166,24 +1166,59 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             )}
             {(densitySelector || csvExport || columnVisibility || renderToolbarExtra) && (
               <Toolbar.Right>
-                {densitySelector && (
-                  <div role="group" aria-label={strings.densityLabel} style={{ display: 'flex' }}>
-                    <UIGroup>
-                      {(['compact', 'normal', 'spacious'] as const).map(d => (
-                        <Button
-                          key={d}
-                          type="button"
-                          size="sm"
-                          variant={liveDensity === d ? 'secondary' : 'outline'}
-                          aria-pressed={liveDensity === d}
-                          onClick={() => handleDensityChange(d)}
-                        >
-                          {strings.densityOptionLabel(d)}
-                        </Button>
-                      ))}
-                    </UIGroup>
-                  </div>
-                )}
+                {/* One connected pill across every enabled toolbar-right
+                    control (density, Export CSV, Columns, and whatever
+                    renderToolbarExtra supplies), not a separate merged
+                    cluster per feature -- reported directly, from a real
+                    screenshot showing visible gaps between each cluster.
+                    UIGroup itself already tolerates any subset of these
+                    being absent (Children.toArray filters out a `false`
+                    from a disabled feature's `{flag && (...)}`), so this
+                    wraps unconditionally rather than needing its own
+                    enabled-feature branching. */}
+                <UIGroup>
+                {densitySelector && (['compact', 'normal', 'spacious'] as const).map(d => (
+                  // No wrapping role="group" div around these three
+                  // anymore -- confirmed by a real, direct browser
+                  // measurement (not assumed) that one defeats correct
+                  // per-button corner-squaring no matter how it's styled:
+                  // UIGroup's own CSS selectors (`.toolcrib-group > *`,
+                  // `:first-child`/`:last-child`) are DOM-tree-based per
+                  // the Selectors spec, so they still only ever match the
+                  // WRAPPER (one level too shallow), not the three real
+                  // buttons inside it, regardless of that wrapper's own
+                  // `display` value -- a `display:contents` first attempt
+                  // here assumed otherwise and measured wrong: all three
+                  // buttons rendered with the SAME border-radius (the
+                  // wrapper's own single computed value), not each one's
+                  // own correct position-based treatment.
+                  // UIGroupContext has the identical shape of problem for
+                  // the same underlying reason: Children.toArray on the
+                  // outer UIGroup sees any wrapper as exactly one item, so
+                  // every descendant of it receives the same single
+                  // Context value regardless of its own true position.
+                  // These three now have to be genuine, individual direct
+                  // children of the outer UIGroup for each to get its own
+                  // correct corner treatment -- which is what actually
+                  // merges the whole row into one connected pill, the
+                  // point of this change in the first place. The "these
+                  // three are collectively Row density" context that the
+                  // wrapper's aria-label used to carry moves into each
+                  // button's own aria-label instead (below) -- a screen
+                  // reader still gets the same information, just per
+                  // button rather than via a surrounding role="group".
+                  <Button
+                    key={d}
+                    type="button"
+                    size="sm"
+                    variant={liveDensity === d ? 'secondary' : 'outline'}
+                    aria-pressed={liveDensity === d}
+                    aria-label={`${strings.densityLabel}: ${strings.densityOptionLabel(d)}`}
+                    onClick={() => handleDensityChange(d)}
+                  >
+                    {strings.densityOptionLabel(d)}
+                  </Button>
+                ))}
                 {csvExport && (
                   <Button type="button" size="sm" variant="outline" onClick={handleCsvExport}>
                     {strings.exportCsvLabel}
@@ -1265,6 +1300,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   </DropdownMenuPrimitive.Root>
                 )}
                 {renderToolbarExtra?.()}
+                </UIGroup>
               </Toolbar.Right>
             )}
           </Toolbar>

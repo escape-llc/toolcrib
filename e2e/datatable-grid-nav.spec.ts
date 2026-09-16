@@ -170,8 +170,13 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
 
     // The density toggle buttons sit in this table's own toolbar, directly
     // before it in DOM order -- a realistic starting point for a keyboard
-    // user tabbing forward through the page.
-    await page.getByRole('button', { name: 'Normal' }).focus();
+    // user tabbing forward through the page. Full accessible name, not
+    // just the visible label -- each density button carries its own
+    // "Row density: <option>" aria-label (see DataTable.tsx's own comment
+    // where these render) since the wrapping role="group" that used to
+    // carry that context was removed to merge the whole toolbar-right row
+    // into one connected UIGroup pill.
+    await page.getByRole('button', { name: 'Row density: Normal' }).focus();
 
     // Tab through whatever real, ordinary focusable controls sit between
     // the toolbar and the table itself (Reload/Export buttons) until
