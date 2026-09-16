@@ -934,6 +934,56 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
 
   const visibleRows = paginatedData.slice(startIndex, endIndex);
 
+  // The OTHER direction of issue #371's own empty<->populated crossfade --
+  // reported directly: clicking "Load Data" from the empty view "just
+  // slams" the real grid into place, no transition at all. The empty
+  // state's own entrance animation (below, on the emptyState <tr> branch)
+  // only ever plays when ARRIVING at empty; nothing ever played when
+  // LEAVING it, since the empty <tr> and the real row set are two
+  // structurally different branches at the same tree position -- every
+  // newly-mounted row on the render that flips away from empty is a
+  // brand-new DOM node regardless, so the same kind of mount-only entrance
+  // applies per-row here too. Scoped to fire ONLY on that one transition
+  // (not on ordinary virtualized scroll, which also mounts fresh <tr>
+  // elements for newly-visible rows -- animating every one of those on
+  // scroll would be a real, different behavior nobody asked for, and a
+  // known anti-pattern for virtualized lists specifically: fast scrolling
+  // mounts/unmounts many rows in quick succession, and animating every one
+  // would be a constant, distracting flicker, not a nice touch).
+  //
+  // Two React constraints ruled out the two more "obvious" ways to derive
+  // this flag, confirmed directly rather than assumed:
+  // - Comparing against a plain ref read/written INLINE in the render body
+  //   (no effect) trips this repo's own react-hooks/refs lint rule --
+  //   confirmed by a real lint failure, not just the rule's own docs.
+  // - Calling a useState setter directly during render (the "adjust state
+  //   during render" pattern this file's OTHER derived-value comparisons
+  //   use) doesn't work for THIS case specifically: React discards that
+  //   render and immediately re-runs the component fresh with the new
+  //   state BEFORE anything commits, so a flag computed that way can
+  //   never actually reach the DOM for the one render it's meant to
+  //   describe -- fine for adjusting state used in FUTURE comparisons,
+  //   wrong for producing a value THIS render's own JSX needs to consume.
+  //
+  // The actual fix: compare inside useLayoutEffect (the textbook-correct,
+  // lint-clean place to read/write a ref), which fires synchronously
+  // after the DOM commit but before the browser paints -- so the
+  // resulting setState-triggered re-render (adding the animation) commits
+  // before the user ever sees the un-animated intermediate frame. Reset
+  // via a real completion signal (each row's own onAnimationEnd), not a
+  // guessed timeout -- this codebase's own standing e2e discipline
+  // ("wait for a real signal, never a fixed sleep," AGENTS.md) applies
+  // exactly as much to a one-shot mount animation as to a test.
+  const isShowingEmptyState = sortedData.length === 0 && !!emptyState;
+  const wasShowingEmptyStateRef = useRef(isShowingEmptyState);
+  const [justLeftEmptyState, setJustLeftEmptyState] = useState(false);
+  useLayoutEffect(() => {
+    const wasEmpty = wasShowingEmptyStateRef.current;
+    wasShowingEmptyStateRef.current = isShowingEmptyState;
+    if (wasEmpty && !isShowingEmptyState) setJustLeftEmptyState(true);
+  }, [isShowingEmptyState]);
+  const handleRowEntranceAnimationEnd = () => setJustLeftEmptyState(false);
+
   // onEndReached (issue #365) -- fires once per distinct totalItems value,
   // not on every render/scroll event while already past the threshold, so
   // a consumer's own in-flight fetch isn't re-triggered repeatedly while
@@ -1884,6 +1934,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           });
                         }
                       }}
+                      // Clears justLeftEmptyState once the entrance
+                      // animation genuinely finishes (a real completion
+                      // signal, not a guessed timeout -- see this flag's
+                      // own comment above). Only wired up while the
+                      // animation is actually playing; harmless if it
+                      // fires on more than one row (all clear the same
+                      // flag to the same value).
+                      onAnimationEnd={justLeftEmptyState ? handleRowEntranceAnimationEnd : undefined}
                       style={{
                         height: `${itemHeight}px`,
                         cursor: onRowClick || (selectable && !disableRowClickSelection) ? 'pointer' : undefined,
@@ -1902,6 +1960,20 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         // treatment (each <td>'s own boxShadow, computed
                         // above) is what conveys selection now.
                         transition: 'background-color var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
+                        // Entrance for the empty->populated transition (see
+                        // justLeftEmptyState's own comment) -- ai-fade-in,
+                        // not ai-scale-in: the empty state's own div wrapper
+                        // can use a transform-based scale entrance because
+                        // it's a plain block element, but this animation
+                        // applies directly to a real <tr> (there's no
+                        // per-row wrapper element to target instead without
+                        // invalid table markup), and transform on a table
+                        // row/cell has real cross-browser rendering quirks
+                        // (border/background distortion) the empty state's
+                        // own comment already documents avoiding.
+                        animation: justLeftEmptyState
+                          ? 'ai-fade-in var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)'
+                          : undefined,
                       }}
                     >
                       {selectable && !hideSelectionColumn && selectionKey !== null && (
