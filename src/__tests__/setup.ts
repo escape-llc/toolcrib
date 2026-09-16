@@ -1,4 +1,13 @@
-import '@testing-library/jest-dom';
+// The vitest-specific subpath, not the bare '@testing-library/jest-dom' --
+// required as of the vitest 5 upgrade (issue tending to Dependabot PRs
+// #225/#441): vitest 5 removed the separately-installable `@vitest/expect`
+// package this repo's own type augmentations previously targeted (see
+// testUtils/axe.ts's matching comment), and jest-dom's plain entry point
+// only ever augmented Jest's global `jest.Matchers` namespace, never
+// vitest's -- this subpath is jest-dom's own documented vitest integration,
+// registering the same matchers via `expect.extend` AND providing the
+// correct `declare module 'vitest'` type augmentation in one import.
+import '@testing-library/jest-dom/vitest';
 import * as axeMatchers from 'vitest-axe/matchers';
 import { beforeEach, afterEach, expect } from 'vitest';
 
