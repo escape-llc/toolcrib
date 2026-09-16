@@ -132,6 +132,45 @@ describe('ToggleGroup Component', () => {
     expect(right.style.borderLeftColor).toBe('transparent');
   });
 
+  // Regression: reported directly, with screenshots -- the choice
+  // separator looked a different width at different seams, and "the
+  // background is not uniformly excluding the separator, especially on
+  // the left end." Root cause was two compounding issues in this
+  // component's own per-item styles (not in choiceSeparator.ts's own
+  // ::before rule): an interior item's left border still had a real WIDTH
+  // (just a transparent color), which insets the ::before accent from the
+  // item's own true edge (`left: 0` on an absolutely-positioned
+  // pseudo-element resolves against the padding box, not the border box);
+  // and a now-obsolete marginLeft/zIndex overlap trick -- left over from
+  // when every side drew a real, full-color border that needed collapsing
+  // with its neighbor's -- let a higher-z-index (selected) neighbor paint
+  // clean over a lower-z-index item's own divider. Both are asserted
+  // directly here so a future change can't silently reintroduce either
+  // half of this regression.
+  it('an interior item has zero left border WIDTH (not just a transparent color) and no negative overlap margin', () => {
+    render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={vi.fn()} />);
+
+    const left = screen.getByRole('radio', { name: 'Left' }); // first item
+    const center = screen.getByRole('radio', { name: 'Center' }); // middle item
+    const right = screen.getByRole('radio', { name: 'Right' }); // last item
+
+    // True outer edge (first item's own left side): a real border width.
+    expect(left.style.borderLeftWidth).toBe('0.0625rem');
+
+    // Interior left sides: zero width, not merely transparent -- this is
+    // what makes `left: 0` on the ::before accent land exactly on the
+    // item's true edge instead of inset by a still-present (if invisible)
+    // border.
+    expect(center.style.borderLeftWidth).toBe('0px');
+    expect(right.style.borderLeftWidth).toBe('0px');
+
+    // No item overlaps its neighbor anymore -- the old collapse trick
+    // (isFirst ? 0 : '-0.0625rem') is gone; every item sits flush.
+    for (const item of [left, center, right]) {
+      expect(item.style.marginLeft).toBe('0px');
+    }
+  });
+
   it('type="multiple": options toggle independently and emits togglegroup:changed', () => {
     const changedFn = vi.fn();
     const onChange = vi.fn();

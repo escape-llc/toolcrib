@@ -272,7 +272,48 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               // that combination is a real React warning, not a style nit.
               borderTopWidth: '0.0625rem',
               borderBottomWidth: '0.0625rem',
-              borderLeftWidth: '0.0625rem',
+              // Interior left side (the seam a non-first item's own choice-
+              // separator ::before renders on, theme/choiceSeparator.ts) is
+              // WIDTH 0, not just a transparent color -- reported directly,
+              // with screenshots, in two connected ways: the divider looked
+              // a different width at different seams, and "the background
+              // is not uniformly excluding the separator, especially on
+              // the left end." Root cause: `left: 0` on an
+              // absolutely-positioned pseudo-element resolves against its
+              // containing block's PADDING box, not its border box (CSS
+              // Positioned Layout spec) -- so as long as this item had ANY
+              // left border width (even color:transparent), the divider
+              // sat inset by that width from the item's own true visible
+              // edge, showing a sliver of this item's own background
+              // between the real seam and the divider. Removing the border
+              // WIDTH entirely on this side eliminates that inset at its
+              // source: `left: 0` now lands exactly on this item's true
+              // border-box edge. box-sizing: border-box (demo/index.css's
+              // own global reset) means this doesn't shrink the item --
+              // the border simply stops claiming space it was never
+              // rendering anyway.
+              //
+              // This alone still wasn't sufficient, though -- confirmed by
+              // screenshot, not assumed: a correctly-positioned divider
+              // could still be fully painted over by a SELECTED neighbor,
+              // because of the marginLeft/zIndex overlap a couple of
+              // properties down. That trick used to exist to collapse two
+              // adjacent items' own FULL-COLOR borders into a single
+              // visible 1px line -- real, necessary behavior when every
+              // side actually drew a border. It has no remaining purpose
+              // now that every interior side is either transparent or (as
+              // of this fix) zero-width, and it was actively harmful here:
+              // the -1px shift pulls each item's own left edge one pixel
+              // into its neighbor's territory, and whichever item has the
+              // higher z-index (selected: 1 vs. unselected: 0) paints that
+              // whole shared pixel -- including anything the LOWER
+              // z-index item tried to render there, divider included,
+              // regardless of how precisely it was positioned. Removed
+              // below (marginLeft: 0 unconditionally) so adjacent items
+              // sit exactly flush with no shared/contested pixel at all --
+              // the real fix, not a positioning patch on top of a
+              // still-broken overlap.
+              borderLeftWidth: isFirst ? '0.0625rem' : 0,
               borderRightWidth: '0.0625rem',
               borderTopStyle: 'solid',
               borderBottomStyle: 'solid',
@@ -286,7 +327,10 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderTopRightRadius: isLast ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderBottomRightRadius: isLast ? 'var(--ai-radius-md, 0.375rem)' : 0,
-              marginLeft: isFirst ? 0 : '-0.0625rem',
+              // No longer isFirst ? 0 : '-0.0625rem' -- see the borderLeftWidth
+              // comment above for why that overlap is actively wrong now,
+              // not just unnecessary.
+              marginLeft: 0,
               background: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
               color: selected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
               fontSize: CONTROL_FONT_SIZE_VAR[size],
