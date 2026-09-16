@@ -983,6 +983,30 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     if (wasEmpty && !isShowingEmptyState) setJustLeftEmptyState(true);
   }, [isShowingEmptyState]);
   const handleRowEntranceAnimationEnd = () => setJustLeftEmptyState(false);
+  // Real-browser measurement (not assumed) confirms onAnimationEnd alone
+  // is both precise and safe for THIS animation specifically: all
+  // currently-visible rows' animations start and end within ~0.1ms of
+  // each other (a single React commit mounts them all in the same paint),
+  // so the first row's own completion clearing the flag for every row
+  // isn't a real, visible "abrupt cutoff" -- and reducedMotion collapsing
+  // the duration to 0s still fires a real animationend event (confirmed:
+  // a zero-duration CSS animation still dispatches start/end per spec).
+  // Still, an EXTERNAL Gemini review raised a fair, more general point:
+  // relying SOLELY on a DOM event has no bound if something entirely
+  // unrelated interrupts it (the row unmounting mid-animation because a
+  // sort/filter/page-size change lands inside that same ~200ms window,
+  // e.g.) -- a real, if narrow, way for justLeftEmptyState to get stuck
+  // true forever, which would then apply this entrance animation to
+  // every future virtualized-scroll-mounted row too. A generous, bounded
+  // backup timeout closes that gap without weakening the precise event-
+  // driven path above -- it only ever fires if onAnimationEnd genuinely
+  // never did, and is long enough (2s) to never race a real, even
+  // consumer-customized `--ai-transition-duration-normal`.
+  useEffect(() => {
+    if (!justLeftEmptyState) return;
+    const timeoutId = setTimeout(() => setJustLeftEmptyState(false), 2000);
+    return () => clearTimeout(timeoutId);
+  }, [justLeftEmptyState]);
 
   // onEndReached (issue #365) -- fires once per distinct totalItems value,
   // not on every render/scroll event while already past the threshold, so
