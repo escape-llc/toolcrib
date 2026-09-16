@@ -92,15 +92,33 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  *
  * The actual fix: this rule's own `::before` is a pseudo-element of
  * whichever option is NOT `:first-child` (the "owning" item, positioned at
- * its own `left: 0`) -- combined with that item's `zIndex: selected ? 1 : 0`
- * (`ToggleGroup.tsx`), a divider whose OWNING item is selected, or whose
+ * its own `left: 0`) -- a divider whose OWNING item is selected, or whose
  * immediately PRECEDING sibling is selected (Radix's own `data-state="on"`
- * attribute marks this directly), ends up painted over a primary-colored
- * fill either way. Both cases get a second, higher-specificity rule
- * switching the divider to `--ai-color-primary-text` -- the same
- * WCAG-contrast-computed "readable on a primary fill" utility variable
- * `Calendar`'s today-marker and `Stepper` already lean on for the identical
- * guarantee, not an arbitrarily-picked light color.
+ * attribute marks this directly), ends up rendered right at a boundary
+ * with a primary-colored fill either way. Both cases get a second,
+ * higher-specificity rule switching the divider to `--ai-color-primary-text`
+ * -- the same WCAG-contrast-computed "readable on a primary fill" utility
+ * variable `Calendar`'s today-marker and `Stepper` already lean on for the
+ * identical guarantee, not an arbitrarily-picked light color.
+ *
+ * A FOURTH gap, reported directly with screenshots: the divider looked a
+ * visibly different WIDTH depending on which seam it was at, and "the
+ * background is not uniformly excluding the separator, especially on the
+ * left end." Both symptoms traced to the same two compounding causes in
+ * `ToggleGroup.tsx`'s own per-item styles, not to anything in this file --
+ * `left: 0` here resolves against the owning item's PADDING box (CSS
+ * Positioned Layout spec), so as long as that item still had ANY left
+ * border WIDTH (even a fully transparent one), the divider sat inset from
+ * the item's own true visible edge; and a now-obsolete `marginLeft: -1px`
+ * + `zIndex: selected ? 1 : 0` overlap trick (left over from when every
+ * side drew a real, full-color border that needed collapsing with its
+ * neighbor's) meant whichever item had the higher z-index could paint
+ * clean over the LOWER z-index item's own divider entirely, regardless of
+ * exactly where it sat. Fixed at the source, not by further adjusting
+ * this rule's own `left` value -- confirmed empirically that patching the
+ * offset here alone fixes one seam combination and silently breaks
+ * another, since the two root causes don't fail the same way in every
+ * combination.
  */
 const CHOICE_SEPARATOR_STYLE_ID = 'toolcrib-choice-separator';
 function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string): void {
