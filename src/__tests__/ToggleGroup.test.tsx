@@ -62,6 +62,40 @@ describe('ToggleGroup Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  // Regression: type="single" renders role="radiogroup", but Radix's own
+  // underlying value model is still a plain toggle -- clicking the
+  // currently-selected option calls its own onItemDeactivate, setting the
+  // value to '' (fully deselected). Valid for type="multiple" (an
+  // independent toggle CAN have none pressed) but a real WAI-ARIA
+  // violation for type="single" (a radiogroup must always have exactly one
+  // option checked once initialized) -- and, found via a real "Too many
+  // re-renders" crash in a live consumer (DataTable's own density
+  // selector), genuinely dangerous: an empty selected value cascading into
+  // a downstream `Record<string, number>` lookup returning `undefined`,
+  // then `NaN`, then an infinite render loop once a render-time state
+  // guard's `!==` comparison can never stabilize (NaN !== NaN is always
+  // true in JS). Re-clicking the already-selected option must be a no-op
+  // that keeps it selected, not a deselect.
+  it('type="single": clicking the already-selected option is a no-op, not a deselect (regression)', () => {
+    const onChange = vi.fn();
+    render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Left' }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('radio', { name: 'Left' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('type="multiple": clicking the only pressed option DOES deselect it -- toggles, unlike single mode', () => {
+    const onChange = vi.fn();
+    render(<ToggleGroup name="format" type="multiple" defaultValue={['left']} options={options} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Left' }));
+
+    expect(onChange).toHaveBeenCalledWith([]);
+    expect(screen.getByRole('button', { name: 'Left' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   // Regression: an interior choice separator (the theme/choiceSeparator.ts
   // ::before accent) used to sit on top of an identically-colored,
   // full-height border every item ALSO drew on every side -- reported

@@ -1006,20 +1006,19 @@ export const App: React.FC = () => {
       title: 'Status',
       width: 110,
       sortable: true,
+      // Uses toolcrib's own <Badge size="sm"> (issue: a hand-rolled fixed-
+      // padding/font-size pill here didn't shrink with row density the way
+      // every other cell's content does -- at density="compact" its real
+      // ~26px height exceeded that density's own ~23px per-row budget,
+      // contributing to the same scrollbar-despite-Auto-page-size bug
+      // <DataTable>'s own rowCommands buttons had (see
+      // DENSITY_ROW_COMMAND_BUTTON_PX's comment in DataTableSlice.tsx).
+      // Badge's own size="sm" is already comfortably within every
+      // density's budget, so this needs no density-awareness of its own.
       render: ({ value: val }) => (
-        <span
-          style={{
-            padding: '0.2rem 0.5rem',
-            borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            background: val === 'Active' ? 'var(--ai-subtheme-success-bg)' : val === 'Pending' ? 'var(--ai-subtheme-warning-bg)' : 'var(--ai-subtheme-error-bg)',
-            color: val === 'Active' ? 'var(--ai-subtheme-success-text)' : val === 'Pending' ? 'var(--ai-subtheme-warning-text)' : 'var(--ai-subtheme-error-text)',
-            border: `0.0625rem solid ${val === 'Active' ? 'var(--ai-subtheme-success-border)' : val === 'Pending' ? 'var(--ai-subtheme-warning-border)' : 'var(--ai-subtheme-error-border)'}`,
-          }}
-        >
+        <Badge subtheme={val === 'Active' ? 'success' : val === 'Pending' ? 'warning' : 'error'} size="sm">
           {val as string}
-        </span>
+        </Badge>
       ),
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
