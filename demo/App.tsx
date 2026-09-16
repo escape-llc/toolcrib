@@ -95,6 +95,8 @@ import {
   Sparkline,
   Heatmap,
   ScaleLegend,
+  useAdaptiveSize,
+  SPLITTER_HANDLE_SIZE_REM,
 } from '#toolcrib';
 
 // Ambient, erased at compile time (`declare const` emits zero runtime
@@ -785,9 +787,69 @@ export const App: React.FC = () => {
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
   const [dashboardDimension, setDashboardDimension] = useState('all');
   const [eventLogCollapsed, setEventLogCollapsed] = useState(false);
-  // MAIN_SPLITTER_ID/MAIN_SPLITTER_MIN_SIZE below give the "collapse the
-  // event log" button a stable target: Splitter has no controlled/ref prop
-  // for its split ratio, but it listens for `splitter:split_changed` on
+  // Real measurements, not the fixed MAIN_SPLITTER_MIN_SIZE percentage --
+  // reported directly, from a real screenshot: at some real viewport
+  // heights, a fixed 5% resolved to fewer pixels than the toolbar's own
+  // natural height, and Splitter's second-panel wrapper clips anything
+  // taller than its allocated slice (`overflow: hidden`), cutting the
+  // toolbar off instead of showing it in full. A percentage can only ever
+  // be "small enough" for ONE specific container height by luck -- it has
+  // no way to track a real pixel target as the viewport actually varies.
+  // mainSplitterContainerRef wraps the whole <Splitter> below (Splitter
+  // itself doesn't forward a ref); eventLogToolbarRef wraps just the
+  // toolbar row inside the bottom panel's Card.Header, which stays
+  // mounted (and therefore measured) regardless of eventLogCollapsed,
+  // since only Card.Content is conditionally omitted below, not the
+  // header -- so a fresh, accurate height is already on hand the instant
+  // Collapse is clicked, never a stale/zero reading from the first frame.
+  const mainSplitterContainerRef = useRef<HTMLDivElement>(null);
+  const eventLogToolbarRef = useRef<HTMLDivElement>(null);
+  const { height: mainSplitterContainerHeight } = useAdaptiveSize(mainSplitterContainerRef);
+  const { height: eventLogToolbarHeight } = useAdaptiveSize(eventLogToolbarRef);
+  // The exact percentage the toolbar's real height occupies of the whole
+  // Splitter, recomputed live from both measurements -- correct at any
+  // viewport height/zoom level, not tuned for one. Falls back to the old
+  // fixed constant only before the first real ResizeObserver report (both
+  // heights still 0). Math.min caps it well under Splitter's own 50%
+  // ceiling (see its commitSplit: `100 - minSize` must stay above
+  // `minSize`) as a defensive guard against a degenerate, very-short
+  // container -- never expected to bind in practice for a normal toolbar.
+  //
+  // halfHandlePx must be ADDED to the toolbar's own measured height before
+  // converting to a percentage -- Splitter itself subtracts exactly this
+  // much (half its resize handle's fixed width) from whatever percentage
+  // a consumer requests, to keep its own two panels' combined size
+  // consistent with the real container (see SPLITTER_HANDLE_SIZE_REM's
+  // own comment in Splitter.tsx for the full reasoning). Omitting this
+  // compensation was confirmed directly, via a real Playwright
+  // measurement, to land 5px short of the real toolbar height -- small
+  // enough to still clip a couple of pixels off the toolbar, not just a
+  // rounding nicety. `getComputedStyle` reads the real root font-size
+  // rather than assuming the common 16px default, since rem-to-px is only
+  // ever exact when measured, not assumed -- this toolkit's own theme
+  // system doesn't change the root font-size today, but nothing about
+  // this calculation should silently start drifting if a future one did.
+  // A lazy useState initializer, guarded with `typeof document ===
+  // 'undefined'` -- cli/integration-test/run-nextjs-fixture.mjs statically
+  // prerenders this exact file server-side (see __COMMIT_HASH__'s own
+  // comment a few lines up for the identical class of bug this file
+  // already hit once), and `document` doesn't exist during that pass.
+  // React still invokes a lazy initializer during SSR (only real effects
+  // are skipped there, not this), so the explicit typeof guard -- not the
+  // useState wrapping by itself -- is what's actually load-bearing here;
+  // useState just means the (cheap, one-time) computation only runs once
+  // per mount rather than every render.
+  const [rootFontSizePx] = useState(() =>
+    typeof document === 'undefined' ? 16 : parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  );
+  const halfHandlePx = (SPLITTER_HANDLE_SIZE_REM / 2) * rootFontSizePx;
+  const measuredMinSize =
+    mainSplitterContainerHeight > 0 && eventLogToolbarHeight > 0
+      ? Math.min(40, ((eventLogToolbarHeight + halfHandlePx) / mainSplitterContainerHeight) * 100)
+      : MAIN_SPLITTER_MIN_SIZE;
+  // MAIN_SPLITTER_ID/measuredMinSize above give the "collapse the event
+  // log" button a stable target: Splitter has no controlled/ref prop for
+  // its split ratio, but it listens for `splitter:split_changed` on
   // aiBus, matched by its own `id`, exactly the way Modal/Collapsible are
   // already commanded by their own `id` -- driving it here is the same
   // pattern the rest of this toolkit already uses for cross-component
@@ -797,10 +859,22 @@ export const App: React.FC = () => {
   const toggleEventLogCollapsed = () => {
     aiBus.emit('splitter:split_changed', {
       id: MAIN_SPLITTER_ID,
-      split: eventLogCollapsed ? MAIN_SPLITTER_INITIAL_SPLIT : 100 - MAIN_SPLITTER_MIN_SIZE,
+      split: eventLogCollapsed ? MAIN_SPLITTER_INITIAL_SPLIT : 100 - measuredMinSize,
     });
     setEventLogCollapsed(v => !v);
   };
+  // Keeps the collapsed height pixel-exact if the window is resized WHILE
+  // already collapsed -- the emit above (immediate, on click) uses
+  // whatever measuredMinSize already is at that instant, but a percentage
+  // committed to Splitter stays fixed at that number afterward; without
+  // this, resizing the window post-collapse would reintroduce the same
+  // clipping/gap bug this whole change exists to close, just delayed
+  // until the next resize instead of visible immediately.
+  useEffect(() => {
+    if (!eventLogCollapsed) return;
+    if (mainSplitterContainerHeight <= 0 || eventLogToolbarHeight <= 0) return;
+    aiBus.emit('splitter:split_changed', { id: MAIN_SPLITTER_ID, split: 100 - measuredMinSize });
+  }, [eventLogCollapsed, mainSplitterContainerHeight, eventLogToolbarHeight, measuredMinSize]);
 
   // Data-driven for <CommandPalette> — grouped, each entry either jumps to
   // a tab (closing over setActiveTab, the same controlled hook above) or
@@ -1087,7 +1161,13 @@ export const App: React.FC = () => {
 
       {/* Main Content Area with Resizable Splitter */}
       <AppShell.Main>
-        <Splitter id={MAIN_SPLITTER_ID} orientation="vertical" initialSplit={MAIN_SPLITTER_INITIAL_SPLIT} minSize={MAIN_SPLITTER_MIN_SIZE}>
+        {/* Splitter doesn't forward a ref of its own -- this wrapper exists
+            solely so mainSplitterContainerRef (above) can measure its real
+            height for the event-log collapse fix. No other styling
+            purpose; height:100%/width:100% just pass through what
+            AppShell.Main already gives Splitter directly today. */}
+        <div ref={mainSplitterContainerRef} style={{ height: '100%', width: '100%' }}>
+        <Splitter id={MAIN_SPLITTER_ID} orientation="vertical" initialSplit={MAIN_SPLITTER_INITIAL_SPLIT} minSize={measuredMinSize}>
           {/* Top Panel: Interactive Component Playground */}
           {/* <Content> fills the Splitter.Panel and establishes the flex
               domain; unlike a plain div (or VStack, which doesn't declare
@@ -3070,6 +3150,12 @@ export const App: React.FC = () => {
           <Splitter.Panel squareCorners="top">
             <Card layout="auto" squareCorners="top">
               <Card.Header paddingMode="compact">
+                {/* Card.Header doesn't forward a ref of its own -- this
+                    wrapper exists solely so eventLogToolbarRef (above) can
+                    measure the toolbar's real, unclipped height for the
+                    collapse fix. Plain block div, no styling of its own, so
+                    it doesn't change Toolbar's own layout at all. */}
+                <div ref={eventLogToolbarRef}>
                 <Toolbar>
                   <Toolbar.Left>
                     <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
@@ -3140,6 +3226,7 @@ export const App: React.FC = () => {
                     </UIGroup>
                   </Toolbar.Right>
                 </Toolbar>
+                </div>
               </Card.Header>
               {/* Omitted entirely (not just hidden) while collapsed --
                   Splitter's own minSize floor still leaves a couple of
@@ -3176,6 +3263,7 @@ export const App: React.FC = () => {
             </Card>
           </Splitter.Panel>
         </Splitter>
+        </div>
       </AppShell.Main>
       </AppShell>
     </>
