@@ -217,6 +217,8 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
         const isLast = index === options.length - 1;
         const itemDisabled = disabled || opt.disabled;
 
+        const borderColor = selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)';
+
         return (
           <ToggleGroupPrimitive.Item
             key={opt.value}
@@ -229,21 +231,37 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
               justifyContent: 'center',
               gap: 'var(--ai-toggle-gap, 0.375rem)',
               padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
-              // Plain shorthand -- the interior choice divider (a short,
-              // inset vertical rule marking the seam between adjacent
-              // options, distinct from the strip's own true outer edge;
-              // reported directly, from a real screenshot, that the
-              // absence of any such marker read as ambiguous) now lives
-              // entirely in a separate ::before rule
-              // (useInjectChoiceSeparatorStyles, theme/choiceSeparator.ts)
-              // rather than a per-side border-color override, so every
-              // side of THIS element's own border uses the identical,
-              // ordinary value again -- no shorthand/longhand mixing to
-              // worry about (see AGENTS.md's own borderRadius-shorthand
-              // entry for why that combination is a real React warning,
-              // not just a style nit, confirmed directly here too before
-              // this simplification).
-              border: `0.0625rem solid ${selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+              // Regression, reported directly: the ::before divider below
+              // used to sit on top of an identically-colored, full-height
+              // border that every item ALSO drew on every side (the
+              // previous version of this comment's own "plain shorthand"
+              // approach) -- since interior seams already had a continuous,
+              // full-height, border-colored line from the adjacent items'
+              // own collapsed borders, painting a same-color half-height
+              // accent on top of it was a visual no-op (confirmed: "had to
+              // zoom in 4 times to see it"). The real fix has to remove
+              // that competing line, not just add another one next to it --
+              // only a genuine OUTER edge (first item's left side, last
+              // item's right side, every item's top/bottom) draws a real
+              // border; an INTERIOR seam (the side touching a neighbor)
+              // is transparent, so the ::before accent is the ONLY mark
+              // there, with nothing behind it to blend into. All four
+              // sides use explicit longhands unconditionally (never a
+              // shorthand mixed with a sometimes-different longhand) --
+              // see AGENTS.md's own borderRadius-shorthand entry for why
+              // that combination is a real React warning, not a style nit.
+              borderTopWidth: '0.0625rem',
+              borderBottomWidth: '0.0625rem',
+              borderLeftWidth: '0.0625rem',
+              borderRightWidth: '0.0625rem',
+              borderTopStyle: 'solid',
+              borderBottomStyle: 'solid',
+              borderLeftStyle: 'solid',
+              borderRightStyle: 'solid',
+              borderTopColor: borderColor,
+              borderBottomColor: borderColor,
+              borderLeftColor: isFirst ? borderColor : 'transparent',
+              borderRightColor: isLast ? borderColor : 'transparent',
               borderTopLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
               borderTopRightRadius: isLast ? 'var(--ai-radius-md, 0.375rem)' : 0,

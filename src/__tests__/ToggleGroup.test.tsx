@@ -62,6 +62,42 @@ describe('ToggleGroup Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  // Regression: an interior choice separator (the theme/choiceSeparator.ts
+  // ::before accent) used to sit on top of an identically-colored,
+  // full-height border every item ALSO drew on every side -- reported
+  // directly, after that fix shipped, as still barely visible ("had to
+  // zoom in 4 times"). The actual fix is that an interior seam (the side
+  // touching a neighbor) must draw NO real border at all -- only a
+  // genuine outer edge (first item's left, last item's right, every
+  // item's top/bottom) does -- so the accent is the only mark there. This
+  // is exactly the shape a screenshot review can't easily catch again
+  // (both "same color, full height" and "same color, half height,
+  // nothing competing" look identical in a DOM/style dump unless you
+  // specifically assert on transparency at the interior sides) -- so it's
+  // asserted directly here, not just eyeballed.
+  it('draws a real border only at the strip\'s true outer edges, transparent at interior seams', () => {
+    render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={vi.fn()} />);
+
+    const left = screen.getByRole('radio', { name: 'Left' }); // first item
+    const center = screen.getByRole('radio', { name: 'Center' }); // middle item
+    const right = screen.getByRole('radio', { name: 'Right' }); // last item
+
+    // True outer edges: colored.
+    expect(left.style.borderLeftColor).not.toBe('transparent');
+    expect(right.style.borderRightColor).not.toBe('transparent');
+    // Top/bottom are always a real outer edge, on every item.
+    for (const item of [left, center, right]) {
+      expect(item.style.borderTopColor).not.toBe('transparent');
+      expect(item.style.borderBottomColor).not.toBe('transparent');
+    }
+
+    // Interior seams: transparent, so the ::before accent is the only mark.
+    expect(left.style.borderRightColor).toBe('transparent');
+    expect(center.style.borderLeftColor).toBe('transparent');
+    expect(center.style.borderRightColor).toBe('transparent');
+    expect(right.style.borderLeftColor).toBe('transparent');
+  });
+
   it('type="multiple": options toggle independently and emits togglegroup:changed', () => {
     const changedFn = vi.fn();
     const onChange = vi.fn();
