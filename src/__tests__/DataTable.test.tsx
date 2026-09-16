@@ -124,16 +124,23 @@ describe('DataTable Virtualized Component', () => {
     // (it's what a consumer's very first render shows before the
     // ResizeObserver's first real report arrives), not just a test
     // convenience -- worth asserting directly regardless.
-    it('falls back to Math.floor(AUTO_HEIGHT_FALLBACK_PX / itemHeight) before any real measurement arrives', () => {
-      // Default itemHeight (normal density) is 44 -- Math.floor(350/44) = 7.
+    it('falls back to Math.floor((AUTO_HEIGHT_FALLBACK_PX - headerHeight) / itemHeight) before any real measurement arrives', () => {
+      // Default itemHeight (normal density) is 44; normal's own header
+      // height (DENSITY_HEADER_HEIGHT_PX.normal) is 45 -- the sticky
+      // <thead> is a normal-flow child of the same measured box, so its
+      // own space has to come out of the total before dividing by
+      // itemHeight, or the page overcounts by one whole row (a real,
+      // previously-shipped bug: a live scrollbar despite "Auto" claiming
+      // an exact fit -- see DENSITY_HEADER_HEIGHT_PX's own comment).
+      // Math.floor((350 - 45) / 44) = 6.
       render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" />);
-      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+      expect(screen.getByText('Showing 1 to 6 of 50 entries')).toBeInTheDocument();
     });
 
     it('respects an explicit itemHeight in the same fallback computation', () => {
-      // Math.floor(350/35) = 10.
+      // Math.floor((350 - 45) / 35) = 8.
       render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" itemHeight={35} />);
-      expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+      expect(screen.getByText('Showing 1 to 8 of 50 entries')).toBeInTheDocument();
     });
 
     it('shows the page-size dropdown with "Auto" selected, not hidden (issue #419)', () => {
@@ -148,12 +155,12 @@ describe('DataTable Virtualized Component', () => {
 
   describe('page-size dropdown "Auto" option (issue #419)', () => {
     it('defaults to "auto" when defaultPageSize is omitted entirely', () => {
-      // Math.floor(AUTO_HEIGHT_FALLBACK_PX / itemHeight) = Math.floor(350/44) = 7,
-      // same fallback computation as the describe block above -- proving
-      // the *default* (no defaultPageSize prop at all) is now 'auto', not
-      // the old fixed 10.
+      // Math.floor((AUTO_HEIGHT_FALLBACK_PX - headerHeight) / itemHeight) =
+      // Math.floor((350 - 45) / 44) = 6, same fallback computation as the
+      // describe block above -- proving the *default* (no defaultPageSize
+      // prop at all) is now 'auto', not the old fixed 10.
       render(<DataTable data={testData} columns={testColumns} />);
-      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+      expect(screen.getByText('Showing 1 to 6 of 50 entries')).toBeInTheDocument();
       expect((screen.getByLabelText('Rows per page') as HTMLSelectElement).value).toBe('auto');
     });
 
@@ -163,8 +170,8 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByText('Showing 11 to 20 of 50 entries')).toBeInTheDocument();
 
       fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: 'auto' } });
-      // Back to page 1, now sized via the auto fallback computation (7 rows).
-      expect(screen.getByText('Showing 1 to 7 of 50 entries')).toBeInTheDocument();
+      // Back to page 1, now sized via the auto fallback computation (6 rows).
+      expect(screen.getByText('Showing 1 to 6 of 50 entries')).toBeInTheDocument();
       expect((screen.getByLabelText('Rows per page') as HTMLSelectElement).value).toBe('auto');
     });
 
@@ -187,7 +194,7 @@ describe('DataTable Virtualized Component', () => {
 
       fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: 'auto' } });
 
-      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 7 }));
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 6 }));
       unsub();
     });
   });
@@ -1704,6 +1711,28 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
       expect(screen.getByRole('radio', { name: 'Spacious' })).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByRole('radio', { name: 'Normal' })).toHaveAttribute('aria-checked', 'false');
+    });
+
+    // Regression: composing <ToggleGroup> (a real role="radiogroup") for
+    // density means clicking the ALREADY-selected option used to call
+    // Radix's own onItemDeactivate, setting density to '' -- an invalid
+    // TableDensity that made DENSITY_ROW_HEIGHT_PX[''] resolve to
+    // `undefined`, itemHeight become `undefined`, and (with
+    // defaultPageSize="auto") an eventual NaN pageSize crash the whole
+    // component with "Too many re-renders" -- a real, confirmed crash in a
+    // live browser, not a theoretical edge case. Fixed at the source
+    // (ToggleGroup.tsx's own handleValueChange ignores an empty-string
+    // deselect in type="single" mode), verified here at the actual
+    // consumption site so a future regression can't silently reintroduce
+    // the crash.
+    it('re-clicking the already-selected density option is a no-op, not a crash (regression)', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" densitySelector />);
+
+      expect(() => fireEvent.click(screen.getByRole('radio', { name: 'Normal' }))).not.toThrow();
+      expect(screen.getByRole('radio', { name: 'Normal' })).toHaveAttribute('aria-checked', 'true');
+      // The table itself is still there, still rendering real rows -- not
+      // an unmounted/crashed tree.
+      expect(screen.getByRole('grid')).toBeInTheDocument();
     });
 
     it('supports a controlled density, calling onDensityChange instead of managing its own state', () => {

@@ -194,6 +194,26 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   const outerCornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
   const handleValueChange = (next: string | string[]) => {
+    // type="single" renders role="radiogroup" (Radix's own
+    // ToggleGroupImplSingle), but Radix's underlying value model is still a
+    // plain toggle, not a true radio: clicking the currently-selected
+    // option calls its own onItemDeactivate, which sets the value to ''
+    // (fully deselected) -- valid, ordinary behavior for `type="multiple"`
+    // (a toolbar of independent toggles can legitimately have none
+    // pressed), but a real WAI-ARIA violation for `type="single"` (a
+    // radiogroup must always have exactly one option checked once
+    // initialized, never none) and, found the hard way via a real
+    // "Too many re-renders" crash, is genuinely dangerous downstream:
+    // DataTable's own density selector composes this exact shape, and an
+    // empty density string cascades into DENSITY_ROW_HEIGHT_PX[''] being
+    // undefined, itemHeight becoming undefined, and an eventual NaN
+    // entering a render-time state-adjustment guard whose `!==` comparison
+    // can never stabilize once either side is NaN (NaN !== NaN is always
+    // true in JS) -- an infinite loop, not a cosmetic glitch. Ignoring an
+    // empty-string deselect attempt in single mode keeps the previously
+    // selected option checked, matching true radio semantics for every
+    // consumer of this shape, not just DataTable's own.
+    if (type === 'single' && next === '') return;
     if (externalValue === undefined) setInternalValue(next);
     if (onChange) onChange(next);
     aiBus.emit('togglegroup:changed', { name, value: next });

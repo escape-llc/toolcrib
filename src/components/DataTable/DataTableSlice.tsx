@@ -116,6 +116,68 @@ export const DENSITY_ROW_HEIGHT_PX: Record<TableDensity, number> = {
   ),
 };
 
+/**
+ * The `<thead>`'s own real height in pixels -- needed by `<DataTable>`'s
+ * `computeAutoPageSize` (`defaultPageSize="auto"`) to subtract the sticky
+ * header's own space from the measured body container before dividing by
+ * `itemHeight`, since a sticky header is still a normal-flow child of that
+ * same scrollable box. Computed the same way `DENSITY_ROW_HEIGHT_PX` itself
+ * is -- text line-height plus this density's own scaled header padding --
+ * deliberately NOT a live `ResizeObserver` measurement: an earlier version
+ * measured `<thead>` live and caused a real, confirmed infinite-render-loop
+ * crash, because the resulting height fed back into `effectivePageSize`,
+ * which feeds `<DataTable>`'s own `resetKey`, which remounts the row set on
+ * change -- a measure -> pageSize change -> remount -> re-measure cycle the
+ * instant a freshly-measured height differed from the previous one by even
+ * a sub-pixel. The header's real height has no legitimate reason to depend
+ * on row count/pageSize at all (only column-title text + density-scaled
+ * padding), so computing it algebraically sidesteps that feedback path
+ * structurally instead of trying to dampen it.
+ */
+export const DENSITY_HEADER_HEIGHT_PX: Record<TableDensity, number> = {
+  compact: TEXT_LINE_HEIGHT_PX + 2 * scalePaddingPx(NORMAL_HEADER_PADDING_PX[0], 'compact'),
+  normal: TEXT_LINE_HEIGHT_PX + 2 * scalePaddingPx(NORMAL_HEADER_PADDING_PX[0], 'normal'),
+  spacious: TEXT_LINE_HEIGHT_PX + 2 * scalePaddingPx(NORMAL_HEADER_PADDING_PX[0], 'spacious'),
+};
+
+/**
+ * `rowCommands`' own per-row action buttons (`<DataTable>`'s trailing
+ * actions column) were a FIXED `1.75rem` (28px) at every density -- never
+ * scaled down the way cell padding/row height already are. Reported
+ * directly, with a screenshot: switching to `defaultPageSize="auto"` at
+ * `density="compact"` showed a real, live vertical scrollbar even though
+ * "Auto" is supposed to compute an exact-fit page size. Root cause,
+ * confirmed by measuring real rendered cells in a live browser (not just
+ * read from source): at `compact`, `DENSITY_ROW_HEIGHT_PX.compact` (31px)
+ * minus its own real vertical cell padding (2 * 4px = 8px) leaves only
+ * 23px of content budget per cell -- but the row-commands column's action
+ * buttons still rendered at their fixed 28px, forcing every row with
+ * `rowCommands` to actually render ~6px taller than its own declared
+ * `itemHeight`. `computeAutoPageSize` (`DataTable.tsx`) has no way to know
+ * that -- it multiplies the DECLARED `itemHeight` by a row count to decide
+ * how many rows fit, so real rows silently running taller than that,
+ * accumulated across every visible row, is exactly what overflowed the
+ * container and produced the scrollbar. This wasn't compact-specific in
+ * principle (the same fixed 28px also exceeds `normal`'s own budget once
+ * its real padding is subtracted -- `44 - 2*10 = 24px < 28px`), just far
+ * enough under compact's much tighter budget, AND compact fits more rows
+ * per given height in the first place, for the accumulated overflow to
+ * actually cross the threshold into a visible scrollbar.
+ *
+ * Derived the same way `DENSITY_ROW_HEIGHT_PX` itself avoids drifting
+ * out of sync with its own floor -- computed FROM that density's real
+ * budget (`Math.min` against the historical 28px target), not a second,
+ * independently-hand-picked number that could silently fall out of sync
+ * with it again. The `- 2` is a small deliberate safety margin, the same
+ * reasoning `CONTENT_VERTICAL_SAFETY_PX` above already uses for text.
+ */
+const ROW_COMMAND_BUTTON_TARGET_PX = 28;
+export const DENSITY_ROW_COMMAND_BUTTON_PX: Record<TableDensity, number> = {
+  compact: Math.min(ROW_COMMAND_BUTTON_TARGET_PX, DENSITY_ROW_HEIGHT_PX.compact - 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'compact') - 2),
+  normal: Math.min(ROW_COMMAND_BUTTON_TARGET_PX, DENSITY_ROW_HEIGHT_PX.normal - 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'normal') - 2),
+  spacious: Math.min(ROW_COMMAND_BUTTON_TARGET_PX, DENSITY_ROW_HEIGHT_PX.spacious - 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'spacious') - 2),
+};
+
 export interface TableSliceState {
   density: TableDensity;
   borderStyle: TableBorderStyle;

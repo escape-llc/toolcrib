@@ -25,7 +25,7 @@ import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../t
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
-import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX } from './DataTableSlice';
+import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX } from './DataTableSlice';
 import { columnsToCsv, downloadCsvFile } from './csvExport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
@@ -654,6 +654,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     : overrides?.density ?? DataTableThemeSlice.defaultState.density;
   const mergedOverrides = densityFeatureActive ? { ...overrides, density: liveDensity } : overrides;
   const itemHeight = explicitItemHeight ?? DENSITY_ROW_HEIGHT_PX[effectiveDensity];
+  // rowCommands' own action buttons must fit within THIS density's real
+  // per-row content budget -- see DENSITY_ROW_COMMAND_BUTTON_PX's own
+  // comment (DataTableSlice.tsx) for the real, screenshot-confirmed
+  // overflow this closes. `explicitItemHeight` (a consumer-supplied fixed
+  // row height, not density-derived) has no matching per-density budget of
+  // its own, so it keeps the original, unscaled 28px rather than guessing
+  // at a fit against a row height this table didn't choose.
+  const rowCommandButtonSizePx = explicitItemHeight ? 28 : DENSITY_ROW_COMMAND_BUTTON_PX[effectiveDensity];
   const { vars } = useSliceOverrides(DataTableThemeSlice, mergedOverrides);
   // Row-level borders below are set directly in JS (not through
   // --ai-table-border, which only reaches the cells' borderRight — see that
@@ -761,23 +769,56 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // by the time onPageChange reads it, regardless of React's batching.
   const bodyRef = useRef<HTMLDivElement>(null);
   const { height: observedHeight } = useAdaptiveSize(bodyRef);
+  // The sticky <thead> is a normal-flow child of bodyRef's own scrollable
+  // div (sticky positioning keeps an element in-flow, unlike absolute/
+  // fixed -- it only changes how it's positioned once scrolled past, not
+  // whether it occupies real space before that). observedHeight measures
+  // bodyRef's WHOLE box, header included, so subtracting the header's own
+  // real height here is what's actually left over for body rows -- without
+  // it, computeAutoPageSize overcounts by however tall the header is,
+  // reliably producing one row too many and a real (if often small)
+  // vertical scrollbar despite "Auto" claiming an exact fit. Found via the
+  // same investigation as DENSITY_ROW_COMMAND_BUTTON_PX's own bug (both
+  // surfaced by the identical repro -- defaultPageSize="auto" at
+  // density="compact" -- but this one is a distinct root cause: it's
+  // fully independent of row content, driven purely by the header's own
+  // height never being accounted for at all).
+  //
+  // A LIVE `useAdaptiveSize(theadRef)` measurement was tried first and
+  // caused a real, confirmed infinite-render-loop crash ("Too many
+  // re-renders"), not just a theoretical risk -- `effectivePageSize`
+  // (downstream of this value) feeds `resetKey` a few lines down, which
+  // remounts the virtualized row set on change; a live-measured header
+  // height that itself depends on that same render cycle closes a
+  // measure -> resize-event -> pageSize change -> resetKey change ->
+  // remount -> re-measure loop the instant the freshly-measured height
+  // differs from the previous one by even a sub-pixel. The header's real
+  // height has no legitimate reason to depend on row count/pageSize at
+  // all (it's driven by column-title text + padding, both density-only
+  // concerns), so a plain computed constant -- the same
+  // Math.max/`TEXT_LINE_HEIGHT_PX`-plus-padding approach
+  // `DENSITY_ROW_HEIGHT_PX` itself already uses -- sidesteps the whole
+  // feedback path structurally rather than trying to dampen it.
+  const headerHeight = DENSITY_HEADER_HEIGHT_PX[effectiveDensity];
 
   // defaultPageSize="auto" / the dropdown's own "Auto" option (issue #364,
   // #419): reuses the exact same live measurement that already drives
-  // containerHeight="auto" -- Math.floor(<real body height> / itemHeight)
-  // fills a page with exactly as many rows as fit, recomputing whenever
-  // the container resizes or density changes itemHeight. Falls back to
-  // AUTO_HEIGHT_FALLBACK_PX (the same constant useTableVirtualization
-  // itself falls back to) before the very first ResizeObserver report, so
-  // the initial render isn't a jarring 0-row page. Math.max(1, ...) guards
-  // a pathologically short/hidden container from computing a page size of
+  // containerHeight="auto" -- Math.floor(<real body height minus the
+  // header's own height> / itemHeight) fills a page with exactly as many
+  // rows as fit, recomputing whenever the container resizes or density
+  // changes itemHeight (density changes the header's own height too, via
+  // DENSITY_HEADER_HEIGHT_PX). Falls back to AUTO_HEIGHT_FALLBACK_PX (the
+  // same constant useTableVirtualization itself falls back to) before the
+  // very first ResizeObserver report, so the initial render isn't a
+  // jarring 0-row page. Math.max(1, ...) guards a pathologically short/
+  // hidden container from computing a page size of
   // 0 (no rows would ever be reachable). Factored into a named function,
   // not inlined only where effectivePageSize needs it -- the dropdown's
   // own onChange handler below also needs this exact value synchronously,
   // the moment a user switches TO "Auto", for the same reason pageSizeRef
   // has to be written before goToPage runs (see that ref's own comment).
   const computeAutoPageSize = () =>
-    Math.max(1, Math.floor((observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) / itemHeight));
+    Math.max(1, Math.floor(Math.max(0, (observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) - headerHeight) / itemHeight));
   const effectivePageSize = isAutoPageSize ? computeAutoPageSize() : pageSize;
 
   const pageSizeRef = useRef(effectivePageSize);
@@ -2099,8 +2140,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '1.75rem',
-                                    height: '1.75rem',
+                                    width: `${rowCommandButtonSizePx}px`,
+                                    height: `${rowCommandButtonSizePx}px`,
                                     borderRadius: 'var(--ai-radius-sm, 0.25rem)',
                                     cursor: 'pointer',
                                     color: 'var(--ai-text-secondary, #6b7280)',
