@@ -155,11 +155,27 @@ jobs:
 
       - name: Run Gemini review (read_file only -- no shell, no write, no other tool)
         id: gemini_review
-        # Never fails the job even if the API errors/times out/rate-limits --
-        # this check is best-effort by design (see this file's own header
-        # comment) and must never render as a red X, or it starts looking
-        # like flaky required CI on every single PR.
-        continue-on-error: true
+        # Updated 2026-09-16: deliberately fails the job on a genuine
+        # tool/API-level error (quota, auth, infra, timeout) -- this step
+        # used to have `continue-on-error: true` here, on the reasoning
+        # that this check is best-effort and must never render as a red X.
+        # That was right for Gemini's own free-text judgment (a "nothing
+        # to flag" review or a real finding both still complete this step
+        # successfully -- disagreeing with Gemini, or Gemini finding
+        # nothing, is never a failure and never will be), but wrong for
+        # the case a human reviewer flagged directly: an API hiccup used
+        # to produce the exact same green check as "reviewed, nothing to
+        # flag," with nothing distinguishing the two. `review` is a
+        # REQUIRED status check (see this file's header comment) precisely
+        # so a review has actually run and is readable before merge can
+        # complete -- silently succeeding on a hiccup defeats that
+        # guarantee the same way the incident that made this check
+        # required in the first place did (a green check with nothing
+        # real behind it). Failing loud here is what preserves it: either
+        # the review ran and is readable, or merge is blocked until
+        # someone looks (retry, or an explicit, visible override
+        # decision) -- never a silent pass-through. See the trailing
+        # "Surface why..." step below for the actual failed-run message.
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -220,6 +236,20 @@ jobs:
         run: |
           gh pr comment "${{ github.event.pull_request.number }}" --body-file "${RUNNER_TEMP}/review-comment.md"
 
-      - name: Note a skipped/failed review without failing the job
-        if: steps.gemini_review.outcome != 'success'
-        run: echo "Gemini review did not complete successfully this run (outcome=${{ steps.gemini_review.outcome }}) -- no comment posted. Not failing the job; this check is best-effort by design."
+      # Needs `always()` explicitly -- confirmed against GitHub's own docs
+      # (a Gemini review on this exact PR caught this the first time
+      # around, real finding, not a false positive): a step's default `if`
+      # is `success()`, and a CUSTOM `if:` condition does NOT override that
+      # default on its own just by referencing `outcome` -- only an actual
+      # status-check function (`always()`, `failure()`, `cancelled()`,
+      # `success()`) does. Without `always()` here, this step would have
+      # been silently skipped after the step above fails, the exact same
+      # silent-failure shape this whole change exists to close. This step
+      # can't change the job's own conclusion (already 'failure' from the
+      # step above) -- it exists purely so the reason is legible at a
+      # glance (a GitHub-native ::error:: annotation, surfaced directly on
+      # the PR's checks tab) instead of requiring a click into the raw
+      # Gemini CLI step's own log output to find out why.
+      - name: Surface why no review was posted, if the step above failed
+        if: always() && steps.gemini_review.outcome != 'success'
+        run: echo "::error::Gemini review step failed (outcome=${{ steps.gemini_review.outcome }}) -- no review posted, and this job is failing accordingly since 'review' is a required status check. See the 'Run Gemini review' step's own log above for the actual API/tool error. Retry the job once the underlying issue (quota, auth, infra) clears."
