@@ -45,6 +45,26 @@ describe('DataTable Virtualized Component', () => {
     expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
   });
 
+  it('jumps directly to the first/last page via the First/Last glyph buttons (issue #485)', async () => {
+    render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+
+    // Both First and Previous start disabled on page 1.
+    expect((screen.getByLabelText('First page') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Previous page') as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByLabelText('Last page'));
+    expect(screen.getByText('Showing 41 to 50 of 50 entries')).toBeInTheDocument();
+    // Both Next and Last are now disabled on the final page.
+    expect((screen.getByLabelText('Next page') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Last page') as HTMLButtonElement).disabled).toBe(true);
+    expect(await axe(document.body)).toHaveNoViolations();
+
+    fireEvent.click(screen.getByLabelText('First page'));
+    expect(screen.getByText('Showing 1 to 10 of 50 entries')).toBeInTheDocument();
+    expect((screen.getByLabelText('First page') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Previous page') as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('sorts columns on click', () => {
     render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
