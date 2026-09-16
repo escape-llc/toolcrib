@@ -24,6 +24,48 @@ import { useNonce } from '../../theme/nonceContext';
 
 const CORNER_SQUARING_STYLE_ID = 'toolcrib-corner-squaring';
 
+// The gutter/handle's own fixed cross-axis size (both orientations use the
+// same constant -- see its flex-basis below). Named here, not just inlined
+// at each of its two use sites, because a real bug (reported directly,
+// from a real screenshot) traced back to exactly this number needing to
+// be known in TWO places that used to disagree: the two panels' own
+// flex-basis percentages (below) summed to exactly 100% of the
+// container's height, leaving no room at all for this handle's own fixed
+// pixel footprint once laid out alongside them. Since the first panel has
+// flex-shrink:0 (`flex: 0 0 ...`) and only the second has flex-shrink:1
+// (`flex: 1 1 ...`), a flexbox container that's asked for more total
+// space than it has always resolves that shortfall entirely out of the
+// one item allowed to shrink -- so the SECOND panel silently lost this
+// handle's ENTIRE width on every single render, at every split ratio, not
+// just an edge case. Imperceptible at a typical panel size (a 787px-tall
+// panel losing 10px isn't visible), but catastrophic for anything sized
+// deliberately close to its own real content height -- confirmed directly
+// via a real Playwright measurement (demo/App.tsx's event-log collapse
+// button): a panel computed to exactly match its toolbar's real 28px
+// height rendered at 18px instead, clipping it, for precisely this
+// reason. Splitting the handle's footprint evenly between both panels
+// (below) is the standard fix for a fixed-size gutter between two
+// percentage-sized flex items -- both panels now correctly land at their
+// stated percentage of the REAL available space, not of a total that was
+// never actually all theirs to share.
+//
+// Exported (not module-private) because splitting the handle's footprint
+// evenly between the two panels only makes each panel's *reported*
+// percentage internally consistent with the others -- it does NOT make a
+// panel's real rendered pixel height equal `split% * containerHeight`
+// exactly, since half the handle's own size is still subtracted from
+// whichever panel a consumer is sizing. A consumer computing a split
+// percentage to fit a panel to a *specific measured pixel height* (e.g.
+// "collapse this panel to exactly its own toolbar's real height", demo/
+// App.tsx's own event-log collapse button) needs to add this same
+// half-handle offset back in before converting a target pixel height to a
+// percentage, or their own real result will fall short by exactly this
+// amount -- confirmed directly (not assumed) via the Playwright
+// measurement that found this whole bug in the first place.
+/** @barrelExport */
+export const SPLITTER_HANDLE_SIZE_REM = 0.625;
+const HALF_HANDLE_SIZE_REM = SPLITTER_HANDLE_SIZE_REM / 2;
+
 /**
  * Automatic corner-squaring for the two panels this Splitter renders,
  * expressed as attribute-selector CSS rather than the JS-computed inline
@@ -387,7 +429,7 @@ export const Splitter: React.FC<SplitterProps> & {
           data-ai-layout-slot="first"
           data-ai-layout-orientation={orientation}
           style={{
-            flex: `0 0 ${split}%`,
+            flex: `0 0 calc(${split}% - ${HALF_HANDLE_SIZE_REM}rem)`,
             width: '100%',
             height: isVertical ? undefined : '100%',
             boxSizing: 'border-box',
@@ -442,7 +484,7 @@ export const Splitter: React.FC<SplitterProps> & {
         }}
         className="ai-focus-ring"
         style={{
-          flex: '0 0 0.625rem',
+          flex: `0 0 ${SPLITTER_HANDLE_SIZE_REM}rem`,
           // Issue #402: accent, not primary -- a momentary "you're actively
           // dragging this" highlight is a genuinely different kind of
           // feedback than a persistent selected/checked identity state
@@ -481,7 +523,7 @@ export const Splitter: React.FC<SplitterProps> & {
           data-ai-layout-slot="second"
           data-ai-layout-orientation={orientation}
           style={{
-            flex: `1 1 ${100 - split}%`,
+            flex: `1 1 calc(${100 - split}% - ${HALF_HANDLE_SIZE_REM}rem)`,
             width: '100%',
             height: isVertical ? undefined : '100%',
             boxSizing: 'border-box',
