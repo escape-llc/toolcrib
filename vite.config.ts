@@ -2,6 +2,24 @@
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { execSync } from 'node:child_process';
+
+// Read once at config-eval time (same process either way -- `vite build`
+// and `vite dev` both just import this file), not per-request -- the
+// commit obviously can't change mid-process. Falls back to 'unknown'
+// rather than throwing: a shallow/gitless environment (a downloaded
+// tarball with no .git, e.g.) should still produce a working build, just
+// without this one label. actions/checkout's default shallow clone (depth
+// 1, used by deploy-demo.yml) still has a real HEAD to read, so the real
+// deploy always gets a real hash -- this fallback is for the case where
+// there's no .git at all, not for shallow-clone depth.
+function getCommitHash(): string {
+  try {
+    return execSync('git rev-parse --short=7 HEAD', { encoding: 'utf-8', cwd: import.meta.dirname }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 export default defineConfig(({ command }) => ({
   // GitHub Pages serves this repo's demo build at <org>.github.io/toolcrib/,
@@ -14,6 +32,14 @@ export default defineConfig(({ command }) => ({
   // Update the path here if the repo is ever renamed or moved to a
   // different org.
   base: command === 'build' ? '/toolcrib/' : '/',
+  // Read by demo/App.tsx's header -- see __COMMIT_HASH__'s own declaration
+  // in demo/vite-env.d.ts for why this needs a manual ambient type (Vite's
+  // own `define` doesn't generate one automatically). JSON.stringify wraps
+  // it as a string literal, matching how `define` replaces any identifier
+  // with a literal source expression, not a runtime value.
+  define: {
+    __COMMIT_HASH__: JSON.stringify(getCommitHash()),
+  },
   plugins: [react()],
   test: {
     globals: true,

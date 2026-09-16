@@ -953,6 +953,27 @@ export const App: React.FC = () => {
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
               React UI Component Package Tailored for AI Consumption
+              {/* Only useful once this is actually deployed (the GitHub
+                  Pages build, via deploy-demo.yml) -- a local dev server
+                  has `git status` one command away, but the deployed page
+                  has no local checkout to compare against, so there's no
+                  other way to tell "am I looking at the latest push" short
+                  of this. __COMMIT_HASH__ is a real vite.config.ts
+                  `define` replacement, not a runtime value -- see that
+                  file's own comment. */}
+              {__COMMIT_HASH__ !== 'unknown' && (
+                <>
+                  {' · '}
+                  <a
+                    href={`https://github.com/escape-llc/toolcrib/commit/${__COMMIT_HASH__}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'inherit' }}
+                  >
+                    {__COMMIT_HASH__}
+                  </a>
+                </>
+              )}
             </p>
           </div>
         </HStack>
