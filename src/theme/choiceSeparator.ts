@@ -119,6 +119,45 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * offset here alone fixes one seam combination and silently breaks
  * another, since the two root causes don't fail the same way in every
  * combination.
+ *
+ * A FIFTH gap, reported directly with a screenshot: "the separators are
+ * absolutely not the same thickness! is this a font attribute problem?
+ * one looks 'bold'" -- comparing the plain gray divider (unselected
+ * neighbors) against the `--ai-color-primary-text` divider (selected
+ * neighbor, from the fix above). First hypothesis was a stray
+ * `:focus-visible` ring visually interfering with an adjacent divider --
+ * disproven directly: a real mouse `.click()` (not `.focus()`, which
+ * doesn't reproduce Radix's roving-tabindex selection at all) reproduces
+ * the exact selected state with zero focus ring visible, and the
+ * thickness mismatch was still there. Actually measuring both dividers'
+ * computed style (`getComputedStyle(el, '::before')`, since a
+ * pseudo-element isn't reachable any other way) in the same rendered
+ * scene found byte-identical `width`/`left`/`top`/`bottom`/`borderWidth`
+ * for both -- the ONLY difference was `background-color`
+ * (`rgb(0,0,0)` vs. a mid-gray). This is a genuine anti-aliasing /
+ * color-contrast perceived-width effect, not a geometry bug: at a
+ * sub-2px width, a browser renders a pure-black line measurably "bolder"
+ * than a medium-gray line of the IDENTICAL pixel width, purely from how
+ * sub-pixel coverage gets anti-aliased against a higher-contrast color --
+ * matching the user's own correct intuition that this read as a
+ * font-weight-like effect despite `::before` having no text at all.
+ *
+ * Two changes together close the gap (confirmed via real screenshots
+ * across all three `<DataTable>` density-selector states -- Compact,
+ * Normal, and Spacious each selected in turn, covering both the
+ * self-selected and preceding-sibling-selected divider-ownership cases):
+ * widening from `0.09375rem` (1.5px) to `0.125rem` (2px) gives the
+ * anti-aliaser more real pixel coverage to work with (tried alone first --
+ * a real but insufficient improvement on its own), and blending the
+ * selected-adjacent divider's flat `--ai-color-primary-text` toward
+ * transparent via `color-mix(in srgb, ... 65%, transparent)` pulls its
+ * rendered contrast down enough to visually match the plain gray
+ * divider's weight, rather than reading as a near-pure-black line next to
+ * a mid-gray one. Still passes through the same `--ai-choice-separator`/
+ * `--ai-choice-separator-selected` override variables as before, so a
+ * consumer overriding either one directly bypasses this default
+ * color-mix expression entirely, same as any other CSS custom property
+ * default.
  */
 const CHOICE_SEPARATOR_STYLE_ID = 'toolcrib-choice-separator';
 function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string): void {
@@ -132,7 +171,7 @@ function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string):
       left: 0;
       top: 18%;
       bottom: 18%;
-      width: 0.09375rem;
+      width: 0.125rem;
       background: var(--ai-choice-separator, var(--ai-text-secondary, #6b7280));
       pointer-events: none;
     }
@@ -140,7 +179,7 @@ function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string):
     [role="toolbar"] > .ai-btn[data-state="on"]:not(:first-child)::before,
     [role="radiogroup"] > .ai-btn[data-state="on"] + .ai-btn::before,
     [role="toolbar"] > .ai-btn[data-state="on"] + .ai-btn::before {
-      background: var(--ai-choice-separator-selected, var(--ai-color-primary-text, #ffffff));
+      background: var(--ai-choice-separator-selected, color-mix(in srgb, var(--ai-color-primary-text, #ffffff) 65%, transparent));
     }
     `,
     targetDocument,
