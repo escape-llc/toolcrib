@@ -20,10 +20,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-const SRC = path.join(ROOT, 'src');
-const DIST = path.join(ROOT, 'dist-tests');
-const TESTS_DIR = path.join(SRC, '__tests__');
+// True only when this file is run directly (`node scripts/build-tests-release.js`),
+// not when imported as a module (build-tests-release.test.js imports
+// listFilesRecursive directly to test it in isolation) -- comparing two
+// native filesystem paths via fileURLToPath(), not a naive
+// `file://${process.argv[1]}` string concatenation, which can mismatch on
+// Windows (backslash paths, URL-encoding of special characters) even when
+// both sides genuinely refer to the same file.
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
 const TEST_PEER_DEP_NAMES = [
   'vitest',
@@ -34,8 +38,8 @@ const TEST_PEER_DEP_NAMES = [
   'jsdom',
 ];
 
-function loadRootPackageJson() {
-  return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
+function loadRootPackageJson(root) {
+  return JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 }
 
 function buildPeerDependencies(rootPkg) {
@@ -57,7 +61,11 @@ function buildPeerDependencies(rootPkg) {
   return peerDependencies;
 }
 
-function listFilesRecursive(dir, base = dir) {
+// Exported (not just used internally by main() below) so a regression test
+// can exercise it directly against a real, if small, on-disk fixture tree --
+// see build-tests-release.test.js's own forward-slash assertion for the
+// bug this fixes (issue #435).
+export function listFilesRecursive(dir, base = dir) {
   if (!fs.existsSync(dir)) return [];
   let results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -65,7 +73,18 @@ function listFilesRecursive(dir, base = dir) {
     if (entry.isDirectory()) {
       results = results.concat(listFilesRecursive(full, base));
     } else {
-      results.push(path.relative(base, full));
+      // Forward-slash unconditionally, regardless of platform -- confirmed
+      // real, not hypothetical, by a Gemini codebase audit (issue #435):
+      // path.relative() returns backslash-separated paths on Windows, and
+      // main()'s own `testFiles.map((f) => \`__tests__/${f}\`)` below
+      // writes these relative paths straight into toolcrib-tests.config.json's
+      // `files.tests` array with no normalization step of its own. A
+      // consumer resolving that array on Linux/Mac would treat a stray
+      // backslash as a literal filename character, not a path separator --
+      // the exact same class of bug AGENTS.md's "Distribution & path
+      // handling" section already documents at length for the CLI's own
+      // patch-header paths (see joinPatchPath in cli/src/lib/patches.js).
+      results.push(path.relative(base, full).split(path.sep).join('/'));
     }
   }
   return results.sort();
@@ -80,18 +99,33 @@ function copyPreservingStructure(relPaths, srcBase, destBase) {
 }
 
 function main() {
-  fs.rmSync(DIST, { recursive: true, force: true });
-  fs.mkdirSync(DIST, { recursive: true });
+  // Computed here, not at module top-level -- a plain `import` of this
+  // file (build-tests-release.test.js imports listFilesRecursive directly)
+  // must never evaluate `new URL('..', import.meta.url)` eagerly: under
+  // Vitest's Vite-based transform this throws "The URL must be of scheme
+  // file" outright, the same documented cross-tool quirk extract.test.js/
+  // buildGraph.test.js/toon.test.js already work around for their own
+  // ROOT constants. Deferring into main() (only reached on a real
+  // `node scripts/build-tests-release.js` invocation, guarded by
+  // isMainModule below) sidesteps it structurally instead of adding a
+  // workaround to the test file.
+  const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const src = path.join(root, 'src');
+  const dist = path.join(root, 'dist-tests');
+  const testsDir = path.join(src, '__tests__');
 
-  const rootPkg = loadRootPackageJson();
+  fs.rmSync(dist, { recursive: true, force: true });
+  fs.mkdirSync(dist, { recursive: true });
+
+  const rootPkg = loadRootPackageJson(root);
   const peerDependencies = buildPeerDependencies(rootPkg);
 
-  const testFiles = listFilesRecursive(TESTS_DIR);
+  const testFiles = listFilesRecursive(testsDir);
   if (testFiles.length === 0) {
     throw new Error('No files found under src/__tests__ — nothing to package.');
   }
 
-  copyPreservingStructure(testFiles, TESTS_DIR, path.join(DIST, '__tests__'));
+  copyPreservingStructure(testFiles, testsDir, path.join(dist, '__tests__'));
 
   const config = {
     version: rootPkg.version,
@@ -103,11 +137,11 @@ function main() {
     },
   };
 
-  fs.writeFileSync(path.join(DIST, 'toolcrib-tests.config.json'), JSON.stringify(config, null, 2) + '\n');
+  fs.writeFileSync(path.join(dist, 'toolcrib-tests.config.json'), JSON.stringify(config, null, 2) + '\n');
 
   console.log(`Built test-suite release v${rootPkg.version}: ${testFiles.length} test file(s)`);
   console.log(`  requiresToolkitVersion: ${config.requiresToolkitVersion}`);
   console.log(`  peerDependencies: ${Object.keys(peerDependencies).join(', ')}`);
 }
 
-main();
+if (isMainModule) main();

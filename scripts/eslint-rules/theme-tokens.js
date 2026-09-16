@@ -41,6 +41,12 @@ function walk(dir, predicate, files = []) {
   return files;
 }
 
+// Exported as a named constant (not just an inline literal) so
+// theme-tokens.rule-check.mjs can assert its exact matching behavior
+// directly against plain strings, without needing to inject a fixture
+// file into getDefinedCSSVariables()'s own real src/components|theme walk.
+export const CSS_VARIABLE_KEY_PATTERN = /['"](--ai-[\w-]+)['"]:/g;
+
 // Computed once per lint run (module-level cache), not once per file --
 // scanning the whole tree per file would make a large lint run needlessly
 // slow. Rule `create()` functions are called once per file, but this
@@ -53,7 +59,15 @@ function getDefinedCSSVariables() {
   const themeFiles = walk(THEME_DIR, (name) => name.endsWith('.ts') || name.endsWith('.tsx'));
   for (const file of [...sliceFiles, ...themeFiles]) {
     const text = readFileSync(file, 'utf8');
-    for (const m of text.matchAll(/'(--ai-[\w-]+)':/g)) {
+    // Single- OR double-quoted keys -- a Gemini codebase audit (issue
+    // #435) correctly flagged the single-quote-only version as fragile:
+    // nothing in this codebase currently writes '--ai-foo':  with double
+    // quotes (confirmed directly, not assumed), but a future autoformatter
+    // or a different contributor's editor settings converting quote style
+    // would silently make this scan miss a real, valid variable
+    // definition -- a false positive in no-unscaled-boxshadow's own
+    // "not a real, defined Slice variable" check below.
+    for (const m of text.matchAll(CSS_VARIABLE_KEY_PATTERN)) {
       cachedDefinedVars.add(m[1]);
     }
   }
@@ -81,8 +95,22 @@ const noUnscaledBoxshadow = {
 
         const value = node.value.value;
         const usesGlobalScale = /var\(--ai-shadow-(sm|md|lg)\b/.test(value);
-        const referencedVar = value.match(/var\((--ai-[\w-]+)/);
-        const usesDefinedSliceVar = referencedVar && getDefinedCSSVariables().has(referencedVar[1]);
+        // A real, multi-layer boxShadow (`'0 1px 2px var(--a), 0 2px 4px
+        // var(--b)'`) can reference more than one CSS variable -- a
+        // Gemini codebase audit (issue #435) correctly flagged the
+        // previous single, non-global `.match()` here as only ever
+        // checking the FIRST layer's variable, silently ignoring every
+        // other layer. Concretely: a genuinely unscaled first layer with a
+        // valid, defined variable in a LATER layer used to false-positive
+        // (flagged as invalid, even though the shadow IS at least
+        // partially theme-responsive). The rule's own bar is "at least one
+        // defined/scaled reference" (not "every layer must be"), so the
+        // reverse case Gemini also named -- a valid first layer, invalid
+        // later one -- was already correctly left unflagged before this
+        // fix too; checking every var() reference via matchAll + some()
+        // only changes behavior for the genuine false-positive direction.
+        const definedVars = getDefinedCSSVariables();
+        const usesDefinedSliceVar = [...value.matchAll(/var\((--ai-[\w-]+)/g)].some((m) => definedVars.has(m[1]));
 
         if (!usesGlobalScale && !usesDefinedSliceVar) {
           context.report({
