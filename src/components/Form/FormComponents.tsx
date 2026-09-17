@@ -91,6 +91,20 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           no separate JS check needed here.
         */}
         <div
+          // aria-hidden when collapsed -- caught in review (Gemini, PR
+          // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips
+          // content to zero *visible* area, but isn't guaranteed to read
+          // as "hidden" to every screen reader's own visibility heuristic
+          // (unlike `display: none`/`visibility: hidden`, which every AT
+          // respects unambiguously). Harmless when there's genuinely
+          // nothing inside (FormField's error/helper span is still
+          // conditionally rendered, only present once truthy) -- applied
+          // uniformly here anyway for defense-in-depth, since FormError's
+          // own summary variant (below) has a *static* string that's
+          // always in the DOM regardless of this same collapsed state,
+          // where this same attribute is load-bearing, not just extra
+          // safety.
+          aria-hidden={!(error || helperText)}
           style={{
             display: 'grid',
             gridTemplateRows: error || helperText ? '1fr' : '0fr',
@@ -147,6 +161,9 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
     const error = touched[name] ? errors[name] : undefined;
     return (
       <div
+        // See FormField's own aria-hidden comment for the full reasoning
+        // (issue found in review, Gemini, PR #506).
+        aria-hidden={!error}
         style={{
           display: 'grid',
           gridTemplateRows: error ? '1fr' : '0fr',
@@ -164,6 +181,14 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
 
   return (
     <div
+      // Load-bearing here, not just defense-in-depth (unlike the other two
+      // wrappers above): this banner's own text is a *static* string,
+      // always in the DOM regardless of hasErrors -- without this, a
+      // screen reader whose own visibility heuristic doesn't treat a
+      // zero-height, overflow:hidden region as hidden would discover and
+      // announce "Please correct the errors..." even on a fully valid,
+      // untouched form.
+      aria-hidden={!hasErrors}
       style={{
         display: 'grid',
         gridTemplateRows: hasErrors ? '1fr' : '0fr',

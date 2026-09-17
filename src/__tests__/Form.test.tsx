@@ -554,6 +554,38 @@ describe('Form & Zod Validation Engine', () => {
         expect(gridWrapperRows(container, 1)).toBe('1fr');
       });
     });
+
+    // Regression coverage for a real finding from review (Gemini, PR
+    // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips content
+    // to zero *visible* area, but isn't guaranteed to read as "hidden" to
+    // every screen reader's own visibility heuristic -- most load-bearing
+    // for FormError's summary variant specifically, whose own banner text
+    // is a *static* string always present in the DOM regardless of
+    // hasErrors (unlike FormField's error span, or the named FormError
+    // variant's inner div, both of which have no text content at all
+    // while collapsed -- nothing to leak either way, but aria-hidden is
+    // applied uniformly across all three for defense-in-depth/consistency).
+    it('all three wrappers are aria-hidden while collapsed, and not aria-hidden once expanded', async () => {
+      const { container } = render(
+        <Form id="slide-aria-hidden" schema={testSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+          <FormError name="username" />
+          <FormError />
+        </Form>
+      );
+      const wrappersBefore = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
+      expect(wrappersBefore.map(w => w.getAttribute('aria-hidden'))).toEqual(['true', 'true', 'true']);
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => {
+        const wrappersAfter = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
+        expect(wrappersAfter.map(w => w.getAttribute('aria-hidden'))).toEqual(['false', 'false', 'false']);
+      });
+    });
   });
 
   describe('regression coverage: blur marks a field touched (Input, Textarea, Checkbox, Switch)', () => {
