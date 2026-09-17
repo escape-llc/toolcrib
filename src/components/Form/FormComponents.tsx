@@ -57,16 +57,90 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           </Label>
         )}
         {children}
-        {error && (
-          <span id={errorId} style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem' }}>
-            {error}
-          </span>
-        )}
-        {!error && helperText && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem' }}>
-            {helperText}
-          </span>
-        )}
+        {/*
+          Slides open/closed instead of slamming (issue #503) via the
+          standard CSS grid technique for animating to/from intrinsic
+          height with no JS measurement: a single-row grid transitioning
+          `grid-template-rows` between `0fr` and `1fr`, with its one child
+          (the actual real height driver) clipped by `overflow: hidden`
+          during the transition. `min-height: 0` on that child is required,
+          not optional -- grid items default to `min-height: auto`
+          (matching flex items' own default), which can stop the item
+          shrinking below its content's intrinsic size and fight the
+          explicit `0fr` row height otherwise.
+
+          Always rendered now (previously: conditionally absent entirely
+          when neither error nor helperText applied) -- an unconditionally
+          zero-height grid row contributes zero visible space on its own,
+          but the parent's own `gap: '0.375rem'` (spacing every child from
+          its neighbor) would still add a fixed gap before this now-always-
+          present child regardless of its collapsed height, a real
+          regression from the previous fully-absent-node behavior. Canceled
+          by animating `marginTop` in the opposite direction alongside the
+          row transition: `-0.375rem` while collapsed (netting to zero
+          combined with the parent's `gap`) up to `0` while expanded
+          (letting the parent's gap apply in full) -- same combined spacing
+          in both end states as the original conditional-render version,
+          just reached smoothly instead of by insertion/removal.
+
+          `transition-duration` reuses `--ai-transition-duration-normal`,
+          the same token every other themed transition in this codebase
+          keys off -- already resolves to `0s` under `reducedMotion:
+          'always'`/`preset: 'none'` (animation.tsx's own
+          getAnimationVariables), so reduced motion is respected for free,
+          no separate JS check needed here.
+        */}
+        <div
+          // aria-hidden when collapsed -- caught in review (Gemini, PR
+          // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips
+          // content to zero *visible* area, but isn't guaranteed to read
+          // as "hidden" to every screen reader's own visibility heuristic
+          // (unlike `display: none`/`visibility: hidden`, which every AT
+          // respects unambiguously). Harmless when there's genuinely
+          // nothing inside (FormField's error/helper span is still
+          // conditionally rendered, only present once truthy) -- applied
+          // uniformly here anyway for defense-in-depth, since FormError's
+          // own summary variant (below) has a *static* string that's
+          // always in the DOM regardless of this same collapsed state,
+          // where this same attribute is load-bearing, not just extra
+          // safety.
+          //
+          // visibility: 'hidden' when collapsed -- a second, follow-up
+          // finding on the same PR (Gemini): aria-hidden alone still lets
+          // a browser's native "Find on Page" (Ctrl+F) match and scroll to
+          // the collapsed, zero-height text, since neither
+          // `overflow: hidden` nor `aria-hidden` affects that. `visibility`
+          // is the one property both the accessibility tree AND native
+          // find-on-page respect. Delayed via transitionDelay (only on the
+          // *collapsing* direction, only on this one property) so the
+          // content stays visible for the full grid-row shrink and only
+          // actually vanishes once the collapse animation has finished --
+          // switching instantly would cut the transition short visually.
+          aria-hidden={!(error || helperText)}
+          style={{
+            display: 'grid',
+            gridTemplateRows: error || helperText ? '1fr' : '0fr',
+            marginTop: error || helperText ? 0 : '-0.375rem',
+            visibility: error || helperText ? 'visible' : 'hidden',
+            transitionProperty: 'grid-template-rows, margin-top, visibility',
+            transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+            transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+            transitionDelay: error || helperText ? '0s' : '0s, 0s, var(--ai-transition-duration-normal, 0.2s)',
+          }}
+        >
+          <div style={{ overflow: 'hidden', minHeight: 0 }}>
+            {error && (
+              <span id={errorId} style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem', display: 'block' }}>
+                {error}
+              </span>
+            )}
+            {!error && helperText && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem', display: 'block' }}>
+                {helperText}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </FieldContext.Provider>
   );
@@ -88,22 +162,71 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   if (!formContext) return null;
 
   const { errors, touched } = formContext;
+  // Both branches below now always render the same outer grid wrapper --
+  // an early `return null` (the previous shape) would mean this
+  // component's own DOM node is fully absent one render and freshly
+  // inserted the next, and a CSS transition can't animate a node's very
+  // first paint, only a property CHANGE on a node that already exists.
+  // Same `grid-template-rows: 0fr -> 1fr` technique as FormField's own
+  // fix, same reasoning (see that component's own comment for the full
+  // account) -- collapsed state is genuinely zero-footprint here (no
+  // compensating negative margin the way FormField needed), since
+  // FormError is used standalone in an arbitrary consumer layout, not
+  // inside a known, fixed-gap flex container this component controls.
   if (name) {
     const error = touched[name] ? errors[name] : undefined;
-    if (!error) return null;
     return (
-      <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-        {error}
+      <div
+        // See FormField's own aria-hidden/visibility comments for the full
+        // reasoning (both found in review, Gemini, PR #506).
+        aria-hidden={!error}
+        style={{
+          display: 'grid',
+          gridTemplateRows: error ? '1fr' : '0fr',
+          visibility: error ? 'visible' : 'hidden',
+          transitionProperty: 'grid-template-rows, visibility',
+          transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+          transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+          transitionDelay: error ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
+        }}
+      >
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{error}</div>
+        </div>
       </div>
     );
   }
 
   const hasErrors = Object.keys(errors).length > 0;
-  if (!hasErrors) return null;
 
   return (
-    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: 'var(--ai-padding-md, 0.5rem 0.75rem)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
-      Please correct the errors in the form before submitting.
+    <div
+      // Load-bearing here, not just defense-in-depth (unlike the other two
+      // wrappers above): this banner's own text is a *static* string,
+      // always in the DOM regardless of hasErrors -- without this, a
+      // screen reader whose own visibility heuristic doesn't treat a
+      // zero-height, overflow:hidden region as hidden would discover and
+      // announce "Please correct the errors..." even on a fully valid,
+      // untouched form. Same reasoning applies to visibility below -- also
+      // load-bearing here (not defense-in-depth), since it's what keeps a
+      // browser's native "Find on Page" from matching this same always-
+      // present static string (issue found in review, Gemini, PR #506).
+      aria-hidden={!hasErrors}
+      style={{
+        display: 'grid',
+        gridTemplateRows: hasErrors ? '1fr' : '0fr',
+        visibility: hasErrors ? 'visible' : 'hidden',
+        transitionProperty: 'grid-template-rows, visibility',
+        transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+        transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+        transitionDelay: hasErrors ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
+      }}
+    >
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: 'var(--ai-padding-md, 0.5rem 0.75rem)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
+          Please correct the errors in the form before submitting.
+        </div>
+      </div>
     </div>
   );
 };

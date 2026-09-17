@@ -401,13 +401,21 @@ describe('Form & Zod Validation Engine', () => {
   });
 
   describe('regression coverage: FormError with an explicit field name', () => {
-    it('renders nothing for a field with no error, or one not yet touched', () => {
-      const { container } = render(
+    // Was `expect(container.querySelector('div')).toBeNull()` -- issue #503
+    // deliberately changed this: FormError now always renders its own
+    // outer grid wrapper (collapsed to 0fr height when there's nothing to
+    // show) instead of returning null, specifically so the transition from
+    // "nothing" to "an error" is a real CSS animation (grid-template-rows)
+    // on an already-existing node, not a freshly-inserted one -- a
+    // transition can't animate a node's very first paint. The real,
+    // current behavior to assert is "no error text," not "no div at all."
+    it('renders no error text for a field with no error, or one not yet touched', () => {
+      render(
         <Form id="field-error-form" schema={testSchema}>
           <FormError name="username" />
         </Form>
       );
-      expect(container.querySelector('div')).toBeNull();
+      expect(screen.queryByText(/must be at least/i)).not.toBeInTheDocument();
     });
 
     it('renders the field-specific message once that field is touched and invalid', async () => {
@@ -434,6 +442,149 @@ describe('Form & Zod Validation Engine', () => {
     it('renders nothing when rendered outside any <Form>', () => {
       const { container } = render(<FormError name="anything" />);
       expect(container.firstChild).toBeNull();
+    });
+  });
+
+  // Regression coverage for issue #503: validation error messages used to
+  // slam open/closed (a plain conditional render, no transition at all).
+  // jsdom has no real layout engine (can't observe an actual animated
+  // pixel height, per this repo's own established limitation -- see
+  // AGENTS.md's "CSS/real-layout invisibility" entry), so these assert the
+  // one thing jsdom *can* see: the collapsed/expanded `grid-template-rows`
+  // value is applied on the correct render, for both FormField's own error
+  // span and both FormError variants. A real Playwright e2e test covers
+  // the actual visual transition (e2e/form-validation-transition.spec.ts).
+  describe('regression coverage: validation error messages slide via grid-template-rows, not a plain conditional render (issue #503)', () => {
+    // Queries by the inline style itself (present on every render,
+    // collapsed or expanded) rather than by ancestor-walking from the
+    // error/helper text -- that text doesn't exist in the DOM at all in
+    // the "before" (collapsed, nothing to show) case, so there's nothing
+    // to walk up FROM at that point. Scoped to `container` since the grid
+    // wrapper is a *sibling* of the field's own control, not its ancestor.
+    function gridWrapperRows(container: HTMLElement, nth = 0): string | undefined {
+      const wrappers = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
+      return wrappers[nth]?.style.gridTemplateRows;
+    }
+
+    it('FormField: collapses to 0fr with no error and no helperText, expands to 1fr once touched and invalid', async () => {
+      const { container } = render(
+        <Form id="slide-form-field" schema={testSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+      expect(gridWrapperRows(container)).toBe('0fr');
+
+      // onChange computes the error silently; onBlur is what actually
+      // reveals it (see "Input onBlur reveals an error already computed
+      // by a prior change" below) -- blur alone, with nothing ever
+      // computed, has no error to reveal.
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => {
+        expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument();
+        expect(gridWrapperRows(container)).toBe('1fr');
+      });
+    });
+
+    it('FormField: helperText alone (no error) also expands the same wrapper to 1fr', () => {
+      const { container } = render(
+        <Form id="slide-form-field-helper" schema={testSchema}>
+          <FormField name="username" helperText="Pick anything you like">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+      expect(screen.getByText('Pick anything you like')).toBeInTheDocument();
+      expect(gridWrapperRows(container)).toBe('1fr');
+    });
+
+    it('FormError (named): collapses to 0fr with no error, expands to 1fr once touched and invalid', async () => {
+      const { container } = render(
+        <Form id="slide-form-error-named" schema={testSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+          <FormError name="username" />
+        </Form>
+      );
+      // Index 1: FormField's own error-region wrapper is index 0 (always
+      // present, per the test above), FormError's own is the second.
+      expect(gridWrapperRows(container, 1)).toBe('0fr');
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      // Polls only the grid state, not text presence -- the error TEXT
+      // node itself is still conditionally rendered here (`{error}` as
+      // children, empty when undefined), so a text-based gate would be
+      // meaningful for this specific case, but the summary variant right
+      // below has no such gate available (see its own comment) and this
+      // stays consistent with it rather than relying on a distinction
+      // that's true for one FormError variant and not the other.
+      await waitFor(() => {
+        expect(gridWrapperRows(container, 1)).toBe('1fr');
+      });
+      expect(screen.getAllByText('Username must be at least 3 chars').length).toBeGreaterThan(0);
+    });
+
+    it('FormError (summary): collapses to 0fr with no errors, expands to 1fr once any field is touched and invalid', async () => {
+      const { container } = render(
+        <Form id="slide-form-error-summary" schema={testSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+          <FormError />
+        </Form>
+      );
+      expect(gridWrapperRows(container, 1)).toBe('0fr');
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      // The banner's own text ("Please correct the errors...") is a
+      // static string, unconditionally rendered regardless of hasErrors --
+      // only the wrapper's own grid-template-rows reflects real state, so
+      // that's the only thing worth polling here. Gating on text presence
+      // instead would be a no-op race: the text is already in the DOM on
+      // the very first render, before this blur's own state update lands.
+      await waitFor(() => {
+        expect(gridWrapperRows(container, 1)).toBe('1fr');
+      });
+    });
+
+    // Regression coverage for a real finding from review (Gemini, PR
+    // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips content
+    // to zero *visible* area, but isn't guaranteed to read as "hidden" to
+    // every screen reader's own visibility heuristic -- most load-bearing
+    // for FormError's summary variant specifically, whose own banner text
+    // is a *static* string always present in the DOM regardless of
+    // hasErrors (unlike FormField's error span, or the named FormError
+    // variant's inner div, both of which have no text content at all
+    // while collapsed -- nothing to leak either way, but aria-hidden is
+    // applied uniformly across all three for defense-in-depth/consistency).
+    it('all three wrappers are aria-hidden while collapsed, and not aria-hidden once expanded', async () => {
+      const { container } = render(
+        <Form id="slide-aria-hidden" schema={testSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+          <FormError name="username" />
+          <FormError />
+        </Form>
+      );
+      const wrappersBefore = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
+      expect(wrappersBefore.map(w => w.getAttribute('aria-hidden'))).toEqual(['true', 'true', 'true']);
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => {
+        const wrappersAfter = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
+        expect(wrappersAfter.map(w => w.getAttribute('aria-hidden'))).toEqual(['false', 'false', 'false']);
+      });
     });
   });
 
