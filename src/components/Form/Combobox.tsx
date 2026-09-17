@@ -642,7 +642,17 @@ export const Combobox: React.FC<ComboboxProps> = ({
               type="button"
               aria-label={strings.clearSelection}
               onClick={handleClear}
-              tabIndex={-1}
+              // Was tabIndex={-1} (mouse-only) -- reported directly: unlike
+              // <Input clearable>'s own identically-shaped button (which has
+              // a real keyboard alternative, Backspace/Ctrl+A+Delete, since
+              // that's a plain editable text field), a single-select
+              // Combobox has no equivalent. Backspace-to-clear (below,
+              // handleKeyDown) is wired only for `multiple` mode -- a
+              // single-selection Combobox genuinely has no other keyboard
+              // path to clear a selection once made. className matches
+              // every other icon-only button with no hover model of its own
+              // (see interactionStyles.ts's own .ai-focus-ring doc comment).
+              className="ai-focus-ring"
               style={{
                 flexShrink: 0,
                 display: 'inline-flex',

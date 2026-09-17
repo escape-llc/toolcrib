@@ -167,6 +167,19 @@ describe('Combobox Component — client-side filtering', () => {
     expect(input.value).toBe('');
     expect(onChange).toHaveBeenCalledWith('');
   });
+
+  // Regression test: the clear button used to be tabIndex={-1} (mouse-only).
+  // Reported directly -- unlike <Input clearable>'s own identically-shaped
+  // button, a single-select Combobox has no keyboard alternative
+  // (Backspace-to-clear is wired only for `multiple` mode), so a keyboard
+  // user had no way at all to clear a made selection.
+  it('the clear button is reachable via Tab and has a real focus indicator', () => {
+    render(<Combobox options={options} defaultValue="editor" />);
+    const clearButton = screen.getByLabelText('Clear selection');
+
+    expect(clearButton).not.toHaveAttribute('tabindex', '-1');
+    expect(clearButton.className).toContain('ai-focus-ring');
+  });
 });
 
 describe('Combobox Component — async search', () => {
