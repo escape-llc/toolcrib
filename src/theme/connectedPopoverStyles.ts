@@ -318,3 +318,49 @@ export function renderTriggerWithCornerSquaring(
         },
       });
 }
+
+/**
+ * Applies a `CornerSquaringResult`'s trigger-side corner to a `Popup`
+ * `anchor` element (issue #502) -- deliberately always the plain-DOM-
+ * element style-patch branch, never `renderTriggerWithCornerSquaring`'s
+ * `isToolcribComponent` dispatch. That dispatch decides "toolcrib
+ * component with a real `squareCorners` prop" purely from `typeof
+ * element.type !== 'string'` -- true for ANY non-DOM-string element type,
+ * which includes a third-party headless component (react-aria-components'
+ * `Group`, the real anchor DatePicker passes) that has no `squareCorners`
+ * prop at all. Confirmed directly (not assumed) that this would misfire:
+ * `Group` doesn't understand `squareCorners`, so cloning it in would just
+ * add an unrecognized prop with zero visual effect, silently dropping the
+ * corner-squaring anchor mode exists to provide. Confirmed separately
+ * (reading react-aria-components' own `Group`/`useRenderProps` source)
+ * that a plain `style` clone DOES work correctly here -- `Group` reads
+ * `style` straight from its own props and applies it to the real
+ * underlying `<div>` with no interference, the same as any plain DOM
+ * element.
+ *
+ * This is why `PopupProps.anchor`'s own doc comment documents `anchor` as
+ * required to be a plain-DOM/style-forwarding element, never a real
+ * toolcrib component -- confirmed directly (not just reasoned about) that
+ * a toolcrib component wouldn't work here either, just differently than
+ * `Group` would have: every toolcrib component strips `style`/
+ * `className` outright (`StyleFree<...>`, `ai-docs/CORE.md`'s own "no
+ * component accepts style/className" rule), so a `style` clone onto one
+ * would be silently a complete no-op, not even landing as an unrecognized
+ * prop the way it would on `Group`. Supporting a toolcrib-component
+ * anchor for real would need the `isToolcribComponent` dispatch back --
+ * deliberately not built here, since the only real consumer (DatePicker's
+ * `Group`) never needs it and a heuristic dispatch is exactly the kind of
+ * unverified-until-it-breaks code this function's own existence was
+ * written to avoid repeating.
+ */
+export function renderAnchorWithCornerSquaring(anchor: ReactNode, squaring: CornerSquaringResult): ReactNode {
+  if (!isValidElement(anchor)) return anchor;
+  const element = anchor as ReactElement<any>;
+  return cloneElement(element, {
+    style: {
+      ...(element.props as any).style,
+      ...squaring.triggerCornerStyle,
+      transition: 'border-radius 0.15s ease',
+    },
+  });
+}

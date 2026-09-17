@@ -87,92 +87,103 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
+  // isOpen/onOpenChange are wired directly to DatePickerState, not Popup's
+  // own internal open state -- this is the actual Shell/Content
+  // decoupling: React Aria's hook logic still owns whether the picker
+  // *should* be open (triggered by the calendar button's press, or by
+  // keyboard interaction with the field), but Popup -- not React Aria's
+  // own Popover -- is the one thing that ever mounts a portal, traps
+  // focus, or handles Escape for the calendar surface.
+  //
+  // `anchor` (issue #502), not `trigger` -- positions the popup against
+  // the WHOLE field's edge, matching every other connected popover in the
+  // toolkit (Combobox's own dropdown, e.g.), while only the small
+  // calendar-glyph button (wrapped in <Popup.Trigger>, nested inside the
+  // Group below) actually opens/closes it. A single `trigger={<button>}`
+  // anchored the popup to just that small glyph instead, positioned well
+  // off the field's own edge -- reported directly. Using a REAL anchored
+  // DOM node (the Group itself, always rendered) rather than Popup's
+  // earlier-tried `anchorRef`/`virtualRef` design sidesteps a real,
+  // confirmed Radix `virtualRef` timing gap (see Popup.tsx's own comment
+  // on why `anchor` mode exists) entirely -- there's no separate
+  // registration to race here.
   return (
-    <Group
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-        border: '0.0625rem solid var(--ai-border, #d1d5db)',
-        borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
-        borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
-        borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
-        borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
-        background: 'var(--ai-bg-surface, #ffffff)',
-        width: 'fit-content',
-        ...cornerOverrides,
-      }}
-    >
-      <DateInput style={{ display: 'flex', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
-        {segment => (
-          <DateSegment
-            segment={segment}
-            style={{
-              padding: '0 0.0625rem',
-              textAlign: 'end',
-              color: segment.isPlaceholder ? 'var(--ai-text-secondary, #9ca3af)' : 'var(--ai-text-primary, #111827)',
-              outline: 'none',
-            }}
-          />
-        )}
-      </DateInput>
-
-      {/*
-        The calendar-toggle button is the *only* element wrapped by
-        <Popup>'s own trigger -- not the whole Group (which would also
-        wrap the DateInput's editable segments). Radix's PopoverPrimitive
-        .Trigger attaches its own click handling to whatever `trigger`
-        element it's given; wrapping the segments too would mean clicking
-        into a segment to type a value could also toggle the calendar
-        open/closed, which isn't how a date picker is supposed to behave --
-        typing edits the value, only the button opens the calendar.
-
-        isOpen/onOpenChange are wired directly to DatePickerState, not
-        Popup's own internal open state -- this is the actual Shell/
-        Content decoupling: React Aria's hook logic still owns whether the
-        picker *should* be open (triggered by this button's press, or by
-        keyboard interaction with the field), but Popup -- not React
-        Aria's own Popover -- is the one thing that ever mounts a portal,
-        traps focus, or handles Escape for the calendar surface.
-      */}
-      <Popup
-        trigger={
-          <button
-            type="button"
-            aria-label="Open calendar"
-            // ai-focus-ring was missing here -- reported directly: Tab
-            // correctly moves focus onto this button (confirmed via a real
-            // browser trace, both Chromium and WebKit), but `all: 'unset'`
-            // resets outline to its initial (invisible) value with nothing
-            // to replace it, so a keyboard user tabbing here saw no focus
-            // indicator at all -- indistinguishable from "Tab doesn't reach
-            // it," which is exactly how it was reported.
-            className="ai-focus-ring"
-            style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
-          >
-            📅
-          </button>
-        }
-        isOpen={state.isOpen}
-        onOpenChange={open => state.setOpen(open)}
-        zIndex={Z_INDEX.DROPDOWN}
-      >
-        <Calendar
-          value={(state.dateValue as CalendarDate | null) ?? undefined}
-          onChange={date => {
-            state.setDateValue(date);
-            // No dependency on React Aria's own Popover/shouldCloseOnSelect
-            // machinery, since that's exactly the piece this component
-            // doesn't use -- closing on select is this component's own,
-            // explicit call, matching that same default behavior.
-            state.setOpen(false);
+    <Popup
+      anchor={
+        <Group
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
+            border: '0.0625rem solid var(--ai-border, #d1d5db)',
+            borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
+            borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
+            background: 'var(--ai-bg-surface, #ffffff)',
+            width: 'fit-content',
+            ...cornerOverrides,
           }}
-          overrides={overrides}
-          size={size}
-        />
-      </Popup>
-    </Group>
+        >
+          <DateInput style={{ display: 'flex', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
+            {segment => (
+              <DateSegment
+                segment={segment}
+                style={{
+                  padding: '0 0.0625rem',
+                  textAlign: 'end',
+                  color: segment.isPlaceholder ? 'var(--ai-text-secondary, #9ca3af)' : 'var(--ai-text-primary, #111827)',
+                  outline: 'none',
+                }}
+              />
+            )}
+          </DateInput>
+
+          {/*
+            Popup.Trigger, not the whole Group -- wrapping the segments
+            too would mean clicking into a segment to type a value could
+            also toggle the calendar open/closed, which isn't how a date
+            picker is supposed to behave -- typing edits the value, only
+            the button opens the calendar.
+          */}
+          <Popup.Trigger>
+            <button
+              type="button"
+              aria-label="Open calendar"
+              // ai-focus-ring was missing here -- reported directly: Tab
+              // correctly moves focus onto this button (confirmed via a real
+              // browser trace, both Chromium and WebKit), but `all: 'unset'`
+              // resets outline to its initial (invisible) value with nothing
+              // to replace it, so a keyboard user tabbing here saw no focus
+              // indicator at all -- indistinguishable from "Tab doesn't reach
+              // it," which is exactly how it was reported.
+              className="ai-focus-ring"
+              style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
+            >
+              📅
+            </button>
+          </Popup.Trigger>
+        </Group>
+      }
+      isOpen={state.isOpen}
+      onOpenChange={open => state.setOpen(open)}
+      zIndex={Z_INDEX.DROPDOWN}
+    >
+      <Calendar
+        value={(state.dateValue as CalendarDate | null) ?? undefined}
+        onChange={date => {
+          state.setDateValue(date);
+          // No dependency on React Aria's own Popover/shouldCloseOnSelect
+          // machinery, since that's exactly the piece this component
+          // doesn't use -- closing on select is this component's own,
+          // explicit call, matching that same default behavior.
+          state.setOpen(false);
+        }}
+        overrides={overrides}
+        size={size}
+      />
+    </Popup>
   );
 };
 

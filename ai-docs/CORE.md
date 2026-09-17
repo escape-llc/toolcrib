@@ -196,7 +196,7 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 | `<DropdownMenu>` | — | `id`, `trigger`, `items`, `side`, `align`, `overrides` | Data-driven action menu with separator support |
 | `<HoverCard>` | — | `id`, `content`, `side`, `align`, `openDelay`, `closeDelay`, `overrides` | Hover-triggered preview card for rich, interactive content |
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `height`, `zIndex`, `ariaLabel`, `align`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
-| `<Popup>` | — | `id`, `trigger`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
+| `<Popup>` | `.Trigger` | `id`, `trigger`, `anchor`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
 | `<Viewer>` | — | `isOpen`, `onOpenChange` | Fullscreen media lightbox — composes ViewerContent inside Modal |
 | `<ViewerContent>` | — | `id`, `items`, `activeIndex`, `defaultActiveIndex`, `onIndexChange`, `onClose`, `overrides` | Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing |

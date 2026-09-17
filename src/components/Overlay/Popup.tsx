@@ -8,13 +8,14 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { isDevBuild } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
-import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
+import { computeCornerSquaring, renderTriggerWithCornerSquaring, renderAnchorWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
 
@@ -65,8 +66,35 @@ export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-
 export interface PopupProps {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
-  /** Required trigger element. The popup anchors to this element. */
-  trigger: ReactElement;
+  /**
+   * Trigger element -- both the popup's visual anchor point AND its
+   * click/keyboard open control. Required unless `anchor` is given
+   * instead (issue #502) -- the two are mutually exclusive.
+   */
+  trigger?: ReactElement;
+  /**
+   * A wider element the popup should anchor its POSITION to, separate
+   * from what actually opens/closes it (issue #502) -- e.g. a date
+   * field's whole bordered box, where only a small calendar-glyph button
+   * inside it should toggle the popup, not the field's editable segments.
+   * Mutually exclusive with `trigger`: place a `<Popup.Trigger>` around
+   * the real clickable element somewhere inside `anchor`'s own children
+   * instead. Corner-squaring (matching every other connected popover in
+   * the toolkit) applies to `anchor`'s own edges in this mode, not the
+   * nested trigger's.
+   *
+   * Must be a plain DOM element or a third-party component that forwards
+   * a `style` prop straight through to its own root node (e.g. react-aria-
+   * components' `Group`, DatePicker's own real usage) -- NOT a toolcrib
+   * component. Every toolcrib component deliberately strips `style`/
+   * `className` (see `ai-docs/CORE.md`'s "no component accepts style/
+   * className" rule), so the corner-squaring this prop applies via a
+   * cloned `style` would be silently dropped for one. A toolcrib
+   * component that needs to anchor a `<Popup>` should consult
+   * `useCornerSquaring`/expose its own `squareCorners` prop directly
+   * instead of being passed here.
+   */
+  anchor?: ReactElement;
   /** Content rendered inside the popup panel. */
   children: ReactNode;
   /**
@@ -91,9 +119,10 @@ export interface PopupProps {
  * @manifest Anchored popover with light dismiss and corner-squaring to trigger
  * @manifestCategory Overlays
  */
-export const Popup: React.FC<PopupProps> = ({
+export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: ReactElement }> } = ({
   id: propId,
   trigger,
+  anchor,
   children,
   placement = 'bottom-start',
   isOpen: externalIsOpen,
@@ -102,6 +131,12 @@ export const Popup: React.FC<PopupProps> = ({
   overrides,
 }) => {
   const id = useStableId(propId, 'popup');
+  if (isDevBuild() && !anchor && !trigger) {
+    console.error('<Popup>: either `trigger` or `anchor` is required.');
+  }
+  if (isDevBuild() && anchor && trigger) {
+    console.error('<Popup>: `trigger` and `anchor` are mutually exclusive -- `trigger` is ignored when `anchor` is given. Place a <Popup.Trigger> around the real clickable element inside `anchor`\'s own children instead.');
+  }
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
@@ -167,33 +202,57 @@ export const Popup: React.FC<PopupProps> = ({
   const squaring = computeCornerSquaring(actualSide, align, isOpen);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const renderedTrigger = renderTriggerWithCornerSquaring(trigger, squaring, uiGroupSquareCorners);
+  // anchor mode (issue #502) skips the trigger-corner-squaring merge with
+  // uiGroupSquareCorners entirely -- unlike a plain trigger, `anchor` is
+  // authored by the CONSUMER (DatePicker's own <Group>), which already
+  // applies its own useUIGroupSquareCorners() directly. Merging it again
+  // here would be redundant (though harmless, since it's idempotent), not
+  // wrong -- kept out to avoid Popup needing to know anything about the
+  // anchor's own UIGroup membership at all.
+  const renderedAnchor = renderAnchorWithCornerSquaring(anchor, squaring);
 
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
-      <PopoverPrimitive.Trigger asChild>
-        {/* TRIGGER_WRAPPER_STYLE, not a hand-typed inline-block — this
-            component's own previous hand-typed copy used inline-block,
-            which never stretches a child to fill its own box, so a Popup
-            trigger nested inside a stretching flex parent (a <UIGroup>, a
-            taller sibling in a row) stayed at its own shorter natural
-            height instead of filling the space given to it — reported
-            directly, and the reason this is now a shared constant instead
-            of each component's own copy (see its own doc comment). */}
-        {/* aria-haspopup/aria-expanded explicitly nulled -- Radix's
-            `asChild` merges its own aria-haspopup/aria-expanded/data-state
-            onto whichever element is its direct child, which is this
-            wrapper div, not the real trigger element nested inside it.
-            Tried giving the div role="button" first (its implicit
-            "generic" role doesn't support aria-haspopup at all -- axe:
-            aria-allowed-attr) -- that traded one violation for another
-            (axe: nested-interactive, a "button" wrapping a real, separately
-            focusable button). The real trigger inside already carries its
-            own real interactive semantics and receives focus directly, so
-            nulling these here doesn't lose anything an AT user actually
-            had -- these attributes were never reaching the element that's
-            actually focused either way. */}
-        <div ref={triggerWrapperRef} aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
-      </PopoverPrimitive.Trigger>
+      {anchor ? (
+        // Real DOM nesting (Anchor wrapping Trigger, both real elements,
+        // no virtualRef) -- deliberately NOT Radix's `virtualRef`
+        // mechanism, which was tried first and reverted (see issue #502's
+        // own history): `@radix-ui/react-popper`'s PopperAnchor only
+        // registers a virtualRef from a plain, deferred `useEffect`,
+        // landing after PopperContent's own (likely `useLayoutEffect`-
+        // based) initial positioning -- empirically, the popup rendered
+        // at viewport origin with zero-size CSS vars and never
+        // recovered. A REAL anchored element sidesteps that whole class
+        // of gap: Radix's Anchor picks it up the same way it would any
+        // other real DOM node, with no separate registration timing to
+        // race at all.
+        <PopoverPrimitive.Anchor asChild>{renderedAnchor}</PopoverPrimitive.Anchor>
+      ) : (
+        <PopoverPrimitive.Trigger asChild>
+          {/* TRIGGER_WRAPPER_STYLE, not a hand-typed inline-block — this
+              component's own previous hand-typed copy used inline-block,
+              which never stretches a child to fill its own box, so a Popup
+              trigger nested inside a stretching flex parent (a <UIGroup>, a
+              taller sibling in a row) stayed at its own shorter natural
+              height instead of filling the space given to it — reported
+              directly, and the reason this is now a shared constant instead
+              of each component's own copy (see its own doc comment). */}
+          {/* aria-haspopup/aria-expanded explicitly nulled -- Radix's
+              `asChild` merges its own aria-haspopup/aria-expanded/data-state
+              onto whichever element is its direct child, which is this
+              wrapper div, not the real trigger element nested inside it.
+              Tried giving the div role="button" first (its implicit
+              "generic" role doesn't support aria-haspopup at all -- axe:
+              aria-allowed-attr) -- that traded one violation for another
+              (axe: nested-interactive, a "button" wrapping a real, separately
+              focusable button). The real trigger inside already carries its
+              own real interactive semantics and receives focus directly, so
+              nulling these here doesn't lose anything an AT user actually
+              had -- these attributes were never reaching the element that's
+              actually focused either way. */}
+          <div ref={triggerWrapperRef} aria-haspopup={undefined} aria-expanded={undefined} style={TRIGGER_WRAPPER_STYLE}>{renderedTrigger}</div>
+        </PopoverPrimitive.Trigger>
+      )}
 
       <PopoverPrimitive.Portal container={targetDocument?.body}>
         <PopoverPrimitive.Content
@@ -204,7 +263,20 @@ export const Popup: React.FC<PopupProps> = ({
           // the real focusable trigger nested inside that same div instead.
           // preventDefault() stops Radix's own (broken) attempt from
           // running first and fighting this one.
+          //
+          // anchor mode (issue #502) skips this override entirely --
+          // <Popup.Trigger> (below) wraps PopoverPrimitive.Trigger asChild
+          // directly around the real clickable element, with NO
+          // intermediate wrapper div the way legacy trigger mode always
+          // inserts. Radix's own default close-autofocus behavior tracks
+          // whatever real DOM node its Trigger's asChild ref resolved to
+          // -- since that's the real button itself here (not a wrapper),
+          // letting Radix's own default run is already correct, and
+          // preventDefault()-ing it here (with nothing behind
+          // triggerWrapperRef, which is never populated in this mode)
+          // would only turn a working default into a silent no-op.
           onCloseAutoFocus={e => {
+            if (anchor) return;
             e.preventDefault();
             triggerWrapperRef.current
               ?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
@@ -250,3 +322,28 @@ export const Popup: React.FC<PopupProps> = ({
     </PopoverPrimitive.Root>
   );
 };
+
+/**
+ * Marks the real clickable element as this `<Popup>`'s open/close control,
+ * for `anchor` mode (issue #502) -- placed anywhere inside `anchor`'s own
+ * children, wherever the actual button/control lives. Works via Radix's
+ * own Popover context, not any prop threaded down from `Popup` itself:
+ * `PopoverPrimitive.Trigger` reads that context regardless of how deep in
+ * the tree it's rendered, as long as it's a descendant of the same
+ * `<PopoverPrimitive.Root>` -- which it always is here, since `anchor`
+ * (containing this component somewhere in its own children) is rendered
+ * by `Popup` itself, inside that same `Root`.
+ *
+ * Deliberately no wrapper `<div>` the way legacy trigger mode needs one
+ * (see `TRIGGER_WRAPPER_STYLE`'s own comment on why that wrapper exists
+ * there) -- `asChild` clones Radix's Trigger props directly onto
+ * `children`, so the real button gets real interactive semantics
+ * (aria-haspopup/aria-expanded/data-state) with nothing in between, which
+ * is both simpler and more correct than legacy mode's own nulled-out
+ * wrapper attributes.
+ */
+const PopupTrigger: React.FC<{ children: ReactElement }> = ({ children }) => (
+  <PopoverPrimitive.Trigger asChild>{children}</PopoverPrimitive.Trigger>
+);
+PopupTrigger.displayName = 'Popup.Trigger';
+Popup.Trigger = PopupTrigger;
