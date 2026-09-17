@@ -157,9 +157,24 @@ init --with-tests` against the same dummy project above and confirm
 landed in `devDependencies` (not `dependencies`), and
 `toolcrib/.toolcrib-lock.json` has both `version` and `testsVersion`.
 
+**Then actually run the vendored suite — don't stop at "the files landed
+and the peer deps registered."** Install real deps (`npm install`) and add
+a minimal `vitest.config.ts`/`vite.config.ts` `test` block pointing
+`setupFiles` at `./toolcrib/__tests__/setup.ts`, then `npx vitest run`.
+This is not optional ceremony: confirmed live, running a real
+`toolcrib init --with-tests` provisioning test before the v0.15.0 release,
+that stopping at "files landed + peer deps registered" is not the same
+thing as "the suite actually runs" — `setup.ts`'s own `vitest-axe` import
+(shared `setupFiles`, so it broke all 106 vendored test files at once) and
+the 2 property-test files' `fast-check` import were both missing from
+`TEST_PEER_DEP_NAMES` (`scripts/build-tests-release.js`), and nothing
+short of a real `vitest run` surfaced it — the checklist above, run alone,
+reported a fully successful install right up until the point someone
+actually tried to use it.
+
 ### Bugs this integration test has already found
 
-Worth keeping this test around — it already found three real issues that
+Worth keeping this test around — it already found four real issues that
 unit tests, by construction, couldn't have caught:
 
 1. **Hang on error** — a failed fetch left `@clack/prompts`' spinner
@@ -175,6 +190,21 @@ unit tests, by construction, couldn't have caught:
    leading `./`, which `git apply` treats as invalid even though every
    other file's path (built without the leading `./`) applied fine. Fixed
    by dropping the leading `./`; a regression test now locks this in.
+4. **`--with-tests`'s own peer-dependency list under-enumerated** —
+   `vitest-axe` and `fast-check`, both real imports of real vendored test
+   files, were missing from `TEST_PEER_DEP_NAMES`, so a fresh
+   `toolcrib init --with-tests` install never got them added to
+   `devDependencies` and the vendored suite failed outright the first time
+   anyone actually ran it. Found running a real provisioning test (this
+   section's own "then actually run the vendored suite" step, added
+   because of this exact incident) before the v0.15.0 release. Fixed by
+   adding both, plus a new regression test
+   (`scripts/build-tests-release.test.js`) that scans every real file
+   under `src/__tests__/` for bare-specifier imports and asserts each is
+   covered by `TEST_PEER_DEP_NAMES` or the toolkit's own base
+   `peerDependencies` — so a future missing entry fails `npm test` in this
+   repo directly, rather than waiting for the next person to actually run
+   the vendored output.
 
 ## Publishing
 

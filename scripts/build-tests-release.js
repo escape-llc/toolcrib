@@ -2,7 +2,11 @@
 /**
  * Builds the OPTIONAL test-suite release artifact from src/__tests__/,
  * which in this repo is a single flat directory (not colocated per
- * component) — shipped wholesale rather than pattern-matched by filename.
+ * component) covering the whole vendored toolkit surface (components,
+ * theme, eventBus, observer). Not literally every file, though: a handful
+ * of meta-tests in that same directory exercise this repo's own
+ * `scripts/*.js` build tooling, which is never vendored -- see
+ * isVendorableTestFile below for why those are excluded and how.
  *
  * No runner-insulation shim exists yet in this repo — the tests import
  * `vitest` and `@testing-library/react` directly. That's fine as-is;
@@ -29,13 +33,28 @@ import { fileURLToPath } from 'node:url';
 // both sides genuinely refer to the same file.
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
-const TEST_PEER_DEP_NAMES = [
+// Hand-maintained, not scanned from source -- confirmed for real to
+// under-enumerate the same way AGENTS.md's own "a hand-authored file
+// checklist... under-enumerates, reliably" entry describes: found via a
+// real `toolcrib init --with-tests` provisioning run against a fresh
+// v0.15.0 release (not caught by anything in this repo's own CI, which
+// checks that peer deps *land in devDependencies* but never actually runs
+// `npm test` against the vendored output). setup.ts's own `vitest-axe`
+// import broke every one of the 106 vendored test files at once (it's the
+// shared setupFiles entry point); fast-check's, just the 2 property-test
+// files that import it directly. scripts/build-tests-release.test.js's
+// own "every real import in src/__tests__/ is covered" test now catches a
+// future instance of this mechanically, the same way that test's sibling
+// already does for the forward-slash path bug (issue #435).
+export const TEST_PEER_DEP_NAMES = [
   'vitest',
   '@testing-library/react',
   '@testing-library/jest-dom',
   '@testing-library/user-event',
   '@testing-library/dom',
   'jsdom',
+  'vitest-axe',
+  'fast-check',
 ];
 
 function loadRootPackageJson(root) {
@@ -90,6 +109,30 @@ export function listFilesRecursive(dir, base = dir) {
   return results.sort();
 }
 
+// src/__tests__/ is a single flat directory covering the whole vendored
+// toolkit surface (components, theme, eventBus, observer) *and*, mixed in
+// alongside it, a handful of meta-tests that exercise this repo's own
+// `scripts/*.js` build tooling (buildEngine.test.ts, docsInSync.test.ts,
+// securityAdvisories.test.ts) -- `scripts/` is never vendored to a
+// consumer (not in SHIPPED_PATH_PREFIXES/VENDOR_DIRS), so these three
+// fail outright the moment anyone actually runs a fresh `--with-tests`
+// install: `Cannot find module '...\scripts\build-engine.js'`,
+// `Failed to resolve import '../../scripts/lib/securityAdvisories.js'`.
+// Found for real running a v0.14.0->v0.15.0 provisioning test before the
+// v0.15.0 release -- this script's own header comment already says
+// "shipped wholesale rather than pattern-matched by filename" as a
+// deliberate simplification; this is the concrete case that simplification
+// got wrong. Vendored tests must be confined to the vendored toolkit
+// surface only, never this repo's own internal tooling -- a reference to
+// `scripts/` (an import path segment, or a `node scripts/x.js` shell-out)
+// is a reliable, zero-false-positive signal for that today (verified
+// against every real file under src/__tests__/, not assumed).
+const REPO_INTERNAL_TOOLING_MARKER = 'scripts/';
+
+export function isVendorableTestFile(content) {
+  return !content.includes(REPO_INTERNAL_TOOLING_MARKER);
+}
+
 function copyPreservingStructure(relPaths, srcBase, destBase) {
   for (const relPath of relPaths) {
     const destPath = path.join(destBase, relPath);
@@ -120,7 +163,9 @@ function main() {
   const rootPkg = loadRootPackageJson(root);
   const peerDependencies = buildPeerDependencies(rootPkg);
 
-  const testFiles = listFilesRecursive(testsDir);
+  const testFiles = listFilesRecursive(testsDir).filter((relPath) =>
+    isVendorableTestFile(fs.readFileSync(path.join(testsDir, relPath), 'utf-8'))
+  );
   if (testFiles.length === 0) {
     throw new Error('No files found under src/__tests__ — nothing to package.');
   }
