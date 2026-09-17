@@ -123,14 +123,34 @@ export function listFilesRecursive(dir, base = dir) {
 // "shipped wholesale rather than pattern-matched by filename" as a
 // deliberate simplification; this is the concrete case that simplification
 // got wrong. Vendored tests must be confined to the vendored toolkit
-// surface only, never this repo's own internal tooling -- a reference to
-// `scripts/` (an import path segment, or a `node scripts/x.js` shell-out)
-// is a reliable, zero-false-positive signal for that today (verified
-// against every real file under src/__tests__/, not assumed).
-const REPO_INTERNAL_TOOLING_MARKER = 'scripts/';
+// surface only, never this repo's own internal tooling.
+//
+// Matched against the two real shapes the 3 known offenders actually use
+// (a relative import escaping src/__tests__/ into scripts/, or a
+// `node scripts/x.js` shell-out) rather than a bare `scripts/` substring --
+// caught in review (Gemini, PR #492): a bare substring would also exclude
+// a legitimate future component test that merely *mentions* "scripts/" in
+// a comment or string literal, and wouldn't match a Windows-backslash
+// shell-out (`node scripts\\x.js`), which the trailing `/[\\/]` in both
+// patterns below now does. Verified against every real file under
+// src/__tests__/, not assumed: matches exactly the 3 known offenders and
+// nothing else.
+const REPO_INTERNAL_TOOLING_PATTERNS = [
+  /\.\.\/\.\.\/scripts[\\/]/, // a relative import out of src/__tests__/ into scripts/
+  /\bnode\s+scripts[\\/]/, // a `node scripts/x.js` (or `node scripts\x.js`) shell-out
+];
 
 export function isVendorableTestFile(content) {
-  return !content.includes(REPO_INTERNAL_TOOLING_MARKER);
+  // Stripped of `//` line comments first -- caught in the same review: the
+  // unstripped source would treat a *commented-out* reference (left in for
+  // reference, never executed) the same as a real one. A crude strip (not
+  // comment-parser-accurate -- doesn't special-case `//` inside a string
+  // literal) is good enough here: this only ever needs to answer "does a
+  // REAL, live reference exist," and a false "yes" is the safe failure
+  // direction (wrongly excludes a file that didn't need it), never a
+  // silent under-exclusion.
+  const withoutLineComments = content.replace(/\/\/.*$/gm, '');
+  return !REPO_INTERNAL_TOOLING_PATTERNS.some((pattern) => pattern.test(withoutLineComments));
 }
 
 function copyPreservingStructure(relPaths, srcBase, destBase) {

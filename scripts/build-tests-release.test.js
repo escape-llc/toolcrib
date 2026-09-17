@@ -77,11 +77,17 @@ describe('TEST_PEER_DEP_NAMES stays in sync with src/__tests__/\'s real imports'
   // that's installed) -- confirmed for real, not assumed: testUtils/axe.ts's
   // `import type {...} from 'axe-core'` is exactly this shape, and
   // axe-core is vitest-axe's own declared dependency.
+  //
+  // `//` line comments are stripped first -- caught in review (Gemini, PR
+  // #492): a commented-out import (left in for reference, never executed)
+  // would otherwise be parsed as a real one and could fail this test for a
+  // package that was never actually a live dependency.
   function importedPackageNames(fileContent) {
+    const withoutLineComments = fileContent.replace(/\/\/.*$/gm, '');
     const names = new Set();
     const importRe = /import\s+(type\s+)?[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g;
     let match;
-    while ((match = importRe.exec(fileContent))) {
+    while ((match = importRe.exec(withoutLineComments))) {
       const isTypeOnly = Boolean(match[1]);
       const specifier = match[2];
       if (isTypeOnly) continue;
@@ -136,6 +142,24 @@ describe('isVendorableTestFile', () => {
 
   it('includes an ordinary component test with no scripts/ reference', () => {
     expect(isVendorableTestFile("import { render } from '@testing-library/react';\nimport { Button } from '../components/Button';")).toBe(true);
+  });
+
+  // Regression coverage for Gemini's PR #492 review findings against the
+  // original bare-substring version of this check.
+  it('does not false-positive on a comment merely mentioning "scripts/"', () => {
+    expect(isVendorableTestFile("// These tests run scripts/commands under the hood\nimport { render } from '@testing-library/react';")).toBe(true);
+  });
+
+  it('does not false-positive on an unrelated path segment like "typescripts/"', () => {
+    expect(isVendorableTestFile("import { x } from '../typescripts/thing';")).toBe(true);
+  });
+
+  it('excludes a Windows-backslash shell-out the same as a forward-slash one', () => {
+    expect(isVendorableTestFile("run('node scripts\\\\build-engine.js list')")).toBe(false);
+  });
+
+  it('ignores a commented-out reference that is never actually executed', () => {
+    expect(isVendorableTestFile("// import { x } from '../../scripts/lib/securityAdvisories.js';\nimport { render } from '@testing-library/react';")).toBe(true);
   });
 
   it('against the real src/__tests__/ tree, excludes exactly the known repo-internal meta-tests and nothing else', () => {
