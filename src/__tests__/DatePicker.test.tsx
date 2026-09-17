@@ -25,6 +25,15 @@ describe('DatePicker', () => {
     expect(document.querySelector('.react-aria-Calendar')).not.toBeInTheDocument();
   });
 
+  // Regression test: reported directly (a real browser trace, Chromium and
+  // WebKit both) -- Tab correctly moved focus onto this button, but
+  // `all: 'unset'` reset its outline to invisible with nothing to replace
+  // it, so a keyboard user tabbing here saw no indicator at all.
+  it('the calendar-toggle button has a real focus indicator, surviving its own all: unset reset', () => {
+    render(<DatePicker name="meetingDate" label="Meeting date" />);
+    expect(screen.getByLabelText('Open calendar').className).toContain('ai-focus-ring');
+  });
+
   it('opens the calendar via the toggle button, hosted in <Popup> (not a react-aria-components Popover)', () => {
     const { baseElement } = render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
     openCalendar();

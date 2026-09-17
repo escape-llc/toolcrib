@@ -138,7 +138,19 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
       */}
       <Popup
         trigger={
-          <button type="button" aria-label="Open calendar" style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}>
+          <button
+            type="button"
+            aria-label="Open calendar"
+            // ai-focus-ring was missing here -- reported directly: Tab
+            // correctly moves focus onto this button (confirmed via a real
+            // browser trace, both Chromium and WebKit), but `all: 'unset'`
+            // resets outline to its initial (invisible) value with nothing
+            // to replace it, so a keyboard user tabbing here saw no focus
+            // indicator at all -- indistinguishable from "Tab doesn't reach
+            // it," which is exactly how it was reported.
+            className="ai-focus-ring"
+            style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
+          >
             📅
           </button>
         }
