@@ -46,9 +46,14 @@ export async function extractZip(zipBuffer, targetDir) {
   // use for their own tempDirs — no shared path between concurrent calls.
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-zip-'));
   const tmpZipPath = path.join(tmpDir, 'archive.zip');
-  await fsp.writeFile(tmpZipPath, zipBuffer);
 
   try {
+    // Inside the try, not before it — caught in review (Gemini, PR #489):
+    // a write failure here (disk full, permissions) used to abort before
+    // the try/finally even started, leaking tmpDir the same way the
+    // pre-fix code leaked on every concurrent collision.
+    await fsp.writeFile(tmpZipPath, zipBuffer);
+
     if (process.platform === 'win32') {
       // PowerShell's Expand-Archive ships on all modern Windows installs.
       //
