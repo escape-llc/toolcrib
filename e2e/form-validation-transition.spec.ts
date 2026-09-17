@@ -110,3 +110,67 @@ test('the summary FormError banner starts genuinely zero-height and grows once a
   // particular absolute size.
   expect(expandedBox?.height ?? 0).toBeGreaterThan(2);
 });
+
+// Real-browser confirmation for issue #507: a plain `{condition &&
+// <span>...}` used to unmount the error text the instant the underlying
+// condition went false -- before the wrapper's own grid-template-rows
+// collapse transition had actually run, so the collapse animated an
+// already-empty region instead of the text visibly sliding away with it.
+// useDeferredCollapseContent (FormComponents.tsx) now holds the last-
+// shown text through the real transition, clearing it only once a real
+// `transitionend` fires for the wrapper's own `grid-template-rows`.
+//
+// Uses the Email field specifically, not Username -- Username always has
+// helperText ("Unique username handle") backing it up, so clearing its
+// error only ever SWAPS content within an already-expanded row (see the
+// first test in this file); Email has no helperText, so clearing its
+// error is the real full-collapse case this fix targets.
+test('the error region keeps the error text rendered through the full collapse, not unmounted the instant it clears (issue #507)', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Forms & Zod Engine');
+
+  const emailInput = page.getByPlaceholder('john@example.com');
+  await emailInput.waitFor({ state: 'visible' });
+
+  // Locate the real wrapper via a structural relationship (matching this
+  // file's own established pattern for the helperText->error swap test
+  // above), not by the error text itself -- the demo's own live event-bus
+  // debug panel separately renders this exact string verbatim inside a
+  // raw JSON dump elsewhere on the page, a known duplicate-text footgun.
+  const errorWrapper = emailInput.locator('xpath=following-sibling::div[1]');
+
+  // Attached BEFORE the first interaction, as a running count rather than
+  // a one-shot boolean -- BOTH the initial expand (error first appearing)
+  // and the later collapse (this test's real target) fire their own
+  // grid-template-rows transitionend on this same wrapper. A boolean
+  // would be satisfied by the first, unrelated one; the count lets each
+  // phase below wait for its own specific occurrence.
+  await errorWrapper.evaluate(el => {
+    (window as any).__transitionEndCount = 0;
+    el.addEventListener('transitionend', (e: any) => {
+      if (e.propertyName === 'grid-template-rows') (window as any).__transitionEndCount++;
+    });
+  });
+
+  await emailInput.fill('not-an-email');
+  await emailInput.blur();
+
+  await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('1fr');
+  await expect(errorWrapper.getByText('Please enter a valid email address')).toBeAttached();
+  // Wait for the EXPAND's own transitionend before moving on, or the
+  // still-in-flight event could be misattributed to the collapse below.
+  await expect.poll(() => page.evaluate(() => (window as any).__transitionEndCount)).toBeGreaterThanOrEqual(1);
+
+  await emailInput.fill('john@example.com');
+  await emailInput.blur();
+
+  // The collapse has genuinely started (real state driving the real
+  // transition), but the text must still be attached immediately after.
+  await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('0fr');
+  await expect(errorWrapper.getByText('Please enter a valid email address')).toBeAttached();
+
+  // Only once the collapse's OWN transitionend fires (count reaches 2)
+  // does the held text actually unmount.
+  await expect.poll(() => page.evaluate(() => (window as any).__transitionEndCount)).toBeGreaterThanOrEqual(2);
+  await expect(errorWrapper.getByText('Please enter a valid email address')).not.toBeAttached();
+});

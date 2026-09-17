@@ -20,6 +20,7 @@ import { InputThemeSlice, type InputSliceState } from './InputSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { ToggleControlThemeSlice, type ToggleControlSliceState } from './ToggleControlSlice';
 import { Label } from './Label';
+import { useDeferredCollapseContent } from './useDeferredCollapseContent';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
@@ -47,6 +48,28 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
   const errorId = `${name}-error`;
+
+  // Issue #507: built fresh each render (correct styling/kind for
+  // whichever of error/helperText currently applies), then handed to
+  // useDeferredCollapseContent so it keeps rendering the LAST non-empty
+  // one through the collapse transition below, instead of unmounting
+  // the instant both go empty -- see that hook's own comment for why.
+  const currentRegionContent: ReactNode = error ? (
+    <span id={errorId} style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem', display: 'block' }}>
+      {error}
+    </span>
+  ) : helperText ? (
+    <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem', display: 'block' }}>
+      {helperText}
+    </span>
+  ) : undefined;
+  // Prefixed with 'error:'/'helper:' so a swap from one kind to the other
+  // with coincidentally-identical text (rare, but possible) still counts
+  // as a real change -- see useDeferredCollapseContent's own comment on
+  // why `key` has to be a cheap, stable primitive rather than `content`
+  // itself (a fresh JSX object every render).
+  const currentRegionKey = error ? `error:${error}` : helperText ? `helper:${String(helperText)}` : undefined;
+  const { display: regionDisplay, onTransitionEnd: handleRegionTransitionEnd } = useDeferredCollapseContent(currentRegionKey, currentRegionContent);
 
   return (
     <FieldContext.Provider value={{ name }}>
@@ -117,6 +140,11 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           // actually vanishes once the collapse animation has finished --
           // switching instantly would cut the transition short visually.
           aria-hidden={!(error || helperText)}
+          // Issue #507: fires once the collapse (grid-template-rows)
+          // transition genuinely finishes -- the signal
+          // useDeferredCollapseContent needs to stop holding onto the
+          // last-shown text and let it actually unmount.
+          onTransitionEnd={handleRegionTransitionEnd}
           style={{
             display: 'grid',
             gridTemplateRows: error || helperText ? '1fr' : '0fr',
@@ -129,16 +157,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           }}
         >
           <div style={{ overflow: 'hidden', minHeight: 0 }}>
-            {error && (
-              <span id={errorId} style={{ fontSize: '0.75rem', color: 'var(--ai-subtheme-error, #ef4444)', marginTop: '0.125rem', display: 'block' }}>
-                {error}
-              </span>
-            )}
-            {!error && helperText && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem', display: 'block' }}>
-                {helperText}
-              </span>
-            )}
+            {regionDisplay}
           </div>
         </div>
       </div>
@@ -159,9 +178,21 @@ export interface FormErrorProps {
 
 export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   const formContext = useOptionalFormContext();
+  // Computed unconditionally, before the `!formContext` early return
+  // below -- useDeferredCollapseContent is a hook, and hooks can't be
+  // called conditionally/after an early return (Rules of Hooks). Issue
+  // #507: same "hold the last non-empty content through the collapse"
+  // treatment as FormField's own error/helperText region -- see that
+  // hook's own comment for why.
+  const namedError = formContext && name && formContext.touched[name] ? formContext.errors[name] : undefined;
+  const namedErrorContent: ReactNode = namedError ? (
+    <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{namedError}</div>
+  ) : undefined;
+  const { display: namedErrorDisplay, onTransitionEnd: handleNamedErrorTransitionEnd } = useDeferredCollapseContent(namedError, namedErrorContent);
+
   if (!formContext) return null;
 
-  const { errors, touched } = formContext;
+  const { errors } = formContext;
   // Both branches below now always render the same outer grid wrapper --
   // an early `return null` (the previous shape) would mean this
   // component's own DOM node is fully absent one render and freshly
@@ -174,24 +205,24 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   // FormError is used standalone in an arbitrary consumer layout, not
   // inside a known, fixed-gap flex container this component controls.
   if (name) {
-    const error = touched[name] ? errors[name] : undefined;
     return (
       <div
         // See FormField's own aria-hidden/visibility comments for the full
         // reasoning (both found in review, Gemini, PR #506).
-        aria-hidden={!error}
+        aria-hidden={!namedError}
+        onTransitionEnd={handleNamedErrorTransitionEnd}
         style={{
           display: 'grid',
-          gridTemplateRows: error ? '1fr' : '0fr',
-          visibility: error ? 'visible' : 'hidden',
+          gridTemplateRows: namedError ? '1fr' : '0fr',
+          visibility: namedError ? 'visible' : 'hidden',
           transitionProperty: 'grid-template-rows, visibility',
           transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
           transitionTimingFunction: 'var(--ai-transition-easing, ease)',
-          transitionDelay: error ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
+          transitionDelay: namedError ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
         }}
       >
         <div style={{ overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{error}</div>
+          {namedErrorDisplay}
         </div>
       </div>
     );

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { z } from 'zod';
 import { Form, useFormContext } from '../components/Form/FormContext';
 import { FormField, Input, Textarea, Checkbox, Switch, FormError, SubmitButton, Button } from '../components/Form/FormComponents';
@@ -585,6 +585,115 @@ describe('Form & Zod Validation Engine', () => {
         const wrappersAfter = Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'));
         expect(wrappersAfter.map(w => w.getAttribute('aria-hidden'))).toEqual(['false', 'false', 'false']);
       });
+    });
+  });
+
+  // Regression coverage for issue #507: a plain `{condition && <span>...}`
+  // unmounts the error/helperText the instant the underlying condition
+  // goes false -- before the wrapper's own grid-template-rows collapse
+  // transition has actually run, so the collapse used to animate an
+  // already-empty region instead of the text visibly sliding away with
+  // it. useDeferredCollapseContent holds the last-shown content until a
+  // real transitionend fires for the wrapper's own collapsing property --
+  // simulated here via fireEvent.transitionEnd (jsdom has no real CSS
+  // transition engine to fire this on its own).
+  describe('regression coverage: validation text stays rendered through the collapse, not unmounted instantly (issue #507)', () => {
+    const singleFieldSchema = z.object({ username: z.string().min(3, 'Username must be at least 3 chars') });
+
+    function gridWrapper(container: HTMLElement, nth = 0): HTMLElement {
+      return Array.from(container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]'))[nth];
+    }
+
+    it('FormField: keeps the error text rendered after it clears, until transitionend fires on the collapsing wrapper', async () => {
+      const { container } = render(
+        <Form id="deferred-collapse-field" schema={singleFieldSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument());
+
+      const wrapper = gridWrapper(container);
+      expect(wrapper.style.gridTemplateRows).toBe('1fr');
+
+      // Fixing the field clears the error -- the wrapper starts
+      // collapsing immediately (real state, drives the actual CSS
+      // transition), but the text itself must still be in the DOM right
+      // up until the transition genuinely finishes.
+      fireEvent.change(input, { target: { value: 'abc' } });
+      await waitFor(() => expect(wrapper.style.gridTemplateRows).toBe('0fr'));
+      expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument();
+
+      // The real completion signal -- only once this fires does the held
+      // text actually unmount.
+      fireEvent.transitionEnd(wrapper, { propertyName: 'grid-template-rows' });
+      expect(screen.queryByText('Username must be at least 3 chars')).not.toBeInTheDocument();
+    });
+
+    it('FormField: swapping from error text to helperText updates immediately, with no held/stale content', async () => {
+      const { container } = render(
+        <Form id="deferred-collapse-field-swap" schema={singleFieldSchema}>
+          <FormField name="username" helperText="Pick anything you like">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+
+      const input = screen.getByPlaceholderText('Username');
+      expect(screen.getByText('Pick anything you like')).toBeInTheDocument();
+
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument());
+      expect(screen.queryByText('Pick anything you like')).not.toBeInTheDocument();
+
+      // Swapping back to valid reveals helperText again -- immediately,
+      // not deferred (the wrapper never collapses here at all; there's
+      // nothing to hold onto a stale value for).
+      fireEvent.change(input, { target: { value: 'abc' } });
+      await waitFor(() => expect(screen.getByText('Pick anything you like')).toBeInTheDocument());
+      expect(screen.queryByText('Username must be at least 3 chars')).not.toBeInTheDocument();
+      expect(gridWrapper(container).style.gridTemplateRows).toBe('1fr');
+    });
+
+    it('FormError (named): keeps the error text rendered after it clears, until transitionend fires', async () => {
+      const { container } = render(
+        <Form id="deferred-collapse-named-error" schema={singleFieldSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+          <FormError name="username" />
+        </Form>
+      );
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(screen.getAllByText('Username must be at least 3 chars').length).toBeGreaterThan(0));
+
+      // Index 1: FormField's own error-region wrapper is index 0, this
+      // FormError's own is the second (same convention as the #503
+      // regression block above).
+      const wrapper = gridWrapper(container, 1);
+      expect(wrapper.style.gridTemplateRows).toBe('1fr');
+
+      fireEvent.change(input, { target: { value: 'abc' } });
+      await waitFor(() => expect(wrapper.style.gridTemplateRows).toBe('0fr'));
+      // Still present (held) right after the collapse starts -- scoped
+      // to this specific wrapper via `within`, since FormField's own
+      // separate error span (a different component instance, its own
+      // independent hold) is unaffected by this wrapper's own
+      // transitionend and stays held until its OWN fires -- not what
+      // this test is checking.
+      expect(within(wrapper).getByText('Username must be at least 3 chars')).toBeInTheDocument();
+
+      fireEvent.transitionEnd(wrapper, { propertyName: 'grid-template-rows' });
+      expect(within(wrapper).queryByText('Username must be at least 3 chars')).not.toBeInTheDocument();
     });
   });
 
