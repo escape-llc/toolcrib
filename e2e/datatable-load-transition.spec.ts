@@ -65,42 +65,65 @@ test.describe('DataTable empty->populated load transition', () => {
   // inside a row WHILE the row's own real animation is still playing, and
   // confirm the row's own animation is NOT cut short by it.
   test('a bubbled animationend from a nested child does not cut the row entrance animation short', async ({ page }) => {
-    // Slow the real animation down first (via the Theme Editor's own
-    // --ai-transition-duration-normal control isn't available headlessly
-    // here, so this pauses CSS animations/transitions globally at the
-    // page level instead) so the fake bubbled event below is GUARANTEED
-    // to land while the real row-level animation is still active --
-    // without this, the real ~200ms animation can already finish (and
-    // legitimately clear justLeftEmptyState on its own) before this test
-    // ever gets to dispatch its fake event, making the assertion pass for
-    // the wrong reason regardless of whether the guard exists. Confirmed
-    // directly: this exact test PASSED even with the guard removed,
-    // before this pause was added -- a real, caught false positive.
-    await page.addStyleTag({ content: '* { animation-play-state: paused !important; }' });
-
     await page.goto('/');
     await gotoTab(page, 'Data Table');
+
+    // Armed BEFORE the click that mounts the rows -- animationstart fires
+    // essentially immediately once a row mounts, so attaching this
+    // listener afterward risks missing it entirely (the promise below
+    // would then never resolve). Stashed on window rather than returned
+    // directly from this evaluate() call, so it can be awaited separately
+    // after confirming the grid actually rendered.
+    await page.evaluate(() => {
+      (window as any).__rowAnimResult = new Promise<{ before: string; after: string }>(resolve => {
+        document.addEventListener('animationstart', function handler(e) {
+          const row = e.target as HTMLElement;
+          if (row.tagName !== 'TR') return;
+          document.removeEventListener('animationstart', handler);
+
+          // Dispatch the fake, bubbling animationend SYNCHRONOUSLY from
+          // inside the row's own real animationstart handler -- guarantees
+          // the fake event lands while the real animation is provably
+          // still active, with no dependency on any pause mechanism at
+          // all.
+          //
+          // The original version of this test instead paused ALL CSS
+          // animations globally first (`* { animation-play-state: paused
+          // !important; }`) to buy enough time to dispatch the fake event
+          // afterward -- reliable on Chromium, but a real, confirmed
+          // source of flakiness on WebKit: that pause did not reliably
+          // freeze the row's real entrance animation there (root cause
+          // not fully pinned down -- a WebKit-specific
+          // `animation-play-state` quirk is the leading candidate, per
+          // issue #500's own investigation), so the real animation could
+          // still complete on its own before the fake event was
+          // dispatched, clearing justLeftEmptyState via the legitimate
+          // path and making the "after" check empty for a reason that has
+          // nothing to do with the guard this test exists to verify -- a
+          // real, not merely theoretical, false-failure mode, not the
+          // guard actually breaking.
+          //
+          // Listening for the real animationstart event sidesteps the
+          // whole class of "did the pause actually take effect" question:
+          // there's nothing left to race, since the fake event fires
+          // inside the exact callback that fires the instant the real one
+          // begins.
+          const child = row.querySelector('button, span, div') as HTMLElement;
+          const before = row.style.animation;
+          child.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'not-the-real-one' }));
+          // React's own state update from the dispatched event is
+          // processed asynchronously relative to this synchronous
+          // handler -- give it a real frame to actually commit before
+          // reading the DOM again.
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve({ before, after: row.style.animation })));
+        });
+      });
+    });
 
     await page.getByRole('button', { name: '📥 Load Data' }).click();
     await expect(page.getByRole('grid').first()).toBeVisible();
 
-    // Dispatch a fake, bubbling animationend from a real child element
-    // (a row-command action button) inside the first row, simulating an
-    // unrelated nested animation finishing WHILE the row's own real
-    // ai-fade-in is still (paused, so definitely still) playing.
-    const result = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('tbody tr[aria-rowindex]')) as HTMLElement[];
-      const row = rows.find(r => r.style.animation)!;
-      const child = row.querySelector('button, span, div') as HTMLElement;
-      const before = row.style.animation;
-      child.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'not-the-real-one' }));
-      // React's own state update from the dispatched event is processed
-      // asynchronously relative to this synchronous script -- give it a
-      // real frame to actually commit before reading the DOM again.
-      return new Promise<{ before: string; after: string }>(resolve => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve({ before, after: row.style.animation })));
-      });
-    });
+    const result = await page.evaluate(() => (window as any).__rowAnimResult);
     // If the guard is missing, the bubbled event would have cleared
     // justLeftEmptyState synchronously, removing the animation before it
     // was actually (and, here, provably still) playing.
