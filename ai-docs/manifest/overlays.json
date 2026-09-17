@@ -301,6 +301,9 @@
     {
       "name": "Popup",
       "import": "import { Popup } from '#toolcrib'",
+      "slots": [
+        "Trigger"
+      ],
       "props": {
         "id": {
           "type": "string",
@@ -308,8 +311,11 @@
         },
         "trigger": {
           "type": "ReactElement",
-          "required": true,
-          "description": "Required trigger element. The popup anchors to this element."
+          "description": "Trigger element -- both the popup's visual anchor point AND its\nclick/keyboard open control. Required unless `anchor` is given\ninstead (issue #502) -- the two are mutually exclusive."
+        },
+        "anchor": {
+          "type": "ReactElement",
+          "description": "A wider element the popup should anchor its POSITION to, separate\nfrom what actually opens/closes it (issue #502) -- e.g. a date\nfield's whole bordered box, where only a small calendar-glyph button\ninside it should toggle the popup, not the field's editable segments.\nMutually exclusive with `trigger`: place a `<Popup.Trigger>` around\nthe real clickable element somewhere inside `anchor`'s own children\ninstead. Corner-squaring (matching every other connected popover in\nthe toolkit) applies to `anchor`'s own edges in this mode, not the\nnested trigger's.\n\nMust be a plain DOM element or a third-party component that forwards\na `style` prop straight through to its own root node (e.g. react-aria-\ncomponents' `Group`, DatePicker's own real usage) -- NOT a toolcrib\ncomponent. Every toolcrib component deliberately strips `style`/\n`className` (see `ai-docs/CORE.md`'s \"no component accepts style/\nclassName\" rule), so the corner-squaring this prop applies via a\ncloned `style` would be silently dropped for one. A toolcrib\ncomponent that needs to anchor a `<Popup>` should consult\n`useCornerSquaring`/expose its own `squareCorners` prop directly\ninstead of being passed here."
         },
         "placement": {
           "type": "'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'",

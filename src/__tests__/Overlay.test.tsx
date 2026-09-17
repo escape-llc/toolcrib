@@ -245,6 +245,118 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(btn.style.borderBottomLeftRadius).toBe('0px');
   });
 
+  describe('regression coverage: Popup `anchor` mode (issue #502 — a wider positioning anchor, separate from the click trigger)', () => {
+    // The shape DatePicker actually uses: a wide bordered box (the
+    // anchor) containing an unrelated always-present element (its own
+    // "DateInput" stand-in here) plus a small nested <Popup.Trigger>
+    // wrapping the real open/close button -- clicking the wide box
+    // itself must NOT open the popup, only the nested trigger should.
+    function renderAnchorPopup() {
+      return render(
+        <Popup
+          placement="bottom-start"
+          anchor={
+            <div data-testid="anchor-box" style={{ display: 'flex', gap: '0.5rem' }}>
+              <span>Field content</span>
+              <Popup.Trigger>
+                <button type="button">Open calendar</button>
+              </Popup.Trigger>
+            </div>
+          }
+        >
+          <div>Calendar Content</div>
+        </Popup>
+      );
+    }
+
+    it('opens via the nested Popup.Trigger, not by clicking the wider anchor', () => {
+      renderAnchorPopup();
+      expect(screen.queryByText('Calendar Content')).not.toBeInTheDocument();
+
+      // Clicking the anchor's own unrelated content must not open it.
+      fireEvent.click(screen.getByTestId('anchor-box'));
+      expect(screen.queryByText('Calendar Content')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Open calendar'));
+      expect(screen.getByText('Calendar Content')).toBeInTheDocument();
+    });
+
+    it('squares the connecting corner on the anchor element, not the nested trigger button', () => {
+      renderAnchorPopup();
+      const anchor = screen.getByTestId('anchor-box');
+      const button = screen.getByText('Open calendar');
+
+      fireEvent.click(button);
+      // bottom-start placement squares off the ANCHOR's own bottom-left
+      // corner (TRIGGER_CORNER['bottom-start'] — the anchor's edge that
+      // actually touches the popup opening below it, left-aligned) — not
+      // top-left, which would be the wrong seam entirely; the nested
+      // button itself gets no corner-squaring at all in this mode (that's
+      // the anchor's job now, not the trigger's — see
+      // connectedPopoverStyles.ts's own renderAnchorWithCornerSquaring
+      // comment for why the two can't share the same
+      // isToolcribComponent-dispatching helper).
+      expect(anchor.style.borderBottomLeftRadius).toBe('0px');
+      expect(button.style.borderBottomLeftRadius).toBe('');
+    });
+
+    // Radix's own default close-autofocus (not Popup's #421 override,
+    // which is deliberately skipped in anchor mode -- see Popup.tsx's own
+    // comment) should still correctly return focus to the real button,
+    // since Popup.Trigger's asChild wraps it directly with no
+    // intermediate wrapper div for the ref to bind to instead.
+    it('returns focus to the real nested trigger button after closing, not <body>', async () => {
+      renderAnchorPopup();
+      const button = screen.getByText('Open calendar');
+
+      fireEvent.click(button);
+      expect(screen.getByText('Calendar Content')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      await waitFor(() => expect(document.activeElement).toBe(button));
+    });
+
+    // `anchor` is documented (PopupProps' own comment) as required to be
+    // a plain-DOM/style-forwarding element, never a real toolcrib
+    // component -- every toolcrib component strips `style`/`className`
+    // outright (`StyleFree<...>`), so renderAnchorWithCornerSquaring's
+    // plain style-clone approach would be a silent no-op on one, not an
+    // error. Confirmed directly here rather than just documented: a real
+    // <Button> passed as `anchor` still opens/closes correctly (Popup.
+    // Trigger's own Radix-context wiring doesn't care what anchor's type
+    // is), it just never visibly squares its corner -- exactly the
+    // documented limitation, not a crash or a different, unexpected
+    // failure mode.
+    it('a toolcrib-component anchor still opens/closes correctly, but does not visibly square its corner (documented limitation)', () => {
+      render(
+        <Popup
+          placement="bottom-start"
+          anchor={
+            <Button>
+              <Popup.Trigger>
+                <span>trigger-span</span>
+              </Popup.Trigger>
+            </Button>
+          }
+        >
+          <div>Toolcrib Anchor Content</div>
+        </Popup>
+      );
+      const anchorBtn = screen.getByText('trigger-span').closest('button')!;
+      expect(screen.queryByText('Toolcrib Anchor Content')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('trigger-span'));
+      expect(screen.getByText('Toolcrib Anchor Content')).toBeInTheDocument();
+      // Button always sets all four corners explicitly to its own
+      // default radius regardless (see AGENTS.md's "explicit per-corner
+      // longhands, always all four" pattern) -- the documented
+      // limitation shows up as "still Button's own unsquared default,"
+      // not an empty string, since nothing ever reaches in to override it.
+      expect(anchorBtn.style.borderBottomLeftRadius).not.toBe('0px');
+      expect(anchorBtn.style.borderBottomLeftRadius).toBe('var(--ai-radius-md)');
+    });
+  });
+
   describe('regression coverage: Drawer edge positions (only "right" was ever exercised)', () => {
     it.each([
       ['left', 'borderTopRightRadius'],
