@@ -75,7 +75,7 @@ test.describe('DataTable empty->populated load transition', () => {
     // directly from this evaluate() call, so it can be awaited separately
     // after confirming the grid actually rendered.
     await page.evaluate(() => {
-      (window as any).__rowAnimResult = new Promise<{ before: string; after: string }>(resolve => {
+      (window as any).__rowAnimResult = new Promise<{ before: string; after: string }>((resolve, reject) => {
         document.addEventListener('animationstart', function handler(e) {
           const row = e.target as HTMLElement;
           if (row.tagName !== 'TR') return;
@@ -108,7 +108,19 @@ test.describe('DataTable empty->populated load transition', () => {
           // there's nothing left to race, since the fake event fires
           // inside the exact callback that fires the instant the real one
           // begins.
-          const child = row.querySelector('button, span, div') as HTMLElement;
+          // Caught in review (Gemini, PR #508): an unhandled exception
+          // thrown inside this listener (e.g. a null `child`, from some
+          // future unexpected DOM shape) would abort the callback before
+          // resolve() ever runs -- the outer __rowAnimResult promise then
+          // stays pending forever, and the test hangs to its full timeout
+          // with no indication of what actually went wrong. reject(),
+          // not just a thrown error, is what makes that failure surface
+          // immediately with a clear message instead of a silent hang.
+          const child = row.querySelector('button, span, div') as HTMLElement | null;
+          if (!child) {
+            reject(new Error('no button/span/div child found inside the entrance-animating row -- cannot dispatch the fake bubbled animationend'));
+            return;
+          }
           const before = row.style.animation;
           child.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'not-the-real-one' }));
           // React's own state update from the dispatched event is
