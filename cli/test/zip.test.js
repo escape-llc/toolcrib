@@ -169,4 +169,38 @@ describe('extractZip', () => {
 
     expect(fs.existsSync(capturedZipPath)).toBe(false);
   });
+
+  it('regression: two concurrent extractions never share the same temp zip path (issue #488)', async () => {
+    // merge.js/init.js's --with-tests both fetch two releases concurrently
+    // (Promise.allSettled), and each independently calls extractZip() —
+    // the original Date.now()-keyed tmpZipPath collided when both calls
+    // landed in the same millisecond, letting one call's write/cleanup
+    // clobber the file the other was still reading, silently corrupting
+    // one extraction or crashing outright. Delay each mocked execFile call
+    // slightly and out of call order, so a real path collision (both calls
+    // resolving to the same tmpZipPath) would show up as either call
+    // reading a zip path the other has already deleted.
+    const capturedPaths = [];
+    const seenExisting = [];
+    execFileMock.mockImplementation((file, args, callback) => {
+      const zipPath = process.platform === 'win32'
+        ? Buffer.from(args[2], 'base64').toString('utf16le').match(/-Path '([^']+)'/)[1]
+        : args[2];
+      capturedPaths.push(zipPath);
+      seenExisting.push(fs.existsSync(zipPath));
+      setTimeout(() => callback(null, { stdout: '', stderr: '' }), zipPath.length % 5);
+    });
+
+    await Promise.all([
+      extractZip(Buffer.from('zip A content'), path.join(tmpDir, 'outA')),
+      extractZip(Buffer.from('zip B content'), path.join(tmpDir, 'outB')),
+    ]);
+
+    expect(capturedPaths).toHaveLength(2);
+    expect(capturedPaths[0]).not.toBe(capturedPaths[1]);
+    // Each call's own zip must still exist (unlocked, unclobbered) at the
+    // moment its own extraction runs — the exact property the shared
+    // Date.now() path violated.
+    expect(seenExisting).toEqual([true, true]);
+  });
 });

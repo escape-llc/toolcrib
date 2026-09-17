@@ -32,10 +32,28 @@ export function powerShellQuote(value) {
 export async function extractZip(zipBuffer, targetDir) {
   await fsp.mkdir(targetDir, { recursive: true });
 
-  const tmpZipPath = path.join(os.tmpdir(), `toolcrib-${Date.now()}.zip`);
-  await fsp.writeFile(tmpZipPath, zipBuffer);
+  // A bare `Date.now()`-keyed filename collides under real concurrent use:
+  // commands/merge.js (old + new release) and `init --with-tests` (core +
+  // tests release) both fetch two releases via Promise.allSettled, and each
+  // independently calls extractZip() — two calls landing in the same
+  // millisecond used to share one tmpZipPath, so one call's write/unlink
+  // could clobber or delete the file out from under the other's still-
+  // running Expand-Archive/unzip, silently corrupting one extraction (both
+  // ending up with identical content) or crashing outright. Found for real
+  // running a v0.14.0->v0.15.0 `merge` simulation before the v0.15.0 release
+  // (see issue #488). fsp.mkdtemp gives each call its own directory, the
+  // same pattern lib/release.js's fetchRelease/fetchTestsRelease already
+  // use for their own tempDirs — no shared path between concurrent calls.
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-zip-'));
+  const tmpZipPath = path.join(tmpDir, 'archive.zip');
 
   try {
+    // Inside the try, not before it — caught in review (Gemini, PR #489):
+    // a write failure here (disk full, permissions) used to abort before
+    // the try/finally even started, leaking tmpDir the same way the
+    // pre-fix code leaked on every concurrent collision.
+    await fsp.writeFile(tmpZipPath, zipBuffer);
+
     if (process.platform === 'win32') {
       // PowerShell's Expand-Archive ships on all modern Windows installs.
       //
@@ -60,7 +78,7 @@ export async function extractZip(zipBuffer, targetDir) {
       await execFileAsync('unzip', ['-o', '-q', tmpZipPath, '-d', targetDir]);
     }
   } finally {
-    await fsp.unlink(tmpZipPath).catch(() => {});
+    await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
