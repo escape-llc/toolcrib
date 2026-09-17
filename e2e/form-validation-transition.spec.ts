@@ -41,12 +41,19 @@ test('the error-region wrapper transitions grid-template-rows, swapping content 
   await expect(page.getByText('Unique username handle')).toBeVisible();
   await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('1fr');
 
-  const { transitionProperty, transitionDuration } = await errorWrapper.evaluate(el => {
+  const { transitionProperty, transitionDuration, visibility } = await errorWrapper.evaluate(el => {
     const cs = getComputedStyle(el);
-    return { transitionProperty: cs.transitionProperty, transitionDuration: cs.transitionDuration };
+    return { transitionProperty: cs.transitionProperty, transitionDuration: cs.transitionDuration, visibility: cs.visibility };
   });
   expect(transitionProperty.split(',').map(s => s.trim())).toContain('grid-template-rows');
   expect(transitionDuration.split(',').every(d => d !== '0s')).toBe(true);
+  // Real-browser confirmation for a follow-up Gemini finding on the same
+  // PR: an already-expanded row (helperText occupying it before any error)
+  // must read as 'visible', not just be laid out at non-zero height --
+  // visibility is the property that actually keeps content out of a
+  // browser's native "Find on Page" once collapsed, which neither
+  // aria-hidden nor overflow:hidden affects on their own.
+  expect(visibility).toBe('visible');
 
   // Trigger a real error: onChange computes it, blur reveals it (same
   // established pattern as this repo's own unit tests -- blur alone,
@@ -81,12 +88,21 @@ test('the summary FormError banner starts genuinely zero-height and grows once a
   await expect.poll(() => bannerWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('0fr');
   const collapsedBox = await bannerWrapper.boundingBox();
   expect(collapsedBox?.height ?? 0).toBeLessThan(2);
+  // Load-bearing regression, not defense-in-depth: this banner's text is
+  // a *static* string always in the DOM regardless of hasErrors, so
+  // `visibility: hidden` is what actually keeps a browser's native "Find
+  // on Page" (Ctrl+F) from matching and scrolling to it while collapsed --
+  // aria-hidden and overflow:hidden don't affect that on their own (a
+  // follow-up finding, Gemini, PR #506, on top of the original aria-hidden
+  // fix from the same review).
+  await expect.poll(() => bannerWrapper.evaluate(el => getComputedStyle(el).visibility)).toBe('hidden');
 
   await usernameInput.fill('a');
   await usernameInput.blur();
 
   await expect.poll(() => bannerWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('1fr');
   await expect(bannerText).toBeVisible();
+  await expect.poll(() => bannerWrapper.evaluate(el => getComputedStyle(el).visibility)).toBe('visible');
   const expandedBox = await bannerWrapper.boundingBox();
   // >2, matching the collapsed-state threshold's own magnitude (not a
   // separately-guessed "should be a full line of text tall" number) --

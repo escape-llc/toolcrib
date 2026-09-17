@@ -104,12 +104,28 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           // always in the DOM regardless of this same collapsed state,
           // where this same attribute is load-bearing, not just extra
           // safety.
+          //
+          // visibility: 'hidden' when collapsed -- a second, follow-up
+          // finding on the same PR (Gemini): aria-hidden alone still lets
+          // a browser's native "Find on Page" (Ctrl+F) match and scroll to
+          // the collapsed, zero-height text, since neither
+          // `overflow: hidden` nor `aria-hidden` affects that. `visibility`
+          // is the one property both the accessibility tree AND native
+          // find-on-page respect. Delayed via transitionDelay (only on the
+          // *collapsing* direction, only on this one property) so the
+          // content stays visible for the full grid-row shrink and only
+          // actually vanishes once the collapse animation has finished --
+          // switching instantly would cut the transition short visually.
           aria-hidden={!(error || helperText)}
           style={{
             display: 'grid',
             gridTemplateRows: error || helperText ? '1fr' : '0fr',
             marginTop: error || helperText ? 0 : '-0.375rem',
-            transition: 'grid-template-rows var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease), margin-top var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+            visibility: error || helperText ? 'visible' : 'hidden',
+            transitionProperty: 'grid-template-rows, margin-top, visibility',
+            transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+            transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+            transitionDelay: error || helperText ? '0s' : '0s, 0s, var(--ai-transition-duration-normal, 0.2s)',
           }}
         >
           <div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -161,13 +177,17 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
     const error = touched[name] ? errors[name] : undefined;
     return (
       <div
-        // See FormField's own aria-hidden comment for the full reasoning
-        // (issue found in review, Gemini, PR #506).
+        // See FormField's own aria-hidden/visibility comments for the full
+        // reasoning (both found in review, Gemini, PR #506).
         aria-hidden={!error}
         style={{
           display: 'grid',
           gridTemplateRows: error ? '1fr' : '0fr',
-          transition: 'grid-template-rows var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+          visibility: error ? 'visible' : 'hidden',
+          transitionProperty: 'grid-template-rows, visibility',
+          transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+          transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+          transitionDelay: error ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
         }}
       >
         <div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -187,12 +207,19 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
       // screen reader whose own visibility heuristic doesn't treat a
       // zero-height, overflow:hidden region as hidden would discover and
       // announce "Please correct the errors..." even on a fully valid,
-      // untouched form.
+      // untouched form. Same reasoning applies to visibility below -- also
+      // load-bearing here (not defense-in-depth), since it's what keeps a
+      // browser's native "Find on Page" from matching this same always-
+      // present static string (issue found in review, Gemini, PR #506).
       aria-hidden={!hasErrors}
       style={{
         display: 'grid',
         gridTemplateRows: hasErrors ? '1fr' : '0fr',
-        transition: 'grid-template-rows var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
+        visibility: hasErrors ? 'visible' : 'hidden',
+        transitionProperty: 'grid-template-rows, visibility',
+        transitionDuration: 'var(--ai-transition-duration-normal, 0.2s)',
+        transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+        transitionDelay: hasErrors ? '0s' : '0s, var(--ai-transition-duration-normal, 0.2s)',
       }}
     >
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
