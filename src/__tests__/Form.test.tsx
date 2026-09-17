@@ -635,6 +635,93 @@ describe('Form & Zod Validation Engine', () => {
       expect(screen.queryByText('Username must be at least 3 chars')).not.toBeInTheDocument();
     });
 
+    // Regression coverage for a real finding from review (Gemini, PR
+    // #511): an EXPAND transition (0fr -> 1fr, e.g. when the error first
+    // appears) also fires its own grid-template-rows transitionend on
+    // this same wrapper -- an earlier version cleared the held state
+    // unconditionally on ANY transitionend regardless of direction,
+    // which is harmless to what's actually displayed (display already
+    // ignores the held value whenever content is non-empty) but caused
+    // two redundant re-renders on every single expansion. Fixed by only
+    // clearing when the transition that just finished was genuinely a
+    // collapse (content empty at the time it fires) -- this test
+    // confirms the FIX side directly: firing transitionend WHILE the
+    // error is still present must not clear anything the error text
+    // still needs.
+    it('FormField: a transitionend firing while the error is still present (the expand direction) does not clear the held text', async () => {
+      const { container } = render(
+        <Form id="deferred-collapse-field-expand-transitionend" schema={singleFieldSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+
+      const input = screen.getByPlaceholderText('Username');
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument());
+
+      const wrapper = gridWrapper(container);
+      expect(wrapper.style.gridTemplateRows).toBe('1fr');
+
+      // Simulates the real expand transition's own transitionend --
+      // must be a no-op while the error is still genuinely present.
+      fireEvent.transitionEnd(wrapper, { propertyName: 'grid-template-rows' });
+      expect(screen.getByText('Username must be at least 3 chars')).toBeInTheDocument();
+
+      // The field is still invalid and untouched-error-cleared-yet --
+      // confirms the wrapper itself wasn't affected either.
+      expect(wrapper.style.gridTemplateRows).toBe('1fr');
+    });
+
+    // Regression coverage for a second real finding from the same review
+    // (Gemini, PR #511): an earlier version derived its comparison key
+    // via `String(helperText)`, which collapses EVERY distinct JSX
+    // element to the identical literal "[object Object]" -- so swapping
+    // from one JSX helperText value to a different one went undetected,
+    // and a later collapse would hold onto the FIRST JSX value ever
+    // shown, not the most recently displayed one. Fixed by comparing the
+    // raw `helperText` prop directly instead of a stringified stand-in.
+    it('FormField: swapping helperText between two different JSX values is detected, so a later collapse holds the most recent one, not the first', () => {
+      const { rerender, container } = render(
+        <Form id="deferred-collapse-jsx-helper" schema={singleFieldSchema}>
+          <FormField name="username" helperText={<em>First hint</em>}>
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+      expect(screen.getByText('First hint')).toBeInTheDocument();
+
+      rerender(
+        <Form id="deferred-collapse-jsx-helper" schema={singleFieldSchema}>
+          <FormField name="username" helperText={<em>Second hint</em>}>
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+      expect(screen.getByText('Second hint')).toBeInTheDocument();
+      expect(screen.queryByText('First hint')).not.toBeInTheDocument();
+
+      // helperText removed entirely -- the wrapper starts collapsing,
+      // but the HELD content must be "Second hint" (the most recent),
+      // never "First hint" (the stale value a String()-based key would
+      // have wrongly stuck on, since both stringify identically).
+      rerender(
+        <Form id="deferred-collapse-jsx-helper" schema={singleFieldSchema}>
+          <FormField name="username">
+            <Input placeholder="Username" />
+          </FormField>
+        </Form>
+      );
+      expect(screen.getByText('Second hint')).toBeInTheDocument();
+      expect(screen.queryByText('First hint')).not.toBeInTheDocument();
+
+      const wrapper = gridWrapper(container);
+      fireEvent.transitionEnd(wrapper, { propertyName: 'grid-template-rows' });
+      expect(screen.queryByText('Second hint')).not.toBeInTheDocument();
+    });
+
     it('FormField: swapping from error text to helperText updates immediately, with no held/stale content', async () => {
       const { container } = render(
         <Form id="deferred-collapse-field-swap" schema={singleFieldSchema}>

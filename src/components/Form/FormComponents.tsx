@@ -63,13 +63,16 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
       {helperText}
     </span>
   ) : undefined;
-  // Prefixed with 'error:'/'helper:' so a swap from one kind to the other
-  // with coincidentally-identical text (rare, but possible) still counts
-  // as a real change -- see useDeferredCollapseContent's own comment on
-  // why `key` has to be a cheap, stable primitive rather than `content`
-  // itself (a fresh JSX object every render).
-  const currentRegionKey = error ? `error:${error}` : helperText ? `helper:${String(helperText)}` : undefined;
-  const { display: regionDisplay, onTransitionEnd: handleRegionTransitionEnd } = useDeferredCollapseContent(currentRegionKey, currentRegionContent);
+  // `error`/`helperText` themselves (the raw props, not `String(...)`'d)
+  // -- see useDeferredCollapseContent's own comment on why the RAW value
+  // has to be compared directly rather than a stringified stand-in
+  // (`String()` on a JSX `helperText` collapses every distinct element
+  // to the identical "[object Object]", a real bug caught in review,
+  // Gemini PR #511) or `currentRegionContent` itself (a fresh JSX object
+  // every render, an earlier version's real infinite-loop bug).
+  const currentRegionKind = error ? 'error' : helperText ? 'helper' : undefined;
+  const currentRegionValue: unknown = error ?? helperText;
+  const { display: regionDisplay, onTransitionEnd: handleRegionTransitionEnd } = useDeferredCollapseContent(currentRegionKind, currentRegionValue, currentRegionContent);
 
   return (
     <FieldContext.Provider value={{ name }}>
@@ -188,7 +191,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   const namedErrorContent: ReactNode = namedError ? (
     <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{namedError}</div>
   ) : undefined;
-  const { display: namedErrorDisplay, onTransitionEnd: handleNamedErrorTransitionEnd } = useDeferredCollapseContent(namedError, namedErrorContent);
+  const { display: namedErrorDisplay, onTransitionEnd: handleNamedErrorTransitionEnd } = useDeferredCollapseContent(namedError ? 'error' : undefined, namedError, namedErrorContent);
 
   if (!formContext) return null;
 
