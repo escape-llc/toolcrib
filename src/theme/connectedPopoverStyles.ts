@@ -2,6 +2,7 @@
 
 import React, { type ReactElement, type ReactNode, type RefObject, cloneElement, isValidElement, useEffect, useState } from 'react';
 import { type SquareCornerOption, resolveSquareCorners } from '../components/Card/Card';
+import { useMutationObserver } from '../observer/useMutationObserver';
 
 /** @barrelExport */
 export type PopoverSide = 'top' | 'right' | 'bottom' | 'left';
@@ -134,56 +135,73 @@ export function useActualPopoverSide(
     if (!isOpen) setActualSide(requestedSide);
   }
 
+  // Reads whatever `data-side` value already exists the moment the ref
+  // actually attaches -- `useMutationObserver` below only ever reports
+  // FUTURE attribute changes, not a value already present at attach
+  // time, so this initial read is still needed alongside it. Same
+  // bounded requestAnimationFrame retry as before (and the same one
+  // `useMutationObserver`'s own internal setup uses): Radix's Content is
+  // Presence-mounted, which can land one render tick after `isOpen`
+  // flips true, so `contentRef.current` isn't guaranteed to be populated
+  // yet on this effect's first run (confirmed directly: it was reliably
+  // still null here, silently no-op'ing the whole hook, before this
+  // retry existed).
   useEffect(() => {
     if (!isOpen) return;
 
-    let observer: MutationObserver | undefined;
-    let rafId: number | undefined;
     let cancelled = false;
+    let rafId: number | undefined;
+    let attempts = 0;
+    const MAX_ATTACH_RETRY_FRAMES = 10;
 
-    // `data-side` isn't guaranteed to land on the ref'd node itself --
-    // Radix's actual Popper positioning wrapper carrying it can be a
-    // different element than whichever one a caller's own `ref` forwards
-    // to. Checking both self and descendant, and observing with
-    // `subtree: true`, means this works regardless of exactly which node
-    // in Content's own internal structure ends up owning the attribute.
-    const attach = (node: HTMLElement) => {
-      const readSide = () => {
-        const target = node.hasAttribute('data-side') ? node : node.querySelector('[data-side]');
-        const attr = target?.getAttribute('data-side');
-        if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
-          setActualSide(attr);
-        }
-      };
-      readSide();
-      observer = new MutationObserver(readSide);
-      observer.observe(node, { attributes: true, attributeFilter: ['data-side'], subtree: true });
-    };
-
-    // Radix's Content is Presence-mounted, which can land one render tick
-    // after `isOpen` flips true -- `contentRef.current` isn't guaranteed
-    // to be populated yet in this same effect run (confirmed directly: it
-    // was reliably still null here, silently no-op'ing the whole hook).
-    // This effect only reruns when `isOpen` itself changes, so missing
-    // that window meant never picking up the ref at all. Polling via rAF
-    // for a few frames catches it as soon as it actually mounts.
-    const waitForNode = () => {
+    const tryRead = () => {
       if (cancelled) return;
       const node = contentRef.current;
-      if (node) {
-        attach(node);
-      } else {
-        rafId = requestAnimationFrame(waitForNode);
+      if (!node) {
+        if (attempts++ < MAX_ATTACH_RETRY_FRAMES) rafId = requestAnimationFrame(tryRead);
+        return;
+      }
+      // `data-side` isn't guaranteed to land on the ref'd node itself --
+      // Radix's actual Popper positioning wrapper carrying it can be a
+      // different element than whichever one a caller's own `ref`
+      // forwards to. Checking both self and descendant covers this
+      // regardless of exactly which node in Content's own internal
+      // structure ends up owning the attribute.
+      const target = node.hasAttribute('data-side') ? node : node.querySelector('[data-side]');
+      const attr = target?.getAttribute('data-side');
+      if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
+        setActualSide(attr);
       }
     };
-    waitForNode();
+    tryRead();
 
     return () => {
       cancelled = true;
       if (rafId !== undefined) cancelAnimationFrame(rafId);
-      observer?.disconnect();
     };
-  }, [contentRef, requestedSide, isOpen]);
+  }, [contentRef, isOpen]);
+
+  // Issue #515: routed through the centralized MutationObserver
+  // (observerManager/useMutationObserver) rather than this hook creating
+  // its own dedicated MutationObserver instance, the one real pre-
+  // existing ad hoc case that ticket found and closed. `event.target` is
+  // already the exact node whose `data-side` attribute changed (the
+  // manager's own `attributeFilter: ['data-side']` guarantees that), so
+  // no `querySelector` fallback is needed here the way the initial-read
+  // effect above still needs one -- unlike an initial read, a mutation
+  // record always tells you precisely which node changed.
+  useMutationObserver(
+    contentRef,
+    { attributes: true, attributeFilter: ['data-side'], subtree: true },
+    event => {
+      const target = event.target as Element;
+      const attr = target.getAttribute?.('data-side');
+      if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
+        setActualSide(attr);
+      }
+    },
+    { enabled: isOpen }
+  );
 
   return actualSide;
 }

@@ -42,6 +42,7 @@ export * from './eventBus/useInteractionAnalytics';
 // Observer & Adaptive Sizing
 export * from './observer/observerManager';
 export * from './observer/useAdaptiveSize';
+export * from './observer/useMutationObserver';
 
 // Components
 export * from './components/Accordion/Accordion';

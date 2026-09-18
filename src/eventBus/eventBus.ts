@@ -21,6 +21,8 @@ export interface AIEventMap {
   // Observer & Adaptive Sizing Events
   'element:resized': { id?: string; target: HTMLElement; width: number; height: number; contentHeight: number };
   'element:intersected': { id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number };
+  /** `target` is the exact node the mutation occurred on -- with `subtree: true`, this can be a DESCENDANT of whichever element `useMutationObserver`'s own `ref` points to, not that element itself (unlike `element:resized`/`element:intersected`, whose `target` is always the literal observed element -- a real MutationObserver API asymmetry, not an oversight). */
+  'element:mutated': { id?: string; target: Node; type: MutationRecordType; attributeName: string | null; oldValue: string | null };
   'viewport:resized': { width: number; height: number };
   'popup:shown': { id: string; targetId?: string; data?: any };
   'popup:hidden': { id: string };

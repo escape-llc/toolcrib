@@ -177,3 +177,116 @@ describe('GlobalObserverManager real callback wiring (mocked observers)', () => 
     expect(spy).toHaveBeenCalledWith({ width: window.innerWidth, height: window.innerHeight });
   });
 });
+
+/**
+ * Unlike ResizeObserver/IntersectionObserver (neither implemented by
+ * jsdom, hence the mocked-class suite above), jsdom DOES implement a
+ * real MutationObserver -- confirmed directly, not assumed. So this
+ * suite drives observerManager's mutation wiring (issue #515) against
+ * the real thing: real DOM attribute changes, a real (module-singleton)
+ * observerManager instance, real microtask-queued MutationObserver
+ * callbacks (awaited via a resolved microtask flush, not a fixed
+ * timeout -- MutationObserver callbacks are always async, but the
+ * browser/jsdom's own scheduling of them has no fixed delay to wait a
+ * specific duration for).
+ */
+describe('GlobalObserverManager MutationObserver wiring (real jsdom MutationObserver)', () => {
+  const flushMicrotasks = () => new Promise(resolve => queueMicrotask(() => resolve(undefined)));
+
+  it('emits element:mutated for an attribute change on an observed element', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const spy = vi.fn();
+    const unsubscribe = aiBus.on('element:mutated', spy);
+
+    observerManager.observe(el, { id: 'mut-1', mutationOptions: { attributes: true, attributeFilter: ['data-side'] } });
+    el.setAttribute('data-side', 'top');
+    await flushMicrotasks();
+
+    expect(spy).toHaveBeenCalledWith({
+      id: 'mut-1',
+      target: el,
+      type: 'attributes',
+      attributeName: 'data-side',
+      oldValue: null,
+    });
+
+    unsubscribe();
+    observerManager.unobserve(el);
+    document.body.removeChild(el);
+  });
+
+  it('attributes a subtree mutation to the tracked ANCESTOR element, not the descendant that actually changed', async () => {
+    const root = document.createElement('div');
+    const child = document.createElement('span');
+    root.appendChild(child);
+    document.body.appendChild(root);
+    const spy = vi.fn();
+    const unsubscribe = aiBus.on('element:mutated', spy);
+
+    // subtree: true, observed on `root` -- Radix's own real shape this
+    // was built for (the attribute lands on a descendant of whichever
+    // node a caller's ref points to, not necessarily that node itself).
+    observerManager.observe(root, { id: 'mut-subtree', mutationOptions: { attributes: true, attributeFilter: ['data-side'], subtree: true } });
+    child.setAttribute('data-side', 'bottom');
+    await flushMicrotasks();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'mut-subtree', target: child, attributeName: 'data-side' })
+    );
+
+    unsubscribe();
+    observerManager.unobserve(root);
+    document.body.removeChild(root);
+  });
+
+  it('does not emit element:mutated for an element observed without mutationOptions', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const spy = vi.fn();
+    const unsubscribe = aiBus.on('element:mutated', spy);
+
+    observerManager.observe(el, { id: 'no-mutation-opts' });
+    el.setAttribute('data-side', 'left');
+    await flushMicrotasks();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    unsubscribe();
+    observerManager.unobserve(el);
+    document.body.removeChild(el);
+  });
+
+  it('stops emitting element:mutated for an element after unobserve, without affecting other still-tracked elements', async () => {
+    // Regression for the one real API asymmetry this feature has to
+    // handle: MutationObserver has no per-element `.unobserve()` --
+    // `.disconnect()` is all-or-nothing. observerManager's own fix is to
+    // keep the browser-level observation running but silently drop
+    // anything for an element no longer in `trackedElements` -- this
+    // confirms that actually holds, and that it doesn't collaterally
+    // break a DIFFERENT element still being tracked on the same shared
+    // MutationObserver instance.
+    const stillTracked = document.createElement('div');
+    const removed = document.createElement('div');
+    document.body.appendChild(stillTracked);
+    document.body.appendChild(removed);
+    const spy = vi.fn();
+    const unsubscribe = aiBus.on('element:mutated', spy);
+
+    observerManager.observe(stillTracked, { id: 'still-tracked', mutationOptions: { attributes: true, attributeFilter: ['data-side'] } });
+    observerManager.observe(removed, { id: 'removed', mutationOptions: { attributes: true, attributeFilter: ['data-side'] } });
+    observerManager.unobserve(removed);
+
+    removed.setAttribute('data-side', 'top');
+    stillTracked.setAttribute('data-side', 'bottom');
+    await flushMicrotasks();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ id: 'still-tracked', target: stillTracked }));
+
+    unsubscribe();
+    observerManager.unobserve(stillTracked);
+    document.body.removeChild(stillTracked);
+    document.body.removeChild(removed);
+  });
+});
