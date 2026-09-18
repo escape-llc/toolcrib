@@ -31,6 +31,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableQuickFilter } from './useTableQuickFilter';
 import { useTableDensity } from './useTableDensity';
+import { useDensityCrossFade } from './useDensityCrossFade';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
@@ -1113,6 +1114,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // -- every one of them spans the table's real, full column count.
   const totalColSpan = gridColumnCount;
   const tableRef = useRef<HTMLTableElement>(null);
+  // Cross-fades the row set when density changes (issue #499) instead of
+  // row height/padding snapping instantly -- see this hook's own comment
+  // for the full approach.
+  useDensityCrossFade(tableRef, effectiveDensity);
   const { focusedRow, focusedCol, handleKeyDown, handleFocus } = useTableKeyboardNav({
     tableRef,
     bodyRef,

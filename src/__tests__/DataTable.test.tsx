@@ -1817,6 +1817,101 @@ describe('DataTable Virtualized Component', () => {
     });
   });
 
+  // Regression coverage for issue #499: a density change used to snap
+  // row height/padding instantly. useDensityCrossFade (own file) clones
+  // the OUTGOING table's real rendered DOM as a static, inert overlay
+  // that fades out on top of the live table (which re-renders normally,
+  // immediately, at the new density underneath) -- see that hook's own
+  // comment for the full reasoning, including why this needs a JS-level
+  // read of `--ai-transition-duration-normal` rather than relying on
+  // the CSS variable's own collapse-to-0s (the mechanism itself must be
+  // skipped under reduced motion, not merely animate at 0 duration).
+  //
+  // jsdom has no real layout/CSS-transition engine (can't observe an
+  // actual animated opacity value or a real `transitionend`, per this
+  // repo's own established limitation -- see AGENTS.md's "CSS/real-
+  // layout invisibility" entry), so these assert the one thing jsdom
+  // *can* see: that a snapshot clone is actually inserted (with
+  // `inert`/`aria-hidden`/stripped ids) when a real, non-zero duration
+  // is in effect, and that a real `transitionend` removes it again. A
+  // Playwright e2e test covers the actual visual fade
+  // (e2e/datatable-density-crossfade.spec.ts).
+  describe('regression coverage: density change cross-fades the row set instead of slamming (issue #499)', () => {
+    // useDensityCrossFade defaults an UNRESOLVED --ai-transition-duration-normal
+    // to "reduced motion" (skip the clone mechanism entirely) specifically
+    // so the many OTHER density tests above -- none of which mount a real
+    // ThemeProvider, so the variable is never set -- don't spuriously
+    // trigger it. Setting it directly on the rendered <table> (a real
+    // inline style, not something that needs cascade/inheritance
+    // resolution) is what actually activates it here.
+    function setRealTransitionDuration(container: HTMLElement, value = '0.2s') {
+      const table = container.querySelector('table')!;
+      table.style.setProperty('--ai-transition-duration-normal', value);
+    }
+
+    it('inserts an inert, aria-hidden snapshot clone of the outgoing table when density changes with a real transition duration in effect', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
+      );
+      setRealTransitionDuration(container);
+
+      expect(container.querySelectorAll('table').length).toBe(1);
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+
+      const tables = container.querySelectorAll('table');
+      expect(tables.length).toBe(2);
+      const [liveTable, snapshot] = Array.from(tables);
+      expect(snapshot.hasAttribute('inert')).toBe(true);
+      expect(snapshot.getAttribute('aria-hidden')).toBe('true');
+      expect(liveTable.hasAttribute('inert')).toBe(false);
+    });
+
+    it('strips every id from the snapshot clone so it can never collide with the live table\'s own ids', () => {
+      const { container } = render(
+        <DataTable id="density-id-table" data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
+      );
+      setRealTransitionDuration(container);
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+
+      const tables = container.querySelectorAll('table');
+      const snapshot = tables[1];
+      expect(snapshot.querySelectorAll('[id]').length).toBe(0);
+      expect(snapshot.id).toBe('');
+    });
+
+    it('removes the snapshot once a real transitionend fires for its own opacity', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
+      );
+      setRealTransitionDuration(container);
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+
+      expect(container.querySelectorAll('table').length).toBe(2);
+      const snapshot = container.querySelectorAll('table')[1];
+      fireEvent.transitionEnd(snapshot, { propertyName: 'opacity' });
+      expect(container.querySelectorAll('table').length).toBe(1);
+    });
+
+    it('does not clone anything when --ai-transition-duration-normal resolves to 0s (reduced motion)', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
+      );
+      setRealTransitionDuration(container, '0s');
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+
+      expect(container.querySelectorAll('table').length).toBe(1);
+    });
+
+    it('does not clone anything when no real transition duration is in effect (no ThemeProvider mounted) -- the established default for every other density test in this file', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
+      );
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+
+      expect(container.querySelectorAll('table').length).toBe(1);
+    });
+  });
+
   describe('CSV export (issue #338)', () => {
     // Shared setup for every test that actually triggers a download --
     // jsdom implements neither URL.createObjectURL/revokeObjectURL nor real
