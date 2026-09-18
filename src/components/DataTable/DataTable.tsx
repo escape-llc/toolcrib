@@ -31,7 +31,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableQuickFilter } from './useTableQuickFilter';
 import { useTableDensity } from './useTableDensity';
-import { useDensityCrossFade } from './useDensityCrossFade';
+import { useRowSetCrossFade } from './useRowSetCrossFade';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
@@ -1114,11 +1114,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // -- every one of them spans the table's real, full column count.
   const totalColSpan = gridColumnCount;
   const tableRef = useRef<HTMLTableElement>(null);
-  // Cross-fades the row set when density changes (issue #499) instead of
-  // row height/padding snapping instantly -- see this hook's own comment
-  // for the full approach.
-  useDensityCrossFade(tableRef, effectiveDensity);
-  const { focusedRow, focusedCol, handleKeyDown, handleFocus } = useTableKeyboardNav({
+  // useTableKeyboardNav called BEFORE useRowSetCrossFade below --
+  // restoreFocus (issue #517's own focus-preservation piece) has to
+  // exist first to pass into it.
+  const { focusedRow, focusedCol, handleKeyDown, handleFocus, restoreFocus } = useTableKeyboardNav({
     tableRef,
     bodyRef,
     columnCount: gridColumnCount,
@@ -1128,6 +1127,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     endIndex,
   });
   const isFocusedCell = (row: number, col: number) => focusedRow === row && focusedCol === col;
+
+  // Cross-fades the row set when density OR pagination changes
+  // (issues #499/#517) instead of snapping instantly -- see this
+  // hook's own comment for the full approach, including why a single
+  // combined key covers both triggers and why restoreFocus (from
+  // useTableKeyboardNav above) is only ever invoked when a page change
+  // genuinely stole focus out from under the user, never for a density
+  // change (which never remounts any row) or a page change the user
+  // triggered from outside the grid entirely.
+  useRowSetCrossFade(tableRef, `${effectiveDensity}|${validCurrentPage}|${effectivePageSize}`, restoreFocus);
 
   const { getColumnWidth, isResizing, getAriaValues, startResize, handleResizeKeyDown } = useTableColumnResize({
     columnWidths: controlledColumnWidths,

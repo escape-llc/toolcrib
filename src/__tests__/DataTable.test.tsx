@@ -1912,6 +1912,110 @@ describe('DataTable Virtualized Component', () => {
     });
   });
 
+  // Regression coverage for issue #517 (the pagination half of #499's
+  // own split): the row-set cross-fade generalizes to a page/pageSize
+  // change via the same useRowSetCrossFade mechanism the density suite
+  // above already exercises -- these tests focus on what's genuinely
+  // NEW for this trigger: the clone activates on a page change too, and
+  // the real, pre-existing (not introduced by this feature) focus-loss
+  // gap on a data-derived rowKey now gets an explicit restoration.
+  describe('regression coverage: pagination change cross-fades the row set, restoring focus when rowKey remounts it (issue #517)', () => {
+    function setRealTransitionDuration(container: HTMLElement, value = '0.2s') {
+      const table = container.querySelector('table')!;
+      table.style.setProperty('--ai-transition-duration-normal', value);
+    }
+
+    it('inserts an inert, aria-hidden snapshot clone of the outgoing page when the page changes', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+      setRealTransitionDuration(container);
+
+      expect(container.querySelectorAll('table').length).toBe(1);
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+
+      const tables = container.querySelectorAll('table');
+      expect(tables.length).toBe(2);
+      expect(tables[1].hasAttribute('inert')).toBe(true);
+      expect(tables[1].getAttribute('aria-hidden')).toBe('true');
+    });
+
+    // Real e2e discrepancy found while verifying this (documented at
+    // length in useRowSetCrossFade's own comment): a REAL browser click
+    // on ANY button moves real focus to that button as native default
+    // behavior BEFORE React's click handler/re-render even runs -- so a
+    // genuine click on DataTable's own Next-page button can never
+    // reach this code path at all (by the time this hook's render-phase
+    // check runs, focus has already, correctly, moved to the button --
+    // matching the "does not steal focus" test below, not this one).
+    // jsdom's `fireEvent.click` does NOT also move real focus, which is
+    // exactly why it's the right tool HERE: it exercises the underlying
+    // restore LOGIC using a representative "the page changed" trigger,
+    // matching the REAL, reachable case this feature targets -- a
+    // `page` prop changing from something other than a click inside
+    // this table's own UI (a URL/history sync, a live collaborative
+    // update, a timer-driven auto-advance).
+    it('restores focus to the same grid position on the new page when a data-derived rowKey remounted the previously-focused row', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} />
+      );
+
+      // A real data cell -- col 1 is the first data column (no
+      // selectable/rowCommands here, so col 0 is "ID"). Wrapped in
+      // act() -- a raw .focus() call bypasses fireEvent's own
+      // auto-wrapping, and the resulting onFocus handler (which syncs
+      // useTableKeyboardNav's own focusedRow/focusedCol state to match)
+      // needs to actually flush before this test's own assumptions
+      // about that state hold (AGENTS.md's own "act() warnings are not
+      // noise" case 4 -- a raw DOM .focus()/.blur()/.click() call).
+      const cell = container.querySelector('[data-grid-row="2"][data-grid-col="0"]') as HTMLElement;
+      act(() => {
+        cell.focus();
+      });
+      expect(document.activeElement).toBe(cell);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+
+      // The OLD cell (still referenced) is gone from the live tree --
+      // confirms this test actually exercises a real remount, not a
+      // coincidental DOM-node reuse.
+      expect(cell.isConnected).toBe(false);
+
+      // Focus lands on the SAME grid coordinate in the NEW page's real
+      // (non-cloned, non-inert) table.
+      const restoredCell = container.querySelector('table:not([inert]) [data-grid-row="2"][data-grid-col="0"]');
+      expect(document.activeElement).toBe(restoredCell);
+    });
+
+    it('does not steal focus onto the grid when the page change was triggered from outside it', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} />);
+
+      const nextButton = screen.getByRole('button', { name: 'Next page' });
+      nextButton.focus();
+      expect(document.activeElement).toBe(nextButton);
+
+      fireEvent.click(nextButton);
+
+      // Focus stays right where the user actually put it -- restoreFocus
+      // must never fire when the grid never had real focus to begin with.
+      expect(document.activeElement).toBe(nextButton);
+    });
+
+    it('does not need to restore anything with the default index-based rowKey fallback -- the same row/col position survives automatically, matching density\'s own behavior', () => {
+      const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+
+      const cell = container.querySelector('[data-grid-row="2"][data-grid-col="0"]') as HTMLElement;
+      act(() => {
+        cell.focus();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+
+      // Same DOM node (index-based key, never remounted) -- still
+      // connected and still focused, no restoration needed or triggered.
+      expect(cell.isConnected).toBe(true);
+      expect(document.activeElement).toBe(cell);
+    });
+  });
+
   describe('CSV export (issue #338)', () => {
     // Shared setup for every test that actually triggers a download --
     // jsdom implements neither URL.createObjectURL/revokeObjectURL nor real

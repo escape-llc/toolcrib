@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject, type KeyboardEvent, type FocusEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject, type KeyboardEvent, type FocusEvent } from 'react';
 
 export interface UseTableKeyboardNavOptions {
   tableRef: RefObject<HTMLTableElement | null>;
@@ -30,6 +30,18 @@ export interface UseTableKeyboardNavResult {
    * actually see is focused.
    */
   handleFocus: (e: FocusEvent<HTMLTableElement>) => void;
+  /**
+   * Re-arms the same retry-until-found focus mechanism `focusCell` already
+   * uses (issue #517), targeting the CURRENT `focusedRow`/`focusedCol`
+   * coordinate rather than a new one -- for a caller outside this hook
+   * that needs to re-apply focus to "wherever it logically was" after
+   * something else (a page change remounting every row because `rowKey`
+   * is data-derived, e.g.) caused the real DOM element holding focus to
+   * be removed and replaced. `focusedRow`/`focusedCol` are plain grid
+   * coordinates, independent of which record occupies them, so they
+   * survive that kind of remount even when the DOM node doesn't.
+   */
+  restoreFocus: () => void;
 }
 
 /**
@@ -200,5 +212,15 @@ export function useTableKeyboardNav({
     if (col !== focusedCol) setFocusedCol(col);
   };
 
-  return { focusedRow, focusedCol, handleKeyDown, handleFocus };
+  // useCallback, not a plain function -- issue #517's own consumer
+  // (useRowSetCrossFade) takes this as a dependency of its own effect;
+  // a fresh function identity every render would re-run (and re-clean-
+  // up) that effect on every unrelated render, not just when its real
+  // trigger key changes. Same reasoning as Splitter.tsx's own
+  // `commitSplit` memoization for the identical shape.
+  const restoreFocus = useCallback(() => {
+    pendingFocusRef.current = { row: focusedRow, col: focusedCol };
+  }, [focusedRow, focusedCol]);
+
+  return { focusedRow, focusedCol, handleKeyDown, handleFocus, restoreFocus };
 }
