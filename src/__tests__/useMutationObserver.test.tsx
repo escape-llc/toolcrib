@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useMutationObserver } from '../observer/useMutationObserver';
 
@@ -13,6 +13,19 @@ function renderWithRealElement(mutationOptions: MutationObserverInit, onMutation
 }
 
 describe('useMutationObserver', () => {
+  // Caught in review (Gemini, PR #516): every test in this file appends
+  // real elements to document.body (renderWithRealElement, plus several
+  // tests' own extra elements for the "unrelated"/"subtree descendant"
+  // cases) with no cleanup, unlike observer.test.ts's own established
+  // per-test removeChild convention -- real DOM pollution across tests
+  // in this file, confirmed true, not a false positive. A single
+  // afterEach clearing document.body is more robust than tracking each
+  // element individually (can't miss one), and applies uniformly
+  // regardless of how many elements any given test happens to create.
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
   it('calls onMutation for a matching attribute change on its own ref', async () => {
     const onMutation = vi.fn();
     const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'] }, onMutation);
