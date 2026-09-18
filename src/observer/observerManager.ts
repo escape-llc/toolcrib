@@ -7,11 +7,24 @@ export interface ObservedElementConfig {
   id?: string;
   debounceMs?: number;
   enableIntersection?: boolean;
+  /**
+   * Opts an element into centralized `MutationObserver` tracking (issue
+   * #515) -- one shared `MutationObserver` instance covers every
+   * observed element, the same "one shared instance per observer type"
+   * shape `resizeObserver`/`intersectionObserver` already establish,
+   * rather than a consumer creating its own dedicated instance (the
+   * pattern this ticket found and closed: `connectedPopoverStyles.ts`'s
+   * `useActualPopoverSide` was the one real, pre-existing ad hoc case).
+   * Passed straight through to the real `MutationObserver.observe()`
+   * call, unmodified.
+   */
+  mutationOptions?: MutationObserverInit;
 }
 
 class GlobalObserverManager {
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
+  private mutationObserver: MutationObserver | null = null;
   private resizeListener: (() => void) | null = null;
 
   private trackedElements = new Map<HTMLElement, ObservedElementConfig>();
@@ -73,6 +86,36 @@ class GlobalObserverManager {
       });
     }
 
+    if (typeof MutationObserver !== 'undefined') {
+      this.mutationObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          // `subtree: true` (the one real motivating use case, issue
+          // #515, needs it) means `mutation.target` can be a DESCENDANT
+          // of whichever element `observe()` was actually called on, not
+          // that element itself -- unlike the resize/intersection
+          // entries above, which always report the literal observed
+          // element. Walk up from the real mutation target to find which
+          // tracked root element (and therefore which config/id) this
+          // mutation actually belongs to.
+          let node: Node | null = mutation.target;
+          while (node && !(node instanceof HTMLElement && this.trackedElements.has(node))) {
+            node = node.parentNode;
+          }
+          if (!node) return;
+          const config = this.trackedElements.get(node as HTMLElement);
+          if (!config || !config.mutationOptions) return;
+
+          aiBus.emit('element:mutated', {
+            id: config.id,
+            target: mutation.target,
+            type: mutation.type,
+            attributeName: mutation.attributeName,
+            oldValue: mutation.oldValue,
+          });
+        });
+      });
+    }
+
     // Global viewport resize listener
     let windowTimer: any = null;
     this.resizeListener = () => {
@@ -117,6 +160,10 @@ class GlobalObserverManager {
     if (config.enableIntersection && this.intersectionObserver) {
       this.intersectionObserver.observe(element);
     }
+
+    if (config.mutationOptions && this.mutationObserver) {
+      this.mutationObserver.observe(element, config.mutationOptions);
+    }
   }
 
   public unobserve(element: HTMLElement | null) {
@@ -136,6 +183,20 @@ class GlobalObserverManager {
       if (this.intersectionObserver) {
         this.intersectionObserver.unobserve(element);
       }
+      // No equivalent `mutationObserver.unobserve(element)` call --
+      // MutationObserver's own API doesn't have one; `.disconnect()` is
+      // the only stop method it exposes, and it's all-or-nothing (stops
+      // every observed target on that instance, not just this one), so
+      // calling it here would silently break every OTHER element still
+      // being tracked. This is a real, documented MutationObserver API
+      // limitation, not an oversight -- deleting this element from
+      // `trackedElements` just above is what actually stops it from this
+      // manager's own perspective: the mutation callback above looks up
+      // the tracked config for every incoming record and silently drops
+      // anything it can't find, so mutations for an untracked element's
+      // subtree keep arriving at the browser level (a harmless, bounded
+      // cost -- the node is typically about to be garbage-collected once
+      // unmounted anyway) but are never emitted on the bus.
     }
   }
 }

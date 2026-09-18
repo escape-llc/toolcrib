@@ -459,6 +459,10 @@
         "payload": "{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
       },
       {
+        "name": "element:mutated",
+        "payload": "{ id?: string; target: Node; type: MutationRecordType; attributeName: string | null; oldValue: string | null }"
+      },
+      {
         "name": "viewport:resized",
         "payload": "{ width: number; height: number }"
       },
