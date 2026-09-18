@@ -879,6 +879,38 @@ export const App: React.FC = () => {
     if (mainSplitterContainerHeight <= 0 || eventLogToolbarHeight <= 0) return;
     aiBus.emit('splitter:split_changed', { id: MAIN_SPLITTER_ID, split: 100 - measuredMinSize });
   }, [eventLogCollapsed, mainSplitterContainerHeight, eventLogToolbarHeight, measuredMinSize]);
+  // Reported directly: collapse the event log via the button, then drag
+  // the handle open by hand -- Splitter's own split grows back (real,
+  // reported state, correctly reflected by the handle's own position),
+  // but the panel stays visibly empty instead of showing the log again.
+  // Root cause: `eventLogCollapsed` is demo-level React state, entirely
+  // separate from Splitter's own internal `split` -- collapse.tsx's
+  // Card.Content below is omitted purely off `eventLogCollapsed` (see
+  // its own comment), which nothing here ever resynced from Splitter's
+  // own live state. The button's own toggle path (setEventLogCollapsed)
+  // is the only writer, so a manual drag (or keyboard/dblclick-reset) --
+  // none of which go through that button -- left it permanently stuck.
+  //
+  // Splitter re-broadcasts `splitter:split_changed` on the bus for any
+  // LOCALLY-driven change (real drag, arrow key, dblclick), not just the
+  // demo's own commanded ones (see commitSplit's own `fromBus` guard in
+  // Splitter.tsx) -- this listens for that and un-collapses whenever the
+  // reported split has moved meaningfully away from the collapsed
+  // target, which a real drag away from that position always does.
+  // Harmless overlap with the demo's OWN two command emits above: the
+  // "expand via button" one already lands on a split far from the
+  // collapsed target too, so this fires there as well, but only ever
+  // redundantly agrees with what setEventLogCollapsed(v => !v) already
+  // set -- never conflicts with it. Tolerance (0.5) guards against
+  // floating-point noise around the exact collapsed target itself,
+  // which both the button's own collapse command and the resize-effect
+  // above land on precisely.
+  useAIEvent('splitter:split_changed', e => {
+    if (e.id !== MAIN_SPLITTER_ID || !eventLogCollapsed) return;
+    if (Math.abs(e.split - (100 - measuredMinSize)) > 0.5) {
+      setEventLogCollapsed(false);
+    }
+  });
 
   // Data-driven for <CommandPalette> — grouped, each entry either jumps to
   // a tab (closing over setActiveTab, the same controlled hook above) or
