@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { type TableDensity } from './DataTableSlice';
 
 /**
@@ -45,9 +45,42 @@ import { type TableDensity } from './DataTableSlice';
  * subtree is stripped before insertion so it can never collide with the
  * live table's own ids (`aria-activedescendant`/similar relationship
  * attributes must never resolve against this dead clone).
+ *
+ * Three real findings from review (Gemini, PR #518), all verified and
+ * fixed:
+ * 1. `parent.removeChild(snapshot)` assumes `snapshot` is still a
+ *    direct child of the exact `parent` node captured when the effect
+ *    ran. `snapshot.remove()` is the equivalent DOM-standard call that
+ *    silently no-ops instead of throwing if that's ever not true for a
+ *    reason not fully enumerated -- free robustness, no behavioral
+ *    change for the case that already worked.
+ * 2. Hardcoded `width: '100%'`/`margin: '0'` happen to exactly match
+ *    the real `<table>`'s own unconditional style today (no
+ *    `style`/`className` prop exists for a consumer to override it --
+ *    every toolcrib component strips those, see AGENTS.md's own "no
+ *    component accepts style/className" rule) -- but reading the LIVE
+ *    table's own computed values instead of hardcoding assumptions
+ *    about them is strictly more robust against that ever changing,
+ *    for zero extra cost.
+ * 3. The ORIGINAL version tracked "did density change" via a plain
+ *    `useRef` comparison, mutated during render. That's a real
+ *    correctness gap under React's concurrent rendering, not just a
+ *    lint nitpick: unlike `useState`, a ref mutation during a render
+ *    that gets DISCARDED (StrictMode's deliberate double-invoke, or a
+ *    real Concurrent Mode abort) is never rolled back -- the next
+ *    actual commit could see the ref already "consumed" for a
+ *    transition that never really landed, silently skipping a real
+ *    density change. Rewritten to track the comparison via `useState`
+ *    (the same safely-replayed-across-discarded-renders mechanism
+ *    `Popup.tsx`'s own `useActualPopoverSide`/`closedResyncKey`
+ *    already establishes) -- only the DOM clone/read itself stays a
+ *    ref, since repeating that specific read on a discarded-then-
+ *    retried render is harmless, self-correcting waste (each retry
+ *    re-reads whatever the CURRENT real DOM state is), never a
+ *    correctness bug the way the comparison flag was.
  */
 export function useDensityCrossFade(tableRef: RefObject<HTMLTableElement | null>, density: TableDensity): void {
-  const prevDensityRef = useRef(density);
+  const [trackedDensity, setTrackedDensity] = useState(density);
   const pendingSnapshotRef = useRef<HTMLElement | null>(null);
 
   // Captured DURING render, not an effect -- cloneNode() is a pure DOM
@@ -61,24 +94,24 @@ export function useDensityCrossFade(tableRef: RefObject<HTMLTableElement | null>
   // thing this snapshot needs to capture is the OLD one, which only
   // still exists in the live DOM at this exact moment, before this
   // render's mutations land. Function components have no
-  // `getSnapshotBeforeUpdate`-equivalent hook for this; a ref read/write
+  // `getSnapshotBeforeUpdate`-equivalent hook for this; a ref read
   // during render is the only mechanism that can observe pre-commit DOM
   // state at all.
   //
   // `eslint-plugin-react-hooks`'s `react-hooks/refs` rule flags ANY ref
   // access during render, read or write, not just reads that influence
-  // output -- confirmed directly (not assumed) against both lines below
-  // in this file's own real lint output. This is a deliberate, justified
-  // exception, not a code smell to eliminate: matches AGENTS.md's own
-  // "a genuine anti-pattern finding can't be fixed cleanly without real
-  // behavioral risk... a targeted eslint-disable-next-line with a
-  // comment justifying why is correct" precedent, scoped to just this
-  // one block (not the whole file) since every OTHER ref access in this
-  // hook (inside the layout effect below) is the ordinary, unflagged
-  // kind.
+  // output -- confirmed directly (not assumed) against this file's own
+  // real lint output. This is a deliberate, justified exception for the
+  // DOM read specifically (see this hook's own comment, point 3, above,
+  // for why the read itself -- unlike the density-comparison flag that
+  // used to also live in a ref here -- is safe even if repeated across a
+  // discarded/retried render): matches AGENTS.md's own "a genuine anti-
+  // pattern finding can't be fixed cleanly without real behavioral
+  // risk... a targeted eslint-disable-next-line with a comment
+  // justifying why is correct" precedent, scoped to just this one block.
   /* eslint-disable react-hooks/refs */
-  if (density !== prevDensityRef.current) {
-    prevDensityRef.current = density;
+  if (density !== trackedDensity) {
+    setTrackedDensity(density);
     const table = tableRef.current;
     if (table && !isMotionReduced(table)) {
       pendingSnapshotRef.current = table.cloneNode(true) as HTMLElement;
@@ -96,19 +129,24 @@ export function useDensityCrossFade(tableRef: RefObject<HTMLTableElement | null>
     if (!table || !parent) return;
 
     stripIds(snapshot);
-    // `inert` isn't in React's DOM typings as an settable IDL property on
+    // `inert` isn't in React's DOM typings as a settable IDL property on
     // every target consistently across the TS DOM lib versions this repo
     // straddles (see AGENTS.md's own root/scripts TS-version split) --
     // setAttribute is the one universally-safe way to set it on a raw,
     // non-React-managed node like this one.
     snapshot.setAttribute('inert', '');
     snapshot.setAttribute('aria-hidden', 'true');
+    // Read from the LIVE table's own real computed values, not
+    // hardcoded assumptions about them (review finding, PR #518) --
+    // exact visual alignment even if a future change ever gave this
+    // width/margin any variability they don't have today.
+    const liveComputedStyle = getComputedStyle(table);
     Object.assign(snapshot.style, {
       position: 'absolute',
       top: '0',
       left: '0',
-      width: '100%',
-      margin: '0',
+      width: liveComputedStyle.width,
+      margin: liveComputedStyle.margin,
       opacity: '1',
       pointerEvents: 'none',
       // Not `Z_INDEX.*` -- this only ever needs to sit above its own
@@ -130,7 +168,13 @@ export function useDensityCrossFade(tableRef: RefObject<HTMLTableElement | null>
       removed = true;
       snapshot.removeEventListener('transitionend', onTransitionEnd);
       clearTimeout(backupTimer);
-      parent.removeChild(snapshot);
+      // .remove(), not parent.removeChild(snapshot) -- equivalent when
+      // snapshot is still exactly parent's child (the normal case), but
+      // silently no-ops instead of throwing NotFoundError if that's
+      // ever not true for a reason not fully enumerated (review
+      // finding, PR #518) -- free robustness, no behavioral change for
+      // the case that already worked.
+      snapshot.remove();
     };
     const onTransitionEnd = (e: TransitionEvent) => {
       if (e.target === snapshot && e.propertyName === 'opacity') remove();
