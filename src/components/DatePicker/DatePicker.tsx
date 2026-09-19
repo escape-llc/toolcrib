@@ -160,6 +160,34 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
               // it," which is exactly how it was reported.
               className="ai-focus-ring"
               style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
+              // Issue #501: this button relies on the browser's own native
+              // Enter/Space -> click translation to open the calendar (via
+              // Radix's Trigger onClick) -- there's no explicit click
+              // handler here at all. But this button lives inside the
+              // <Group> above, and React Aria's own useDatePickerGroup
+              // attaches a usePress instance to that Group solely to run
+              // focusLast() on a mouse/touch/pen press. usePress's internal
+              // keydown handler unconditionally calls preventDefault() for
+              // Enter/Space on ANY descendant keydown that bubbles up to it
+              // (not just presses on the Group itself), even though its own
+              // onPress/onPressStart are no-ops for pointerType 'keyboard' --
+              // so the ancestor Group silently swallows this button's native
+              // keyboard activation before the browser ever fires the click,
+              // and the calendar never opens via Enter/Space (confirmed: a
+              // real mouse click works fine, since that's a separate native
+              // click event this bug never touches). Can't patch
+              // react-aria's own useDatePickerGroup, so intercept here
+              // instead: stopPropagation keeps the keydown from ever
+              // reaching the Group's handler, and a manual .click() fires
+              // Radix's own onClick directly, independent of this keydown's
+              // preventDefault state.
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.click();
+                }
+              }}
             >
               📅
             </button>
