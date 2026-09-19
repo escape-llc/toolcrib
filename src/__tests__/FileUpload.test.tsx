@@ -229,8 +229,20 @@ describe('FileUpload Component — upload transport', () => {
     fireEvent.change(input, { target: { files: [makeFile('a.txt', 10)] } });
 
     const callsAfterAdd = changedFn.mock.calls.length;
-    await waitFor(() => expect(screen.getByText(/boom/)).toBeInTheDocument());
-    expect(changedFn.mock.calls.length).toBeGreaterThan(callsAfterAdd);
+    // Poll the actual signal this test cares about directly, not a DOM
+    // proxy for it (issue #512) -- the error TEXT appearing and the
+    // aiBus emission are two independently-resolving effects of the same
+    // async rejection (the emit fires from a separate passive effect
+    // keyed on `items`, see FileUpload.tsx's own comment on why), and
+    // waiting for the text FIRST then checking the emit count afterward
+    // implicitly assumed a fixed order between them that isn't actually
+    // guaranteed -- confirmed as the real cause of a genuine CI flake,
+    // not a hypothetical one. The reverse order is safe: React commits
+    // the DOM update (the text becoming visible) synchronously before
+    // running any passive effect for that same commit, so by the time
+    // the emit is observed, the text is guaranteed to already be there.
+    await waitFor(() => expect(changedFn.mock.calls.length).toBeGreaterThan(callsAfterAdd));
+    expect(screen.getByText(/boom/)).toBeInTheDocument();
 
     unsub();
   });
