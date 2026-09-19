@@ -177,15 +177,21 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
               // real mouse click works fine, since that's a separate native
               // click event this bug never touches). Can't patch
               // react-aria's own useDatePickerGroup, so intercept here
-              // instead: stopPropagation keeps the keydown from ever
-              // reaching the Group's handler, and a manual .click() fires
-              // Radix's own onClick directly, independent of this keydown's
-              // preventDefault state.
+              // instead: stopPropagation() alone keeps the keydown from
+              // ever reaching the Group's handler -- deliberately NOT also
+              // calling preventDefault()/.click() ourselves (an earlier
+              // version of this fix did, and a Gemini PR review correctly
+              // caught that it forced Space to activate on keydown instead
+              // of keyup, breaking the standard "move focus away before
+              // releasing to cancel" affordance). With propagation stopped
+              // before the Group ever sees it, nothing prevents the
+              // event's default action, so the browser's own native
+              // keyboard-to-click translation runs unmodified -- Enter on
+              // keydown, Space on keyup, exactly as it would if the Group's
+              // usePress didn't exist.
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
                   e.stopPropagation();
-                  e.currentTarget.click();
                 }
               }}
             >
