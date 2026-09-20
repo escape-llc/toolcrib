@@ -2,18 +2,27 @@
 
 How a real change to this repo actually gets from "idea" to "merged," for whoever (human or AI) is doing the work. This is process, not component conventions — see `AGENTS.md` for those. Standing default, confirmed by the maintainer: every real change goes through this sequence, not a direct commit to `main`.
 
+## Expected tools
+
+Every step below assumes these are already installed and working — added after noticing this file jumps straight into `gh issue edit`/`gh pr merge` without ever having stated that assumption anywhere.
+
+- **Verify `gh` (GitHub CLI) is authenticated before starting: `gh auth status`; run `gh auth login` first if it fails.** Used constantly throughout this whole sequence — issue/PR creation and labeling, checking CI status, reading review comments, merging. Nothing in this workflow works without it, and there's no alternate path through the plain GitHub web UI documented anywhere in this repo's process.
+- **`git`, `node`, `npm`, and `npx` are assumed present and working, same as `gh`** — not called out per-step below. CI pins Node 22 (`.github/workflows/ci.yml`'s `node-version`); match that locally to avoid a version mismatch surfacing only in a GitHub Actions run rather than on your own machine. `cli/` and `mcp/` each have their own independent `package.json`/`node_modules` — a root `npm install` doesn't populate either; see `AGENTS.md`'s own notes on why they're deliberately isolated.
+
+Situational, not needed for most changes — see the section named for each: `AGENTS.md`'s "Dev machine is Windows" (PowerShell over Bash on this repo's primary dev machine) and its CRLF/line-ending notes (a `python3` one-liner is fine for read-only inspection, never for writing a file — see that section for why).
+
 ## The sequence
 
-1. **Open an issue** describing what's changing and why. This is the durable record of intent — a PR description explains *what changed*, the issue explains *why it was worth doing*, and the two together are what a future session (or a human) reads to reconstruct context without re-deriving it. Apply whatever existing labels genuinely fit (`gh label list` for the current set — `bug`, `enhancement`, `mcp`, `cli`, `github_actions`, `documentation`, etc.) via `gh issue edit <N> --add-label "x,y"`; don't leave it unlabeled, and don't invent a new label without asking first.
+1. **Open an issue** describing what's changing and why. Label it with whatever existing labels fit (`gh label list` for the current set) via `gh issue edit <N> --add-label "x,y"` — don't leave it unlabeled, and don't invent a new label without asking first.
 2. **Branch off an up-to-date `main`** (`git checkout main && git pull --ff-only` first — never branch off a stale local copy).
 3. **Make the change, verify it locally** before pushing — the relevant subset of: `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run check-manifest`/`check-docs`/`check-index`. See "Validate what nothing else validates" below for a real gap in this list.
 4. **Commit**, message ending with the `Co-Authored-By` trailer this session's attribution requires. Reference the issue number in the commit body if it clarifies which change it's part of.
-5. **Push, open a PR** referencing the issue. Body gets a `## Summary` and a `## Test plan` — the test plan should say what was actually verified, not just what should theoretically pass. Use `Closes #N` only when this PR is the *whole* fix — see "Partial fixes" below for why that matters. Label it the same way as its issue (`gh pr edit <N> --add-label "x,y"`) — the labels usually carry straight over.
-6. **Wait for CI to go green before merging — always.** Never merge on "the diff looks right" alone; this repo's own required checks (`test`, `cli-windows`, `e2e`, `CodeQL`) exist because more than one real bug in this project's history passed a confident read and failed CI anyway.
+5. **Push, open a PR** referencing the issue. Body gets a `## Summary` and a `## Test plan` — the test plan should say what was actually verified, not just what should theoretically pass. Use `Closes #N` only when this PR is the *whole* fix — see "Partial fixes" below. Label it the same way as its issue (`gh pr edit <N> --add-label "x,y"`).
+6. **Wait for CI to go green before merging — always.** Never merge on "the diff looks right" alone. Required checks: `test`, `cli-windows`, `e2e`, `CodeQL`.
 7. **Squash-merge, delete the branch** (`gh pr merge <N> --squash --delete-branch`).
 8. **Close the issue** if the merge didn't already auto-close it via `Closes #N`.
 9. **Sync local `main`** (`git checkout main && git pull --ff-only`) and drop the now-merged local branch ref.
-10. **Post a session summary to GitHub Discussions**, per `SESSION_SUMMARIES.md`'s own template and cadence (one per commit-worthy checkpoint, not one per session) — that file owns the *how*; this step just says *when* it happens in the larger sequence.
+10. **Post a session summary to GitHub Discussions**, per `SESSION_SUMMARIES.md`'s own template and cadence — one per commit-worthy checkpoint, not one per session.
 
 Not every one-line typo fix needs the full ceremony — but a real change (new behavior, a real bug fix, a config/infra change) does, by default. When in doubt, run the sequence; the cost of an extra issue/PR is low, the cost of an undocumented direct-to-`main` change is a future session with no idea why something is the way it is.
 
