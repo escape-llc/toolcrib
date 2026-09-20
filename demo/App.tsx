@@ -786,11 +786,6 @@ export const App: React.FC = () => {
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
   const [dashboardDimension, setDashboardDimension] = useState('all');
-  // The Splitter's own real, live split ratio -- NOT a separately-tracked
-  // "is it collapsed" boolean. See toggleEventLogCollapsed's own comment
-  // below for why: a second, independently-written boolean is exactly
-  // what let this drift out of sync with a real drag in the first place.
-  const [currentSplit, setCurrentSplit] = useState(MAIN_SPLITTER_INITIAL_SPLIT);
   // Real measurements, not the fixed MAIN_SPLITTER_MIN_SIZE percentage --
   // reported directly, from a real screenshot: at some real viewport
   // heights, a fixed 5% resolved to fewer pixels than the toolbar's own
@@ -855,29 +850,30 @@ export const App: React.FC = () => {
     mainSplitterContainerHeight > 0 && eventLogToolbarHeight > 0
       ? Math.min(40, ((eventLogToolbarHeight + halfHandlePx) / mainSplitterContainerHeight) * 100)
       : MAIN_SPLITTER_MIN_SIZE;
-  // `eventLogCollapsed` is DERIVED from `currentSplit`, never its own
-  // independently-written boolean -- reported directly: an earlier version
-  // kept a separate `eventLogCollapsed` state, written only by this
-  // button's own click handler, and collapse it via the button then drag
-  // the handle open by hand: Splitter's own split grows back (real,
-  // reported state, correctly reflected by the handle's own position), but
-  // the log panel stayed hidden because nothing had ever resynced the
-  // separate boolean from Splitter's own live state -- the button and the
-  // panel visibly disagreed. A second boolean tracking something a single
-  // real value (the split ratio) already fully determines is exactly the
-  // shape that drifts; deriving it here instead of writing it makes that
-  // whole class of desync structurally impossible; there is nothing left
-  // to fall out of sync. Tolerance (0.5) guards against floating-point
-  // noise around the exact collapsed target the button/resize-effect below
-  // both land on precisely.
-  const eventLogCollapsed = Math.abs(currentSplit - (100 - measuredMinSize)) < 0.5;
-  // The single writer for `currentSplit` -- every `splitter:split_changed`
-  // for this Splitter, regardless of source (this button, a real drag,
-  // arrow keys, dblclick-to-reset) updates it the same way, so
-  // `eventLogCollapsed` above is always current no matter how the split
-  // actually changed.
+  // `eventLogCollapsed` has exactly ONE writer -- this listener -- rather
+  // than the two independent ones (a click handler, plus a separate
+  // "un-collapse on drag away" listener) that let it drift from Splitter's
+  // own real state in the first place (reported directly: collapse via
+  // the button, drag the handle open by hand, and the panel stayed hidden
+  // because nothing had ever resynced the old separate boolean from that
+  // drag). It's computed HERE, at the moment a real `splitter:split_changed`
+  // fires, using `measuredMinSize` as of THAT instant -- not as a
+  // Math.abs(currentSplit - (100 - measuredMinSize)) < 0.5 comparison
+  // recomputed fresh every render. That distinction matters, confirmed by
+  // a Gemini PR review: measuredMinSize itself changes on a bare window
+  // resize, with no `splitter:split_changed` event involved at all -- a
+  // render-time comparison against a live-shifting target would flip
+  // `eventLogCollapsed` to false the instant the window resizes, which
+  // would then also skip the resize-effect below (gated on this same
+  // value) that's supposed to correct exactly that drift -- stuck wrong,
+  // not just briefly wrong. Computing it only inside this listener means a
+  // bare resize (no bus event) leaves it untouched until a real split
+  // change actually happens, so the resize-effect's own corrective emit
+  // still fires and this listener picks its result back up correctly.
+  const [eventLogCollapsed, setEventLogCollapsed] = useState(false);
   useAIEvent('splitter:split_changed', e => {
-    if (e.id === MAIN_SPLITTER_ID) setCurrentSplit(e.split);
+    if (e.id !== MAIN_SPLITTER_ID) return;
+    setEventLogCollapsed(Math.abs(e.split - (100 - measuredMinSize)) < 0.5);
   });
   // MAIN_SPLITTER_ID/measuredMinSize above give the "collapse the event
   // log" button a stable target: Splitter has no controlled/ref prop for
@@ -890,8 +886,8 @@ export const App: React.FC = () => {
   // additional way to reach the same `split` state, not a replacement.
   // No separate setState call needed here -- the useAIEvent listener above
   // picks up Splitter's own re-broadcast of this exact command (commitSplit
-  // always re-emits unless `fromBus`, see Splitter.tsx) and updates
-  // `currentSplit` from that, the same single path a real drag uses.
+  // always re-emits unless `fromBus`, see Splitter.tsx) and resyncs
+  // `eventLogCollapsed` from that, the same single path a real drag uses.
   const toggleEventLogCollapsed = () => {
     aiBus.emit('splitter:split_changed', {
       id: MAIN_SPLITTER_ID,
@@ -3290,10 +3286,21 @@ export const App: React.FC = () => {
                   a genuine (scrollable) peek of the real log instead of
                   being hidden. */}
               <Card.Content layout="auto" paddingMode="compact">
-                {/* tabIndex -- a keyboard-only user needs a way to reach and
+                {/* tabIndex 0 -- a keyboard-only user needs a way to reach and
                     scroll this region directly (axe: scrollable-region-focusable);
-                    its content is plain text, no other focusable descendant. */}
-                <div tabIndex={0} style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
+                    its content is plain text, no other focusable descendant.
+                    -1 while collapsed, confirmed by a Gemini PR review: this
+                    content is always mounted now (never conditionally
+                    omitted, see the comment above), so a collapsed panel
+                    leaves only a sliver of real height visible -- without
+                    this, that sliver would still be a real Tab stop, landing
+                    a keyboard user on a scrollable region they can barely
+                    see. Removing it from the tab order for exactly that
+                    state (not permanently -- it's back at 0 the moment
+                    eventLogCollapsed is false again) is the fix, not
+                    removing tabIndex outright, since the region genuinely
+                    does need to be reachable whenever it's actually usable. */}
+                <div tabIndex={eventLogCollapsed ? -1 : 0} style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
                   {eventLogs.length === 0 ? (
                     <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
                   ) : (

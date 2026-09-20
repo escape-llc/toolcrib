@@ -18,16 +18,24 @@ import { test, expect } from '@playwright/test';
 // still flagged collapsed -- next to a large, blank panel that had
 // actually been dragged open).
 //
-// Root fix: `eventLogCollapsed` is no longer written anywhere -- it's
-// derived every render from `currentSplit`, itself the single value kept
-// in sync by one `useAIEvent('splitter:split_changed', ...)` listener
-// that runs for EVERY change to this Splitter, regardless of source (the
-// toolbar button, a real drag, arrow keys, dblclick-to-reset). There is
-// only one real value to ever go stale, and it's derived, not written by
-// two independent paths that can disagree. Card.Content is also no
-// longer conditionally omitted -- it stays mounted always, so a "still
-// collapsed" panel just means a small (not hidden) sliver of real log is
-// visible through it, never an empty gap.
+// Root fix: `eventLogCollapsed` now has exactly ONE writer -- a single
+// `useAIEvent('splitter:split_changed', ...)` listener that fires for
+// EVERY change to this Splitter, regardless of source (the toolbar
+// button, a real drag, arrow keys, dblclick-to-reset). There is only one
+// real value to ever go stale, not two independent paths that can
+// disagree. Card.Content is also no longer conditionally omitted -- it
+// stays mounted always, so a "still collapsed" panel just means a small
+// (not hidden) sliver of real log is visible through it, never an empty
+// gap.
+//
+// Two more corrections from a Gemini PR review on that same fix, both
+// exercised below: (1) `eventLogCollapsed` is computed INSIDE the
+// listener, using measuredMinSize as of that instant -- not as a
+// render-time comparison against the live-recalculating target, which
+// would flip it (wrongly) on a bare window resize and, worse, block the
+// very resize-effect meant to correct that drift. (2) the always-mounted
+// log container's `tabIndex` drops to -1 while collapsed, so its
+// near-invisible sliver doesn't remain a real keyboard Tab stop.
 
 test('collapsing the event log, then manually dragging the splitter open, un-collapses it and shows the log again', async ({ page }) => {
   await page.goto('/');
@@ -70,8 +78,12 @@ test('manually dragging the splitter closed (without the button) flips the butto
   const handle = page.getByRole('separator').first();
   const handleBox = await handle.boundingBox();
   expect(handleBox).not.toBeNull();
-  const logContainer = page.locator('[tabindex="0"]').filter({ hasText: /\[|Listening for events/ }).first();
+  // Located by its own stable styling, not tabindex -- tabindex is
+  // expected to flip between 0/-1 depending on collapsed state (see
+  // below), so it can't be what identifies this element in the first place.
+  const logContainer = page.locator('div[style*="monospace"]').filter({ hasText: /\[|Listening for events/ }).first();
   await expect(logContainer).toBeAttached();
+  await expect(logContainer).toHaveAttribute('tabindex', '0');
 
   // Drag the handle all the way down, past Splitter's own minSize floor
   // for the bottom panel -- a real user shrinking the log panel by hand,
@@ -83,13 +95,46 @@ test('manually dragging the splitter closed (without the button) flips the butto
 
   // The button auto-syncs to "Expand" purely from the real split ratio --
   // nothing wrote to a separate boolean, there's nothing to have missed.
-  // The log region is still in the DOM (never omitted), just small.
+  // The log region is still in the DOM (never omitted), just small -- and
+  // its tabindex drops to -1 while collapsed (Gemini PR review finding:
+  // an always-mounted-but-nearly-invisible scrollable region must not
+  // remain a real Tab stop).
   await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
   await expect(logContainer).toBeAttached();
+  await expect(logContainer).toHaveAttribute('tabindex', '-1');
 
   // Clicking Expand from here returns to the default split, and the
-  // button/content both flip back in sync.
+  // button/content both flip back in sync, tabindex included.
   await page.getByRole('button', { name: /^▲ Expand$/ }).click();
+  await expect(logContainer).toHaveAttribute('tabindex', '0');
   await expect(page.getByRole('button', { name: /^▼ Collapse$/ })).toBeVisible();
   await expect(logContainer).toBeAttached();
+});
+
+test('collapsed state survives a window resize (Gemini PR review finding)', async ({ page }) => {
+  await page.goto('/');
+
+  const collapseButton = page.getByRole('button', { name: /^▼ Collapse$/ });
+  await collapseButton.waitFor({ state: 'visible' });
+  await collapseButton.click();
+  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+
+  const separator = page.getByRole('separator').first();
+  const splitBeforeResize = await separator.getAttribute('aria-valuenow');
+
+  // Resizing the viewport changes measuredMinSize (both the container's
+  // and the toolbar's real heights change) with NO splitter:split_changed
+  // event involved at all -- exactly the case a render-time comparison
+  // against a live-recalculating target would get wrong (see this file's
+  // own top comment). The button must stay "Expand" (still collapsed)
+  // throughout, and the resize-effect's own corrective re-emit should
+  // move the real split to track the new target.
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect
+    .poll(() => separator.getAttribute('aria-valuenow'))
+    .not.toBe(splitBeforeResize);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
 });
