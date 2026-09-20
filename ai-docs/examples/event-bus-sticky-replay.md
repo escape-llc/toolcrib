@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/event-bus-sticky-replay.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Event Bus Sticky Replay
 
 `<TabStrip>` and `<TabStrip.Panel>` are the toolkit's clearest example of

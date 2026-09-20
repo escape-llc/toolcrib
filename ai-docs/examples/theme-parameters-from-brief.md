@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/theme-parameters-from-brief.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Translating a Design Brief into `ThemeParameters`
 
 `NEW_APP.md` suggests dropping `<ThemeEditor>` into a running app and
