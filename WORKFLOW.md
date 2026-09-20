@@ -2,6 +2,15 @@
 
 How a real change to this repo actually gets from "idea" to "merged," for whoever (human or AI) is doing the work. This is process, not component conventions — see `AGENTS.md` for those. Standing default, confirmed by the maintainer: every real change goes through this sequence, not a direct commit to `main`.
 
+## Expected tools
+
+Every step below assumes these are already installed and working — added after noticing this file jumps straight into `gh issue edit`/`gh pr merge` without ever having stated that assumption anywhere.
+
+- **Verify `gh` (GitHub CLI) is authenticated before starting: `gh auth status`; run `gh auth login` first if it fails.** Used constantly throughout this whole sequence — issue/PR creation and labeling, checking CI status, reading review comments, merging. Nothing in this workflow works without it, and there's no alternate path through the plain GitHub web UI documented anywhere in this repo's process.
+- **`git`, `node`, `npm`, and `npx` are assumed present and working, same as `gh`** — not called out per-step below. CI pins Node 22 (`.github/workflows/ci.yml`'s `node-version`); match that locally to avoid a version mismatch surfacing only in a GitHub Actions run rather than on your own machine. `cli/` and `mcp/` each have their own independent `package.json`/`node_modules` — a root `npm install` doesn't populate either; see `AGENTS.md`'s own notes on why they're deliberately isolated.
+
+Situational, not needed for most changes — see the section named for each: `AGENTS.md`'s "Dev machine is Windows" (PowerShell over Bash on this repo's primary dev machine) and its CRLF/line-ending notes (a `python3` one-liner is fine for read-only inspection, never for writing a file — see that section for why).
+
 ## The sequence
 
 1. **Open an issue** describing what's changing and why. This is the durable record of intent — a PR description explains *what changed*, the issue explains *why it was worth doing*, and the two together are what a future session (or a human) reads to reconstruct context without re-deriving it. Apply whatever existing labels genuinely fit (`gh label list` for the current set — `bug`, `enhancement`, `mcp`, `cli`, `github_actions`, `documentation`, etc.) via `gh issue edit <N> --add-label "x,y"`; don't leave it unlabeled, and don't invent a new label without asking first.
