@@ -786,7 +786,6 @@ export const App: React.FC = () => {
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
   const [dashboardDimension, setDashboardDimension] = useState('all');
-  const [eventLogCollapsed, setEventLogCollapsed] = useState(false);
   // Real measurements, not the fixed MAIN_SPLITTER_MIN_SIZE percentage --
   // reported directly, from a real screenshot: at some real viewport
   // heights, a fixed 5% resolved to fewer pixels than the toolbar's own
@@ -851,6 +850,31 @@ export const App: React.FC = () => {
     mainSplitterContainerHeight > 0 && eventLogToolbarHeight > 0
       ? Math.min(40, ((eventLogToolbarHeight + halfHandlePx) / mainSplitterContainerHeight) * 100)
       : MAIN_SPLITTER_MIN_SIZE;
+  // `eventLogCollapsed` has exactly ONE writer -- this listener -- rather
+  // than the two independent ones (a click handler, plus a separate
+  // "un-collapse on drag away" listener) that let it drift from Splitter's
+  // own real state in the first place (reported directly: collapse via
+  // the button, drag the handle open by hand, and the panel stayed hidden
+  // because nothing had ever resynced the old separate boolean from that
+  // drag). It's computed HERE, at the moment a real `splitter:split_changed`
+  // fires, using `measuredMinSize` as of THAT instant -- not as a
+  // Math.abs(currentSplit - (100 - measuredMinSize)) < 0.5 comparison
+  // recomputed fresh every render. That distinction matters, confirmed by
+  // a Gemini PR review: measuredMinSize itself changes on a bare window
+  // resize, with no `splitter:split_changed` event involved at all -- a
+  // render-time comparison against a live-shifting target would flip
+  // `eventLogCollapsed` to false the instant the window resizes, which
+  // would then also skip the resize-effect below (gated on this same
+  // value) that's supposed to correct exactly that drift -- stuck wrong,
+  // not just briefly wrong. Computing it only inside this listener means a
+  // bare resize (no bus event) leaves it untouched until a real split
+  // change actually happens, so the resize-effect's own corrective emit
+  // still fires and this listener picks its result back up correctly.
+  const [eventLogCollapsed, setEventLogCollapsed] = useState(false);
+  useAIEvent('splitter:split_changed', e => {
+    if (e.id !== MAIN_SPLITTER_ID) return;
+    setEventLogCollapsed(Math.abs(e.split - (100 - measuredMinSize)) < 0.5);
+  });
   // MAIN_SPLITTER_ID/measuredMinSize above give the "collapse the event
   // log" button a stable target: Splitter has no controlled/ref prop for
   // its split ratio, but it listens for `splitter:split_changed` on
@@ -860,12 +884,15 @@ export const App: React.FC = () => {
   // action, not a Splitter-specific special case. The handle itself still
   // works too (drag, arrow keys, dblclick-to-reset) -- this button is an
   // additional way to reach the same `split` state, not a replacement.
+  // No separate setState call needed here -- the useAIEvent listener above
+  // picks up Splitter's own re-broadcast of this exact command (commitSplit
+  // always re-emits unless `fromBus`, see Splitter.tsx) and resyncs
+  // `eventLogCollapsed` from that, the same single path a real drag uses.
   const toggleEventLogCollapsed = () => {
     aiBus.emit('splitter:split_changed', {
       id: MAIN_SPLITTER_ID,
       split: eventLogCollapsed ? MAIN_SPLITTER_INITIAL_SPLIT : 100 - measuredMinSize,
     });
-    setEventLogCollapsed(v => !v);
   };
   // Keeps the collapsed height pixel-exact if the window is resized WHILE
   // already collapsed -- the emit above (immediate, on click) uses
@@ -879,38 +906,6 @@ export const App: React.FC = () => {
     if (mainSplitterContainerHeight <= 0 || eventLogToolbarHeight <= 0) return;
     aiBus.emit('splitter:split_changed', { id: MAIN_SPLITTER_ID, split: 100 - measuredMinSize });
   }, [eventLogCollapsed, mainSplitterContainerHeight, eventLogToolbarHeight, measuredMinSize]);
-  // Reported directly: collapse the event log via the button, then drag
-  // the handle open by hand -- Splitter's own split grows back (real,
-  // reported state, correctly reflected by the handle's own position),
-  // but the panel stays visibly empty instead of showing the log again.
-  // Root cause: `eventLogCollapsed` is demo-level React state, entirely
-  // separate from Splitter's own internal `split` -- collapse.tsx's
-  // Card.Content below is omitted purely off `eventLogCollapsed` (see
-  // its own comment), which nothing here ever resynced from Splitter's
-  // own live state. The button's own toggle path (setEventLogCollapsed)
-  // is the only writer, so a manual drag (or keyboard/dblclick-reset) --
-  // none of which go through that button -- left it permanently stuck.
-  //
-  // Splitter re-broadcasts `splitter:split_changed` on the bus for any
-  // LOCALLY-driven change (real drag, arrow key, dblclick), not just the
-  // demo's own commanded ones (see commitSplit's own `fromBus` guard in
-  // Splitter.tsx) -- this listens for that and un-collapses whenever the
-  // reported split has moved meaningfully away from the collapsed
-  // target, which a real drag away from that position always does.
-  // Harmless overlap with the demo's OWN two command emits above: the
-  // "expand via button" one already lands on a split far from the
-  // collapsed target too, so this fires there as well, but only ever
-  // redundantly agrees with what setEventLogCollapsed(v => !v) already
-  // set -- never conflicts with it. Tolerance (0.5) guards against
-  // floating-point noise around the exact collapsed target itself,
-  // which both the button's own collapse command and the resize-effect
-  // above land on precisely.
-  useAIEvent('splitter:split_changed', e => {
-    if (e.id !== MAIN_SPLITTER_ID || !eventLogCollapsed) return;
-    if (Math.abs(e.split - (100 - measuredMinSize)) > 0.5) {
-      setEventLogCollapsed(false);
-    }
-  });
 
   // Data-driven for <CommandPalette> — grouped, each entry either jumps to
   // a tab (closing over setActiveTab, the same controlled hook above) or
@@ -3277,38 +3272,54 @@ export const App: React.FC = () => {
                 </Toolbar>
               </Card.Header>
               </div>
-              {/* Omitted entirely (not just hidden) while collapsed --
-                  Splitter's own minSize floor still leaves a couple of
-                  percent of viewport height for this panel (a hard floor
-                  on both panels, not something a "collapse" command can
-                  bypass), and a scrollable log peeking through that gap
-                  would defeat the point of collapsing it. */}
-              {!eventLogCollapsed && (
-                <Card.Content layout="auto" paddingMode="compact">
-                  {/* tabIndex -- a keyboard-only user needs a way to reach and
-                      scroll this region directly (axe: scrollable-region-focusable);
-                      its content is plain text, no other focusable descendant. */}
-                  <div tabIndex={0} style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
-                    {eventLogs.length === 0 ? (
-                      <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
-                    ) : (
-                      eventLogs.map(log => (
-                        <div key={log.id} style={{ marginBottom: '0.2rem' }}>
-                          <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
-                          {/* --ai-color-primary-readable, not --ai-color-primary --
-                              this text sits on the log panel's near-neutral background,
-                              and the raw hue measures under AA contrast there (axe:
-                              color-contrast); same fix/reasoning as TabSlice.tsx's
-                              own activeTextColor (see its comment for why a plain
-                              harmonies.ts-generated var, not color-mix()). */}
-                          <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
-                          <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </Card.Content>
-              )}
+              {/* Always mounted, never conditionally omitted -- an earlier
+                  version hid this while `eventLogCollapsed`, which is
+                  exactly what let the panel and the button drift out of
+                  sync on a manual drag (see `eventLogCollapsed`'s own
+                  comment above). Collapsing now only ever changes
+                  Splitter's real allocated height for this panel; this
+                  content always reflects whatever that height actually is,
+                  so there's nothing else for a drag to desync. Splitter's
+                  own minSize floor still leaves a couple of percent of
+                  viewport height for this panel even fully "collapsed,"
+                  same as before -- the difference is that sliver now shows
+                  a genuine (scrollable) peek of the real log instead of
+                  being hidden. */}
+              <Card.Content layout="auto" paddingMode="compact">
+                {/* tabIndex 0 -- a keyboard-only user needs a way to reach and
+                    scroll this region directly (axe: scrollable-region-focusable);
+                    its content is plain text, no other focusable descendant.
+                    -1 while collapsed, confirmed by a Gemini PR review: this
+                    content is always mounted now (never conditionally
+                    omitted, see the comment above), so a collapsed panel
+                    leaves only a sliver of real height visible -- without
+                    this, that sliver would still be a real Tab stop, landing
+                    a keyboard user on a scrollable region they can barely
+                    see. Removing it from the tab order for exactly that
+                    state (not permanently -- it's back at 0 the moment
+                    eventLogCollapsed is false again) is the fix, not
+                    removing tabIndex outright, since the region genuinely
+                    does need to be reachable whenever it's actually usable. */}
+                <div tabIndex={eventLogCollapsed ? -1 : 0} style={{ background: 'var(--ai-bg-container)', color: 'var(--ai-text-primary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontFamily: 'monospace', fontSize: '0.8rem', height: '100%', overflowY: 'auto' }}>
+                  {eventLogs.length === 0 ? (
+                    <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
+                  ) : (
+                    eventLogs.map(log => (
+                      <div key={log.id} style={{ marginBottom: '0.2rem' }}>
+                        <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
+                        {/* --ai-color-primary-readable, not --ai-color-primary --
+                            this text sits on the log panel's near-neutral background,
+                            and the raw hue measures under AA contrast there (axe:
+                            color-contrast); same fix/reasoning as TabSlice.tsx's
+                            own activeTextColor (see its comment for why a plain
+                            harmonies.ts-generated var, not color-mix()). */}
+                        <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
+                        <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card.Content>
             </Card>
           </Splitter.Panel>
         </Splitter>
