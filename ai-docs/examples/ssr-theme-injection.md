@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/ssr-theme-injection.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: SSR-Safe Theme Injection
 
 `<ThemeProvider>` injects every `--ai-*` CSS variable via a client-only

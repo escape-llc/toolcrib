@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/wildcard-event-monitoring.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Wildcard Event Monitoring & Interaction Analytics
 
 `aiBus` already emits a comprehensive, semantic vocabulary of every

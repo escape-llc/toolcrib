@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/locale-provider.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: LocaleProvider
 
 `<Calendar>`'s `locale` prop is a different concern from this file — it's

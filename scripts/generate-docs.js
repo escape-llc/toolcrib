@@ -517,11 +517,27 @@ function main() {
       label: 'llms-full.txt',
       sizeBudgetBytes: LLMS_FULL_TXT_SIZE_BUDGET_BYTES,
     },
-    ...EXAMPLE_TEMPLATES.map(({ file, data }) => ({
-      filePath: path.join(EXAMPLES_OUTPUT_DIR, file.replace(/\.hbs$/, '')),
-      content: renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data()),
-      label: `ai-docs/examples/${file.replace(/\.hbs$/, '')}`,
-    })),
+    ...EXAMPLE_TEMPLATES.map(({ file, data }) => {
+      const outputName = file.replace(/\.hbs$/, '');
+      return {
+        filePath: path.join(EXAMPLES_OUTPUT_DIR, outputName),
+        // HTML comment, not visible in GitHub's rendered markdown preview
+        // or a normal reading pass -- only in raw source, exactly the
+        // audience that could otherwise mistake this for the file to
+        // hand-edit (found live: nothing previously distinguished this
+        // generated copy from a hand-authored doc by looking at it).
+        // Deliberately NOT added to CORE.md/llms.txt/llms-full.txt --
+        // those get pasted verbatim into a CONSUMER's own system prompt
+        // (Cursor rules, CLAUDE.md, etc.), where "run npm run
+        // generate-docs" would be actively wrong advice, since scripts/
+        // is never vendored to a consumer's project at all. These
+        // examples are on-demand reference reads (linked from CORE.md's
+        // own anti-pattern table), read in THIS repo's own context, so
+        // the banner only ever reaches someone who could act on it.
+        content: `<!-- Generated from ai-docs/templates/examples/${file} via \`npm run generate-docs\` -- do not hand-edit; edit the .hbs template and regenerate instead. -->\n\n${renderTemplate(path.join(EXAMPLES_TEMPLATE_DIR, file), data())}`,
+        label: `ai-docs/examples/${outputName}`,
+      };
+    }),
   ];
 
   // Only targets carrying a sizeBudgetBytes (llms.txt/llms-full.txt) are

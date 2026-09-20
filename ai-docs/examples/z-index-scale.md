@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/z-index-scale.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Using the `Z_INDEX` Scale for a Custom Overlay
 
 The anti-pattern table (CORE.md §4) says "hardcode `z-index` values" →

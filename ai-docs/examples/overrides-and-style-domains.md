@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/overrides-and-style-domains.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Composing `overrides` with `StyleDomainProvider`
 
 This is the mechanism CORE.md §10 introduces — this file walks through the
