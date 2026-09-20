@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/splitter-bus-command.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Splitter's Imperative Bus Command
 
 `<Splitter>` (CORE.md §3, point 2) has no controlled prop and no ref for

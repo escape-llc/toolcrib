@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/auth-unauthorized.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Auth-Unauthorized Announcements
 
 toolcrib has no concept of sessions, tokens, or permissions — and doesn't

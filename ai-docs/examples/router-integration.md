@@ -1,3 +1,5 @@
+<!-- Generated from ai-docs/templates/examples/router-integration.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
 # Worked Example: Router Integration
 
 Toolcrib has zero router awareness by design — no React Router, TanStack
