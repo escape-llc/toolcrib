@@ -2277,6 +2277,30 @@ describe('DataTable Virtualized Component', () => {
       expect(Number(grid.getAttribute('aria-colcount'))).toBe(before - 1);
     });
 
+    it('disables the last remaining visible column so it cannot be hidden', () => {
+      // testColumns has exactly two hideable columns (ID, Name) and no
+      // pinned ones -- hiding Name leaves ID as the table's only visible
+      // column, which must become disabled in the menu the instant that
+      // happens. e2e/datatable-column-visibility.spec.ts's own "cannot hide
+      // the last remaining visible column" test only confirms the guard
+      // doesn't misfire when pinned columns already guarantee the floor
+      // (demo/App.tsx always has two pinned columns) -- this is the one
+      // that actually exercises the disabling itself, against a table with
+      // no pinned columns to fall back on.
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility rowKey={r => r.id} />);
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+
+      const idItem = screen.getByRole('menuitemcheckbox', { name: 'ID' });
+      expect(idItem).toHaveAttribute('aria-checked', 'true');
+      expect(idItem).toHaveAttribute('data-disabled');
+
+      // Clicking a disabled CheckboxItem is a real no-op -- ID stays visible.
+      fireEvent.click(idItem);
+      closeColumnsMenu();
+      expect(screen.getByRole('columnheader', { name: 'ID' })).toBeInTheDocument();
+    });
+
     it('CSV export only includes currently visible columns', async () => {
       const createObjectURL = vi.fn((blob: Blob) => {
         capturedBlob = blob;
@@ -2804,18 +2828,24 @@ describe('DataTable Virtualized Component', () => {
     it('the resize handle background resolves to the accent color while actively resizing, not primary', () => {
       const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
+      // The accent/border color lives on the persistent thin indicator
+      // line INSIDE the handle (issue reported directly: nothing marked
+      // a resizable column's boundary before you'd already found and
+      // hovered/dragged its narrow hit-zone), not on the wider,
+      // background-less hit-zone div itself.
+      const indicator = handle.querySelector('[aria-hidden="true"]') as HTMLElement;
       const headerCell = handle.closest('th')!;
       headerCell.getBoundingClientRect = () => ({
         top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
       });
 
-      expect(handle.style.background).not.toContain('--ai-color-accent');
+      expect(indicator.style.background).not.toContain('--ai-color-accent');
 
       fireEvent.pointerDown(handle, { clientX: 100 });
-      expect(handle.style.background).toContain('--ai-color-accent');
+      expect(indicator.style.background).toContain('--ai-color-accent');
 
       fireEvent.pointerUp(window);
-      expect(handle.style.background).not.toContain('--ai-color-accent');
+      expect(indicator.style.background).not.toContain('--ai-color-accent');
     });
 
     it('never shrinks a column below its minWidth floor while dragging', () => {

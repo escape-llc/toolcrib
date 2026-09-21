@@ -43,6 +43,8 @@ export interface ToolcribLocaleStrings {
     exportCsvLabel: string;
     /** Visible label and accessible name for `<DataTable columnVisibility>`'s built-in "Columns" trigger button. */
     columnsButtonLabel: string;
+    /** Label for the `columnVisibility` menu's own checkbox item toggling `rowCommands`' trailing actions column -- that column isn't a real `Column<T>` with its own `title`, so it needs a label of its own. */
+    actionsColumnLabel: string;
   };
   carousel: {
     previousSlide: string;
@@ -119,6 +121,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     densityOptionLabel: (density) => density.charAt(0).toUpperCase() + density.slice(1),
     exportCsvLabel: 'Export CSV',
     columnsButtonLabel: 'Columns',
+    actionsColumnLabel: 'Actions',
   },
   carousel: {
     previousSlide: 'Previous slide',
