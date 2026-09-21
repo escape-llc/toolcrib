@@ -18,6 +18,22 @@ import type { Column } from './DataTable';
 export const DEFAULT_MIN_COLUMN_WIDTH = 40;
 
 /**
+ * A column's real minimum width floor -- `Column.minWidth` if declared,
+ * else `DEFAULT_MIN_COLUMN_WIDTH`. Exported (not just this hook's own
+ * internal `resolveMinWidth`) so DataTable.tsx's own column-width
+ * redistribution can enforce the identical floor for a column that ISN'T
+ * being actively dragged -- see that computation's own comment for why
+ * (reported directly: dragging one column wide enough could otherwise
+ * shrink an unrelated sibling toward zero width with nothing stopping
+ * it, since this hook's own `handleMove` only ever clamps the column
+ * actually being dragged, never the others whose width DataTable.tsx
+ * derives from the redistribution, not from this hook directly).
+ */
+export function getColumnMinWidth(column: Column<any>): number {
+  return column.minWidth ?? DEFAULT_MIN_COLUMN_WIDTH;
+}
+
+/**
  * A generous, not-really-enforced ceiling purely so the resize handle's own
  * `aria-valuemax` has something bounded to report -- real drag width has no
  * functional cap above the min floor otherwise. Several real separator/
@@ -48,10 +64,32 @@ export interface UseTableColumnResizeResult {
    * for why.
    */
   getAriaValues: (column: Column<any>) => { valueNow: number | undefined; valueMin: number; valueMax: number };
-  /** Attach to the resize handle's onMouseDown/onPointerDown. `headerCell` is measured directly (its real rendered width) as the drag basis -- robust regardless of whether `Column.width` was ever set, or was a CSS string. */
-  startResize: (column: Column<any>, headerCell: HTMLElement, clientX: number) => void;
-  /** Attach to the resize handle's onKeyDown -- Arrow keys (Shift for a bigger step), Home/End. */
-  handleResizeKeyDown: (column: Column<any>, headerCell: HTMLElement, e: ReactKeyboardEvent) => void;
+  /**
+   * Attach to the resize handle's onMouseDown/onPointerDown. `headerCell`
+   * is measured directly (its real rendered width) as the drag basis --
+   * robust regardless of whether `Column.width` was ever set, or was a
+   * CSS string. `getLockInWidths`, if given, is CALLED once the drag
+   * actually ends (not eagerly, when the drag starts -- see this
+   * parameter's own name: it's a getter, invoked late) and its result
+   * merged into the SAME commit as this column's own final width --
+   * DataTable.tsx's own "every still-auto column locks in the instant
+   * you touch any column" snapshot, taken at the moment it's actually
+   * needed rather than a stale one captured before the drag even moved.
+   * This hook has no opinion of its own about what "auto" means.
+   */
+  startResize: (
+    column: Column<any>,
+    headerCell: HTMLElement,
+    clientX: number,
+    getLockInWidths?: () => Record<string, number>
+  ) => void;
+  /** Attach to the resize handle's onKeyDown -- Arrow keys (Shift for a bigger step), Home/End. `getLockInWidths` -- same meaning as `startResize`'s own. */
+  handleResizeKeyDown: (
+    column: Column<any>,
+    headerCell: HTMLElement,
+    e: ReactKeyboardEvent,
+    getLockInWidths?: () => Record<string, number>
+  ) => void;
 }
 
 /**
@@ -84,16 +122,30 @@ export function useTableColumnResize({
   const isControlled = controlledWidths !== undefined;
   const widths = isControlled ? controlledWidths! : internalWidths;
 
+  // `lockInWidths` -- issue reported directly, DataTable.tsx's own
+  // "once you touch any column, the whole layout locks in" behavior:
+  // every currently-auto column's current computed width, merged into
+  // the SAME commit as the column actually being resized, so a
+  // still-auto sibling doesn't keep silently rebalancing after the user
+  // has started customizing the layout by hand. This hook has no
+  // opinion about what "auto" means (that's DataTable.tsx's own
+  // fixed-vs-auto column model) -- it just merges whatever object it's
+  // handed into the one state update, atomically. The object itself is
+  // produced by calling `getLockInWidths()` (see startResize/
+  // handleResizeKeyDown below) at the actual moment of commit, not
+  // eagerly when the interaction started -- see that parameter's own
+  // comment for the real, confirmed staleness bug that distinction
+  // fixes.
   const commitWidth = useCallback(
-    (columnKey: string, width: number) => {
-      const next = { ...widths, [columnKey]: width };
+    (columnKey: string, width: number, lockInWidths?: Record<string, number>) => {
+      const next = { ...widths, ...lockInWidths, [columnKey]: width };
       if (!isControlled) setInternalWidths(next);
       onColumnWidthsChange?.(next);
     },
     [widths, isControlled, onColumnWidthsChange]
   );
 
-  const resolveMinWidth = (column: Column<any>): number => column.minWidth ?? DEFAULT_MIN_COLUMN_WIDTH;
+  const resolveMinWidth = getColumnMinWidth;
 
   // Live drag preview -- deliberately separate state from `widths` above.
   // Updates every pointermove tick for smooth visual feedback; `widths`
@@ -107,6 +159,7 @@ export function useTableColumnResize({
     startWidth: number;
     startClientX: number;
     ownerWindow: Window;
+    getLockInWidths?: () => Record<string, number>;
   } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -139,7 +192,12 @@ export function useTableColumnResize({
     };
   };
 
-  const startResize = (column: Column<any>, headerCell: HTMLElement, clientX: number) => {
+  const startResize = (
+    column: Column<any>,
+    headerCell: HTMLElement,
+    clientX: number,
+    getLockInWidths?: () => Record<string, number>
+  ) => {
     const startWidth = headerCell.getBoundingClientRect().width;
     const ownerWindow = headerCell.ownerDocument.defaultView ?? window;
     dragContextRef.current = {
@@ -148,6 +206,7 @@ export function useTableColumnResize({
       startWidth,
       startClientX: clientX,
       ownerWindow,
+      getLockInWidths,
     };
     const preview = { key: column.key, width: startWidth };
     latestDragPreviewRef.current = preview;
@@ -188,7 +247,11 @@ export function useTableColumnResize({
       setIsDragging(false);
       setDragPreview(null);
       dragContextRef.current = null;
-      commitWidth(finalPreview.key, finalPreview.width);
+      // ctx.getLockInWidths() is called HERE, not earlier -- see that
+      // parameter's own comment for why calling it late, at the actual
+      // moment of commit, is what makes the lock-in snapshot correct
+      // rather than a stale pre-drag one.
+      commitWidth(finalPreview.key, finalPreview.width, ctx.getLockInWidths?.());
     };
 
     // PointerEvent alone already covers mouse, touch, and pen -- the
@@ -216,28 +279,40 @@ export function useTableColumnResize({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
-  const handleResizeKeyDown = (column: Column<any>, headerCell: HTMLElement, e: ReactKeyboardEvent) => {
+  const handleResizeKeyDown = (
+    column: Column<any>,
+    headerCell: HTMLElement,
+    e: ReactKeyboardEvent,
+    getLockInWidths?: () => Record<string, number>
+  ) => {
     const minWidth = resolveMinWidth(column);
     const currentRaw = getColumnWidth(column);
     const currentWidth = typeof currentRaw === 'number' ? currentRaw : headerCell.getBoundingClientRect().width;
     const step = e.shiftKey ? RESIZE_STEP_LARGE : RESIZE_STEP_SMALL;
+    // Called once, right here -- a keyboard commit is synchronous within
+    // this same handler (unlike a drag's deferred, async mouseup), so
+    // there's no staleness window to worry about the way startResize's
+    // own comment describes, but calling it fresh each keypress rather
+    // than reusing a single earlier snapshot keeps both paths identical
+    // in shape.
+    const lockInWidths = getLockInWidths?.();
 
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
-        commitWidth(column.key, Math.max(minWidth, currentWidth - step));
+        commitWidth(column.key, Math.max(minWidth, currentWidth - step), lockInWidths);
         break;
       case 'ArrowRight':
         e.preventDefault();
-        commitWidth(column.key, currentWidth + step);
+        commitWidth(column.key, currentWidth + step, lockInWidths);
         break;
       case 'Home':
         e.preventDefault();
-        commitWidth(column.key, minWidth);
+        commitWidth(column.key, minWidth, lockInWidths);
         break;
       case 'End':
         e.preventDefault();
-        commitWidth(column.key, RESIZE_HANDLE_ARIA_VALUEMAX);
+        commitWidth(column.key, RESIZE_HANDLE_ARIA_VALUEMAX, lockInWidths);
         break;
       default:
         break;

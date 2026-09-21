@@ -35,7 +35,7 @@ import { useRowSetCrossFade } from './useRowSetCrossFade';
 import { useTableSelection } from './useTableSelection';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
-import { useTableColumnResize } from './useTableColumnResize';
+import { useTableColumnResize, getColumnMinWidth } from './useTableColumnResize';
 import { useTableColumnVisibility } from './useTableColumnVisibility';
 import { useTableColumnPinning } from './useTableColumnPinning';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
@@ -581,6 +581,17 @@ export interface DataTableProps<T = any> {
  * its own `disabled` argument, not on anything from `<DataTable>`'s own
  * render.
  */
+/**
+ * Synthetic `hiddenColumnSet` key for the trailing `rowCommands` actions
+ * column -- that column isn't a real `Column<T>` (no `.key` of its own,
+ * just an array of button definitions), so it needs its own stable
+ * sentinel to participate in the same show/hide mechanism a real column's
+ * `col.key` already uses. Chosen to be un-collidable with a real column
+ * key without requiring one (a consumer's own data could plausibly use a
+ * field named `rowCommands`).
+ */
+const ROW_COMMANDS_COLUMN_KEY = '__ai-datatable-row-commands__';
+
 function paginationNavButtonStyle(disabled: boolean): React.CSSProperties {
   return {
     padding: 'var(--ai-padding-xs, 0.25rem 0.5rem)',
@@ -717,7 +728,16 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // array each call), so a useMemo keyed on it would recompute every render
   // anyway; a plain filter() over a typically-small columns array costs
   // nothing extra by skipping the memoization machinery here.
-  const visibleColumns = columns.filter(c => !hiddenColumnSet.has(c.key));
+  // A pinned column is never hideable (reported directly: pinning exists
+  // specifically to keep a column always visible while the rest scrolls
+  // underneath it, so letting the same column also be toggled off via the
+  // visibility menu contradicts its own reason for being pinned) -- `c.pinned
+  // ||` forces it into visibleColumns regardless of hiddenColumnSet's actual
+  // content, defensive against a controlled `hiddenColumns` prop a consumer
+  // mistakenly populated with a pinned column's key, not just against this
+  // component's own menu (which excludes pinned columns from its checkbox
+  // list entirely, below).
+  const visibleColumns = columns.filter(c => c.pinned || !hiddenColumnSet.has(c.key));
   // Render order for the header/body loops (issue #341) -- every
   // `pinned: 'left'` column first (in their relative `columns` order), then
   // every unpinned column, then every `pinned: 'right'` column last.
@@ -793,7 +813,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // writes it synchronously before calling goToPage, so it's always current
   // by the time onPageChange reads it, regardless of React's batching.
   const bodyRef = useRef<HTMLDivElement>(null);
-  const { height: observedHeight } = useAdaptiveSize(bodyRef);
+  const { height: observedHeight, width: observedBodyWidth } = useAdaptiveSize(bodyRef);
   // The sticky <thead> is a normal-flow child of bodyRef's own scrollable
   // div (sticky positioning keeps an element in-flow, unlike absolute/
   // fixed -- it only changes how it's positioned once scrolled past, not
@@ -1108,8 +1128,27 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // always the header row, rows 1..paginatedData.length are body rows
   // (page-relative, matching `actualIndex + 1`).
   const colOffset = selectable && !hideSelectionColumn ? 1 : 0;
-  const hasRowCommands = !!rowCommands && rowCommands.length > 0;
+  // hasRowCommandsProp: does this table configuration provide rowCommands
+  // at all. hasRowCommands: is that trailing actions column actually
+  // showing right now -- also hideable via the same columnVisibility menu
+  // as any data column (reported directly: it wasn't previously, even
+  // though it occupies a real column and can be just as worth hiding).
+  // Every existing rendering/layout usage below already read the second
+  // name, so redefining it here (rather than introducing a third variable
+  // and touching every call site) is what actually makes hiding it work.
+  const hasRowCommandsProp = !!rowCommands && rowCommands.length > 0;
+  const hasRowCommands = hasRowCommandsProp && !hiddenColumnSet.has(ROW_COMMANDS_COLUMN_KEY);
   const gridColumnCount = visibleColumns.length + colOffset + (hasRowCommands ? 1 : 0);
+  // Guard for the columnVisibility menu below (reported directly: nothing
+  // stopped hiding every single column, leaving a table with a header row
+  // and zero content). A pinned column always counts toward this total --
+  // it's never hideable in the first place -- so the guard only actually
+  // bites once every pinned column is already accounted for and a
+  // hideable one (or the rowCommands sentinel) is the last visible thing
+  // left. `totalVisibleColumnCount` intentionally counts the SAME set
+  // `visibleColumns`/`hasRowCommands` above already compute, just as a
+  // count instead of the columns themselves.
+  const totalVisibleColumnCount = visibleColumns.length + (hasRowCommands ? 1 : 0);
   // Shared by the empty-state row and both virtualization spacer rows below
   // -- every one of them spans the table's real, full column count.
   const totalColSpan = gridColumnCount;
@@ -1160,6 +1199,235 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const selectionColumnPinned = hasLeftPinnedColumn && selectable && !hideSelectionColumn;
   const rowCommandsColumnWidthPx = hasRowCommands ? (rowCommands!.length * 2.25 + 1) * 16 : 0;
   const rowCommandsColumnPinned = hasRightPinnedColumn && hasRowCommands;
+
+  // Explicit, self-computed redistribution -- reported directly:
+  // dragging a resizable column's handle made it "jump" by a large fixed
+  // amount before tracking the cursor at all. Root cause, confirmed via
+  // real measurement: this table is `table-layout: fixed` + `width:
+  // 100%`, and declared column widths don't generally sum to the table's
+  // actual rendered width -- the browser's own fixed-layout algorithm
+  // responds by proportionally stretching EVERY column to fill the gap
+  // (confirmed: every <th> measured at exactly its declared width times
+  // the same ratio, `observedBodyWidth / sum-of-declared-widths`).
+  // `startResize` (useTableColumnResize.ts) measures a column's CURRENT
+  // rendered width via getBoundingClientRect() as its drag basis, which
+  // IS this stretched value -- setting that as a new EXPLICIT declared
+  // width changes the sum, which changes the stretch ratio needed to
+  // re-fill the container, so the browser re-stretches AGAIN on the very
+  // next layout, including the column just pinned to a value that was
+  // supposed to represent "no visible change yet." Confirmed directly:
+  // mousedown alone (zero cursor movement) jumped a 274.6px column to
+  // 322.4px.
+  //
+  // The fix: do the SAME "fill the container" redistribution ourselves,
+  // in JS, so the declared widths handed to the browser already sum to
+  // exactly the table's real available width. There's no gap left for
+  // table-layout:fixed's own algorithm to fill, so it never activates --
+  // and startResize's own "measure the current rendered width" basis
+  // becomes correct, since what's rendered now IS this computation's own
+  // output, with no browser-injected surprise stacked on top of it.
+  //
+  // The checkbox/rowCommands columns are deliberately excluded from this
+  // redistribution -- they stay fixed at their own known-constant widths
+  // (SELECTION_COLUMN_WIDTH_PX/rowCommandsColumnWidthPx), which is also
+  // what useTableColumnPinning's own leadingOffsetPx/trailingOffsetPx
+  // above already assumes as constants. Scaling them too would mean
+  // those two values silently stop matching the columns' real rendered
+  // widths, breaking a pinned data column's sticky offset. Only the data
+  // columns (displayColumns) absorb the redistribution.
+  const dataColumnsAvailableWidth = Math.max(
+    0,
+    observedBodyWidth -
+      (selectable && !hideSelectionColumn ? SELECTION_COLUMN_WIDTH_PX : 0) -
+      (hasRowCommands ? rowCommandsColumnWidthPx : 0)
+  );
+  // Fixed vs auto, refining the fix above per direct feedback: a column
+  // with an explicit width (declared, or a committed resize override) is
+  // FIXED -- it renders at exactly that value, full stop, never touched
+  // by anything except a direct drag on itself. A column with NEITHER a
+  // declared width NOR an override is AUTO -- `flex-grow: 1` semantics,
+  // splitting whatever's left over EQUALLY among however many auto
+  // columns currently exist (not weighted by anything, since an auto
+  // column has no "natural" size to weight by), each still floored at
+  // its own minWidth via `redistributeEquallyWithFloors` below.
+  //
+  // "Once the user touches any column, the layout locks in" -- the first
+  // real resize interaction (drag or keyboard) converts EVERY currently-
+  // auto column into a fixed one, by committing its current computed
+  // width as a real override at the same time (see the lock-in snapshot
+  // built and passed into startResize/handleResizeKeyDown at their own
+  // call sites below). Every later resize has nothing left to lock in --
+  // every column already has a real committed width by then -- so this
+  // is naturally a no-op after the first touch, which is exactly the
+  // intended "auto-size until you touch it, respect your own layout
+  // once you do" behavior.
+  const isAutoColumn = (col: Column<T>): boolean => getColumnWidth(col) === undefined;
+  const resizingColumn = displayColumns.find(c => isResizing(c.key));
+  // Floored only by the resizing column's own minWidth -- deliberately NO
+  // ceiling from siblings or the container here. A first version of this
+  // fix capped it against "how much every other column could give up,"
+  // reasoning that mirrored the min-width floor below -- but that
+  // reasoning only holds when something else is actually SHRINKING to
+  // compensate. A FIXED sibling never shrinks (that's what fixed means),
+  // so when there's no other AUTO column left to absorb the difference,
+  // that cap collapsed to "no room to grow at all," breaking the very
+  // drag it was supposed to protect (confirmed directly: growing the
+  // table's only auto column produced a hard 0px of movement). Letting
+  // this column grow freely and computing the TABLE's own width from the
+  // real total below (which can legitimately exceed the container) is
+  // the correct fix -- the floor protection for auto SIBLINGS still
+  // lives entirely in redistributeEquallyWithFloors below, unaffected.
+  const resizingColumnWidth = resizingColumn
+    ? Math.max(getColumnMinWidth(resizingColumn), getColumnWidth(resizingColumn) as number)
+    : 0;
+  // A non-numeric FIXED width (a CSS string like '12rem') renders exactly
+  // as-is (a plain style value, unaffected by any of this) but can't be
+  // summed in px the way computing "how much room auto columns have
+  // left" needs -- 150 is a plain, documented fallback estimate for that
+  // rare case, affecting only that budget, never the fixed column's own
+  // real rendered size.
+  const resolveFixedColumnWidthPx = (col: Column<T>): number => {
+    const w = getColumnWidth(col);
+    return typeof w === 'number' ? w : 150;
+  };
+  const otherColumns = displayColumns.filter(c => c !== resizingColumn);
+  const fixedOtherColumns = otherColumns.filter(c => !isAutoColumn(c));
+  const autoOtherColumns = otherColumns.filter(c => isAutoColumn(c));
+  const fixedOtherColumnsTotal = fixedOtherColumns.reduce((sum, c) => sum + resolveFixedColumnWidthPx(c), 0);
+  const availableForAutoColumns = Math.max(0, dataColumnsAvailableWidth - fixedOtherColumnsTotal - resizingColumnWidth);
+  // The standard flex-shrink/grow-with-a-floor algorithm (the same shape
+  // CSS flexbox's own min-width resolution uses), specialized to an EQUAL
+  // share per column rather than a weighted one -- an auto column has no
+  // declared width to weight by, so "equal" is the only well-defined
+  // default (matching `flex-grow: 1` on every flex item alike). Give
+  // every still-flexible column an equal share of what's left; any column
+  // whose share would fall below its own minWidth gets pinned there
+  // instead, removed from the flexible pool, and the remaining space
+  // redistributes again among what's still flexible -- repeated until
+  // nothing more needs pinning (or everything is pinned). Bounded at
+  // `columns.length + 1` passes -- each pass pins at least one more
+  // column or the loop already exited, so it can never iterate more
+  // times than there are columns to pin.
+  const redistributeEquallyWithFloors = (columns: Column<T>[], availableWidth: number): Map<string, number> => {
+    const result = new Map<string, number>();
+    // Before the very first real useAdaptiveSize measurement,
+    // observedBodyWidth (and therefore availableWidth, derived from it)
+    // is legitimately 0 -- without this guard, every column's equal
+    // share of "0" would fall below its own minWidth immediately,
+    // pinning everything to its floor for one frame and then visibly
+    // snapping to a real size the instant the real measurement lands.
+    // A plain equal split of the (not-yet-real) available width is a
+    // reasonable placeholder for that one frame instead.
+    if (observedBodyWidth <= 0) {
+      const equalShare = columns.length > 0 ? Math.max(0, availableWidth) / columns.length : 0;
+      for (const c of columns) result.set(c.key, equalShare);
+      return result;
+    }
+    let flexible = columns;
+    let remaining = availableWidth;
+    for (let pass = 0; pass <= columns.length && flexible.length > 0; pass++) {
+      const equalShare = flexible.length > 0 ? Math.max(0, remaining) / flexible.length : 0;
+      const stillFlexible: Column<T>[] = [];
+      let pinnedAny = false;
+      for (const c of flexible) {
+        const min = getColumnMinWidth(c);
+        if (equalShare < min) {
+          result.set(c.key, min);
+          remaining -= min;
+          pinnedAny = true;
+        } else {
+          stillFlexible.push(c);
+        }
+      }
+      flexible = stillFlexible;
+      if (!pinnedAny) {
+        for (const c of flexible) result.set(c.key, equalShare);
+        break;
+      }
+    }
+    return result;
+  };
+  const autoOtherColumnsWidths = redistributeEquallyWithFloors(autoOtherColumns, availableForAutoColumns);
+  const getRedistributedColumnWidth = (col: Column<T>): number => {
+    if (resizingColumn && col.key === resizingColumn.key) return resizingColumnWidth;
+    if (isAutoColumn(col)) return autoOtherColumnsWidths.get(col.key) ?? getColumnMinWidth(col);
+    return resolveFixedColumnWidthPx(col);
+  };
+  // The table's own real width is always just the exact sum of its
+  // columns' own real widths -- no separate '100%' vs. exact-px branch
+  // needed. This single formula already produces the right number in
+  // every case: with at least one auto column and no active drag, the
+  // auto column(s) fill precisely up to the container by construction
+  // (redistributeEquallyWithFloors's whole job), so the sum equals the
+  // container's own width already. With zero auto columns and nothing
+  // dragging, the sum is just the fixed columns' own total, legitimately
+  // narrower than the container (real unused space, not re-stretched to
+  // fill it -- the whole point of the fix above). Mid-drag, the sum can
+  // legitimately exceed the container (the resizing column's own width
+  // is deliberately uncapped by it, see that computation's own comment)
+  // -- the table simply grows to accommodate, the same way a flex
+  // container genuinely widens instead of arbitrarily capping a flex
+  // item's own explicit size at its parent's current edge.
+  const allColumnsTotalWidthPx =
+    (selectable && !hideSelectionColumn ? SELECTION_COLUMN_WIDTH_PX : 0) +
+    displayColumns.reduce((sum, c) => sum + getRedistributedColumnWidth(c), 0) +
+    (hasRowCommands ? rowCommandsColumnWidthPx : 0);
+  const tableWidthStyle = `${allColumnsTotalWidthPx}px`;
+  // The lock-in snapshot -- every column that's still auto, at its
+  // current computed width, merged into the SAME commit as the column
+  // actually being resized once the drag/keypress ends (see
+  // startResize's own call site below). Real bug caught by testing this
+  // for real, not just reasoning through it: an EARLIER version computed
+  // this snapshot EAGERLY, once, at the exact moment the resize interaction
+  // STARTS (mousedown), and handed that static object to startResize. That
+  // captures every auto column's width BEFORE the drag has moved at all --
+  // by the time the drag actually ENDS (mouseup, possibly many renders and
+  // pointermove ticks later, with every OTHER auto column having
+  // dynamically shrunk/grown along the way to track the live drag), the
+  // snapshot was locking in a STALE, pre-drag value instead of whatever
+  // the live redistribution had actually settled on by release. Confirmed
+  // directly: dragging a fixed sibling +100px, which should have shrunk
+  // the one auto column by the same amount, left it visibly unchanged
+  // after release -- the commit had silently re-applied its own
+  // pre-drag width right on top of the live-redistributed one.
+  //
+  // The fix: `latestAutoColumnWidthsRef` is written on EVERY render (via
+  // the layout effect below, the same "no dependency array, runs on
+  // every commit" pattern useTableColumnPinning already uses for its own
+  // real-time DOM measurement), so it always holds the CURRENT
+  // redistribution, however many renders have happened since the drag
+  // started. `getLockInWidths` closes over that ref and is handed to
+  // startResize/handleResizeKeyDown once, at interaction-start time, but
+  // its own body only ever reads `.current` -- calling it LATE, at
+  // actual commit time (useTableColumnResize.ts's own handleUp), is what
+  // makes it correct: the function's identity doesn't need to be fresh,
+  // only what it reads when it actually runs.
+  const latestAutoColumnWidthsRef = useRef<Record<string, number>>({});
+  useLayoutEffect(() => {
+    const snapshot: Record<string, number> = {};
+    // Before the very first real useAdaptiveSize measurement,
+    // getRedistributedColumnWidth's own equal-split fallback for an auto
+    // column is a placeholder guess (see redistributeEquallyWithFloors's
+    // own comment), not a real size -- locking THAT in as a permanent
+    // override would freeze every still-auto column at a meaningless
+    // value the instant a real measurement lands. Leave the snapshot
+    // empty in that case; a resize interaction genuinely can't have
+    // started before the table has ever laid out in a real browser
+    // (jsdom, with no real layout engine, is the one environment where
+    // this guard is what keeps a test's own resize call from committing
+    // a bogus 0 alongside the column it actually meant to resize).
+    if (observedBodyWidth > 0) {
+      for (const col of displayColumns) {
+        if (isAutoColumn(col)) snapshot[col.key] = getRedistributedColumnWidth(col);
+      }
+    }
+    latestAutoColumnWidthsRef.current = snapshot;
+  });
+  const getLockInWidths = (excludeKey: string): Record<string, number> => {
+    const { [excludeKey]: _excluded, ...rest } = latestAutoColumnWidthsRef.current;
+    return rest;
+  };
+
   const { registerHeaderCellRef, offsets: pinnedOffsets } = useTableColumnPinning(
     displayColumns,
     selectionColumnPinned ? SELECTION_COLUMN_WIDTH_PX : 0,
@@ -1211,20 +1479,46 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const renderResizeHandle = (col: Column<T>) => {
     if (!col.resizable) return null;
     const aria = getAriaValues(col);
+    // Real regression, caught by this PR's own axe-core CI gate (accessibility.spec.ts):
+    // useTableColumnResize's getAriaValues falls back to the column's raw
+    // `column.width` prop, which is genuinely `undefined` for an auto column
+    // (see the fixed-vs-auto model above) until the user actually resizes it --
+    // that hook has no knowledge of DataTable's own redistribution. A
+    // role="separator" requires aria-valuenow whenever it has a real numeric
+    // value to report, and an auto column always does (getRedistributedColumnWidth
+    // computes it on every render, independent of any user interaction), so
+    // omitting it here was a real, not just theoretical, aria-required-attr
+    // violation the instant a resizable column had no declared width at all.
+    const ariaValueNow = aria.valueNow ?? Math.round(getRedistributedColumnWidth(col));
     const onDown = (e: ReactMouseEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
       const headerCell = (e.currentTarget as HTMLElement).closest('th');
-      if (headerCell) startResize(col, headerCell, e.clientX);
+      if (headerCell) startResize(col, headerCell, e.clientX, () => getLockInWidths(col.key));
     };
     return (
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-valuenow={aria.valueNow}
+        aria-valuenow={ariaValueNow}
         aria-valuemin={aria.valueMin}
         aria-valuemax={aria.valueMax}
         aria-label={`Resize ${col.title} column`}
+        // Real signal for e2e tests to wait on before sending further
+        // mouse/pointer movement -- see AGENTS.md's "e2e: wait for a real
+        // signal, never a fixed sleep" section. `startResize`'s window-level
+        // pointermove/pointerup listeners attach in a useLayoutEffect keyed
+        // off `isDragging` (see useTableColumnResize.ts's own comment on
+        // why that has to be useLayoutEffect, not useEffect), which is
+        // synchronous with the React commit but NOT synchronous with
+        // whatever ack a real browser's input-injection protocol returns
+        // to a test driver -- confirmed as a real, reproducible flake under
+        // heavy parallel WebKit load (8 concurrent workers), not a logic
+        // bug: the drag would silently register zero effect because the
+        // very next synthetic mousemove could be dispatched before this
+        // attach actually lands. This attribute gives a test something
+        // concrete to poll for instead of guessing a delay.
+        data-resizing={isResizing(col.key) ? 'true' : undefined}
         tabIndex={0}
         className="ai-focus-ring"
         onMouseDown={onDown}
@@ -1233,23 +1527,51 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         onKeyDown={e => {
           e.stopPropagation();
           const headerCell = (e.currentTarget as HTMLElement).closest('th');
-          if (headerCell) handleResizeKeyDown(col, headerCell, e);
+          if (headerCell) handleResizeKeyDown(col, headerCell, e, () => getLockInWidths(col.key));
         }}
         style={{
           position: 'absolute',
           top: 0,
-          right: 0,
+          // Reported directly: the previous 0.5rem hit-zone sat entirely
+          // INSIDE this column's own box (right: 0), so there was no
+          // "give" on the far side of the real visual boundary at all --
+          // genuinely narrow and hard to land a click on precisely. A
+          // wider zone (0.75rem), shifted half outside the column's own
+          // edge (right: -0.25rem) so it straddles the real boundary
+          // roughly evenly on both sides, same as most real
+          // resize-handle implementations.
+          right: '-0.25rem',
           bottom: 0,
-          width: '0.5rem',
+          width: '0.75rem',
           cursor: 'col-resize',
           touchAction: 'none',
-          // Issue #402: accent, not primary -- same reasoning as
-          // Splitter's own drag-handle and FileUpload's dropzone: a
-          // momentary active-resize highlight, distinct from DataTable's
-          // own persistent row-selection color (which stays primary).
-          background: isResizing(col.key) ? 'var(--ai-color-accent, #8b5cf6)' : 'transparent',
+          display: 'flex',
+          justifyContent: 'center',
         }}
-      />
+      >
+        {/* Reported directly: nothing distinguished a resizable column's
+            boundary from a non-resizable one until you already hovered
+            (or worse, dragged) it -- there was no way to tell which
+            columns even supported this without trial and error. A thin,
+            always-visible (if subtle) line at the real boundary, inside
+            the wider invisible hit-zone above, gives that signal for
+            free; it brightens to the same accent highlight the drag
+            state already used once a resize is actually in progress. */}
+        <div
+          aria-hidden="true"
+          style={{
+            width: '0.125rem',
+            height: '100%',
+            borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+            // Issue #402: accent, not primary, once actually resizing --
+            // same reasoning as Splitter's own drag-handle and
+            // FileUpload's dropzone: a momentary active-resize highlight,
+            // distinct from DataTable's own persistent row-selection
+            // color (which stays primary).
+            background: isResizing(col.key) ? 'var(--ai-color-accent, #8b5cf6)' : 'var(--ai-border, #e5e7eb)',
+          }}
+        />
+      </div>
     );
   };
 
@@ -1422,38 +1744,114 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           contain: 'content',
                         }}
                       >
-                        {columns.map(col => (
-                          <DropdownMenuPrimitive.CheckboxItem
-                            key={col.key}
-                            checked={!hiddenColumnSet.has(col.key)}
-                            onCheckedChange={() => toggleColumnVisibility(col.key)}
-                            // Keeps the menu open across multiple toggles --
-                            // a checklist, not a one-shot action list (see
-                            // this feature's own comment above).
-                            onSelect={e => e.preventDefault()}
-                            className="ai-menu-item"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
-                              fontSize: '0.875rem',
-                              fontWeight: 'var(--ai-font-weight-medium, 500)',
-                              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                              color: 'var(--ai-text-primary, #111827)',
-                              cursor: 'pointer',
-                              outline: 'none',
-                            }}
-                          >
-                            {/* Fixed-width reserved space so the label
-                                doesn't visually shift left/right as items
-                                toggle in and out of the checked state. */}
-                            <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
-                              <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
-                            </span>
-                            {col.title}
-                          </DropdownMenuPrimitive.CheckboxItem>
-                        ))}
+                        {/*
+                          Pinned columns are excluded entirely, not just
+                          shown-and-disabled -- reported directly: pinning
+                          exists specifically to keep a column always
+                          visible while the rest scrolls underneath it, so
+                          offering it in a hide/show list at all contradicts
+                          why it's pinned. This is also what fixes a second,
+                          related report: a hidden-then-reshown column used
+                          to reappear at a different position than this
+                          menu's own listed order implied, because a pinned
+                          column's real render position (grouped to the
+                          left/right edge, see displayColumns above) never
+                          matched its position in this menu's un-grouped
+                          list. With pinned columns gone from the list
+                          entirely, every remaining entry is unpinned, and
+                          an unpinned column's relative order here always
+                          matches its real rendered order (both are a plain
+                          filter() over the same `columns` array, which
+                          preserves relative order) -- nothing left to
+                          diverge.
+                        */}
+                        {columns.filter(col => !col.pinned).map(col => {
+                          const isChecked = !hiddenColumnSet.has(col.key);
+                          // Disabled, not just refused on click -- reported
+                          // directly: nothing stopped hiding every column,
+                          // leaving a table with a header row and no
+                          // visible content. Only ever true for the one
+                          // remaining checked item once totalVisibleColumnCount
+                          // has dropped to 1 (a pinned column, if any,
+                          // already keeps that count above 1 on its own,
+                          // without ever appearing in this list).
+                          const isDisabled = isChecked && totalVisibleColumnCount <= 1;
+                          return (
+                            <DropdownMenuPrimitive.CheckboxItem
+                              key={col.key}
+                              checked={isChecked}
+                              disabled={isDisabled}
+                              onCheckedChange={() => toggleColumnVisibility(col.key)}
+                              // Keeps the menu open across multiple toggles --
+                              // a checklist, not a one-shot action list (see
+                              // this feature's own comment above).
+                              onSelect={e => e.preventDefault()}
+                              className="ai-menu-item"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
+                                fontSize: '0.875rem',
+                                fontWeight: 'var(--ai-font-weight-medium, 500)',
+                                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                                color: 'var(--ai-text-primary, #111827)',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.5 : 1,
+                                outline: 'none',
+                              }}
+                            >
+                              {/* Fixed-width reserved space so the label
+                                  doesn't visually shift left/right as items
+                                  toggle in and out of the checked state. */}
+                              <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
+                                <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
+                              </span>
+                              {col.title}
+                            </DropdownMenuPrimitive.CheckboxItem>
+                          );
+                        })}
+                        {/*
+                          rowCommands' own trailing actions column --
+                          reported directly: it wasn't previously offered
+                          here at all, even though it occupies a real
+                          column (and can be just as worth hiding as any
+                          data column). Same isDisabled guard as every
+                          other item -- it's ordinary content for this
+                          purpose, not special-cased.
+                        */}
+                        {hasRowCommandsProp && (() => {
+                          const isChecked = !hiddenColumnSet.has(ROW_COMMANDS_COLUMN_KEY);
+                          const isDisabled = isChecked && totalVisibleColumnCount <= 1;
+                          return (
+                            <DropdownMenuPrimitive.CheckboxItem
+                              key={ROW_COMMANDS_COLUMN_KEY}
+                              checked={isChecked}
+                              disabled={isDisabled}
+                              onCheckedChange={() => toggleColumnVisibility(ROW_COMMANDS_COLUMN_KEY)}
+                              onSelect={e => e.preventDefault()}
+                              className="ai-menu-item"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
+                                fontSize: '0.875rem',
+                                fontWeight: 'var(--ai-font-weight-medium, 500)',
+                                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                                color: 'var(--ai-text-primary, #111827)',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.5 : 1,
+                                outline: 'none',
+                              }}
+                            >
+                              <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
+                                <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
+                              </span>
+                              {strings.actionsColumnLabel}
+                            </DropdownMenuPrimitive.CheckboxItem>
+                          );
+                        })()}
                       </DropdownMenuPrimitive.Content>
                     </DropdownMenuPrimitive.Portal>
                   </DropdownMenuPrimitive.Root>
@@ -1559,7 +1957,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           }}
           onFocus={handleFocus}
           style={{
-            width: '100%',
+            // tableWidthStyle, not a bare '100%' -- see that computation's
+            // own comment above: once every column is fixed and nothing's
+            // being dragged, the table's real width is the exact sum of
+            // its own columns, which can legitimately be narrower than
+            // the container (real, deliberate unused space) rather than
+            // every fixed column being silently re-stretched to fill it.
+            width: tableWidthStyle,
             tableLayout: 'fixed',
             borderCollapse: 'collapse',
             textAlign: 'left',
@@ -1567,17 +1971,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           }}
         >
           <colgroup>
-            {selectable && !hideSelectionColumn && <col style={{ width: '2.75rem' }} />}
-            {displayColumns.map(col => {
-              const resolvedWidth = getColumnWidth(col);
-              return (
-                <col
-                  key={col.key}
-                  style={{ width: resolvedWidth ? (typeof resolvedWidth === 'number' ? `${resolvedWidth}px` : resolvedWidth) : undefined }}
-                />
-              );
-            })}
-            {hasRowCommands && <col style={{ width: `${rowCommands!.length * 2.25 + 1}rem` }} />}
+            {selectable && !hideSelectionColumn && <col style={{ width: `${SELECTION_COLUMN_WIDTH_PX}px` }} />}
+            {/* getRedistributedColumnWidth, not the raw getColumnWidth --
+                see that computation's own comment above for why: it
+                already accounts for filling the table's real available
+                width itself, so the browser's own table-layout:fixed
+                stretch never needs to (and can't silently disagree with
+                what startResize/getBoundingClientRect() will measure back). */}
+            {displayColumns.map(col => (
+              <col key={col.key} style={{ width: `${getRedistributedColumnWidth(col)}px` }} />
+            ))}
+            {hasRowCommands && <col style={{ width: `${rowCommandsColumnWidthPx}px` }} />}
           </colgroup>
 
           {/* Header */}
@@ -1594,8 +1998,19 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               {selectable && !hideSelectionColumn && (
                 <th
                   style={{
-                    padding: 'var(--ai-table-header-padding, var(--ai-padding-md, 0.75rem 1rem))',
-                    width: '2.75rem',
+                    // Reported directly: this column rendered noticeably
+                    // wider than a bare checkbox needs. Reusing the same
+                    // 1rem horizontal padding every text column uses left
+                    // only ~12px of content box inside the declared 44px
+                    // column for an 18px checkbox (--ai-togglecontrol-
+                    // checkbox-size) -- confirmed via a real computed-style
+                    // check that the browser was expanding the column to
+                    // ~55px to avoid clipping it. A checkbox needs no text
+                    // breathing room the way every other header does; 0.5rem
+                    // each side leaves a comfortable ~28px content box for
+                    // an 18px checkbox, well inside the declared 44px.
+                    padding: '0.75rem 0.5rem',
+                    width: `${SELECTION_COLUMN_WIDTH_PX}px`,
                     ...(selectionColumnPinned
                       ? { position: 'sticky', left: 0, zIndex: Z_INDEX.STICKY + 1, background: 'var(--ai-bg-container, #f9fafb)' }
                       : {}),
@@ -1700,7 +2115,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // height inside a <th> a taller sibling column
                       // stretched, leaving unclickable dead space.
                       height: isSortable ? '100%' : undefined,
-                      width: getColumnWidth(col),
+                      width: `${getRedistributedColumnWidth(col)}px`,
                       // Anchors the resize handle's absolute positioning
                       // below -- harmless when col.resizable is false since
                       // nothing renders inside this th to be positioned
@@ -2055,7 +2470,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       {selectable && !hideSelectionColumn && selectionKey !== null && (
                         <td
                           style={{
-                            padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                            // 0.5rem, not the generic --ai-table-cell-padding
+                            // -- see the header checkbox <th>'s own comment
+                            // above for why the standard text-column padding
+                            // renders a plain checkbox noticeably wider than
+                            // it needs to be.
+                            padding: '0.5rem',
                             // Always the row's first cell when rendered at
                             // all -- carries the left accent bar as well as
                             // the top/bottom frame caps (see this row's own

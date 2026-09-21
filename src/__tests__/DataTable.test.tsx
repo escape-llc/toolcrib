@@ -2277,6 +2277,30 @@ describe('DataTable Virtualized Component', () => {
       expect(Number(grid.getAttribute('aria-colcount'))).toBe(before - 1);
     });
 
+    it('disables the last remaining visible column so it cannot be hidden', () => {
+      // testColumns has exactly two hideable columns (ID, Name) and no
+      // pinned ones -- hiding Name leaves ID as the table's only visible
+      // column, which must become disabled in the menu the instant that
+      // happens. e2e/datatable-column-visibility.spec.ts's own "cannot hide
+      // the last remaining visible column" test only confirms the guard
+      // doesn't misfire when pinned columns already guarantee the floor
+      // (demo/App.tsx always has two pinned columns) -- this is the one
+      // that actually exercises the disabling itself, against a table with
+      // no pinned columns to fall back on.
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} columnVisibility rowKey={r => r.id} />);
+      openColumnsMenu();
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Name' }));
+
+      const idItem = screen.getByRole('menuitemcheckbox', { name: 'ID' });
+      expect(idItem).toHaveAttribute('aria-checked', 'true');
+      expect(idItem).toHaveAttribute('data-disabled');
+
+      // Clicking a disabled CheckboxItem is a real no-op -- ID stays visible.
+      fireEvent.click(idItem);
+      closeColumnsMenu();
+      expect(screen.getByRole('columnheader', { name: 'ID' })).toBeInTheDocument();
+    });
+
     it('CSV export only includes currently visible columns', async () => {
       const createObjectURL = vi.fn((blob: Blob) => {
         capturedBlob = blob;
@@ -2734,16 +2758,36 @@ describe('DataTable Virtualized Component', () => {
 
     // Regression test for a real bug Gemini's review of this PR (#327)
     // caught: `resizableColumns`'s "Name" column has no pre-declared
-    // numeric `width` -- getAriaValues used to fall back to announcing the
-    // MIN WIDTH FLOOR (40) as aria-valuenow in this exact shape, a wrong
-    // number a screen reader would read as the column's current width,
-    // then jump straight past on the very first arrow-key press. Omitting
-    // the attribute until a real width is known is the fix; this proves
-    // both halves of it.
-    it('regression: omits aria-valuenow (rather than reporting the wrong min-width floor) until a real pixel width is known', () => {
+    // numeric `width` -- getAriaValues (useTableColumnResize's own hook,
+    // which only ever knows a column's raw `width` prop or a committed/
+    // drag-preview override) used to fall back to announcing the MIN WIDTH
+    // FLOOR (40) as aria-valuenow in this exact shape, a wrong number a
+    // screen reader would read as the column's current width, then jump
+    // straight past it on the very first arrow-key press.
+    //
+    // A second real regression, caught by this PR's own axe-core CI gate
+    // once "Name" here became representative of a genuine "auto" column
+    // (issue #539's fixed-vs-auto model): simply omitting aria-valuenow
+    // whenever the hook doesn't know a real width is itself an
+    // aria-required-attr violation for a role="separator" the instant a
+    // resizable column legitimately has no declared width -- which is now
+    // the STANDARD shape for any auto column, not a rare edge case. The
+    // fix (DataTable.tsx's own renderResizeHandle) falls back to the same
+    // getRedistributedColumnWidth() value already used to render the
+    // column's real width, rather than leaving the attribute absent.
+    //
+    // jsdom has no real layout engine, so that redistribution's own
+    // observedBodyWidth-derived fallback is permanently 0 here (see
+    // getRedistributedColumnWidth's own header comment) -- a jsdom-only
+    // artifact, not a real-browser value; e2e/datatable-column-resize.spec.ts
+    // exercises the real, non-zero case. What matters for this test is that
+    // it's a REAL, honestly-reported number (matching whatever DataTable
+    // itself considers the column's current rendered width to be), not the
+    // misleading min-width-floor number the original bug reported.
+    it('regression: aria-valuenow reflects the column\'s real rendered width (not the wrong min-width floor) even before it has ever been resized', () => {
       const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
-      expect(handle).not.toHaveAttribute('aria-valuenow');
+      expect(handle).toHaveAttribute('aria-valuenow', '0');
 
       const headerCell = handle.closest('th')!;
       headerCell.getBoundingClientRect = () => ({
@@ -2804,18 +2848,24 @@ describe('DataTable Virtualized Component', () => {
     it('the resize handle background resolves to the accent color while actively resizing, not primary', () => {
       const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
+      // The accent/border color lives on the persistent thin indicator
+      // line INSIDE the handle (issue reported directly: nothing marked
+      // a resizable column's boundary before you'd already found and
+      // hovered/dragged its narrow hit-zone), not on the wider,
+      // background-less hit-zone div itself.
+      const indicator = handle.querySelector('[aria-hidden="true"]') as HTMLElement;
       const headerCell = handle.closest('th')!;
       headerCell.getBoundingClientRect = () => ({
         top: 0, left: 0, right: 150, bottom: 30, width: 150, height: 30, x: 0, y: 0, toJSON: () => {},
       });
 
-      expect(handle.style.background).not.toContain('--ai-color-accent');
+      expect(indicator.style.background).not.toContain('--ai-color-accent');
 
       fireEvent.pointerDown(handle, { clientX: 100 });
-      expect(handle.style.background).toContain('--ai-color-accent');
+      expect(indicator.style.background).toContain('--ai-color-accent');
 
       fireEvent.pointerUp(window);
-      expect(handle.style.background).not.toContain('--ai-color-accent');
+      expect(indicator.style.background).not.toContain('--ai-color-accent');
     });
 
     it('never shrinks a column below its minWidth floor while dragging', () => {

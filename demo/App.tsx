@@ -1026,7 +1026,14 @@ export const App: React.FC = () => {
     // `displayColumns` reorders pinned columns to the visual edges
     // regardless of their position in `columns`.
     { key: 'name', title: 'User Name', width: 140, sortable: true, resizable: true, pinned: 'left' },
-    { key: 'email', title: 'Email Address', width: 220, sortable: true, resizable: true },
+    // No declared width -- demonstrates DataTable's own "auto" column
+    // model directly: every OTHER column here has an explicit width and
+    // renders at exactly that value; this one has none, so it's the
+    // column that flex-grows to absorb whatever space the others don't
+    // use, the same way a lone `flex-grow: 1` item would. A natural
+    // real-world fit too -- an email address is the one field here with
+    // genuinely variable, hard-to-predict length.
+    { key: 'email', title: 'Email Address', sortable: true, resizable: true },
     { key: 'role', title: 'Role Level', width: 110, sortable: true },
     {
       key: 'status',
