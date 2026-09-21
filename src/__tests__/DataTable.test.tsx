@@ -2758,16 +2758,36 @@ describe('DataTable Virtualized Component', () => {
 
     // Regression test for a real bug Gemini's review of this PR (#327)
     // caught: `resizableColumns`'s "Name" column has no pre-declared
-    // numeric `width` -- getAriaValues used to fall back to announcing the
-    // MIN WIDTH FLOOR (40) as aria-valuenow in this exact shape, a wrong
-    // number a screen reader would read as the column's current width,
-    // then jump straight past on the very first arrow-key press. Omitting
-    // the attribute until a real width is known is the fix; this proves
-    // both halves of it.
-    it('regression: omits aria-valuenow (rather than reporting the wrong min-width floor) until a real pixel width is known', () => {
+    // numeric `width` -- getAriaValues (useTableColumnResize's own hook,
+    // which only ever knows a column's raw `width` prop or a committed/
+    // drag-preview override) used to fall back to announcing the MIN WIDTH
+    // FLOOR (40) as aria-valuenow in this exact shape, a wrong number a
+    // screen reader would read as the column's current width, then jump
+    // straight past it on the very first arrow-key press.
+    //
+    // A second real regression, caught by this PR's own axe-core CI gate
+    // once "Name" here became representative of a genuine "auto" column
+    // (issue #539's fixed-vs-auto model): simply omitting aria-valuenow
+    // whenever the hook doesn't know a real width is itself an
+    // aria-required-attr violation for a role="separator" the instant a
+    // resizable column legitimately has no declared width -- which is now
+    // the STANDARD shape for any auto column, not a rare edge case. The
+    // fix (DataTable.tsx's own renderResizeHandle) falls back to the same
+    // getRedistributedColumnWidth() value already used to render the
+    // column's real width, rather than leaving the attribute absent.
+    //
+    // jsdom has no real layout engine, so that redistribution's own
+    // observedBodyWidth-derived fallback is permanently 0 here (see
+    // getRedistributedColumnWidth's own header comment) -- a jsdom-only
+    // artifact, not a real-browser value; e2e/datatable-column-resize.spec.ts
+    // exercises the real, non-zero case. What matters for this test is that
+    // it's a REAL, honestly-reported number (matching whatever DataTable
+    // itself considers the column's current rendered width to be), not the
+    // misleading min-width-floor number the original bug reported.
+    it('regression: aria-valuenow reflects the column\'s real rendered width (not the wrong min-width floor) even before it has ever been resized', () => {
       const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
-      expect(handle).not.toHaveAttribute('aria-valuenow');
+      expect(handle).toHaveAttribute('aria-valuenow', '0');
 
       const headerCell = handle.closest('th')!;
       headerCell.getBoundingClientRect = () => ({

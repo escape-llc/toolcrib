@@ -1479,6 +1479,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const renderResizeHandle = (col: Column<T>) => {
     if (!col.resizable) return null;
     const aria = getAriaValues(col);
+    // Real regression, caught by this PR's own axe-core CI gate (accessibility.spec.ts):
+    // useTableColumnResize's getAriaValues falls back to the column's raw
+    // `column.width` prop, which is genuinely `undefined` for an auto column
+    // (see the fixed-vs-auto model above) until the user actually resizes it --
+    // that hook has no knowledge of DataTable's own redistribution. A
+    // role="separator" requires aria-valuenow whenever it has a real numeric
+    // value to report, and an auto column always does (getRedistributedColumnWidth
+    // computes it on every render, independent of any user interaction), so
+    // omitting it here was a real, not just theoretical, aria-required-attr
+    // violation the instant a resizable column had no declared width at all.
+    const ariaValueNow = aria.valueNow ?? Math.round(getRedistributedColumnWidth(col));
     const onDown = (e: ReactMouseEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1489,7 +1500,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-valuenow={aria.valueNow}
+        aria-valuenow={ariaValueNow}
         aria-valuemin={aria.valueMin}
         aria-valuemax={aria.valueMax}
         aria-label={`Resize ${col.title} column`}
