@@ -31,6 +31,10 @@ already required to follow:
   out: posting an honest writeup (including friction) of what changed to
   GitHub Discussions, so the next session — and anyone watching the
   project — has a real record to work from.
+- **[RELEASING.md](RELEASING.md)** — the full version-bump/tag/publish
+  sequence, split out of `AGENTS.md` since it's invoked at exactly one
+  specific, rare, maintainer-initiated moment. Read only when the
+  maintainer explicitly asks for a version bump.
 
 If you're building an app that *uses* Toolcrib rather than working on
 Toolcrib itself, this is also the wrong file — see `ai-docs/CORE.md` after
