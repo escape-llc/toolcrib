@@ -79,8 +79,18 @@ const version = playwrightVersion();
 const image = `mcr.microsoft.com/playwright:v${version}-noble`;
 const volumeName = `toolcrib-e2e-node-modules-${version}`;
 
+// Real bug Gemini's review of this PR caught: a plain `.join(' ')` loses
+// each argument's own boundaries the moment any one of them contains a
+// space or shell-significant character (`npm run test:e2e:linux -- -g
+// "grid nav"`, e.g.) -- the string gets handed to `bash -lc` below, which
+// re-splits it on whitespace with no memory of which spaces were meant to
+// stay inside one argument. Single-quoting each argument (and escaping
+// any single quote already inside it, the standard POSIX-shell technique)
+// preserves exactly the same argv `bash -lc` will parse regardless of
+// what characters an argument contains.
 const extraArgs = process.argv.slice(2);
-const testCommand = ['npm', 'ci', '&&', 'npx', 'playwright', 'test', ...extraArgs].join(' ');
+const quoteForShell = (arg) => `'${arg.replace(/'/g, `'\\''`)}'`;
+const testCommand = ['npm', 'ci', '&&', 'npx', 'playwright', 'test', ...extraArgs.map(quoteForShell)].join(' ');
 
 console.log(`Using ${engine}, image ${image}`);
 
