@@ -863,27 +863,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // the moment a user switches TO "Auto", for the same reason pageSizeRef
   // has to be written before goToPage runs (see that ref's own comment).
   //
-  // AUTO_PAGE_SIZE_SAFETY_PX (below): real CI failures on this repo's own
-  // ubuntu-latest e2e runner (never reproduced on a Windows local browser)
-  // found that `headerHeight`/`itemHeight` -- both plain computed
-  // constants, not live measurements, per DENSITY_HEADER_HEIGHT_PX's own
-  // header comment on why -- can still undershoot a real platform's actual
-  // rendering by a few px, e.g. a header's sort <button> or a status pill
-  // rendering fractionally taller under Linux's default font stack than
-  // Windows'. Chasing an exact per-element pixel budget for every possible
-  // piece of header/cell content across every rendering engine is
-  // inherently fragile (confirmed directly: fixing ONE specific element's
-  // own padding, DataTableSlice.tsx's DENSITY_SELECTION_CELL_PADDING_V_PX,
-  // did not change a real CI failure's numbers at all, meaning that
-  // wasn't even the element actually responsible for THIS drift). A small
-  // constant safety margin subtracted once, here, before dividing, is the
-  // general, robust fix instead: it guards against SOME modest amount of
-  // real-vs-assumed drift from ANY header/row content, not just the one
-  // element a given investigation happened to already suspect, at the cost
-  // of a few px of unused whitespace below the last row in the (default,
-  // common) case where the real rendering already matches the computed
-  // constants exactly.
-  const AUTO_PAGE_SIZE_SAFETY_PX = 10;
+  // AUTO_PAGE_SIZE_SAFETY_PX (below): a real CI-only overflow (issue #542)
+  // was root-caused to the header's sort-button title WRAPPING to a 2nd
+  // line under CI's Linux font stack at a column width that fit on one
+  // line under a local Windows browser -- real glyph widths for
+  // nominally-identical CSS genuinely differ across platforms/fonts, and a
+  // wrap point is exactly the kind of thing that shifts because of it.
+  // Fixed at the actual source (the title now truncates with an ellipsis
+  // instead of wrapping, matching what every body <td> already does --
+  // see that button's own style comment), which is what makes
+  // `headerHeight`'s single-line assumption sound again on every platform,
+  // not just this margin. What's left here is the same small, ordinary
+  // margin `CONTENT_VERTICAL_SAFETY_PX` already establishes as this
+  // codebase's own standing practice for line-height/font-metric slack
+  // that has nothing to do with wrapping -- guards a residual sub-pixel
+  // difference, not a specific known bug.
+  const AUTO_PAGE_SIZE_SAFETY_PX = 2;
   const computeAutoPageSize = () =>
     Math.max(
       1,
@@ -2189,13 +2184,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          // height: 100% matters whenever this <th> shares
-                          // its row with a taller one (a longer title that
-                          // wraps, e.g.) -- table cells in the same row
-                          // always stretch to the row's tallest cell, so
-                          // without this the button would leave dead
-                          // (unclickable) space above/below it inside a
-                          // <th> taller than the button's own content.
+                          // height: 100% still matters even with the title
+                          // itself now truncating below (a taller sibling
+                          // header cell -- the checkbox column's own fixed
+                          // padding, e.g. -- can still make this <th> taller
+                          // than the button's own content for reasons
+                          // unrelated to this button's own title at all;
+                          // table cells in the same row always stretch to
+                          // the row's tallest cell) -- without this the
+                          // button would leave dead (unclickable) space
+                          // above/below it inside a <th> taller than its
+                          // own content.
                           width: '100%',
                           height: '100%',
                           boxSizing: 'border-box',
@@ -2207,9 +2206,31 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           font: 'inherit',
                           color: 'inherit',
                           textAlign: 'left',
+                          // Real, reported bug (issue #542): this title used
+                          // to wrap to a 2nd line instead of truncating
+                          // whenever a column was too narrow for it,
+                          // inconsistent with every body <td> (which already
+                          // truncates -- see that cell's own whiteSpace:
+                          // 'nowrap' a few hundred lines up) and fatal to
+                          // defaultPageSize="auto"'s whole promise: a header
+                          // that can silently grow to 2+ lines makes
+                          // computeAutoPageSize's own (necessarily
+                          // single-line) height assumption impossible to
+                          // ever guarantee, confirmed for real -- the exact
+                          // same title, at the exact same column width,
+                          // wrapped under CI's Linux font stack but not a
+                          // local Windows one, because a wrap point depends
+                          // on real glyph widths, which genuinely differ
+                          // across platforms/fonts for identical CSS. The
+                          // title <span> below carries its own `minWidth: 0`
+                          // for the standard reason a flex child needs it to
+                          // truncate at all (a flex item's default
+                          // min-width is 'auto', which otherwise refuses to
+                          // shrink below its own content's natural width no
+                          // matter what overflow/text-overflow says).
                         }}
                       >
-                        {col.title}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{col.title}</span>
                         {sortDescriptor && (
                           // aria-sort on the <th> above already conveys sort
                           // direction programmatically -- without

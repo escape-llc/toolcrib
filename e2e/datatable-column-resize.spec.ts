@@ -281,4 +281,41 @@ test.describe('DataTable column resize (issue #318)', () => {
       await expect((await emailHeader.boundingBox())!.width).toBeCloseTo(emailAfterFirstResize, 0);
     });
   });
+
+  // Regression test for issue #542: a sortable column's title used to wrap
+  // to a 2nd line, by design, whenever a column was too narrow for it --
+  // fatal to defaultPageSize="auto"'s own single-line header-height
+  // assumption once a real CI run showed the exact same title, at the
+  // exact same column width, wrapping under Linux's font stack but not a
+  // local Windows one (a wrap point depends on real glyph widths, which
+  // genuinely differ across platforms/fonts for identical CSS -- not
+  // something a fixed column width can reliably avoid on every platform).
+  // Resizing "Email Address" down to its own real minWidth floor (40px,
+  // far too narrow for that title at any plausible font) is a
+  // deterministic worst case, not a borderline one -- if truncation is
+  // genuinely working, the header's real height must stay at its
+  // single-line budget regardless of which platform/font renders it.
+  test('a sortable column\'s title truncates instead of wrapping when resized far narrower than its own text', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Data Table');
+
+    const mainGrid = page.getByRole('grid').first();
+    const emailHeader = mainGrid.locator('th').filter({ has: page.getByRole('button', { name: 'Email Address' }) });
+    const handle = emailHeader.getByRole('separator');
+
+    const headerRow = mainGrid.locator('thead tr');
+    const singleLineHeight = (await headerRow.boundingBox())!.height;
+
+    await handle.hover();
+    const handleBox = (await handle.boundingBox())!;
+    await page.mouse.down();
+    await expect(handle).toHaveAttribute('data-resizing', 'true');
+    // Deliberately far left of the handle's own start -- shrinks Email
+    // Address down to its real 40px minWidth floor.
+    await page.mouse.move(handleBox.x - 400, handleBox.y + handleBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+
+    await expect.poll(async () => (await emailHeader.boundingBox())?.width ?? 0).toBeCloseTo(40, 0);
+    await expect.poll(async () => (await headerRow.boundingBox())?.height ?? 0).toBeCloseTo(singleLineHeight, 0);
+  });
 });

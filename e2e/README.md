@@ -36,6 +36,46 @@ npm run test:e2e:ui    # Playwright's interactive UI mode
 `playwright.config.ts` boots `npm run dev` automatically (and reuses one
 you already have running locally) — no manual server start needed.
 
+## Reproducing a Linux/CI-only failure locally
+
+```
+npm run test:e2e:linux -- e2e/some.spec.ts --project=chromium
+```
+
+CI runs on `ubuntu-latest`, and this suite drives real browsers — real
+CSS/font-metric rendering genuinely differs between a contributor's own
+OS (Windows, macOS) and CI's Linux runner. Confirmed directly, not
+theoretically (issue #542): a fix that measurably worked against a real
+local Windows browser produced byte-identical failures on CI three pushes
+in a row, because the actual discrepancy (a header title's own wrap
+point, which depends on real glyph widths) simply never reproduced
+outside a Linux font stack — nothing was wrong with the reasoning, the
+local repro was just impossible on that platform.
+
+`scripts/run-e2e-in-container.mjs` (wired up as `test:e2e:linux` above)
+runs the exact same command inside Microsoft's official Playwright Docker
+image — the identical browser build this repo's own CI uses, tagged from
+this repo's own installed `@playwright/test` version so it can never
+silently drift out of sync with a Playwright bump. Works with either
+Docker Desktop or Podman, whichever is on `PATH` (force one with
+`CONTAINER_ENGINE=docker` or `CONTAINER_ENGINE=podman` if both are
+installed). Every argument after `--` is forwarded straight to
+`playwright test`, so any subset/project selection Playwright's own CLI
+supports works here too.
+
+This is *not* a byte-perfect stand-in for CI's own `ubuntu-latest` runner
+image, worth knowing before trusting a clean local container run as
+final proof — a GitHub-hosted runner is a full VM image with its own
+broad, separately-maintained font-package list, while this is Microsoft's
+own minimal Playwright image with only what the browsers themselves need.
+Confirmed directly: the exact failure this tool was built to chase down
+didn't reproduce in the container at all, only on the real CI runner,
+because Ubuntu's default sans-serif fallback isn't consistently the same
+literal font+metrics across every "Ubuntu 24.04" image. Use this to
+rapidly iterate on anything CSS/rendering-adjacent without a multi-minute
+CI round trip each time, but treat CI itself as the final word before
+merging.
+
 ## `screen-reader/` — a separate, Windows-only sub-pipeline
 
 `e2e/screen-reader/` drives real NVDA (via `@guidepup/playwright`) and

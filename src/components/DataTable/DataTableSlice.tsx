@@ -224,20 +224,17 @@ export const DENSITY_ROW_COMMAND_BUTTON_PX: Record<TableDensity, number> = {
  * it so no future density retuning can ever compute a negative or
  * zero padding.
  *
- * That trailing margin was originally just `- 1`, matched to a Windows
- * local browser -- CI's own headless-Chromium run on `ubuntu-latest`
- * (this repo's real e2e runner) failed with a genuine ~6px overshoot at
- * `spacious` that never reproduced locally, root-caused to the same
- * class of thing `CONTENT_VERTICAL_SAFETY_PX`'s own comment already
- * anticipates: Linux's real default sans-serif font stack renders this
- * codebase's assumed `TEXT_LINE_HEIGHT_PX` text metrics a few px taller
- * than Windows does for the identical CSS. A `-1` margin had nothing left
- * to absorb that -- widened to a real, measured-plus-buffer `- 6` so a
- * platform/font difference this size (or a bit more) can't silently
- * reopen the exact bug this whole calculation exists to prevent again.
+ * A real CI-only overflow first looked like it might be this same margin
+ * needing to be wider (a `-6` version briefly lived here) -- it wasn't:
+ * widening it changed nothing about that failure's own numbers, which is
+ * what proved the checkbox column was never the actual cause. The real
+ * culprit was the header's sort-button title wrapping to a 2nd line under
+ * CI's Linux font stack (see AUTO_PAGE_SIZE_SAFETY_PX's own comment,
+ * DataTable.tsx), fixed at that source instead. `- 1` here is back to
+ * its original, small, deliberate margin.
  */
 const SELECTION_CHECKBOX_SIZE_PX = 18; // matches --ai-togglecontrol-checkbox-size's own default (1.125rem, 'md')
-const SELECTION_PADDING_SAFETY_PX = 6;
+const SELECTION_PADDING_SAFETY_PX = 1;
 export const DENSITY_SELECTION_CELL_PADDING_V_PX: Record<TableDensity, number> = {
   compact: Math.max(2, Math.floor((DENSITY_ROW_HEIGHT_PX.compact - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
   normal: Math.max(2, Math.floor((DENSITY_ROW_HEIGHT_PX.normal - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),

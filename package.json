@@ -24,6 +24,7 @@
     "generate-security-advisories": "node scripts/generate-security-advisories.js --write",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:linux": "node scripts/run-e2e-in-container.mjs",
     "test:screen-reader": "playwright test --config e2e/screen-reader/playwright.config.ts",
     "generate-storyboard": "node scripts/generate-storyboard.js",
     "usage-report": "node scripts/usage-report.js"
