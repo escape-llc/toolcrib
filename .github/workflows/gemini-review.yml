@@ -104,9 +104,25 @@ jobs:
     # Dependabot PRs skipped too (same reasoning as ci.yml's existing
     # Dependabot carve-outs) -- a version-bump diff doesn't need a
     # code-quality second opinion the way a hand-written change does.
+    #
+    # `no-reviewer` label: an explicit, visible opt-out for a PR still under
+    # active, rapid iteration -- added directly at the maintainer's request
+    # after PR #543 burned several real Gemini API calls (real $ against a
+    # monthly spend cap) reviewing a sequence of exploratory diagnostic/fix
+    # attempts, none of which were the PR's own final state. This is the
+    # SAME "explicit, visible override" this file's own `Run Gemini review`
+    # step comment already treats as an acceptable alternative to a review
+    # actually running -- a label is visible on the PR itself (unlike a
+    # silent skip), and removing it before merge restores the normal
+    # every-push review. `review` staying a required status check (this
+    # file's header comment) is what keeps this from becoming a silent
+    # bypass: a required check whose job is skipped via `if:` still reports
+    # as skipped/neutral, not failing, but the label itself is right there
+    # in the PR's own UI for anyone to notice and question before merging.
     if: |
       github.event.pull_request.head.repo.fork == false &&
-      github.event.pull_request.user.login != 'dependabot[bot]'
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      !contains(github.event.pull_request.labels.*.name, 'no-reviewer')
     timeout-minutes: 10
     steps:
       - name: Checkout

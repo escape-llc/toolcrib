@@ -962,9 +962,33 @@ describe('DataTable Virtualized Component', () => {
       expect(sortButton).toHaveStyle({ width: '100%', boxSizing: 'border-box' });
 
       fireEvent.click(sortButton);
-      const arrow = sortButton.querySelector('span')!;
+      // 'span[aria-hidden]', not a bare 'span' -- the button's title is now
+      // also wrapped in its own <span> (issue #542's header-truncation fix),
+      // so an unscoped querySelector('span') would match that one first.
+      const arrow = sortButton.querySelector('span[aria-hidden]')!;
       expect(arrow).toHaveAttribute('aria-hidden', 'true');
       expect(arrow).toHaveTextContent('▲');
+    });
+
+    // Regression test for issue #542: a sortable column's title used to
+    // wrap to a 2nd line, by design, whenever a column was too narrow for
+    // it -- inconsistent with every body <td> (which already truncates),
+    // and fatal to defaultPageSize="auto"'s own single-line height
+    // assumption once a title's wrap point turned out to depend on real
+    // glyph widths that genuinely differ across platforms/fonts for
+    // identical CSS (confirmed directly: the same title, at the same
+    // column width, wrapped on a real CI Linux browser but not a local
+    // Windows one). jsdom has no layout engine and can't prove text
+    // actually stays on one line, but it CAN prove the CSS that makes
+    // that true is actually present -- see e2e/datatable-column-resize.spec.ts
+    // (or the density spec) for the real-browser confirmation this
+    // structural check complements.
+    it('truncates a sortable column\'s title with an ellipsis instead of letting it wrap to a 2nd line', () => {
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+      const sortButton = screen.getByRole('button', { name: 'ID' });
+      const titleSpan = sortButton.querySelector('span:not([aria-hidden])')!;
+      expect(titleSpan).toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: '0px' });
+      expect(titleSpan).toHaveTextContent('ID');
     });
   });
 

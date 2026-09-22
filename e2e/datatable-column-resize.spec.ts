@@ -41,6 +41,32 @@ test.describe('DataTable column resize (issue #318)', () => {
     await expect(handle).toHaveAttribute('tabindex', '0');
   });
 
+  // Regression test for a real, reported visual bug (found via direct
+  // pixel measurement, not just eyeballing a screenshot): the persistent
+  // indicator line rendered 2px off from the column's own true right
+  // border, looking like a second, "crooked" rule sitting next to the
+  // real one instead of marking it. Root cause -- the outer hit-zone's own
+  // `right` offset wasn't exactly half its `width`, so the inner
+  // flex-centered indicator (which inherits whatever THAT box's true
+  // center is) inherited the same asymmetry. This directly checks the
+  // rendered geometry, not just that the indicator exists.
+  test('the persistent resize indicator line is centered exactly on the column\'s true right border, not offset from it', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Data Table');
+
+    const mainGrid = page.getByRole('grid').first();
+    const nameHeader = mainGrid.locator('th').filter({ has: page.getByRole('button', { name: 'User Name' }) });
+    const handle = nameHeader.getByRole('separator');
+    const indicator = handle.locator('[aria-hidden="true"]');
+
+    const thBox = (await nameHeader.boundingBox())!;
+    const indicatorBox = (await indicator.boundingBox())!;
+    const trueBorderX = thBox.x + thBox.width;
+    const indicatorCenterX = indicatorBox.x + indicatorBox.width / 2;
+
+    expect(Math.abs(indicatorCenterX - trueBorderX)).toBeLessThanOrEqual(1);
+  });
+
   test('a non-resizable column has no separator handle', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
@@ -254,5 +280,42 @@ test.describe('DataTable column resize (issue #318)', () => {
       // resize, it stays exactly where it was.
       await expect((await emailHeader.boundingBox())!.width).toBeCloseTo(emailAfterFirstResize, 0);
     });
+  });
+
+  // Regression test for issue #542: a sortable column's title used to wrap
+  // to a 2nd line, by design, whenever a column was too narrow for it --
+  // fatal to defaultPageSize="auto"'s own single-line header-height
+  // assumption once a real CI run showed the exact same title, at the
+  // exact same column width, wrapping under Linux's font stack but not a
+  // local Windows one (a wrap point depends on real glyph widths, which
+  // genuinely differ across platforms/fonts for identical CSS -- not
+  // something a fixed column width can reliably avoid on every platform).
+  // Resizing "Email Address" down to its own real minWidth floor (40px,
+  // far too narrow for that title at any plausible font) is a
+  // deterministic worst case, not a borderline one -- if truncation is
+  // genuinely working, the header's real height must stay at its
+  // single-line budget regardless of which platform/font renders it.
+  test('a sortable column\'s title truncates instead of wrapping when resized far narrower than its own text', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Data Table');
+
+    const mainGrid = page.getByRole('grid').first();
+    const emailHeader = mainGrid.locator('th').filter({ has: page.getByRole('button', { name: 'Email Address' }) });
+    const handle = emailHeader.getByRole('separator');
+
+    const headerRow = mainGrid.locator('thead tr');
+    const singleLineHeight = (await headerRow.boundingBox())!.height;
+
+    await handle.hover();
+    const handleBox = (await handle.boundingBox())!;
+    await page.mouse.down();
+    await expect(handle).toHaveAttribute('data-resizing', 'true');
+    // Deliberately far left of the handle's own start -- shrinks Email
+    // Address down to its real 40px minWidth floor.
+    await page.mouse.move(handleBox.x - 400, handleBox.y + handleBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+
+    await expect.poll(async () => (await emailHeader.boundingBox())?.width ?? 0).toBeCloseTo(40, 0);
+    await expect.poll(async () => (await headerRow.boundingBox())?.height ?? 0).toBeCloseTo(singleLineHeight, 0);
   });
 });

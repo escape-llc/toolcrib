@@ -25,7 +25,7 @@ import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../t
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
-import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX } from './DataTableSlice';
+import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX, DENSITY_SELECTION_CELL_PADDING_V_PX, DENSITY_SELECTION_HEADER_PADDING_V_PX } from './DataTableSlice';
 import { columnsToCsv, downloadCsvFile } from './csvExport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
@@ -862,8 +862,28 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // own onChange handler below also needs this exact value synchronously,
   // the moment a user switches TO "Auto", for the same reason pageSizeRef
   // has to be written before goToPage runs (see that ref's own comment).
+  //
+  // AUTO_PAGE_SIZE_SAFETY_PX (below): a real CI-only overflow (issue #542)
+  // was root-caused to the header's sort-button title WRAPPING to a 2nd
+  // line under CI's Linux font stack at a column width that fit on one
+  // line under a local Windows browser -- real glyph widths for
+  // nominally-identical CSS genuinely differ across platforms/fonts, and a
+  // wrap point is exactly the kind of thing that shifts because of it.
+  // Fixed at the actual source (the title now truncates with an ellipsis
+  // instead of wrapping, matching what every body <td> already does --
+  // see that button's own style comment), which is what makes
+  // `headerHeight`'s single-line assumption sound again on every platform,
+  // not just this margin. What's left here is the same small, ordinary
+  // margin `CONTENT_VERTICAL_SAFETY_PX` already establishes as this
+  // codebase's own standing practice for line-height/font-metric slack
+  // that has nothing to do with wrapping -- guards a residual sub-pixel
+  // difference, not a specific known bug.
+  const AUTO_PAGE_SIZE_SAFETY_PX = 2;
   const computeAutoPageSize = () =>
-    Math.max(1, Math.floor(Math.max(0, (observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) - headerHeight) / itemHeight));
+    Math.max(
+      1,
+      Math.floor(Math.max(0, (observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) - headerHeight - AUTO_PAGE_SIZE_SAFETY_PX) / itemHeight)
+    );
   const effectivePageSize = isAutoPageSize ? computeAutoPageSize() : pageSize;
 
   const pageSizeRef = useRef(effectivePageSize);
@@ -1536,11 +1556,21 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // INSIDE this column's own box (right: 0), so there was no
           // "give" on the far side of the real visual boundary at all --
           // genuinely narrow and hard to land a click on precisely. A
-          // wider zone (0.75rem), shifted half outside the column's own
-          // edge (right: -0.25rem) so it straddles the real boundary
-          // roughly evenly on both sides, same as most real
-          // resize-handle implementations.
-          right: '-0.25rem',
+          // wider zone (0.75rem), shifted HALF outside the column's own
+          // edge so it straddles the real boundary exactly evenly on both
+          // sides, same as most real resize-handle implementations.
+          // `right` must be exactly -(width / 2) for that -- a real,
+          // reported regression (found via direct pixel measurement, not
+          // just eyeballing it: the persistent indicator line rendered 2px
+          // off from the true border, looking like a second, "crooked"
+          // rule next to the real one) came from this being -0.25rem
+          // against a 0.75rem width, which is NOT half of it (0.375rem
+          // is). Since the inner indicator div below is flex-centered
+          // inside this same box, whatever this box's own true center is
+          // becomes the indicator's own center -- so an asymmetric offset
+          // here directly mis-centers the indicator against the border it
+          // exists to mark, not just the invisible hit-zone.
+          right: '-0.375rem',
           bottom: 0,
           width: '0.75rem',
           cursor: 'col-resize',
@@ -2009,7 +2039,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     // breathing room the way every other header does; 0.5rem
                     // each side leaves a comfortable ~28px content box for
                     // an 18px checkbox, well inside the declared 44px.
-                    padding: '0.75rem 0.5rem',
+                    padding: `${DENSITY_SELECTION_HEADER_PADDING_V_PX[effectiveDensity]}px 0.5rem`,
                     width: `${SELECTION_COLUMN_WIDTH_PX}px`,
                     ...(selectionColumnPinned
                       ? { position: 'sticky', left: 0, zIndex: Z_INDEX.STICKY + 1, background: 'var(--ai-bg-container, #f9fafb)' }
@@ -2154,13 +2184,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          // height: 100% matters whenever this <th> shares
-                          // its row with a taller one (a longer title that
-                          // wraps, e.g.) -- table cells in the same row
-                          // always stretch to the row's tallest cell, so
-                          // without this the button would leave dead
-                          // (unclickable) space above/below it inside a
-                          // <th> taller than the button's own content.
+                          // height: 100% still matters even with the title
+                          // itself now truncating below (a taller sibling
+                          // header cell -- the checkbox column's own fixed
+                          // padding, e.g. -- can still make this <th> taller
+                          // than the button's own content for reasons
+                          // unrelated to this button's own title at all;
+                          // table cells in the same row always stretch to
+                          // the row's tallest cell) -- without this the
+                          // button would leave dead (unclickable) space
+                          // above/below it inside a <th> taller than its
+                          // own content.
                           width: '100%',
                           height: '100%',
                           boxSizing: 'border-box',
@@ -2172,9 +2206,31 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           font: 'inherit',
                           color: 'inherit',
                           textAlign: 'left',
+                          // Real, reported bug (issue #542): this title used
+                          // to wrap to a 2nd line instead of truncating
+                          // whenever a column was too narrow for it,
+                          // inconsistent with every body <td> (which already
+                          // truncates -- see that cell's own whiteSpace:
+                          // 'nowrap' a few hundred lines up) and fatal to
+                          // defaultPageSize="auto"'s whole promise: a header
+                          // that can silently grow to 2+ lines makes
+                          // computeAutoPageSize's own (necessarily
+                          // single-line) height assumption impossible to
+                          // ever guarantee, confirmed for real -- the exact
+                          // same title, at the exact same column width,
+                          // wrapped under CI's Linux font stack but not a
+                          // local Windows one, because a wrap point depends
+                          // on real glyph widths, which genuinely differ
+                          // across platforms/fonts for identical CSS. The
+                          // title <span> below carries its own `minWidth: 0`
+                          // for the standard reason a flex child needs it to
+                          // truncate at all (a flex item's default
+                          // min-width is 'auto', which otherwise refuses to
+                          // shrink below its own content's natural width no
+                          // matter what overflow/text-overflow says).
                         }}
                       >
-                        {col.title}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{col.title}</span>
                         {sortDescriptor && (
                           // aria-sort on the <th> above already conveys sort
                           // direction programmatically -- without
@@ -2470,12 +2526,20 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       {selectable && !hideSelectionColumn && selectionKey !== null && (
                         <td
                           style={{
-                            // 0.5rem, not the generic --ai-table-cell-padding
-                            // -- see the header checkbox <th>'s own comment
+                            // Density-scaled vertical, fixed horizontal --
+                            // see DENSITY_SELECTION_CELL_PADDING_V_PX's own
+                            // comment (DataTableSlice.tsx): a FIXED '0.5rem'
+                            // here (this cell's own original fix for the
+                            // checkbox column rendering too WIDE) rendered
+                            // taller than compact density's own row-height
+                            // budget, a real vertical-scrollbar regression
+                            // under defaultPageSize="auto". The horizontal
+                            // 0.5rem is unrelated to that and stays fixed --
+                            // see the header checkbox <th>'s own comment
                             // above for why the standard text-column padding
                             // renders a plain checkbox noticeably wider than
                             // it needs to be.
-                            padding: '0.5rem',
+                            padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem`,
                             // Always the row's first cell when rendered at
                             // all -- carries the left accent bar as well as
                             // the top/bottom frame caps (see this row's own

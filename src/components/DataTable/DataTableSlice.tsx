@@ -178,6 +178,74 @@ export const DENSITY_ROW_COMMAND_BUTTON_PX: Record<TableDensity, number> = {
   spacious: Math.min(ROW_COMMAND_BUTTON_TARGET_PX, DENSITY_ROW_HEIGHT_PX.spacious - 2 * scalePaddingPx(NORMAL_CELL_PADDING_PX[0], 'spacious') - 2),
 };
 
+/**
+ * The exact same class of bug `DENSITY_ROW_COMMAND_BUTTON_PX` above was
+ * built to fix, found the same way (reported directly, with a screenshot,
+ * of a real vertical scrollbar under `defaultPageSize="auto"` at
+ * `density="compact"`) -- this time in the selection checkbox column
+ * itself, introduced by the fix for a DIFFERENT reported bug (issue #539:
+ * the checkbox column rendering wider than its declared width). That fix
+ * gave the checkbox `<th>`/`<td>` a FIXED, non-density-scaled vertical
+ * padding (`0.75rem`/`0.5rem`) to solve the width problem, without
+ * accounting for what that fixed padding does to the row's own HEIGHT at
+ * a density whose budget is tighter than `normal` -- confirmed by
+ * measuring a real browser: at `compact`, an 18px checkbox
+ * (`--ai-togglecontrol-checkbox-size`'s own default, `1.125rem`) plus that
+ * fixed padding rendered the header at ~42.5px and each row at ~35px,
+ * both taller than `DENSITY_HEADER_HEIGHT_PX.compact`/
+ * `DENSITY_ROW_HEIGHT_PX.compact` (31px each) -- `computeAutoPageSize`
+ * (`DataTable.tsx`) has no way to know real rows are running taller than
+ * their own declared budget, so it overshoots exactly the way the
+ * row-commands bug did.
+ *
+ * The fix takes the OPPOSITE shape from `DENSITY_ROW_COMMAND_BUTTON_PX`
+ * (which shrinks the CONTENT to fit a fixed padding) rather than the same
+ * one, deliberately: the checkbox's own visual size is a shared,
+ * cross-component theme constant (`ToggleControlSlice`'s
+ * `--ai-togglecontrol-checkbox-size`) that a consumer may rely on looking
+ * identical everywhere a checkbox appears, including outside this table
+ * entirely -- shrinking it per table density would make it visually
+ * inconsistent with every other checkbox in the app for no real benefit.
+ * The cell's own padding, by contrast, is entirely local to this one
+ * column and has no such cross-component consistency expectation, so it's
+ * the padding that flexes instead: derived FROM each density's own real
+ * budget (the exact same source `DENSITY_ROW_COMMAND_BUTTON_PX` derives
+ * from), never a second, independently-hand-picked literal that could
+ * silently drift out of sync with it again. `SELECTION_CHECKBOX_SIZE_PX`
+ * mirrors the theme slice's own default (not a live CSS-variable
+ * measurement) for the identical structural reason
+ * `DENSITY_HEADER_HEIGHT_PX`'s own comment gives for never live-measuring
+ * the header: a consumer who changes that CSS variable via the Theme
+ * Editor is choosing a different checkbox size everywhere, and this is
+ * already just a floor guarding the default/common case, the same
+ * standing caveat `TEXT_LINE_HEIGHT_PX`'s own comment states. The trailing
+ * `- 1` is a small deliberate safety margin, matching
+ * `CONTENT_VERTICAL_SAFETY_PX`'s own reasoning; `Math.max(2, ...)` floors
+ * it so no future density retuning can ever compute a negative or
+ * zero padding.
+ *
+ * A real CI-only overflow first looked like it might be this same margin
+ * needing to be wider (a `-6` version briefly lived here) -- it wasn't:
+ * widening it changed nothing about that failure's own numbers, which is
+ * what proved the checkbox column was never the actual cause. The real
+ * culprit was the header's sort-button title wrapping to a 2nd line under
+ * CI's Linux font stack (see AUTO_PAGE_SIZE_SAFETY_PX's own comment,
+ * DataTable.tsx), fixed at that source instead. `- 1` here is back to
+ * its original, small, deliberate margin.
+ */
+const SELECTION_CHECKBOX_SIZE_PX = 18; // matches --ai-togglecontrol-checkbox-size's own default (1.125rem, 'md')
+const SELECTION_PADDING_SAFETY_PX = 1;
+export const DENSITY_SELECTION_CELL_PADDING_V_PX: Record<TableDensity, number> = {
+  compact: Math.max(2, Math.floor((DENSITY_ROW_HEIGHT_PX.compact - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+  normal: Math.max(2, Math.floor((DENSITY_ROW_HEIGHT_PX.normal - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+  spacious: Math.max(2, Math.floor((DENSITY_ROW_HEIGHT_PX.spacious - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+};
+export const DENSITY_SELECTION_HEADER_PADDING_V_PX: Record<TableDensity, number> = {
+  compact: Math.max(2, Math.floor((DENSITY_HEADER_HEIGHT_PX.compact - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+  normal: Math.max(2, Math.floor((DENSITY_HEADER_HEIGHT_PX.normal - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+  spacious: Math.max(2, Math.floor((DENSITY_HEADER_HEIGHT_PX.spacious - SELECTION_CHECKBOX_SIZE_PX) / 2) - SELECTION_PADDING_SAFETY_PX),
+};
+
 export interface TableSliceState {
   density: TableDensity;
   borderStyle: TableBorderStyle;
