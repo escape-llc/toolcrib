@@ -112,7 +112,20 @@ test.describe('DataTable density selector (issue #339)', () => {
           const rows = Array.from(grid.querySelectorAll('tbody tr'));
           return {
             theadHeight: thead.getBoundingClientRect().height,
-            headerCellHeights: Array.from(thead.children).map(th => th.getBoundingClientRect().height),
+            headerCells: Array.from(thead.children).map(th => {
+              const style = getComputedStyle(th);
+              const child = th.firstElementChild;
+              return {
+                height: th.getBoundingClientRect().height,
+                padding: style.padding,
+                lineHeight: style.lineHeight,
+                fontSize: style.fontSize,
+                childTag: child?.tagName ?? null,
+                childHeight: child?.getBoundingClientRect().height ?? null,
+                childComputedHeight: child ? getComputedStyle(child).height : null,
+                childLineHeight: child ? getComputedStyle(child).lineHeight : null,
+              };
+            }),
             rowHeights: rows.map(r => r.getBoundingClientRect().height),
             rowCount: rows.length,
           };
