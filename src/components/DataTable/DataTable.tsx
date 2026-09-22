@@ -25,7 +25,7 @@ import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../t
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
-import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX } from './DataTableSlice';
+import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX, DENSITY_SELECTION_CELL_PADDING_V_PX, DENSITY_SELECTION_HEADER_PADDING_V_PX } from './DataTableSlice';
 import { columnsToCsv, downloadCsvFile } from './csvExport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
@@ -1536,11 +1536,21 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // INSIDE this column's own box (right: 0), so there was no
           // "give" on the far side of the real visual boundary at all --
           // genuinely narrow and hard to land a click on precisely. A
-          // wider zone (0.75rem), shifted half outside the column's own
-          // edge (right: -0.25rem) so it straddles the real boundary
-          // roughly evenly on both sides, same as most real
-          // resize-handle implementations.
-          right: '-0.25rem',
+          // wider zone (0.75rem), shifted HALF outside the column's own
+          // edge so it straddles the real boundary exactly evenly on both
+          // sides, same as most real resize-handle implementations.
+          // `right` must be exactly -(width / 2) for that -- a real,
+          // reported regression (found via direct pixel measurement, not
+          // just eyeballing it: the persistent indicator line rendered 2px
+          // off from the true border, looking like a second, "crooked"
+          // rule next to the real one) came from this being -0.25rem
+          // against a 0.75rem width, which is NOT half of it (0.375rem
+          // is). Since the inner indicator div below is flex-centered
+          // inside this same box, whatever this box's own true center is
+          // becomes the indicator's own center -- so an asymmetric offset
+          // here directly mis-centers the indicator against the border it
+          // exists to mark, not just the invisible hit-zone.
+          right: '-0.375rem',
           bottom: 0,
           width: '0.75rem',
           cursor: 'col-resize',
@@ -2009,7 +2019,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     // breathing room the way every other header does; 0.5rem
                     // each side leaves a comfortable ~28px content box for
                     // an 18px checkbox, well inside the declared 44px.
-                    padding: '0.75rem 0.5rem',
+                    padding: `${DENSITY_SELECTION_HEADER_PADDING_V_PX[effectiveDensity]}px 0.5rem`,
                     width: `${SELECTION_COLUMN_WIDTH_PX}px`,
                     ...(selectionColumnPinned
                       ? { position: 'sticky', left: 0, zIndex: Z_INDEX.STICKY + 1, background: 'var(--ai-bg-container, #f9fafb)' }
@@ -2470,12 +2480,20 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       {selectable && !hideSelectionColumn && selectionKey !== null && (
                         <td
                           style={{
-                            // 0.5rem, not the generic --ai-table-cell-padding
-                            // -- see the header checkbox <th>'s own comment
+                            // Density-scaled vertical, fixed horizontal --
+                            // see DENSITY_SELECTION_CELL_PADDING_V_PX's own
+                            // comment (DataTableSlice.tsx): a FIXED '0.5rem'
+                            // here (this cell's own original fix for the
+                            // checkbox column rendering too WIDE) rendered
+                            // taller than compact density's own row-height
+                            // budget, a real vertical-scrollbar regression
+                            // under defaultPageSize="auto". The horizontal
+                            // 0.5rem is unrelated to that and stays fixed --
+                            // see the header checkbox <th>'s own comment
                             // above for why the standard text-column padding
                             // renders a plain checkbox noticeably wider than
                             // it needs to be.
-                            padding: '0.5rem',
+                            padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem`,
                             // Always the row's first cell when rendered at
                             // all -- carries the left accent bar as well as
                             // the top/bottom frame caps (see this row's own

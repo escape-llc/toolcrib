@@ -41,6 +41,32 @@ test.describe('DataTable column resize (issue #318)', () => {
     await expect(handle).toHaveAttribute('tabindex', '0');
   });
 
+  // Regression test for a real, reported visual bug (found via direct
+  // pixel measurement, not just eyeballing a screenshot): the persistent
+  // indicator line rendered 2px off from the column's own true right
+  // border, looking like a second, "crooked" rule sitting next to the
+  // real one instead of marking it. Root cause -- the outer hit-zone's own
+  // `right` offset wasn't exactly half its `width`, so the inner
+  // flex-centered indicator (which inherits whatever THAT box's true
+  // center is) inherited the same asymmetry. This directly checks the
+  // rendered geometry, not just that the indicator exists.
+  test('the persistent resize indicator line is centered exactly on the column\'s true right border, not offset from it', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Data Table');
+
+    const mainGrid = page.getByRole('grid').first();
+    const nameHeader = mainGrid.locator('th').filter({ has: page.getByRole('button', { name: 'User Name' }) });
+    const handle = nameHeader.getByRole('separator');
+    const indicator = handle.locator('[aria-hidden="true"]');
+
+    const thBox = (await nameHeader.boundingBox())!;
+    const indicatorBox = (await indicator.boundingBox())!;
+    const trueBorderX = thBox.x + thBox.width;
+    const indicatorCenterX = indicatorBox.x + indicatorBox.width / 2;
+
+    expect(Math.abs(indicatorCenterX - trueBorderX)).toBeLessThanOrEqual(1);
+  });
+
   test('a non-resizable column has no separator handle', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Data Table');
