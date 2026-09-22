@@ -98,6 +98,27 @@ test.describe('DataTable density selector (issue #339)', () => {
         return null;
       });
       expect(scrollInfo, `no scrollable ancestor found for density=${densityLabel}`).not.toBeNull();
+      if (scrollInfo!.scrollHeight > scrollInfo!.clientHeight) {
+        // Temporary diagnostic dump -- this exact assertion has failed
+        // identically on CI (never locally) across three separate
+        // real-vs-assumed-constant fixes in a row, each of which changed
+        // nothing about the failure's own numbers. Rather than guess a
+        // fourth time, dump the real rendered geometry so the actual
+        // CI-only browser/font discrepancy is visible directly instead of
+        // inferred. Remove once the real root cause is confirmed and fixed.
+        const diag = await page.evaluate(() => {
+          const grid = document.querySelector('[role="grid"]')!;
+          const thead = grid.querySelector('thead tr')!;
+          const rows = Array.from(grid.querySelectorAll('tbody tr'));
+          return {
+            theadHeight: thead.getBoundingClientRect().height,
+            headerCellHeights: Array.from(thead.children).map(th => th.getBoundingClientRect().height),
+            rowHeights: rows.map(r => r.getBoundingClientRect().height),
+            rowCount: rows.length,
+          };
+        });
+        console.log(`DIAG density=${densityLabel}`, JSON.stringify(diag));
+      }
       expect(scrollInfo!.scrollHeight, `density=${densityLabel} overflowed its own auto-computed page size`).toBeLessThanOrEqual(
         scrollInfo!.clientHeight
       );
