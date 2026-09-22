@@ -862,8 +862,33 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // own onChange handler below also needs this exact value synchronously,
   // the moment a user switches TO "Auto", for the same reason pageSizeRef
   // has to be written before goToPage runs (see that ref's own comment).
+  //
+  // AUTO_PAGE_SIZE_SAFETY_PX (below): real CI failures on this repo's own
+  // ubuntu-latest e2e runner (never reproduced on a Windows local browser)
+  // found that `headerHeight`/`itemHeight` -- both plain computed
+  // constants, not live measurements, per DENSITY_HEADER_HEIGHT_PX's own
+  // header comment on why -- can still undershoot a real platform's actual
+  // rendering by a few px, e.g. a header's sort <button> or a status pill
+  // rendering fractionally taller under Linux's default font stack than
+  // Windows'. Chasing an exact per-element pixel budget for every possible
+  // piece of header/cell content across every rendering engine is
+  // inherently fragile (confirmed directly: fixing ONE specific element's
+  // own padding, DataTableSlice.tsx's DENSITY_SELECTION_CELL_PADDING_V_PX,
+  // did not change a real CI failure's numbers at all, meaning that
+  // wasn't even the element actually responsible for THIS drift). A small
+  // constant safety margin subtracted once, here, before dividing, is the
+  // general, robust fix instead: it guards against SOME modest amount of
+  // real-vs-assumed drift from ANY header/row content, not just the one
+  // element a given investigation happened to already suspect, at the cost
+  // of a few px of unused whitespace below the last row in the (default,
+  // common) case where the real rendering already matches the computed
+  // constants exactly.
+  const AUTO_PAGE_SIZE_SAFETY_PX = 10;
   const computeAutoPageSize = () =>
-    Math.max(1, Math.floor(Math.max(0, (observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) - headerHeight) / itemHeight));
+    Math.max(
+      1,
+      Math.floor(Math.max(0, (observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX) - headerHeight - AUTO_PAGE_SIZE_SAFETY_PX) / itemHeight)
+    );
   const effectivePageSize = isAutoPageSize ? computeAutoPageSize() : pageSize;
 
   const pageSizeRef = useRef(effectivePageSize);
