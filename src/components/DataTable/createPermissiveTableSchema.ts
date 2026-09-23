@@ -17,7 +17,11 @@ import { z, type ZodType } from 'zod';
  *
  * @barrelExport
  */
-export function createPermissiveTableSchema<T extends Record<string, any>>(sample: T): ZodType<T> {
+export function createPermissiveTableSchema<T extends Record<string, any>>(sample: T | undefined | null): ZodType<T> {
+  // A real, reachable case, not defensive paranoia -- the natural call
+  // site is `createPermissiveTableSchema(data[0])`, and `data` is
+  // legitimately empty while a table's data is still loading.
+  if (!sample) return z.object({}) as unknown as ZodType<T>;
   const shape: Record<string, ZodType<any>> = {};
   for (const key of Object.keys(sample)) {
     const value = sample[key];

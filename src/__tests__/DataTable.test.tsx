@@ -3025,19 +3025,15 @@ describe('DataTable Virtualized Component', () => {
     // trigger column, col 1 = 'name'/second).
     const cellByRowCol = (container: HTMLElement, row: number, col: number): HTMLElement =>
       container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
-    // jsdom's Radix Presence unmounts a child synchronously the instant
-    // `present` flips false, since jsdom reports no real running CSS
+    // jsdom's Radix Presence unmounts a row's component synchronously the
+    // instant `present` flips false (jsdom reports no real running CSS
     // animation -- the identical, already-documented quirk Toast.test.tsx
-    // relies on for its own Presence-based exit ("Dismiss A... jsdom
-    // detects no actual running CSS animation and unmounts A's own <li>
-    // synchronously"). So `onAnimationEnd` never actually fires here in
-    // jsdom -- EditCoGrid's local `rows` map still holds the (now
-    // content-less) entry, which is why the co-grid's outer container
-    // stays rendered with just its header row. Assert on the row's own
-    // content disappearing, not the whole container -- that's the real,
-    // observable, jsdom-honest signal; a real browser additionally plays
-    // the fade before the same content-removal happens.
-    const rowIsGone = (container: HTMLElement) => within(coGrid(container) as HTMLElement).queryAllByRole('textbox').length === 0;
+    // relies on for its own Presence-based exit). EditCoGridRow's cleanup
+    // effect fires on that real unmount regardless of cause, notifying
+    // the parent immediately -- so in jsdom the whole co-grid disappears
+    // synchronously too, once nothing is left editing; a real browser
+    // additionally plays the fade first, then reaches the same end state.
+    const rowIsGone = (container: HTMLElement) => coGrid(container) === null;
 
     it('renders no co-grid when nothing is being edited (uncontrolled default)', () => {
       const { container } = render(
@@ -3282,6 +3278,12 @@ describe('DataTable Virtualized Component', () => {
       const result = schema.safeParse({ id: 2, name: 'Gadget', active: false, extra: 'anything' });
       expect(result.success).toBe(true);
       expect(() => schema.parse({ id: 'not a number', name: 'x', active: true, extra: null })).toThrow();
+    });
+
+    it('createPermissiveTableSchema does not crash on undefined/null (the real data[0]-while-loading case)', () => {
+      expect(() => createPermissiveTableSchema(undefined)).not.toThrow();
+      expect(() => createPermissiveTableSchema(null)).not.toThrow();
+      expect(createPermissiveTableSchema(undefined).safeParse({}).success).toBe(true);
     });
 
     it('editing a row does not change the main grid row rendering beyond a cosmetic indicator (same itemHeight)', () => {
