@@ -6,6 +6,7 @@ import type { ZodType } from 'zod';
 import { Form } from '../Form/FormContext';
 import { FormField, Input, SubmitButton, Button } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
+import { Z_INDEX } from '../../theme/zIndex';
 import type { Column, CellContext } from './DataTable';
 
 export interface EditCoGridEntry<T> {
@@ -190,7 +191,13 @@ function EditCoGridRow<T extends Record<string, any>>({
               carries the flex layout instead) -- overriding THIS cell's
               own display would desync it from the header's identical
               placeholder cell, which stays a plain table-cell. */}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, background: 'var(--ai-bg-surface, #ffffff)' }}>
+          {/* zIndex needed, confirmed by this codebase's own precedent --
+              the main grid's getPinnedCellStyle sets one for its own
+              pinned columns for the identical reason: a sticky cell with
+              no elevated z-index can lose the paint order to an adjacent
+              scrolling cell during simultaneous horizontal scroll,
+              letting scrolled-under content render on top of it. */}
+          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-surface, #ffffff)' }}>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <SubmitButton size="sm">Save</SubmitButton>
               <Button size="sm" type="button" onClick={() => onCancel(key)}>
@@ -344,7 +351,7 @@ export function EditCoGrid<T extends Record<string, any>>({
               {col.title}
             </div>
           ))}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, background: 'var(--ai-bg-container, #f9fafb)' }} />
+          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-container, #f9fafb)' }} />
         </div>
       </div>
 

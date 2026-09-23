@@ -1117,8 +1117,15 @@ export const App: React.FC = () => {
       // <Select> bound to userEditSchema's own z.enum(['Active','Pending',
       // 'Inactive']) -- a 3-value enum is exactly the shape a plain text
       // box serves worst.
+      // Real, Gemini-caught gap on this exact PR: EditCoGrid only wraps
+      // its own DEFAULT <Input> fallback in a proper accessible label --
+      // it can't reach into a consumer-supplied editEditor's own JSX to
+      // fix a missing one, since that's arbitrary custom content the
+      // toolkit doesn't control (the same reason `column.render`'s own
+      // output isn't forced to be accessible either). The fix has to be
+      // here, in the editor actually being written.
       editEditor: () => (
-        <FormField name="status">
+        <FormField name="status" label={<VisuallyHidden>Status</VisuallyHidden>}>
           <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
         </FormField>
       ),
