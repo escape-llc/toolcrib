@@ -44,6 +44,7 @@ import {
   aiBus,
   useAIEvent,
   useAnyAIEvent,
+  DENSITY_ROW_COMMAND_BUTTON_PX,
   AlertDialog,
   Progress,
   Separator,
@@ -1054,11 +1055,41 @@ export const App: React.FC = () => {
       editable: false,
       render: ctx =>
         ctx.isEditing ? null : (
-          <Button
-            size="sm"
-            variant="ghost"
-            icon="✏️"
+          <button
+            type="button"
             aria-label={`Edit ${ctx.row.name}`}
+            // Real, e2e-caught regression (datatable-density.spec.ts,
+            // "auto page size produces zero vertical scroll at every
+            // density"): a `<Button size="sm">` here was NOT small enough
+            // to fit density="compact"'s own tight per-row content budget
+            // (23px), overflowing by a few px and reintroducing the exact
+            // class of bug DENSITY_ROW_COMMAND_BUTTON_PX already exists to
+            // prevent for the built-in rowCommands column. Unlike that
+            // column, this one is a plain consumer-authored column.render
+            // -- it has no access to DataTable's own live density state
+            // at all (CellContext doesn't carry it), so it can't scale
+            // dynamically the way rowCommands' own internal button does.
+            // The safe fix: a raw button (matching rowCommands' own
+            // styling convention) fixed at the COMPACT-density size --
+            // the tightest budget of the three -- so it never overflows
+            // regardless of the table's actual live density, at the cost
+            // of staying that same small size at normal/spacious too.
+            className="ai-btn ai-focus-ring"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+              font: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
+              height: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
+              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+              cursor: 'pointer',
+              color: 'var(--ai-text-secondary, #6b7280)',
+              fontSize: '0.875rem',
+            }}
             // stopPropagation -- also caught by actually clicking it: the
             // row's own onClick (selectable + click-to-select, both on
             // for this table) fired too, silently selecting row 1 as a
@@ -1068,7 +1099,9 @@ export const App: React.FC = () => {
               e.stopPropagation();
               ctx.startEditingRow?.();
             }}
-          />
+          >
+            <span aria-hidden="true">✏️</span>
+          </button>
         ),
     },
     // editable: false (issue #545) -- a synthetic primary key is exactly
