@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act, within, renderHook } from '@testing-library/react';
+import { z } from 'zod';
 import { DataTable, type Column } from '../components/DataTable/DataTable';
 import { compareValues } from '../components/DataTable/useTableSort';
 import { useTableQuickFilter } from '../components/DataTable/useTableQuickFilter';
 import { columnsToCsv } from '../components/DataTable/csvExport';
+import { createPermissiveTableSchema } from '../components/DataTable/createPermissiveTableSchema';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
@@ -3005,6 +3007,299 @@ describe('DataTable Virtualized Component', () => {
         <DataTable data={testData} columns={resizableColumns} defaultPageSize={10} defaultColumnWidths={{ name: 222 }} />
       );
       expect(container.querySelectorAll('col')[1].getAttribute('style')).toContain('222px');
+    });
+  });
+
+  describe('row edit mode (issue #545)', () => {
+    const editSchema = z.object({ id: z.number(), name: z.string() });
+    // 'id' deliberately non-editable -- doubles as the read-only-column test.
+    const editColumns: Column<TestItem>[] = [
+      { key: 'id', title: 'ID', editable: false },
+      { key: 'name', title: 'Name' },
+    ];
+    const coGrid = (container: HTMLElement) => container.querySelector('[aria-label="Rows being edited"]');
+    const nameInput = (container: HTMLElement) => within(coGrid(container) as HTMLElement).getByRole('textbox');
+    // Same data-grid-row/col convention as the "grid keyboard navigation"
+    // describe block above (row 0 = header, rows 1..N = page-relative body;
+    // these test columns have no selection checkbox, so col 0 = 'id'/first
+    // trigger column, col 1 = 'name'/second).
+    const cellByRowCol = (container: HTMLElement, row: number, col: number): HTMLElement =>
+      container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
+    // jsdom's Radix Presence unmounts a row's component synchronously the
+    // instant `present` flips false (jsdom reports no real running CSS
+    // animation -- the identical, already-documented quirk Toast.test.tsx
+    // relies on for its own Presence-based exit). EditCoGridRow's cleanup
+    // effect fires on that real unmount regardless of cause, notifying
+    // the parent immediately -- so in jsdom the whole co-grid disappears
+    // synchronously too, once nothing is left editing; a real browser
+    // additionally plays the fade first, then reaches the same end state.
+    const rowIsGone = (container: HTMLElement) => coGrid(container) === null;
+
+    it('renders no co-grid when nothing is being edited (uncontrolled default)', () => {
+      const { container } = render(
+        <DataTable data={testData} columns={editColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      expect(coGrid(container)).toBeNull();
+    });
+
+    it('throws if editable is true without both rowKey and editSchema', () => {
+      expect(() => render(<DataTable data={testData} columns={editColumns} editable editSchema={editSchema} />)).toThrow(
+        '<DataTable editable> requires both `rowKey` and `editSchema` to be set.'
+      );
+      expect(() => render(<DataTable data={testData} columns={editColumns} editable rowKey={r => r.id} />)).toThrow(
+        '<DataTable editable> requires both `rowKey` and `editSchema` to be set.'
+      );
+    });
+
+    it('starting a row edit renders the co-grid with that row, the ID column read-only', () => {
+      // No built-in trigger UI in this PR (issue #545's PR 1 scope) --
+      // drive it the same way a consumer's own column.render would, via
+      // CellContext.startEditingRow, exercised through the hook's real
+      // render path rather than reaching into internals.
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+
+      expect(coGrid(container)).not.toBeNull();
+      // The read-only ID column shows its plain value, not an input.
+      expect(within(coGrid(container) as HTMLElement).getByText('1')).toBeInTheDocument();
+      expect(within(coGrid(container) as HTMLElement).getAllByRole('textbox')).toHaveLength(1);
+    });
+
+    it('a draft survives navigating to a different page and back — the direct regression test for this design', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      fireEvent.change(nameInput(container), { target: { value: 'Edited Draft' } });
+      expect(nameInput(container)).toHaveValue('Edited Draft');
+
+      fireEvent.click(screen.getByLabelText('Next page'));
+      // The co-grid is structurally decoupled from pagination -- it never
+      // unmounted, so the draft is simply still there, not "restored".
+      expect(coGrid(container)).not.toBeNull();
+      expect(nameInput(container)).toHaveValue('Edited Draft');
+
+      fireEvent.click(screen.getByLabelText('Previous page'));
+      expect(nameInput(container)).toHaveValue('Edited Draft');
+    });
+
+    it('Save calls onRowEditSave and emits datatable:row_edit_saved with the schema-parsed value, then removes the co-grid row', () => {
+      // z.coerce.number() means the schema's parsed OUTPUT type (qty:
+      // number) differs from the raw record's own type (qty: string, as
+      // typed by the DOM) -- the same real distinction Form.test.tsx's own
+      // "onSubmit receives parsed output" regression exercises. DataTable's
+      // `editSchema?: ZodType<T>` reuses the same `T` as `data: T[]`, which
+      // assumes the schema's output shape equals the raw record shape; a
+      // coercing field breaks that assumption at the type level even
+      // though the runtime behavior (asserted below) is correct -- a real,
+      // minor rough edge worth a cast here rather than a redesign.
+      const numericSchema = z.object({ id: z.number(), name: z.string(), qty: z.coerce.number() });
+      interface QtyItem { id: number; name: string; qty: string }
+      const qtyData: QtyItem[] = [{ id: 1, name: 'Widget', qty: '5' }];
+      const qtyColumns: Column<QtyItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', editable: false },
+        { key: 'qty', title: 'Qty', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const onRowEditSave = vi.fn();
+      const savedFn = vi.fn();
+      const unsub = aiBus.on('datatable:row_edit_saved', savedFn);
+      const { container } = render(
+        <DataTable
+          id="qty-table"
+          data={qtyData}
+          columns={qtyColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={numericSchema as unknown as z.ZodType<QtyItem>}
+          onRowEditSave={onRowEditSave}
+        />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 2)).getByText('Edit'));
+      const input = within(coGrid(container) as HTMLElement).getAllByRole('textbox')[0];
+      fireEvent.change(input, { target: { value: '42' } });
+      fireEvent.click(within(coGrid(container) as HTMLElement).getByText('Save'));
+
+      // The schema's own parsed output -- a real number, not the raw '42' string.
+      expect(onRowEditSave).toHaveBeenCalledWith(qtyData[0], 0, { id: 1, name: 'Widget', qty: 42 });
+      expect(savedFn).toHaveBeenLastCalledWith({ id: 'qty-table', key: '1', index: 0, values: { id: 1, name: 'Widget', qty: 42 } });
+      expect(rowIsGone(container)).toBe(true);
+      unsub();
+    });
+
+    it('Cancel calls onRowEditCancel, emits datatable:row_edit_cancelled, and discards the draft without calling onRowEditSave', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const onRowEditSave = vi.fn();
+      const onRowEditCancel = vi.fn();
+      const cancelledFn = vi.fn();
+      const unsub = aiBus.on('datatable:row_edit_cancelled', cancelledFn);
+      const { container } = render(
+        <DataTable
+          id="cancel-table"
+          data={testData}
+          columns={triggerColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={editSchema}
+          onRowEditSave={onRowEditSave}
+          onRowEditCancel={onRowEditCancel}
+        />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      fireEvent.change(nameInput(container), { target: { value: 'Should be discarded' } });
+      fireEvent.click(within(coGrid(container) as HTMLElement).getByText('Cancel'));
+
+      expect(onRowEditCancel).toHaveBeenCalledWith(testData[0], 0);
+      expect(cancelledFn).toHaveBeenLastCalledWith({ id: 'cancel-table', key: '1', index: 0 });
+      expect(onRowEditSave).not.toHaveBeenCalled();
+      expect(rowIsGone(container)).toBe(true);
+      unsub();
+    });
+
+    it('maxEditingRows caps how many rows the co-grid renders, regardless of how the set got that large', () => {
+      // Uncontrolled path: startEditingRow refuses to grow the set past the cap.
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} maxEditingRows={2} />
+      );
+      // The 3rd click intentionally hits the cap -- a real, expected
+      // dev-mode console.warn, scoped per AGENTS.md's "act() warnings are
+      // not noise" section rather than left to fail the global unexpected-
+      // console-output guard.
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      for (let i = 1; i <= 3; i++) {
+        fireEvent.click(within(cellByRowCol(container, i, 1)).getByText('Edit'));
+      }
+      warnSpy.mockRestore();
+      // The hook's own add-gate refuses to grow editingKeySet past the cap
+      // in the first place -- so there's nothing to "truncate" at render
+      // time here (the truncation notice only applies to the controlled-
+      // bypass case below, where the SET itself can exceed the cap).
+      expect(within(coGrid(container) as HTMLElement).getAllByRole('textbox')).toHaveLength(2);
+      expect(screen.queryByText(/rows being edited/)).toBeNull();
+
+      // Controlled-prop bypass: even a huge editingKeys array directly only
+      // ever renders the cap's worth of rows -- the real gap this exists
+      // to close, since a controlled prop skips startEditingRow entirely.
+      // Also intentionally triggers the dev-mode warning (via the hook's
+      // own useEffect), scoped the same way.
+      const hugeKeys = testData.map(r => String(r.id));
+      const warnSpy2 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { container: c2 } = render(
+        <DataTable
+          data={testData}
+          columns={triggerColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={editSchema}
+          maxEditingRows={5}
+          editingKeys={hugeKeys}
+        />
+      );
+      warnSpy2.mockRestore();
+      expect(within(coGrid(c2) as HTMLElement).getAllByRole('textbox')).toHaveLength(5);
+      expect(within(c2).getByText(`Showing 5 of ${hugeKeys.length} rows being edited`, { exact: false })).toBeInTheDocument();
+    });
+
+    it('emits datatable:row_edit_started when a row enters edit mode', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const startedFn = vi.fn();
+      const unsub = aiBus.on('datatable:row_edit_started', startedFn);
+      const { container } = render(
+        <DataTable id="started-table" data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      expect(startedFn).toHaveBeenLastCalledWith({ id: 'started-table', key: '1', index: 0 });
+      unsub();
+    });
+
+    it('supports controlled editingKeys, calling onEditingKeysChange instead of managing its own state', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const onEditingKeysChange = vi.fn();
+      const { container, rerender } = render(
+        <DataTable
+          data={testData}
+          columns={triggerColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={editSchema}
+          editingKeys={[]}
+          onEditingKeysChange={onEditingKeysChange}
+        />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      expect(onEditingKeysChange).toHaveBeenCalledWith(['1']);
+      // Parent hasn't re-rendered with the new keys yet -- still no co-grid.
+      expect(coGrid(container)).toBeNull();
+
+      rerender(
+        <DataTable
+          data={testData}
+          columns={triggerColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={editSchema}
+          editingKeys={['1']}
+          onEditingKeysChange={onEditingKeysChange}
+        />
+      );
+      expect(coGrid(container)).not.toBeNull();
+    });
+
+    it('createPermissiveTableSchema builds an all-string-boxes schema from a sample record', () => {
+      const schema = createPermissiveTableSchema({ id: 1, name: 'Widget', active: true, extra: null as any });
+      const result = schema.safeParse({ id: 2, name: 'Gadget', active: false, extra: 'anything' });
+      expect(result.success).toBe(true);
+      expect(() => schema.parse({ id: 'not a number', name: 'x', active: true, extra: null })).toThrow();
+    });
+
+    it('createPermissiveTableSchema does not crash on undefined/null (the real data[0]-while-loading case)', () => {
+      expect(() => createPermissiveTableSchema(undefined)).not.toThrow();
+      expect(() => createPermissiveTableSchema(null)).not.toThrow();
+      expect(createPermissiveTableSchema(undefined).safeParse({}).success).toBe(true);
+    });
+
+    it('editing a row does not change the main grid row rendering beyond a cosmetic indicator (same itemHeight)', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} itemHeight={44} editable editSchema={editSchema} />
+      );
+      const row = cellByRowCol(container, 1, 1).closest('tr')!;
+      const heightBefore = row.style.height;
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      expect(row.style.height).toBe(heightBefore);
+      // Still exactly one <tr> for this row -- no colSpan swap to a single spanning cell.
+      expect(row.querySelectorAll('td')).toHaveLength(2);
     });
   });
 });

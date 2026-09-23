@@ -417,6 +417,40 @@
         "emptyState": {
           "type": "ReactNode",
           "description": "Rendered in place of the row set when there's nothing to show (the\nsorted dataset is empty) — the header and, if `pagination` is true,\nthe pagination footer (correctly showing \"0 of 0\") still render\nnormally around it. Omit for the previous default: an empty `<tbody>`\nwith no message at all."
+        },
+        "editable": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Adds row-level inline editing (issue #545) via a separate \"edit\nco-grid\" -- a second, small grid sharing this table's own column\norder/widths, consolidating every row currently being edited (from\nANY page/sort/filter) into one place. Greenfield, mirrors\n`selectable`'s own gate. Requires BOTH `rowKey` (a real one — see its\nown doc for why the index-based fallback can't be used here) and\n`editSchema` whenever true; omitting either throws immediately rather\nthan silently degrading, since the co-grid cannot resolve records\ncorrectly without them.\n\n(Not currently enforced as a TypeScript-level requirement via a\ndiscriminated prop type — the runtime throw is the real, load-bearing\ncheck here. A discriminated `editable: true` overload was considered\nbut deferred: its interaction with the manifest/docs generator's own\nprops extraction hasn't been verified, and getting that wrong would\nsilently break a required CI check. Worth revisiting as a follow-up\nonce that's confirmed safe.)"
+        },
+        "editSchema": {
+          "type": "ZodType<T>",
+          "description": "The edit co-grid's validation schema — required whenever `editable`\nis true. For a consumer who genuinely doesn't care about validation,\n`createPermissiveTableSchema(data[0])` builds a schema that renders\nevery editable column as a plain text box with no real validation,\nrather than requiring one to be hand-written for the trivial case."
+        },
+        "editingKeys": {
+          "type": "string[]",
+          "description": "Controlled set of keys currently being edited. Omit for the common uncontrolled case; `defaultEditingKeys` seeds that internal state instead."
+        },
+        "defaultEditingKeys": {
+          "type": "string[]",
+          "description": "Initial editing keys when uncontrolled (`editingKeys` omitted)."
+        },
+        "onEditingKeysChange": {
+          "type": "(editingKeys: string[]) => void",
+          "description": "Called whenever the editing key-set changes, whether controlled or uncontrolled — always the FULL current set."
+        },
+        "onRowEditSave": {
+          "type": "(record: T, index: number, nextValues: T) => void",
+          "description": "Called when a co-grid row's Save commits, with the edit schema's own parsed output (never raw field strings — matches `<Form>`'s own `onSubmit` contract)."
+        },
+        "onRowEditCancel": {
+          "type": "(record: T, index: number) => void",
+          "description": "Called when a co-grid row's Cancel discards its draft."
+        },
+        "maxEditingRows": {
+          "type": "number",
+          "default": "50",
+          "description": "Hard ceiling on how many rows the edit co-grid will ever render at\nonce. The co-grid is deliberately unvirtualized (issue #545) so it can\ngrow taller than a fixed row height and stay decoupled from the main\ngrid's own windowing -- nothing else bounds it, so without this, a\nbulk \"edit all\" on a large table (or a controlled `editingKeys` prop\nset carelessly) would render one full `<Form>` per row with no limit.\nEnforced regardless of how the editing set grew, including a\ncontrolled `editingKeys` prop set larger than this directly -- only\nthe first `maxEditingRows` keys (by insertion order) actually render;\nthe rest are silently excluded from the co-grid (with a dev-mode\nconsole warning) but still genuinely present in `editingKeys` itself."
         }
       },
       "category": "Data Display",
@@ -1024,6 +1058,15 @@
       "pinned": {
         "type": "'left' | 'right'",
         "description": "Freezes this column at the left or right edge of the scrollable grid\nbody, staying visible (via CSS `position: sticky`) while the user\nscrolls the rest of the columns horizontally underneath it -- the same\nmechanism `<DataTable>`'s own sticky header already uses, extended to\nthe horizontal axis (issue #341). Multiple columns can be pinned to the\nsame side; they stack in `columns` order (left-pinned) or reverse order\n(right-pinned, so the last-declared right-pinned column sits flush\nagainst the grid's own right edge). When `selectable` is on and at\nleast one column is pinned `'left'`, the selection checkbox/radio\ncolumn automatically pins alongside it too (there's no reason to freeze\na data column but let selection scroll away); the same applies to\n`rowCommands`' trailing actions column whenever any column is pinned\n`'right'`."
+      },
+      "editable": {
+        "type": "boolean",
+        "default": "true",
+        "description": "Set false to keep this column read-only even while its row is being\nedited (`<DataTable editable>`, issue #545) — rendered via this\ncolumn's own `render` in the edit co-grid instead of an editable\nfield. Has no effect at all when `editable` is off."
+      },
+      "editEditor": {
+        "type": "(context: CellContext<T>) => ReactNode",
+        "description": "Default+slot override for this column's field in the edit co-grid —\nmirrors `render`'s own shape (same `CellContext`), since a custom\neditor needs the same live value/row/index access `render` gets, not\na static JSX slot. Falls back to a plain `<Input>` bound to `key`,\nwrapped in `<FormField>`, when omitted. Has no effect when this\ncolumn's own `editable` is `false`, or when the table's `editable` is\noff."
       }
     },
     "SortDescriptor": {
