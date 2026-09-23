@@ -3015,6 +3015,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           entries={editEntries}
           pairedKeys={currentPageEditingKeys}
           truncatedCount={truncatedEditingCount}
+          viewportHeight={observedHeight > 0 ? observedHeight : AUTO_HEIGHT_FALLBACK_PX}
           onSave={handleEditSave}
           onCancel={handleEditCancel}
         />

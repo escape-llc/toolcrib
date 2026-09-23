@@ -25,6 +25,16 @@ export interface EditCoGridProps<T extends Record<string, any>> {
   pairedKeys: Set<string>;
   /** How many editing rows exist beyond `maxEditingRows` and so aren't in `entries` at all -- see `DataTable`'s own `maxEditingRows` doc. Zero in the common case. */
   truncatedCount: number;
+  /**
+   * The main grid's own real, measured viewport height in px (`DataTable.tsx`'s
+   * `observedHeight`, the same value its own auto-page-size/auto-height
+   * features already measure via `useAdaptiveSize(bodyRef)`) -- reused
+   * directly rather than a second measurement. The co-grid can grow up to
+   * this much of the grid's own on-screen real estate before it starts
+   * scrolling internally, so editing many rows (up to `maxEditingRows`)
+   * doesn't push the rest of the page down by thousands of pixels.
+   */
+  viewportHeight: number;
   onSave: (key: string, values: T) => void;
   onCancel: (key: string) => void;
 }
@@ -94,6 +104,7 @@ export function EditCoGrid<T extends Record<string, any>>({
   entries,
   pairedKeys,
   truncatedCount,
+  viewportHeight,
   onSave,
   onCancel,
 }: EditCoGridProps<T>) {
@@ -137,6 +148,15 @@ export function EditCoGrid<T extends Record<string, any>>({
         animation: 'ai-scale-in var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)',
         borderTop: '0.125rem solid var(--ai-color-quaternary, #a855f7)',
         background: 'var(--ai-bg-container, #f9fafb)',
+        // Can grow up to the main grid's own real viewport height before
+        // scrolling internally -- editing many rows (bounded by
+        // maxEditingRows) shouldn't push the rest of the page down by
+        // thousands of pixels just because nothing capped this container's
+        // own height. Sized off the SAME measurement DataTable.tsx's own
+        // auto-height/auto-page-size features already take
+        // (useAdaptiveSize(bodyRef)), not a second one.
+        maxHeight: `${viewportHeight}px`,
+        overflowY: 'auto',
       }}
     >
       {truncatedCount > 0 && (
