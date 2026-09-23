@@ -44,6 +44,7 @@ import {
   aiBus,
   useAIEvent,
   useAnyAIEvent,
+  DENSITY_ROW_COMMAND_BUTTON_PX,
   AlertDialog,
   Progress,
   Separator,
@@ -1016,8 +1017,97 @@ export const App: React.FC = () => {
     }
   });
 
+  // <DataTable editable>'s own validation schema (issue #545) -- real
+  // per-field messages, not the createPermissiveTableSchema escape hatch,
+  // since a flagship demo should show what schema-driven editing actually
+  // buys a consumer over a hand-rolled inline-edit table (AG Grid/MUI X
+  // Community neither validate on the way in at all).
+  const userEditSchema = z.object({
+    id: z.number(),
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Enter a valid email address'),
+    role: z.string().min(1, 'Role is required'),
+    status: z.enum(['Active', 'Pending', 'Inactive']),
+    score: z.coerce.number().min(0, 'Score cannot be negative').max(100, 'Score cannot exceed 100'),
+  });
+
   const columns: Column<DemoUser>[] = [
-    { key: 'id', title: 'ID', width: 60, sortable: true },
+    {
+      // Synthetic column -- not a real DemoUser field, just this row's
+      // entry point into edit mode. `<DataTable editable>` (issue #545)
+      // ships with no built-in trigger UI of its own (deliberately, same
+      // reasoning as `rowCommands`' own "no bespoke callback per action"
+      // choice) -- CellContext.startEditingRow is how any column's own
+      // `render` wires one up. Unlike `rowCommands` (which only emits a
+      // generic datatable:row_command bus event with no direct action
+      // access), this NEEDS to be a real column, since only a column's
+      // `render` context carries startEditingRow at all.
+      key: 'edit',
+      title: '',
+      width: 44,
+      // editable: false -- this column has no real underlying field (see
+      // its own comment below), so without this the co-grid would render
+      // a bogus empty text box bound to a nonexistent "edit" field. Caught
+      // by actually running the demo and looking at it, not by reading
+      // the code -- a real instance of AGENTS.md's own "For UI changes,
+      // start the dev server and use the feature in a browser" advice
+      // catching something a read-through wouldn't have.
+      editable: false,
+      render: ctx =>
+        ctx.isEditing ? null : (
+          <button
+            type="button"
+            aria-label={`Edit ${ctx.row.name}`}
+            // Real, e2e-caught regression (datatable-density.spec.ts,
+            // "auto page size produces zero vertical scroll at every
+            // density"): a `<Button size="sm">` here was NOT small enough
+            // to fit density="compact"'s own tight per-row content budget
+            // (23px), overflowing by a few px and reintroducing the exact
+            // class of bug DENSITY_ROW_COMMAND_BUTTON_PX already exists to
+            // prevent for the built-in rowCommands column. Unlike that
+            // column, this one is a plain consumer-authored column.render
+            // -- it has no access to DataTable's own live density state
+            // at all (CellContext doesn't carry it), so it can't scale
+            // dynamically the way rowCommands' own internal button does.
+            // The safe fix: a raw button (matching rowCommands' own
+            // styling convention) fixed at the COMPACT-density size --
+            // the tightest budget of the three -- so it never overflows
+            // regardless of the table's actual live density, at the cost
+            // of staying that same small size at normal/spacious too.
+            className="ai-btn ai-focus-ring"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+              font: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
+              height: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
+              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+              cursor: 'pointer',
+              color: 'var(--ai-text-secondary, #6b7280)',
+              fontSize: '0.875rem',
+            }}
+            // stopPropagation -- also caught by actually clicking it: the
+            // row's own onClick (selectable + click-to-select, both on
+            // for this table) fired too, silently selecting row 1 as a
+            // side effect of starting an edit. rowCommands' own trailing
+            // actions cell already guards against this the same way.
+            onClick={e => {
+              e.stopPropagation();
+              ctx.startEditingRow?.();
+            }}
+          >
+            <span aria-hidden="true">✏️</span>
+          </button>
+        ),
+    },
+    // editable: false (issue #545) -- a synthetic primary key is exactly
+    // the realistic case for "read-only even while this row is being
+    // edited": every other column here is editable by default.
+    { key: 'id', title: 'ID', width: 60, sortable: true, editable: false },
     // Pinned left (issue #341) -- freezes User Name in place while ID and
     // every column to its right scroll away underneath it horizontally.
     // Deliberately NOT the first column (`id` isn't pinned) to demonstrate
@@ -1053,6 +1143,24 @@ export const App: React.FC = () => {
         <Badge subtheme={val === 'Active' ? 'success' : val === 'Pending' ? 'warning' : 'error'} size="sm">
           {val as string}
         </Badge>
+      ),
+      // The "default+slot" half of issue #545's design: every OTHER
+      // editable column here falls back to the default plain <Input>,
+      // demonstrating the trivial case; this one overrides it with a real
+      // <Select> bound to userEditSchema's own z.enum(['Active','Pending',
+      // 'Inactive']) -- a 3-value enum is exactly the shape a plain text
+      // box serves worst.
+      // Real, Gemini-caught gap on this exact PR: EditCoGrid only wraps
+      // its own DEFAULT <Input> fallback in a proper accessible label --
+      // it can't reach into a consumer-supplied editEditor's own JSX to
+      // fix a missing one, since that's arbitrary custom content the
+      // toolkit doesn't control (the same reason `column.render`'s own
+      // output isn't forced to be accessible either). The fix has to be
+      // here, in the editor actually being written.
+      editEditor: () => (
+        <FormField name="status" label={<VisuallyHidden>Status</VisuallyHidden>}>
+          <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
+        </FormField>
       ),
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
@@ -1771,6 +1879,19 @@ export const App: React.FC = () => {
                           </Button>
                         )}
                         rowKey={rec => rec.id}
+                        editable
+                        editSchema={userEditSchema}
+                        onRowEditSave={(record, _index, next) => {
+                          // A real update (not a simulated toast-only
+                          // change) -- same "found via direct feedback
+                          // that a toast-only version left it unclear
+                          // whether the button was doing anything at all"
+                          // reasoning renderBulkActions' own delete button
+                          // below already applies.
+                          setTableUsers(prev => prev.map(u => (u.id === record.id ? { ...u, ...next } : u)));
+                          addToast({ type: 'success', message: `Saved ${next.name}`, priority: 'low' });
+                        }}
+                        onRowEditCancel={record => addToast({ type: 'info', message: `Discarded changes to ${record.name}`, priority: 'low' })}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
                         rowCommands={[
                           { id: 'view', label: 'View', icon: '👁️' },

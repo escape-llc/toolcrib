@@ -5,6 +5,8 @@ import { Presence } from '@radix-ui/react-presence';
 import type { ZodType } from 'zod';
 import { Form } from '../Form/FormContext';
 import { FormField, Input, SubmitButton, Button } from '../Form/FormComponents';
+import { VisuallyHidden } from '../Layout/VisuallyHidden';
+import { Z_INDEX } from '../../theme/zIndex';
 import type { Column, CellContext } from './DataTable';
 
 export interface EditCoGridEntry<T> {
@@ -39,7 +41,12 @@ export interface EditCoGridProps<T extends Record<string, any>> {
   onCancel: (key: string) => void;
 }
 
-const ACTIONS_COLUMN_WIDTH = 128;
+// 160, not the original 128 -- confirmed by actually rendering it and
+// measuring: two default-sized buttons ("Save" + "Cancel") plus their
+// gap need ~140px, so 128 let the flex content overflow past its own
+// (correctly sticky-pinned) cell's right edge -- the cell itself was
+// positioned correctly, but its content wasn't constrained to fit it.
+const ACTIONS_COLUMN_WIDTH = 160;
 
 const cellStyle: CSSProperties = {
   display: 'table-cell',
@@ -160,18 +167,43 @@ function EditCoGridRow<T extends Record<string, any>>({
                   : col.editEditor
                     ? col.editEditor(context)
                     : (
-                      <FormField name={col.key} label={col.title}>
+                      // VisuallyHidden, not a plain string -- the co-grid's
+                      // own header row above already shows this column's
+                      // title visually; a real <label> is still needed
+                      // for the field's accessible name (the fix for
+                      // Gemini's ARIA finding), just not a second visible
+                      // copy of text that's already on screen.
+                      <FormField name={col.key} label={<VisuallyHidden>{col.title}</VisuallyHidden>}>
                         <Input />
                       </FormField>
                     )}
               </div>
             );
           })}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-            <SubmitButton>Save</SubmitButton>
-            <Button type="button" onClick={() => onCancel(key)}>
-              Cancel
-            </Button>
+          {/* Pinned to the scroll container's own right edge (mirrors the
+              main grid's `pinned: 'right'` column convention) -- the
+              actions column is EXTRA width the main grid never has to
+              budget for (see the outer container's own overflowX
+              comment), so without this, Save/Cancel would only be
+              reachable by scrolling a wide row all the way right, found
+              by actually clicking through this in a real browser rather
+              than assumed. Stays a real display:table-cell (the inner div
+              carries the flex layout instead) -- overriding THIS cell's
+              own display would desync it from the header's identical
+              placeholder cell, which stays a plain table-cell. */}
+          {/* zIndex needed, confirmed by this codebase's own precedent --
+              the main grid's getPinnedCellStyle sets one for its own
+              pinned columns for the identical reason: a sticky cell with
+              no elevated z-index can lose the paint order to an adjacent
+              scrolling cell during simultaneous horizontal scroll,
+              letting scrolled-under content render on top of it. */}
+          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-surface, #ffffff)' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <SubmitButton size="sm">Save</SubmitButton>
+              <Button size="sm" type="button" onClick={() => onCancel(key)}>
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -206,9 +238,10 @@ function EditCoGridRow<T extends Record<string, any>>({
  * fix above -- see `EditCoGridRow`'s own comment for the concrete
  * structure this settled on. Rather than fake a grid widget this doesn't
  * behave like anyway (no arrow-key navigation between cells, unlike the
- * main table), each field gets a real `<FormField label={col.title}>` --
- * the honest, correct accessibility story for "a series of edit forms,"
- * not a grid.
+ * main table), each field gets a real `<FormField>` accessible label
+ * (visually hidden, since the co-grid's own header row already shows it
+ * on screen) -- the honest, correct accessibility story for "a series of
+ * edit forms," not a grid.
  *
  * Deliberately does NOT replicate the main grid's `position: sticky`
  * column-pinning offsets -- a pinned column here just renders in its
@@ -292,6 +325,13 @@ export function EditCoGrid<T extends Record<string, any>>({
         // (useAdaptiveSize(bodyRef)), not a second one.
         maxHeight: `${viewportHeight}px`,
         overflowY: 'auto',
+        // Real, screenshot-caught bug: each row is systematically WIDER
+        // than the main grid's own row by the actions column's width
+        // (ACTIONS_COLUMN_WIDTH, below) -- the main grid never has to
+        // budget for a Save/Cancel column at all. Without this, that
+        // extra width just clips invisibly off the right edge (Cancel's
+        // own button was cut off mid-render) rather than being reachable.
+        overflowX: 'auto',
       }}
     >
       {truncatedCount > 0 && (
@@ -311,7 +351,7 @@ export function EditCoGrid<T extends Record<string, any>>({
               {col.title}
             </div>
           ))}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px` }} />
+          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-container, #f9fafb)' }} />
         </div>
       </div>
 
