@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Presence } from '@radix-ui/react-presence';
 import type { ZodType } from 'zod';
 import { Form } from '../Form/FormContext';
-import { FormField, Input, SubmitButton, Button } from '../Form/FormComponents';
+import { FormField, Input } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Z_INDEX } from '../../theme/zIndex';
 import type { Column, CellContext } from './DataTable';
@@ -27,26 +27,17 @@ export interface EditCoGridProps<T extends Record<string, any>> {
   pairedKeys: Set<string>;
   /** How many editing rows exist beyond `maxEditingRows` and so aren't in `entries` at all -- see `DataTable`'s own `maxEditingRows` doc. Zero in the common case. */
   truncatedCount: number;
-  /**
-   * The main grid's own real, measured viewport height in px (`DataTable.tsx`'s
-   * `observedHeight`, the same value its own auto-page-size/auto-height
-   * features already measure via `useAdaptiveSize(bodyRef)`) -- reused
-   * directly rather than a second measurement. The co-grid can grow up to
-   * this much of the grid's own on-screen real estate before it starts
-   * scrolling internally, so editing many rows (up to `maxEditingRows`)
-   * doesn't push the rest of the page down by thousands of pixels.
-   */
-  viewportHeight: number;
   onSave: (key: string, values: T) => void;
   onCancel: (key: string) => void;
 }
 
-// 160, not the original 128 -- confirmed by actually rendering it and
-// measuring: two default-sized buttons ("Save" + "Cancel") plus their
-// gap need ~140px, so 128 let the flex content overflow past its own
-// (correctly sticky-pinned) cell's right edge -- the cell itself was
-// positioned correctly, but its content wasn't constrained to fit it.
-const ACTIONS_COLUMN_WIDTH = 160;
+// Glyph-only Save/Cancel (direct visual feedback: text buttons here read
+// as "horrible" placement/space) need far less room than the two
+// default-sized text buttons this used to fit (128px was too narrow for
+// those, 160px was the fix at the time) -- two ~23px icon buttons plus a
+// small gap and the cell's own padding comfortably fit in 72px.
+const ACTIONS_COLUMN_WIDTH = 72;
+const GLYPH_BUTTON_PX = 23;
 
 const cellStyle: CSSProperties = {
   display: 'table-cell',
@@ -198,11 +189,65 @@ function EditCoGridRow<T extends Record<string, any>>({
               scrolling cell during simultaneous horizontal scroll,
               letting scrolled-under content render on top of it. */}
           <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-surface, #ffffff)' }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <SubmitButton size="sm">Save</SubmitButton>
-              <Button size="sm" type="button" onClick={() => onCancel(key)}>
-                Cancel
-              </Button>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              {/* Glyph-only, not text "Save"/"Cancel" -- direct visual
+                  feedback ("placement of save/cancel is horrible; go with
+                  glyphs to take up less space"). Plain native buttons, not
+                  SubmitButton/Button: SubmitButton always renders literal
+                  "Save"/"Submitting..." text alongside any icon (its own
+                  hardcoded `props.children || 'Submit'` fallback), which
+                  can't be suppressed by an icon-only usage -- a real
+                  constraint of that shared component, not a style choice
+                  to route around here. `type="submit"` alone (a plain
+                  button inside this row's own <Form>) is enough to
+                  trigger the same real submission -- SubmitButton's own
+                  extra value (isSubmitting-driven disable) is a small,
+                  deliberately accepted trade-off for a form this synchronous. */}
+              <button
+                type="submit"
+                aria-label="Save"
+                className="ai-btn ai-focus-ring"
+                style={{
+                  border: 'none',
+                  background: 'var(--ai-color-primary, #3b82f6)',
+                  color: 'var(--ai-color-primary-text, #ffffff)',
+                  padding: 0,
+                  font: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: `${GLYPH_BUTTON_PX}px`,
+                  height: `${GLYPH_BUTTON_PX}px`,
+                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <span aria-hidden="true">✓</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Cancel"
+                className="ai-btn ai-focus-ring"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--ai-text-secondary, #6b7280)',
+                  padding: 0,
+                  font: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: `${GLYPH_BUTTON_PX}px`,
+                  height: `${GLYPH_BUTTON_PX}px`,
+                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+                onClick={() => onCancel(key)}
+              >
+                <span aria-hidden="true">✕</span>
+              </button>
             </div>
           </div>
         </div>
@@ -277,7 +322,6 @@ export function EditCoGrid<T extends Record<string, any>>({
   entries,
   pairedKeys,
   truncatedCount,
-  viewportHeight,
   onSave,
   onCancel,
 }: EditCoGridProps<T>) {
@@ -316,14 +360,27 @@ export function EditCoGrid<T extends Record<string, any>>({
         animation: 'ai-scale-in var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)',
         borderTop: '0.125rem solid var(--ai-color-quaternary, #a855f7)',
         background: 'var(--ai-bg-container, #f9fafb)',
-        // Can grow up to the main grid's own real viewport height before
-        // scrolling internally -- editing many rows (bounded by
+        // Fixed viewport-relative cap, deliberately NOT derived from any
+        // measured sibling -- editing many rows (bounded by
         // maxEditingRows) shouldn't push the rest of the page down by
-        // thousands of pixels just because nothing capped this container's
-        // own height. Sized off the SAME measurement DataTable.tsx's own
-        // auto-height/auto-page-size features already take
-        // (useAdaptiveSize(bodyRef)), not a second one.
-        maxHeight: `${viewportHeight}px`,
+        // thousands of pixels just because nothing capped this
+        // container's own height, but capping it against the main
+        // grid's own measured `observedHeight` (a real, shipped version
+        // of this) created a genuine infinite resize loop, confirmed live
+        // via the demo's own event-bus monitor (element:resized firing
+        // repeatedly, alternating between two heights): this co-grid and
+        // the main grid's own scrollable body are siblings sharing one
+        // flex-column parent inside DataTable's own layout, so the
+        // co-grid growing shrinks the main body, which shrinks
+        // `observedHeight`, which shrinks THIS cap, which can flip
+        // whether the co-grid needs to scroll internally, which changes
+        // its own rendered footprint, which changes how much room the
+        // main body gets back -- a closed loop with no reason to ever
+        // converge. `50vh` has no dependency on any React-measured value
+        // at all (resolved by the browser's own layout engine directly),
+        // which is what actually breaks the cycle, not a smaller
+        // measured number or a debounce that would only slow it down.
+        maxHeight: '50vh',
         overflowY: 'auto',
         // Real, screenshot-caught bug: each row is systematically WIDER
         // than the main grid's own row by the actions column's width

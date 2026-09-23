@@ -44,7 +44,6 @@ import {
   aiBus,
   useAIEvent,
   useAnyAIEvent,
-  DENSITY_ROW_COMMAND_BUTTON_PX,
   AlertDialog,
   Progress,
   Separator,
@@ -766,6 +765,13 @@ export const App: React.FC = () => {
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
+  // Controlled specifically so the "Edit" trigger can live in rowCommands
+  // (issue #545 follow-up, direct visual feedback) -- rowCommands only
+  // ever emits a generic datatable:row_command bus event with no direct
+  // action access, unlike a column.render's own CellContext, so starting
+  // an edit from there has to go through this same controlled-state path
+  // 'delete' already uses, not CellContext.startEditingRow.
+  const [editingUserKeys, setEditingUserKeys] = useState<string[]>([]);
   // Starts empty -- the Data Table tab's own emptyState is reached this
   // way by default (no need to delete anything first to see it), and
   // "Load Data" doubles as "Reload Data" after a real delete, both driven
@@ -1002,7 +1008,9 @@ export const App: React.FC = () => {
   // or "view" actually does for this particular consumer.
   useAIEvent('datatable:row_command', event => {
     if (event.id !== 'demo-users-table') return;
-    if (event.command === 'delete') {
+    if (event.command === 'edit') {
+      setEditingUserKeys(prev => (prev.includes(event.key) ? prev : [...prev, event.key]));
+    } else if (event.command === 'delete') {
       setTableUsers(prev => prev.filter(u => String(u.id) !== event.key));
       // Real Gemini-caught bug (PR #333): deleting a row via this
       // per-row command, without also dropping its key from
@@ -1032,78 +1040,6 @@ export const App: React.FC = () => {
   });
 
   const columns: Column<DemoUser>[] = [
-    {
-      // Synthetic column -- not a real DemoUser field, just this row's
-      // entry point into edit mode. `<DataTable editable>` (issue #545)
-      // ships with no built-in trigger UI of its own (deliberately, same
-      // reasoning as `rowCommands`' own "no bespoke callback per action"
-      // choice) -- CellContext.startEditingRow is how any column's own
-      // `render` wires one up. Unlike `rowCommands` (which only emits a
-      // generic datatable:row_command bus event with no direct action
-      // access), this NEEDS to be a real column, since only a column's
-      // `render` context carries startEditingRow at all.
-      key: 'edit',
-      title: '',
-      width: 44,
-      // editable: false -- this column has no real underlying field (see
-      // its own comment below), so without this the co-grid would render
-      // a bogus empty text box bound to a nonexistent "edit" field. Caught
-      // by actually running the demo and looking at it, not by reading
-      // the code -- a real instance of AGENTS.md's own "For UI changes,
-      // start the dev server and use the feature in a browser" advice
-      // catching something a read-through wouldn't have.
-      editable: false,
-      render: ctx =>
-        ctx.isEditing ? null : (
-          <button
-            type="button"
-            aria-label={`Edit ${ctx.row.name}`}
-            // Real, e2e-caught regression (datatable-density.spec.ts,
-            // "auto page size produces zero vertical scroll at every
-            // density"): a `<Button size="sm">` here was NOT small enough
-            // to fit density="compact"'s own tight per-row content budget
-            // (23px), overflowing by a few px and reintroducing the exact
-            // class of bug DENSITY_ROW_COMMAND_BUTTON_PX already exists to
-            // prevent for the built-in rowCommands column. Unlike that
-            // column, this one is a plain consumer-authored column.render
-            // -- it has no access to DataTable's own live density state
-            // at all (CellContext doesn't carry it), so it can't scale
-            // dynamically the way rowCommands' own internal button does.
-            // The safe fix: a raw button (matching rowCommands' own
-            // styling convention) fixed at the COMPACT-density size --
-            // the tightest budget of the three -- so it never overflows
-            // regardless of the table's actual live density, at the cost
-            // of staying that same small size at normal/spacious too.
-            className="ai-btn ai-focus-ring"
-            style={{
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-              font: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
-              height: `${DENSITY_ROW_COMMAND_BUTTON_PX.compact}px`,
-              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-              cursor: 'pointer',
-              color: 'var(--ai-text-secondary, #6b7280)',
-              fontSize: '0.875rem',
-            }}
-            // stopPropagation -- also caught by actually clicking it: the
-            // row's own onClick (selectable + click-to-select, both on
-            // for this table) fired too, silently selecting row 1 as a
-            // side effect of starting an edit. rowCommands' own trailing
-            // actions cell already guards against this the same way.
-            onClick={e => {
-              e.stopPropagation();
-              ctx.startEditingRow?.();
-            }}
-          >
-            <span aria-hidden="true">✏️</span>
-          </button>
-        ),
-    },
     // editable: false (issue #545) -- a synthetic primary key is exactly
     // the realistic case for "read-only even while this row is being
     // edited": every other column here is editable by default.
@@ -1881,6 +1817,15 @@ export const App: React.FC = () => {
                         rowKey={rec => rec.id}
                         editable
                         editSchema={userEditSchema}
+                        // Controlled -- the "Edit" trigger lives in
+                        // rowCommands below (direct visual feedback: a
+                        // separate synthetic column broke the co-grid's
+                        // own column alignment with the main table), and
+                        // rowCommands can only reach this via the same
+                        // controlled-state path its own "delete" handler
+                        // already uses, not CellContext.startEditingRow.
+                        editingKeys={editingUserKeys}
+                        onEditingKeysChange={setEditingUserKeys}
                         onRowEditSave={(record, _index, next) => {
                           // A real update (not a simulated toast-only
                           // change) -- same "found via direct feedback
@@ -1894,6 +1839,14 @@ export const App: React.FC = () => {
                         onRowEditCancel={record => addToast({ type: 'info', message: `Discarded changes to ${record.name}`, priority: 'low' })}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
                         rowCommands={[
+                          // Folded in alongside view/delete (direct visual
+                          // feedback) -- reuses rowCommands' own already-
+                          // correct button rendering/alignment instead of
+                          // a hand-rolled button in a separate column.
+                          // isVisible hides it once the row is already
+                          // being edited (its co-grid row's own Save/
+                          // Cancel are the way out of that state instead).
+                          { id: 'edit', label: 'Edit', icon: '✏️', isVisible: record => !editingUserKeys.includes(String(record.id)) },
                           { id: 'view', label: 'View', icon: '👁️' },
                           { id: 'delete', label: 'Delete', icon: '🗑️' },
                         ]}

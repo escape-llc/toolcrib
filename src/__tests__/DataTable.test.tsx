@@ -3129,7 +3129,7 @@ describe('DataTable Virtualized Component', () => {
       fireEvent.click(within(cellByRowCol(container, 1, 2)).getByText('Edit'));
       const input = within(coGrid(container) as HTMLElement).getAllByRole('textbox')[0];
       fireEvent.change(input, { target: { value: '42' } });
-      fireEvent.click(within(coGrid(container) as HTMLElement).getByText('Save'));
+      fireEvent.click(within(coGrid(container) as HTMLElement).getByRole('button', { name: 'Save' }));
 
       // The schema's own parsed output -- a real number, not the raw '42' string.
       expect(onRowEditSave).toHaveBeenCalledWith(qtyData[0], 0, { id: 1, name: 'Widget', qty: 42 });
@@ -3162,7 +3162,7 @@ describe('DataTable Virtualized Component', () => {
       );
       fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
       fireEvent.change(nameInput(container), { target: { value: 'Should be discarded' } });
-      fireEvent.click(within(coGrid(container) as HTMLElement).getByText('Cancel'));
+      fireEvent.click(within(coGrid(container) as HTMLElement).getByRole('button', { name: 'Cancel' }));
 
       expect(onRowEditCancel).toHaveBeenCalledWith(testData[0], 0);
       expect(cancelledFn).toHaveBeenLastCalledWith({ id: 'cancel-table', key: '1', index: 0 });

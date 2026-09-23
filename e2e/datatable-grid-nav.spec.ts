@@ -33,10 +33,13 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
 
     const table = page.getByRole('grid').first();
     await expect(table).toBeVisible();
-    // selectable (1) + the editable-row-mode "edit" trigger column (1,
-    // issue #545) + 6 data columns (name/id/email/role/status/score) +
-    // rowCommands actions column (1) = 9.
-    await expect(table).toHaveAttribute('aria-colcount', '9');
+    // selectable (1) + 6 data columns (name/id/email/role/status/score) +
+    // rowCommands actions column (1) = 8. The editable-row-mode "Edit"
+    // trigger (issue #545) lives IN rowCommands alongside view/delete
+    // (direct visual feedback -- a separate synthetic column broke the
+    // co-grid's own column alignment with the main table), so it adds no
+    // column of its own.
+    await expect(table).toHaveAttribute('aria-colcount', '8');
     // Real aria-rowcount reflects the full 250-row dummy dataset (see
     // demo/App.tsx), not just this page's 15 -- confirming the same
     // "full dataset, not just the virtualized/paginated subset" contract
@@ -60,14 +63,11 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
 
     await page.keyboard.press('ArrowRight');
     let active = await activeElementGridCoords(page);
-    // col 2 is the "edit" trigger column (issue #545) -- blank title, not
-    // sortable, so a plain <th>, not a <button> the way every sortable
-    // header renders.
-    expect(active).toEqual({ row: '0', col: '2', tag: 'TH' });
+    expect(active).toEqual({ row: '0', col: '2', tag: 'BUTTON' }); // "ID" header (sortable)
 
     await page.keyboard.press('ArrowDown');
     active = await activeElementGridCoords(page);
-    expect(active).toEqual({ row: '1', col: '2', tag: 'TD' }); // first body row, same (edit trigger) column
+    expect(active).toEqual({ row: '1', col: '2', tag: 'TD' }); // first body row, same (ID) column
 
     await page.keyboard.press('ArrowLeft');
     active = await activeElementGridCoords(page);
@@ -87,16 +87,16 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // first, since every test below needs actual rows to navigate/click.
     await loadDemoTableData(page);
 
-    // col 3 is "ID" -- an arbitrary starting column, not either extreme,
+    // col 2 is "ID" -- an arbitrary starting column, not either extreme,
     // to meaningfully exercise Home/End actually reaching the true ends.
-    const idHeader = page.locator('[data-grid-row="0"][data-grid-col="3"]').first();
+    const idHeader = page.locator('[data-grid-row="0"][data-grid-col="2"]').first();
     await idHeader.focus();
 
     await page.keyboard.press('Home');
     expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '0' }); // the select-all checkbox
 
     await page.keyboard.press('End');
-    expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '8' }); // last column (row actions)
+    expect(await activeElementGridCoords(page)).toMatchObject({ row: '0', col: '7' }); // last column (row actions)
 
     await page.keyboard.press('Control+End');
     // Last row on this page (defaultPageSize 15) is page-relative row 15 -- likely
@@ -107,7 +107,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // the resulting scroll's own native `scroll` event -> onScroll ->
     // re-render cycle actually completes, not synchronously when the key
     // is pressed.
-    await expect(page.locator('[data-grid-row="15"][data-grid-col="8"]').first()).toBeFocused();
+    await expect(page.locator('[data-grid-row="15"][data-grid-col="7"]').first()).toBeFocused();
 
     await page.keyboard.press('Control+Home');
     await expect(page.locator('[data-grid-row="0"][data-grid-col="0"]').first()).toBeFocused();
@@ -134,7 +134,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // which is measurably slower on WebKit than Chromium (confirmed: a
     // one-shot check here passed reliably on Chromium but failed on
     // WebKit in real CI, landing on the pre-scroll header cell instead).
-    const target = page.locator('[data-grid-row="15"][data-grid-col="8"]').first();
+    const target = page.locator('[data-grid-row="15"][data-grid-col="7"]').first();
     await expect(target).toBeFocused();
     expect(await target.evaluate(el => el.tagName)).toBe('TD');
   });
