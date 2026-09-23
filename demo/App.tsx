@@ -1016,8 +1016,65 @@ export const App: React.FC = () => {
     }
   });
 
+  // <DataTable editable>'s own validation schema (issue #545) -- real
+  // per-field messages, not the createPermissiveTableSchema escape hatch,
+  // since a flagship demo should show what schema-driven editing actually
+  // buys a consumer over a hand-rolled inline-edit table (AG Grid/MUI X
+  // Community neither validate on the way in at all).
+  const userEditSchema = z.object({
+    id: z.number(),
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Enter a valid email address'),
+    role: z.string().min(1, 'Role is required'),
+    status: z.enum(['Active', 'Pending', 'Inactive']),
+    score: z.coerce.number().min(0, 'Score cannot be negative').max(100, 'Score cannot exceed 100'),
+  });
+
   const columns: Column<DemoUser>[] = [
-    { key: 'id', title: 'ID', width: 60, sortable: true },
+    {
+      // Synthetic column -- not a real DemoUser field, just this row's
+      // entry point into edit mode. `<DataTable editable>` (issue #545)
+      // ships with no built-in trigger UI of its own (deliberately, same
+      // reasoning as `rowCommands`' own "no bespoke callback per action"
+      // choice) -- CellContext.startEditingRow is how any column's own
+      // `render` wires one up. Unlike `rowCommands` (which only emits a
+      // generic datatable:row_command bus event with no direct action
+      // access), this NEEDS to be a real column, since only a column's
+      // `render` context carries startEditingRow at all.
+      key: 'edit',
+      title: '',
+      width: 44,
+      // editable: false -- this column has no real underlying field (see
+      // its own comment below), so without this the co-grid would render
+      // a bogus empty text box bound to a nonexistent "edit" field. Caught
+      // by actually running the demo and looking at it, not by reading
+      // the code -- a real instance of AGENTS.md's own "For UI changes,
+      // start the dev server and use the feature in a browser" advice
+      // catching something a read-through wouldn't have.
+      editable: false,
+      render: ctx =>
+        ctx.isEditing ? null : (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon="✏️"
+            aria-label={`Edit ${ctx.row.name}`}
+            // stopPropagation -- also caught by actually clicking it: the
+            // row's own onClick (selectable + click-to-select, both on
+            // for this table) fired too, silently selecting row 1 as a
+            // side effect of starting an edit. rowCommands' own trailing
+            // actions cell already guards against this the same way.
+            onClick={e => {
+              e.stopPropagation();
+              ctx.startEditingRow?.();
+            }}
+          />
+        ),
+    },
+    // editable: false (issue #545) -- a synthetic primary key is exactly
+    // the realistic case for "read-only even while this row is being
+    // edited": every other column here is editable by default.
+    { key: 'id', title: 'ID', width: 60, sortable: true, editable: false },
     // Pinned left (issue #341) -- freezes User Name in place while ID and
     // every column to its right scroll away underneath it horizontally.
     // Deliberately NOT the first column (`id` isn't pinned) to demonstrate
@@ -1053,6 +1110,17 @@ export const App: React.FC = () => {
         <Badge subtheme={val === 'Active' ? 'success' : val === 'Pending' ? 'warning' : 'error'} size="sm">
           {val as string}
         </Badge>
+      ),
+      // The "default+slot" half of issue #545's design: every OTHER
+      // editable column here falls back to the default plain <Input>,
+      // demonstrating the trivial case; this one overrides it with a real
+      // <Select> bound to userEditSchema's own z.enum(['Active','Pending',
+      // 'Inactive']) -- a 3-value enum is exactly the shape a plain text
+      // box serves worst.
+      editEditor: () => (
+        <FormField name="status">
+          <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
+        </FormField>
       ),
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
@@ -1771,6 +1839,19 @@ export const App: React.FC = () => {
                           </Button>
                         )}
                         rowKey={rec => rec.id}
+                        editable
+                        editSchema={userEditSchema}
+                        onRowEditSave={(record, _index, next) => {
+                          // A real update (not a simulated toast-only
+                          // change) -- same "found via direct feedback
+                          // that a toast-only version left it unclear
+                          // whether the button was doing anything at all"
+                          // reasoning renderBulkActions' own delete button
+                          // below already applies.
+                          setTableUsers(prev => prev.map(u => (u.id === record.id ? { ...u, ...next } : u)));
+                          addToast({ type: 'success', message: `Saved ${next.name}`, priority: 'low' });
+                        }}
+                        onRowEditCancel={record => addToast({ type: 'info', message: `Discarded changes to ${record.name}`, priority: 'low' })}
                         onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
                         rowCommands={[
                           { id: 'view', label: 'View', icon: '👁️' },
