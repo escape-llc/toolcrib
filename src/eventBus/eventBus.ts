@@ -95,6 +95,12 @@ export interface AIEventMap {
   'datatable:exported': { id?: string; rowCount: number };
   /** Emitted whenever `<DataTable columnVisibility>`'s show/hide state changes, whether controlled or uncontrolled -- `hiddenColumns` is the FULL current set of hidden `Column.key`s, not just the one that changed. See issue #340. */
   'datatable:columns_changed': { id?: string; hiddenColumns: string[] };
+  /** Emitted whenever `<DataTable editable>`'s editing key-set gains a key -- `key` is the row's resolved `rowKey` (stringified), `index` its position in the raw `data` array (editable requires a real `rowKey`, so there's no index-fallback ambiguity here the way `datatable:row_command` has). See issue #545. */
+  'datatable:row_edit_started': { id?: string; key: string; index: number };
+  /** Emitted once a co-grid row's Save commits -- `values` is the edit schema's own `safeParse().data`, never the raw field strings (mirrors `<Form>`'s own `form:submitted` contract). See issue #545. */
+  'datatable:row_edit_saved': { id?: string; key: string; index: number; values: unknown };
+  /** Emitted when a co-grid row's Cancel discards its draft. See issue #545. */
+  'datatable:row_edit_cancelled': { id?: string; key: string; index: number };
   'log:cleared': { timestamp: string };
 
   // Routing

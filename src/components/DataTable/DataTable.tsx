@@ -11,6 +11,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import type { ZodType } from 'zod';
 import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { ToggleGroup } from '../ToggleGroup/ToggleGroup';
@@ -33,6 +34,8 @@ import { useTableQuickFilter } from './useTableQuickFilter';
 import { useTableDensity } from './useTableDensity';
 import { useRowSetCrossFade } from './useRowSetCrossFade';
 import { useTableSelection } from './useTableSelection';
+import { useTableEditing } from './useTableEditing';
+import { EditCoGrid } from './EditCoGrid';
 import { useTableVirtualization, AUTO_HEIGHT_FALLBACK_PX } from './useTableVirtualization';
 import { useTableKeyboardNav } from './useTableKeyboardNav';
 import { useTableColumnResize, getColumnMinWidth } from './useTableColumnResize';
@@ -49,9 +52,27 @@ export interface CellContext<T = any> {
   /**
    * This row's index — matches `rowKey`/`rowSubtheme`/`onRowClick`'s
    * `index` exactly (see `rowSubtheme`'s doc for its page-relative vs.
-   * absolute distinction, which applies here too).
+   * absolute distinction, which applies here too) for a MAIN-GRID cell.
+   * For a cell rendered inside the edit co-grid (issue #545), this is
+   * instead the record's position in the raw, unsorted/unfiltered/
+   * unpaginated `data` array — there's no "page" for a co-grid row to be
+   * relative to, since it's deliberately decoupled from sort/filter/
+   * pagination. Harmless either way for a compliant `rowKey` (`editable`
+   * requires one that depends only on the record, never on `index`).
    */
   index: number;
+  /**
+   * Present only when `<DataTable editable>` is true — absent (`undefined`)
+   * otherwise, so a non-editable table's `render` sees no shape change.
+   * `true` for every cell rendered inside the edit co-grid; on a MAIN-GRID
+   * cell, reflects whether this specific row is currently in the editing
+   * key-set.
+   */
+  isEditing?: boolean;
+  /** Adds this row to the editing key-set. Only present on a main-grid cell (a co-grid row is already editing — see `cancelEditingRow` there instead). */
+  startEditingRow?: () => void;
+  /** Removes this row from the editing key-set without saving. Present on both a main-grid cell (for a custom `render` wanting its own cancel affordance) and a co-grid cell (`editEditor`'s own explicit Cancel, beyond the co-grid's built-in one). */
+  cancelEditingRow?: () => void;
 }
 
 /** Column definition for `<DataTable>`. */
@@ -115,6 +136,24 @@ export interface Column<T = any> {
    * `'right'`.
    */
   pinned?: 'left' | 'right';
+  /**
+   * Set false to keep this column read-only even while its row is being
+   * edited (`<DataTable editable>`, issue #545) — rendered via this
+   * column's own `render` in the edit co-grid instead of an editable
+   * field. Has no effect at all when `editable` is off.
+   * @default true
+   */
+  editable?: boolean;
+  /**
+   * Default+slot override for this column's field in the edit co-grid —
+   * mirrors `render`'s own shape (same `CellContext`), since a custom
+   * editor needs the same live value/row/index access `render` gets, not
+   * a static JSX slot. Falls back to a plain `<Input>` bound to `key`,
+   * wrapped in `<FormField>`, when omitted. Has no effect when this
+   * column's own `editable` is `false`, or when the table's `editable` is
+   * off.
+   */
+  editEditor?: (context: CellContext<T>) => ReactNode;
 }
 
 /** One column's priority within a multi-column sort -- see `DataTableProps.sortBy` (issue #337). */
@@ -568,6 +607,60 @@ export interface DataTableProps<T = any> {
    * with no message at all.
    */
   emptyState?: ReactNode;
+  /**
+   * Adds row-level inline editing (issue #545) via a separate "edit
+   * co-grid" -- a second, small grid sharing this table's own column
+   * order/widths, consolidating every row currently being edited (from
+   * ANY page/sort/filter) into one place. Greenfield, mirrors
+   * `selectable`'s own gate. Requires BOTH `rowKey` (a real one — see its
+   * own doc for why the index-based fallback can't be used here) and
+   * `editSchema` whenever true; omitting either throws immediately rather
+   * than silently degrading, since the co-grid cannot resolve records
+   * correctly without them.
+   *
+   * (Not currently enforced as a TypeScript-level requirement via a
+   * discriminated prop type — the runtime throw is the real, load-bearing
+   * check here. A discriminated `editable: true` overload was considered
+   * but deferred: its interaction with the manifest/docs generator's own
+   * props extraction hasn't been verified, and getting that wrong would
+   * silently break a required CI check. Worth revisiting as a follow-up
+   * once that's confirmed safe.)
+   * @default false
+   */
+  editable?: boolean;
+  /**
+   * The edit co-grid's validation schema — required whenever `editable`
+   * is true. For a consumer who genuinely doesn't care about validation,
+   * `createPermissiveTableSchema(data[0])` builds a schema that renders
+   * every editable column as a plain text box with no real validation,
+   * rather than requiring one to be hand-written for the trivial case.
+   */
+  editSchema?: ZodType<T>;
+  /** Controlled set of keys currently being edited. Omit for the common uncontrolled case; `defaultEditingKeys` seeds that internal state instead. */
+  editingKeys?: string[];
+  /** Initial editing keys when uncontrolled (`editingKeys` omitted). */
+  defaultEditingKeys?: string[];
+  /** Called whenever the editing key-set changes, whether controlled or uncontrolled — always the FULL current set. */
+  onEditingKeysChange?: (editingKeys: string[]) => void;
+  /** Called when a co-grid row's Save commits, with the edit schema's own parsed output (never raw field strings — matches `<Form>`'s own `onSubmit` contract). */
+  onRowEditSave?: (record: T, index: number, nextValues: T) => void;
+  /** Called when a co-grid row's Cancel discards its draft. */
+  onRowEditCancel?: (record: T, index: number) => void;
+  /**
+   * Hard ceiling on how many rows the edit co-grid will ever render at
+   * once. The co-grid is deliberately unvirtualized (issue #545) so it can
+   * grow taller than a fixed row height and stay decoupled from the main
+   * grid's own windowing -- nothing else bounds it, so without this, a
+   * bulk "edit all" on a large table (or a controlled `editingKeys` prop
+   * set carelessly) would render one full `<Form>` per row with no limit.
+   * Enforced regardless of how the editing set grew, including a
+   * controlled `editingKeys` prop set larger than this directly -- only
+   * the first `maxEditingRows` keys (by insertion order) actually render;
+   * the rest are silently excluded from the co-grid (with a dev-mode
+   * console warning) but still genuinely present in `editingKeys` itself.
+   * @default 50
+   */
+  maxEditingRows?: number;
 }
 
 /**
@@ -661,7 +754,28 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   onHiddenColumnsChange,
   renderToolbarExtra,
   emptyState,
+  editable = false,
+  editSchema,
+  editingKeys: controlledEditingKeys,
+  defaultEditingKeys,
+  onEditingKeysChange,
+  onRowEditSave,
+  onRowEditCancel,
+  maxEditingRows = 50,
 }: DataTableProps<T>) {
+  // Real, hard requirement (issue #545), not a soft warning: the edit
+  // co-grid resolves records via `rowKey` against the raw `data` array,
+  // completely decoupled from whatever page/sort/filter the row was
+  // originally clicked from -- the index-based fallback key actively
+  // resolves to the WRONG record once the view changes, it isn't merely
+  // "less precise" the way it is for selection. Thrown unconditionally
+  // (not `isDevBuild()`-gated) since this is an architectural
+  // precondition the co-grid cannot function without, not a dev-only
+  // nicety -- defense-in-depth for a JS caller or an `as any` cast that
+  // bypasses `editSchema`'s own TS type.
+  if (editable && (!rowKey || !editSchema)) {
+    throw new Error('<DataTable editable> requires both `rowKey` and `editSchema` to be set.');
+  }
   const id = useStableId(propId, 'datatable');
   const strings = useLocaleStrings().dataTable;
   const targetDocument = useTargetDocument();
@@ -976,6 +1090,55 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     pageOffset,
     currentPageRecords: paginatedData,
   });
+
+  const {
+    editingKeySet,
+    cappedEditingKeys,
+    truncatedEditingCount,
+    currentPageEditingKeys,
+    recordByEditKey,
+    getEditingKey,
+    startEditingRow,
+    cancelEditingRow,
+    saveEditingRow,
+  } = useTableEditing({
+    editable,
+    editingKeys: controlledEditingKeys,
+    defaultEditingKeys,
+    onEditingKeysChange,
+    tableId: id,
+    rowKey,
+    data,
+    currentPageRecords: paginatedData,
+    maxEditingRows,
+  });
+
+  const handleEditSave = (key: string, values: T) => {
+    const entry = recordByEditKey.get(key);
+    if (entry) onRowEditSave?.(entry.record, entry.index, values);
+    saveEditingRow(key, values);
+  };
+  const handleEditCancel = (key: string) => {
+    const entry = recordByEditKey.get(key);
+    if (entry) onRowEditCancel?.(entry.record, entry.index);
+    cancelEditingRow(key);
+  };
+  // Built from `cappedEditingKeys` (already truncated to `maxEditingRows`),
+  // never the raw `editingKeySet` directly -- this is the one, real
+  // enforcement point for that cap regardless of how the set grew (see
+  // `maxEditingRows`'s own doc for the controlled-prop bypass this guards
+  // against). Ordered by insertion into editingKeySet isn't guaranteed by
+  // Set iteration in a way callers should rely on, but EditCoGrid's own
+  // local `rows` map (keyed, not indexed) doesn't care about this array's
+  // order -- only which keys are currently present.
+  const editEntries = editable
+    ? cappedEditingKeys
+        .map(key => {
+          const entry = recordByEditKey.get(key);
+          return entry ? { key, record: entry.record, index: entry.index } : null;
+        })
+        .filter((e): e is { key: string; record: T; index: number } => e !== null)
+    : [];
 
   const totalItems = paginatedData.length;
 
@@ -2423,6 +2586,31 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     ? [`inset 0.25rem 0 0 0 ${selectionAccentColor}`, ...selectionFrameShadows].join(', ')
                     : 'none';
                   const hasSelectionCell = selectable && !hideSelectionColumn && selectionKey !== null;
+                  // "Being edited" indicator (issue #545) -- composed
+                  // alongside selection's own box-shadow above rather than
+                  // replacing it, since a row can be both selected AND
+                  // being edited at once (the two key-sets are fully
+                  // independent -- editing never replaces a row's cells the
+                  // way the original design draft would have). Top/bottom
+                  // caps on EVERY cell (not just first/last, and with no
+                  // neighbor-merging the way selection's own frame has) --
+                  // simpler than replicating selection's merge logic a
+                  // second time, and two adjacent editing rows sharing a
+                  // faint double line is a minor, acceptable cosmetic
+                  // difference, not a correctness concern. A "paired" row
+                  // (its record is ALSO present in the edit co-grid's own
+                  // current view, per `currentPageEditingKeys`) gets a
+                  // slightly thicker cap so the two grids visually read as
+                  // the same row shown twice.
+                  const editingKey = editable ? getEditingKey(record, actualIndex) : null;
+                  const isRowEditing = editingKey !== null && editingKeySet.has(editingKey);
+                  const isPairedEditing = isRowEditing && currentPageEditingKeys.has(editingKey!);
+                  const editingAccentColor = 'var(--ai-color-quaternary, #a855f7)';
+                  const editingCapSize = isPairedEditing ? '0.1875rem' : '0.125rem';
+                  const editingShadow = isRowEditing
+                    ? `inset 0 ${editingCapSize} 0 0 ${editingAccentColor}, inset 0 -${editingCapSize} 0 0 ${editingAccentColor}`
+                    : '';
+                  const combineShadow = (base: string, extra: string) => (!extra ? base : base === 'none' ? extra : `${base}, ${extra}`);
                   // Reused by both the <tr> itself (below) and, for a
                   // PINNED cell specifically, a real-browser-screenshot-
                   // caught variant that flattens it to a guaranteed-opaque
@@ -2544,7 +2732,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             // all -- carries the left accent bar as well as
                             // the top/bottom frame caps (see this row's own
                             // comment above on how those are computed).
-                            boxShadow: firstCellSelectionShadow,
+                            boxShadow: combineShadow(firstCellSelectionShadow, editingShadow),
                             ...(selectionColumnPinned
                               ? { position: 'sticky', left: 0, zIndex: 1, background: pinnedCellBackgroundColor }
                               : {}),
@@ -2660,11 +2848,27 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               // rendered before it) carries the left accent
                               // -- every other cell just carries the
                               // top/bottom frame caps, if any.
-                              boxShadow: !hasSelectionCell && colIndex === 0 ? firstCellSelectionShadow : otherCellsSelectionShadow,
+                              boxShadow: combineShadow(
+                                !hasSelectionCell && colIndex === 0 ? firstCellSelectionShadow : otherCellsSelectionShadow,
+                                editingShadow
+                              ),
                               ...getPinnedCellStyle(col, false, pinnedCellBackgroundColor),
                             }}
                           >
-                            {col.render ? col.render({ value, row: record, index: actualIndex }) : String(value ?? '')}
+                            {col.render
+                              ? col.render(
+                                  editable
+                                    ? {
+                                        value,
+                                        row: record,
+                                        index: actualIndex,
+                                        isEditing: isRowEditing,
+                                        startEditingRow: () => startEditingRow(editingKey!),
+                                        cancelEditingRow: () => cancelEditingRow(editingKey!),
+                                      }
+                                    : { value, row: record, index: actualIndex }
+                                )
+                              : String(value ?? '')}
                           </td>
                         );
                       })}
@@ -2679,7 +2883,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
                             // Always the last cell, never the first -- only
                             // the top/bottom frame caps apply here.
-                            boxShadow: otherCellsSelectionShadow,
+                            boxShadow: combineShadow(otherCellsSelectionShadow, editingShadow),
                             ...(rowCommandsColumnPinned
                               ? { position: 'sticky', right: 0, zIndex: 1, background: pinnedCellBackgroundColor }
                               : {}),
@@ -2801,6 +3005,20 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           </tbody>
         </table>
       </div>
+
+      {editable && (
+        <EditCoGrid
+          tableId={id}
+          columns={displayColumns}
+          getColumnWidth={getRedistributedColumnWidth}
+          editSchema={editSchema!}
+          entries={editEntries}
+          pairedKeys={currentPageEditingKeys}
+          truncatedCount={truncatedEditingCount}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
+        />
+      )}
 
       {/* Pagination Footer — omitted entirely when `pagination` is false,
           since there's no page concept to show controls for; the table

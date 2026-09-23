@@ -213,7 +213,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<BarChart>` | — | `categories`, `series`, `width`, `height`, `title`, `legendPosition`, `overrides` | Grouped vertical bar chart for categorical comparisons |
 | `<Breadcrumb>` | `.Item`, `.Separator` | `separator`, `overrides` | Breadcrumb trail built on React Aria Components, collapsing middle items into a `<DropdownMenu>` on overflow |
 | `<Carousel>` | — | `id`, `slides`, `loop`, `autoplay`, `onSlideChange`, `overrides` | Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators |
-| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `onEndReached`, `endReachedThreshold`, `defaultPageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `quickFilter`, `quickFilterFields`, `quickFilterValue`, `defaultQuickFilterValue`, `onQuickFilterChange`, `sortBy`, `defaultSortBy`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectionMode`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `disableRowClickSelection`, `hideSelectionColumn`, `renderBulkActions`, `rowCommands`, `columnWidths`, `defaultColumnWidths`, `onColumnWidthsChange`, `overrides`, `densitySelector`, `density`, `defaultDensity`, `onDensityChange`, `csvExport`, `csvExportFileName`, `columnVisibility`, `hiddenColumns`, `defaultHiddenColumns`, `onHiddenColumnsChange`, `renderToolbarExtra`, `emptyState` | Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation |
+| `<DataTable>` | — | `id`, `data`, `columns`, `pagination`, `onEndReached`, `endReachedThreshold`, `defaultPageSize`, `pageSizeOptions`, `itemHeight`, `containerHeight`, `rowKey`, `rowSubtheme`, `onRowClick`, `quickFilter`, `quickFilterFields`, `quickFilterValue`, `defaultQuickFilterValue`, `onQuickFilterChange`, `sortBy`, `defaultSortBy`, `onSortChange`, `page`, `defaultPage`, `onPageChange`, `selectable`, `selectionMode`, `selectedKeys`, `defaultSelectedKeys`, `onSelectionChange`, `disableRowClickSelection`, `hideSelectionColumn`, `renderBulkActions`, `rowCommands`, `columnWidths`, `defaultColumnWidths`, `onColumnWidthsChange`, `overrides`, `densitySelector`, `density`, `defaultDensity`, `onDensityChange`, `csvExport`, `csvExportFileName`, `columnVisibility`, `hiddenColumns`, `defaultHiddenColumns`, `onHiddenColumnsChange`, `renderToolbarExtra`, `emptyState`, `editable`, `editSchema`, `editingKeys`, `defaultEditingKeys`, `onEditingKeysChange`, `onRowEditSave`, `onRowEditCancel`, `maxEditingRows` | Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation |
 | `<EmptyState>` | `.Icon`, `.Title`, `.Description`, `.Action` | — | Slot-based placeholder for an empty list/search/error state — same compositional pattern as `<Card>` |
 | `<Filmstrip>` | — | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `thumbnailSize`, `overrides` | Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection |
 | `<Gallery>` | — | `id`, `items`, `columns`, `onItemClick`, `overrides` | Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default |
@@ -421,7 +421,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[75]{name,payload}:
+[78]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -490,6 +490,9 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "datatable:end_reached","{ id?: string; loadedCount: number }"
   "datatable:exported","{ id?: string; rowCount: number }"
   "datatable:columns_changed","{ id?: string; hiddenColumns: string[] }"
+  "datatable:row_edit_started","{ id?: string; key: string; index: number }"
+  "datatable:row_edit_saved","{ id?: string; key: string; index: number; values: unknown }"
+  "datatable:row_edit_cancelled","{ id?: string; key: string; index: number }"
   "log:cleared","{ timestamp: string }"
   "route:navigate","{ to: string }"
   "auth:unauthorized","{ reason?: string }"
