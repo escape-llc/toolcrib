@@ -29,14 +29,18 @@ test('the error-region wrapper transitions grid-template-rows, swapping content 
   // Username's own FormField has helperText ("Unique username handle"),
   // already occupying the row at 1fr before any error -- confirms the
   // "swap content, no height jump" case, not just "grow from zero."
-  // Located via the input's own next sibling (a stable structural
-  // relationship) rather than by the helper text itself -- that text node
-  // is REPLACED once the error appears, and Playwright locators re-
-  // resolve lazily on every use, so a locator anchored to text that later
-  // disappears goes stale mid-test (confirmed directly: the first attempt
-  // at this test used exactly that anchor and timed out on the post-blur
-  // poll for this reason).
-  const errorWrapper = usernameInput.locator('xpath=following-sibling::div[1]');
+  // Located via FormComponents.tsx's own `data-testid` hook (a real,
+  // named DOM attribute, immune to markup shape changes), not by the
+  // helper text itself -- that text node is REPLACED once the error
+  // appears, and Playwright locators re-resolve lazily on every use, so
+  // a locator anchored to text that later disappears goes stale mid-test
+  // (confirmed directly: the first attempt at this test used exactly
+  // that anchor and timed out on the post-blur poll for this reason).
+  // Previously an XPath sibling relationship
+  // (`usernameInput.locator('xpath=following-sibling::div[1]')`) --
+  // fragile the moment FormField's own markup shape changes; the
+  // data-testid is what that fragility was meant to be replaced with.
+  const errorWrapper = page.getByTestId('form-field-error-region-username');
 
   await expect(page.getByText('Unique username handle')).toBeVisible();
   await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('1fr');
@@ -79,7 +83,10 @@ test('the summary FormError banner starts genuinely zero-height and grows once a
   await usernameInput.waitFor({ state: 'visible' });
 
   const bannerText = page.getByText('Please correct the errors in the form before submitting.');
-  const bannerWrapper = bannerText.locator('xpath=ancestor::div[2]');
+  // FormComponents.tsx's own `data-testid` hook, not an XPath ancestor
+  // relationship -- only one summary banner exists per form, so a bare
+  // shared id (unlike the per-field named variants) is unambiguous here.
+  const bannerWrapper = page.getByTestId('form-error-summary-region');
 
   // Collapsed at mount -- confirms the always-rendered wrapper genuinely
   // starts at zero visible height, not just zero opacity (the banner text
@@ -132,12 +139,12 @@ test('the error region keeps the error text rendered through the full collapse, 
   const emailInput = page.getByPlaceholder('john@example.com');
   await emailInput.waitFor({ state: 'visible' });
 
-  // Locate the real wrapper via a structural relationship (matching this
-  // file's own established pattern for the helperText->error swap test
-  // above), not by the error text itself -- the demo's own live event-bus
-  // debug panel separately renders this exact string verbatim inside a
-  // raw JSON dump elsewhere on the page, a known duplicate-text footgun.
-  const errorWrapper = emailInput.locator('xpath=following-sibling::div[1]');
+  // Locate the real wrapper via FormComponents.tsx's own `data-testid`
+  // hook (matching this file's other two tests, above), not by the error
+  // text itself -- the demo's own live event-bus debug panel separately
+  // renders this exact string verbatim inside a raw JSON dump elsewhere
+  // on the page, a known duplicate-text footgun.
+  const errorWrapper = page.getByTestId('form-field-error-region-email');
 
   // Attached BEFORE the first interaction, as a running count rather than
   // a one-shot boolean -- BOTH the initial expand (error first appearing)

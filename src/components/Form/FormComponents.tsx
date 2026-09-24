@@ -122,9 +122,12 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           // locate this wrapper directly instead of an XPath sibling
           // relationship (`following-sibling::div[1]`) that silently
           // breaks the moment this component's own markup shape changes.
-          // Costs nothing at runtime and carries no consumer-facing
-          // meaning.
-          data-testid="form-field-error-region"
+          // Suffixed with the field's own `name` -- a page can have
+          // several FormFields at once (username, email, ...), each
+          // rendering this same wrapper shape, so a bare shared id would
+          // be ambiguous the instant more than one is on screen. Costs
+          // nothing at runtime and carries no consumer-facing meaning.
+          data-testid={`form-field-error-region-${name}`}
           // aria-hidden when collapsed -- caught in review (Gemini, PR
           // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips
           // content to zero *visible* area, but isn't guaranteed to read
@@ -219,8 +222,9 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
     return (
       <div
         // Test-only DOM hook -- see FormField's own identical comment on
-        // `form-field-error-region` above.
-        data-testid="form-error-named-region"
+        // `form-field-error-region` above (same per-field suffix reasoning:
+        // more than one named FormError can be on screen at once).
+        data-testid={`form-error-named-region-${name}`}
         // See FormField's own aria-hidden/visibility comments for the full
         // reasoning (both found in review, Gemini, PR #506).
         aria-hidden={!namedError}
