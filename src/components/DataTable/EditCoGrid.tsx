@@ -155,6 +155,12 @@ function SaveEditRowButton({ formId }: { formId: string }) {
         // literal color.
         background: 'var(--ai-subtheme-success, #22c55e)',
         color: 'var(--ai-subtheme-success-on-main, #ffffff)',
+        // --ai-btn-bg -- see the identical comment on the Cancel button
+        // below for why this is required, not redundant with
+        // `background` above: `.ai-btn:hover` reads `--ai-btn-bg`
+        // specifically, and without it hover replaces this real green
+        // background with a near-invisible white-on-light-page tint.
+        ['--ai-btn-bg' as string]: 'var(--ai-subtheme-success, #22c55e)',
         cursor: isValid ? 'pointer' : 'not-allowed',
         opacity: isValid ? 1 : 0.5,
       }}
@@ -542,6 +548,24 @@ function EditCoGridRow<T extends Record<string, any>>({
                     // semantic-subtheme convention as Save's green above.
                     background: 'var(--ai-subtheme-error, #ef4444)',
                     color: 'var(--ai-subtheme-error-on-main, #ffffff)',
+                    // --ai-btn-bg, not just `background` -- direct visual
+                    // feedback ("whatever effect is for hover, it loses
+                    // contrast on the cancel button, because of the white
+                    // glyph"). `.ai-btn:hover` (interactionStyles.ts)
+                    // computes its own tint as `color-mix(currentColor
+                    // 12%, var(--ai-btn-bg, transparent))` and applies it
+                    // `!important` -- reading `--ai-btn-bg`, NOT the
+                    // plain `background` property above. Without this
+                    // set, hover fell back to mixing 12% of currentColor
+                    // (white, this button's own text color) into
+                    // TRANSPARENT, replacing the real red background
+                    // entirely with a near-invisible white-on-light-page
+                    // haze -- exactly the lost-contrast bug reported.
+                    // Setting it to the SAME real background gives hover
+                    // something real to tint FROM, so the button stays
+                    // red (just lightened toward white) instead of
+                    // losing its background altogether.
+                    ['--ai-btn-bg' as string]: 'var(--ai-subtheme-error, #ef4444)',
                   }}
                   onClick={() => onCancel(key)}
                 >
