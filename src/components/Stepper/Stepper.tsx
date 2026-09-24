@@ -205,6 +205,15 @@ export const Stepper: React.FC<StepperProps> = ({
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
             opacity: activeIndex === 0 ? 0.5 : 1,
+            // --ai-btn-bg -- toolkit-wide audit (issue found on the
+            // DataTable edit co-grid's Save/Cancel buttons, direct
+            // feedback): `.ai-btn:hover` reads this custom property
+            // specifically, not the plain `background` above, computing
+            // `color-mix(currentColor 12%, var(--ai-btn-bg, transparent))`
+            // `!important`. Without it, hover replaced this button's real
+            // background with a tint mixed into the transparent fallback
+            // instead of this button's own actual color.
+            ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           Back
@@ -222,6 +231,12 @@ export const Stepper: React.FC<StepperProps> = ({
             borderRadius: 'var(--ai-radius-md, 0.375rem)',
             cursor: canAdvance ? 'pointer' : 'not-allowed',
             opacity: canAdvance ? 1 : 0.5,
+            // --ai-btn-bg -- see the Back button's identical comment
+            // above. This one is the more visually dramatic case: white
+            // text on primary blue losing its real background on hover
+            // read as the same lost-contrast bug reported on the
+            // DataTable co-grid's Cancel button.
+            ['--ai-btn-bg' as string]: 'var(--ai-color-primary, #3b82f6)',
           }}
         >
           Next
