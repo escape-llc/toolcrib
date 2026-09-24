@@ -177,6 +177,19 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
     setErrors({});
     setTouched({});
     setIsSubmitting(false);
+    // Every OTHER path that changes validity (setFieldValue, validateField,
+    // handleSubmit) emits 'form:validated' -- resetForm silently didn't,
+    // so anything tracking validity purely via the bus (rather than this
+    // context's own `errors`) never learned a reset happened, and kept
+    // showing whatever validity state was true right before the reset.
+    // Found for real: a co-grid Save button (DataTable/EditCoGrid.tsx)
+    // that disables itself on 'form:validated' stayed disabled after
+    // Reset even once the field's value was genuinely restored to a
+    // valid one. `isValid: true` matches this function's own existing
+    // assumption two lines up (`setErrors({})`, not a fresh
+    // `parseValues` pass) -- resetting to `initialValues` is treated as
+    // valid by definition, same as it always was here.
+    aiBus.emit('form:validated', { formId: id, isValid: true });
   };
 
   const handleSubmit = async (e?: FormEvent) => {

@@ -172,6 +172,15 @@ export interface RowCommand<T = any> {
   icon?: string;
   /** Omit this specific command for a given row (e.g. hide "Delete" for a protected record) -- returning false skips rendering the button entirely, not just disables it. */
   isVisible?: (record: T, index: number) => boolean;
+  /**
+   * Render this command's button disabled (still occupying its usual
+   * space) for a given row, rather than hiding it via `isVisible` --
+   * e.g. disabling "Edit" while that row is already being edited,
+   * instead of removing it and shifting every other command button's
+   * position. Unlike `isVisible`, this never changes how many buttons a
+   * row's actions cell renders.
+   */
+  isDisabled?: (record: T, index: number) => boolean;
 }
 
 /**
@@ -2892,10 +2901,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                             {rowCommands!
                               .filter(cmd => cmd.isVisible?.(record, actualIndex) ?? true)
-                              .map(cmd => (
+                              .map(cmd => {
+                                const isCmdDisabled = cmd.isDisabled?.(record, actualIndex) ?? false;
+                                return (
                                 <button
                                   key={cmd.id}
                                   type="button"
+                                  disabled={isCmdDisabled}
                                   onClick={e => {
                                     e.stopPropagation();
                                     aiBus.emit('datatable:row_command', {
@@ -2979,14 +2991,24 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                     width: `${rowCommandButtonSizePx}px`,
                                     height: `${rowCommandButtonSizePx}px`,
                                     borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                                    cursor: 'pointer',
+                                    // isDisabled -- direct visual feedback
+                                    // ("when a row is in edit, do not hide
+                                    // the edit command, just disable it to
+                                    // maintain layout"): same opacity/
+                                    // not-allowed treatment the column-
+                                    // visibility menu's own isDisabled
+                                    // guard already uses elsewhere in this
+                                    // file, not a one-off convention.
+                                    cursor: isCmdDisabled ? 'not-allowed' : 'pointer',
+                                    opacity: isCmdDisabled ? 0.5 : 1,
                                     color: 'var(--ai-text-secondary, #6b7280)',
                                     fontSize: '0.875rem',
                                   }}
                                 >
                                   {cmd.icon ? <span aria-hidden="true">{cmd.icon}</span> : cmd.label}
                                 </button>
-                              ))}
+                                );
+                              })}
                           </div>
                         </td>
                       )}
