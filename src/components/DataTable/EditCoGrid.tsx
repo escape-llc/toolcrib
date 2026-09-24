@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Presence } from '@radix-ui/react-presence';
 import type { ZodType } from 'zod';
-import { Form, useFormContext } from '../Form/FormContext';
-import { FormField, Input } from '../Form/FormComponents';
+import { Form, useFormContext, useOptionalFormContext } from '../Form/FormContext';
+import { Input, Label } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -203,27 +203,91 @@ const cellStyle: CSSProperties = {
 const headerCellStyle: CSSProperties = {
   ...cellStyle,
   padding: 'var(--ai-padding-xs, 0.25rem) 1rem',
+  // Direct visual feedback ("the edit header row still has way too much
+  // bottom padding/margin") -- measured the real computed values first
+  // (not assumed): padding alone was already a tight, symmetric 4px top
+  // and bottom, so the padding wasn't actually the (visible) culprit --
+  // a default browser line-height (~1.5x a 14px font, ~21px) was. A
+  // tighter, still perfectly legible ratio closes most of the remaining
+  // gap without touching the padding at all.
+  lineHeight: '1.2',
 };
 
-// `FormField` (Form/FormComponents.tsx) always applies its own fixed
-// `marginBottom` (`var(--ai-margin-gap, 0.875rem)`), sized for a
-// standalone form's own vertical rhythm -- inside this compact co-grid
-// that reads as real wasted space between rows (direct visual feedback:
-// "way too much space between edit rows"). FormField has no
-// style/className passthrough to override it directly (this toolkit's
-// own "no component accepts style/className" rule), so this cancels it
-// from OUTSIDE instead: `overflow: hidden` contains the child's
-// escaping bottom margin inside this wrapper's own box (rather than
-// letting it collapse through to the wrapper's own siblings), then the
-// wrapper's matching NEGATIVE marginBottom pulls that same amount back
-// off the wrapper's own contribution to the row's total height. A
-// field's real validation-error message (when one is actually showing)
-// is untouched by this -- it renders BEFORE FormField's own trailing
-// margin, so its own height still counts normally either way.
-const CANCEL_FORM_FIELD_MARGIN_STYLE: CSSProperties = {
-  overflow: 'hidden',
-  marginBottom: 'calc(-1 * var(--ai-margin-gap, 0.875rem))',
-};
+const ERROR_SLOT_HEIGHT = '0.875rem';
+
+/**
+ * Renders a compact field: an accessible (visually-hidden) label, the
+ * given control, and a FIXED-HEIGHT error slot -- always reserved,
+ * whether or not an error is currently showing. Two direct visual/UX
+ * fixes bundled into one replacement for `<FormField>`:
+ *
+ * 1. "the edit does not obey the compact... it must be compact" / "way
+ *    too much dead space" -- measured the real computed styles first
+ *    (not assumed): `FormField`'s own fixed `marginBottom`
+ *    (`var(--ai-margin-gap)`, ~14px) plus its flex `gap` (~6px) reserved
+ *    BEFORE the error region, PLUS `<Input size="md">`'s own default
+ *    8px top/bottom padding, were the real, measured contributors to a
+ *    52px-tall row -- not the co-grid's own cell padding, which was
+ *    already tight. `size="sm"` shrinks the Input's own padding to the
+ *    global compact scale; skipping `<FormField>` entirely (which has
+ *    no style/className passthrough to fix from outside) removes its
+ *    fixed margin/gap overhead at the source, rather than trying to
+ *    cancel it from outside (the previous approach, and the direct
+ *    cause of problem 2 below).
+ * 2. "the focus ring does not wrap all the way around" -- the previous
+ *    approach cancelled FormField's margin via `overflow: hidden` +
+ *    a matching negative margin on a wrapper div. `overflow: hidden`
+ *    clips ANYTHING rendered outside the wrapper's own box, including
+ *    a focus outline that (correctly) extends a pixel or two past the
+ *    input's own border -- a real, confirmed regression from that fix.
+ *    Composing the field directly, with no such wrapper at all, removes
+ *    the clipping ancestor entirely.
+ * 3. "the validation message causes a vertical shift" -- the error slot
+ *    below is a fixed-height div, always rendered (with a non-breaking
+ *    space when there's no error to show, so it never collapses to
+ *    zero height even without text), rather than `FormField`'s own
+ *    animated `grid-template-rows: 0fr -> 1fr` region. The row's overall
+ *    height (set by its tallest cell) is therefore identical whether or
+ *    not any field in it is currently showing an error -- there's
+ *    nothing left that could change size to shift it.
+ *
+ * `Input` computes its own `aria-invalid`/`aria-describedby` directly
+ * from `FormContext` (FormComponents.tsx) -- it does not depend on
+ * `FormField` for that wiring, so nothing accessibility-relevant is lost
+ * by not rendering one here. `id={`${name}-error`}` matches exactly what
+ * `Input` itself already points `aria-describedby` at.
+ */
+function CompactField({ name, title }: { name: string; title: ReactNode }) {
+  const formContext = useOptionalFormContext();
+  const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
+  return (
+    // No FieldContext.Provider -- Input accepts `name` directly
+    // (FormComponents.tsx: `const name = propName || fieldCtx.name ||
+    // ''`), so there's nothing FieldContext adds here that passing the
+    // prop explicitly doesn't already cover.
+    <>
+      <VisuallyHidden>
+        <Label htmlFor={name}>{title}</Label>
+      </VisuallyHidden>
+      <Input name={name} size="sm" />
+      <div
+        id={`${name}-error`}
+        style={{
+          fontSize: '0.6875rem',
+          lineHeight: ERROR_SLOT_HEIGHT,
+          height: ERROR_SLOT_HEIGHT,
+          marginTop: '0.125rem',
+          color: error ? 'var(--ai-subtheme-error, #ef4444)' : 'transparent',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {error || ' '}
+      </div>
+    </>
+  );
+}
 
 /**
  * The `display: table` wrapper shared between the header and every row --
@@ -336,20 +400,10 @@ function EditCoGridRow<T extends Record<string, any>>({
                   : col.editEditor
                     ? col.editEditor(context)
                     : (
-                      // VisuallyHidden, not a plain string -- the co-grid's
-                      // own header row above already shows this column's
-                      // title visually; a real <label> is still needed
-                      // for the field's accessible name (the fix for
-                      // Gemini's ARIA finding), just not a second visible
-                      // copy of text that's already on screen.
-                      // CANCEL_FORM_FIELD_MARGIN_STYLE wrapper: see its own
-                      // comment -- FormField's fixed marginBottom read as
-                      // real wasted space in this compact context.
-                      <div style={CANCEL_FORM_FIELD_MARGIN_STYLE}>
-                        <FormField name={col.key} label={<VisuallyHidden>{col.title}</VisuallyHidden>}>
-                          <Input />
-                        </FormField>
-                      </div>
+                      // CompactField, not <FormField><Input /></FormField>
+                      // -- see its own doc comment for the three direct
+                      // fixes this replacement addresses at once.
+                      <CompactField name={col.key} title={col.title} />
                     )}
               </div>
             );

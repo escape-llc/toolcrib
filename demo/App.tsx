@@ -12,6 +12,7 @@ import {
   Form,
   FormField,
   FormError,
+  useOptionalFormContext,
   Input,
   Checkbox,
   Switch,
@@ -25,6 +26,7 @@ import {
   useToast,
   DataTable,
   type Column,
+  type CellContext,
   TabStrip,
   UIGroup,
   Splitter,
@@ -199,6 +201,48 @@ interface DemoUser {
   role: string;
   status: 'Active' | 'Pending' | 'Inactive';
   score: number;
+}
+
+// A real function component, not an inline arrow assigned to editEditor
+// -- react-hooks/rules-of-hooks requires a Hook be called from something
+// matching its own component/Hook naming heuristic, and a plain arrow
+// function property doesn't. Composed directly (no <FormField>) matching
+// EditCoGrid.tsx's own CompactField -- FormField's fixed marginBottom/gap
+// read as real wasted space in the co-grid's compact rows, and clipped
+// the focus ring when an earlier version tried to cancel that margin via
+// an `overflow: hidden` wrapper instead (direct feedback on both). No
+// FieldContext.Provider -- Select accepts `name` directly (Select.tsx
+// destructures its own `name: propName`). Select computes its own
+// aria-invalid/aria-describedby directly from FormContext (Select.tsx),
+// so nothing accessibility-relevant is lost by not rendering a
+// <FormField> here either -- id="status-error" matches exactly what
+// Select itself already points aria-describedby at.
+function StatusEditEditor(_context: CellContext<DemoUser>) {
+  const formContext = useOptionalFormContext();
+  const error = formContext?.touched.status ? formContext.errors.status : undefined;
+  return (
+    <>
+      <VisuallyHidden>
+        <Label htmlFor="status">Status</Label>
+      </VisuallyHidden>
+      <Select name="status" size="sm" options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
+      <div
+        id="status-error"
+        style={{
+          fontSize: '0.6875rem',
+          lineHeight: '0.875rem',
+          height: '0.875rem',
+          marginTop: '0.125rem',
+          color: error ? 'var(--ai-subtheme-error, #ef4444)' : 'transparent',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {error || ' '}
+      </div>
+    </>
+  );
 }
 
 // Backs the Data Table tab and the Combobox async search demo -- one
@@ -1102,23 +1146,23 @@ export const App: React.FC = () => {
       // toolkit doesn't control (the same reason `column.render`'s own
       // output isn't forced to be accessible either). The fix has to be
       // here, in the editor actually being written.
-      // The wrapping div cancels FormField's own fixed marginBottom
-      // (var(--ai-margin-gap, 0.875rem), sized for a standalone form's
-      // vertical rhythm) -- inside the co-grid's own compact rows that
-      // read as real wasted space (direct feedback: "way too much space
-      // between edit rows ... it must be compact"). FormField has no
-      // style/className passthrough to override it directly, so this
-      // contains the escaping margin (`overflow: hidden`) and cancels it
-      // with a matching negative marginBottom instead -- the identical
-      // technique EditCoGrid.tsx's own default Input fallback uses for
-      // the same reason.
-      editEditor: () => (
-        <div style={{ overflow: 'hidden', marginBottom: 'calc(-1 * var(--ai-margin-gap, 0.875rem))' }}>
-          <FormField name="status" label={<VisuallyHidden>Status</VisuallyHidden>}>
-            <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
-          </FormField>
-        </div>
-      ),
+      // StatusEditEditor is a real function component (module scope,
+      // above), but it must be RENDERED as JSX here, not passed and
+      // invoked directly -- a real, Gemini-caught defect: EditCoGrid.tsx
+      // calls `col.editEditor(context)` as a plain function while
+      // building <Form>'s own children, which runs BEFORE <Form>'s
+      // context provider is active. `editEditor: StatusEditEditor`
+      // invoked StatusEditEditor's body (including its
+      // useOptionalFormContext() call) directly, in that too-early
+      // window, so the Hook always saw no provider and `status`'s own
+      // validation error could never actually display -- silently
+      // broken, no error, nothing but a component that looked fine and
+      // never worked. Wrapping in an arrow that returns JSX defers
+      // StatusEditEditor's own execution until React actually renders
+      // that element, by which point <Form>'s provider is real. See
+      // editEditor's own updated doc comment in DataTable.tsx for the
+      // general contract this is now documenting for the next case.
+      editEditor: context => <StatusEditEditor {...context} />,
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
     // right edge while every column to its left scrolls away underneath it.
