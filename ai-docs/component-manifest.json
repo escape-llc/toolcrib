@@ -3770,6 +3770,10 @@
       "isVisible": {
         "type": "(record: T, index: number) => boolean",
         "description": "Omit this specific command for a given row (e.g. hide \"Delete\" for a protected record) -- returning false skips rendering the button entirely, not just disables it."
+      },
+      "isDisabled": {
+        "type": "(record: T, index: number) => boolean",
+        "description": "Render this command's button disabled (still occupying its usual\nspace) for a given row, rather than hiding it via `isVisible` --\ne.g. disabling \"Edit\" while that row is already being edited,\ninstead of removing it and shifting every other command button's\nposition. Unlike `isVisible`, this never changes how many buttons a\nrow's actions cell renders."
       }
     },
     "FilmstripItem": {

@@ -789,6 +789,15 @@ export const App: React.FC = () => {
   // just surfaces that existing capability in the demo; no toolkit
   // source change needed to support it.
   const [continuousScroll, setContinuousScroll] = useState(false);
+  // Click-to-select defaults OFF here (disableRowClickSelection={true}) --
+  // this table already has an explicit checkbox column, so a plain row
+  // click selecting it too is redundant and, once rowCommands added an
+  // "Edit" trigger to the same row, an actual conflict: clicking to edit
+  // shouldn't also flip selection state. The toolkit's own
+  // disableRowClickSelection prop already covers this (@default false at
+  // the component level, unrelated to this demo's own default) -- this
+  // switch just surfaces it as a live toggle rather than a fixed choice.
+  const [rowClickToSelect, setRowClickToSelect] = useState(false);
   const [ratingValue, setRatingValue] = useState(4);
   const [sidebarActiveId, setSidebarActiveId] = useState('dashboard');
   const [dashboardDateRange, setDashboardDateRange] = useState('30d');
@@ -1093,10 +1102,22 @@ export const App: React.FC = () => {
       // toolkit doesn't control (the same reason `column.render`'s own
       // output isn't forced to be accessible either). The fix has to be
       // here, in the editor actually being written.
+      // The wrapping div cancels FormField's own fixed marginBottom
+      // (var(--ai-margin-gap, 0.875rem), sized for a standalone form's
+      // vertical rhythm) -- inside the co-grid's own compact rows that
+      // read as real wasted space (direct feedback: "way too much space
+      // between edit rows ... it must be compact"). FormField has no
+      // style/className passthrough to override it directly, so this
+      // contains the escaping margin (`overflow: hidden`) and cancels it
+      // with a matching negative marginBottom instead -- the identical
+      // technique EditCoGrid.tsx's own default Input fallback uses for
+      // the same reason.
       editEditor: () => (
-        <FormField name="status" label={<VisuallyHidden>Status</VisuallyHidden>}>
-          <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
-        </FormField>
+        <div style={{ overflow: 'hidden', marginBottom: 'calc(-1 * var(--ai-margin-gap, 0.875rem))' }}>
+          <FormField name="status" label={<VisuallyHidden>Status</VisuallyHidden>}>
+            <Select options={[{ label: 'Active', value: 'Active' }, { label: 'Pending', value: 'Pending' }, { label: 'Inactive', value: 'Inactive' }]} />
+          </FormField>
+        </div>
       ),
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
@@ -1775,6 +1796,16 @@ export const App: React.FC = () => {
                               new demo wiring; the toolkit itself needed no
                               change. */}
                           <Switch label="Continuous Scroll" checked={continuousScroll} onChange={setContinuousScroll} />
+                          {/* Off by default -- this table already has an
+                              explicit checkbox column for selection, so a
+                              plain row click ALSO selecting it is
+                              redundant, and became an actual conflict once
+                              rowCommands added an "Edit" trigger to the
+                              same row (clicking to edit shouldn't also
+                              flip selection). disableRowClickSelection is
+                              the toolkit's own existing prop for this; this
+                              switch just surfaces it as a live toggle. */}
+                          <Switch label="Click Row to Select" checked={rowClickToSelect} onChange={setRowClickToSelect} />
                         </Toolbar.Right>
                       </Toolbar>
                     </Card.Header>
@@ -1846,7 +1877,12 @@ export const App: React.FC = () => {
                           // isVisible hides it once the row is already
                           // being edited (its co-grid row's own Save/
                           // Cancel are the way out of that state instead).
-                          { id: 'edit', label: 'Edit', icon: '✏️', isVisible: record => !editingUserKeys.includes(String(record.id)) },
+                          // isDisabled, not isVisible -- direct feedback
+                          // ("when a row is in edit, do not hide the edit
+                          // command, just disable it to maintain layout"):
+                          // hiding it entirely shifted View/Delete's own
+                          // position depending on whether Edit was showing.
+                          { id: 'edit', label: 'Edit', icon: '✏️', isDisabled: record => editingUserKeys.includes(String(record.id)) },
                           { id: 'view', label: 'View', icon: '👁️' },
                           { id: 'delete', label: 'Delete', icon: '🗑️' },
                         ]}
@@ -1862,6 +1898,7 @@ export const App: React.FC = () => {
                             : undefined
                         }
                         selectable
+                        disableRowClickSelection={!rowClickToSelect}
                         selectedKeys={selectedUserKeys}
                         onSelectionChange={setSelectedUserKeys}
                         renderBulkActions={keys => (

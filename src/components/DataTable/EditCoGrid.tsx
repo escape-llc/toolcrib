@@ -3,11 +3,41 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Presence } from '@radix-ui/react-presence';
 import type { ZodType } from 'zod';
-import { Form } from '../Form/FormContext';
+import { Form, useFormContext } from '../Form/FormContext';
 import { FormField, Input } from '../Form/FormComponents';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Z_INDEX } from '../../theme/zIndex';
+import { useAIEvent } from '../../eventBus/useAIEvent';
 import type { Column, CellContext } from './DataTable';
+
+/**
+ * Runs `fn` exactly once, on this component's real unmount -- whatever the
+ * cause (Presence keeping it mounted through a genuinely-playing exit
+ * animation in a real browser, or removing it immediately because no
+ * animation is actually running). A ref holds the latest `fn` so the
+ * cleanup itself doesn't need to be an effect dependency. Shared by both
+ * `EditCoGridRow` and the co-grid's own outer container below -- each
+ * needs the identical "tell my parent I'm actually gone now" contract.
+ */
+function useUnmountEffect(fn: () => void) {
+  const fnRef = useRef(fn);
+  useEffect(() => {
+    fnRef.current = fn;
+  }, [fn]);
+  useEffect(() => {
+    return () => fnRef.current();
+  }, []);
+}
+
+/**
+ * Renders nothing -- exists purely so a plain DOM wrapper (which can't
+ * itself call hooks) gets a real "I was just unmounted" signal via a child
+ * that can. See the co-grid container's own use below.
+ */
+function OnUnmount({ fn }: { fn: () => void }) {
+  useUnmountEffect(fn);
+  return null;
+}
 
 export interface EditCoGridEntry<T> {
   key: string;
@@ -31,19 +61,168 @@ export interface EditCoGridProps<T extends Record<string, any>> {
   onCancel: (key: string) => void;
 }
 
-// Glyph-only Save/Cancel (direct visual feedback: text buttons here read
-// as "horrible" placement/space) need far less room than the two
-// default-sized text buttons this used to fit (128px was too narrow for
-// those, 160px was the fix at the time) -- two ~23px icon buttons plus a
-// small gap and the cell's own padding comfortably fit in 72px.
-const ACTIONS_COLUMN_WIDTH = 72;
+// Glyph-only Save/Reset/Cancel (direct visual feedback: text buttons
+// here read as "horrible" placement/space) need far less room than the
+// text buttons this used to fit. Widened from 72 (Save/Cancel only) to
+// fit a third ~23px glyph button (Reset) plus its own gap.
+const ACTIONS_COLUMN_WIDTH = 104;
 const GLYPH_BUTTON_PX = 23;
+
+const glyphButtonStyle: CSSProperties = {
+  border: 'none',
+  padding: 0,
+  font: 'inherit',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: `${GLYPH_BUTTON_PX}px`,
+  height: `${GLYPH_BUTTON_PX}px`,
+  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+  cursor: 'pointer',
+  fontSize: '0.875rem',
+};
+
+/**
+ * Discards in-progress changes back to the row's original values
+ * WITHOUT closing the edit form -- direct feedback ("add third edit
+ * command to reset to initial values"), distinct from Cancel (which
+ * both discards AND exits edit mode). Reuses `Form`'s own `resetForm`
+ * (FormContext.tsx) rather than reimplementing "clear every field back
+ * to entry.record" by hand. Must be a child rendered INSIDE `<Form>` --
+ * `useFormContext` only resolves within that provider, which is why
+ * this is its own small component rather than a plain button call site
+ * in `EditCoGridRow` (a sibling of `<Form>`'s own return, not a
+ * descendant of it).
+ */
+function ResetEditRowButton() {
+  const { resetForm } = useFormContext();
+  return (
+    <button
+      type="button"
+      aria-label="Reset"
+      title="Reset"
+      className="ai-btn ai-focus-ring"
+      style={{
+        ...glyphButtonStyle,
+        background: 'transparent',
+        color: 'var(--ai-text-secondary, #6b7280)',
+      }}
+      onClick={resetForm}
+    >
+      <span aria-hidden="true">↺</span>
+    </button>
+  );
+}
+
+/**
+ * Save, disabled while this row's own form is currently invalid --
+ * direct feedback ("the apply button is not disabled while the zod
+ * form is invalid"). `handleSubmit` (FormContext.tsx) already REFUSES
+ * to call `onSave` on invalid data -- clicking this while invalid was
+ * always a safe no-op, just a misleading one with no visual signal.
+ *
+ * Tracks validity via the event bus (`form:validated`), not a direct
+ * `useFormContext().errors` read -- direct feedback ("that should all
+ * be on the event bus" / "data table validation should go on the
+ * event bus"), and it's also just the correct source: `errors` is
+ * lazily computed (only set by setFieldValue/validateField/
+ * handleSubmit, never eagerly on mount), so `form:validated`'s own
+ * `isValid` -- emitted by every one of those exact same call sites --
+ * is the same information Form already surfaces on the bus for this
+ * purpose, rather than re-deriving it a second way. Starts `true`
+ * (matches this same lazy-validation convention elsewhere: a
+ * brand-new row with nothing touched yet isn't shown as invalid until
+ * a real validation pass actually runs).
+ */
+function SaveEditRowButton({ formId }: { formId: string }) {
+  const [isValid, setIsValid] = useState(true);
+  useAIEvent('form:validated', payload => {
+    if (payload.formId === formId) setIsValid(payload.isValid);
+  });
+  return (
+    <button
+      type="submit"
+      aria-label="Save"
+      title="Save"
+      disabled={!isValid}
+      className="ai-btn ai-focus-ring"
+      style={{
+        ...glyphButtonStyle,
+        // Green, not primary blue -- direct visual feedback ("I want
+        // green/red for apply/cancel"), reusing this toolkit's own
+        // semantic success/error subtheme tokens rather than a one-off
+        // literal color.
+        background: 'var(--ai-subtheme-success, #22c55e)',
+        color: 'var(--ai-subtheme-success-on-main, #ffffff)',
+        cursor: isValid ? 'pointer' : 'not-allowed',
+        opacity: isValid ? 1 : 0.5,
+      }}
+    >
+      <span aria-hidden="true">✓</span>
+    </button>
+  );
+}
 
 const cellStyle: CSSProperties = {
   display: 'table-cell',
-  padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
-  verticalAlign: 'top',
+  // A small, fixed value -- NOT `--ai-table-cell-padding` (the main
+  // grid's own density-driven padding). Direct visual feedback ("way too
+  // much space between edit rows ... it must be compact"): the co-grid
+  // is a dense list of full edit forms, not a browsing grid, so it stays
+  // tight regardless of whatever density the main grid happens to be set
+  // to, rather than growing/shrinking with it. This is the resolution to
+  // an earlier open question (whether editing should get its own,
+  // separate density) -- always compact, not a second density knob to
+  // expose.
+  padding: '0.375rem 1rem',
+  // 'middle', not 'top' -- direct visual feedback ("the non-edit is not
+  // aligned vertically"). A plain read-only value (col.render's own text,
+  // no FormField wrapper at all) and an <Input>/<Select>'s own taller,
+  // padded/bordered box both being TOP-aligned in the same cell left their
+  // actual text baselines mismatched, since only the input-based cells
+  // carry that extra box height. Middle-aligning each cell's content
+  // against the row's real height (set by the tallest cell, i.e. the
+  // input-based ones) centers a plain text value at the same visual
+  // height as an input's own vertically-centered text.
+  verticalAlign: 'middle',
   boxSizing: 'border-box',
+};
+
+// Direct visual feedback ("compress the edit header height") -- the
+// header row doesn't need the body rows' own roomy vertical padding
+// (sized for a real <Input>'s box height), just enough to read
+// comfortably. NOT `--ai-table-header-padding` -- checked its real
+// per-density values in DataTableSlice.tsx first: that variable is
+// deliberately LARGER than `--ai-table-cell-padding` at every density
+// (0.75rem vs 0.625rem at 'normal', e.g.), since the main grid's own
+// header needs a bit more breathing room above body rows. Using it here
+// would make this header BIGGER, the opposite of what was asked. A
+// fixed, deliberately small value instead -- this header's plain text
+// has no interactive touch-target that needs to grow with density the
+// way the body rows' real <Input>s do.
+const headerCellStyle: CSSProperties = {
+  ...cellStyle,
+  padding: 'var(--ai-padding-xs, 0.25rem) 1rem',
+};
+
+// `FormField` (Form/FormComponents.tsx) always applies its own fixed
+// `marginBottom` (`var(--ai-margin-gap, 0.875rem)`), sized for a
+// standalone form's own vertical rhythm -- inside this compact co-grid
+// that reads as real wasted space between rows (direct visual feedback:
+// "way too much space between edit rows"). FormField has no
+// style/className passthrough to override it directly (this toolkit's
+// own "no component accepts style/className" rule), so this cancels it
+// from OUTSIDE instead: `overflow: hidden` contains the child's
+// escaping bottom margin inside this wrapper's own box (rather than
+// letting it collapse through to the wrapper's own siblings), then the
+// wrapper's matching NEGATIVE marginBottom pulls that same amount back
+// off the wrapper's own contribution to the row's total height. A
+// field's real validation-error message (when one is actually showing)
+// is untouched by this -- it renders BEFORE FormField's own trailing
+// margin, so its own height still counts normally either way.
+const CANCEL_FORM_FIELD_MARGIN_STYLE: CSSProperties = {
+  overflow: 'hidden',
+  marginBottom: 'calc(-1 * var(--ai-margin-gap, 0.875rem))',
 };
 
 /**
@@ -64,7 +243,6 @@ const TABLE_UNIT_STYLE: CSSProperties = { display: 'table', width: '100%', table
 function EditCoGridRow<T extends Record<string, any>>({
   tableId,
   entry,
-  present,
   isPaired,
   columns,
   getColumnWidth,
@@ -75,7 +253,6 @@ function EditCoGridRow<T extends Record<string, any>>({
 }: {
   tableId: string;
   entry: EditCoGridEntry<T>;
-  present: boolean;
   isPaired: boolean;
   columns: Column<T>[];
   getColumnWidth: (col: Column<T>) => number;
@@ -84,14 +261,6 @@ function EditCoGridRow<T extends Record<string, any>>({
   onCancel: (key: string) => void;
   onGone: () => void;
 }) {
-  // Saved-callback ref (matches useAIEvent's/useRowSetCrossFade's own
-  // established idiom in this codebase) so the cleanup below can call
-  // whatever the LATEST onGone is without needing to be an effect
-  // dependency itself.
-  const onGoneRef = useRef(onGone);
-  useEffect(() => {
-    onGoneRef.current = onGone;
-  }, [onGone]);
   // Fires on this row's REAL unmount, whatever the cause -- Presence
   // keeping it mounted through a genuinely-playing exit animation in a
   // real browser, or removing it immediately because no animation is
@@ -103,8 +272,17 @@ function EditCoGridRow<T extends Record<string, any>>({
   // nothing real inside it). Tying cleanup to the component's own actual
   // removal from the tree, rather than to a specific DOM event, is
   // correct regardless of why or how fast that removal happens.
+  useUnmountEffect(onGone);
+
+  // Autofocus the first real field the instant this row's own edit form
+  // mounts -- direct feedback: clicking rowCommands' "Edit" trigger left
+  // focus stranded on that now-hidden button instead of moving into the
+  // co-grid row it just created. Scoped to this row's own subtree (via
+  // rootRef, not the whole co-grid) and mount-only (empty deps): this is
+  // "this row just started being edited," not "this row re-rendered."
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    return () => onGoneRef.current();
+    rootRef.current?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
   }, []);
 
   const key = entry.key;
@@ -126,13 +304,13 @@ function EditCoGridRow<T extends Record<string, any>>({
           so nothing anonymous ever gets generated. Every row (and the
           header) using the SAME literal `getColumnWidth` px values is
           what keeps them visually aligned despite being separate table
-          contexts. */}
-      <div
-        style={{
-          ...TABLE_UNIT_STYLE,
-          animation: `${present ? 'ai-fade-in' : 'ai-fade-out'} var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)`,
-        }}
-      >
+          contexts. The row's own enter/exit animation lives on the plain
+          `<div>` wrapping THIS component in EditCoGrid's own render loop,
+          not here -- Presence needs a real DOM node for its ref, and
+          `EditCoGridRow` (like `Form` itself) is a plain function
+          component that can't receive one; `rootRef` above is a
+          SEPARATE, purely-internal ref used only for the focus query. */}
+      <div ref={rootRef} style={TABLE_UNIT_STYLE}>
         <div
           style={{
             display: 'table-row',
@@ -164,9 +342,14 @@ function EditCoGridRow<T extends Record<string, any>>({
                       // for the field's accessible name (the fix for
                       // Gemini's ARIA finding), just not a second visible
                       // copy of text that's already on screen.
-                      <FormField name={col.key} label={<VisuallyHidden>{col.title}</VisuallyHidden>}>
-                        <Input />
-                      </FormField>
+                      // CANCEL_FORM_FIELD_MARGIN_STYLE wrapper: see its own
+                      // comment -- FormField's fixed marginBottom read as
+                      // real wasted space in this compact context.
+                      <div style={CANCEL_FORM_FIELD_MARGIN_STYLE}>
+                        <FormField name={col.key} label={<VisuallyHidden>{col.title}</VisuallyHidden>}>
+                          <Input />
+                        </FormField>
+                      </div>
                     )}
               </div>
             );
@@ -187,8 +370,16 @@ function EditCoGridRow<T extends Record<string, any>>({
               pinned columns for the identical reason: a sticky cell with
               no elevated z-index can lose the paint order to an adjacent
               scrolling cell during simultaneous horizontal scroll,
-              letting scrolled-under content render on top of it. */}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-surface, #ffffff)' }}>
+              letting scrolled-under content render on top of it.
+              `background: 'transparent'`, not an opaque fill -- direct
+              visual feedback ("I want transparent behind the buttons"):
+              an opaque white/gray fill here read as a separate panel
+              stapled onto the row rather than part of it. Accepted
+              trade-off: during horizontal scroll, the last data column's
+              content can now briefly show through beneath the buttons
+              instead of being fully occluded -- a real but minor cost
+              against the "stark white box" look this replaces. */}
+          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'transparent' }}>
             <div style={{ display: 'flex', gap: '0.375rem' }}>
               {/* Glyph-only, not text "Save"/"Cancel" -- direct visual
                   feedback ("placement of save/cancel is horrible; go with
@@ -203,46 +394,23 @@ function EditCoGridRow<T extends Record<string, any>>({
                   trigger the same real submission -- SubmitButton's own
                   extra value (isSubmitting-driven disable) is a small,
                   deliberately accepted trade-off for a form this synchronous. */}
-              <button
-                type="submit"
-                aria-label="Save"
-                className="ai-btn ai-focus-ring"
-                style={{
-                  border: 'none',
-                  background: 'var(--ai-color-primary, #3b82f6)',
-                  color: 'var(--ai-color-primary-text, #ffffff)',
-                  padding: 0,
-                  font: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: `${GLYPH_BUTTON_PX}px`,
-                  height: `${GLYPH_BUTTON_PX}px`,
-                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                }}
-              >
-                <span aria-hidden="true">✓</span>
-              </button>
+              <SaveEditRowButton formId={`${tableId}-edit-${key}`} />
+              {/* Reset (discard-in-place) sits between Save and Cancel --
+                  a neutral middle ground between "commit" and "discard
+                  AND close." */}
+              <ResetEditRowButton />
               <button
                 type="button"
                 aria-label="Cancel"
+                title="Cancel"
                 className="ai-btn ai-focus-ring"
                 style={{
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--ai-text-secondary, #6b7280)',
-                  padding: 0,
-                  font: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: `${GLYPH_BUTTON_PX}px`,
-                  height: `${GLYPH_BUTTON_PX}px`,
-                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
+                  ...glyphButtonStyle,
+                  // Red, not transparent/secondary -- direct visual
+                  // feedback ("I want green/red for apply/cancel"), same
+                  // semantic-subtheme convention as Save's green above.
+                  background: 'var(--ai-subtheme-error, #ef4444)',
+                  color: 'var(--ai-subtheme-error-on-main, #ffffff)',
                 }}
                 onClick={() => onCancel(key)}
               >
@@ -344,20 +512,42 @@ export function EditCoGrid<T extends Record<string, any>>({
     });
   };
 
-  if (rows.size === 0 && truncatedCount === 0) return null;
+  const shouldShow = rows.size > 0 || truncatedCount > 0;
+  // setState-during-render (mirrors the `missing` block's own established
+  // idiom just above), NOT an effect -- an effect would cost an extra,
+  // visible render round-trip a plain state clone from the KNOWN
+  // `shouldShow` value doesn't need. Only ever flips true here; flipping
+  // back to false happens exclusively via the container's own real
+  // unmount below (`OnUnmount`), once its exit animation has actually
+  // had the chance to play, not the instant `shouldShow` itself goes
+  // false.
+  const [everShown, setEverShown] = useState(shouldShow);
+  if (shouldShow && !everShown) setEverShown(true);
+
+  // Nothing to render, and nothing exiting either -- the true "return
+  // null" case (both `rows` and `truncatedCount` empty, and no exit
+  // animation currently in flight).
+  if (!everShown) return null;
 
   return (
-    <div
-      role="region"
-      aria-label="Rows being edited"
-      style={{
-        // Mount-only entrance, matching the empty-state's own documented
-        // reasoning: exit is already handled per-row above, so the outer
-        // container disappearing the instant its last row's own exit
-        // animation finishes is an acceptable, deliberate simplification
-        // (same tradeoff DataTable.tsx's own empty-state entrance already
-        // accepts for the identical structural reason).
-        animation: 'ai-scale-in var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)',
+    // Presence needs a real DOM node for its ref, same reason
+    // `EditCoGridRow`'s own row-level animation lives on a plain `<div>`
+    // in the `.map()` below rather than on that component directly --
+    // this outer container is a real, direct-child `<div>`, matching
+    // `Drawer.tsx`'s own established Presence usage.
+    <Presence present={shouldShow}>
+      <div
+        role="region"
+        aria-label="Rows being edited"
+        style={{
+        // Direct visual feedback ("no exit transitions ... on the co-grid
+        // itself") -- previously mount-only entrance with no exit story
+        // at all; the container just vanished the instant `shouldShow`
+        // went false. `OnUnmount` below (paired with `everShown` above)
+        // is what keeps this container actually rendered long enough for
+        // the exit animation to play in a real browser, the same
+        // present-vs-actually-gone split `EditCoGridRow` already uses.
+        animation: `${shouldShow ? 'ai-scale-in' : 'ai-fade-out'} var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)`,
         borderTop: '0.125rem solid var(--ai-color-quaternary, #a855f7)',
         background: 'var(--ai-bg-container, #f9fafb)',
         // Fixed viewport-relative cap, deliberately NOT derived from any
@@ -391,6 +581,12 @@ export function EditCoGrid<T extends Record<string, any>>({
         overflowX: 'auto',
       }}
     >
+      {/* Runs `setEverShown(false)` on this container's real unmount --
+          the counterpart to `everShown` above. Renders nothing itself;
+          it's a plain child purely so the surrounding `<div>` (which
+          can't call hooks directly) gets a real lifecycle signal. */}
+      <OnUnmount fn={() => setEverShown(false)} />
+
       {truncatedCount > 0 && (
         <div role="status" style={{ padding: 'var(--ai-padding-sm, 0.5rem 1rem)', fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
           {`Showing ${rows.size} of ${rows.size + truncatedCount} rows being edited — save or cancel some to see the rest.`}
@@ -400,34 +596,47 @@ export function EditCoGrid<T extends Record<string, any>>({
       {/* The header is its OWN independent display:table, same reasoning
           as each row -- see EditCoGridRow's own comment. Using the exact
           same literal getColumnWidth px values as every row is what keeps
-          the columns visually aligned across these separate contexts. */}
+          the columns visually aligned across these separate contexts.
+          headerCellStyle, not cellStyle -- direct visual feedback
+          ("compress the edit header height"). */}
       <div style={TABLE_UNIT_STYLE}>
         <div style={{ display: 'table-row' }}>
           {columns.map(col => (
-            <div key={col.key} style={{ ...cellStyle, width: `${getColumnWidth(col)}px`, textAlign: 'left', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+            <div key={col.key} style={{ ...headerCellStyle, width: `${getColumnWidth(col)}px`, textAlign: 'left', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
               {col.title}
             </div>
           ))}
-          <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'var(--ai-bg-container, #f9fafb)' }} />
+          <div style={{ ...headerCellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'transparent' }} />
         </div>
       </div>
 
-      {Array.from(rows.entries()).map(([key, entry]) => (
-        <Presence key={key} present={currentKeys.has(key)}>
-          <EditCoGridRow
-            tableId={tableId}
-            entry={entry}
-            present={currentKeys.has(key)}
-            isPaired={pairedKeys.has(key)}
-            columns={columns}
-            getColumnWidth={getColumnWidth}
-            editSchema={editSchema}
-            onSave={onSave}
-            onCancel={onCancel}
-            onGone={() => dropRow(key)}
-          />
-        </Presence>
-      ))}
-    </div>
+      {Array.from(rows.entries()).map(([key, entry]) => {
+        const present = currentKeys.has(key);
+        return (
+          // Presence's DIRECT child must be a real DOM node it can attach
+          // a ref to -- a plain `<div>` here, not `EditCoGridRow` itself
+          // (a function component, same constraint as `Form`). The
+          // enter/exit animation lives on THIS div; `EditCoGridRow` no
+          // longer takes a `present` prop at all, since it no longer
+          // renders any animation of its own.
+          <Presence key={key} present={present}>
+            <div style={{ animation: `${present ? 'ai-fade-in' : 'ai-fade-out'} var(--ai-transition-duration-normal, 200ms) var(--ai-transition-easing, ease)` }}>
+              <EditCoGridRow
+                tableId={tableId}
+                entry={entry}
+                isPaired={pairedKeys.has(key)}
+                columns={columns}
+                getColumnWidth={getColumnWidth}
+                editSchema={editSchema}
+                onSave={onSave}
+                onCancel={onCancel}
+                onGone={() => dropRow(key)}
+              />
+            </div>
+          </Presence>
+        );
+      })}
+      </div>
+    </Presence>
   );
 }
