@@ -148,10 +148,25 @@ export interface Column<T = any> {
    * Default+slot override for this column's field in the edit co-grid —
    * mirrors `render`'s own shape (same `CellContext`), since a custom
    * editor needs the same live value/row/index access `render` gets, not
-   * a static JSX slot. Falls back to a plain `<Input>` bound to `key`,
-   * wrapped in `<FormField>`, when omitted. Has no effect when this
-   * column's own `editable` is `false`, or when the table's `editable` is
-   * off.
+   * a static JSX slot. Falls back to a plain, density-compact `<Input>`
+   * bound to `key` when omitted. Has no effect when this column's own
+   * `editable` is `false`, or when the table's `editable` is off.
+   *
+   * **Called as a plain function (`col.editEditor(context)`), not
+   * rendered as JSX** — a real, Gemini-caught defect on this exact PR:
+   * a custom editor that calls a Hook (`useOptionalFormContext()`,
+   * e.g.) directly at its own top level runs that Hook call BEFORE
+   * `<Form>`'s own context provider is active (this function executes
+   * synchronously while building `<Form>`'s children, not after `<Form>`
+   * itself has rendered), so the Hook always sees no provider -- and
+   * separately violates the Rules of Hooks, since it's invoked from
+   * inside a `.map()` rather than from within an actual component. If
+   * your editor needs a Hook, put the Hook inside a real, separately
+   * declared component and return that component rendered as JSX
+   * instead: `editEditor: (context) => <MyEditor {...context} />`, not
+   * `editEditor: MyEditor` (which calls `MyEditor` directly rather than
+   * mounting it as a component at all) or a Hook called inline in the
+   * arrow function itself.
    */
   editEditor?: (context: CellContext<T>) => ReactNode;
 }

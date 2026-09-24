@@ -1147,9 +1147,22 @@ export const App: React.FC = () => {
       // output isn't forced to be accessible either). The fix has to be
       // here, in the editor actually being written.
       // StatusEditEditor is a real function component (module scope,
-      // above) -- see its own doc comment for why an inline arrow here
-      // fails react-hooks/rules-of-hooks the moment it calls a Hook.
-      editEditor: StatusEditEditor,
+      // above), but it must be RENDERED as JSX here, not passed and
+      // invoked directly -- a real, Gemini-caught defect: EditCoGrid.tsx
+      // calls `col.editEditor(context)` as a plain function while
+      // building <Form>'s own children, which runs BEFORE <Form>'s
+      // context provider is active. `editEditor: StatusEditEditor`
+      // invoked StatusEditEditor's body (including its
+      // useOptionalFormContext() call) directly, in that too-early
+      // window, so the Hook always saw no provider and `status`'s own
+      // validation error could never actually display -- silently
+      // broken, no error, nothing but a component that looked fine and
+      // never worked. Wrapping in an arrow that returns JSX defers
+      // StatusEditEditor's own execution until React actually renders
+      // that element, by which point <Form>'s provider is real. See
+      // editEditor's own updated doc comment in DataTable.tsx for the
+      // general contract this is now documenting for the next case.
+      editEditor: context => <StatusEditEditor {...context} />,
     },
     // Pinned right, the mirror case -- freezes Score at the grid's own
     // right edge while every column to its left scrolls away underneath it.
