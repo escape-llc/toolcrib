@@ -117,6 +117,14 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           no separate JS check needed here.
         */}
         <div
+          // Test-only DOM hook (AGENTS.md's own established pattern --
+          // ThemeEditor's/Modal's data-testid precedent) so e2e specs can
+          // locate this wrapper directly instead of an XPath sibling
+          // relationship (`following-sibling::div[1]`) that silently
+          // breaks the moment this component's own markup shape changes.
+          // Costs nothing at runtime and carries no consumer-facing
+          // meaning.
+          data-testid="form-field-error-region"
           // aria-hidden when collapsed -- caught in review (Gemini, PR
           // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips
           // content to zero *visible* area, but isn't guaranteed to read
@@ -210,6 +218,9 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   if (name) {
     return (
       <div
+        // Test-only DOM hook -- see FormField's own identical comment on
+        // `form-field-error-region` above.
+        data-testid="form-error-named-region"
         // See FormField's own aria-hidden/visibility comments for the full
         // reasoning (both found in review, Gemini, PR #506).
         aria-hidden={!namedError}
@@ -235,6 +246,9 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
 
   return (
     <div
+      // Test-only DOM hook -- see FormField's own identical comment on
+      // `form-field-error-region` above.
+      data-testid="form-error-summary-region"
       // Load-bearing here, not just defense-in-depth (unlike the other two
       // wrappers above): this banner's own text is a *static* string,
       // always in the DOM regardless of hasErrors -- without this, a

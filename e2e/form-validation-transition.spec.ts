@@ -145,11 +145,46 @@ test('the error region keeps the error text rendered through the full collapse, 
   // grid-template-rows transitionend on this same wrapper. A boolean
   // would be satisfied by the first, unrelated one; the count lets each
   // phase below wait for its own specific occurrence.
+  //
+  // The actual "stayed attached through the collapse" claim is recorded
+  // as `data-*` attributes on the element itself, written by a
+  // MutationObserver INSIDE the browser -- not via a separate Playwright
+  // `toBeAttached()` check issued after polling for `gridTemplateRows
+  // === '0fr'`. That sequential-round-trip version (each
+  // `expect.poll`/assertion is its own CDP round trip) was a real,
+  // confirmed flake under full-suite load, webkit specifically: the
+  // authored inline style flips to '0fr' synchronously the instant React
+  // re-renders, but the REAL CSS transition (and therefore the held
+  // text's own removal on transitionend) runs independently on the
+  // browser's own clock. Under heavy CPU contention from the other
+  // parallel workers, the gap between "Node observes 0fr" and "Node's
+  // next command actually runs" can exceed the transition's own
+  // duration, so the text was already gone by the time the "still
+  // attached" check fired -- not a component bug, a race in how the test
+  // was OBSERVING it. If the transition leaves real evidence behind IN
+  // THE DOM the instant it happens, timing stops mattering: the
+  // attribute is written exactly once, exactly when the DOM actually
+  // changes, and reading it afterward -- whenever Node/Playwright
+  // happens to get around to it -- always sees the same, already-settled
+  // answer.
   await errorWrapper.evaluate(el => {
-    (window as any).__transitionEndCount = 0;
-    el.addEventListener('transitionend', (e: any) => {
-      if (e.propertyName === 'grid-template-rows') (window as any).__transitionEndCount++;
+    el.dataset.transitionendCount = '0';
+    el.dataset.textRemovedEarly = 'false';
+    el.addEventListener('transitionend', (e: TransitionEvent) => {
+      if (e.propertyName === 'grid-template-rows') {
+        el.dataset.transitionendCount = String(Number(el.dataset.transitionendCount) + 1);
+      }
     });
+    // Fires synchronously whenever the DOM actually changes -- the
+    // transitionend listener above updates this SAME element's own
+    // dataset, so there's no cross-context ordering concern with what
+    // this observer reads.
+    new MutationObserver(() => {
+      const stillHeld = el.textContent?.includes('Please enter a valid email address') ?? false;
+      if (!stillHeld && Number(el.dataset.transitionendCount) < 2) {
+        el.dataset.textRemovedEarly = 'true';
+      }
+    }).observe(el, { childList: true, subtree: true, characterData: true });
   });
 
   await emailInput.fill('not-an-email');
@@ -159,18 +194,19 @@ test('the error region keeps the error text rendered through the full collapse, 
   await expect(errorWrapper.getByText('Please enter a valid email address')).toBeAttached();
   // Wait for the EXPAND's own transitionend before moving on, or the
   // still-in-flight event could be misattributed to the collapse below.
-  await expect.poll(() => page.evaluate(() => (window as any).__transitionEndCount)).toBeGreaterThanOrEqual(1);
+  await expect.poll(() => errorWrapper.getAttribute('data-transitionend-count')).toBe('1');
 
   await emailInput.fill('john@example.com');
   await emailInput.blur();
 
-  // The collapse has genuinely started (real state driving the real
-  // transition), but the text must still be attached immediately after.
-  await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('0fr');
-  await expect(errorWrapper.getByText('Please enter a valid email address')).toBeAttached();
-
-  // Only once the collapse's OWN transitionend fires (count reaches 2)
-  // does the held text actually unmount.
-  await expect.poll(() => page.evaluate(() => (window as any).__transitionEndCount)).toBeGreaterThanOrEqual(2);
+  // Wait for the collapse to genuinely finish (real state driving the
+  // real transition) -- once transitionend has fired for it, the
+  // MutationObserver above has already recorded, as a real DOM
+  // attribute, whether the text was ever removed before this point.
+  await expect.poll(() => errorWrapper.getAttribute('data-transitionend-count')).toBe('2');
+  expect(
+    await errorWrapper.getAttribute('data-text-removed-early'),
+    'held error text was removed before the collapse transition actually finished'
+  ).toBe('false');
   await expect(errorWrapper.getByText('Please enter a valid email address')).not.toBeAttached();
 });
