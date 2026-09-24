@@ -9,6 +9,11 @@ dist/
 # build-tests-release.js, package-tests-release.js)
 dist-release/
 dist-tests/
+
+# Production-build fixture used by the e2e suite's own second webServer
+# (playwright.config.ts, issue #559) -- a real `vite build` output, built
+# fresh on every e2e run, never meant to be committed.
+dist-e2e-prod/
 toolcrib.zip
 toolcrib.zip.sha256
 toolcrib-tests.zip

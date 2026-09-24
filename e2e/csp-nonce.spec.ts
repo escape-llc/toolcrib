@@ -140,68 +140,96 @@ test('a lazily-mounted component (Toast) also carries the configured nonce once 
   expect(nonce).toBe(NONCE);
 });
 
-test('under a real, enforced strict style-src CSP, toolcrib produces zero violations and still renders correctly', async ({ page }) => {
-  // Uses the real SecurityPolicyViolationEvent rather than scraping
-  // console message text -- it carries structured detail (sourceFile,
-  // effectiveDirective) that pinpoints exactly which script triggered
-  // each violation, rather than a browser-specific message string. Routed
-  // through `window.name` (a plain string round-trippable via
-  // `page.evaluate`) since `page.addInitScript` runs in the page's own
-  // isolated world and can't close over a Node-side array directly.
-  await page.addInitScript(() => {
-    (window as unknown as { __cspViolations: unknown[] }).__cspViolations = [];
-    document.addEventListener('securitypolicyviolation', (e) => {
-      (window as unknown as { __cspViolations: unknown[] }).__cspViolations.push({
-        effectiveDirective: e.effectiveDirective,
-        blockedURI: e.blockedURI,
-        sourceFile: e.sourceFile,
+// Its own describe block purely to scope `test.use({ baseURL })` to this
+// one test -- see playwright.config.ts's own comment on the second
+// `webServer` entry (issue #559) for the full reasoning. This test
+// intercepts EVERY request (`withStrictCSP`'s `page.route('**/*', ...)`),
+// which under Vite's dev server (~1300 unbundled ES modules per load)
+// reliably timed out under Podman's containerized network path even
+// though it never did natively -- a real production build collapses that
+// to ~4 files. Testing the real `dist/` output is also just more
+// correct: the actual claim is "toolcrib's SHIPPED output produces zero
+// CSP violations," not "the dev server's own extra tooling does."
+test.describe('under a real production build (issue #559)', () => {
+  test.use({ baseURL: 'http://localhost:4174' });
+  // Real, confirmed-necessary headroom beyond Playwright's own 30s
+  // default -- NOT a band-aid for a timing bug still to be root-caused.
+  // Switching to the production build (fewer files: ~4 vs dev mode's
+  // ~1300) cut this test's own wall time from timing out at 30s to
+  // ~1.5-3s in ISOLATION, confirming the file-count theory was real. But
+  // a full-suite Podman run still timed out on this exact test, on both
+  // browsers, at test #142 of ~190 -- deep into the run, when 8 parallel
+  // workers are hammering both webServers at once. That's the real
+  // remaining variable: Podman's per-request network latency compounds
+  // worst under whole-container contention, which only exists during a
+  // full-suite run, not the isolated single-spec run that "confirmed"
+  // the fix. This test's own correctness (zero CSP violations) has
+  // nothing to do with how fast it completes, so giving it real headroom
+  // against worst-case container contention is the honest fix, not
+  // trying to guess a number that survives every load condition.
+  test.setTimeout(90_000);
+
+  test('under a real, enforced strict style-src CSP, toolcrib produces zero violations and still renders correctly', async ({ page }) => {
+    // Uses the real SecurityPolicyViolationEvent rather than scraping
+    // console message text -- it carries structured detail (sourceFile,
+    // effectiveDirective) that pinpoints exactly which script triggered
+    // each violation, rather than a browser-specific message string. Routed
+    // through `window.name` (a plain string round-trippable via
+    // `page.evaluate`) since `page.addInitScript` runs in the page's own
+    // isolated world and can't close over a Node-side array directly.
+    await page.addInitScript(() => {
+      (window as unknown as { __cspViolations: unknown[] }).__cspViolations = [];
+      document.addEventListener('securitypolicyviolation', (e) => {
+        (window as unknown as { __cspViolations: unknown[] }).__cspViolations.push({
+          effectiveDirective: e.effectiveDirective,
+          blockedURI: e.blockedURI,
+          sourceFile: e.sourceFile,
+        });
       });
     });
+
+    await withStrictCSP(page);
+    await page.goto('/');
+    await gotoTab(page, 'Toast Subsystem');
+    await page.getByRole('button', { name: 'Fire Info Toast' }).click();
+
+    // Checked here, before navigating away -- the button only exists on
+    // this tab, so this has to run while it's still mounted.
+    const buttonBg = await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Fire Info Toast'));
+      return btn ? getComputedStyle(btn).backgroundColor : null;
+    });
+
+    await gotoTab(page, 'Overlays & Actions');
+
+    const cspViolations = await page.evaluate(
+      () => (window as unknown as { __cspViolations: { effectiveDirective: string; blockedURI: string; sourceFile: string }[] }).__cspViolations
+    );
+    // No `@vite/client` carve-out needed any more -- this now runs against
+    // the real production build (see this describe block's own comment),
+    // which never includes Vite's dev-only HMR/error-overlay script in
+    // the first place. Every violation here is genuinely toolcrib's own.
+    expect(
+      cspViolations,
+      `CSP violations under a strict style-src:\n${cspViolations.map((v) => JSON.stringify(v)).join('\n')}`
+    ).toEqual([]);
+
+    // Not just "no error" -- confirms the feature genuinely still works
+    // under the policy, both halves of CORE.md's CSP note. The nonce'd
+    // <style> tag (typography base rule) actually took effect:
+    const fontFamily = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(fontFamily).toContain('Inter');
+
+    // And separately -- the more load-bearing half of the claim -- a real
+    // component's plain inline `style` prop (Button's own computed
+    // background, applied via React's style-prop mechanism, not a
+    // nonce'd stylesheet rule at all) still resolved too. This is the
+    // specific claim CORE.md's CSP note rests on: React applies `style`
+    // via direct CSSOM property assignment rather than writing a literal
+    // `style="..."` attribute string, which is why it isn't blocked by
+    // style-src-attr enforcement even with no 'unsafe-inline' and no nonce
+    // on this element at all.
+    expect(buttonBg).not.toBe(null);
+    expect(buttonBg).not.toBe('rgba(0, 0, 0, 0)');
   });
-
-  await withStrictCSP(page);
-  await page.goto('/');
-  await gotoTab(page, 'Toast Subsystem');
-  await page.getByRole('button', { name: 'Fire Info Toast' }).click();
-
-  // Checked here, before navigating away -- the button only exists on
-  // this tab, so this has to run while it's still mounted.
-  const buttonBg = await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Fire Info Toast'));
-    return btn ? getComputedStyle(btn).backgroundColor : null;
-  });
-
-  await gotoTab(page, 'Overlays & Actions');
-
-  const allViolations = await page.evaluate(
-    () => (window as unknown as { __cspViolations: { effectiveDirective: string; blockedURI: string; sourceFile: string }[] }).__cspViolations
-  );
-  // `@vite/client` is the dev server's own HMR/error-overlay script -- it
-  // isn't part of toolcrib's shipped output and doesn't exist in a real
-  // production build (`vite build`), so a violation sourced from it isn't
-  // a toolcrib bug. Everything else must be genuinely zero.
-  const cspViolations = allViolations.filter((v) => !v.sourceFile?.includes('@vite/client'));
-
-  expect(
-    cspViolations,
-    `CSP violations under a strict style-src:\n${cspViolations.map((v) => JSON.stringify(v)).join('\n')}`
-  ).toEqual([]);
-
-  // Not just "no error" -- confirms the feature genuinely still works
-  // under the policy, both halves of CORE.md's CSP note. The nonce'd
-  // <style> tag (typography base rule) actually took effect:
-  const fontFamily = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
-  expect(fontFamily).toContain('Inter');
-
-  // And separately -- the more load-bearing half of the claim -- a real
-  // component's plain inline `style` prop (Button's own computed
-  // background, applied via React's style-prop mechanism, not a
-  // nonce'd stylesheet rule at all) still resolved too. This is the
-  // specific claim CORE.md's CSP note rests on: React applies `style`
-  // via direct CSSOM property assignment rather than writing a literal
-  // `style="..."` attribute string, which is why it isn't blocked by
-  // style-src-attr enforcement even with no 'unsafe-inline' and no nonce
-  // on this element at all.
-  expect(buttonBg).not.toBe(null);
-  expect(buttonBg).not.toBe('rgba(0, 0, 0, 0)');
 });
