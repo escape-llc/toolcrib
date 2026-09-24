@@ -5,6 +5,7 @@ import { Presence } from '@radix-ui/react-presence';
 import type { ZodType } from 'zod';
 import { Form, useFormContext, useOptionalFormContext } from '../Form/FormContext';
 import { Input, Label } from '../Form/FormComponents';
+import { UIGroup } from '../UIGroup/UIGroup';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Z_INDEX } from '../../theme/zIndex';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -175,17 +176,57 @@ const cellStyle: CSSProperties = {
   // separate density) -- always compact, not a second density knob to
   // expose.
   padding: '0.375rem 1rem',
-  // 'middle', not 'top' -- direct visual feedback ("the non-edit is not
-  // aligned vertically"). A plain read-only value (col.render's own text,
-  // no FormField wrapper at all) and an <Input>/<Select>'s own taller,
-  // padded/bordered box both being TOP-aligned in the same cell left their
-  // actual text baselines mismatched, since only the input-based cells
-  // carry that extra box height. Middle-aligning each cell's content
-  // against the row's real height (set by the tallest cell, i.e. the
-  // input-based ones) centers a plain text value at the same visual
-  // height as an input's own vertically-centered text.
-  verticalAlign: 'middle',
+  // 'top', not 'middle' -- reversed by direct visual feedback ("the
+  // buttons and static text must align with the row of edits, not the
+  // overall height"). `verticalAlign: 'middle'` centers a cell's content
+  // against the CELL's full height -- which, for a CompactField cell,
+  // includes its own reserved (usually-blank) error slot BELOW the
+  // actual <Input>. Since that reserved space sits only below the
+  // control, "middle" pulls the input's own visual center 8px above the
+  // cell's true center (measured directly, not assumed) -- and any OTHER
+  // cell (plain read-only text, the Save/Reset/Cancel actions) that has
+  // no such reservation centers on the cell's TRUE center instead,
+  // landing 8px off from where the real inputs actually sit. The fix
+  // (see CONTROL_ROW_HEIGHT/ERROR_SLOT_PLACEHOLDER_STYLE below) is
+  // giving every OTHER cell type the identical reserved-space-below
+  // shape a CompactField cell already has, then top-aligning everything
+  // -- once every cell's real content occupies the same top band and
+  // every cell's total height matches, alignment stops depending on
+  // vertical-align's centering math at all.
+  verticalAlign: 'top',
   boxSizing: 'border-box',
+};
+
+// The real, measured height of a compact-sized control (<Input
+// size="sm">/<Select size="sm">) -- confirmed directly via Playwright
+// (28px), not assumed. Any cell with NO real error slot of its own
+// (plain read-only text, the actions column) wraps its actual content
+// in a flex row pinned to exactly this height, `alignItems: 'center'`,
+// so that content is vertically centered within the SAME band real
+// <Input>s occupy -- not the cell's full height, which is taller once
+// CONTROL_ROW_HEIGHT's own sibling placeholder (below) is added.
+const CONTROL_ROW_HEIGHT = '1.75rem';
+
+// Direct visual feedback ("the non-edits need a placeholder to
+// compensate for the missing error label") -- the other half of the
+// alignment fix. A CompactField cell's real height is
+// CONTROL_ROW_HEIGHT (the input) plus its own reserved error slot
+// below it; any cell with no error slot at all (plain text, actions)
+// needs the IDENTICAL blank space reserved in the same position, or
+// its shorter total height would make `verticalAlign: 'top'` land its
+// content flush at the cell's own top -- which happens to be the
+// SAME point a CompactField's input starts at, so this part alone
+// would actually already align correctly by coincidence. What this
+// placeholder actually fixes is the ROW's overall height: without it,
+// a row with a shorter non-edit cell wouldn't itself change the row's
+// height (still set by the tallest CompactField cell) -- so the
+// placeholder isn't there to affect alignment of THIS cell, it exists
+// so every cell's own DOM shape is structurally uniform (a real
+// content band plus a real reserved band), matching CompactField's own
+// shape exactly rather than leaving it as a coincidence of arithmetic.
+const ERROR_SLOT_PLACEHOLDER_STYLE: CSSProperties = {
+  height: '0.875rem',
+  marginTop: '0.125rem',
 };
 
 // Direct visual feedback ("compress the edit header height") -- the
@@ -394,9 +435,22 @@ function EditCoGridRow<T extends Record<string, any>>({
             return (
               <div key={col.key} style={{ ...cellStyle, width: `${getColumnWidth(col)}px` }}>
                 {col.editable === false
-                  ? col.render
-                    ? col.render(context)
-                    : String(value ?? '')
+                  ? (
+                    // Wrapped in the same CONTROL_ROW_HEIGHT band plus a
+                    // matching placeholder spacer as the actions cell
+                    // below -- see cellStyle's own comment for why: a
+                    // read-only cell has no error slot of its own, so
+                    // without this its content would center/top-align
+                    // against a shorter total height than a real
+                    // CompactField cell, landing it visibly off from
+                    // where the actual inputs sit.
+                    <>
+                      <div style={{ height: CONTROL_ROW_HEIGHT, display: 'flex', alignItems: 'center' }}>
+                        {col.render ? col.render(context) : String(value ?? '')}
+                      </div>
+                      <div style={ERROR_SLOT_PLACEHOLDER_STYLE} />
+                    </>
+                  )
                   : col.editEditor
                     ? col.editEditor(context)
                     : (
@@ -434,43 +488,68 @@ function EditCoGridRow<T extends Record<string, any>>({
               instead of being fully occluded -- a real but minor cost
               against the "stark white box" look this replaces. */}
           <div style={{ ...cellStyle, width: `${ACTIONS_COLUMN_WIDTH}px`, position: 'sticky', right: 0, zIndex: Z_INDEX.STICKY, background: 'transparent' }}>
-            <div style={{ display: 'flex', gap: '0.375rem' }}>
-              {/* Glyph-only, not text "Save"/"Cancel" -- direct visual
-                  feedback ("placement of save/cancel is horrible; go with
-                  glyphs to take up less space"). Plain native buttons, not
-                  SubmitButton/Button: SubmitButton always renders literal
-                  "Save"/"Submitting..." text alongside any icon (its own
-                  hardcoded `props.children || 'Submit'` fallback), which
-                  can't be suppressed by an icon-only usage -- a real
-                  constraint of that shared component, not a style choice
-                  to route around here. `type="submit"` alone (a plain
-                  button inside this row's own <Form>) is enough to
-                  trigger the same real submission -- SubmitButton's own
-                  extra value (isSubmitting-driven disable) is a small,
-                  deliberately accepted trade-off for a form this synchronous. */}
-              <SaveEditRowButton formId={`${tableId}-edit-${key}`} />
-              {/* Reset (discard-in-place) sits between Save and Cancel --
-                  a neutral middle ground between "commit" and "discard
-                  AND close." */}
-              <ResetEditRowButton />
-              <button
-                type="button"
-                aria-label="Cancel"
-                title="Cancel"
-                className="ai-btn ai-focus-ring"
-                style={{
-                  ...glyphButtonStyle,
-                  // Red, not transparent/secondary -- direct visual
-                  // feedback ("I want green/red for apply/cancel"), same
-                  // semantic-subtheme convention as Save's green above.
-                  background: 'var(--ai-subtheme-error, #ef4444)',
-                  color: 'var(--ai-subtheme-error-on-main, #ffffff)',
-                }}
-                onClick={() => onCancel(key)}
-              >
-                <span aria-hidden="true">✕</span>
-              </button>
+            {/* height: CONTROL_ROW_HEIGHT, not just a bare flex row --
+                same alignment fix as the read-only cell above: centers
+                the button group within the SAME band a real <Input>
+                occupies, rather than the cell's own full (taller)
+                height. */}
+            <div style={{ display: 'flex', alignItems: 'center', height: CONTROL_ROW_HEIGHT }}>
+              {/* UIGroup (direct feedback: "put the edit buttons in a UI
+                  group") merges the three into one segmented compound
+                  control -- squared adjacent corners, overlapping
+                  borders, hover/focus z-index stacking -- instead of
+                  three separate pill buttons with a gap between them.
+                  Its own injected CSS targets plain DOM children
+                  generically (`.toolcrib-group > *`), not just toolcrib
+                  components, so these plain `<button>`s qualify with no
+                  extra wiring. `borderRadius` matches these buttons' own
+                  existing (smaller) radius scale rather than UIGroup's
+                  own larger default -- each button's own
+                  `glyphButtonStyle`-supplied `borderRadius` is
+                  harmlessly redundant now (UIGroup's CSS overrides it
+                  via `!important` regardless), left in place rather
+                  than stripped since it's a shared constant other,
+                  non-grouped buttons in this file also use. */}
+              <UIGroup borderRadius="var(--ai-radius-sm, 0.25rem)">
+                {/* Glyph-only, not text "Save"/"Cancel" -- direct visual
+                    feedback ("placement of save/cancel is horrible; go
+                    with glyphs to take up less space"). Plain native
+                    buttons, not SubmitButton/Button: SubmitButton always
+                    renders literal "Save"/"Submitting..." text alongside
+                    any icon (its own hardcoded `props.children ||
+                    'Submit'` fallback), which can't be suppressed by an
+                    icon-only usage -- a real constraint of that shared
+                    component, not a style choice to route around here.
+                    `type="submit"` alone (a plain button inside this
+                    row's own <Form>) is enough to trigger the same real
+                    submission -- SubmitButton's own extra value
+                    (isSubmitting-driven disable) is a small, deliberately
+                    accepted trade-off for a form this synchronous. */}
+                <SaveEditRowButton formId={`${tableId}-edit-${key}`} />
+                {/* Reset (discard-in-place) sits between Save and Cancel
+                    -- a neutral middle ground between "commit" and
+                    "discard AND close." */}
+                <ResetEditRowButton />
+                <button
+                  type="button"
+                  aria-label="Cancel"
+                  title="Cancel"
+                  className="ai-btn ai-focus-ring"
+                  style={{
+                    ...glyphButtonStyle,
+                    // Red, not transparent/secondary -- direct visual
+                    // feedback ("I want green/red for apply/cancel"), same
+                    // semantic-subtheme convention as Save's green above.
+                    background: 'var(--ai-subtheme-error, #ef4444)',
+                    color: 'var(--ai-subtheme-error-on-main, #ffffff)',
+                  }}
+                  onClick={() => onCancel(key)}
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </UIGroup>
             </div>
+            <div style={ERROR_SLOT_PLACEHOLDER_STYLE} />
           </div>
         </div>
       </div>
