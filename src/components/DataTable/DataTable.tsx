@@ -1156,6 +1156,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // not the capped/truncated view) -- no point offering a toggle for a
   // co-grid that isn't even rendered.
   const showCoGridToggle = editable && editingKeySet.size > 0;
+  // Gemini's PR #571 review, confirmed real: without this, finishing (or
+  // cancelling) every open edit while collapsed left `isCoGridCollapsed`
+  // stuck `true` -- starting a LATER, unrelated edit would then silently
+  // stay hidden behind a stale collapse flag from a session that already
+  // ended, instead of showing the row the user just asked to edit.
+  // setState-during-render (not an effect), matching EditCoGrid's own
+  // `everShown` idiom a few files over -- no extra render round-trip.
+  if (editingKeySet.size === 0 && isCoGridCollapsed) setIsCoGridCollapsed(false);
 
   const handleEditSave = (key: string, values: T) => {
     const entry = recordByEditKey.get(key);
@@ -1914,11 +1922,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // main grid's own per-row quaternary indicator is the
                   // other half of that same guarantee (DataTable.tsx's
                   // isRowEditing rendering, unaffected by this toggle).
+                  //
+                  // aria-expanded/aria-controls, not aria-pressed (Gemini's
+                  // PR #571 review, confirmed against the WAI-ARIA APG):
+                  // this button discloses/hides an external region, it
+                  // doesn't represent its own persistent on/off state --
+                  // aria-pressed paired with an action-describing label that
+                  // changes ("Show editing"/"Hide editing") produces a
+                  // contradictory announcement ("Show editing, pressed").
+                  // The Disclosure pattern's aria-expanded is exactly this
+                  // shape and is idiomatic with a changing action label.
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    aria-pressed={isCoGridCollapsed}
+                    aria-expanded={!isCoGridCollapsed}
+                    aria-controls={`${id}-edit-cogrid`}
                     onClick={() => setIsCoGridCollapsed(prev => !prev)}
                     trailingIcon={isCoGridCollapsed ? <Badge size="sm">{editingKeySet.size}</Badge> : undefined}
                   >

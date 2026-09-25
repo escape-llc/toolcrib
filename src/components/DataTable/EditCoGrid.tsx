@@ -706,6 +706,7 @@ export function EditCoGrid<T extends Record<string, any>>({
     // `Drawer.tsx`'s own established Presence usage.
     <Presence present={shouldShow}>
       <div
+        id={`${tableId}-edit-cogrid`}
         role="region"
         aria-label="Rows being edited"
         // Hidden state also collapsed from the accessibility tree -- a

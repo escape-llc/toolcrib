@@ -3345,6 +3345,15 @@ describe('DataTable Virtualized Component', () => {
 
       const hideToggle = screen.getByRole('button', { name: 'Hide editing' });
       expect(coGrid(container)).not.toHaveStyle({ display: 'none' });
+      // Disclosure pattern (aria-expanded/aria-controls), not aria-pressed --
+      // this button hides/shows an external region, it doesn't represent its
+      // own toggled state (Gemini's PR #571 review, WAI-ARIA APG).
+      // aria-pressed paired with an action-describing label that changes
+      // ("Show editing"/"Hide editing") is a real, contradictory-announcement
+      // bug, not just a style preference.
+      expect(hideToggle).toHaveAttribute('aria-expanded', 'true');
+      expect(hideToggle).toHaveAttribute('aria-controls', coGrid(container)!.id);
+      expect(hideToggle).not.toHaveAttribute('aria-pressed');
 
       fireEvent.click(hideToggle);
 
@@ -3361,6 +3370,37 @@ describe('DataTable Virtualized Component', () => {
       expect(within(showToggle).getByText('1')).toBeInTheDocument();
 
       fireEvent.click(showToggle);
+      expect(coGrid(container)).not.toHaveStyle({ display: 'none' });
+      expect(screen.getByRole('button', { name: 'Hide editing' })).toBeInTheDocument();
+    });
+
+    it('regression (Gemini, PR #571): collapsing, then finishing every edit, does not leave a LATER unrelated edit stuck hidden behind a stale collapse flag', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+
+      // Start editing row 1, collapse the co-grid, then cancel -- editingKeySet
+      // drops to zero while isCoGridCollapsed is still true from this session.
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      fireEvent.click(screen.getByRole('button', { name: 'Hide editing' }));
+      expect(coGrid(container)).toHaveStyle({ display: 'none' });
+      // Raw DOM query, not getByRole -- the region is display:none while
+      // collapsed, and role-based queries correctly exclude hidden elements
+      // (the same reason the draft-survives assertion above reads .value
+      // directly instead of going through getByRole too).
+      const cancelBtn = (coGrid(container) as HTMLElement).querySelector('[aria-label="Cancel"]') as HTMLElement;
+      fireEvent.click(cancelBtn);
+      // The toggle itself disappears once nothing is being edited -- nothing
+      // left to collapse/expand.
+      expect(screen.queryByRole('button', { name: /editing/ })).toBeNull();
+
+      // A completely new, later edit -- must show up visibly, not silently
+      // stay hidden behind the PREVIOUS session's stale collapsed=true.
+      fireEvent.click(within(cellByRowCol(container, 2, 1)).getByText('Edit'));
       expect(coGrid(container)).not.toHaveStyle({ display: 'none' });
       expect(screen.getByRole('button', { name: 'Hide editing' })).toBeInTheDocument();
     });
