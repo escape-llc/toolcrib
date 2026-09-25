@@ -1916,12 +1916,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // Issue #545 section 5: collapsing hides the co-grid's
                   // RENDERING only -- editingKeySet (and every draft's own
                   // <Form> state underneath it) is untouched, so this never
-                  // exits edit mode. The count badge only appears while
-                  // collapsed specifically so collapsing can never make
-                  // in-progress edits look like they've vanished -- the
-                  // main grid's own per-row quaternary indicator is the
-                  // other half of that same guarantee (DataTable.tsx's
-                  // isRowEditing rendering, unaffected by this toggle).
+                  // exits edit mode. The count badge (issue #584: now
+                  // always visible, not just while collapsed) exists so
+                  // collapsing can never make in-progress edits look like
+                  // they've vanished -- the main grid's own per-row
+                  // quaternary indicator is the other half of that same
+                  // guarantee (DataTable.tsx's isRowEditing rendering,
+                  // unaffected by this toggle).
                   //
                   // aria-expanded/aria-controls, not aria-pressed (Gemini's
                   // PR #571 review, confirmed against the WAI-ARIA APG):
@@ -1938,30 +1939,28 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     variant="outline"
                     aria-expanded={!isCoGridCollapsed}
                     aria-controls={`${id}-edit-cogrid`}
+                    // Icon-only (issue #584, direct feedback: "more
+                    // compact") -- the accessible name moves entirely onto
+                    // aria-label, since Button has no visible text content
+                    // left to derive it from. A disclosure chevron
+                    // (collapsed points at the content, expanded points
+                    // down at it -- the same closed/open triangle
+                    // convention this file's own pagination arrows use a
+                    // few hundred lines down) plus an always-mounted,
+                    // always-visible count badge. Making the badge
+                    // permanent (rather than #584's earlier fix, which kept
+                    // it always MOUNTED but toggled its `visibility`) is
+                    // simpler still and removes the original bug's
+                    // precondition entirely: nothing about this button's
+                    // content differs between the two states anymore, so
+                    // there's nothing left that COULD make it taller/wider
+                    // in one state than the other, regardless of what
+                    // UIGroup's own align-items:stretch does with it.
+                    aria-label={isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
                     onClick={() => setIsCoGridCollapsed(prev => !prev)}
-                    // Issue #584: the badge used to be present only while
-                    // collapsed (trailingIcon={isCoGridCollapsed ? <Badge>
-                    // ... : undefined}), which meant this Button had no
-                    // trailing content at all in the expanded state --
-                    // Button's own height is content-driven (no fixed
-                    // height token, by design -- see controlSize.ts), so
-                    // the badge's own intrinsic box made THIS button taller
-                    // than its "Hide editing" sibling, and UIGroup's
-                    // align-items:stretch then stretched the WHOLE toolbar
-                    // row (density ToggleGroup included) to match. Always
-                    // rendering the badge and toggling `visibility` instead
-                    // of presence keeps its box reserved in both states, so
-                    // the button's (and therefore the row's) height never
-                    // changes -- the identical fix already used a few dozen
-                    // lines above for the bulk-actions "N selected" label.
-                    trailingIcon={
-                      <span style={{ visibility: isCoGridCollapsed ? 'visible' : 'hidden' }}>
-                        <Badge size="sm">{editingKeySet.size}</Badge>
-                      </span>
-                    }
-                  >
-                    {isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
-                  </Button>
+                    icon={isCoGridCollapsed ? '▶' : '▼'}
+                    trailingIcon={<Badge size="sm">{editingKeySet.size}</Badge>}
+                  />
                 )}
                 {densitySelector && (
                   // Composes the shared <ToggleGroup> rather than hand-

@@ -45,9 +45,9 @@ export interface ToolcribLocaleStrings {
     columnsButtonLabel: string;
     /** Label for the `columnVisibility` menu's own checkbox item toggling `rowCommands`' trailing actions column -- that column isn't a real `Column<T>` with its own `title`, so it needs a label of its own. */
     actionsColumnLabel: string;
-    /** Visible label for `<DataTable editable>`'s co-grid collapse toggle while the co-grid is expanded (issue #545). */
+    /** Accessible name (`aria-label`) for `<DataTable editable>`'s co-grid collapse toggle while the co-grid is expanded (issue #545) -- the toggle itself is icon-only (issue #584), so this is never rendered as visible text. */
     hideEditingLabel: string;
-    /** Visible label for the same toggle while collapsed -- shown alongside a count badge of rows currently being edited. */
+    /** Accessible name for the same toggle while collapsed -- the visible content is a chevron icon plus a count badge of rows currently being edited. */
     showEditingLabel: string;
   };
   carousel: {
