@@ -146,6 +146,10 @@
           "default": "false",
           "description": "Allows selecting more than one option, rendered as removable chips.\nChanges the shape of `value`/`defaultValue`/`onChange` from `string` to\n`string[]`."
         },
+        "chipColor": {
+          "type": "(value: string) => ComboboxChipColor | undefined",
+          "description": "Per-chip color when `multiple` is true — called with each selected\nvalue; return `undefined` for the default solid primary chip. A\nfunction of the value rather than a field on each option, so it also\ncovers `allowCustomValue` chips and controlled/async values that have\nno matching option object on hand (e.g. `v => v === 'urgent' ? { subtheme: 'error' } : undefined`)."
+        },
         "value": {
           "type": "string | string[]",
           "description": "Controlled selected value — a string, or a string array when `multiple` is true."

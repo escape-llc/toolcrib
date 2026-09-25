@@ -3184,13 +3184,14 @@ export const App: React.FC = () => {
                           <VStack gap="sm">
                             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Multi-Select Tags (`multiple`)</div>
                             <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip.
+                              Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip. <code>chipColor</code> colors chips per value — backend skills here use the <code>secondary</code> variant.
                             </p>
                             <Combobox
                               multiple
                               placeholder="Add skills..."
                               ariaLabel="Skills"
-                              defaultValue={['react', 'typescript']}
+                              defaultValue={['react', 'typescript', 'postgres']}
+                              chipColor={(value) => (['node', 'graphql', 'postgres', 'docker'].includes(value) ? { variant: 'secondary' } : undefined)}
                               options={[
                                 { label: 'React', value: 'react' },
                                 { label: 'TypeScript', value: 'typescript' },
