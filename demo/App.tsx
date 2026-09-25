@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { z } from 'zod';
-import { CalendarDate, Time } from '@internationalized/date';
+import { CalendarDate, Time, today, getLocalTimeZone } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
 import {
   useTheme,
@@ -1505,7 +1505,7 @@ export const App: React.FC = () => {
                         <Form
                           id="profile-form"
                           schema={userProfileSchema}
-                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', startDate: new CalendarDate(2026, 3, 15), notifications: true, agreeTerms: false }}
+                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', startDate: today(getLocalTimeZone()), notifications: true, agreeTerms: false }}
                           onSubmit={values => {
                             addToast({ type: 'success', message: `User ${values.username} created successfully! (Contact: ${values.contactPref})` });
                           }}
@@ -1613,7 +1613,7 @@ export const App: React.FC = () => {
                           <DatePicker
                             name="demoMeetingDate"
                             label="Meeting Date"
-                            defaultValue={new CalendarDate(2026, 3, 15)}
+                            defaultValue={today(getLocalTimeZone())}
                             onChange={value => addToast({ type: 'info', message: `Meeting date: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
                           />
                         </VStack>
@@ -1621,11 +1621,21 @@ export const App: React.FC = () => {
                         <VStack gap="sm">
                           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</div>
                           <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                            <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot.
+                            <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot. <code>minValue</code> demonstrates a real cutoff date (issue #377): every day before today is disabled, not just visually greyed out.
                           </p>
+                          {/* minValue={today(...)} (issue #377) -- react-aria-components' own
+                              min-date mechanism, already forwarded by this toolkit's Calendar
+                              (see CalendarProps.minValue's own JSDoc), just never demonstrated
+                              here before. defaultValue is `today` too, not a fixed literal like
+                              this page's other Calendar/DatePicker examples used to be (direct
+                              feedback: those must always open on the real current month, not a
+                              hardcoded date that silently drifts into the past) -- computing both
+                              from `today` also means defaultValue can never fall behind minValue
+                              itself as real time passes. */}
                           <Calendar
                             aria-label="Appointment date"
-                            defaultValue={new CalendarDate(2026, 3, 15)}
+                            minValue={today(getLocalTimeZone())}
+                            defaultValue={today(getLocalTimeZone())}
                             onChange={value => addToast({ type: 'info', message: `Calendar date: ${value.toString()}`, priority: 'low' })}
                           />
                           <TimeField
