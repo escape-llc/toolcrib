@@ -136,6 +136,45 @@ const MAIN_SPLITTER_INITIAL_SPLIT = 70;
 // button does.
 const MAIN_SPLITTER_MIN_SIZE = 5;
 
+// `toLocaleTimeString()` alone only ever resolves to whole-second
+// precision -- direct feedback: several aiBus events can legitimately fire
+// within the same second (a drag, a resize, a batched state update), and
+// without milliseconds every one of them stamps identically in the event
+// log, making it impossible to tell their real relative order apart.
+//
+// Gemini's PR #580 review, confirmed real: a first version built this by
+// string-concatenating toLocaleTimeString() with getMilliseconds(), which
+// silently produced a malformed result in any 12-hour locale (en-US's own
+// default included) -- the AM/PM marker sits BEFORE where the appended
+// fraction landed ("9:05:49 AM.149" instead of "9:05:49.149 AM"), visible
+// in this very panel's own real output once actually looked at closely.
+// `fractionalSecondDigits` is a real Intl.DateTimeFormat option (used here
+// via toLocaleTimeString's own options argument) that places the fraction
+// correctly relative to the meridiem marker in every locale, natively --
+// no manual string surgery needed at all.
+function formatEventLogTimestamp(date: Date): string {
+  // hour/minute/second must be given EXPLICITLY alongside
+  // fractionalSecondDigits -- confirmed directly (not assumed): passing
+  // an options object with only fractionalSecondDigits set makes
+  // Intl.DateTimeFormat format ONLY that one requested component
+  // ("744"), silently dropping the h:m:s toLocaleTimeString() shows by
+  // default when called with no options at all.
+  return date.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+  } as Intl.DateTimeFormatOptions);
+}
+
+// Direct feedback: a verbose event payload (theme:changed's full palette +
+// CSS variable dump is the worst offender, easily 1000+ characters) made
+// the log unreadable -- one entry could push everything above it off
+// screen. 200 characters is roughly 2-3 wrapped lines in this panel's
+// monospace font at its default size, long enough to show a real event's
+// shape at a glance without one verbose entry dominating the whole panel.
+const EVENT_LOG_PAYLOAD_ELIDE_LENGTH = 200;
+
 // A small, separate Acme Analytics roster for the standalone <Listbox>
 // demo below — deliberately not sliced from the 250-row `dummyUsers`
 // dataset, since it needs its own department labels ("Design",
@@ -801,6 +840,18 @@ export const App: React.FC = () => {
   // of dual-source-of-truth bug this avoids by construction.
   const activeGroup = NAV_GROUPS.find(g => g.tabIds.includes(activeTab)) ?? NAV_GROUPS[0];
   const [eventLogs, setEventLogs] = useState<{ id: string; event: string; payload: string; time: string }[]>([]);
+  // Which log entries currently show their full, un-elided payload --
+  // per-item, since an eager reader wants to expand one specific verbose
+  // entry (e.g. today's Loading/Apply for the Theme Editor) without every
+  // other long payload also snapping open.
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
+  const toggleLogExpanded = (logId: string) =>
+    setExpandedLogIds(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) next.delete(logId);
+      else next.add(logId);
+      return next;
+    });
   const [listboxQuery, setListboxQuery] = useState('');
   const [listboxActiveIndex, setListboxActiveIndex] = useState<number | undefined>(undefined);
   const [listboxSelected, setListboxSelected] = useState<string | null>(null);
@@ -1003,7 +1054,7 @@ export const App: React.FC = () => {
 
   // Subscribe to ALL aiBus events for the live event monitor
   useAnyAIEvent(event => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = formatEventLogTimestamp(new Date());
     const eventName = event.type;
     const logItem = {
       id: Math.random().toString(36).substring(2, 9),
@@ -3467,7 +3518,8 @@ export const App: React.FC = () => {
                           icon="🗑️"
                           onClick={() => {
                             setEventLogs([]);
-                            aiBus.emit('log:cleared', { timestamp: new Date().toLocaleTimeString() });
+                            setExpandedLogIds(new Set());
+                            aiBus.emit('log:cleared', { timestamp: formatEventLogTimestamp(new Date()) });
                           }}
                         >
                           Clear Log
@@ -3520,19 +3572,64 @@ export const App: React.FC = () => {
                   {eventLogs.length === 0 ? (
                     <div style={{ color: 'var(--ai-text-secondary)' }}>Listening for events on aiBus... (Drag the separator bar to resize)</div>
                   ) : (
-                    eventLogs.map(log => (
-                      <div key={log.id} style={{ marginBottom: '0.2rem' }}>
-                        <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
-                        {/* --ai-color-primary-readable, not --ai-color-primary --
-                            this text sits on the log panel's near-neutral background,
-                            and the raw hue measures under AA contrast there (axe:
-                            color-contrast); same fix/reasoning as TabSlice.tsx's
-                            own activeTextColor (see its comment for why a plain
-                            harmonies.ts-generated var, not color-mix()). */}
-                        <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
-                        <span style={{ color: 'var(--ai-text-primary)' }}>{log.payload}</span>
-                      </div>
-                    ))
+                    eventLogs.map(log => {
+                      const isLongPayload = log.payload.length > EVENT_LOG_PAYLOAD_ELIDE_LENGTH;
+                      const isExpanded = expandedLogIds.has(log.id);
+                      const shownPayload = isLongPayload && !isExpanded
+                        ? `${log.payload.slice(0, EVENT_LOG_PAYLOAD_ELIDE_LENGTH)}…`
+                        : log.payload;
+                      return (
+                        <div key={log.id} style={{ marginBottom: '0.2rem' }}>
+                          <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
+                          {/* --ai-color-primary-readable, not --ai-color-primary --
+                              this text sits on the log panel's near-neutral background,
+                              and the raw hue measures under AA contrast there (axe:
+                              color-contrast); same fix/reasoning as TabSlice.tsx's
+                              own activeTextColor (see its comment for why a plain
+                              harmonies.ts-generated var, not color-mix()). */}
+                          <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
+                          <span style={{ color: 'var(--ai-text-primary)' }}>{shownPayload}</span>
+                          {/* A real <button>, not a styled span -- this is the
+                              only way to reveal a verbose payload (theme:changed's
+                              full CSS variable dump, e.g.), so it needs to be a
+                              genuine keyboard/screen-reader-operable control, not
+                              just a visual affordance. Inline text link styling
+                              (no border/background) so it reads as part of the log
+                              line rather than a separate UI chrome element. */}
+                          {isLongPayload && (
+                            <button
+                              type="button"
+                              onClick={() => toggleLogExpanded(log.id)}
+                              // Gemini's PR #580 review, confirmed real: with
+                              // several verbose entries in the log at once, a
+                              // screen-reader user tabbing through gets a run
+                              // of identically-announced "[expand]" buttons
+                              // with no way to tell which entry each one
+                              // controls -- aria-label names the specific
+                              // event; aria-expanded reports this specific
+                              // disclosure's own state, per the WAI-ARIA
+                              // disclosure pattern (WCAG 4.1.2).
+                              aria-expanded={isExpanded}
+                              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} payload for ${log.event}`}
+                              className="ai-focus-ring"
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                padding: 0,
+                                marginLeft: '0.375rem',
+                                font: 'inherit',
+                                fontWeight: 'bold',
+                                color: 'var(--ai-color-secondary-readable, var(--ai-color-primary-readable))',
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                              }}
+                            >
+                              [{isExpanded ? 'collapse' : 'expand'}]
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </Card.Content>
