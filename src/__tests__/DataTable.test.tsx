@@ -3374,18 +3374,20 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByRole('button', { name: 'Hide editing' })).toBeInTheDocument();
     });
 
-    it('issue #584: the count badge is always mounted in the toggle (visibility-only, never presence-only), so the button never renders shorter/narrower in one state than the other', () => {
-      // jsdom has no real layout engine (AGENTS.md), so this can't assert
-      // actual pixel height/width -- what it CAN prove is the mechanism the
-      // fix relies on: the badge occupies the same DOM box in both states,
-      // only its `visibility` differs, matching the already-established
-      // "reserve the box, toggle visibility" pattern this file uses for the
-      // bulk-actions "N selected" label a few hundred lines up. The
-      // previous version (`trailingIcon={isCoGridCollapsed ? <Badge>... :
-      // undefined}`) mounted the badge ONLY while collapsed, so this
-      // button's own intrinsic height/width genuinely differed between the
-      // two states, and UIGroup's `align-items: stretch` then stretched the
-      // whole toolbar row (including the density ToggleGroup) to match.
+    it('issue #584: the toggle is icon-only with an always-visible count badge, identical content in both states, so it never renders a different size expanded vs. collapsed', () => {
+      // The original bug: the badge was only ever mounted while collapsed
+      // (`trailingIcon={isCoGridCollapsed ? <Badge>... : undefined}`), so
+      // this Button's own content-driven height/width genuinely differed
+      // between the two states, and UIGroup's `align-items: stretch` then
+      // stretched the whole toolbar row (including the density
+      // ToggleGroup) to match. Direct feedback asked for something more
+      // compact besides: the toggle now carries no visible text label at
+      // all (its accessible name moved to `aria-label`) and always renders
+      // the same chevron-icon + badge shape in both states -- there's
+      // nothing left that COULD differ in size between them. jsdom has no
+      // real layout engine (AGENTS.md), so this asserts the DOM shape the
+      // fix relies on, not pixel geometry (verified separately, in a real
+      // browser, for the PR).
       const triggerColumns: Column<TestItem>[] = [
         { key: 'id', title: 'ID', editable: false },
         { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
@@ -3395,18 +3397,18 @@ describe('DataTable Virtualized Component', () => {
       );
       fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
 
-      // Expanded ("Hide editing"): badge already mounted, just not visible.
+      // Expanded: accessible name is still "Hide editing" (via aria-label,
+      // since there's no visible text left to derive it from), and the
+      // count badge is already visible.
       const hideToggle = screen.getByRole('button', { name: 'Hide editing' });
-      const badgeInExpanded = within(hideToggle).getByText('1');
-      expect(badgeInExpanded.parentElement).toHaveStyle({ visibility: 'hidden' });
+      expect(within(hideToggle).getByText('1')).toBeVisible();
 
       fireEvent.click(hideToggle);
 
-      // Collapsed ("Show editing (1)"): same mounted badge, now visible --
-      // not a newly-mounted element.
-      const showToggle = screen.getByRole('button', { name: /Show editing/ });
-      const badgeInCollapsed = within(showToggle).getByText('1');
-      expect(badgeInCollapsed.parentElement).toHaveStyle({ visibility: 'visible' });
+      // Collapsed: same badge, same visibility -- nothing about its
+      // presence changed, only the toggle's own accessible name/action.
+      const showToggle = screen.getByRole('button', { name: 'Show editing' });
+      expect(within(showToggle).getByText('1')).toBeVisible();
     });
 
     it('regression (Gemini, PR #571): collapsing, then finishing every edit, does not leave a LATER unrelated edit stuck hidden behind a stale collapse flag', () => {
