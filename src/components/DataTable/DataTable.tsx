@@ -16,6 +16,7 @@ import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } 
 import { UIGroup } from '../UIGroup/UIGroup';
 import { ToggleGroup } from '../ToggleGroup/ToggleGroup';
 import { Button } from '../Form/FormComponents';
+import { Badge } from '../Badge/Badge';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -498,8 +499,15 @@ export interface DataTableProps<T = any> {
    * (alongside the "N selected" count, already provided) once at least
    * one row is selected -- this renders only the actions themselves (e.g.
    * "Delete", "Export"), receiving the current selection to act on.
+   *
+   * The second argument is only ever useful when `editable` is also true --
+   * `actions.startEditingRows` is the same batch-add this table's own
+   * editing key-set already exposes, letting a bulk "Edit selected" button
+   * fall out of composing the two already-independent selection/editing
+   * key-sets (issue #545) rather than needing its own dedicated prop.
+   * Ignore it for any other bulk action.
    */
-  renderBulkActions?: (selectedKeys: string[]) => ReactNode;
+  renderBulkActions?: (selectedKeys: string[], actions: { startEditingRows: (keys: string[]) => void }) => ReactNode;
   /**
    * Per-row action buttons rendered in a dedicated trailing column. Each
    * click emits `datatable:row_command` on `aiBus` (`{ id: <table id>,
@@ -1123,6 +1131,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     recordByEditKey,
     getEditingKey,
     startEditingRow,
+    startEditingRows,
     cancelEditingRow,
     saveEditingRow,
   } = useTableEditing({
@@ -1136,6 +1145,25 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     currentPageRecords: paginatedData,
     maxEditingRows,
   });
+
+  // Collapsing the co-grid is purely a rendering choice (see EditCoGrid's
+  // own `collapsed` prop) -- it never touches `editingKeySet`, so drafts
+  // stay alive underneath exactly as issue #545 section 5 requires. Local,
+  // uncontrolled state is enough: nothing in the design calls for a
+  // consumer-controlled version of this, unlike selection/editing itself.
+  const [isCoGridCollapsed, setIsCoGridCollapsed] = useState(false);
+  // Mirrors the co-grid's own mount condition (`editingKeySet.size > 0`,
+  // not the capped/truncated view) -- no point offering a toggle for a
+  // co-grid that isn't even rendered.
+  const showCoGridToggle = editable && editingKeySet.size > 0;
+  // Gemini's PR #571 review, confirmed real: without this, finishing (or
+  // cancelling) every open edit while collapsed left `isCoGridCollapsed`
+  // stuck `true` -- starting a LATER, unrelated edit would then silently
+  // stay hidden behind a stale collapse flag from a session that already
+  // ended, instead of showing the row the user just asked to edit.
+  // setState-during-render (not an effect), matching EditCoGrid's own
+  // `everShown` idiom a few files over -- no extra render round-trip.
+  if (editingKeySet.size === 0 && isCoGridCollapsed) setIsCoGridCollapsed(false);
 
   const handleEditSave = (key: string, values: T) => {
     const entry = recordByEditKey.get(key);
@@ -1819,7 +1847,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           the Center slot's bulk-action content (below) needs its own
           narrower visibility trick, the same one this used to apply to a
           whole separate second row. */}
-      {(quickFilter || densitySelector || csvExport || columnVisibility || selectable || renderToolbarExtra) && (
+      {(quickFilter || densitySelector || csvExport || columnVisibility || selectable || renderToolbarExtra || showCoGridToggle) && (
         <div style={{ padding: '0.625rem 1rem', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)', flex: '0 0 auto' }}>
           <Toolbar>
             {quickFilter && (
@@ -1867,11 +1895,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   <span style={{ fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-primary, #111827)' }}>
                     {selectedKeySet.size} selected
                   </span>
-                  {renderBulkActions?.(Array.from(selectedKeySet))}
+                  {renderBulkActions?.(Array.from(selectedKeySet), { startEditingRows })}
                 </div>
               </Toolbar.Center>
             )}
-            {(densitySelector || csvExport || columnVisibility || renderToolbarExtra) && (
+            {(densitySelector || csvExport || columnVisibility || renderToolbarExtra || showCoGridToggle) && (
               <Toolbar.Right>
                 {/* One connected pill across every enabled toolbar-right
                     control (density, Export CSV, Columns, and whatever
@@ -1884,6 +1912,38 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     wraps unconditionally rather than needing its own
                     enabled-feature branching. */}
                 <UIGroup>
+                {showCoGridToggle && (
+                  // Issue #545 section 5: collapsing hides the co-grid's
+                  // RENDERING only -- editingKeySet (and every draft's own
+                  // <Form> state underneath it) is untouched, so this never
+                  // exits edit mode. The count badge only appears while
+                  // collapsed specifically so collapsing can never make
+                  // in-progress edits look like they've vanished -- the
+                  // main grid's own per-row quaternary indicator is the
+                  // other half of that same guarantee (DataTable.tsx's
+                  // isRowEditing rendering, unaffected by this toggle).
+                  //
+                  // aria-expanded/aria-controls, not aria-pressed (Gemini's
+                  // PR #571 review, confirmed against the WAI-ARIA APG):
+                  // this button discloses/hides an external region, it
+                  // doesn't represent its own persistent on/off state --
+                  // aria-pressed paired with an action-describing label that
+                  // changes ("Show editing"/"Hide editing") produces a
+                  // contradictory announcement ("Show editing, pressed").
+                  // The Disclosure pattern's aria-expanded is exactly this
+                  // shape and is idiomatic with a changing action label.
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-expanded={!isCoGridCollapsed}
+                    aria-controls={`${id}-edit-cogrid`}
+                    onClick={() => setIsCoGridCollapsed(prev => !prev)}
+                    trailingIcon={isCoGridCollapsed ? <Badge size="sm">{editingKeySet.size}</Badge> : undefined}
+                  >
+                    {isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
+                  </Button>
+                )}
                 {densitySelector && (
                   // Composes the shared <ToggleGroup> rather than hand-
                   // rolling 3 individual Buttons (the previous version of
@@ -3052,6 +3112,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           entries={editEntries}
           pairedKeys={currentPageEditingKeys}
           truncatedCount={truncatedEditingCount}
+          collapsed={isCoGridCollapsed}
           onSave={handleEditSave}
           onCancel={handleEditCancel}
         />
