@@ -41,6 +41,7 @@
     "@visx/tooltip": "^4.0.0",
     "cmdk": "^1.1.1",
     "embla-carousel-react": "^8.6.0",
+    "lucide-react": "^1.48.0",
     "radix-ui": "^1.0.0",
     "react": "^18.3.1 || ^19.0.0",
     "react-aria-components": "^1.21.1",

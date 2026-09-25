@@ -1744,32 +1744,31 @@ describe('DataTable Virtualized Component', () => {
       // just its plain label, no per-item prefix needed anymore.
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
       const group = screen.getByRole('radiogroup', { name: 'Row density' });
-      expect(within(group).getByRole('radio', { name: 'S – Compact' })).toBeInTheDocument();
-      expect(within(group).getByRole('radio', { name: 'M – Normal' })).toBeInTheDocument();
-      expect(within(group).getByRole('radio', { name: 'L – Spacious' })).toBeInTheDocument();
+      expect(within(group).getByRole('radio', { name: 'Compact' })).toBeInTheDocument();
+      expect(within(group).getByRole('radio', { name: 'Normal' })).toBeInTheDocument();
+      expect(within(group).getByRole('radio', { name: 'Spacious' })).toBeInTheDocument();
     });
 
-    it('issue #591: the density options, Export CSV, and Columns are icon-only, with WCAG-compliant accessible names', () => {
+    it('issue #591: the density options, Export CSV, and Columns are icon-only (real lucide-react SVGs), with their pre-existing accessible names untouched', () => {
       // ToggleGroupOption has no separate aria-label per option (its
-      // accessible name IS whatever's in `label`, by design), so the
-      // visible S/M/L glyph has to be aria-hidden and the real accessible
-      // string moved into a <VisuallyHidden> label. Export CSV/Columns are
-      // plain Buttons, so aria-label alone is enough to short-circuit
-      // accessible-name computation regardless of icon content.
+      // accessible name IS whatever's in `label`, by design), so the real
+      // accessible string moves into a <VisuallyHidden> label rather than
+      // disappearing. Export CSV/Columns are plain Buttons, so aria-label
+      // alone is enough to short-circuit accessible-name computation
+      // regardless of icon content.
       //
-      // Regression (Gemini, PR #592): an earlier version of this used just
-      // strings.densityOptionLabel(d) ("Compact") as the accessible name,
-      // which doesn't CONTAIN the visible glyph text ("S") -- a real WCAG
-      // 2.1 SC 2.5.3 (Label in Name) violation, since a voice-control user
-      // saying the visible label ("click S") would have had nothing to
-      // match. The accessible name now leads with that same letter
-      // ("S – Compact").
+      // No WCAG SC 2.5.3 (Label in Name) concern here, unlike the
+      // discarded S/M/L-letter version from an earlier iteration of this
+      // issue (Gemini, PR #592): a purely pictographic SVG icon carries no
+      // visible TEXT for the accessible name to have to contain. Every
+      // lucide-react icon also defaults to aria-hidden="true" on its own
+      // <svg> automatically (confirmed in lucide-react's source), so
+      // nothing extra needs to be added at each call site for that either.
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector csvExport columnVisibility />);
 
-      const compactRadio = screen.getByRole('radio', { name: 'S – Compact' });
-      expect(compactRadio).toHaveTextContent('S');
-      expect(compactRadio.querySelector('[aria-hidden="true"]')).toHaveTextContent('S');
-      expect(compactRadio).toHaveAccessibleName(expect.stringContaining('S'));
+      const compactRadio = screen.getByRole('radio', { name: 'Compact' });
+      expect(compactRadio.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(compactRadio.querySelector('svg')).toHaveClass('lucide-rows-4');
 
       const exportButton = screen.getByRole('button', { name: 'Export CSV' });
       expect(exportButton).not.toHaveTextContent('Export CSV');
@@ -1784,10 +1783,10 @@ describe('DataTable Virtualized Component', () => {
       render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} rowKey={r => r.id} densitySelector />);
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
 
-      fireEvent.click(screen.getByRole('radio', { name: 'L – Spacious' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Spacious' }));
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
-      expect(screen.getByRole('radio', { name: 'L – Spacious' })).toHaveAttribute('aria-checked', 'true');
-      expect(screen.getByRole('radio', { name: 'M – Normal' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('radio', { name: 'Spacious' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Normal' })).toHaveAttribute('aria-checked', 'false');
     });
 
     // Regression: composing <ToggleGroup> (a real role="radiogroup") for
@@ -1805,8 +1804,8 @@ describe('DataTable Virtualized Component', () => {
     it('re-clicking the already-selected density option is a no-op, not a crash (regression)', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize="auto" densitySelector />);
 
-      expect(() => fireEvent.click(screen.getByRole('radio', { name: 'M – Normal' }))).not.toThrow();
-      expect(screen.getByRole('radio', { name: 'M – Normal' })).toHaveAttribute('aria-checked', 'true');
+      expect(() => fireEvent.click(screen.getByRole('radio', { name: 'Normal' }))).not.toThrow();
+      expect(screen.getByRole('radio', { name: 'Normal' })).toHaveAttribute('aria-checked', 'true');
       // The table itself is still there, still rendering real rows -- not
       // an unmounted/crashed tree.
       expect(screen.getByRole('grid')).toBeInTheDocument();
@@ -1826,7 +1825,7 @@ describe('DataTable Virtualized Component', () => {
           onDensityChange={onDensityChange}
         />
       );
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(onDensityChange).toHaveBeenLastCalledWith('compact');
       // Still normal -- the parent hasn't re-rendered with the new value yet.
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
@@ -1860,7 +1859,7 @@ describe('DataTable Virtualized Component', () => {
       );
       // Seeded from overrides.density since no density/defaultDensity was given.
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '57px' });
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '31px' });
     });
 
@@ -1868,7 +1867,7 @@ describe('DataTable Virtualized Component', () => {
       const handler = vi.fn();
       const unsub = aiBus.on('datatable:density_changed', handler);
       render(<DataTable id="density-table" data={testData} columns={testColumns} defaultPageSize={10} densitySelector />);
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
       expect(handler).toHaveBeenLastCalledWith({ id: 'density-table', density: 'compact' });
       unsub();
     });
@@ -1913,7 +1912,7 @@ describe('DataTable Virtualized Component', () => {
       setRealTransitionDuration(container);
 
       expect(container.querySelectorAll('table').length).toBe(1);
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
 
       const tables = container.querySelectorAll('table');
       expect(tables.length).toBe(2);
@@ -1928,7 +1927,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable id="density-id-table" data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
       );
       setRealTransitionDuration(container);
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
 
       const tables = container.querySelectorAll('table');
       const snapshot = tables[1];
@@ -1941,7 +1940,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
       );
       setRealTransitionDuration(container);
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
 
       expect(container.querySelectorAll('table').length).toBe(2);
       const snapshot = container.querySelectorAll('table')[1];
@@ -1954,7 +1953,7 @@ describe('DataTable Virtualized Component', () => {
         <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
       );
       setRealTransitionDuration(container, '0s');
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
 
       expect(container.querySelectorAll('table').length).toBe(1);
     });
@@ -1963,7 +1962,7 @@ describe('DataTable Virtualized Component', () => {
       const { container } = render(
         <DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector overrides={{ density: 'normal' }} />
       );
-      fireEvent.click(screen.getByRole('radio', { name: 'S – Compact' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Compact' }));
 
       expect(container.querySelectorAll('table').length).toBe(1);
     });

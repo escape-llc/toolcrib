@@ -13,6 +13,7 @@ import {
 } from 'react';
 import type { ZodType } from 'zod';
 import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
+import { Rows2, Rows3, Rows4, Download, Columns3, ChevronRight, ChevronDown } from 'lucide-react';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { ToggleGroup } from '../ToggleGroup/ToggleGroup';
 import { Button } from '../Form/FormComponents';
@@ -717,21 +718,23 @@ export interface DataTableProps<T = any> {
  */
 const ROW_COMMANDS_COLUMN_KEY = '__ai-datatable-row-commands__';
 
-// Issue #591: a plain S/M/L "shirt size" letter for row spacing --
-// compact/normal/spacious maps intuitively onto that scale, and unlike a
-// Unicode geometric-shape glyph (▫ ◻ ⬜ were tried first), a plain Latin
-// letter has no emoji-presentation variant to worry about: confirmed via
-// a real rendered screenshot that ⬜ (U+2B1C) specifically renders as a
-// full-color, rounded emoji square in this environment's font while ▫/◻
-// stayed plain monochrome outlines -- three icons that were supposed to
-// read as one consistent size progression instead looked like three
-// unrelated icons. The visible glyph is paired with a <VisuallyHidden>
-// label carrying the real accessible string, at each of this map's call
-// sites.
-const DENSITY_OPTION_GLYPH: Record<TableDensity, string> = {
-  compact: 'S',
-  normal: 'M',
-  spacious: 'L',
+// Issue #591 (revised): real SVG icons from lucide-react rather than a
+// text glyph -- Rows4/Rows3/Rows2 (more, smaller rows -> fewer, larger
+// rows) is the same "row count as a density proxy" convention real
+// data-grid density pickers use, and reads unambiguously as a spacing
+// control rather than a generic size label. This also sidesteps the
+// WCAG SC 2.5.3 concern the earlier S/M/L-letter version had (Gemini's
+// review of #592): a purely pictographic icon carries no visible TEXT
+// for the accessible name to have to contain, unlike a literal letter.
+// Every lucide icon defaults to aria-hidden="true" on its own <svg>
+// (confirmed in lucide-react's source, `hasA11yProp`) as long as no
+// aria-*/title/role prop is passed directly to it, so nothing extra is
+// needed here beyond the existing <VisuallyHidden> label at each of
+// this map's call sites.
+const DENSITY_OPTION_ICON: Record<TableDensity, React.ComponentType<{ size?: string | number }>> = {
+  compact: Rows4,
+  normal: Rows3,
+  spacious: Rows2,
 };
 
 function paginationNavButtonStyle(disabled: boolean): React.CSSProperties {
@@ -1981,7 +1984,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     // precedent from the start.
                     title={isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
                     onClick={() => setIsCoGridCollapsed(prev => !prev)}
-                    icon={isCoGridCollapsed ? '▶' : '▼'}
+                    // Real SVG chevron (lucide-react), not the plain
+                    // Unicode ▶/▼ this used originally -- switched for
+                    // visual consistency with the rest of the toolbar's
+                    // now-real icons (density, Export CSV, Columns), added
+                    // alongside them in #591.
+                    icon={isCoGridCollapsed ? <ChevronRight size="1em" /> : <ChevronDown size="1em" />}
                     trailingIcon={<Badge size="sm">{editingKeySet.size}</Badge>}
                   />
                 )}
@@ -2010,47 +2018,32 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   <ToggleGroup
                     size="sm"
                     aria-label={strings.densityLabel}
-                    // Issue #591: icon-only, matching the co-grid toggle's
-                    // own #589 treatment -- a size-graduated square glyph
-                    // (small/medium/large) as a "shirt size" metaphor for
-                    // row spacing. ToggleGroupOption has no separate
-                    // aria-label field per option (its accessible name IS
-                    // whatever's in `label`, by design -- see its own
-                    // doc comment), so the existing accessible strings
-                    // move into a <VisuallyHidden> label instead of
-                    // disappearing -- the same "keep the string, move it
-                    // off visible content" approach #589 used via
-                    // aria-label for a plain Button.
-                    options={(['compact', 'normal', 'spacious'] as const).map(d => ({
-                      value: d,
-                      // aria-hidden on the glyph -- unlike the plain
-                      // Buttons below, ToggleGroupOption has no aria-label
-                      // to short-circuit accessible-name computation, so
-                      // an unhidden icon's own text would concatenate onto
-                      // the VisuallyHidden label ("SCompact" instead of
-                      // "S – Compact") and break every existing
-                      // name-based `getByRole('radio', { name: ... })`
-                      // query in this file.
-                      //
-                      // Gemini's review of this PR (#592) correctly caught
-                      // a real WCAG 2.1 SC 2.5.3 (Label in Name) violation
-                      // in an earlier version of this line: the accessible
-                      // name was just strings.densityOptionLabel(d)
-                      // ("Compact"), which doesn't CONTAIN the visible
-                      // glyph text ("S") at all -- a voice-control user
-                      // saying "click S" (the visible label) would have
-                      // had nothing to match. The glyph's own letter is
-                      // literal text, not a decorative pictograph, so this
-                      // criterion applies to it the same way it would to
-                      // any other visible text label. Prefixing the
-                      // VisuallyHidden name with that same letter (rather
-                      // than dropping the glyph, which would lose the
-                      // compactness this issue exists for) satisfies SC
-                      // 2.5.3 while keeping the full word for anyone who
-                      // wouldn't otherwise know what "S" means here.
-                      icon: <span aria-hidden="true">{DENSITY_OPTION_GLYPH[d]}</span>,
-                      label: <VisuallyHidden>{`${DENSITY_OPTION_GLYPH[d]} – ${strings.densityOptionLabel(d)}`}</VisuallyHidden>,
-                    }))}
+                    // Issue #591 (revised after direct feedback -- plain
+                    // text/emoji glyphs read as placeholder-ish, not real
+                    // icons): real SVG icons from lucide-react, matching
+                    // the co-grid toggle's own #589 icon-only treatment.
+                    // ToggleGroupOption has no separate aria-label field
+                    // per option (its accessible name IS whatever's in
+                    // `label`, by design), so the existing accessible
+                    // strings move into a <VisuallyHidden> label instead
+                    // of disappearing. No aria-hidden wrapper needed on
+                    // the icon itself here (unlike the earlier S/M/L-letter
+                    // version) -- every lucide icon already defaults to
+                    // aria-hidden="true" on its own <svg> as long as
+                    // nothing aria-*/title/role is passed directly to it.
+                    // A purely pictographic icon also sidesteps the WCAG
+                    // SC 2.5.3 (Label in Name) issue Gemini's review of
+                    // #592 caught in the letter-based version -- there's
+                    // no visible TEXT label here for the accessible name
+                    // to have to contain.
+                    options={(['compact', 'normal', 'spacious'] as const).map(d => {
+                      const DensityIcon = DENSITY_OPTION_ICON[d];
+                      return {
+                        value: d,
+                        icon: <DensityIcon size="1em" />,
+                        label: <VisuallyHidden>{strings.densityOptionLabel(d)}</VisuallyHidden>,
+                      };
+                    })}
                     value={liveDensity}
                     onChange={next => handleDensityChange(next as TableDensity)}
                   />
@@ -2058,10 +2051,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 {csvExport && (
                   // title alongside aria-label, matching EditCoGrid's own
                   // established icon-only-button pattern (its Reset/Save/
-                  // Cancel buttons) -- Gemini's review of this PR (#592)
-                  // correctly flagged that a sighted mouse user has no
-                  // native hover explanation for what an emoji-only button
-                  // does without one.
+                  // Cancel buttons) -- Gemini's review of #592 correctly
+                  // flagged that a sighted mouse user has no native hover
+                  // explanation for what an icon-only button does without
+                  // one.
                   <Button
                     type="button"
                     size="sm"
@@ -2069,7 +2062,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     aria-label={strings.exportCsvLabel}
                     title={strings.exportCsvLabel}
                     onClick={handleCsvExport}
-                    icon="📤"
+                    icon={<Download size="1em" />}
                   />
                 )}
                 {columnVisibility && (
@@ -2087,7 +2080,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // component doesn't expose it.
                   <DropdownMenuPrimitive.Root>
                     <DropdownMenuPrimitive.Trigger asChild>
-                      <Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon="🗂️" />
+                      <Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon={<Columns3 size="1em" />} />
                     </DropdownMenuPrimitive.Trigger>
                     <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
                       <DropdownMenuPrimitive.Content
