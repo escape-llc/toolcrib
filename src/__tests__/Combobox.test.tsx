@@ -299,8 +299,9 @@ describe('Combobox Component — multiple mode', () => {
   // the same hue --ai-focus-ring itself uses (focus rings stay
   // primary-anchored everywhere, by design), so the shared .ai-focus-ring
   // treatment would have almost no contrast against its own surface here.
-  // A dedicated class with its own contrast-guaranteed ring color
-  // (--ai-color-primary-text) is what actually fixes it -- jsdom can't
+  // A dedicated class whose ring is `currentColor` (the chip's own
+  // contrast-checked text color, per chip since #426) is what actually
+  // fixes it -- jsdom can't
   // resolve the real cascaded outline-color (see this repo's own
   // established note on that limitation elsewhere), so this only proves
   // the class is present; e2e/combobox-chip-focus.spec.ts covers the real
@@ -310,6 +311,48 @@ describe('Combobox Component — multiple mode', () => {
     const removeBtn = screen.getByLabelText('Remove Admin');
     expect(removeBtn.className).toContain('ai-combobox-chip-remove');
     expect(removeBtn.className).not.toContain('ai-focus-ring');
+  });
+
+  describe('chipColor (issue #426)', () => {
+    const chip = (value: string) => document.querySelector(`[data-chip-value="${value}"]`) as HTMLElement;
+
+    it('keeps the default solid primary chip when chipColor is omitted or returns undefined', () => {
+      render(
+        <Combobox multiple defaultValue={['admin', 'editor']} options={options} onChange={vi.fn()}
+          chipColor={v => (v === 'admin' ? { subtheme: 'error' } : undefined)} />
+      );
+      expect(chip('editor').style.background).toBe('var(--ai-color-primary, #3b82f6)');
+      expect(chip('editor').style.color).toBe('var(--ai-color-primary-text, #ffffff)');
+    });
+
+    it('colors each chip from its own value, defaulting to the solid appearance', () => {
+      render(
+        <Combobox multiple defaultValue={['admin', 'editor']} options={options} onChange={vi.fn()}
+          chipColor={v => (v === 'admin' ? { subtheme: 'error' } : { variant: 'secondary' })} />
+      );
+      expect(chip('admin').style.background).toBe('var(--ai-subtheme-error)');
+      expect(chip('admin').style.color).toBe('var(--ai-subtheme-error-on-main)');
+      expect(chip('editor').style.background).toBe('var(--ai-color-secondary)');
+      expect(chip('editor').style.color).toBe('var(--ai-color-secondary-text)');
+    });
+
+    it('honors an explicit appearance, drawing its edge without a layout-shifting border', () => {
+      render(
+        <Combobox multiple defaultValue={['admin']} options={options} onChange={vi.fn()}
+          chipColor={() => ({ subtheme: 'success', appearance: 'outline' })} />
+      );
+      expect(chip('admin').style.background).toBe('transparent');
+      expect(chip('admin').style.color).toBe('var(--ai-subtheme-success-text)');
+      expect(chip('admin').style.boxShadow).toContain('var(--ai-subtheme-success)');
+      expect(chip('admin').style.border).toBe('');
+    });
+
+    it('is called with the raw value, so custom (non-option) chips can be colored too', () => {
+      const chipColor = vi.fn(() => ({ subtheme: 'warning' as const }));
+      render(<Combobox multiple defaultValue={['not-an-option']} options={options} onChange={vi.fn()} chipColor={chipColor} />);
+      expect(chipColor).toHaveBeenCalledWith('not-an-option');
+      expect(chip('not-an-option').style.background).toBe('var(--ai-subtheme-warning)');
+    });
   });
 
   it('clears every chip via the clear button', () => {

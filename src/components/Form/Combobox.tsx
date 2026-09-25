@@ -35,29 +35,30 @@ import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { ComboboxThemeSlice, type ComboboxSliceState } from './ComboboxSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
+import { type SubthemeName } from '../../theme/subtheme';
+import { resolveColorVariant, type ColorVariant, type Appearance } from '../../theme/colorVariant';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 const COMBOBOX_CHIP_REMOVE_STYLE_ID = 'toolcrib-combobox-chip-remove-focus';
 
-// Issue #425: the chip remove button sits ON var(--ai-color-primary) (the
-// chip's own background -- correctly primary-hued, a selected chip is
-// persistent bucket-1 identity per AGENTS.md's color-buckets taxonomy, not
-// something to recolor). The shared `.ai-focus-ring` mechanism's own ring
-// color (--ai-focus-ring) is *also* primary-hued by design (this session's
-// own confirmed ruling: focus rings stay primary-anchored everywhere,
-// specifically so "this is keyboard-focused" reads as one consistent
-// signal regardless of context) -- so applying it here would produce a
-// ring with almost no contrast against its own surface, not a real fix.
-// This button previously had no focus styling at all, falling back to the
-// browser's plain default outline (also incidentally blue), which has the
-// identical problem.
+// Issue #425: the chip remove button sits ON its chip's own filled
+// background -- by default var(--ai-color-primary) (a selected chip is
+// persistent bucket-1 identity per AGENTS.md's color-buckets taxonomy), or
+// whatever `chipColor` (issue #426) resolves for that specific chip. The
+// shared `.ai-focus-ring` mechanism's own ring color (--ai-focus-ring) is
+// primary-hued by design (focus rings stay primary-anchored everywhere, so
+// "this is keyboard-focused" reads as one consistent signal) -- so applying
+// it here would produce a ring with almost no contrast against a default
+// primary chip, not a real fix.
 //
-// --ai-color-primary-text is not an alternate harmony/bucket color -- it's
-// the existing WCAG-contrast-checked *utility* value for "readable content
-// on a primary surface" (pickReadableTextColor, harmonies.ts; the same
-// mechanism Calendar's today-marker and Stepper already lean on), which is
-// exactly the guarantee needed here: a ring color proven to contrast
-// against the one background it will always sit on.
+// `currentColor`, not a fixed token: the button inherits its chip's own
+// text color, which resolveColorVariant already picks as the readable
+// color for that chip's background (--ai-color-primary-text for the
+// default solid primary chip -- pickReadableTextColor's WCAG-checked value,
+// harmonies.ts -- or a subtheme's -on-main/-text, etc.). The ring therefore
+// contrasts against whichever background its own chip actually has, per
+// chip, with no per-color lookup here. #425's original version hardcoded
+// --ai-color-primary-text, correct only while every chip was primary.
 function injectComboboxChipRemoveStyles(targetDocument?: Document, nonce?: string): void {
   injectGlobalStyle(
     COMBOBOX_CHIP_REMOVE_STYLE_ID,
@@ -68,12 +69,28 @@ function injectComboboxChipRemoveStyles(targetDocument?: Document, nonce?: strin
       transition: outline-color var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
     }
     .ai-combobox-chip-remove:focus-visible {
-      outline-color: var(--ai-color-primary-text, #ffffff);
+      outline-color: currentColor;
     }
     `,
     targetDocument,
     nonce
   );
+}
+
+/**
+ * Color for one multi-select chip, returned by `<Combobox chipColor>`. Same
+ * `subtheme`/`variant`/`appearance` trio as `<Badge>`, resolved through the
+ * same shared `resolveColorVariant` — `subtheme` wins over `variant` when
+ * both are set. `appearance` defaults to `'solid'` here (not `Badge`'s
+ * `'soft'`), matching the filled look every chip already has.
+ */
+export interface ComboboxChipColor {
+  /** One of the 4 fixed status colors — e.g. a red `'error'` "urgent" tag. */
+  subtheme?: SubthemeName;
+  /** Identity color from the harmony palette. Ignored if `subtheme` is set. */
+  variant?: ColorVariant;
+  /** Visual treatment for the resolved color. @default 'solid' */
+  appearance?: Appearance;
 }
 
 /**
@@ -124,6 +141,14 @@ export interface ComboboxProps {
    * `string[]`. @default false
    */
   multiple?: boolean;
+  /**
+   * Per-chip color when `multiple` is true — called with each selected
+   * value; return `undefined` for the default solid primary chip. A
+   * function of the value rather than a field on each option, so it also
+   * covers `allowCustomValue` chips and controlled/async values that have
+   * no matching option object on hand (e.g. `v => v === 'urgent' ? { subtheme: 'error' } : undefined`).
+   */
+  chipColor?: (value: string) => ComboboxChipColor | undefined;
   /** Controlled selected value — a string, or a string array when `multiple` is true. */
   value?: string | string[];
   /** Initial selected value (uncontrolled) — same shape as `value`. */
@@ -161,6 +186,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   onSearch,
   searchDebounceMs = 250,
   multiple = false,
+  chipColor,
   value: externalValue,
   defaultValue,
   onChange: externalOnChange,
@@ -516,17 +542,34 @@ export const Combobox: React.FC<ComboboxProps> = ({
           }}
         >
           {multiple &&
-            selectedValues.map(v => (
+            selectedValues.map(v => {
+              const chipSpec = chipColor?.(v);
+              const chipColors = resolveColorVariant({
+                subtheme: chipSpec?.subtheme,
+                variant: chipSpec?.variant,
+                appearance: chipSpec?.appearance ?? 'solid',
+              }) ?? {
+                background: 'var(--ai-color-primary, #3b82f6)',
+                border: 'var(--ai-color-primary, #3b82f6)',
+                color: 'var(--ai-color-primary-text, #ffffff)',
+              };
+              return (
               <span
                 key={v}
+                data-chip-value={v}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.25rem',
                   padding: '0.125rem 0.375rem 0.125rem 0.5rem',
                   borderRadius: 'var(--ai-radius-xl, 9999px)',
-                  background: 'var(--ai-color-primary, #3b82f6)',
-                  color: 'var(--ai-color-primary-text, #ffffff)',
+                  background: chipColors.background,
+                  // Inset box-shadow, not `border` -- 'soft'/'outline'
+                  // chips need a visible edge, but a real border would
+                  // grow every chip (the default solid one included) by
+                  // 2px and shift the whole chip row's layout.
+                  boxShadow: `inset 0 0 0 0.0625rem ${chipColors.border}`,
+                  color: chipColors.color,
                   fontSize: '0.75rem',
                   fontWeight: 'var(--ai-font-weight-medium, 500)',
                   whiteSpace: 'nowrap',
@@ -557,7 +600,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   ✕
                 </button>
               </span>
-            ))}
+              );
+            })}
           <input
             ref={inputRef}
             id={effectiveId}
