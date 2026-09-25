@@ -100,6 +100,28 @@ import {
   useAdaptiveSize,
   SPLITTER_HANDLE_SIZE_REM,
 } from '#toolcrib';
+import {
+  Command,
+  RefreshCw,
+  Pencil,
+  Trash2,
+  Download,
+  Search,
+  Rocket,
+  ArrowRight,
+  Settings,
+  Zap,
+  Star,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Pause,
+} from 'lucide-react';
 
 // Ambient, erased at compile time (`declare const` emits zero runtime
 // code) -- deliberately local to this file, not demo/vite-env.d.ts, and
@@ -1840,7 +1862,7 @@ export const App: React.FC = () => {
                         <p style={{ marginTop: 0 }}>
                           Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
                         </p>
-                        <Button variant="outline" icon="⌘" onClick={() => aiBus.openCommandPalette('global-command-palette')}>
+                        <Button variant="outline" icon={<Command size="1em" />} onClick={() => aiBus.openCommandPalette('global-command-palette')}>
                           Open Command Palette
                         </Button>
                       </Card.Content>
@@ -1979,10 +2001,31 @@ export const App: React.FC = () => {
                         // was for the segmented look of two adjacent buttons
                         // (this one + the old fake Export CSV button); with
                         // just Reload Data left, a plain <Button> is enough.
+                        //
+                        // Icon-only + title/aria-label (not a visible
+                        // label), matching the built-in toolbar-right
+                        // buttons right next to it (density/Export CSV/
+                        // Columns, issue #591/#595) -- this button sits in
+                        // the exact same connected row, so leaving it as
+                        // the one remaining icon+text control here would
+                        // reproduce the original #584/#591 "one button
+                        // doesn't match its siblings" look this whole
+                        // toolbar was already fixed for.
+                        // A constant "Reload Data" label now, not the old
+                        // state-dependent "Load Data"/"Reload Data" text --
+                        // that distinction only mattered as VISIBLE text;
+                        // once icon-only, a refresh icon reads the same
+                        // regardless of whether the table has ever loaded
+                        // (it (re)fetches from source either way), and a
+                        // constant name also avoids colliding with the
+                        // emptyState's own "Load Data" button below (both
+                        // visible at once while empty -- the two used to
+                        // be told apart by the toolbar button's 🔄 emoji
+                        // prefix, which no longer exists now that it's
+                        // icon-only; e2e/nav.ts's loadDemoTableData()
+                        // updated to match).
                         renderToolbarExtra={() => (
-                          <Button size="sm" variant="outline" icon="🔄" onClick={loadTableUsers}>
-                            {tableUsers.length === 0 ? 'Load Data' : 'Reload Data'}
-                          </Button>
+                          <Button size="sm" variant="outline" aria-label="Reload Data" title="Reload Data" icon={<RefreshCw size="1em" />} onClick={loadTableUsers} />
                         )}
                         rowKey={rec => rec.id}
                         editable
@@ -2047,13 +2090,13 @@ export const App: React.FC = () => {
                               6) -- zero new DataTable-level prop needed
                               beyond the startEditingRows action already
                               threaded through here. */}
-                          <Button size="sm" variant="outline" icon="✏️" onClick={() => actions.startEditingRows(keys)}>
+                          <Button size="sm" variant="outline" icon={<Pencil size="1em" />} onClick={() => actions.startEditingRows(keys)}>
                             Edit Selected
                           </Button>
                           <Button
                             size="sm"
                             variant="danger"
-                            icon="🗑️"
+                            icon={<Trash2 size="1em" />}
                             onClick={() => {
                               // A REAL delete (not a simulated toast) --
                               // found via direct feedback that a
@@ -2081,7 +2124,7 @@ export const App: React.FC = () => {
                             <EmptyState.Title>No team members to show</EmptyState.Title>
                             <EmptyState.Description>Load the demo dataset, or reload it if you've deleted everyone.</EmptyState.Description>
                             <EmptyState.Action>
-                              <Button size="sm" variant="primary" icon="📥" onClick={loadTableUsers}>Load Data</Button>
+                              <Button size="sm" variant="primary" icon={<Download size="1em" />} onClick={loadTableUsers}>Load Data</Button>
                             </EmptyState.Action>
                           </EmptyState>
                         }
@@ -2102,7 +2145,19 @@ export const App: React.FC = () => {
                         <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
                       </Toolbar.Left>
                       <Toolbar.Right>
-                        <Button size="sm" variant="outline" icon="⬇️" onClick={() => addToast({ type: 'info', message: 'Report exported!' })}>Export</Button>
+                        {/* "Export Report", not the shorter "Export" --
+                            the Event Log panel's own "Export JSONL" button
+                            (a few hundred lines down) is ALWAYS mounted
+                            regardless of which tab is active, and
+                            Playwright/testing-library's default `name`
+                            matching is a substring match, not exact --
+                            confirmed directly: `getByRole('button', {name:
+                            'Export'})` resolved BOTH buttons at once,
+                            since "Export" is a substring of "Export
+                            JSONL" too. A more specific name sidesteps the
+                            ambiguity instead of relying on every future
+                            test remembering `exact: true`. */}
+                        <Button size="sm" variant="outline" aria-label="Export Report" title="Export Report" icon={<Download size="1em" />} onClick={() => addToast({ type: 'info', message: 'Report exported!' })} />
                       </Toolbar.Right>
                     </Toolbar>
 
@@ -2659,7 +2714,7 @@ export const App: React.FC = () => {
                                 <Button size="sm" variant="outline">Center Tab 2</Button>
                               </Toolbar.Center>
                               <Toolbar.Right>
-                                <Button size="sm" variant="primary" icon="⚡">Action Right</Button>
+                                <Button size="sm" variant="primary" icon={<Zap size="1em" />}>Action Right</Button>
                               </Toolbar.Right>
                             </Toolbar>
                           </div>
@@ -2739,14 +2794,14 @@ export const App: React.FC = () => {
                       <Card.Content>
                         <VStack gap="sm">
                           <HStack gap="sm" wrap>
-                            <Button variant="primary" icon="🚀" trailingIcon="➔" onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
-                            <Button variant="secondary" icon="⚙️" onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
-                            <Button variant="outline" icon="⚡" onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
-                            <Button variant="danger" icon="🗑️" onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
-                            <Button variant="ghost" icon="⭐" onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
-                            <Button subtheme="success" icon="✅" onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
-                            <Button subtheme="warning" icon="⚠️" onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
-                            <Button subtheme="info" icon="ℹ️" onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
+                            <Button variant="primary" icon={<Rocket size="1em" />} trailingIcon={<ArrowRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
+                            <Button variant="secondary" icon={<Settings size="1em" />} onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
+                            <Button variant="outline" icon={<Zap size="1em" />} onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
+                            <Button variant="danger" icon={<Trash2 size="1em" />} onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
+                            <Button variant="ghost" icon={<Star size="1em" />} onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
+                            <Button subtheme="success" icon={<CheckCircle2 size="1em" />} onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
+                            <Button subtheme="warning" icon={<AlertTriangle size="1em" />} onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
+                            <Button subtheme="info" icon={<Info size="1em" />} onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
                           </HStack>
                           {/* size="sm"/"md"/"lg", isolated from variant/subtheme --
                               nothing above demonstrated the size prop at all. */}
@@ -2839,7 +2894,7 @@ export const App: React.FC = () => {
                           <Card.Footer>
                             <span>Adaptive Status: Active</span>
                             <Card.Actions>
-                              <Button size="sm" variant="outline" icon="✨" onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
+                              <Button size="sm" variant="outline" icon={<Sparkles size="1em" />} onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
                             </Card.Actions>
                           </Card.Footer>
                         </Card>
@@ -2868,9 +2923,9 @@ export const App: React.FC = () => {
                               <div>
                                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
                                 <UIGroup>
-                                  <Button variant="outline" icon="◀" onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
-                                  <Button variant="outline" icon="●" onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
-                                  <Button variant="outline" icon="▶" onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
+                                  <Button variant="outline" icon={<ChevronLeft size="1em" />} onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
+                                  <Button variant="outline" icon={<Pause size="1em" />} onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
+                                  <Button variant="outline" icon={<ChevronRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
                                 </UIGroup>
                               </div>
 
@@ -2886,7 +2941,7 @@ export const App: React.FC = () => {
                                 <div style={{ display: 'grid', width: '100%' }}>
                                   <UIGroup>
                                     <Input placeholder="Search records..." />
-                                    <Button variant="primary" icon="🔍" onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
+                                    <Button variant="primary" icon={<Search size="1em" />} onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
                                   </UIGroup>
                                 </div>
                               </div>
@@ -2909,15 +2964,15 @@ export const App: React.FC = () => {
                                     the real-browser assertion this exists
                                     to back up visually. */}
                                 <UIGroup>
-                                  <Button variant="outline" icon="◀">Prev</Button>
+                                  <Button variant="outline" icon={<ChevronLeft size="1em" />}>Prev</Button>
                                   <Popup
                                     id="uigroup-popup-demo"
-                                    trigger={<Button variant="outline" icon="⚙️" aria-label="Options" />}
+                                    trigger={<Button variant="outline" icon={<Settings size="1em" />} aria-label="Options" title="Options" />}
                                     placement="bottom-start"
                                   >
                                     <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Popup content</div>
                                   </Popup>
-                                  <Button variant="outline" icon="▶">Next</Button>
+                                  <Button variant="outline" icon={<ChevronRight size="1em" />}>Next</Button>
                                 </UIGroup>
                               </div>
 
@@ -2961,7 +3016,7 @@ export const App: React.FC = () => {
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
                               <DropdownMenu
-                                trigger={<Button variant="outline" icon="⚙️" trailingIcon="▼">User Actions Menu</Button>}
+                                trigger={<Button variant="outline" icon={<Settings size="1em" />} trailingIcon={<ChevronDown size="1em" />}>User Actions Menu</Button>}
                                 items={[
                                   { value: 'profile', label: 'View Profile', icon: '👤', onClick: () => addToast({ type: 'info', message: 'View Profile selected', priority: 'medium' }) },
                                   { value: 'settings', label: 'Account Settings', icon: '⚙️', onClick: () => addToast({ type: 'info', message: 'Settings selected', priority: 'low' }) },
@@ -2974,7 +3029,7 @@ export const App: React.FC = () => {
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
                               <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
-                                <Button variant="secondary" icon="ℹ️">Hover For Tooltip</Button>
+                                <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
                               </Tooltip>
                             </div>
 
@@ -3008,7 +3063,7 @@ export const App: React.FC = () => {
                           <VStack gap="md">
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Blocking Confirmation (`&lt;AlertDialog&gt;`)</div>
-                              <AlertDialog trigger={<Button variant="danger" icon="🗑️">Delete Record</Button>} ariaLabel="Delete confirmation">
+                              <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} ariaLabel="Delete confirmation">
                                 <AlertDialog.Header>Delete this record?</AlertDialog.Header>
                                 <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
                                 <AlertDialog.Footer>
@@ -3480,13 +3535,26 @@ export const App: React.FC = () => {
                         border-merging CSS targets its own direct children,
                         and each Tooltip passes its child straight through
                         via Radix's asChild with no wrapper of its own, so
-                        the Button stays UIGroup's direct child either way. */}
+                        the Button stays UIGroup's direct child either way.
+                        Icon-only (issue #595 follow-up) -- aria-label only,
+                        deliberately NOT title: each button is already
+                        wrapped in a real <Tooltip> with its own, much
+                        richer hover content, and a native title attribute
+                        would show ALONGSIDE that on hover (two competing
+                        tooltips) rather than replacing it. aria-label alone
+                        gives the accessible NAME; Tooltip's own content is
+                        exposed as a description (aria-describedby) on top
+                        of that, the same relationship DataTable's own
+                        icon-only toolbar buttons have with title, just
+                        substituting the richer component for the plainer
+                        native attribute here since one already existed. */}
                     <UIGroup>
                       <Tooltip content="Download the captured events below as newline-delimited JSON — boilerplate for the telemetry-forwarding pattern this panel and the error:boundary toast above both demonstrate live in-browser: swap this Blob download for a fetch()/fs.appendFile() call and the same shape ships events to a real backend instead">
                         <Button
                           size="sm"
                           variant="outline"
-                          icon="⬇️"
+                          aria-label="Export JSONL"
+                          icon={<Download size="1em" />}
                           disabled={eventLogs.length === 0}
                           onClick={() => {
                             // One JSON object per line, oldest first (eventLogs
@@ -3507,33 +3575,29 @@ export const App: React.FC = () => {
                             a.click();
                             URL.revokeObjectURL(url);
                           }}
-                        >
-                          Export JSONL
-                        </Button>
+                        />
                       </Tooltip>
                       <Tooltip content="Clear all recorded event log items from stream">
                         <Button
                           size="sm"
                           variant="outline"
-                          icon="🗑️"
+                          aria-label="Clear Log"
+                          icon={<Trash2 size="1em" />}
                           onClick={() => {
                             setEventLogs([]);
                             setExpandedLogIds(new Set());
                             aiBus.emit('log:cleared', { timestamp: formatEventLogTimestamp(new Date()) });
                           }}
-                        >
-                          Clear Log
-                        </Button>
+                        />
                       </Tooltip>
                       <Tooltip content={eventLogCollapsed ? 'Expand the event log panel back to its default height' : 'Collapse the event log panel to give the playground above more vertical space'}>
                         <Button
                           size="sm"
                           variant="outline"
-                          icon={eventLogCollapsed ? '▲' : '▼'}
+                          aria-label={eventLogCollapsed ? 'Expand' : 'Collapse'}
+                          icon={eventLogCollapsed ? <ChevronUp size="1em" /> : <ChevronDown size="1em" />}
                           onClick={toggleEventLogCollapsed}
-                        >
-                          {eventLogCollapsed ? 'Expand' : 'Collapse'}
-                        </Button>
+                        />
                       </Tooltip>
                     </UIGroup>
                   </Toolbar.Right>
