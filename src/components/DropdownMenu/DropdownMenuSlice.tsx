@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -49,28 +48,6 @@ export const DropdownMenuThemeSlice: ThemeSlice<DropdownMenuSliceState, Dropdown
   category: 'Overlays',
   defaultState: defaultDropdownMenuState,
   getCSSVariables: getDropdownMenuVariables,
-  renderEditorControl: (state, onChange) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <FieldRow
-        label="Dropdown Menu Shadow Depth"
-        value={state.shadowDepth}
-        onChange={val => onChange({ ...state, shadowDepth: val as DropdownMenuShadowDepth })}
-        options={[
-          { label: 'Subtle', value: 'subtle' },
-          { label: 'Elevated', value: 'elevated' },
-        ]}
-      />
-      <FieldRow
-        label="Dropdown Menu Item Density"
-        value={state.itemDensity}
-        onChange={val => onChange({ ...state, itemDensity: val as DropdownMenuItemDensity })}
-        options={[
-          { label: 'Compact', value: 'compact' },
-          { label: 'Normal', value: 'normal' },
-        ]}
-      />
-    </div>
-  ),
   fieldVars: {
     shadowDepth: ['--ai-dropdownmenu-shadow'],
     itemDensity: ['--ai-dropdownmenu-item-padding'],

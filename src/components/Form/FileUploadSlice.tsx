@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -40,18 +39,6 @@ export const FileUploadThemeSlice: ThemeSlice<FileUploadSliceState, FileUploadCS
   category: 'Form Controls',
   defaultState: defaultFileUploadState,
   getCSSVariables: getFileUploadVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="File Upload Dropzone Density"
-      value={state.density}
-      onChange={val => onChange({ ...state, density: val as FileUploadDensity })}
-      options={[
-        { label: 'Compact', value: 'compact' },
-        { label: 'Normal', value: 'normal' },
-        { label: 'Spacious', value: 'spacious' },
-      ]}
-    />
-  ),
   fieldVars: {
     density: ['--ai-fileupload-dropzone-padding'],
   },

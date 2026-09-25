@@ -32,29 +32,53 @@ last confirmed by a full read of `src/theme/registerThemeSlices.ts`,
 2026-09-24, and may have drifted since (a new component's `*Slice.tsx` file,
 a new observer, a refactor of the registration mechanism).
 
-## 1. The known, confirmed finding — re-verify it still holds, don't assume it's fixed
+## 1. The original finding — fixed 2026-09-25, re-verify the fix still holds
 
-**`src/theme/registerThemeSlices.ts` is a real, unconditional top-level
-side-effect module.** It has no exports of its own — it exists purely to run,
-at module scope, one `globalThemeSliceRegistry.register(XSlice)` call per
-component (currently ~50), e.g. `globalThemeSliceRegistry.register(CardThemeSlice)`,
-`globalThemeSliceRegistry.register(ButtonThemeSlice)`, and so on for every
-component with a registered slice. It's reached via a bare side-effect import
-(`import './registerThemeSlices';`) from two places: `src/theme/themeContext.tsx`
-(where `ThemeProvider` — essentially mandatory for any real consumer — lives)
-and `src/theme/serverThemeCSS.ts`. Since `themeContext.tsx` is barrel-exported
-wholesale, **importing `ThemeProvider` alone drags in the registration wiring
-(and therefore the bundled code) for all ~50 components' slice files**,
-regardless of which components the consumer actually imports or renders —
-including whatever those slice files themselves import (e.g. `ButtonSlice.tsx`
-pulls in `ThemeEditorFieldRow`).
+**`src/theme/registerThemeSlices.ts` is still a real, unconditional
+top-level side-effect module, and that's correct, not a residual bug.** It
+has no exports of its own — it exists purely to run, at module scope, one
+`globalThemeSliceRegistry.register(XSlice)` call per component (~45), e.g.
+`globalThemeSliceRegistry.register(CardThemeSlice)`, and so on for every
+component with a registered slice. It's still reached via a bare
+side-effect import (`import './registerThemeSlices';`) from
+`src/theme/themeContext.tsx` (where `ThemeProvider` lives) and
+`src/theme/serverThemeCSS.ts`, and importing `ThemeProvider` still eagerly
+registers every component's slice *data* regardless of which components a
+consumer actually renders — **this part was deliberately kept, not
+removed**, because `computeServerThemeCSS` (SSR) and `ThemeProvider`'s own
+`:root` variable computation both correctly depend on every slice being
+known up front, before any component in the page tree has rendered. Making
+this lazy (e.g. self-registering per component file) was considered and
+rejected: a lazy-loaded/code-split component's slice could then register
+*after* `ThemeProvider`'s own initial state already computed, leaving that
+component's default CSS variables missing until an unrelated re-render —
+a real regression eager registration structurally can't have.
 
-Re-confirm this is still the shape by reading `registerThemeSlices.ts`'s own
-current line count/import list and grepping for `import '\./registerThemeSlices'`
-— if a future refactor made registration lazy (e.g. gated on first
-`useSliceOverrides` call for that specific slice, or resolved via a dynamic
-`import()` per component file), this finding is stale and should be reported
-as fixed, not repeated.
+**What actually changed:** the real bloat wasn't the registration call
+itself, it was each slice file's own `renderEditorControl` — a real JSX
+function (used only by the Theme Editor's settings panel) that imported
+`FieldRow`, transitively pulling in Select/Label/etc. Every one of those
+functions moved out of each `*Slice.tsx` file into one consolidated
+`src/components/ThemeEditor/sliceEditorControls.tsx`, keyed by slice `id`.
+Each `*Slice.tsx` file no longer imports `FieldRow` (or `Slider`, for the
+three Global-section slices) at all — confirmed directly via a real Vite
+production build: a `<Button>` + `<ThemeProvider>`-only bundle contains
+zero Theme Editor control text (`"Alert Dialog Backdrop Blur"` etc., all
+absent); adding `<ThemeEditor>` to the same bundle added ~209KB
+(unminified) and every control's own label text. `ThemeSlice` (`slice.ts`)
+no longer has a `renderEditorControl` field at all.
+
+**Re-verify by:** (1) grepping `src/components/**/*Slice.tsx` and
+`src/theme/{animation,livingColor,typography}.tsx` for `FieldRow`/`Slider`
+imports — should be zero matches; any hit is a regression, a slice file
+that grew a new inline editor control instead of adding an entry to
+`sliceEditorControls.tsx`. (2) Re-running the real-build check above
+(`vite build` against a minimal `<Button>`+`<ThemeProvider>` entry,
+`grep` the output bundle for a control-only string like `"Button Font
+Weight"`) if there's ever doubt the fix regressed. (3) Confirming
+`sliceEditorControls.tsx` is still `ThemeEditor.tsx`'s own sole import of
+it — nothing else (especially not `themeContext.tsx`) should import that
+file, or the whole point is defeated again.
 
 ## 2. General sweep — is there a second offender?
 

@@ -4,6 +4,7 @@ import { render, screen, fireEvent, within, waitFor } from '@testing-library/rea
 import { ThemeProvider } from '../theme/themeContext';
 import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
 import { globalThemeSliceRegistry } from '../theme/slice';
+import { SLICE_EDITOR_CONTROLS } from '../components/ThemeEditor/sliceEditorControls';
 import { axe } from './testUtils/axe';
 
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
@@ -251,21 +252,23 @@ describe('ThemeEditor', () => {
 
   // Every test above only ever checks a section's *displayed default*
   // value — none of them change anything. That left each registered
-  // slice's own renderEditorControl onChange closure (the `val =>
-  // onChange({ ...state, field: val })` line inside ~40 separate *Slice.tsx
-  // files) never actually invoked by any test, since nothing ever opened a
-  // FieldRow's Select and picked a different option. Rather than
-  // hand-writing ~40 near-identical "open category, open section, pick an
-  // option" tests (and having to remember to add a 41st the next time a
-  // component gets a slice), this drives the same interaction generically
-  // off the real registry ThemeEditor.tsx itself reads — the same registry
-  // themeContext.tsx (imported transitively above) already populated by
-  // registering every real slice at module load.
+  // slice's own onChange closure (the `val => onChange({ ...state, field:
+  // val })` line inside ~40 separate entries in sliceEditorControls.tsx,
+  // extracted out of each *Slice.tsx file per issue #577) never actually
+  // invoked by any test, since nothing ever opened a FieldRow's Select and
+  // picked a different option. Rather than hand-writing ~40 near-identical
+  // "open category, open section, pick an option" tests (and having to
+  // remember to add a 41st the next time a component gets a slice), this
+  // drives the same interaction generically off the real registry
+  // ThemeEditor.tsx itself reads — the same registry themeContext.tsx
+  // (imported transitively above) already populated by registering every
+  // real slice's data at module load, cross-referenced against
+  // SLICE_EDITOR_CONTROLS for which of those also have a real control UI.
   describe('regression coverage: every registered slice\'s FieldRow controls actually change its value on selection', () => {
     const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 'animation', 'typography']);
     const slices = globalThemeSliceRegistry
       .getAll()
-      .filter(slice => !GLOBAL_ONLY_SLICE_IDS.has(slice.id) && slice.renderEditorControl);
+      .filter(slice => !GLOBAL_ONLY_SLICE_IDS.has(slice.id) && SLICE_EDITOR_CONTROLS[slice.id]);
 
     it.each(slices.map(slice => [slice.id, slice.name, slice.category] as const))(
       'slice "%s" (category: %s)',

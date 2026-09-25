@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -61,38 +60,6 @@ export const ChartThemeSlice: ThemeSlice<ChartSliceState, ChartCSSVariables> = {
   category: 'Data Display',
   defaultState: defaultChartState,
   getCSSVariables: getChartVariables,
-  renderEditorControl: (state, onChange) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <FieldRow
-        label="Chart Gridlines"
-        value={state.gridStyle}
-        onChange={val => onChange({ ...state, gridStyle: val as ChartGridStyle })}
-        options={[
-          { label: 'Visible', value: 'visible' },
-          { label: 'Hidden', value: 'hidden' },
-        ]}
-      />
-      <FieldRow
-        label="Chart Tooltip Shadow"
-        value={state.tooltipShadow}
-        onChange={val => onChange({ ...state, tooltipShadow: val as ChartTooltipShadow })}
-        options={[
-          { label: 'Subtle', value: 'subtle' },
-          { label: 'Elevated', value: 'elevated' },
-        ]}
-      />
-      <FieldRow
-        label="Chart Hover Emphasis"
-        tooltip="How strongly a bar or slice lifts (brightness + ring width) on hover/focus"
-        value={state.hoverEmphasis}
-        onChange={val => onChange({ ...state, hoverEmphasis: val as ChartHoverEmphasis })}
-        options={[
-          { label: 'Subtle', value: 'subtle' },
-          { label: 'Bold', value: 'bold' },
-        ]}
-      />
-    </div>
-  ),
   fieldVars: {
     gridStyle: ['--ai-chart-grid-opacity'],
     tooltipShadow: ['--ai-chart-tooltip-shadow'],

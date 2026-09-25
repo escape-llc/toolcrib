@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -39,17 +38,6 @@ export const SidebarThemeSlice: ThemeSlice<SidebarSliceState, SidebarCSSVariable
   category: 'Containers',
   defaultState: defaultSidebarState,
   getCSSVariables: getSidebarVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="Sidebar Nav Item Spacing"
-      value={state.itemGap}
-      onChange={val => onChange({ ...state, itemGap: val as SidebarItemGap })}
-      options={[
-        { label: 'Compact (0.125rem)', value: 'compact' },
-        { label: 'Normal (0.375rem)', value: 'normal' },
-      ]}
-    />
-  ),
   fieldVars: {
     itemGap: ['--ai-sidebar-item-gap'],
   },

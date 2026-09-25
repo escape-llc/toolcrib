@@ -9,8 +9,6 @@ import { type MarginMode } from '../../theme/margin';
 import { type CornerRadiusMode } from '../../theme/radius';
 import { type ShadowMode } from '../../theme/shadow';
 import { isResponsiveConfig, resolveBaseMode } from '../../theme/responsive';
-import { AnimationThemeSlice } from '../../theme/animation';
-import { TypographyThemeSlice } from '../../theme/typography';
 import { globalThemeSliceRegistry, type ThemeSlice, type ThemeSliceCategory } from '../../theme/slice';
 import { type ToolcribSliceStateMap } from '../../theme/sliceStateMap';
 import { captureThemeSnapshot, applyThemeSnapshot } from '../../theme/themePersistence';
@@ -27,6 +25,7 @@ import { Popup } from '../Overlay/Popup';
 import { type SquareCornerOption } from '../Card/Card';
 import { Grid } from '../Layout/Grid';
 import { FieldRow } from './ThemeEditorFieldRow';
+import { SLICE_EDITOR_CONTROLS } from './sliceEditorControls';
 
 /** Per-command switches for the Save & Load Themes header toolbar — see `ThemeEditorProps.themeManagement`. */
 export interface ThemeManagementOptions {
@@ -86,11 +85,12 @@ export interface ThemeEditorProps {
 //    carve-out for why these were never part of the 29-slice problem this
 //    whole effort addresses.
 //  - animation/typography: real sliceStates slices (and each has a real
-//    renderEditorControl on its own slice object, same as everything else),
-//    kept in their current curated position inside "Global" for UX rather
-//    than reshuffled into "Layout Primitives" (their own declared
-//    category) — the Global section just calls their renderEditorControl
-//    directly instead of re-inlining the JSX, so there's no duplication.
+//    control in SLICE_EDITOR_CONTROLS, same as everything else), kept in
+//    their current curated position inside "Global" for UX rather than
+//    reshuffled into "Layout Primitives" (their own declared category) —
+//    the Global section just calls SLICE_EDITOR_CONTROLS.animation/
+//    .typography directly instead of re-inlining the JSX, so there's no
+//    duplication.
 const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 'animation', 'typography']);
 
 /**
@@ -138,13 +138,13 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   // Every registered slice except the 6 handled by hand-written JSX in the
   // Global section above, grouped by category and sorted alphabetically by
   // name within each — fully self-registering: a new component's own slice
-  // file is the only thing that needs touching (its own
-  // `renderEditorControl` + declaration-merge registration), never this
-  // file. Recomputed only when the registry's contents change, which is
-  // never during a single session (every slice registers once, at module
-  // load, in themeContext.tsx) — but the registry itself isn't a stable
-  // reference react can key off, so this intentionally has no dependency
-  // array beyond mount.
+  // file is the only thing that needs touching (its own state/CSS-variable
+  // registration, plus a matching entry in sliceEditorControls.tsx), never
+  // this file. Recomputed only when the registry's contents change, which
+  // is never during a single session (every slice registers once, at
+  // module load, in themeContext.tsx) — but the registry itself isn't a
+  // stable reference react can key off, so this intentionally has no
+  // dependency array beyond mount.
   const slicesByCategory = useMemo(() => {
     const grouped: Record<ThemeSliceCategory, ThemeSlice[]> = {
       'Layout Primitives': [],
@@ -154,7 +154,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       'Form Controls': [],
     };
     for (const slice of globalThemeSliceRegistry.getAll()) {
-      if (GLOBAL_ONLY_SLICE_IDS.has(slice.id) || !slice.renderEditorControl) continue;
+      if (GLOBAL_ONLY_SLICE_IDS.has(slice.id) || !SLICE_EDITOR_CONTROLS[slice.id]) continue;
       grouped[slice.category].push(slice);
     }
     for (const category of Object.keys(grouped) as ThemeSliceCategory[]) {
@@ -178,7 +178,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       items={slicesByCategory[category].map(slice => ({
         value: slice.id,
         title: slice.name,
-        content: slice.renderEditorControl!(
+        content: SLICE_EDITOR_CONTROLS[slice.id]!(
           sliceStates[slice.id as keyof ToolcribSliceStateMap] ?? slice.defaultState,
           patch => setSliceState(slice.id as keyof ToolcribSliceStateMap, patch)
         ),
@@ -423,16 +423,16 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
     </div>
   );
 
-  // Thin wrappers delegating to each slice's own renderEditorControl,
-  // instead of re-inlining their JSX here — animation/typography stay
-  // hand-placed inside "Global" (see GLOBAL_ONLY_SLICE_IDS's own comment
-  // for why), but no longer duplicate their control markup to do it.
-  const animationContent = AnimationThemeSlice.renderEditorControl!(
+  // Thin wrappers delegating to SLICE_EDITOR_CONTROLS, instead of
+  // re-inlining their JSX here — animation/typography stay hand-placed
+  // inside "Global" (see GLOBAL_ONLY_SLICE_IDS's own comment for why), but
+  // no longer duplicate their control markup to do it.
+  const animationContent = SLICE_EDITOR_CONTROLS.animation!(
     sliceStates.animation,
     patch => setSliceState('animation', patch)
   );
 
-  const typographyContent = TypographyThemeSlice.renderEditorControl!(
+  const typographyContent = SLICE_EDITOR_CONTROLS.typography!(
     sliceStates.typography,
     patch => setSliceState('typography', patch)
   );
