@@ -58,6 +58,17 @@ export interface EditCoGridProps<T extends Record<string, any>> {
   pairedKeys: Set<string>;
   /** How many editing rows exist beyond `maxEditingRows` and so aren't in `entries` at all -- see `DataTable`'s own `maxEditingRows` doc. Zero in the common case. */
   truncatedCount: number;
+  /**
+   * Hides this grid's rendering via CSS only (`display: none`) -- never by
+   * conditionally not rendering it. Issue #545 section 5's whole reason for
+   * the co-grid's existence is that each row's `<Form>` stays mounted for
+   * as long as its key is being edited, so its draft survives; unmounting
+   * this component on collapse would tear every one of those `<Form>`s
+   * down and silently discard every in-progress draft the instant a
+   * consumer collapsed the panel, defeating the entire design. `false` by
+   * default so a caller that never passes it behaves exactly as before.
+   */
+  collapsed?: boolean;
   onSave: (key: string, values: T) => void;
   onCancel: (key: string) => void;
 }
@@ -647,6 +658,7 @@ export function EditCoGrid<T extends Record<string, any>>({
   entries,
   pairedKeys,
   truncatedCount,
+  collapsed = false,
   onSave,
   onCancel,
 }: EditCoGridProps<T>) {
@@ -696,7 +708,15 @@ export function EditCoGrid<T extends Record<string, any>>({
       <div
         role="region"
         aria-label="Rows being edited"
+        // Hidden state also collapsed from the accessibility tree -- a
+        // sighted user's collapse toggle shouldn't leave a screen reader
+        // user still landing on a region that looks empty/closed.
+        aria-hidden={collapsed || undefined}
         style={{
+        // `display: none`, not a conditional unmount -- see this prop's
+        // own doc on `EditCoGridProps.collapsed` for why: every row's
+        // `<Form>` must stay mounted so its draft survives collapsing.
+        display: collapsed ? 'none' : undefined,
         // Direct visual feedback ("no exit transitions ... on the co-grid
         // itself") -- previously mount-only entrance with no exit story
         // at all; the container just vanished the instant `shouldShow`

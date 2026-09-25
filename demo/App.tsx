@@ -1945,7 +1945,16 @@ export const App: React.FC = () => {
                         disableRowClickSelection={!rowClickToSelect}
                         selectedKeys={selectedUserKeys}
                         onSelectionChange={setSelectedUserKeys}
-                        renderBulkActions={keys => (
+                        renderBulkActions={(keys, actions) => (
+                          <>
+                          {/* Falls out of composing the already-independent
+                              selection/editing key-sets (issue #545 section
+                              6) -- zero new DataTable-level prop needed
+                              beyond the startEditingRows action already
+                              threaded through here. */}
+                          <Button size="sm" variant="outline" icon="✏️" onClick={() => actions.startEditingRows(keys)}>
+                            Edit Selected
+                          </Button>
                           <Button
                             size="sm"
                             variant="danger"
@@ -1969,6 +1978,7 @@ export const App: React.FC = () => {
                           >
                             Delete Selected
                           </Button>
+                          </>
                         )}
                         emptyState={
                           <EmptyState>

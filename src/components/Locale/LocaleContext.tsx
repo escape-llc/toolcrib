@@ -45,6 +45,10 @@ export interface ToolcribLocaleStrings {
     columnsButtonLabel: string;
     /** Label for the `columnVisibility` menu's own checkbox item toggling `rowCommands`' trailing actions column -- that column isn't a real `Column<T>` with its own `title`, so it needs a label of its own. */
     actionsColumnLabel: string;
+    /** Visible label for `<DataTable editable>`'s co-grid collapse toggle while the co-grid is expanded (issue #545). */
+    hideEditingLabel: string;
+    /** Visible label for the same toggle while collapsed -- shown alongside a count badge of rows currently being edited. */
+    showEditingLabel: string;
   };
   carousel: {
     previousSlide: string;
@@ -122,6 +126,8 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     exportCsvLabel: 'Export CSV',
     columnsButtonLabel: 'Columns',
     actionsColumnLabel: 'Actions',
+    hideEditingLabel: 'Hide editing',
+    showEditingLabel: 'Show editing',
   },
   carousel: {
     previousSlide: 'Previous slide',

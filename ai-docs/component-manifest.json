@@ -1662,8 +1662,8 @@
           "description": "Hides the checkbox/radio column entirely while `selectable` stays in\neffect — selection still works via row click (unless\n`disableRowClickSelection`) and keyboard Space, this just removes the\nvisible per-row widget and the \"select all\" header control, for a\ntable that wants row-highlight-only selection with no dedicated\ncolumn taking up space. Every selected `<tr>` still carries\n`aria-selected=\"true\"` regardless of this flag, so the selection\nstate stays screen-reader-visible either way."
         },
         "renderBulkActions": {
-          "type": "(selectedKeys: string[]) => ReactNode",
-          "description": "Renders the action buttons for the current selection, shown centered\nin the same top toolbar row `quickFilter`/`densitySelector` share\n(alongside the \"N selected\" count, already provided) once at least\none row is selected -- this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on."
+          "type": "(selectedKeys: string[], actions: { startEditingRows: (keys: string[]) => void }) => ReactNode",
+          "description": "Renders the action buttons for the current selection, shown centered\nin the same top toolbar row `quickFilter`/`densitySelector` share\n(alongside the \"N selected\" count, already provided) once at least\none row is selected -- this renders only the actions themselves (e.g.\n\"Delete\", \"Export\"), receiving the current selection to act on.\n\nThe second argument is only ever useful when `editable` is also true --\n`actions.startEditingRows` is the same batch-add this table's own\nediting key-set already exposes, letting a bulk \"Edit selected\" button\nfall out of composing the two already-independent selection/editing\nkey-sets (issue #545) rather than needing its own dedicated prop.\nIgnore it for any other bulk action."
         },
         "rowCommands": {
           "type": "RowCommand<T>[]",

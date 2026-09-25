@@ -3301,5 +3301,110 @@ describe('DataTable Virtualized Component', () => {
       // Still exactly one <tr> for this row -- no colSpan swap to a single spanning cell.
       expect(row.querySelectorAll('td')).toHaveLength(2);
     });
+
+    it('the pairing highlight appears on both the main-grid row and its co-grid row while the record is on the current page, and drops from the still-present co-grid row once it is not', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable id="pairing-table" data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+
+      // Main grid: row 1 (id=1) is on the current page -- paired, so it gets
+      // the thicker 0.1875rem cap instead of plain editing's 0.125rem one.
+      expect(cellByRowCol(container, 1, 0).style.boxShadow).toContain('0.1875rem');
+
+      // Co-grid: same row, same pairing -- its own distinct left-accent shadow.
+      const coGridRowShadow = () => (container.querySelector('#pairing-table-edit-1')!.firstElementChild!.firstElementChild as HTMLElement).style.boxShadow;
+      expect(coGridRowShadow()).toContain('0.25rem');
+
+      fireEvent.click(screen.getByLabelText('Next page'));
+
+      // Still on the co-grid (decoupled from pagination, per the "draft
+      // survives" test above) -- but no longer paired with anything on the
+      // now-visible page 2, so the pairing shadow drops to 'none'.
+      expect(coGridRowShadow()).toBe('none');
+    });
+
+    it('the co-grid collapse toggle hides its rendering via CSS only (never unmounting it), and shows a count badge while collapsed', () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      // No toggle at all while nothing is being edited -- nothing to collapse.
+      expect(screen.queryByRole('button', { name: 'Hide editing' })).toBeNull();
+
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      const draftInput = within(coGrid(container) as HTMLElement).getByRole('textbox');
+      fireEvent.change(draftInput, { target: { value: 'Draft' } });
+
+      const hideToggle = screen.getByRole('button', { name: 'Hide editing' });
+      expect(coGrid(container)).not.toHaveStyle({ display: 'none' });
+
+      fireEvent.click(hideToggle);
+
+      // Hidden via CSS...
+      expect(coGrid(container)).toHaveStyle({ display: 'none' });
+      // ...but still MOUNTED underneath -- the draft is untouched, not
+      // discarded, and editingKeySet was never cleared (queried directly on
+      // the DOM here, not via getByRole, since a hidden region's contents
+      // are correctly excluded from the accessibility tree).
+      expect((coGrid(container) as HTMLElement).querySelector('input')).toHaveValue('Draft');
+
+      // The toggle itself carries a count badge while collapsed.
+      const showToggle = screen.getByRole('button', { name: /Show editing/ });
+      expect(within(showToggle).getByText('1')).toBeInTheDocument();
+
+      fireEvent.click(showToggle);
+      expect(coGrid(container)).not.toHaveStyle({ display: 'none' });
+      expect(screen.getByRole('button', { name: 'Hide editing' })).toBeInTheDocument();
+    });
+
+    it("renderBulkActions' actions.startEditingRows adds every selected key to the editing set in one call, leaving selection untouched", () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name' },
+      ];
+      const { container } = render(
+        <DataTable
+          data={testData}
+          columns={triggerColumns}
+          defaultPageSize={10}
+          rowKey={r => r.id}
+          editable
+          editSchema={editSchema}
+          selectable
+          renderBulkActions={(keys, actions) => <button onClick={() => actions.startEditingRows(keys)}>Edit selected</button>}
+        />
+      );
+
+      fireEvent.click(screen.getByLabelText('Select row 1'));
+      fireEvent.click(screen.getByLabelText('Select row 2'));
+      fireEvent.click(screen.getByText('Edit selected'));
+
+      expect(within(coGrid(container) as HTMLElement).getAllByRole('textbox')).toHaveLength(2);
+      // Selection and editing are independent key-sets -- this batch add
+      // never touches selectedKeySet.
+      expect(screen.getByLabelText('Select row 1')).toBeChecked();
+      expect(screen.getByLabelText('Select row 2')).toBeChecked();
+    });
+
+    it('passes the standing axe scan with the edit co-grid expanded', async () => {
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+      expect(coGrid(container)).not.toBeNull();
+      expect(await axe(document.body)).toHaveNoViolations();
+    });
   });
 });
