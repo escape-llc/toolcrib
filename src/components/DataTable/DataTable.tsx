@@ -1939,7 +1939,26 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     aria-expanded={!isCoGridCollapsed}
                     aria-controls={`${id}-edit-cogrid`}
                     onClick={() => setIsCoGridCollapsed(prev => !prev)}
-                    trailingIcon={isCoGridCollapsed ? <Badge size="sm">{editingKeySet.size}</Badge> : undefined}
+                    // Issue #584: the badge used to be present only while
+                    // collapsed (trailingIcon={isCoGridCollapsed ? <Badge>
+                    // ... : undefined}), which meant this Button had no
+                    // trailing content at all in the expanded state --
+                    // Button's own height is content-driven (no fixed
+                    // height token, by design -- see controlSize.ts), so
+                    // the badge's own intrinsic box made THIS button taller
+                    // than its "Hide editing" sibling, and UIGroup's
+                    // align-items:stretch then stretched the WHOLE toolbar
+                    // row (density ToggleGroup included) to match. Always
+                    // rendering the badge and toggling `visibility` instead
+                    // of presence keeps its box reserved in both states, so
+                    // the button's (and therefore the row's) height never
+                    // changes -- the identical fix already used a few dozen
+                    // lines above for the bulk-actions "N selected" label.
+                    trailingIcon={
+                      <span style={{ visibility: isCoGridCollapsed ? 'visible' : 'hidden' }}>
+                        <Badge size="sm">{editingKeySet.size}</Badge>
+                      </span>
+                    }
                   >
                     {isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
                   </Button>

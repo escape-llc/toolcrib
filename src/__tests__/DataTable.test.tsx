@@ -3374,6 +3374,41 @@ describe('DataTable Virtualized Component', () => {
       expect(screen.getByRole('button', { name: 'Hide editing' })).toBeInTheDocument();
     });
 
+    it('issue #584: the count badge is always mounted in the toggle (visibility-only, never presence-only), so the button never renders shorter/narrower in one state than the other', () => {
+      // jsdom has no real layout engine (AGENTS.md), so this can't assert
+      // actual pixel height/width -- what it CAN prove is the mechanism the
+      // fix relies on: the badge occupies the same DOM box in both states,
+      // only its `visibility` differs, matching the already-established
+      // "reserve the box, toggle visibility" pattern this file uses for the
+      // bulk-actions "N selected" label a few hundred lines up. The
+      // previous version (`trailingIcon={isCoGridCollapsed ? <Badge>... :
+      // undefined}`) mounted the badge ONLY while collapsed, so this
+      // button's own intrinsic height/width genuinely differed between the
+      // two states, and UIGroup's `align-items: stretch` then stretched the
+      // whole toolbar row (including the density ToggleGroup) to match.
+      const triggerColumns: Column<TestItem>[] = [
+        { key: 'id', title: 'ID', editable: false },
+        { key: 'name', title: 'Name', render: ctx => <button onClick={ctx.startEditingRow}>Edit</button> },
+      ];
+      const { container } = render(
+        <DataTable data={testData} columns={triggerColumns} defaultPageSize={10} rowKey={r => r.id} editable editSchema={editSchema} />
+      );
+      fireEvent.click(within(cellByRowCol(container, 1, 1)).getByText('Edit'));
+
+      // Expanded ("Hide editing"): badge already mounted, just not visible.
+      const hideToggle = screen.getByRole('button', { name: 'Hide editing' });
+      const badgeInExpanded = within(hideToggle).getByText('1');
+      expect(badgeInExpanded.parentElement).toHaveStyle({ visibility: 'hidden' });
+
+      fireEvent.click(hideToggle);
+
+      // Collapsed ("Show editing (1)"): same mounted badge, now visible --
+      // not a newly-mounted element.
+      const showToggle = screen.getByRole('button', { name: /Show editing/ });
+      const badgeInCollapsed = within(showToggle).getByText('1');
+      expect(badgeInCollapsed.parentElement).toHaveStyle({ visibility: 'visible' });
+    });
+
     it('regression (Gemini, PR #571): collapsing, then finishing every edit, does not leave a LATER unrelated edit stuck hidden behind a stale collapse flag', () => {
       const triggerColumns: Column<TestItem>[] = [
         { key: 'id', title: 'ID', editable: false },
