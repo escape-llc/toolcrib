@@ -51,12 +51,16 @@ export async function gotoTab(page: Page, tabLabel: string): Promise<void> {
  * own comment on why -- it's a genuine, discoverable way to reach
  * `emptyState`, not an oversight) -- call this right after
  * `gotoTab(page, 'Data Table')` in any test that needs the real 250-row
- * dataset actually loaded. Targets the persistent `🔄` toolbar button
- * specifically (present whether the table is empty or not), not the
- * `emptyState`'s own `📥 Load Data` action -- both are visible at once
- * while empty and share the substring "Load Data", so an unscoped name
- * match resolves two elements and trips Playwright's strict mode.
+ * dataset actually loaded. Targets the persistent icon-only toolbar
+ * button specifically (present whether the table is empty or not, always
+ * named "Reload Data"), not the `emptyState`'s own "Load Data" action --
+ * both are visible at once while empty. These two used to share the
+ * substring "Load Data" and needed the toolbar button's own `🔄` emoji
+ * prefix to disambiguate; issue #591-follow-up made that button icon-only
+ * with a constant "Reload Data" accessible name instead, which is now
+ * simply a distinct exact name from the emptyState's "Load Data" -- no
+ * regex/substring matching needed to tell them apart any more.
  */
 export async function loadDemoTableData(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /🔄 (Load|Reload) Data/ }).click();
+  await page.getByRole('button', { name: 'Reload Data' }).click();
 }

@@ -27,10 +27,14 @@ test.describe('DataTable empty->populated load transition', () => {
       });
     });
 
-    // Two "Load Data" buttons exist (the toolbar's own reload button, and
-    // the empty state's own dedicated action) -- the empty-state one is
-    // the actual repro (clicking FROM the empty view).
-    await page.getByRole('button', { name: '📥 Load Data' }).click();
+    // Two buttons exist while the table is empty: the toolbar's own
+    // persistent reload button (icon-only, always named "Reload Data" --
+    // issue #591 follow-up) and the empty state's own dedicated "Load
+    // Data" action -- the empty-state one is the actual repro (clicking
+    // FROM the empty view). Distinct names now, so an exact match is
+    // unambiguous without needing either button's own icon/emoji as a
+    // disambiguator.
+    await page.getByRole('button', { name: 'Load Data', exact: true }).click();
     await expect(page.getByRole('grid').first()).toBeVisible();
 
     // Wait for the animation to actually finish (a real completion
@@ -41,7 +45,7 @@ test.describe('DataTable empty->populated load transition', () => {
 
     // Reload (already populated -- not a transition) must not replay it.
     animationEvents.length = 0;
-    await page.getByRole('button', { name: '🔄 Reload Data' }).click();
+    await page.getByRole('button', { name: 'Reload Data' }).click();
     await page.waitForTimeout(300);
     expect(animationEvents).toEqual([]);
 
@@ -132,7 +136,7 @@ test.describe('DataTable empty->populated load transition', () => {
       });
     });
 
-    await page.getByRole('button', { name: '📥 Load Data' }).click();
+    await page.getByRole('button', { name: 'Load Data', exact: true }).click();
     await expect(page.getByRole('grid').first()).toBeVisible();
 
     const result = await page.evaluate(() => (window as any).__rowAnimResult);

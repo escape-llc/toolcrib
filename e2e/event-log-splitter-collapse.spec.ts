@@ -40,12 +40,15 @@ import { test, expect } from '@playwright/test';
 test('collapsing the event log, then manually dragging the splitter open, un-collapses it and shows the log again', async ({ page }) => {
   await page.goto('/');
 
-  // "▼ Collapse" (with an icon glyph) -- distinct from the sidebar's own
-  // unrelated "Collapse sidebar" button elsewhere on the page.
-  const collapseButton = page.getByRole('button', { name: /^▼ Collapse$/ });
+  // "Collapse event log" -- not the shorter "Collapse" (issue #598): that
+  // collided with two OTHER same-page buttons (a per-log-entry payload
+  // toggle, "Collapse payload for <event>", and this same toolbar's own
+  // "Collapse" wording before it was made icon-only), since Playwright's
+  // default `name` matching is a substring match, not exact.
+  const collapseButton = page.getByRole('button', { name: 'Collapse event log' });
   await collapseButton.waitFor({ state: 'visible' });
   await collapseButton.click();
-  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand event log' })).toBeVisible();
 
   const handle = page.getByRole('separator').first();
   const handleBox = await handle.boundingBox();
@@ -63,7 +66,7 @@ test('collapsing the event log, then manually dragging the splitter open, un-col
   // from the real split, reads false again), and the log's own content
   // region -- always mounted, never conditionally omitted -- is visible
   // at the panel's new, much larger height.
-  await expect(page.getByRole('button', { name: /^▼ Collapse$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Collapse event log' })).toBeVisible();
   const logContainer = page.locator('[tabindex="0"]').filter({ hasText: /\[|Listening for events/ }).first();
   await expect(logContainer).toBeVisible();
 });
@@ -72,7 +75,7 @@ test('manually dragging the splitter closed (without the button) flips the butto
   await page.goto('/');
 
   // Starts expanded (default split) -- the button reads "Collapse".
-  const collapseButton = page.getByRole('button', { name: /^▼ Collapse$/ });
+  const collapseButton = page.getByRole('button', { name: 'Collapse event log' });
   await collapseButton.waitFor({ state: 'visible' });
 
   const handle = page.getByRole('separator').first();
@@ -99,25 +102,25 @@ test('manually dragging the splitter closed (without the button) flips the butto
   // its tabindex drops to -1 while collapsed (Gemini PR review finding:
   // an always-mounted-but-nearly-invisible scrollable region must not
   // remain a real Tab stop).
-  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand event log' })).toBeVisible();
   await expect(logContainer).toBeAttached();
   await expect(logContainer).toHaveAttribute('tabindex', '-1');
 
   // Clicking Expand from here returns to the default split, and the
   // button/content both flip back in sync, tabindex included.
-  await page.getByRole('button', { name: /^▲ Expand$/ }).click();
+  await page.getByRole('button', { name: 'Expand event log' }).click();
   await expect(logContainer).toHaveAttribute('tabindex', '0');
-  await expect(page.getByRole('button', { name: /^▼ Collapse$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Collapse event log' })).toBeVisible();
   await expect(logContainer).toBeAttached();
 });
 
 test('collapsed state survives a window resize (Gemini PR review finding)', async ({ page }) => {
   await page.goto('/');
 
-  const collapseButton = page.getByRole('button', { name: /^▼ Collapse$/ });
+  const collapseButton = page.getByRole('button', { name: 'Collapse event log' });
   await collapseButton.waitFor({ state: 'visible' });
   await collapseButton.click();
-  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand event log' })).toBeVisible();
 
   const separator = page.getByRole('separator').first();
   const splitBeforeResize = await separator.getAttribute('aria-valuenow');
@@ -130,11 +133,11 @@ test('collapsed state survives a window resize (Gemini PR review finding)', asyn
   // throughout, and the resize-effect's own corrective re-emit should
   // move the real split to track the new target.
   await page.setViewportSize({ width: 1000, height: 900 });
-  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand event log' })).toBeVisible();
   await expect
     .poll(() => separator.getAttribute('aria-valuenow'))
     .not.toBe(splitBeforeResize);
 
   await page.setViewportSize({ width: 1280, height: 720 });
-  await expect(page.getByRole('button', { name: /^▲ Expand$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand event log' })).toBeVisible();
 });
