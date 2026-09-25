@@ -1358,6 +1358,40 @@ export const App: React.FC = () => {
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
+                    {/* issue #380, direct request: link out to the two real,
+                        deployed consumer apps (feed-farmer-pwa, founders-desk)
+                        from the lead demo page itself, not just README.md's
+                        own "Examples" section (which already had these same
+                        two links -- this is the in-app counterpart, since a
+                        visitor exploring the live component showcase has no
+                        reason to also be reading the repo's README). Kept as
+                        the very first card: everything below this is "here's
+                        the toolkit," this is "and here's what a real app
+                        built with it looks like," which reads better before
+                        the pitch than after it. */}
+                    <Card>
+                      <Card.Header>🌐 See It In a Real App</Card.Header>
+                      <Card.Content>
+                        <p style={{ marginTop: 0 }}>
+                          Everything else on this page is <code>Toolcrib</code>'s own component showcase. These two are real, deployed products built entirely with it — fully client-side PWAs, no backend, no shared code with this demo.
+                        </p>
+                        <Grid columns={2} gap="sm">
+                          <CardSimple title="📰 feed-farmer-pwa" overrides={{ padding: 'compact' }}>
+                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8125rem' }}>
+                              An RSS/Atom feed reader — Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
+                            </p>
+                            <a href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                          </CardSimple>
+                          <CardSimple title="🏢 founders-desk" overrides={{ padding: 'compact' }}>
+                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8125rem' }}>
+                              A personal command-center — <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
+                            </p>
+                            <a href="https://escape-llc.github.io/founders-desk/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                          </CardSimple>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
+
                     <Card>
                       <Card.Header>🛡️ Why Toolcrib?</Card.Header>
                       <Card.Content>
