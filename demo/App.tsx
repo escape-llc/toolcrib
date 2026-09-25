@@ -141,11 +141,30 @@ const MAIN_SPLITTER_MIN_SIZE = 5;
 // within the same second (a drag, a resize, a batched state update), and
 // without milliseconds every one of them stamps identically in the event
 // log, making it impossible to tell their real relative order apart.
-// Appending getMilliseconds() (zero-padded to 3 digits) is the minimal fix
-// that doesn't require a whole different time-formatting library for one
-// log panel.
+//
+// Gemini's PR #580 review, confirmed real: a first version built this by
+// string-concatenating toLocaleTimeString() with getMilliseconds(), which
+// silently produced a malformed result in any 12-hour locale (en-US's own
+// default included) -- the AM/PM marker sits BEFORE where the appended
+// fraction landed ("9:05:49 AM.149" instead of "9:05:49.149 AM"), visible
+// in this very panel's own real output once actually looked at closely.
+// `fractionalSecondDigits` is a real Intl.DateTimeFormat option (used here
+// via toLocaleTimeString's own options argument) that places the fraction
+// correctly relative to the meridiem marker in every locale, natively --
+// no manual string surgery needed at all.
 function formatEventLogTimestamp(date: Date): string {
-  return `${date.toLocaleTimeString()}.${String(date.getMilliseconds()).padStart(3, '0')}`;
+  // hour/minute/second must be given EXPLICITLY alongside
+  // fractionalSecondDigits -- confirmed directly (not assumed): passing
+  // an options object with only fractionalSecondDigits set makes
+  // Intl.DateTimeFormat format ONLY that one requested component
+  // ("744"), silently dropping the h:m:s toLocaleTimeString() shows by
+  // default when called with no options at all.
+  return date.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+  } as Intl.DateTimeFormatOptions);
 }
 
 // Direct feedback: a verbose event payload (theme:changed's full palette +
@@ -3581,6 +3600,17 @@ export const App: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => toggleLogExpanded(log.id)}
+                              // Gemini's PR #580 review, confirmed real: with
+                              // several verbose entries in the log at once, a
+                              // screen-reader user tabbing through gets a run
+                              // of identically-announced "[expand]" buttons
+                              // with no way to tell which entry each one
+                              // controls -- aria-label names the specific
+                              // event; aria-expanded reports this specific
+                              // disclosure's own state, per the WAI-ARIA
+                              // disclosure pattern (WCAG 4.1.2).
+                              aria-expanded={isExpanded}
+                              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} payload for ${log.event}`}
                               className="ai-focus-ring"
                               style={{
                                 border: 'none',
