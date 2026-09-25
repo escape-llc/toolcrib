@@ -321,9 +321,27 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // content in the DOM) has never been scanned while expanded -- low
   // risk (static paragraph text only), but a real gap in the coverage
   // inventory. type="single" means expanding faq-2 auto-collapses faq-1.
+  const faq1Trigger = page.getByRole('button', { name: 'Why use Radix UI Primitives?' });
   await page.getByRole('button', { name: 'How does Event Bus integration work?' }).click();
+  // Issue #570: the click above resolves as soon as the pointer event is
+  // dispatched, not once React/Radix's single-select switch has actually
+  // committed to the DOM -- an assumption that held under normal local
+  // timing but isn't guaranteed under real CI scheduling. Confirmed via
+  // Radix's own source (@radix-ui/react-accordion): faq-1's trigger
+  // carries `aria-disabled="true"` for as long as it's *itself* the open,
+  // non-collapsible item (`itemContext.open && !collapsibleContext.
+  // collapsible`) -- this is a static function of which value is
+  // currently selected, not an animation-in-flight flag, so it stays true
+  // indefinitely if the switch to faq-2 hasn't landed yet, and Playwright
+  // treats aria-disabled="true" as not-enabled -- exactly the 120s click
+  // timeout this issue reported, on the SECOND click below, not this one.
+  // Waiting for the real signal (faq-1 actually reporting collapsed) before
+  // continuing turns a possible click hang into either a pass or a fast,
+  // readable failure -- same "wait for a real signal" discipline as every
+  // other overlay wait in this file.
+  await expect(faq1Trigger).toHaveAttribute('aria-expanded', 'false');
   await scanNamed('Accordion (second panel expanded)');
-  await page.getByRole('button', { name: 'Why use Radix UI Primitives?' }).click(); // collapse again, leave state as found
+  await faq1Trigger.click(); // collapse again, leave state as found
 
   // Two "Delete Record" buttons exist on this tab (the Button Subsystem
   // showcase's own danger-variant example, and this AlertDialog's real
