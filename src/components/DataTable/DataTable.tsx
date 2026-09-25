@@ -1974,6 +1974,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     // in one state than the other, regardless of what
                     // UIGroup's own align-items:stretch does with it.
                     aria-label={isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
+                    // title added in #592, retroactively -- Gemini's review
+                    // of that PR pointed out EditCoGrid's own icon-only
+                    // buttons (Reset/Save/Cancel) already pair aria-label
+                    // with title, and this button should have matched that
+                    // precedent from the start.
+                    title={isCoGridCollapsed ? strings.showEditingLabel : strings.hideEditingLabel}
                     onClick={() => setIsCoGridCollapsed(prev => !prev)}
                     icon={isCoGridCollapsed ? '▶' : '▼'}
                     trailingIcon={<Badge size="sm">{editingKeySet.size}</Badge>}
@@ -2021,22 +2027,47 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // Buttons below, ToggleGroupOption has no aria-label
                       // to short-circuit accessible-name computation, so
                       // an unhidden icon's own text would concatenate onto
-                      // the VisuallyHidden label ("▫Compact" instead of
-                      // "Compact") and break every existing name-based
-                      // `getByRole('radio', { name: ... })` query.
+                      // the VisuallyHidden label ("SCompact" instead of
+                      // "S – Compact") and break every existing
+                      // name-based `getByRole('radio', { name: ... })`
+                      // query in this file.
+                      //
+                      // Gemini's review of this PR (#592) correctly caught
+                      // a real WCAG 2.1 SC 2.5.3 (Label in Name) violation
+                      // in an earlier version of this line: the accessible
+                      // name was just strings.densityOptionLabel(d)
+                      // ("Compact"), which doesn't CONTAIN the visible
+                      // glyph text ("S") at all -- a voice-control user
+                      // saying "click S" (the visible label) would have
+                      // had nothing to match. The glyph's own letter is
+                      // literal text, not a decorative pictograph, so this
+                      // criterion applies to it the same way it would to
+                      // any other visible text label. Prefixing the
+                      // VisuallyHidden name with that same letter (rather
+                      // than dropping the glyph, which would lose the
+                      // compactness this issue exists for) satisfies SC
+                      // 2.5.3 while keeping the full word for anyone who
+                      // wouldn't otherwise know what "S" means here.
                       icon: <span aria-hidden="true">{DENSITY_OPTION_GLYPH[d]}</span>,
-                      label: <VisuallyHidden>{strings.densityOptionLabel(d)}</VisuallyHidden>,
+                      label: <VisuallyHidden>{`${DENSITY_OPTION_GLYPH[d]} – ${strings.densityOptionLabel(d)}`}</VisuallyHidden>,
                     }))}
                     value={liveDensity}
                     onChange={next => handleDensityChange(next as TableDensity)}
                   />
                 )}
                 {csvExport && (
+                  // title alongside aria-label, matching EditCoGrid's own
+                  // established icon-only-button pattern (its Reset/Save/
+                  // Cancel buttons) -- Gemini's review of this PR (#592)
+                  // correctly flagged that a sighted mouse user has no
+                  // native hover explanation for what an emoji-only button
+                  // does without one.
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
                     aria-label={strings.exportCsvLabel}
+                    title={strings.exportCsvLabel}
                     onClick={handleCsvExport}
                     icon="📤"
                   />
@@ -2056,7 +2087,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // component doesn't expose it.
                   <DropdownMenuPrimitive.Root>
                     <DropdownMenuPrimitive.Trigger asChild>
-                      <Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} icon="🗂️" />
+                      <Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon="🗂️" />
                     </DropdownMenuPrimitive.Trigger>
                     <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
                       <DropdownMenuPrimitive.Content
