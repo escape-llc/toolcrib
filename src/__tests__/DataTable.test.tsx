@@ -1749,6 +1749,29 @@ describe('DataTable Virtualized Component', () => {
       expect(within(group).getByRole('radio', { name: 'Spacious' })).toBeInTheDocument();
     });
 
+    it('issue #591: the density options, Export CSV, and Columns are icon-only, with the pre-existing accessible names preserved off visible content', () => {
+      // ToggleGroupOption has no separate aria-label per option (its
+      // accessible name IS whatever's in `label`, by design), so the
+      // visible S/M/L glyph has to be aria-hidden and the real accessible
+      // string moved into a <VisuallyHidden> label -- otherwise the
+      // glyph's own text would concatenate onto the name ("SCompact"
+      // instead of "Compact") and silently break every name-based query
+      // in this file, this test included. Export CSV/Columns are plain
+      // Buttons, so aria-label alone is enough to short-circuit
+      // accessible-name computation regardless of icon content.
+      render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} densitySelector csvExport columnVisibility />);
+
+      const compactRadio = screen.getByRole('radio', { name: 'Compact' });
+      expect(compactRadio).toHaveTextContent('S');
+      expect(compactRadio.querySelector('[aria-hidden="true"]')).toHaveTextContent('S');
+
+      const exportButton = screen.getByRole('button', { name: 'Export CSV' });
+      expect(exportButton).not.toHaveTextContent('Export CSV');
+
+      const columnsButton = screen.getByRole('button', { name: 'Columns' });
+      expect(columnsButton).not.toHaveTextContent('Columns');
+    });
+
     it('clicking a density option updates the real row height live, uncontrolled', () => {
       render(<DataTable data={testData} columns={testColumns} pagination={false} containerHeight={200} rowKey={r => r.id} densitySelector />);
       expect(screen.getByText('Item 1').closest('tr')).toHaveStyle({ height: '44px' });
