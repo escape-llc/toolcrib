@@ -3594,7 +3594,23 @@ export const App: React.FC = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          aria-label={eventLogCollapsed ? 'Expand' : 'Collapse'}
+                          // "Expand event log"/"Collapse event log", not
+                          // the shorter "Expand"/"Collapse" -- confirmed a
+                          // real collision (a Playwright strict-mode
+                          // violation) against two OTHER same-page
+                          // buttons: each log entry's own per-row payload
+                          // toggle (aria-label="Collapse/Expand payload
+                          // for <event>") and the JSON payload preview's
+                          // own visible "[collapse]"/"[expand]" text link.
+                          // The plain "Expand"/"Collapse" this button used
+                          // to render as VISIBLE text had the identical
+                          // collision risk already, silently masked by
+                          // e2e/event-log-splitter-collapse.spec.ts's own
+                          // anchored regex (`/^▼ Collapse$/`) matching the
+                          // glyph-prefixed full string exactly -- once the
+                          // glyph went away (icon-only, issue #598) that
+                          // accidental protection went with it.
+                          aria-label={eventLogCollapsed ? 'Expand event log' : 'Collapse event log'}
                           icon={eventLogCollapsed ? <ChevronUp size="1em" /> : <ChevronDown size="1em" />}
                           onClick={toggleEventLogCollapsed}
                         />
