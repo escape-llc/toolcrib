@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -40,18 +39,6 @@ export const BreadcrumbThemeSlice: ThemeSlice<BreadcrumbSliceState, BreadcrumbCS
   category: 'Data Display',
   defaultState: defaultBreadcrumbState,
   getCSSVariables: getBreadcrumbVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="Breadcrumb Item Gap"
-      value={state.gap}
-      onChange={val => onChange({ ...state, gap: val as BreadcrumbGap })}
-      options={[
-        { label: 'Compact (0.375rem)', value: 'compact' },
-        { label: 'Normal (0.5rem)', value: 'normal' },
-        { label: 'Spacious (0.75rem)', value: 'spacious' },
-      ]}
-    />
-  ),
   fieldVars: {
     gap: ['--ai-breadcrumb-gap'],
   },

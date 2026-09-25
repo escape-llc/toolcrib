@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -66,29 +65,6 @@ export const TooltipThemeSlice: ThemeSlice<TooltipSliceState, TooltipCSSVariable
   category: 'Overlays',
   defaultState: defaultTooltipState,
   getCSSVariables: getTooltipVariables,
-  renderEditorControl: (state, onChange) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <FieldRow
-        label="Tooltip Colour Theme"
-        value={state.theme}
-        onChange={val => onChange({ ...state, theme: val as TooltipTheme })}
-        options={[
-          { label: 'Dark (Default)', value: 'dark' },
-          { label: 'Light (Surface Colour)', value: 'light' },
-          { label: 'Accent (Harmony Accent Colour)', value: 'accent' },
-        ]}
-      />
-      <FieldRow
-        label="Tooltip Size"
-        value={state.size}
-        onChange={val => onChange({ ...state, size: val as TooltipSize })}
-        options={[
-          { label: 'Small (Compact Padding & Font)', value: 'sm' },
-          { label: 'Medium (Standard Padding & Font)', value: 'md' },
-        ]}
-      />
-    </div>
-  ),
   fieldVars: {
     theme: ['--ai-tooltip-bg', '--ai-tooltip-color'],
     size: ['--ai-tooltip-padding', '--ai-tooltip-font-size'],

@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -44,18 +43,6 @@ export const ToggleThemeSlice: ThemeSlice<ToggleSliceState, ToggleCSSVariables> 
   category: 'Form Controls',
   defaultState: defaultToggleState,
   getCSSVariables: getToggleVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="Toggle & Toggle Group Padding"
-      value={state.padding}
-      onChange={val => onChange({ ...state, padding: val as TogglePadding })}
-      options={[
-        { label: 'Compact', value: 'compact' },
-        { label: 'Normal', value: 'normal' },
-        { label: 'Spacious', value: 'spacious' },
-      ]}
-    />
-  ),
   fieldVars: {
     padding: ['--ai-toggle-padding', '--ai-toggle-gap'],
   },

@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -40,18 +39,6 @@ export const ProgressThemeSlice: ThemeSlice<ProgressSliceState, ProgressCSSVaria
   category: 'Data Display',
   defaultState: defaultProgressState,
   getCSSVariables: getProgressVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="Progress Bar Track Shape"
-      value={state.trackRadius}
-      onChange={val => onChange({ ...state, trackRadius: val as ProgressTrackRadius })}
-      options={[
-        { label: 'Sharp (0rem)', value: 'sharp' },
-        { label: 'Rounded', value: 'rounded' },
-        { label: 'Pill (Full Rounding)', value: 'pill' },
-      ]}
-    />
-  ),
   fieldVars: {
     trackRadius: ['--ai-progress-radius'],
   },

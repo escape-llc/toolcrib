@@ -1,6 +1,4 @@
 import { type ThemeSlice } from './slice';
-import { FieldRow } from '../components/ThemeEditor/ThemeEditorFieldRow';
-import { Slider } from '../components/Form/Slider';
 
 declare module './sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -62,32 +60,4 @@ export const LivingColorThemeSlice: ThemeSlice<LivingColorSliceState, LivingColo
   category: 'Layout Primitives',
   defaultState: defaultLivingColorState,
   getCSSVariables: getLivingColorVariables,
-  renderEditorControl: (state, onChange) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <FieldRow
-        label="Living Color"
-        tooltip="Enables the ambient color-breathe/glow-pulse loop for elements opted in via .ai-living-accent / .ai-living-glow"
-        value={state.enabled}
-        onChange={val => onChange({ ...state, enabled: val as LivingColorEnabled })}
-        options={[
-          { label: 'On', value: 'on' },
-          { label: 'Off', value: 'off' },
-        ]}
-      />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
-          <span>Breathe Duration</span>
-          <span>{state.duration}s</span>
-        </div>
-        <Slider
-          value={state.duration}
-          min={2}
-          max={20}
-          step={1}
-          onChange={val => onChange({ ...state, duration: val })}
-          disabled={state.enabled === 'off'}
-        />
-      </div>
-    </div>
-  ),
 };

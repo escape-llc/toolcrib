@@ -1,5 +1,4 @@
 import { type ThemeSlice } from '../../theme/slice';
-import { FieldRow } from '../ThemeEditor/ThemeEditorFieldRow';
 
 declare module '../../theme/sliceStateMap' {
   interface ToolcribSliceStateMap {
@@ -43,18 +42,6 @@ export const CollapsibleThemeSlice: ThemeSlice<CollapsibleSliceState, Collapsibl
   category: 'Containers',
   defaultState: defaultCollapsibleState,
   getCSSVariables: getCollapsibleVariables,
-  renderEditorControl: (state, onChange) => (
-    <FieldRow
-      label="Collapsible Header & Content Padding"
-      value={state.padding}
-      onChange={val => onChange({ ...state, padding: val as CollapsiblePadding })}
-      options={[
-        { label: 'Compact', value: 'compact' },
-        { label: 'Normal', value: 'normal' },
-        { label: 'Spacious', value: 'spacious' },
-      ]}
-    />
-  ),
   fieldVars: {
     padding: ['--ai-collapsible-header-padding', '--ai-collapsible-content-padding'],
   },

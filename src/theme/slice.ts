@@ -1,5 +1,3 @@
-import { type ReactNode } from 'react';
-
 /**
  * Groups a slice under one of the Theme Editor's category sections —
  * the same vocabulary the `manifestCategory` tag uses for the component
@@ -26,14 +24,6 @@ export interface ThemeSlice<
    * Computes CSS Custom Properties for this slice.
    */
   getCSSVariables: (state: TState, globalContext?: any) => TVars;
-
-  /**
-   * Optional control component rendered automatically inside the Theme Editor panel.
-   */
-  renderEditorControl?: (
-    state: TState,
-    onChange: (newState: TState) => void
-  ) => ReactNode;
 
   /**
    * Declares which output CSS variables each state field influences, e.g.
