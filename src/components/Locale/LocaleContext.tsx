@@ -37,11 +37,11 @@ export interface ToolcribLocaleStrings {
     quickFilterPlaceholder: string;
     /** Accessible group label for `<DataTable densitySelector>`'s compact/normal/spacious toggle-button-group. */
     densityLabel: string;
-    /** Accessible name and visible label for one density option button. */
+    /** Accessible name (`aria-label`-equivalent, via a `<VisuallyHidden>` label) for one density option button -- the toggle itself is icon-only (issue #591), so this is never rendered as visible text. */
     densityOptionLabel: (density: 'compact' | 'normal' | 'spacious') => string;
-    /** Visible label and accessible name for `<DataTable csvExport>`'s built-in export button. */
+    /** Accessible name (`aria-label`) for `<DataTable csvExport>`'s built-in export button -- icon-only (issue #591), never rendered as visible text. */
     exportCsvLabel: string;
-    /** Visible label and accessible name for `<DataTable columnVisibility>`'s built-in "Columns" trigger button. */
+    /** Accessible name (`aria-label`) for `<DataTable columnVisibility>`'s built-in "Columns" trigger button -- icon-only (issue #591), never rendered as visible text. */
     columnsButtonLabel: string;
     /** Label for the `columnVisibility` menu's own checkbox item toggling `rowCommands`' trailing actions column -- that column isn't a real `Column<T>` with its own `title`, so it needs a label of its own. */
     actionsColumnLabel: string;
