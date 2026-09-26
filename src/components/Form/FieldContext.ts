@@ -21,6 +21,14 @@ import { createContext } from 'react';
  */
 export interface FieldContextValue {
   name?: string;
+  /**
+   * The id of the `<FormField>`'s rendered `<Label>`, present only when it
+   * actually renders one. For a control whose accessible name can't come
+   * from a single `<label htmlFor>` -- e.g. `RangeSlider`, whose two thumbs
+   * each need a name -- so it can build `aria-labelledby` from the real
+   * label without referencing an id that doesn't exist.
+   */
+  labelId?: string;
 }
 
 export const FieldContext = createContext<FieldContextValue>({});

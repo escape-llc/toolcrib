@@ -62,6 +62,7 @@ export interface AIEventMap {
   'combobox:changed': { name?: string; value: string | string[] };
   'fileupload:changed': { name?: string; fileCount: number };
   'slider:changed': { name?: string; value: number };
+  'rangeslider:changed': { name?: string; value: [number, number] };
   'toggle:changed': { name?: string; pressed: boolean };
   'rating:changed': { name?: string; value: number };
   'datepicker:changed': { name?: string; value: string | null };

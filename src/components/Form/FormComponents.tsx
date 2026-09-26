@@ -49,6 +49,8 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
   const errorId = `${name}-error`;
+  const labelId = label ? `${name}-label` : undefined;
+  const fieldContextValue = { name, labelId };
 
   // Issue #507: built fresh each render (correct styling/kind for
   // whichever of error/helperText currently applies), then handed to
@@ -76,10 +78,10 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
   const { display: regionDisplay, onTransitionEnd: handleRegionTransitionEnd } = useDeferredCollapseContent(currentRegionKind, currentRegionValue, currentRegionContent);
 
   return (
-    <FieldContext.Provider value={{ name }}>
+    <FieldContext.Provider value={fieldContextValue}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
         {label && (
-          <Label htmlFor={name} overrides={{ weight: 'semibold' }}>
+          <Label id={labelId} htmlFor={name} overrides={{ weight: 'semibold' }}>
             {label}
           </Label>
         )}

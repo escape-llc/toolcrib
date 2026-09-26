@@ -99,6 +99,7 @@ export * from './components/Form/Label';
 export * from './components/Form/LabelSlice';
 export * from './components/Form/RadioGroup';
 export * from './components/Form/RadioGroupSlice';
+export * from './components/Form/RangeSlider';
 export * from './components/Form/Select';
 export * from './components/Form/SelectSlice';
 export * from './components/Form/Slider';

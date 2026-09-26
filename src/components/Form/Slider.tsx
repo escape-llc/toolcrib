@@ -7,6 +7,7 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
+import { sliderRootStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
 
 /**
  * Props for the `<Slider>` range input control.
@@ -143,52 +144,16 @@ export const Slider: React.FC<SliderProps> = ({
       max={max}
       step={step}
       disabled={disabled}
-      style={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        userSelect: 'none',
-        touchAction: 'none',
-        width: '100%',
-        height: '1.25rem',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
-        ...sliderVars,
-      }}
+      style={sliderRootStyle(disabled, sliderVars)}
     >
-      <SliderPrimitive.Track
-        style={{
-          background: 'var(--ai-border, #d1d5db)',
-          position: 'relative',
-          flexGrow: 1,
-          borderRadius: 'var(--ai-radius-lg, 0.625rem)',
-          height: 'var(--ai-slider-track-height, 0.375rem)',
-        }}
-      >
-        <SliderPrimitive.Range
-          style={{
-            position: 'absolute',
-            background: 'var(--ai-color-primary, #3b82f6)',
-            borderRadius: 'var(--ai-radius-lg, 0.625rem)',
-            height: '100%',
-          }}
-        />
+      <SliderPrimitive.Track style={SLIDER_TRACK_STYLE}>
+        <SliderPrimitive.Range style={SLIDER_RANGE_STYLE} />
       </SliderPrimitive.Track>
       <SliderPrimitive.Thumb
         id={effectiveId}
         aria-label={ariaLabel}
         className="ai-focus-ring"
-        style={{
-          display: 'block',
-          width: 'var(--ai-slider-thumb-size, 1.125rem)',
-          height: 'var(--ai-slider-thumb-size, 1.125rem)',
-          background: 'var(--ai-bg-surface, #ffffff)',
-          border: '0.125rem solid var(--ai-color-primary, #3b82f6)',
-          borderRadius: '50%',
-          boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.2))',
-          outline: 'none',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-        }}
+        style={sliderThumbStyle(disabled)}
       />
     </SliderPrimitive.Root>
   );
