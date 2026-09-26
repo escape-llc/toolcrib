@@ -197,8 +197,14 @@
       "--ai-table-header-padding",
       "--ai-table-row-height",
       "--ai-table-stripe-bg",
+      "--ai-text-font-mono",
       "--ai-text-primary",
       "--ai-text-secondary",
+      "--ai-text-size-lg",
+      "--ai-text-size-md",
+      "--ai-text-size-sm",
+      "--ai-text-size-xl",
+      "--ai-text-size-xs",
       "--ai-theme-transition-properties",
       "--ai-toast-accent-width",
       "--ai-toast-exit-duration",
@@ -429,6 +435,10 @@
       {
         "id": "livingColor",
         "name": "🌊 Living Color (Ambient Breathe & Glow)"
+      },
+      {
+        "id": "text",
+        "name": "🔡 Text Size Ramp"
       }
     ]
   },
@@ -3443,6 +3453,62 @@
       },
       "category": "Data Display",
       "description": "Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content"
+    },
+    {
+      "name": "Text",
+      "import": "import { Text } from '#toolcrib'",
+      "props": {
+        "as": {
+          "type": "'p' | 'span'",
+          "default": "'p'",
+          "description": "Element to render: `'p'` for a paragraph, `'span'` for inline text."
+        },
+        "size": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl'",
+          "description": "Step on the theme's text size ramp (`--ai-text-size-*`). Inherits the surrounding size when omitted."
+        },
+        "tone": {
+          "type": "'default' | 'secondary'",
+          "description": "`'default'` is the theme's main text color; `'secondary'` its muted one. Inherits the surrounding color when omitted, so text inside a filled Button or an Alert keeps their color."
+        },
+        "weight": {
+          "type": "'normal' | 'medium' | 'semibold' | 'bold'",
+          "description": "Font weight token. Inherits when omitted."
+        },
+        "mono": {
+          "type": "boolean",
+          "description": "Monospace family, for codes and identifiers."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Status color for the text. Falls back to the nearest `<StyleDomainProvider>`'s. Wins over `tone` and `variant`."
+        },
+        "variant": {
+          "type": "'primary' | 'secondary'",
+          "description": "Identity color (`primary`/`secondary`) for the text. Ignored if a subtheme resolves; wins over `tone`."
+        },
+        "overrides": {
+          "type": "Partial<TextSliceState>",
+          "description": "Per-instance override for the size ramp (`scale`)."
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "dir": {
+          "type": "'ltr' | 'rtl' | 'auto'"
+        }
+      },
+      "constraints": "`as` is `'p'` or `'span'` only. Sets no margin; space paragraphs with `<VStack gap>`. Headings, labels and links have their own components",
+      "category": "Layout Primitives",
+      "antiPatternAvoid": "A raw `<p style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>` or a styled `<span>` for secondary text",
+      "antiPatternInstead": "`<Text size=\"sm\" tone=\"secondary\">`, or `<Text as=\"span\" ...>` inline",
+      "description": "Themed paragraph or inline text: size, tone, weight and status color from theme tokens, never literal styles"
     },
     {
       "name": "ThemeEditor",

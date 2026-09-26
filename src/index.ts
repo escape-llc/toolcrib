@@ -149,6 +149,8 @@ export * from './components/Stepper/Stepper';
 export * from './components/Stepper/StepperSlice';
 export * from './components/TabStrip/TabSlice';
 export * from './components/TabStrip/TabStrip';
+export * from './components/Text/Text';
+export * from './components/Text/TextSlice';
 export * from './components/ThemeEditor/ThemeEditor';
 export * from './components/ThemeEditor/ThemeEditorFieldRow';
 export * from './components/Toast/Toast';

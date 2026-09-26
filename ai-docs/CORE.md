@@ -140,6 +140,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Hand-roll a spinning-border `<div>` for indeterminate loading | Use `<Spinner>` — already animates off the shared keyframes, not a one-off duration |
 | When computing a pixel-exact `split` via `splitter:split_changed` (e.g. "collapse this panel to exactly its own header's height"), measuring an inner child's content box instead of the actual outermost element whose full rendered box (padding/border included) needs to fit | Measure the real outer element (e.g. a `Card.Header`, not the `<Toolbar>` inside it) with `getBoundingClientRect()`, and add half of `SPLITTER_HANDLE_SIZE_REM` (in px) before converting the target height to a percentage — both omissions clip the panel identically regardless of viewport size, confirmed directly via real Playwright measurement, not assumed |
 | Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
+| A raw `<p style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>` or a styled `<span>` for secondary text | `<Text size="sm" tone="secondary">`, or `<Text as="span" ...>` inline |
 | Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation) | Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free |
 | Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation | Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free |
 | Build a bespoke fullscreen image lightbox, independent of `<Modal>` | Use `<Viewer>` — composes `<ViewerContent>` inside `<Modal>` automatically; nested inside another `<Modal>`, Escape closes only the `<Viewer>`, not the parent |
@@ -166,6 +167,7 @@ Full prop detail: `ai-docs/manifest/layout-primitives.json`
 | `<Grid>` | — | `columns`, `minColWidth`, `gap`, `marginMode`, `paddingMode` | CSS Grid responsive multi-column layout |
 | `<HStack>` | — | `gap`, `align`, `justify`, `paddingMode`, `marginMode`, `cornerRadiusMode`, `wrap` | Horizontal flex row layout primitive |
 | `<Separator>` | — | `orientation`, `decorative`, `overrides` | Themed visual divider between content sections |
+| `<Text>` | — | `as`, `size`, `tone`, `weight`, `mono`, `subtheme`, `variant`, `overrides`, `id`, `title`, `lang`, `dir` | Themed paragraph or inline text: size, tone, weight and status color from theme tokens, never literal styles |
 | `<Toolbar>` | `.Left`, `.Center`, `.Right`, `.Button`, `.Separator` | `paddingMode`, `marginMode`, `cornerRadiusMode`, `orientation`, `overrides` | Horizontal action bar with left/center/right slot areas |
 | `<UIGroup>` | — | `orientation`, `borderRadius` | Merges adjacent elements into a single visual compound control |
 | `<VisuallyHidden>` | — | — | Hides content visually while keeping it announced to screen readers |
@@ -368,7 +370,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`.
 
 Register custom slices:
 ```tsx

@@ -48,6 +48,7 @@ import { type RatingSliceState, type RatingIconSize, type RatingGap } from '../R
 import { type ProgressSliceState, type ProgressTrackRadius } from '../Progress/ProgressSlice';
 import { type SidebarSliceState, type SidebarItemGap } from '../Sidebar/SidebarSlice';
 import { type SeparatorSliceState, type SeparatorThickness } from '../Separator/SeparatorSlice';
+import { type TextSliceState, type TextScale } from '../Text/TextSlice';
 import { type GallerySliceState, type GalleryThumbnailAspectRatio } from '../Gallery/GallerySlice';
 import { type DrawerSliceState, type DrawerWidth, type DrawerHeaderMargin, type DrawerBackdrop } from '../Overlay/DrawerSlice';
 import { type TabSliceState, type TabVariant, type TabSize, type TabPanelTransition } from '../TabStrip/TabSlice';
@@ -486,6 +487,19 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
             { label: 'Thin (0.0625rem)', value: 'thin' },
             { label: 'Normal (0.125rem)', value: 'normal' },
             { label: 'Thick (0.1875rem)', value: 'thick' },
+          ]}
+        />
+  ),
+  text: (state: TextSliceState, onChange: (next: TextSliceState) => void) => (
+    <FieldRow
+          label="Text Size Ramp"
+          tooltip="Scales every <Text> size step together, relative to the master font size"
+          value={state.scale}
+          onChange={val => onChange({ ...state, scale: val as TextScale })}
+          options={[
+            { label: 'Compact (90%)', value: 'compact' },
+            { label: 'Normal', value: 'normal' },
+            { label: 'Large (112.5%)', value: 'large' },
           ]}
         />
   ),
