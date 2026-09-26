@@ -59,14 +59,19 @@ const COLOR_FUNCTION = /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/i;
 const HEX = /#[0-9a-f]{3,8}\b/i;
 const PX = /(^|[^\w.-])(\d*\.?\d+)px\b/;
 
-/** Removes every `var(...)` (fallback included) so only literal text is left to inspect. */
+/**
+ * Removes every `var(...)` (fallback included) and `url(...)` (a path can
+ * contain a color word: `url(/gold-icon.png)`) so only literal text is left
+ * to inspect.
+ */
 export function stripVars(value) {
   let out = '';
   let i = 0;
   while (i < value.length) {
-    if (value.startsWith('var(', i)) {
+    const fn = value.startsWith('var(', i) ? 'var(' : value.startsWith('url(', i) ? 'url(' : null;
+    if (fn) {
       let depth = 0;
-      let j = i + 3;
+      let j = i + fn.length - 1;
       for (; j < value.length; j++) {
         if (value[j] === '(') depth++;
         else if (value[j] === ')' && --depth === 0) break;

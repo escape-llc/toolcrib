@@ -15,6 +15,9 @@ assert.equal(findLiteralColor('color-mix(in srgb, var(--ai-color-primary) 12%, t
 assert.equal(findLiteralColor('1px solid #ccc'), '#ccc');
 assert.equal(findLiteralColor('rgba(0, 0, 0, 0.5)'), 'rgba()');
 assert.equal(findLiteralColor('0.0625rem solid red'), 'red');
+// A color word inside a url() path is not a color (Gemini, PR #658).
+assert.equal(findLiteralColor('url(/assets/gold-icon.png) no-repeat'), undefined);
+assert.equal(findLiteralColor("url('/a(1).png') red"), 'red');
 assert.equal(findPixelLength('0px'), undefined);
 assert.equal(findPixelLength('0.5rem 12px'), '12px');
 assert.equal(findPixelLength('var(--ai-padding-md, 12px)'), undefined);

@@ -15,7 +15,8 @@ const ruleTester = new RuleTester({
   },
 });
 
-const suggests = replacement => ({ message: new RegExp(`use Toolcrib's ${replacement.replace(/[()]/g, '\\$&')} instead`) });
+const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const suggests = replacement => ({ message: new RegExp(`use Toolcrib's ${escapeRegExp(replacement)} instead`) });
 
 ruleTester.run('prefer-toolcrib-component', preferToolcribComponent, {
   valid: [
