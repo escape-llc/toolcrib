@@ -126,11 +126,13 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
 | Fake per-row emphasis via `column.render` (styling each cell individually to approximate a highlighted row), or hand-roll row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic) | Use `<DataTable rowSubtheme={(record) => ...}>` for row emphasis — classifies a row into `'error'`/`'success'`/`'warning'`/`'info'` and tints the actual row background/border, not a per-cell approximation — and `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` for selection, where the checkbox column, 3-state header checkbox, and cross-page persistence all come built in |
 | Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input | Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
+| Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start | Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick |
 | Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Build a second lazy-render/`IntersectionObserver` mechanism for a grid of many thumbnails | Use `<Gallery>` — thumbnails defer via the existing `<DeferredContent>`, not a new visibility mechanism |
 | Hardcode a link's color (or leave it unthemed), or write `<a target="_blank">` without also setting `rel="noopener noreferrer"` (reverse-tabnabbing — the opened page gets `window.opener` and can navigate your tab) | Use `<Link>` — colors itself from `--ai-color-primary-readable`/`-secondary-readable` (hue preserved, contrast-checked) for link/visited state, and supplies the safe `rel` default automatically |
 | Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
+| Build a date range from two separate `<Calendar>`s with hand-written "end must be after start" logic | Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you |
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
 | Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state | Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free |
 | Hand-roll a pulsing/shimmering loading placeholder `<div>` for content that hasn't loaded yet | Use `<Skeleton shape="text"|"circle"|"rect">` — already animates off the shared keyframes, not a one-off duration |
@@ -240,6 +242,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting a single date, built on React Aria Components |
 | `<Combobox>` | — | `id`, `name`, `placeholder`, `ariaLabel`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `chipColor`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides`, `size`, `squareCorners` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
 | `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size`, `squareCorners` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |
+| `<DateRangePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size`, `squareCorners` | Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components |
 | `<FileUpload>` | — | `name`, `accept`, `multiple`, `maxSizeBytes`, `maxFiles`, `disabled`, `onUpload`, `onFilesChange`, `overrides`, `size`, `squareCorners` | Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context |
 | `<Form>` | — | `schema`, `initialValues`, `onSubmit`, `id` | Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate |
 | `<Input>` | — | `name`, `cornerRadiusMode`, `overrides`, `squareCorners`, `size`, `clearable`, `onClear`, `leadingSection`, `trailingSection`, `revealable` | Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle |
@@ -247,6 +250,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Listbox>` | — | `id`, `options`, `activeIndex`, `selectedValues`, `onSelect`, `loading`, `loadingMessage`, `emptyMessage`, `multiSelectable`, `itemPadding`, `size` | Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone |
 | `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides`, `size` | Single-select radio control bound to Form context, data-driven or compositional |
+| `<RangeCalendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components |
 | `<RangeSlider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `minStepsBetweenThumbs`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `thumbLabels`, `overrides` | Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider |
 | `<Rating>` | — | `name`, `value`, `defaultValue`, `onChange`, `max`, `icon`, `readOnly`, `overrides` | Star rating control built on Radix RadioGroup, or a read-only fractional-fill display |
 | `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides`, `size`, `squareCorners` | Dropdown select control bound to Form context, built on Radix Select |
@@ -425,7 +429,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[79]{name,payload}:
+[81]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -474,6 +478,8 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "rating:changed","{ name?: string; value: number }"
   "datepicker:changed","{ name?: string; value: string | null }"
   "calendar:changed","{ name?: string; value: string | null }"
+  "daterangepicker:changed","{ name?: string; value: { start: string; end: string } | null }"
+  "rangecalendar:changed","{ name?: string; value: { start: string; end: string } }"
   "timefield:changed","{ name?: string; value: string | null }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
