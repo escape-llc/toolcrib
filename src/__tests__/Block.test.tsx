@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Block } from '../components/Layout/Block';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
@@ -47,17 +47,16 @@ describe('Block', () => {
   // takes style/className". It has none now, like every other component:
   // the props are type errors, and a style smuggled past the types (plain
   // JS, a cast) warns in dev and can't override the themed values.
-  it('rejects style/className: a type error, a dev warning, and the themed background still wins', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    render(
-      // @ts-expect-error -- style and className are not Block props
-      <Block data-testid="block" background="surface" style={{ background: 'hotpink' }} className="my-class">
-        x
-      </Block>
-    );
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("<Block> received a 'style' or 'className' prop"));
-    warn.mockRestore();
-    expect(screen.getByTestId('block').style.background).toBe('var(--ai-bg-surface, #ffffff)');
+  it('rejects style/className at compile time', () => {
+    // The contract is compile-time: passing either is a type error, and the
+    // caller fixes the call site. No runtime warning or stripping (the
+    // maintainer's call: no legacy shims). tsc fails this file if either
+    // line below stops being an error, i.e. if the props come back.
+    // @ts-expect-error -- style is not a Block prop
+    const withStyle = <Block style={{ background: 'hotpink' }}>x</Block>;
+    // @ts-expect-error -- className is not a Block prop
+    const withClassName = <Block className="my-class">x</Block>;
+    expect([withStyle, withClassName]).toHaveLength(2);
   });
 
   it('resolves an instance subtheme, overriding background/border/text color', () => {

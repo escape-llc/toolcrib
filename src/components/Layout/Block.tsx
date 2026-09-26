@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
@@ -28,9 +28,9 @@ export type BlockRadius = 'sm' | 'md' | 'lg' | 'xl' | 'none';
  * (direction, alignment, gaps) belongs to `<VStack>`/`<HStack>`/`<Grid>`.
  * Stay in theme as hard as possible (CORE.md principle 7's ladder:
  * props, `overrides`, style domains, themed primitives like this one, a
- * theme-level change). A raw styled `<div>`/`<span>` is the last resort,
- * and even then its `style` reads the theme's CSS variables, never
- * literal hex/px.
+ * theme-level change). A raw styled `<div>`/`<span>` is the last resort:
+ * its `style` still reads the theme's CSS variables, never literal hex/px,
+ * with a short comment saying why nothing above covered it.
  */
 export interface BlockProps extends StyleFreeAttributes<HTMLDivElement> {
   /** Background surface token. @default 'transparent' */
@@ -75,7 +75,6 @@ export const Block: React.FC<BlockProps> = ({
   children,
   ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'Block');
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveColorVariant({ subtheme, appearance }) : null;
 
