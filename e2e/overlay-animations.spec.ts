@@ -152,7 +152,7 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
   const panelAnimationName = await panel.evaluate(el => getComputedStyle(el).animationName);
   expect(panelAnimationName).toBe('ai-slide-in-right');
 
-  const backdrop = page.locator('[role="presentation"]');
+  const backdrop = page.getByTestId('drawer-backdrop');
   const backdropAnimationName = await backdrop.evaluate(el => getComputedStyle(el).animationName);
   expect(backdropAnimationName).toBe('ai-fade-in');
 

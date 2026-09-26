@@ -50,24 +50,11 @@ import { gotoTab, loadDemoTableData } from './nav';
 // real ratio (verified by hand against the WCAG formula).
 const COLOR_CONTRAST_DISABLED = ['color-contrast'];
 
-// Plain labels (no emoji) -- gotoTab (e2e/nav.ts) navigates to each via its
-// owning sidebar group. All 12 tabs, not the 8-tab subset some other specs
-// use -- an accessibility sweep is exactly the case where full coverage
-// matters more than runtime.
-const TABS = [
-  'Overview & Architecture',
-  'Forms & Zod Engine',
-  'Data Table',
-  'Overlays & Actions',
-  'Toast Subsystem',
-  'Feedback & Status',
-  'Charts',
-  'Navigation & Structure',
-  'Common Layout Idioms',
-  'Media Gallery',
-  'Wireframe Gallery',
-  'Component Showcase',
-];
+// The demo's three pages (issue #624 consolidated the ten per-topic
+// component tabs into the single Encyclopedia page) -- gotoTab (e2e/nav.ts)
+// navigates to each via its sidebar link. Every component is scanned: the
+// Encyclopedia renders all of them at once.
+const TABS = ['Overview', 'Encyclopedia', 'Kits'];
 
 /**
  * Scans every tab on whatever page/theme state the caller already set up --
@@ -86,7 +73,7 @@ async function scanEveryTab(page: Page): Promise<string[]> {
     // real content) instead of just the header row over an empty body,
     // matching the depth of coverage this scan already had before that
     // table stopped loading its data on mount.
-    if (tab === 'Data Table') await loadDemoTableData(page);
+    if (tab === 'Encyclopedia') await loadDemoTableData(page);
     // Lets the panel's own entrance transition finish first -- same
     // reasoning as interactive-sweep.spec.ts's identical wait.
     await page.waitForTimeout(300);

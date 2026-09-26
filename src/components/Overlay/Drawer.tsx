@@ -179,6 +179,10 @@ export const Drawer: React.FC<DrawerProps> = ({
         <Presence present={isOpen}>
           <div
             role="presentation"
+            // Test point (AGENTS.md: a data-testid over a guessed selector).
+            // role="presentation" alone isn't unique to this backdrop --
+            // Skeleton and React Aria's DateInput use it too.
+            data-testid="drawer-backdrop"
             onClick={() => toggle(false)}
             style={{
               position: 'fixed',

@@ -20,10 +20,18 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
   await page.goto('/');
   await gotoTab(page, 'Forms & Zod Engine');
 
-  const button = page.getByRole('button', { name: 'Open calendar' }).first();
+  // The profile form's Start Date picker (the first one on the old Forms
+  // tab) -- scoped to its Encyclopedia entry since issue #624 put every
+  // DatePicker on one page.
+  const button = page.locator('#enc-Form').getByRole('button', { name: 'Open calendar' }).first();
   await button.waitFor({ state: 'visible' });
 
   const group = button.locator('xpath=ancestor::div[@role="group"][1]');
+  // Scroll it into view BEFORE measuring: button.click() below auto-scrolls
+  // the button into view, which would move the group after its box was
+  // read. That never happened on the old short Forms tab; on the single
+  // Encyclopedia page (issue #624) the field starts partly out of view.
+  await group.scrollIntoViewIfNeeded();
   const groupBox = await group.boundingBox();
   expect(groupBox).not.toBeNull();
 
@@ -57,7 +65,15 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
   // the anchor's own top-left (popup sits above, connects at the
   // anchor's top edge) and 'bottom-start' to bottom-left (popup sits
   // below, connects at the anchor's bottom edge).
-  const cornerProp = isAbove ? 'borderTopLeftRadius' : 'borderBottomLeftRadius';
+  //
+  // Read on the POPUP, so it's the popup's own connecting corner: its
+  // bottom-left when it sits above the field, its top-left when below.
+  // (This used to map the other way round -- the anchor's corner names --
+  // and only passed because a stale field measurement, taken before
+  // click()'s auto-scroll moved the field, made a popup that was really
+  // below look "above". Found once issue #624's layout made the
+  // measurement accurate; the component itself was correct throughout.)
+  const cornerProp = isAbove ? 'borderBottomLeftRadius' : 'borderTopLeftRadius';
   const cornerStyle = await popupContent.evaluate((el, prop) => (getComputedStyle(el) as any)[prop], cornerProp);
   expect(cornerStyle).toBe('0px');
 
@@ -74,7 +90,10 @@ test('clicking the date field itself (not the calendar button) does not open the
   await page.goto('/');
   await gotoTab(page, 'Forms & Zod Engine');
 
-  const button = page.getByRole('button', { name: 'Open calendar' }).first();
+  // The profile form's Start Date picker (the first one on the old Forms
+  // tab) -- scoped to its Encyclopedia entry since issue #624 put every
+  // DatePicker on one page.
+  const button = page.locator('#enc-Form').getByRole('button', { name: 'Open calendar' }).first();
   await button.waitFor({ state: 'visible' });
   const group = button.locator('xpath=ancestor::div[@role="group"][1]');
 

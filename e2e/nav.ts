@@ -1,48 +1,56 @@
 import { type Page } from '@playwright/test';
 
 /**
- * Mirrors demo/App.tsx's own NAV_GROUPS -- the sidebar groups the 12
- * main-demo tabs behind, so most tabs are only directly clickable once
- * their owning sidebar group is selected first (a solo-tab group's
- * content shows directly, with no inner tab strip at all). Keyed by each
- * tab's plain label (no emoji prefix; substring-matches the TabStrip's
- * own emoji-prefixed label). Kept in sync by hand with demo/App.tsx's
- * NAV_GROUPS -- update both together if either changes.
+ * Mirrors demo/App.tsx's NAV_GROUPS: three single-page sidebar groups
+ * since issue #624 consolidated the ten per-topic component tabs into
+ * one Encyclopedia page (and renamed the Wireframe Gallery to Kits).
+ *
+ * The old tab labels are kept as aliases so the ~90 existing call sites
+ * didn't all need rewriting: each maps to the page its content moved to,
+ * plus the anchor of the entry that best stands in for the old tab, which
+ * is scrolled into view. Specs that measure real on-screen coordinates
+ * (mouse drags, bounding boxes) need their subject in the viewport, and
+ * Playwright's own auto-scroll only covers actions, not measurements.
  */
-const TAB_GROUP: Record<string, string> = {
-  'Overview & Architecture': 'Overview',
-  'Forms & Zod Engine': 'Forms & Data',
-  'Data Table': 'Forms & Data',
-  'Overlays & Actions': 'Overlays & Feedback',
-  'Toast Subsystem': 'Overlays & Feedback',
-  'Feedback & Status': 'Overlays & Feedback',
-  Charts: 'Analytics',
-  'Navigation & Structure': 'Navigation & Layout',
-  'Common Layout Idioms': 'Navigation & Layout',
-  'Media Gallery': 'Media & Wireframes',
-  'Wireframe Gallery': 'Media & Wireframes',
-  'Component Showcase': 'Showcase',
+const PAGES: Record<string, { page: string; anchor?: string }> = {
+  Overview: { page: 'Overview' },
+  'Overview & Architecture': { page: 'Overview' },
+  Encyclopedia: { page: 'Encyclopedia' },
+  Kits: { page: 'Kits' },
+  // Legacy tab labels -> where that content lives now.
+  'Forms & Zod Engine': { page: 'Encyclopedia', anchor: 'enc-Form' },
+  'Data Table': { page: 'Encyclopedia', anchor: 'enc-DataTable' },
+  'Overlays & Actions': { page: 'Encyclopedia', anchor: 'enc-Drawer' },
+  'Toast Subsystem': { page: 'Encyclopedia', anchor: 'enc-sys-toasts' },
+  'Feedback & Status': { page: 'Encyclopedia', anchor: 'enc-Badge' },
+  'Navigation & Structure': { page: 'Encyclopedia', anchor: 'enc-Breadcrumb' },
+  'Common Layout Idioms': { page: 'Encyclopedia', anchor: 'enc-VStack' },
+  'Media Gallery': { page: 'Encyclopedia', anchor: 'enc-Carousel' },
+  'Component Showcase': { page: 'Encyclopedia', anchor: 'enc-Button' },
+  Charts: { page: 'Kits' },
+  'Wireframe Gallery': { page: 'Kits' },
 };
 
 /**
- * Navigates to a main-demo tab by its plain label -- clicks the sidebar
- * group containing it first, then the inner (now per-group, much
- * shorter) TabStrip tab if that group has more than one tab. A solo-tab
- * group shows its content directly with no inner tab to click, so this
- * is a no-op past the sidebar click in that case.
+ * Navigates to a demo page by its sidebar label (or a legacy tab label,
+ * see PAGES), then scrolls the relevant entry into view. `component`
+ * scrolls to that component's Encyclopedia entry instead -- e.g.
+ * `gotoTab(page, 'Encyclopedia', 'TabStrip')`.
  */
-export async function gotoTab(page: Page, tabLabel: string): Promise<void> {
-  const groupLabel = TAB_GROUP[tabLabel];
-  if (!groupLabel) {
-    throw new Error(`gotoTab: no sidebar group mapped for "${tabLabel}" -- update e2e/nav.ts's TAB_GROUP`);
+export async function gotoTab(page: Page, label: string, component?: string): Promise<void> {
+  const target = PAGES[label];
+  if (!target) {
+    throw new Error(`gotoTab: no page mapped for "${label}" -- update e2e/nav.ts's PAGES`);
   }
   // Not `exact: true` -- the link's accessible name is its icon glyph
-  // plus the label (e.g. "🔔 Overlays & Feedback"), so an exact match
-  // against the plain label alone would never hit.
-  await page.getByRole('link', { name: groupLabel }).click();
-  const tab = page.getByRole('tab', { name: tabLabel });
-  if ((await tab.count()) > 0) {
-    await tab.click();
+  // plus the label (e.g. "🧰 Encyclopedia"), so an exact match against
+  // the plain label alone would never hit.
+  await page.getByRole('link', { name: target.page }).click();
+  const anchor = component ? `enc-${component}` : target.anchor;
+  if (anchor) {
+    const entry = page.locator(`#${anchor}`);
+    await entry.waitFor({ state: 'attached' });
+    await entry.scrollIntoViewIfNeeded();
   }
 }
 
