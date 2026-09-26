@@ -73,9 +73,9 @@
           "description": "Visual treatment for `subtheme`'s color. Ignored unless a subtheme resolves."
         }
       },
-      "constraints": "Its own background/padding/radius/border props stay theme-driven by default; style/className layer on top rather than replacing them",
+      "constraints": "Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps; a plain element is fine for an unstyled wrapper",
       "category": "Layout Primitives",
-      "description": "Themed, stylable container `<div>` with subtheme colouring — the one deliberate exception to \"no style/className on toolcrib components\", for ad-hoc layout needs nothing else covers"
+      "description": "Themed surface `<div>`: background, padding, radius, border and subtheme colouring, all from theme tokens — no style/className, like every toolcrib component"
     },
     {
       "name": "Content",

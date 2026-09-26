@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Block } from '../components/Layout/Block';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
@@ -43,15 +43,21 @@ describe('Block', () => {
     expect(screen.getByTestId('block').style.border).toBe('0.0625rem solid var(--ai-border, #e5e7eb)');
   });
 
-  it('lets a consumer style/className win over the themed defaults, spread last on purpose', () => {
+  // Issue #647: Block used to be the one exception to "no toolcrib component
+  // takes style/className". It has none now, like every other component:
+  // the props are type errors, and a style smuggled past the types (plain
+  // JS, a cast) warns in dev and can't override the themed values.
+  it('rejects style/className: a type error, a dev warning, and the themed background still wins', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     render(
+      // @ts-expect-error -- style and className are not Block props
       <Block data-testid="block" background="surface" style={{ background: 'hotpink' }} className="my-class">
         x
       </Block>
     );
-    const block = screen.getByTestId('block');
-    expect(block.style.background).toBe('hotpink');
-    expect(block.className).toBe('my-class');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("<Block> received a 'style' or 'className' prop"));
+    warn.mockRestore();
+    expect(screen.getByTestId('block').style.background).toBe('var(--ai-bg-surface, #ffffff)');
   });
 
   it('resolves an instance subtheme, overriding background/border/text color', () => {

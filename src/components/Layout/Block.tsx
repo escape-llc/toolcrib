@@ -1,6 +1,7 @@
 'use client';
 
-import React, { type HTMLAttributes } from 'react';
+import React from 'react';
+import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
@@ -15,24 +16,19 @@ export type BlockPadding = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none';
 export type BlockRadius = 'sm' | 'md' | 'lg' | 'xl' | 'none';
 
 /**
- * Props for the `<Block>` themed container.
+ * Props for the `<Block>` themed surface.
  *
- * The one deliberate exception to "no toolcrib component accepts `style`/
- * `className`" (see `ai-docs/CORE.md`'s Core Principles, principle 7) — everywhere else
- * that rule holds so every visual decision stays theme-driven and
- * AI-legible, but there's a real, recurring need underneath it: a plain
- * layout wrapper `<div>` for cases no curated component's own props cover
- * (a flex/grid container, a bare spacer, an ad-hoc grouping box). Without
- * `<Block>`, generating one of those means falling back to hand-picked
- * hex colors and pixel values, since a raw `<div>` has no theme awareness
- * of its own. `<Block>`'s own `background`/`padding`/`radius`/`border`
- * props default to the same CSS variables every other component already
- * uses, so reaching for it doesn't mean leaving the theme system — `style`/
- * `className` are still accepted on top, for whatever those curated props
- * genuinely don't cover (layout properties like `display`/`flexDirection`/
- * `gap`, primarily).
+ * Like every toolcrib component, `<Block>` takes no `style`/`className`
+ * (`ai-docs/CORE.md`'s Core Principles, principle 7). It used to be the one
+ * exception -- a "stylable div" for ad-hoc layout -- until the maintainer
+ * confirmed the rule has none (#647); no call site used it. Its job is a
+ * themed surface: background, padding, radius, border and subtheme, each
+ * resolved from theme tokens, so an area doesn't need hand-typed
+ * `var(--ai-…)` strings (or worse, literal hex/px) to look right. Layout
+ * (direction, alignment, gaps) belongs to `<VStack>`/`<HStack>`/`<Grid>`;
+ * an unstyled structural wrapper can be a plain element.
  */
-export interface BlockProps extends HTMLAttributes<HTMLDivElement> {
+export interface BlockProps extends StyleFreeAttributes<HTMLDivElement> {
   /** Background surface token. @default 'transparent' */
   background?: BlockBackground;
   /** Padding, using the same global padding token scale (`--ai-padding-*`) every other component's own padding resolves through. @default 'none' */
@@ -59,8 +55,8 @@ const BACKGROUND_VAR: Record<BlockBackground, string> = {
 };
 
 /**
- * @manifest Themed, stylable container `<div>` with subtheme colouring — the one deliberate exception to "no style/className on toolcrib components", for ad-hoc layout needs nothing else covers
- * @manifestConstraints Its own background/padding/radius/border props stay theme-driven by default; style/className layer on top rather than replacing them
+ * @manifest Themed surface `<div>`: background, padding, radius, border and subtheme colouring, all from theme tokens — no style/className, like every toolcrib component
+ * @manifestConstraints Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps; a plain element is fine for an unstyled wrapper
  * @manifestCategory Layout Primitives
  */
 export const Block: React.FC<BlockProps> = ({
@@ -72,10 +68,10 @@ export const Block: React.FC<BlockProps> = ({
   border = false,
   subtheme: instanceSubtheme,
   appearance = 'soft',
-  style,
   children,
   ...props
 }) => {
+  warnIfLegacyStyleProps(props, 'Block');
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveColorVariant({ subtheme, appearance }) : null;
 
@@ -89,10 +85,6 @@ export const Block: React.FC<BlockProps> = ({
         ...(padding !== 'none' ? { padding: resolvePadding(paddingMode, padding) } : {}),
         ...(radius !== 'none' ? { borderRadius: resolveRadius(cornerRadiusMode, radius) } : {}),
         ...(border ? { border: `0.0625rem solid ${subthemeColors?.border ?? 'var(--ai-border, #e5e7eb)'}` } : {}),
-        // Spread last, deliberately — this is the one component in the
-        // toolkit where a consumer's own style is meant to win over the
-        // themed defaults above, not the other way around.
-        ...style,
       }}
     >
       {children}
