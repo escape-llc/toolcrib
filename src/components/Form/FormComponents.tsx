@@ -550,7 +550,7 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"
  * @manifest Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle
  * @manifestCategory Form Controls
  */
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }) => {
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -568,7 +568,15 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
-  const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
+  // Issue #614: with neither a controlled `value` nor a Form binding, the
+  // value used to fall back to a constant '' -- the element stayed
+  // controlled with nowhere to write, so a standalone <Input> silently
+  // discarded every keystroke. Local state (seeded from `defaultValue`) is
+  // that missing third source; the controlled and Form-bound paths ignore it.
+  const isFormBound = !!(name && formContext);
+  const isUncontrolled = externalValue === undefined && !isFormBound;
+  const [localValue, setLocalValue] = useState(defaultValue ?? '');
+  const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
   // Not `!!value` -- a numeric controlled value of exactly 0 (a real,
   // valid input.type="number" value) is falsy but not empty; the clear
@@ -602,6 +610,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   // silently break all of that.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (name && formContext) formContext.setFieldValue(name, e.target.value);
+    else if (isUncontrolled) setLocalValue(e.target.value);
     if (onChange) onChange(e);
   };
 
@@ -618,6 +627,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   // throw against this synthesized stand-in.
   const handleClear = () => {
     if (name && formContext) formContext.setFieldValue(name, '');
+    else if (isUncontrolled) setLocalValue('');
     if (onChange) {
       const mockTarget = { value: '', name: name || undefined, id: id ?? (name || undefined) };
       onChange({
@@ -843,6 +853,8 @@ export interface CheckboxProps {
   label?: ReactNode;
   /** Controlled checked state. */
   checked?: boolean;
+  /** Initial checked state when neither `checked` nor a Form binding is present (uncontrolled). @default false */
+  defaultChecked?: boolean;
   /** Change handler. Receives a synthetic event with `target.checked`. */
   onChange?: (e: { target: { checked: boolean } }) => void;
   /** Per-instance size override. Shared with `<Switch>`. */
@@ -854,7 +866,7 @@ export interface CheckboxProps {
   squareCorners?: SquareCornerOption;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides, squareCorners }) => {
+export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -872,12 +884,17 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
-  const checked = externalChecked !== undefined ? externalChecked : (name && formContext ? !!formContext.values[name] : false);
+  // Issue #614 -- see Input's identical local-state fallback.
+  const isFormBound = !!(name && formContext);
+  const [localChecked, setLocalChecked] = useState(defaultChecked);
+  const checked = externalChecked !== undefined ? externalChecked : (isFormBound ? !!formContext!.values[name] : localChecked);
 
   const handleCheckedChange = (val: boolean) => {
     if (name && formContext) {
       formContext.setFieldValue(name, val);
       formContext.setFieldTouched(name, true);
+    } else if (externalChecked === undefined) {
+      setLocalChecked(val);
     }
     if (onChange) onChange({ target: { checked: val } });
   };
@@ -935,6 +952,8 @@ export interface SwitchProps {
   label?: ReactNode;
   /** Controlled checked state. */
   checked?: boolean;
+  /** Initial checked state when neither `checked` nor a Form binding is present (uncontrolled). @default false */
+  defaultChecked?: boolean;
   /** Change handler. Receives the new boolean value directly. */
   onChange?: (checked: boolean) => void;
   /** Per-instance size override. Shared with `<Checkbox>`. */
@@ -946,7 +965,7 @@ export interface SwitchProps {
   squareCorners?: SquareCornerOption;
 }
 
-export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, onChange, overrides, squareCorners }) => {
+export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -964,12 +983,17 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
-  const checked = externalChecked !== undefined ? externalChecked : (name && formContext ? !!formContext.values[name] : false);
+  // Issue #614 -- see Input's identical local-state fallback.
+  const isFormBound = !!(name && formContext);
+  const [localChecked, setLocalChecked] = useState(defaultChecked);
+  const checked = externalChecked !== undefined ? externalChecked : (isFormBound ? !!formContext!.values[name] : localChecked);
 
   const handleCheckedChange = (val: boolean) => {
     if (name && formContext) {
       formContext.setFieldValue(name, val);
       formContext.setFieldTouched(name, true);
+    } else if (externalChecked === undefined) {
+      setLocalChecked(val);
     }
     if (onChange) onChange(val);
   };
@@ -1051,7 +1075,7 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   size?: ControlSize;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, overrides, size = 'md', ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1067,7 +1091,10 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
     if (name && registerField) registerField(name);
   }, [name, registerField]);
 
-  const value = externalValue !== undefined ? externalValue : (name && formContext ? formContext.values[name] ?? '' : '');
+  // Issue #614 -- see Input's identical local-state fallback.
+  const isFormBound = !!(name && formContext);
+  const [localValue, setLocalValue] = useState(defaultValue ?? '');
+  const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
 
   return (
@@ -1082,6 +1109,7 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
       className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);
+        else if (externalValue === undefined) setLocalValue(e.target.value);
         if (onChange) onChange(e);
       }}
       onBlur={e => {
