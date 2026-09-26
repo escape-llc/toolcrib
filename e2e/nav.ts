@@ -1,49 +1,103 @@
 import { type Page } from '@playwright/test';
 
 /**
- * Mirrors demo/App.tsx's own NAV_GROUPS -- the sidebar groups the 12
- * main-demo tabs behind, so most tabs are only directly clickable once
- * their owning sidebar group is selected first (a solo-tab group's
- * content shows directly, with no inner tab strip at all). Keyed by each
- * tab's plain label (no emoji prefix; substring-matches the TabStrip's
- * own emoji-prefixed label). Kept in sync by hand with demo/App.tsx's
- * NAV_GROUPS -- update both together if either changes.
+ * Mirrors demo/App.tsx's NAV_GROUPS: three sidebar pages since issue #624
+ * consolidated the ten per-topic component tabs into the Encyclopedia (and
+ * renamed the Wireframe Gallery to Kits). The Encyclopedia shows one
+ * component per page, routed by the URL hash (demo/hashRoute.ts).
+ *
+ * The old tab labels are kept as aliases so the ~90 existing call sites
+ * didn't all need rewriting: each maps to the component page that best
+ * stands in for the old tab. A spec exercising a different component
+ * passes it explicitly -- only the current page's demo is mounted.
  */
-const TAB_GROUP: Record<string, string> = {
-  'Overview & Architecture': 'Overview',
-  'Forms & Zod Engine': 'Forms & Data',
-  'Data Table': 'Forms & Data',
-  'Overlays & Actions': 'Overlays & Feedback',
-  'Toast Subsystem': 'Overlays & Feedback',
-  'Feedback & Status': 'Overlays & Feedback',
-  Charts: 'Analytics',
-  'Navigation & Structure': 'Navigation & Layout',
-  'Common Layout Idioms': 'Navigation & Layout',
-  'Media Gallery': 'Media & Wireframes',
-  'Wireframe Gallery': 'Media & Wireframes',
-  'Component Showcase': 'Showcase',
+const PAGES: Record<string, { page: string; entry?: string; system?: string }> = {
+  Overview: { page: 'Overview' },
+  'Overview & Architecture': { page: 'Overview' },
+  Encyclopedia: { page: 'Encyclopedia' },
+  Kits: { page: 'Kits' },
+  // Legacy tab labels -> where that content lives now.
+  'Forms & Zod Engine': { page: 'Encyclopedia', entry: 'Form' },
+  'Data Table': { page: 'Encyclopedia', entry: 'DataTable' },
+  'Overlays & Actions': { page: 'Encyclopedia', entry: 'Drawer' },
+  'Toast Subsystem': { page: 'Encyclopedia', system: 'toasts' },
+  'Theme system': { page: 'Encyclopedia', system: 'theme' },
+  'Feedback & Status': { page: 'Encyclopedia', entry: 'Badge' },
+  'Navigation & Structure': { page: 'Encyclopedia', entry: 'Breadcrumb' },
+  'Common Layout Idioms': { page: 'Encyclopedia', entry: 'VStack' },
+  'Media Gallery': { page: 'Encyclopedia', entry: 'Carousel' },
+  'Component Showcase': { page: 'Encyclopedia', entry: 'Button' },
+  Charts: { page: 'Kits' },
+  'Wireframe Gallery': { page: 'Kits' },
 };
 
+/** The route (URL hash) of a component's Encyclopedia page, or of a Systems area's. */
+export const entryRoute = (component: string) => `#/encyclopedia/${encodeURIComponent(component)}`;
+export const systemRoute = (id: string) => `#/encyclopedia/system/${encodeURIComponent(id)}`;
+
 /**
- * Navigates to a main-demo tab by its plain label -- clicks the sidebar
- * group containing it first, then the inner (now per-group, much
- * shorter) TabStrip tab if that group has more than one tab. A solo-tab
- * group shows its content directly with no inner tab to click, so this
- * is a no-op past the sidebar click in that case.
+ * Navigates to a demo page by its sidebar label (or a legacy tab label,
+ * see PAGES). `component` opens that component's Encyclopedia page instead
+ * -- e.g. `gotoTab(page, 'Encyclopedia', 'TabStrip')`. Waits for the page's
+ * own section to be attached, so its demo is mounted before the spec runs.
  */
-export async function gotoTab(page: Page, tabLabel: string): Promise<void> {
-  const groupLabel = TAB_GROUP[tabLabel];
-  if (!groupLabel) {
-    throw new Error(`gotoTab: no sidebar group mapped for "${tabLabel}" -- update e2e/nav.ts's TAB_GROUP`);
+export async function gotoTab(page: Page, label: string, component?: string): Promise<void> {
+  const target = PAGES[label];
+  if (!target) {
+    throw new Error(`gotoTab: no page mapped for "${label}" -- update e2e/nav.ts's PAGES`);
   }
   // Not `exact: true` -- the link's accessible name is its icon glyph
-  // plus the label (e.g. "🔔 Overlays & Feedback"), so an exact match
-  // against the plain label alone would never hit.
-  await page.getByRole('link', { name: groupLabel }).click();
-  const tab = page.getByRole('tab', { name: tabLabel });
-  if ((await tab.count()) > 0) {
-    await tab.click();
+  // plus the label (e.g. "🧰 Encyclopedia"), so an exact match against
+  // the plain label alone would never hit. Scoped to the sidebar: an
+  // Encyclopedia page's own breadcrumb also links "Encyclopedia".
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: target.page }).click();
+  const entry = component ?? target.entry;
+  if (entry) await gotoRoute(page, entryRoute(entry), `#enc-${entry}`);
+  else if (target.system) await gotoRoute(page, systemRoute(target.system), `#enc-sys-${target.system}`);
+}
+
+export interface DemoPage {
+  /** 'Overview', 'Encyclopedia', a component name, 'system:<id>', or 'Kits'. */
+  label: string;
+  go: () => Promise<void>;
+}
+
+/**
+ * Every page of the demo, for specs that sweep the whole thing (the
+ * interactive sweep, the full axe scans): Overview, the Encyclopedia index,
+ * each component and Systems page, then Kits. The Encyclopedia's pages are
+ * read from the index's own links, so a new component is covered the moment
+ * it's in the manifest.
+ */
+export async function demoPages(page: Page): Promise<DemoPage[]> {
+  await gotoTab(page, 'Encyclopedia');
+  const hrefs = await page
+    .getByTestId('main-content-scroll')
+    .locator('a[href^="#/encyclopedia/"]')
+    .evaluateAll(links => [...new Set(links.map(a => a.getAttribute('href')!))]);
+  const pages: DemoPage[] = [
+    { label: 'Overview', go: () => gotoTab(page, 'Overview') },
+    { label: 'Encyclopedia', go: () => gotoTab(page, 'Encyclopedia') },
+  ];
+  for (const href of hrefs) {
+    const [, kind, id] = href.match(/^#\/encyclopedia\/(system\/)?(.+)$/)!;
+    const name = decodeURIComponent(id);
+    pages.push(
+      kind
+        ? { label: `system:${name}`, go: () => gotoRoute(page, href, `#enc-sys-${name}`) }
+        : { label: name, go: () => gotoRoute(page, href, `#enc-${name}`) }
+    );
   }
+  pages.push({ label: 'Kits', go: () => gotoTab(page, 'Kits') });
+  return pages;
+}
+
+/** Sets the URL hash (a real history entry, like a link click) and waits for `waitFor` to attach. */
+export async function gotoRoute(page: Page, hash: string, waitFor: string): Promise<void> {
+  await page.evaluate(h => {
+    window.location.hash = h;
+  }, hash);
+  await page.locator(waitFor).waitFor({ state: 'attached' });
 }
 
 /**

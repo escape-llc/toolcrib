@@ -1,5 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { gotoTab, loadDemoTableData } from './nav';
+
+// Scoped to the DataTable's own Encyclopedia entry: since issue #624 every
+// component shares one page, so page-wide getByRole('grid') / locator('table')
+// / 'Next page' also match the inline Calendar's grid and the standalone
+// Pagination demos.
+const dataTable = (page: Page) => page.locator('#enc-DataTable');
+
 
 // Real-browser confirmation for issue #517 (the pagination half of
 // #499's own split): a page change used to snap the row set instantly,
@@ -26,13 +33,13 @@ test.describe('DataTable pagination cross-fade (issue #517)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    await expect(page.getByRole('grid')).toHaveCount(1);
+    await expect(dataTable(page).getByRole('grid')).toHaveCount(1);
 
-    const nextButton = page.getByRole('button', { name: 'Next page' });
+    const nextButton = dataTable(page).getByRole('button', { name: 'Next page' });
     await nextButton.click();
 
-    await expect.poll(() => page.locator('table').count()).toBe(1);
-    await expect(page.getByRole('grid')).toHaveCount(1);
+    await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
+    await expect(dataTable(page).getByRole('grid')).toHaveCount(1);
   });
 
   test('the snapshot clone is inert while fading', async ({ page }) => {
@@ -47,9 +54,9 @@ test.describe('DataTable pagination cross-fade (issue #517)', () => {
       document.documentElement.style.setProperty('--ai-transition-duration-normal', '1s');
     });
 
-    await page.getByRole('button', { name: 'Next page' }).click();
+    await dataTable(page).getByRole('button', { name: 'Next page' }).click();
 
-    const inertTable = page.locator('table[inert]').first();
+    const inertTable = dataTable(page).locator('table[inert]').first();
     await expect(inertTable).toHaveAttribute('aria-hidden', 'true');
 
     await page.evaluate(() => {
@@ -83,7 +90,7 @@ test.describe('DataTable pagination cross-fade (issue #517)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    const nextButton = page.getByRole('button', { name: 'Next page' });
+    const nextButton = dataTable(page).getByRole('button', { name: 'Next page' });
     await nextButton.focus();
     await expect(nextButton).toBeFocused();
 
@@ -99,7 +106,7 @@ test.describe('DataTable pagination cross-fade (issue #517)', () => {
     // outside it -- wherever real focus actually lands after the click
     // (the button on Chromium, elsewhere on WebKit) is the browser's own
     // business, not this feature's.
-    await expect.poll(() => page.locator('table').count()).toBe(1);
+    await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
     const focusInsideGrid = await page.evaluate(() => {
       const grid = document.querySelector('[role="grid"]');
       return !!grid && !!document.activeElement && grid.contains(document.activeElement);

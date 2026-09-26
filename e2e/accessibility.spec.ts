@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { gotoTab, loadDemoTableData } from './nav';
+import { gotoTab, loadDemoTableData, demoPages } from './nav';
 
 // Automated backstop for the "WCAG AA verified across all components" 1.0
 // gate (.plans/toolcrib-roadmap.md) -- turns Discussion #41's one-time
@@ -50,43 +50,25 @@ import { gotoTab, loadDemoTableData } from './nav';
 // real ratio (verified by hand against the WCAG formula).
 const COLOR_CONTRAST_DISABLED = ['color-contrast'];
 
-// Plain labels (no emoji) -- gotoTab (e2e/nav.ts) navigates to each via its
-// owning sidebar group. All 12 tabs, not the 8-tab subset some other specs
-// use -- an accessibility sweep is exactly the case where full coverage
-// matters more than runtime.
-const TABS = [
-  'Overview & Architecture',
-  'Forms & Zod Engine',
-  'Data Table',
-  'Overlays & Actions',
-  'Toast Subsystem',
-  'Feedback & Status',
-  'Charts',
-  'Navigation & Structure',
-  'Common Layout Idioms',
-  'Media Gallery',
-  'Wireframe Gallery',
-  'Component Showcase',
-];
-
 /**
- * Scans every tab on whatever page/theme state the caller already set up --
- * deliberately doesn't navigate to '/' itself, since dark mode (set by the
- * caller before invoking this) is plain React state with no persistence and
- * would be lost on a reload.
+ * Scans every page of the demo (demoPages: Overview, the Encyclopedia index
+ * and each component/Systems page, Kits) on whatever theme state the caller
+ * already set up -- deliberately doesn't navigate to '/' itself, since dark
+ * mode (set by the caller before invoking this) is plain React state with
+ * no persistence and would be lost on a reload.
  */
 async function scanEveryTab(page: Page): Promise<string[]> {
   const failures: string[] = [];
 
-  for (const tab of TABS) {
-    await gotoTab(page, tab);
-    // The Data Table tab's main table starts empty (see demo/App.tsx) --
+  for (const { label: tab, go } of await demoPages(page)) {
+    await go();
+    // The Data Table page's main table starts empty (see demo/App.tsx) --
     // load its real dataset first so this scan covers the actual loaded
     // grid (row checkboxes, tinted/selected rows, sortable headers with
     // real content) instead of just the header row over an empty body,
     // matching the depth of coverage this scan already had before that
     // table stopped loading its data on mount.
-    if (tab === 'Data Table') await loadDemoTableData(page);
+    if (tab === 'DataTable') await loadDemoTableData(page);
     // Lets the panel's own entrance transition finish first -- same
     // reasoning as interactive-sweep.spec.ts's identical wait.
     await page.waitForTimeout(300);
@@ -156,7 +138,9 @@ test('every tab has zero automatable WCAG 2.1 AA violations in light mode', asyn
   // second engine at all) -- Chromium-only for this spec until axe-core's
   // own WebKit support is more stable; re-test before removing this skip.
   test.skip(browserName === 'webkit', 'axe-core repeatedly crashes WebKit across a 12-tab scan -- see comment');
-  test.setTimeout(120_000);
+  // ~95 scans since issue #624 split the Encyclopedia into one page per
+  // component -- each small, but the count grew with it.
+  test.setTimeout(300_000);
   await page.goto('/');
 
   const failures = await scanEveryTab(page);
@@ -221,16 +205,23 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
     }
   };
 
-  await gotoTab(page, 'Overlays & Actions');
+  await gotoTab(page, 'Encyclopedia', 'Popup');
 
+  // One component per Encyclopedia page (issue #624): each overlay's trigger
+  // is only mounted on its own component's page, so navigate before each.
   await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
   await scanNamed('Popup (Overlays tab)');
   await page.keyboard.press('Escape');
 
+  await gotoTab(page, 'Encyclopedia', 'Drawer');
   await page.getByRole('button', { name: 'Open Drawer' }).click();
   await scanNamed('Drawer');
   await page.keyboard.press('Escape');
+  // Drawer closes on its own 250ms JS timer; its backdrop blocks the page
+  // until then.
+  await expect(page.getByTestId('drawer-backdrop')).not.toBeAttached();
 
+  await gotoTab(page, 'Encyclopedia', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
   await scanNamed('Modal');
 
@@ -262,7 +253,9 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // (see toast-animation.spec.ts).
   await expect(page.getByRole('dialog', { name: 'Nested Confirmation' })).not.toBeAttached();
   await page.keyboard.press('Escape'); // closes the outer modal
+  await expect(page.getByTestId('modal-container')).toHaveCount(0);
 
+  await gotoTab(page, 'Encyclopedia', 'CommandPalette');
   await page.getByRole('button', { name: 'Open Command Palette' }).click();
   await scanNamed('CommandPalette');
   await page.keyboard.press('Escape');
@@ -272,18 +265,11 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // aria-compliance-review's own §1 finding (issue #262): neither
   // DatePicker instance's calendar popover has ever been scanned while
   // open -- content only renders once its own trigger is clicked. Two
-  // real instances exist on this tab (the Zod-validated "Start Date"
-  // field wired into the form above, and the standalone "Meeting Date"
-  // demo below it) -- both render an identical "Open calendar" icon
-  // button (DatePicker.tsx's own hardcoded aria-label, not overridable
-  // per-instance), so doc order (the Grid with the form renders first)
-  // disambiguates them instead.
-  await page.getByRole('button', { name: 'Open calendar' }).nth(0).click();
+  // real instances: the Zod-validated "Start Date" field wired into the
+  // Form page's form, and the standalone "Meeting Date" demo on
+  // DatePicker's own page.
+  await page.getByRole('button', { name: 'Open calendar' }).first().click();
   await scanNamed('DatePicker calendar popover (Start Date, form-wired)');
-  await page.keyboard.press('Escape');
-
-  await page.getByRole('button', { name: 'Open calendar' }).nth(1).click();
-  await scanNamed('DatePicker calendar popover (Meeting Date, standalone)');
   await page.keyboard.press('Escape');
 
   // aria-compliance-review's own §1 finding (issue #262): every <Select>
@@ -310,11 +296,18 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Select (Role Level dropdown)', ARIA_HIDDEN_FOCUS_DISABLED);
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Component Showcase');
+  await gotoTab(page, 'Encyclopedia', 'DatePicker');
+  await page.getByRole('button', { name: 'Open calendar' }).first().click();
+  await scanNamed('DatePicker calendar popover (Meeting Date, standalone)');
+  await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Encyclopedia', 'UIGroup');
 
   await page.getByRole('button', { name: 'Options', exact: true }).click();
   await scanNamed('Popup (Component Showcase tab)');
   await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Encyclopedia', 'Accordion');
 
   // aria-compliance-review's own §1 finding (issue #262): Accordion's
   // second panel (`defaultValue="faq-1"` leaves only the first item's
@@ -343,27 +336,30 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Accordion (second panel expanded)');
   await faq1Trigger.click(); // collapse again, leave state as found
 
-  // Two "Delete Record" buttons exist on this tab (the Button Subsystem
-  // showcase's own danger-variant example, and this AlertDialog's real
-  // trigger) -- scope to the AlertDialog's own Card, same disambiguation
-  // overlay-animations.spec.ts already uses.
+  await gotoTab(page, 'Encyclopedia', 'AlertDialog');
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
   await scanNamed('AlertDialog');
   await page.keyboard.press('Escape');
+  await expect(page.getByTestId('alertdialog-container')).toHaveCount(0);
 
+  await gotoTab(page, 'Encyclopedia', 'Collapsible');
   await page.getByText('Show advanced options').click();
   await scanNamed('Collapsible (expanded)');
   await page.getByText('Show advanced options').click(); // collapse again, leave state as found
 
   // Same Radix Menu-family primitive as ContextMenu below (@radix-ui/react-menu)
   // -- shares the identical aria-hidden-focus carve-out for the identical reason.
+  await gotoTab(page, 'Encyclopedia', 'DropdownMenu');
   await page.getByRole('button', { name: 'User Actions Menu' }).click();
   await scanNamed('DropdownMenu', ARIA_HIDDEN_FOCUS_DISABLED);
   await page.keyboard.press('Escape');
 
+  await gotoTab(page, 'Encyclopedia', 'ContextMenu');
   await page.getByText('Right-click this area').click({ button: 'right' });
   await scanNamed('ContextMenu', ARIA_HIDDEN_FOCUS_DISABLED);
   await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Encyclopedia', 'Combobox');
 
   // aria-compliance-review's own §1 finding: Combobox's real listbox
   // markup (both instances) was never axe-scanned -- its content only
@@ -386,6 +382,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Combobox (multi-select)');
   await page.keyboard.press('Escape');
 
+  await gotoTab(page, 'Encyclopedia', 'HoverCard');
   // HoverCard opens on focus as well as hover (Radix default) -- focus is
   // the keyboard-reachable path and what a screen-reader user actually
   // triggers, so exercise that path rather than a mouse hover.
@@ -431,7 +428,9 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
 test('every tab has zero automatable WCAG 2.1 AA violations in dark mode', async ({ page, browserName }) => {
   // See the light-mode test's identical skip above for why.
   test.skip(browserName === 'webkit', 'axe-core repeatedly crashes WebKit across a 12-tab scan -- see comment');
-  test.setTimeout(120_000);
+  // ~95 scans since issue #624 split the Encyclopedia into one page per
+  // component -- each small, but the count grew with it.
+  test.setTimeout(300_000);
   await page.goto('/');
 
   // No direct dark-mode toggle in the demo chrome itself -- only reachable

@@ -1,5 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { gotoTab, loadDemoTableData } from './nav';
+
+// Scoped to the DataTable's own Encyclopedia entry: since issue #624 every
+// component shares one page, so page-wide getByRole('grid') / locator('table')
+// / 'Next page' also match the inline Calendar's grid and the standalone
+// Pagination demos.
+const dataTable = (page: Page) => page.locator('#enc-DataTable');
+
 
 // Real-browser confirmation for issue #499: a density change used to snap
 // row height/padding instantly ("it just slams" -- reported directly).
@@ -16,12 +23,12 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
     await gotoTab(page, 'Data Table');
     await loadDemoTableData(page);
 
-    const grid = page.getByRole('grid').first();
+    const grid = dataTable(page).getByRole('grid').first();
     await expect(grid).toBeVisible();
     // Exactly one grid before the transition even starts.
-    await expect(page.getByRole('grid')).toHaveCount(1);
+    await expect(dataTable(page).getByRole('grid')).toHaveCount(1);
 
-    const compactBtn = page.getByRole('radio', { name: 'Compact' });
+    const compactBtn = dataTable(page).getByRole('radio', { name: 'Compact' });
     await compactBtn.click();
 
     // While mid-fade, the cloned snapshot briefly makes this two real
@@ -29,18 +36,18 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
     // fading-out clone on top) -- confirmed directly rather than
     // assumed, since the clone's own removal is what this test actually
     // verifies next.
-    const tableCount = await page.locator('table').count();
+    const tableCount = await dataTable(page).locator('table').count();
     expect(tableCount).toBeGreaterThanOrEqual(1);
 
     // Once the real CSS transition genuinely finishes, the clone must
     // be gone -- exactly one <table> and exactly one accessible
     // role="grid" ever again, not two competing/duplicate grids left
     // behind.
-    await expect.poll(() => page.locator('table').count()).toBe(1);
-    await expect(page.getByRole('grid')).toHaveCount(1);
+    await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
+    await expect(dataTable(page).getByRole('grid')).toHaveCount(1);
 
-    await page.getByRole('radio', { name: 'Normal' }).click();
-    await expect.poll(() => page.locator('table').count()).toBe(1);
+    await dataTable(page).getByRole('radio', { name: 'Normal' }).click();
+    await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
   });
 
   test('the snapshot clone is inert and removed from the accessibility tree while fading', async ({ page }) => {
@@ -59,7 +66,7 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
       document.documentElement.style.setProperty('--ai-transition-duration-normal', '1s');
     });
 
-    await page.getByRole('radio', { name: 'Compact' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Compact' }).click();
 
     // The clone must never be focusable/reachable -- `inert` removes it
     // from the accessibility tree entirely, so a real Tab-key sweep
@@ -68,13 +75,13 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
     // 1s duration set above exists specifically to guarantee the clone
     // is still here for this assertion to actually catch, not just
     // pass vacuously if it already finished.
-    const inertTable = page.locator('table[inert]').first();
+    const inertTable = dataTable(page).locator('table[inert]').first();
     await expect(inertTable).toHaveAttribute('aria-hidden', 'true');
 
     await page.evaluate(() => {
       document.documentElement.style.removeProperty('--ai-transition-duration-normal');
     });
-    await page.getByRole('radio', { name: 'Normal' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Normal' }).click();
   });
 
   // Ticket requirement: focus must not get silently stuck or lost during
@@ -103,18 +110,18 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
 
     // A real data cell a couple of rows in, not the header -- col 1 is
     // the first real data column (col 0 is the selection checkbox).
-    const cell = page.locator('[data-grid-row="2"][data-grid-col="1"]').first();
+    const cell = dataTable(page).locator('[data-grid-row="2"][data-grid-col="1"]').first();
     await cell.evaluate(el => { (el as any).__identityMarker = true; });
 
-    await page.getByRole('radio', { name: 'Compact' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Compact' }).click();
 
     // Still attached, and still the exact same node (a remount would
     // create a fresh element with no marker) -- confirmed after the
     // clone has had time to settle, not mid-transition.
-    await expect.poll(() => page.locator('table').count()).toBe(1);
+    await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
     await expect(cell).toBeAttached();
     expect(await cell.evaluate(el => (el as any).__identityMarker === true)).toBe(true);
 
-    await page.getByRole('radio', { name: 'Normal' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Normal' }).click();
   });
 });

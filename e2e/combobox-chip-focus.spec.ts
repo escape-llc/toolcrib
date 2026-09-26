@@ -22,12 +22,15 @@ import { gotoTab } from './nav';
 // fully-cascaded computed style in an actual browser.
 test('a chip remove button\'s focus ring has real contrast against its own chip background, not the shared primary-hued ring', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Component Showcase');
+  await gotoTab(page, 'Encyclopedia', 'Combobox');
 
   const heading = page.getByText('Multi-Select Tags (`multiple`)', { exact: false });
   await heading.scrollIntoViewIfNeeded();
 
-  const comboboxInput = page.locator('input[role="combobox"]').last();
+  // By name, not `.last()` -- the multi-select Skills combobox used to be
+  // the last one on its tab; on the single Encyclopedia page (issue #624)
+  // the Form entry's Country combobox comes after it.
+  const comboboxInput = page.getByRole('combobox', { name: 'Skills' });
   await comboboxInput.waitFor({ state: 'visible' });
   await comboboxInput.click();
 

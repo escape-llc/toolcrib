@@ -15,7 +15,7 @@ import { gotoTab } from './nav';
 // isolation.
 test('a Popup trigger inside a UIGroup gets its corners squared, despite Popup wrapping it in its own internal div', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Component Showcase');
+  await gotoTab(page, 'Encyclopedia', 'UIGroup');
 
   const optionsButton = page.getByRole('button', { name: 'Options', exact: true });
   await optionsButton.scrollIntoViewIfNeeded();

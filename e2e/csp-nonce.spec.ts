@@ -42,6 +42,16 @@ async function nonceOf(page: import('@playwright/test').Page, id: string) {
 // enforcement, which was reasoned about, not yet verified).
 async function withStrictCSP(page: import('@playwright/test').Page) {
   await page.route('**/*', async (route) => {
+    // Only the HTML document carries the CSP header; everything else passes
+    // through untouched. Re-fetching every subresource here made the test
+    // fail on the demo's deliberately broken Avatar image
+    // (broken-image-url.example): route.fetch() throws on its DNS failure
+    // instead of letting the browser handle it, which it had never met until
+    // issue #624 put every component on one page.
+    if (route.request().resourceType() !== 'document') {
+      await route.continue();
+      return;
+    }
     const response = await route.fetch();
     const contentType = response.headers()['content-type'] ?? '';
     if (!contentType.includes('text/html')) {
