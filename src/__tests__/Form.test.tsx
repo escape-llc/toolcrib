@@ -1113,6 +1113,64 @@ describe('Form & Zod Validation Engine', () => {
     });
   });
 
+  // Issue #614: with no controlled value and no Form binding, each of these
+  // used to fall back to a constant ''/false while staying controlled, so
+  // user input was silently discarded. Every test here failed on the pre-fix
+  // code.
+  describe('regression: standalone (uncontrolled) controls accept user input (issue #614)', () => {
+    it('Input: typing updates the value, seeded from defaultValue', () => {
+      render(<Input aria-label="Standalone" defaultValue="seed" />);
+      const input = screen.getByRole('textbox', { name: 'Standalone' }) as HTMLInputElement;
+      expect(input.value).toBe('seed');
+      fireEvent.change(input, { target: { value: 'typed' } });
+      expect(input.value).toBe('typed');
+    });
+
+    it('Input: the clear button clears an uncontrolled value', () => {
+      render(<Input aria-label="Standalone" defaultValue="seed" clearable />);
+      fireEvent.click(screen.getByLabelText('Clear'));
+      expect((screen.getByRole('textbox', { name: 'Standalone' }) as HTMLInputElement).value).toBe('');
+    });
+
+    it('Input: a controlled value still wins over local edits', () => {
+      render(<Input aria-label="Controlled" value="fixed" onChange={vi.fn()} />);
+      const input = screen.getByRole('textbox', { name: 'Controlled' }) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'typed' } });
+      expect(input.value).toBe('fixed');
+    });
+
+    it('Textarea: typing updates the value, seeded from defaultValue', () => {
+      render(<Textarea aria-label="Notes" defaultValue="seed" />);
+      const ta = screen.getByRole('textbox', { name: 'Notes' }) as HTMLTextAreaElement;
+      expect(ta.value).toBe('seed');
+      fireEvent.change(ta, { target: { value: 'typed' } });
+      expect(ta.value).toBe('typed');
+    });
+
+    it('Checkbox: clicking toggles, seeded from defaultChecked', () => {
+      render(<Checkbox label="Agree" defaultChecked />);
+      const box = screen.getByRole('checkbox');
+      expect(box.getAttribute('aria-checked')).toBe('true');
+      fireEvent.click(box);
+      expect(box.getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('Switch: clicking toggles, seeded from defaultChecked', () => {
+      render(<Switch label="Notify" />);
+      const sw = screen.getByRole('switch');
+      expect(sw.getAttribute('aria-checked')).toBe('false');
+      fireEvent.click(sw);
+      expect(sw.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('Checkbox: a controlled checked still wins over clicks', () => {
+      render(<Checkbox label="Locked" checked={false} onChange={vi.fn()} />);
+      const box = screen.getByRole('checkbox');
+      fireEvent.click(box);
+      expect(box.getAttribute('aria-checked')).toBe('false');
+    });
+  });
+
   // "components should integrate seamlessly inside ui group with outer
   // border squaring" -- same jsdom-observable-inline-style convention as
   // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
