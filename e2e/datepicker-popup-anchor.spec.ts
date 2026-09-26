@@ -65,7 +65,15 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
   // the anchor's own top-left (popup sits above, connects at the
   // anchor's top edge) and 'bottom-start' to bottom-left (popup sits
   // below, connects at the anchor's bottom edge).
-  const cornerProp = isAbove ? 'borderTopLeftRadius' : 'borderBottomLeftRadius';
+  //
+  // Read on the POPUP, so it's the popup's own connecting corner: its
+  // bottom-left when it sits above the field, its top-left when below.
+  // (This used to map the other way round -- the anchor's corner names --
+  // and only passed because a stale field measurement, taken before
+  // click()'s auto-scroll moved the field, made a popup that was really
+  // below look "above". Found once issue #624's layout made the
+  // measurement accurate; the component itself was correct throughout.)
+  const cornerProp = isAbove ? 'borderBottomLeftRadius' : 'borderTopLeftRadius';
   const cornerStyle = await popupContent.evaluate((el, prop) => (getComputedStyle(el) as any)[prop], cornerProp);
   expect(cornerStyle).toBe('0px');
 
