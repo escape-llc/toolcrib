@@ -89,7 +89,7 @@ The app starts pre-themed on first paint — no default-palette flash, no
 ## What this deliberately leaves out: component-level slices
 
 `ThemeParameters` is the *palette identity* only. Toolcrib also has
-49 independently registered per-component `ThemeSlice`s (already listed
+50 independently registered per-component `ThemeSlice`s (already listed
 in `component-manifest.json`'s `themeSystem.slices` — e.g. `card`,
 `tab`) covering per-component visual tweaks (a specific component's
 shadow depth, animation speed, and similar). This example doesn't cover

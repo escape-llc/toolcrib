@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
 import demoSources from './demoSources.generated.json';
-import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, VStack, VisuallyHidden } from '#toolcrib';
+import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Text, VStack, VisuallyHidden } from '#toolcrib';
 import { routeHref } from './hashRoute';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
@@ -130,10 +130,10 @@ function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; fe
       </Card.Header>
       <Card.Content>
         <VStack gap="md">
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          <Text size="sm" tone="secondary">
             {COMPONENTS.length} components, generated from the component manifest. Pick one to open its page. A <strong>★ highlighted</strong> outline is one of the richest demos, a good place to start; a solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
             {missing.length > 0 ? <>; an <strong>amber</strong> outline has no demo yet ({missing.map(c => c.name).join(', ')}).</> : '.'}
-          </p>
+          </Text>
           {groups.map(({ category, items }) => (
             <div key={category}>
               <h3 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>
@@ -158,7 +158,10 @@ function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; fe
                         ...TILE_STYLE[state],
                       }}
                     >
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>{c.bin}</span>{' '}
+                      <Text as="span" mono size="xs" tone="secondary">{c.bin}</Text>{' '}
+                      {/* Raw span, last rung of the ladder: Text's variant covers
+                          primary/secondary only, and the featured star is
+                          deliberately the accent hue (AGENTS.md color buckets). */}
                       {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★</span>}
                       {c.name}
                       {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
@@ -208,7 +211,7 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
                 <tr key={n} style={{ borderBottom: '0.0625rem solid var(--ai-border)', verticalAlign: 'top' }}>
                   <td style={{ padding: '0.25rem 0.5rem 0.25rem 0', whiteSpace: 'nowrap' }}>
                     <code style={codeStyle}>{n}</code>
-                    {p.required && <span style={{ color: 'var(--ai-subtheme-error-text, #b91c1c)' }}> *</span>}
+                    {p.required && <Text as="span" subtheme="error"> *</Text>}
                   </td>
                   <td style={{ padding: '0.25rem 0.5rem' }}><code style={codeStyle}>{p.type}</code></td>
                   <td style={{ padding: '0.25rem 0.5rem' }}>{p.default ? <code style={codeStyle}>{p.default}</code> : ''}</td>
@@ -231,18 +234,20 @@ function SourceSheet({ source }: { source?: string }) {
   if (!source) return null;
   return (
     <Collapsible trigger="Source — this demo's code">
-      <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-        Straight from the demo app, so it can reference the demo's own state and handlers (<code style={codeStyle}>addToast</code>, sample data).
-      </p>
-      {/* A scroll region needs keyboard access (axe: scrollable-region-focusable). */}
-      <pre
-        tabIndex={0}
-        role="region"
-        aria-label="Demo source"
-        style={{ margin: 0, maxHeight: '28rem', overflow: 'auto', padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}
-      >
-        <code style={{ ...codeStyle, fontSize: '0.75rem' }}>{source}</code>
-      </pre>
+      <VStack gap="sm">
+        <Text size="xs" tone="secondary">
+          Straight from the demo app, so it can reference the demo's own state and handlers (<code style={codeStyle}>addToast</code>, sample data).
+        </Text>
+        {/* A scroll region needs keyboard access (axe: scrollable-region-focusable). */}
+        <pre
+          tabIndex={0}
+          role="region"
+          aria-label="Demo source"
+          style={{ margin: 0, maxHeight: '28rem', overflow: 'auto', padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}
+        >
+          <code style={{ ...codeStyle, fontSize: '0.75rem' }}>{source}</code>
+        </pre>
+      </VStack>
     </Collapsible>
   );
 }
@@ -260,7 +265,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
         </Card.Header>
         <Card.Content>
           <VStack gap="sm">
-            <p style={{ margin: 0 }}>{md(c.description)}</p>
+            <Text>{md(c.description)}</Text>
 
             <div>
               <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
@@ -272,14 +277,14 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
             </div>
 
             {(c.slots?.length || c.childComponents?.length || c.constraints) && (
-              <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              <VStack gap="xs">
                 {c.slots?.length ? (
-                  <div>
+                  <Text size="sm" tone="secondary">
                     Slots: {c.slots.map((s, i) => <React.Fragment key={s}>{i > 0 && ', '}<code style={codeStyle}>{`${c.name}.${s}`}</code></React.Fragment>)}
-                  </div>
+                  </Text>
                 ) : null}
                 {c.childComponents?.length ? (
-                  <div>
+                  <Text size="sm" tone="secondary">
                     Commonly used with:{' '}
                     {c.childComponents.map((s, i) => (
                       <React.Fragment key={s}>
@@ -287,31 +292,31 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                         {COMPONENTS.some(x => x.name === s) ? <a href={entryHref(s)}>{s}</a> : <code style={codeStyle}>{s}</code>}
                       </React.Fragment>
                     ))}
-                  </div>
+                  </Text>
                 ) : null}
-                {c.constraints ? <div>Constraint: {md(c.constraints)}</div> : null}
-              </div>
+                {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
+              </VStack>
             )}
 
             {c.antiPatternAvoid && (
               <Block subtheme="warning" padding="sm" radius="sm">
-                <div style={{ fontSize: '0.8125rem' }}>
+                <Text size="sm">
                   <strong>⚠ Safety placard.</strong> <strong>Don't:</strong> {md(c.antiPatternAvoid)}
                   {c.antiPatternInstead && <><br /><strong>Do:</strong> {md(c.antiPatternInstead)}</>}
-                </div>
+                </Text>
               </Block>
             )}
 
             <SpecSheet props={c.props} />
 
             {isSeeAlso(demo) ? (
-              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              <Text size="sm" tone="secondary">
                 Shown in action with <a href={entryHref(demo.seeAlso)}>{demo.seeAlso}</a>.{demo.note ? <> {demo.note}</> : null}
-              </p>
+              </Text>
             ) : isPageFrame(demo) ? (
-              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{demo.pageFrame}</p>
+              <Text size="sm" tone="secondary">{demo.pageFrame}</Text>
             ) : demo === undefined || demo === null ? (
-              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>No live demo yet.</p>
+              <Text size="sm" tone="secondary">No live demo yet.</Text>
             ) : (
               <>
                 <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
@@ -356,11 +361,11 @@ function SystemCard({ area }: { area: SystemArea }) {
         </Card.Header>
         <Card.Content>
           <VStack gap="sm">
-            <p style={{ margin: 0 }}>{area.summary}</p>
+            <Text>{area.summary}</Text>
             {area.parts?.length ? (
-              <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              <Text size="sm" tone="secondary">
                 Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
-              </div>
+              </Text>
             ) : null}
             {area.demo && (
               <>
@@ -384,9 +389,9 @@ function SystemsIndex({ systems }: { systems: SystemArea[] }) {
       </Card.Header>
       <Card.Content>
         <VStack gap="sm">
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          <Text size="sm" tone="secondary">
             The infrastructure you get out of the box: every component plugs into these, so an app built from them inherits all of it without writing any of it.
-          </p>
+          </Text>
           <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
             {systems.map(area => (
               <li key={area.id}>
@@ -466,9 +471,9 @@ function NotFound({ what }: { what: string }) {
   return (
     <Card>
       <Card.Content>
-        <p style={{ margin: 0 }}>
+        <Text>
           No {what} in the crib. <a href={INDEX_HREF}>Back to the shadow board</a>.
-        </p>
+        </Text>
       </Card.Content>
     </Card>
   );
