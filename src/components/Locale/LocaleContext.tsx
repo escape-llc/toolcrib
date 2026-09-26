@@ -86,6 +86,8 @@ export interface ToolcribLocaleStrings {
   /** `<Input clearable>`'s own trailing-edge clear button (issue #428). */
   input: {
     clear: string;
+    /** Accessible name of the password reveal toggle. Stays fixed while toggled — the on/off state is carried by `aria-pressed`, per the WAI-ARIA toggle button pattern, not by swapping the label. */
+    showPassword: string;
   };
   listbox: {
     /** Announced via a visually-hidden `aria-live` region whenever `loading` transitions to true -- a debounced async search (`Combobox`'s own `onSearch`) starting, with no other signal a screen-reader user would get. */
@@ -162,6 +164,7 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   },
   input: {
     clear: 'Clear',
+    showPassword: 'Show password',
   },
   listbox: {
     loadingAnnouncement: 'Loading results…',

@@ -875,6 +875,7 @@ export const App: React.FC = () => {
       return next;
     });
   const [listboxQuery, setListboxQuery] = useState('');
+  const [inputSectionsQuery, setInputSectionsQuery] = useState('');
   const [listboxActiveIndex, setListboxActiveIndex] = useState<number | undefined>(undefined);
   const [listboxSelected, setListboxSelected] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'email', 'status']);
@@ -2944,6 +2945,21 @@ export const App: React.FC = () => {
                                     <Button variant="primary" icon={<Search size="1em" />} onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
                                   </UIGroup>
                                 </div>
+                              </div>
+
+                              <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Input Sections (`leadingSection` / `trailingSection`, password reveal)</div>
+                                <VStack gap="sm">
+                                  <Input aria-label="Search people" placeholder="Search people..." leadingSection={<Search size="1em" />} clearable value={inputSectionsQuery} onChange={e => setInputSectionsQuery(e.target.value)} />
+                                  <Input aria-label="Price" placeholder="0.00" leadingSection="$" trailingSection="USD" inputMode="decimal" />
+                                  <div style={{ display: 'grid', width: '100%' }}>
+                                    <UIGroup>
+                                      <Input aria-label="Website" placeholder="acme" leadingSection="https://" trailingSection=".com" />
+                                      <Button variant="outline">Check</Button>
+                                    </UIGroup>
+                                  </div>
+                                  <Input aria-label="Password" type="password" placeholder="Password" autoComplete="new-password" />
+                                </VStack>
                               </div>
 
                               <div>

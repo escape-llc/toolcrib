@@ -2274,6 +2274,58 @@
       "description": "Horizontal flex row layout primitive"
     },
     {
+      "name": "Input",
+      "import": "import { Input } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "overrides": {
+          "type": "Partial<InputSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for padding and border width. Shared with `<Textarea>`. Only applies at the default `size=\"md\"` — `sm`/`lg` resolve through the shared control padding scale instead, so they line up with a `sm`/`lg` `<Button>` in the same `<UIGroup>`."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "default": "'none'",
+          "description": "Which corners to square off — e.g. inside a `<UIGroup>`."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "clearable": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Shows a small \"✕\" clear button at the trailing edge once the input has\na non-empty value — clicking it resets the value through the same\nonChange/Form-context path a real clear keystroke would take, then\nreturns focus to the input. Mirrors `<Combobox>`'s own established\nsingle-select clear button (`strings.clearSelection`) — same\n`tabIndex={-1}` (mouse-only; Backspace/select-all already provide a\nkeyboard path, so this doesn't add an extra required Tab stop for\nsomething with an easy keyboard alternative)."
+        },
+        "onClear": {
+          "type": "() => void",
+          "description": "Extra side effect to run when the clear button is clicked — e.g. also resetting a related piece of state (an active-descendant index, a filter). Runs after the value itself is cleared. Only meaningful alongside `clearable`."
+        },
+        "leadingSection": {
+          "type": "ReactNode",
+          "description": "Content inside the field's border, before the text: an icon (`<Search />`),\nor short affix text (`'$'`, `'https://'`) — a plain string/number renders\nas muted affix text. May also be a small interactive control (e.g. a\ncompact `<Select>` or `<Button>`); clicking any non-interactive part of a\nsection focuses the input."
+        },
+        "trailingSection": {
+          "type": "ReactNode",
+          "description": "Same as `leadingSection`, after the text (`'.com'`, `'kg'`, an icon). Renders before the `clearable` button and the password reveal toggle when those are present."
+        },
+        "revealable": {
+          "type": "boolean",
+          "default": "true",
+          "description": "For `type=\"password\"`: show an eye toggle that reveals the typed value.\nThe toggle keeps a fixed accessible name (locale `input.showPassword`)\nand reports its state via `aria-pressed`. Ignored for other types."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle"
+    },
+    {
       "name": "Label",
       "import": "import { Label } from '#toolcrib'",
       "props": {

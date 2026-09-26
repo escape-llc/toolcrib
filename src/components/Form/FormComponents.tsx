@@ -1,7 +1,8 @@
 'use client';
 
-import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useRef } from 'react';
+import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useRef, useState } from 'react';
 import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
+import { Eye, EyeOff } from 'lucide-react';
 import { useOptionalFormContext } from './FormContext';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
@@ -516,9 +517,40 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
   clearable?: boolean;
   /** Extra side effect to run when the clear button is clicked — e.g. also resetting a related piece of state (an active-descendant index, a filter). Runs after the value itself is cleared. Only meaningful alongside `clearable`. */
   onClear?: () => void;
+  /**
+   * Content inside the field's border, before the text: an icon (`<Search />`),
+   * or short affix text (`'$'`, `'https://'`) — a plain string/number renders
+   * as muted affix text. May also be a small interactive control (e.g. a
+   * compact `<Select>` or `<Button>`); clicking any non-interactive part of a
+   * section focuses the input.
+   */
+  leadingSection?: ReactNode;
+  /** Same as `leadingSection`, after the text (`'.com'`, `'kg'`, an icon). Renders before the `clearable` button and the password reveal toggle when those are present. */
+  trailingSection?: ReactNode;
+  /**
+   * For `type="password"`: show an eye toggle that reveals the typed value.
+   * The toggle keeps a fixed accessible name (locale `input.showPassword`)
+   * and reports its state via `aria-pressed`. Ignored for other types.
+   * @default true
+   */
+  revealable?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', clearable = false, onClear, ...props }) => {
+/** Wraps a string/number section in muted affix text; passes any other node through. */
+function renderInputSection(section: ReactNode): ReactNode {
+  if (typeof section === 'string' || typeof section === 'number') {
+    return <span style={{ color: 'var(--ai-text-secondary, #6b7280)', whiteSpace: 'nowrap' }}>{section}</span>;
+  }
+  return section;
+}
+
+const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [role="combobox"], [tabindex]';
+
+/**
+ * @manifest Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle
+ * @manifestCategory Form Controls
+ */
+export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -542,6 +574,17 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   // valid input.type="number" value) is falsy but not empty; the clear
   // button must still show for it.
   const hasValue = value !== '' && value !== undefined && value !== null;
+
+  const [passwordRevealed, setPasswordRevealed] = useState(false);
+  const showRevealToggle = type === 'password' && revealable;
+  const effectiveType = showRevealToggle && passwordRevealed ? 'text' : type;
+  const hasLeading = leadingSection !== undefined && leadingSection !== null && leadingSection !== false;
+  const hasTrailing = trailingSection !== undefined && trailingSection !== null && trailingSection !== false;
+  // Any section or the reveal toggle switches to the grouped layout below;
+  // everything else keeps its existing DOM shape exactly (bare <input>, or
+  // #428's positioned clearable wrapper).
+  const grouped = hasLeading || hasTrailing || showRevealToggle;
+  const showClearButton = clearable && hasValue && !props.disabled && !props.readOnly;
 
   // squareCorners was previously destructured but never actually applied
   // anywhere below — dead since the prop was added, confirmed by reading
@@ -588,37 +631,63 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
     inputRef.current?.focus();
   };
 
+  // Explicit per-corner longhands, always all four -- same reason as
+  // Button's own identical pattern (see its comment): a sparse spread would
+  // add/remove style keys across renders as squareCorners changes, which
+  // React warns about.
+  const cornerStyle: React.CSSProperties = {
+    borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? currentRadius,
+    borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? currentRadius,
+    borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
+    borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
+  };
+  const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`;
+  const basePadding = resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)');
+
   const inputElement = (
     <input
       {...props}
       ref={inputRef}
       id={id ?? (name || undefined)}
       name={name || undefined}
-      type={type}
+      type={effectiveType}
       value={value}
       aria-invalid={isError || undefined}
       aria-describedby={isError ? `${name}-error` : undefined}
-      className="ai-focus-ring"
+      // In the grouped layout the wrapper owns the border and focus ring
+      // (`.ai-focus-ring` matches `:has(:focus-visible)`, so it lights up
+      // for the input inside it) -- a second ring on the borderless input
+      // itself would draw inside the group's own.
+      className={grouped ? undefined : 'ai-focus-ring'}
       onChange={handleChange}
       onBlur={e => {
         if (name && formContext) formContext.setFieldTouched(name, true);
         if (onBlur) onBlur(e);
       }}
-      style={{
+      style={grouped ? {
+        flex: 1,
+        minWidth: 0,
+        alignSelf: 'stretch',
+        padding: basePadding,
+        // The section side's own padding provides the gap to the section.
+        paddingLeft: hasLeading ? '0.375rem' : undefined,
+        paddingRight: hasTrailing || showClearButton || showRevealToggle ? '0.375rem' : undefined,
+        border: 'none',
+        borderRadius: 0,
+        background: 'transparent',
+        color: 'var(--ai-text-primary, #111827)',
+        fontSize: CONTROL_FONT_SIZE_VAR[size],
+        outline: 'none',
+        boxSizing: 'border-box',
+        ...inputVars,
+      } : {
         width: '100%',
-        padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
+        padding: basePadding,
         // Extra trailing room for the clear button so typed text never
         // renders underneath it -- only when it can ever actually show.
         paddingRight: clearable ? '1.75rem' : undefined,
-        // Explicit per-corner longhands, always all four -- same reason as
-        // Button's own identical pattern (see its comment): a sparse
-        // spread would add/remove style keys across renders as
-        // squareCorners changes, which React warns about.
-        borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? currentRadius,
-        borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? currentRadius,
-        borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
-        borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
-        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+        ...cornerStyle,
+        border: borderStyle,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: CONTROL_FONT_SIZE_VAR[size],
@@ -633,43 +702,130 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
     />
   );
 
-  // Only wrapped in a positioning container when clearable is actually
-  // set (issue #428) -- every existing non-clearable <Input> usage keeps
-  // its current bare <input> DOM shape unchanged.
-  if (!clearable) return inputElement;
+  const clearButton = showClearButton && (
+    <button
+      type="button"
+      aria-label={strings.clear}
+      // Mouse-only, matching Combobox's own established clear button
+      // (strings.clearSelection) -- Backspace/select-all already
+      // provide a keyboard path, so this doesn't add an extra
+      // required Tab stop for something with an easy alternative.
+      tabIndex={-1}
+      onClick={handleClear}
+      style={{
+        ...ICON_WRAPPER_STYLE,
+        ...(grouped
+          ? { flexShrink: 0, marginRight: showRevealToggle ? '0.125rem' : '0.5rem' }
+          : { position: 'absolute', top: '50%', right: '0.5rem', transform: 'translateY(-50%)' }),
+        justifyContent: 'center',
+        width: '1.125rem',
+        height: '1.125rem',
+        background: 'var(--ai-bg-container, #f3f4f6)',
+        border: 'none',
+        borderRadius: 'var(--ai-radius-xl, 9999px)',
+        cursor: 'pointer',
+        color: 'var(--ai-text-secondary, #6b7280)',
+        fontSize: '0.6875rem',
+        padding: 0,
+      }}
+    >
+      ✕
+    </button>
+  );
+
+  if (!grouped) {
+    // Only wrapped in a positioning container when clearable is actually
+    // set (issue #428) -- every existing non-clearable <Input> usage keeps
+    // its current bare <input> DOM shape unchanged.
+    if (!clearable) return inputElement;
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        {inputElement}
+        {clearButton}
+      </div>
+    );
+  }
+
+  // Clicking a non-interactive part of a section (an icon, affix text)
+  // focuses the input, like clicking inside a real field would. mousedown +
+  // preventDefault rather than click, so focus never bounces off the input
+  // first; an interactive control inside a section keeps its own behavior.
+  const focusInputFromSection = (e: React.MouseEvent<HTMLElement>) => {
+    if ((e.target as Element).closest(INTERACTIVE_SELECTOR)) return;
+    e.preventDefault();
+    inputRef.current?.focus();
+  };
+  const sectionStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    flexShrink: 0,
+    alignSelf: 'stretch',
+    color: 'var(--ai-text-secondary, #6b7280)',
+    fontSize: CONTROL_FONT_SIZE_VAR[size],
+    lineHeight: 1,
+  };
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div
+      className="ai-focus-ring"
+      data-input-group=""
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        ...cornerStyle,
+        border: borderStyle,
+        background: 'var(--ai-bg-surface, #ffffff)',
+        boxSizing: 'border-box',
+        cursor: props.disabled ? 'not-allowed' : 'text',
+        opacity: props.disabled ? 0.6 : undefined,
+        ...inputVars,
+      }}
+    >
+      {hasLeading && (
+        <span data-input-section="leading" onMouseDown={focusInputFromSection} style={{ ...sectionStyle, paddingLeft: '0.625rem' }}>
+          {renderInputSection(leadingSection)}
+        </span>
+      )}
       {inputElement}
-      {hasValue && !props.disabled && !props.readOnly && (
+      {hasTrailing && (
+        <span
+          data-input-section="trailing"
+          onMouseDown={focusInputFromSection}
+          style={{ ...sectionStyle, paddingRight: showClearButton || showRevealToggle ? '0.375rem' : '0.625rem' }}
+        >
+          {renderInputSection(trailingSection)}
+        </span>
+      )}
+      {clearButton}
+      {showRevealToggle && (
         <button
           type="button"
-          aria-label={strings.clear}
-          // Mouse-only, matching Combobox's own established clear button
-          // (strings.clearSelection) -- Backspace/select-all already
-          // provide a keyboard path, so this doesn't add an extra
-          // required Tab stop for something with an easy alternative.
-          tabIndex={-1}
-          onClick={handleClear}
+          aria-label={strings.showPassword}
+          aria-pressed={passwordRevealed}
+          disabled={props.disabled}
+          // Keyboard-reachable, unlike the clear button -- there's no other
+          // keyboard path to reveal the value. mousedown's default is
+          // suppressed so a mouse click keeps focus (and the caret) in the
+          // input instead of moving it onto this button.
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => setPasswordRevealed(r => !r)}
+          className="ai-focus-ring"
           style={{
             ...ICON_WRAPPER_STYLE,
-            position: 'absolute',
-            top: '50%',
-            right: '0.5rem',
-            transform: 'translateY(-50%)',
+            flexShrink: 0,
+            alignSelf: 'stretch',
             justifyContent: 'center',
-            width: '1.125rem',
-            height: '1.125rem',
-            background: 'var(--ai-bg-container, #f3f4f6)',
+            padding: '0 0.625rem',
+            background: 'transparent',
             border: 'none',
-            borderRadius: 'var(--ai-radius-xl, 9999px)',
-            cursor: 'pointer',
+            borderRadius: 'var(--ai-radius-sm, 0.25rem)',
             color: 'var(--ai-text-secondary, #6b7280)',
-            fontSize: '0.6875rem',
-            padding: 0,
+            cursor: props.disabled ? 'not-allowed' : 'pointer',
+            fontSize: CONTROL_FONT_SIZE_VAR[size],
           }}
         >
-          ✕
+          {passwordRevealed ? <EyeOff size="1.1em" aria-hidden="true" /> : <Eye size="1.1em" aria-hidden="true" />}
         </button>
       )}
     </div>

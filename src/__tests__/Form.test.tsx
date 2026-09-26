@@ -987,6 +987,132 @@ describe('Form & Zod Validation Engine', () => {
     });
   });
 
+  describe('Input sections and password reveal (issue #606)', () => {
+    const group = (container: HTMLElement) => container.querySelector('[data-input-group]') as HTMLElement | null;
+
+    it('keeps the bare <input> DOM shape when no section/password toggle is present', () => {
+      const { container } = render(<Input value="x" onChange={vi.fn()} />);
+      expect(group(container)).toBeNull();
+      expect(container.firstElementChild?.tagName).toBe('INPUT');
+      expect(screen.getByRole('textbox').className).toContain('ai-focus-ring');
+    });
+
+    it('renders string sections as affix text inside a group that owns the border and focus ring', () => {
+      const { container } = render(<Input aria-label="Price" leadingSection="$" trailingSection="USD" value="" onChange={vi.fn()} />);
+      const g = group(container)!;
+      expect(g).not.toBeNull();
+      expect(g.className).toContain('ai-focus-ring');
+      expect(g.style.border).toContain('solid');
+      const input = screen.getByRole('textbox', { name: 'Price' });
+      expect(input.className).not.toContain('ai-focus-ring');
+      expect(input.style.borderStyle).toBe('none');
+      expect(g.querySelector('[data-input-section="leading"]')?.textContent).toBe('$');
+      expect(g.querySelector('[data-input-section="trailing"]')?.textContent).toBe('USD');
+      // Section order in the DOM: leading, input, trailing.
+      expect(Array.from(g.children).map(c => c.getAttribute('data-input-section') ?? c.tagName)).toEqual(['leading', 'INPUT', 'trailing']);
+    });
+
+    it('passes a node section through and focuses the input when a non-interactive section is pressed', () => {
+      const { container } = render(<Input aria-label="Search" leadingSection={<svg data-testid="search-icon" />} value="" onChange={vi.fn()} />);
+      expect(screen.getByTestId('search-icon')).toBeInTheDocument();
+      fireEvent.mouseDown(container.querySelector('[data-input-section="leading"]')!);
+      expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search' }));
+    });
+
+    it('does not steal focus from an interactive control inside a section', () => {
+      render(<Input aria-label="Site" trailingSection={<button type="button">Go</button>} value="" onChange={vi.fn()} />);
+      const go = screen.getByRole('button', { name: 'Go' });
+      const evt = fireEvent.mouseDown(go);
+      // fireEvent returns false when preventDefault was called.
+      expect(evt).toBe(true);
+    });
+
+    it('shows the clear button alongside a trailing section, after it', () => {
+      const { container } = render(<Input aria-label="Domain" trailingSection=".com" value="acme" onChange={vi.fn()} clearable />);
+      const g = group(container)!;
+      const clear = screen.getByLabelText('Clear');
+      expect(g.contains(clear)).toBe(true);
+      expect(clear.style.position).toBe('');
+      expect(g.querySelector('[data-input-section="trailing"]')!.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('password inputs get a reveal toggle that flips the type and reports aria-pressed, with a fixed name', () => {
+      const { container } = render(<Input aria-label="Password" type="password" value="hunter2" onChange={vi.fn()} />);
+      const input = container.querySelector('input')!;
+      const toggle = screen.getByRole('button', { name: 'Show password' });
+      expect(input.type).toBe('password');
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+
+      fireEvent.click(toggle);
+      expect(input.type).toBe('text');
+      expect(toggle.getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByRole('button', { name: 'Show password' })).toBe(toggle);
+
+      fireEvent.click(toggle);
+      expect(input.type).toBe('password');
+    });
+
+    it('a mouse press on the reveal toggle keeps focus in the input', () => {
+      render(<Input aria-label="Password" type="password" value="" onChange={vi.fn()} />);
+      const toggle = screen.getByRole('button', { name: 'Show password' });
+      expect(fireEvent.mouseDown(toggle)).toBe(false);
+    });
+
+    it('revealable={false} opts out, keeping the bare input', () => {
+      const { container } = render(<Input aria-label="Password" type="password" revealable={false} value="" onChange={vi.fn()} />);
+      expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument();
+      expect(group(container)).toBeNull();
+    });
+
+    it('disables the reveal toggle with the input', () => {
+      render(<Input aria-label="Password" type="password" disabled value="" onChange={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Show password' })).toBeDisabled();
+    });
+
+    it('squares the group, not the inner input, as a UIGroup member', () => {
+      const { container } = render(
+        <UIGroup>
+          <Input aria-label="Amount" leadingSection="$" value="" onChange={vi.fn()} />
+          <Button>Pay</Button>
+        </UIGroup>
+      );
+      const g = group(container)!;
+      expect(g.style.borderTopRightRadius).toBe('0px');
+      expect(g.style.borderBottomRightRadius).toBe('0px');
+      expect(screen.getByRole('textbox', { name: 'Amount' }).style.borderRadius).toBe('0px');
+    });
+
+    it('binds to Form context and reports errors on the group border', async () => {
+      const schema = z.object({ amount: z.string().min(1, 'Required') });
+      render(
+        <Form schema={schema} onSubmit={vi.fn()}>
+          <FormField name="amount" label="Amount">
+            <Input leadingSection="$" />
+          </FormField>
+          <SubmitButton />
+        </Form>
+      );
+      const input = screen.getByLabelText('Amount');
+      fireEvent.change(input, { target: { value: '5' } });
+      expect((input as HTMLInputElement).value).toBe('5');
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+      await waitFor(() => expect(input.getAttribute('aria-invalid')).toBe('true'));
+      expect(input.closest('[data-input-group]')!.getAttribute('style')).toContain('var(--ai-subtheme-error');
+    });
+
+    it('has no axe violations with sections and a password toggle', async () => {
+      const { container } = render(
+        <div>
+          <Input aria-label="Price" leadingSection="$" trailingSection="USD" value="" onChange={vi.fn()} />
+          <Input aria-label="Password" type="password" value="" onChange={vi.fn()} />
+        </div>
+      );
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
+
   // "components should integrate seamlessly inside ui group with outer
   // border squaring" -- same jsdom-observable-inline-style convention as
   // UIGroup.test.tsx's own "automatic corner-squaring via context" suite.
