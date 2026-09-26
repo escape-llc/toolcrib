@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { z } from 'zod';
 import { CalendarDate, Time, today, getLocalTimeZone } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
+import { Encyclopedia, ENCYCLOPEDIA_COMPONENT_NAMES, entryAnchor, type EntryDemo, type SystemArea } from './Encyclopedia';
 import {
   useTheme,
   ThemeProvider,
@@ -307,8 +308,8 @@ function StatusEditEditor(_context: CellContext<DemoUser>) {
   );
 }
 
-// Backs the Data Table tab and the Combobox async search demo -- one
-// fictional company, "Acme Analytics" (the same name the Charts tab's
+// Backs the DataTable demo and the Combobox async search demo -- one
+// fictional company, "Acme Analytics" (the same name the analytics dashboard kit's
 // own dashboard already uses), rather than two disconnected sets of
 // anonymous placeholder data.
 const dummyUsers: DemoUser[] = Array.from({ length: 250 }, (_, i) => ({
@@ -415,39 +416,25 @@ const SIDEBAR_ITEMS: SidebarItemData[] = [
   { id: 'settings', label: 'Settings', icon: '⚙️', disabled: true },
 ];
 
-// Single source of truth for the 12 main-demo tabs' labels -- both the
-// TabStrip head row and the CommandPalette's "Go to" commands used to
-// keep their own separate copy of this list, and they'd already drifted
-// (the CommandPalette one was quietly missing "charts"). `plainLabel`
-// strips the leading emoji for contexts (the command palette's own list
-// rows) that already render an icon column of their own.
+// Single source of truth for the main-demo pages' labels -- both the
+// TabStrip head row and the CommandPalette's "Go to" commands read it.
+// `plainLabel` strips the leading emoji for contexts (the command
+// palette's own list rows) that already render an icon column of their
+// own. Issue #624 consolidated the ten per-topic component tabs into the
+// single Encyclopedia page, and renamed the Wireframe Gallery to Kits.
 const TAB_DEFS: Record<string, { label: string; plainLabel: string }> = {
   overview: { label: '🚀 Overview & Architecture', plainLabel: 'Overview & Architecture' },
-  forms: { label: '📝 Forms & Zod Engine', plainLabel: 'Forms & Zod Engine' },
-  overlays: { label: '🪟 Overlays & Actions', plainLabel: 'Overlays & Actions' },
-  toasts: { label: '🔔 Toast Subsystem', plainLabel: 'Toast Subsystem' },
-  datatable: { label: '📊 Data Table', plainLabel: 'Data Table' },
-  charts: { label: '📈 Charts', plainLabel: 'Charts' },
-  navigation: { label: '🧭 Navigation & Structure', plainLabel: 'Navigation & Structure' },
-  media: { label: '🖼️ Media Gallery', plainLabel: 'Media Gallery' },
-  status: { label: '🎛️ Feedback & Status', plainLabel: 'Feedback & Status' },
-  layout: { label: '📐 Common Layout Idioms', plainLabel: 'Common Layout Idioms' },
-  wireframes: { label: '🗺️ Wireframe Gallery', plainLabel: 'Wireframe Gallery' },
-  showcase: { label: '🧩 Component Showcase', plainLabel: 'Component Showcase' },
+  encyclopedia: { label: '🧰 Encyclopedia', plainLabel: 'Encyclopedia' },
+  kits: { label: '📦 Kits', plainLabel: 'Kits' },
 };
 
-// Groups the 12 flat tabs above into a real <AppShell.Sidebar> nav rail --
-// a sidebar group with more than one tabId still shows a (now much
-// shorter) <TabStrip> for the tabs within it; a solo-tabId group skips
-// the redundant single-item strip entirely (see the render below).
+// The <AppShell.Sidebar> nav rail. Every group is a single page now; the
+// per-group <TabStrip> below stays mounted (hidden) for its tab:changed
+// broadcast -- see its own comment in the render.
 const NAV_GROUPS: { id: string; label: string; icon: string; tabIds: string[] }[] = [
   { id: 'overview', label: 'Overview', icon: '🚀', tabIds: ['overview'] },
-  { id: 'forms-data', label: 'Forms & Data', icon: '📋', tabIds: ['forms', 'datatable'] },
-  { id: 'feedback', label: 'Overlays & Feedback', icon: '🔔', tabIds: ['overlays', 'toasts', 'status'] },
-  { id: 'analytics', label: 'Analytics', icon: '📈', tabIds: ['charts'] },
-  { id: 'nav-layout', label: 'Navigation & Layout', icon: '🧭', tabIds: ['navigation', 'layout'] },
-  { id: 'media-wireframes', label: 'Media & Wireframes', icon: '🖼️', tabIds: ['media', 'wireframes'] },
-  { id: 'showcase', label: 'Showcase', icon: '🧩', tabIds: ['showcase'] },
+  { id: 'encyclopedia', label: 'Encyclopedia', icon: '🧰', tabIds: ['encyclopedia'] },
+  { id: 'kits', label: 'Kits', icon: '📦', tabIds: ['kits'] },
 ];
 
 const STEPPER_STEPS: StepperStepData[] = [
@@ -892,7 +879,7 @@ export const App: React.FC = () => {
   // an edit from there has to go through this same controlled-state path
   // 'delete' already uses, not CellContext.startEditingRow.
   const [editingUserKeys, setEditingUserKeys] = useState<string[]>([]);
-  // Starts empty -- the Data Table tab's own emptyState is reached this
+  // Starts empty -- the DataTable demo's own emptyState is reached this
   // way by default (no need to delete anything first to see it), and
   // "Load Data" doubles as "Reload Data" after a real delete, both driven
   // by the same handler below.
@@ -1053,6 +1040,18 @@ export const App: React.FC = () => {
       label: def.plainLabel,
       group: 'Go to',
       onSelect: () => setActiveTab(id),
+    })),
+    // One "go to" per component: switch to the Encyclopedia, then scroll its
+    // catalog card into view once the page has mounted (two frames: one for
+    // the tab switch to commit, one for layout).
+    ...ENCYCLOPEDIA_COMPONENT_NAMES.map(name => ({
+      value: `goto-component-${name}`,
+      label: name,
+      group: 'Components',
+      onSelect: () => {
+        setActiveTab('encyclopedia');
+        requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(entryAnchor(name))?.scrollIntoView({ block: 'start' })));
+      },
     })),
     {
       value: 'toggle-dark-mode',
@@ -1245,13 +1244,1659 @@ export const App: React.FC = () => {
     { key: 'score', title: 'Score', width: 90, sortable: true, pinned: 'right' },
   ];
 
+  // --- Encyclopedia (issue #624) -------------------------------------------
+  // One live demo per manifest component, keyed by its manifest name, for
+  // the single Encyclopedia page (demo/Encyclopedia.tsx renders the catalog
+  // card around each from the generated manifest). These are the same demo
+  // blocks the old per-topic tabs rendered -- moved, not rewritten -- with
+  // the multi-component cards (Newer Primitives, Radix Primitives, the
+  // accessibility utilities, Date/Time/Rating) split apart so each
+  // component owns its own entry. A component missing from this map shows
+  // as an amber "no demo yet" outline on the shadow board rather than
+  // silently disappearing.
+  const componentDemos: Record<string, EntryDemo> = {
+    // Layout Primitives
+    AccessibleIcon: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Accessible Name for a Decorative Icon (`&lt;AccessibleIcon&gt;`)</div>
+        <HStack gap="sm" align="center">
+          <AccessibleIcon label="Verified account">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai-subtheme-success, #10b981)" strokeWidth="2.5" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </AccessibleIcon>
+          <span style={{ fontSize: '0.8125rem' }}>Jane Doe</span>
+        </HStack>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+          The checkmark is purely decorative to a sighted user — <code>AccessibleIcon</code> marks it <code>aria-hidden</code> and gives screen readers the "Verified account" text instead, without an extra visible label crowding the row.
+        </p>
+      </div>
+    ),
+    AspectRatio: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</div>
+        <div style={{ maxWidth: '12rem' }}>
+          <AspectRatio ratio={16 / 9}>
+            <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem' }}>
+              16:9
+            </div>
+          </AspectRatio>
+        </div>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+          Stays 16:9 regardless of the parent's width — resize the window to see it hold, the way a video thumbnail or card image needs to.
+        </p>
+      </div>
+    ),
+    Block: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          The one component that accepts real <code>style</code>/<code>className</code> — for ad-hoc layout needs the two <code>&lt;div&gt;</code>s above stand in for. Its own <code>background</code>/<code>padding</code>/<code>radius</code>/<code>border</code> stay theme-driven by default, and <code>subtheme</code> resolves the same way <code>&lt;Badge&gt;</code>'s does.
+        </p>
+        <HStack gap="md" wrap>
+          <Block background="container" padding="md" radius="md">Container + padding + radius</Block>
+          <Block background="surface" padding="md" radius="md" border>Surface + border</Block>
+          <Block padding="md" radius="md" subtheme="success">Subtheme (soft)</Block>
+          <Block padding="md" radius="md" subtheme="warning" appearance="solid">Subtheme (solid)</Block>
+        </HStack>
+      </>
+    ),
+    Content: {
+      pageFrame: (
+        <>
+          This page's own playground is a <code>&lt;Content&gt;</code>: its <code>&lt;Content.Grow&gt;</code> is the scroll region you're reading, filling the space the event-log <code>&lt;Splitter&gt;</code> leaves it.
+        </>
+      ),
+    },
+    Grid: (
+      <>
+        <p style={{ marginTop: 0 }}>Responsive grid containers that consume <code>--ai-margin-gap</code> spacing without pixel calculations.</p>
+        <Grid columns={2} gap="md">
+          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
+            Grid Column 1
+          </div>
+          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
+            Grid Column 2
+          </div>
+          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
+            Grid Column 3
+          </div>
+          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
+            Grid Column 4
+          </div>
+        </Grid>
+      </>
+    ),
+    HStack: { seeAlso: 'VStack', note: <>The same demo lays out an <code>HStack</code> row inside the <code>VStack</code>.</> },
+    Separator: { seeAlso: 'Avatar', note: <>A vertical <code>&lt;Separator decorative&gt;</code> divides the avatar row.</> },
+    Toolbar: (
+      <>
+        <VStack gap="md">
+          <p style={{ marginTop: 0 }}>Toolbars with explicit <code>Left</code>, <code>Center</code>, and <code>Right</code> slots prevent AI from writing ad-hoc flex styles.</p>
+          <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem 1rem', borderRadius: 'var(--ai-radius-md)' }}>
+            <Toolbar>
+              <Toolbar.Left>
+                <strong>Toolbar Title Left</strong>
+              </Toolbar.Left>
+              <Toolbar.Center>
+                <Button size="sm" variant="outline">Center Tab 1</Button>
+                <Button size="sm" variant="outline">Center Tab 2</Button>
+              </Toolbar.Center>
+              <Toolbar.Right>
+                <Button size="sm" variant="primary" icon={<Zap size="1em" />}>Action Right</Button>
+              </Toolbar.Right>
+            </Toolbar>
+          </div>
+        </VStack>
+      </>
+    ),
+    UIGroup: (
+      <VStack gap="md">
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
+          <UIGroup>
+            <Button variant="outline" icon={<ChevronLeft size="1em" />} onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
+            <Button variant="outline" icon={<Pause size="1em" />} onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
+            <Button variant="outline" icon={<ChevronRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
+          </UIGroup>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
+          {/* display:'grid' (not a plain block div) —
+              UIGroup is inline-flex, which shrinks to
+              content in normal block flow regardless
+              of a block parent's width; a grid item
+              stretches to fill its track by default
+              (justify-items:stretch), which works
+              against an inline-flex child too. */}
+          <div style={{ display: 'grid', width: '100%' }}>
+            <UIGroup>
+              <Input placeholder="Search records..." />
+              <Button variant="primary" icon={<Search size="1em" />} onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
+            </UIGroup>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Group Containing a Popup Trigger (wrapper-div squaring)</div>
+          {/* Regression coverage, live: Modal/Popup/
+              AlertDialog all wrap their own `trigger`
+              in an internal div (for flex-stretch
+              inside a row like this one), which
+              UIGroup's own direct-child CSS can't
+              reach through — the actual Button here
+              sits two DOM layers below that
+              selector's reach. Squares correctly
+              anyway via UIGroupContext, which
+              propagates through that wrapper the
+              same way useTargetDocument()/useNonce()
+              already reach components nested inside
+              a portal. See e2e/uiGroup.spec.ts for
+              the real-browser assertion this exists
+              to back up visually. */}
+          <UIGroup>
+            <Button variant="outline" icon={<ChevronLeft size="1em" />}>Prev</Button>
+            <Popup
+              id="uigroup-popup-demo"
+              trigger={<Button variant="outline" icon={<Settings size="1em" />} aria-label="Options" title="Options" />}
+              placement="bottom-start"
+            >
+              <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Popup content</div>
+            </Popup>
+            <Button variant="outline" icon={<ChevronRight size="1em" />}>Next</Button>
+          </UIGroup>
+        </div>
+
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</div>
+          <VStack gap="sm">
+            <UIGroup>
+              <Button size="sm" variant="outline">sm</Button>
+              <Input size="sm" placeholder="Small input" />
+              {/* VisuallyHidden label, not just `placeholder` -- Select's
+                  trigger renders role="combobox", which (unlike
+                  role="button") doesn't derive its accessible name
+                  from visible content (axe: button-name). */}
+              <VisuallyHidden>
+                <Label htmlFor="showcase-select-sm">Small select</Label>
+              </VisuallyHidden>
+              <Select id="showcase-select-sm" size="sm" options={[{ label: 'Small', value: 'sm' }]} placeholder="Small select" />
+            </UIGroup>
+            <UIGroup>
+              <Button size="lg" variant="outline">lg</Button>
+              <Input size="lg" placeholder="Large input" />
+              <VisuallyHidden>
+                <Label htmlFor="showcase-select-lg">Large select</Label>
+              </VisuallyHidden>
+              <Select id="showcase-select-lg" size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
+            </UIGroup>
+          </VStack>
+        </div>
+      </VStack>
+    ),
+    VisuallyHidden: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Screen-Reader-Only Text (`&lt;VisuallyHidden&gt;`)</div>
+        <HStack gap="sm" align="center">
+          <span aria-hidden="true" style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--ai-subtheme-error, #ef4444)', display: 'inline-block' }} />
+          <span style={{ fontSize: '0.8125rem' }}>3</span>
+          <VisuallyHidden>3 unread notifications</VisuallyHidden>
+        </HStack>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+          The dot and "3" are enough visually; the hidden text fills in the meaning ("3 unread notifications") for anyone not reading the badge by eye.
+        </p>
+      </div>
+    ),
+    VStack: (
+      <>
+        <p style={{ marginTop: 0 }}>Self-spacing flex containers that automatically apply theme <code>--ai-margin-gap</code> spacing.</p>
+        {/* Demo chrome (background/padding/radius) lives on
+            plain wrapper divs, not VStack/HStack — they're
+            pure layout primitives with no styled-box
+            concept of their own. */}
+        <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-md)' }}>
+          <VStack gap="md">
+            <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 1</div>
+            <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 2</div>
+            <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)' }}>
+              <HStack justify="between">
+                <span style={{ fontWeight: 600 }}>HStack Left Item</span>
+                <Button size="sm" variant="primary">HStack Right Action</Button>
+              </HStack>
+            </div>
+          </VStack>
+        </div>
+      </>
+    ),
+
+    // Containers
+    AppShell: {
+      pageFrame: (
+        <>
+          This whole page is an <code>&lt;AppShell layout="sidebar-left"&gt;</code>: the header with the Theme Designer button, the navigation rail on the left, and the main area holding this page and the live event log.
+        </>
+      ),
+    },
+    Card: (
+      // A fixed-height box stands in for the stretched grid row this demo
+      // used to sit in -- layout="auto" fills 100% of its parent, so it
+      // needs a parent with a real height to fill.
+      <div style={{ height: '16rem' }}>
+        <Card layout="auto">
+          <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
+          <Card.Content layout="auto">
+            <p style={{ marginTop: 0 }}>
+              When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
+            </p>
+            <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
+              Auto-Filling Bounding Box Area
+            </div>
+          </Card.Content>
+          <Card.Footer>
+            <span>Adaptive Status: Active</span>
+            <Card.Actions>
+              <Button size="sm" variant="outline" icon={<Sparkles size="1em" />} onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
+            </Card.Actions>
+          </Card.Footer>
+        </Card>
+      </div>
+    ),
+    CardSimple: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Same visual result as slot-based <code>&lt;Card&gt;</code>, without composing <code>Header</code>/<code>Content</code>/<code>Footer</code> manually — useful when the AI just needs a quick single-purpose card.
+        </p>
+        <CardSimple
+          title="Quick Stats"
+          subtitle="Updated just now"
+          footer={<span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Auto-refreshes every 30s</span>}
+          actions={<Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Refreshed!' })}>Refresh</Button>}
+        >
+          <div style={{ fontSize: '2rem', fontWeight: 800 }}>1,204</div>
+          <div style={{ color: 'var(--ai-text-secondary)', fontSize: '0.875rem' }}>Active Sessions</div>
+        </CardSimple>
+      </>
+    ),
+    Collapsible: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Single Disclosure Panel (`&lt;Collapsible&gt;`)</div>
+        <Collapsible trigger="Show advanced options">
+          <p style={{ margin: 0 }}>Content revealed on demand — for a single panel. See the Accordion above for a data-driven set of several.</p>
+        </Collapsible>
+      </div>
+    ),
+    DeferredContent: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Defer Off-Screen Content (`&lt;DeferredContent&gt;`)</div>
+        <VStack gap="sm">
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            Each row below is wrapped in its own <code>&lt;DeferredContent&gt;</code> — scroll the list and the browser skips layout/paint for rows currently off-screen, resuming automatically as they scroll into view. Best for long lists/grids of many content-sized (not flex-fill) repeated items.
+          </p>
+          {/* tabIndex -- rows are plain text, no focusable descendant of their own (axe: scrollable-region-focusable). */}
+          <div tabIndex={0} style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
+            {Array.from({ length: 40 }, (_, i) => (
+              <DeferredContent key={i} estimatedHeight={44}>
+                <div
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)',
+                    background: i % 2 === 0 ? 'transparent' : 'var(--ai-bg-container)',
+                    fontSize: '0.8125rem',
+                  }}
+                >
+                  Deferred row #{i + 1}
+                </div>
+              </DeferredContent>
+            ))}
+          </div>
+        </VStack>
+      </div>
+    ),
+    ScrollArea: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Themed Custom Scrollbar (`&lt;ScrollArea&gt;`)</div>
+        <ScrollArea maxHeight="8rem" overrides={{ thumbWidth: 'thick' }}>
+          <VStack gap="xs">
+            {Array.from({ length: 20 }, (_, i) => (
+              <div key={i} style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)' }}>
+                Row {i + 1}
+              </div>
+            ))}
+          </VStack>
+        </ScrollArea>
+      </div>
+    ),
+    Sidebar: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          This page's own left-hand navigation is a real <code>&lt;Sidebar&gt;</code> inside <code>&lt;AppShell.Sidebar&gt;</code> — the same component shown here again in a bounded box, isolated from that live grouping/routing logic, so its own collapse toggle and item states are easier to try in isolation.
+        </p>
+        <div style={{ height: '14rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
+          <Sidebar
+            items={SIDEBAR_ITEMS}
+            activeId={sidebarActiveId}
+            aria-label="Example navigation"
+            onItemClick={id => setSidebarActiveId(id)}
+          />
+          <div style={{ flex: 1, padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            Active: <strong style={{ color: 'var(--ai-text-primary)' }}>{SIDEBAR_ITEMS.find(i => i.id === sidebarActiveId)?.label}</strong>
+          </div>
+        </div>
+      </>
+    ),
+    Splitter: (
+      <VStack gap="sm">
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Drag the handle, or focus it and use the arrow keys. The live event log at the bottom of this page is the same component in <code>orientation="vertical"</code>.
+        </p>
+        <div style={{ height: '10rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
+          <Splitter id="encyclopedia-splitter-demo" orientation="horizontal" initialSplit={40}>
+            <Splitter.Panel>
+              <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Left pane</div>
+            </Splitter.Panel>
+            <Splitter.Panel>
+              <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Right pane</div>
+            </Splitter.Panel>
+          </Splitter>
+        </div>
+      </VStack>
+    ),
+
+    // Overlays
+    AlertDialog: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Blocking Confirmation (`&lt;AlertDialog&gt;`)</div>
+        <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} ariaLabel="Delete confirmation">
+          <AlertDialog.Header>Delete this record?</AlertDialog.Header>
+          <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
+          <AlertDialog.Footer>
+            <AlertDialog.Actions>
+              <AlertDialog.Cancel />
+              <AlertDialog.Action onClick={() => addToast({ type: 'success', message: 'Record deleted' })}>Delete</AlertDialog.Action>
+            </AlertDialog.Actions>
+          </AlertDialog.Footer>
+        </AlertDialog>
+      </div>
+    ),
+    CommandPalette: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
+        </p>
+        <Button variant="outline" icon={<Command size="1em" />} onClick={() => aiBus.openCommandPalette('global-command-palette')}>
+          Open Command Palette
+        </Button>
+      </>
+    ),
+    ContextMenu: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Right-Click Menu (`&lt;ContextMenu&gt;`)</div>
+        <ContextMenu
+          items={[
+            { value: 'copy', label: 'Copy', icon: '📋', onClick: () => addToast({ type: 'info', message: 'Copied', priority: 'low' }) },
+            { value: 'rename', label: 'Rename', icon: '✏️', onClick: () => addToast({ type: 'info', message: 'Rename selected', priority: 'low' }) },
+            { isSeparator: true, value: 'sep', label: '' },
+            { value: 'delete', label: 'Delete', icon: '🗑️', onClick: () => addToast({ type: 'warning', message: 'Deleted', priority: 'medium' }) },
+          ]}
+        >
+          <div style={{ padding: '1.25rem', border: '0.0625rem dashed var(--ai-border, #d1d5db)', borderRadius: 'var(--ai-radius-md, 0.375rem)', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            Right-click this area
+          </div>
+        </ContextMenu>
+      </div>
+    ),
+    Drawer: (
+      <>
+        <p style={{ marginTop: 0 }}>Side drawer sliding in from screen edge with backdrop and light dismiss.</p>
+        <Drawer
+          id="demo-drawer"
+          title="Application Details Drawer"
+          trigger={<Button variant="secondary">Open Drawer</Button>}
+        >
+          <p>This drawer is decoupled and easily controlled by AI.</p>
+          {/* Regression coverage for a real bug: Tooltip's exit
+              animation used to bubble an animationend event up
+              through this Drawer's own (React-tree, portal-
+              spanning) onAnimationEnd handler and close the
+              drawer just from hovering then un-hovering this
+              button. Fixed by migrating Drawer to Radix's
+              Presence primitive, which listens on the real DOM
+              node directly instead of via bubbling. */}
+          <Tooltip content="Hover then un-hover — must not close the drawer">
+            <Button variant="outline">Hover me (regression check)</Button>
+          </Tooltip>
+          <Button variant="danger" onClick={() => aiBus.closeDrawer('demo-drawer')}>Close Drawer</Button>
+        </Drawer>
+      </>
+    ),
+    DropdownMenu: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
+        <DropdownMenu
+          trigger={<Button variant="outline" icon={<Settings size="1em" />} trailingIcon={<ChevronDown size="1em" />}>User Actions Menu</Button>}
+          items={[
+            { value: 'profile', label: 'View Profile', icon: '👤', onClick: () => addToast({ type: 'info', message: 'View Profile selected', priority: 'medium' }) },
+            { value: 'settings', label: 'Account Settings', icon: '⚙️', onClick: () => addToast({ type: 'info', message: 'Settings selected', priority: 'low' }) },
+            { isSeparator: true, value: 'sep1', label: '' },
+            { value: 'logout', label: 'Log Out', icon: '🚪', onClick: () => addToast({ type: 'warning', message: 'User logged out', priority: 'high' }) },
+          ]}
+        />
+      </div>
+    ),
+    HoverCard: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Rich Hover Preview (`&lt;HoverCard&gt;`)</div>
+        <HoverCard
+          id="demo-hovercard"
+          openDelay={150}
+          content={
+            <VStack gap="xs">
+              <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Jane Doe</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Senior Engineer · Joined 2022</div>
+              <Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Opened profile', priority: 'low' })}>View profile</Button>
+            </VStack>
+          }
+        >
+          <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
+        </HoverCard>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+          Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
+        </p>
+      </div>
+    ),
+    Modal: (
+      <>
+        <p style={{ marginTop: 0 }}>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</p>
+        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} ariaLabel="Confirm Account Action">
+          <Modal.Header>Confirm Account Action</Modal.Header>
+          <Modal.Body>
+            Are you sure you want to perform this action? Keyboard navigation (Tab) is trapped safely inside this dialog.
+            <div style={{ marginTop: '0.75rem' }}>
+              <Modal trigger={<Button variant="outline">Open Nested Modal</Button>} ariaLabel="Nested Confirmation">
+                <Modal.Header>Nested Confirmation</Modal.Header>
+                <Modal.Body>
+                  Both this dialog and its parent default to the same Z_INDEX.MODAL tier — real stacking here depends on portal/DOM order, not a distinct numeric value per nesting depth.
+                </Modal.Body>
+                <Modal.Footer>
+                  <Modal.Actions>
+                    <Modal.CloseButton />
+                  </Modal.Actions>
+                </Modal.Footer>
+              </Modal>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Modal.Actions>
+              <UIGroup>
+                <Modal.CloseButton />
+                <Button variant="danger" onClick={() => { addToast({ type: 'success', message: 'Action confirmed!' }); }}>Confirm</Button>
+              </UIGroup>
+            </Modal.Actions>
+          </Modal.Footer>
+        </Modal>
+      </>
+    ),
+    Popup: (
+      <>
+        <p style={{ marginTop: 0 }}>Anchored contextual popup container with light dismiss.</p>
+        <Popup
+          id="demo-popup"
+          trigger={<Button variant="outline">Toggle Popup Menu</Button>}
+        >
+          <VStack gap="sm">
+            <strong style={{ fontSize: '0.875rem' }}>Account Quick Info</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem' }}>User: john_doe@example.com</p>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Role: Administrator</p>
+            <Button size="sm" variant="primary" onClick={() => aiBus.closePopup('demo-popup')}>Dismiss</Button>
+          </VStack>
+        </Popup>
+      </>
+    ),
+    Tooltip: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
+        <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
+          <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
+        </Tooltip>
+      </div>
+    ),
+    Viewer: { seeAlso: 'Gallery', note: <>Click any thumbnail there to open it.</> },
+    ViewerContent: { seeAlso: 'Gallery', note: <><code>Viewer</code> composes it inside a <code>Modal</code>.</> },
+
+    // Data Display
+    Accordion: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Expandable Accordion (`&lt;Accordion&gt;`)</div>
+        <Accordion
+          defaultValue="faq-1"
+          items={[
+            { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while Toolcrib handles slots, HSV theming, and event bus dispatching.' },
+            { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
+          ]}
+        />
+      </div>
+    ),
+    Avatar: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>User Avatars with Fallback (`&lt;Avatar&gt;`)</div>
+        <HStack gap="sm" align="center">
+          <Avatar fallback="XS" alt="Small avatar example" size="sm" />
+          <Avatar fallback="JD" alt="Jane Doe" size="md" />
+          <Avatar fallback="AS" alt="Alex Smith" size="lg" />
+          <Separator orientation="vertical" decorative />
+          <Avatar src="https://broken-image-url.example/none.png" fallback="404" alt="Broken image" />
+        </HStack>
+      </div>
+    ),
+    Badge: (
+      <>
+        <VStack gap="sm">
+          <HStack gap="sm" wrap>
+            <Badge subtheme="info">Info</Badge>
+            <Badge subtheme="success">Active</Badge>
+            <Badge subtheme="warning">Pending</Badge>
+            <Badge subtheme="error">Failed</Badge>
+            <Badge subtheme="success" icon="✓" size="sm">Verified</Badge>
+          </HStack>
+          {/* size="sm" vs. size="md", isolated from icon presence --
+              the row above only ever paired size="sm" with an icon,
+              so it couldn't demonstrate the two independently. */}
+          <HStack gap="sm" wrap align="center">
+            <Badge size="sm">Small</Badge>
+            <Badge size="md">Medium</Badge>
+            <Badge size="sm" icon="✓">Small + Icon</Badge>
+            <Badge size="md" icon="✓">Medium + Icon</Badge>
+          </HStack>
+          {/* variant (identity color, for a branded/labeled
+              badge that isn't a status) + appearance
+              (soft/solid/outline "hollow" style) — both
+              orthogonal to subtheme's own 4 status colors. */}
+          <HStack gap="sm" wrap align="center">
+            <Badge variant="primary">Primary</Badge>
+            <Badge variant="secondary">Secondary</Badge>
+            <Badge subtheme="success" appearance="solid">Solid</Badge>
+            <Badge subtheme="warning" appearance="outline">Outline</Badge>
+            <Badge variant="primary" appearance="solid">Solid Primary</Badge>
+            <Badge variant="secondary" appearance="outline">Outline Secondary</Badge>
+          </HStack>
+        </VStack>
+      </>
+    ),
+    BarChart: (
+      <>
+        <BarChart
+          title="Quarterly revenue vs. cost"
+          categories={['Q1', 'Q2', 'Q3', 'Q4']}
+          series={[
+            { label: 'Revenue', values: [420, 510, 480, 610] },
+            { label: 'Cost', values: [310, 340, 360, 390] },
+          ]}
+        />
+      </>
+    ),
+    Breadcrumb: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Wraps <code>react-aria-components</code>'s <code>Breadcrumbs</code>. Middle items collapse into a <code>&lt;DropdownMenu&gt;</code> automatically once the trail overflows its container — narrow the browser window to see it happen.
+        </p>
+        <Breadcrumb>
+          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Home', priority: 'low' })}>Home</Breadcrumb.Item>
+          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Products', priority: 'low' })}>Products</Breadcrumb.Item>
+          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Electronics', priority: 'low' })}>Electronics</Breadcrumb.Item>
+          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Laptops', priority: 'low' })}>Laptops</Breadcrumb.Item>
+          <Breadcrumb.Item>Current Model</Breadcrumb.Item>
+        </Breadcrumb>
+      </>
+    ),
+    Carousel: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Wraps <code>embla-carousel-react</code> — drag/swipe it directly, or use the arrows/dots. Looping, with a 4-second autoplay.
+        </p>
+        <Carousel slides={CAROUSEL_SLIDES} loop autoplay={{ delayMs: 4000 }} />
+      </>
+    ),
+    DataTable: (
+      // A fixed-height box: this Card (layout="auto") and the DataTable
+      // inside it (containerHeight="auto") flex-fill their parent, which
+      // used to be the whole tab panel. On one long page, the box is what
+      // gives them a real height to fill.
+      <div style={{ height: '42rem', display: 'flex', flexDirection: 'column' }}>
+        <Card layout="auto">
+          <Card.Header>
+            <Toolbar>
+              <Toolbar.Left>
+                <span>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</span>
+              </Toolbar.Left>
+              <Toolbar.Right>
+                {/* DataTable already supports this today via
+                    pagination={false} -- see the continuousScroll
+                    state's own comment. This switch is the only
+                    new demo wiring; the toolkit itself needed no
+                    change. */}
+                <Switch label="Continuous Scroll" checked={continuousScroll} onChange={setContinuousScroll} />
+                {/* Off by default -- this table already has an
+                    explicit checkbox column for selection, so a
+                    plain row click ALSO selecting it is
+                    redundant, and became an actual conflict once
+                    rowCommands added an "Edit" trigger to the
+                    same row (clicking to edit shouldn't also
+                    flip selection). disableRowClickSelection is
+                    the toolkit's own existing prop for this; this
+                    switch just surfaces it as a live toggle. */}
+                <Switch label="Click Row to Select" checked={rowClickToSelect} onChange={setRowClickToSelect} />
+              </Toolbar.Right>
+            </Toolbar>
+          </Card.Header>
+          <Card.Content layout="auto" paddingMode="compact">
+            <DataTable
+              id="demo-users-table"
+              data={tableUsers}
+              columns={columns}
+              pagination={!continuousScroll}
+              defaultPageSize={15}
+              pageSizeOptions={[5, 10, 15, 25, 50]}
+              containerHeight="auto"
+              quickFilter
+              densitySelector
+              // Column show/hide (issue #340).
+              columnVisibility
+              // Real CSV export (issue #338) -- this used to be a
+              // hand-rolled button in renderToolbarExtra below that
+              // only showed a toast, no actual file. csvExport
+              // renders its own built-in toolbar button, so the
+              // fake one is gone; renderToolbarExtra now carries
+              // only Reload Data, which has no toolkit-native
+              // equivalent.
+              csvExport
+              csvExportFileName="users.csv"
+              // Reload Data used to live in this Card's own header
+              // Toolbar, in a separate row above the table entirely
+              // -- moved into the same row search/density/
+              // bulk-actions already share, per direct feedback
+              // ("put the command buttons in the toolbar with
+              // search"). No longer wrapped in <UIGroup> -- that
+              // was for the segmented look of two adjacent buttons
+              // (this one + the old fake Export CSV button); with
+              // just Reload Data left, a plain <Button> is enough.
+              //
+              // Icon-only + title/aria-label (not a visible
+              // label), matching the built-in toolbar-right
+              // buttons right next to it (density/Export CSV/
+              // Columns, issue #591/#595) -- this button sits in
+              // the exact same connected row, so leaving it as
+              // the one remaining icon+text control here would
+              // reproduce the original #584/#591 "one button
+              // doesn't match its siblings" look this whole
+              // toolbar was already fixed for.
+              // A constant "Reload Data" label now, not the old
+              // state-dependent "Load Data"/"Reload Data" text --
+              // that distinction only mattered as VISIBLE text;
+              // once icon-only, a refresh icon reads the same
+              // regardless of whether the table has ever loaded
+              // (it (re)fetches from source either way), and a
+              // constant name also avoids colliding with the
+              // emptyState's own "Load Data" button below (both
+              // visible at once while empty -- the two used to
+              // be told apart by the toolbar button's 🔄 emoji
+              // prefix, which no longer exists now that it's
+              // icon-only; e2e/nav.ts's loadDemoTableData()
+              // updated to match).
+              renderToolbarExtra={() => (
+                <Button size="sm" variant="outline" aria-label="Reload Data" title="Reload Data" icon={<RefreshCw size="1em" />} onClick={loadTableUsers} />
+              )}
+              rowKey={rec => rec.id}
+              editable
+              editSchema={userEditSchema}
+              // Controlled -- the "Edit" trigger lives in
+              // rowCommands below (direct visual feedback: a
+              // separate synthetic column broke the co-grid's
+              // own column alignment with the main table), and
+              // rowCommands can only reach this via the same
+              // controlled-state path its own "delete" handler
+              // already uses, not CellContext.startEditingRow.
+              editingKeys={editingUserKeys}
+              onEditingKeysChange={setEditingUserKeys}
+              onRowEditSave={(record, _index, next) => {
+                // A real update (not a simulated toast-only
+                // change) -- same "found via direct feedback
+                // that a toast-only version left it unclear
+                // whether the button was doing anything at all"
+                // reasoning renderBulkActions' own delete button
+                // below already applies.
+                setTableUsers(prev => prev.map(u => (u.id === record.id ? { ...u, ...next } : u)));
+                addToast({ type: 'success', message: `Saved ${next.name}`, priority: 'low' });
+              }}
+              onRowEditCancel={record => addToast({ type: 'info', message: `Discarded changes to ${record.name}`, priority: 'low' })}
+              onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
+              rowCommands={[
+                // Folded in alongside view/delete (direct visual
+                // feedback) -- reuses rowCommands' own already-
+                // correct button rendering/alignment instead of
+                // a hand-rolled button in a separate column.
+                // isVisible hides it once the row is already
+                // being edited (its co-grid row's own Save/
+                // Cancel are the way out of that state instead).
+                // isDisabled, not isVisible -- direct feedback
+                // ("when a row is in edit, do not hide the edit
+                // command, just disable it to maintain layout"):
+                // hiding it entirely shifted View/Delete's own
+                // position depending on whether Edit was showing.
+                { id: 'edit', label: 'Edit', icon: '✏️', isDisabled: record => editingUserKeys.includes(String(record.id)) },
+                { id: 'view', label: 'View', icon: '👁️' },
+                { id: 'delete', label: 'Delete', icon: '🗑️' },
+              ]}
+              rowSubtheme={rec =>
+                rec.status === 'Inactive'
+                  // Preset form: one of the four semantic subthemes.
+                  ? 'error'
+                  : rec.score >= 90
+                  // Custom Partial<SubthemeColors> slice form: an
+                  // arbitrary "top performer" highlight the four
+                  // presets don't cover.
+                  ? { background: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.4)', color: 'rgb(109, 40, 217)' }
+                  : undefined
+              }
+              selectable
+              disableRowClickSelection={!rowClickToSelect}
+              selectedKeys={selectedUserKeys}
+              onSelectionChange={setSelectedUserKeys}
+              renderBulkActions={(keys, actions) => (
+                <>
+                {/* Falls out of composing the already-independent
+                    selection/editing key-sets (issue #545 section
+                    6) -- zero new DataTable-level prop needed
+                    beyond the startEditingRows action already
+                    threaded through here. */}
+                <Button size="sm" variant="outline" icon={<Pencil size="1em" />} onClick={() => actions.startEditingRows(keys)}>
+                  Edit Selected
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  icon={<Trash2 size="1em" />}
+                  onClick={() => {
+                    // A REAL delete (not a simulated toast) --
+                    // found via direct feedback that a
+                    // toast-only version left it unclear whether
+                    // the button was doing anything at all.
+                    // Deleting every row reaches the SAME
+                    // <DataTable>'s own emptyState below (no
+                    // separate empty-only instance any more --
+                    // see e2e/interactive-sweep.spec.ts's own
+                    // comment on what that requires of the sweep
+                    // itself), and "Reload Data" above restores
+                    // the full set afterward.
+                    setTableUsers(prev => prev.filter(u => !keys.includes(String(u.id))));
+                    addToast({ type: 'warning', message: `Deleted ${keys.length} user(s)`, priority: 'medium' });
+                    setSelectedUserKeys([]);
+                  }}
+                >
+                  Delete Selected
+                </Button>
+                </>
+              )}
+              emptyState={
+                <EmptyState>
+                  <EmptyState.Icon>👥</EmptyState.Icon>
+                  <EmptyState.Title>No team members to show</EmptyState.Title>
+                  <EmptyState.Description>Load the demo dataset, or reload it if you've deleted everyone.</EmptyState.Description>
+                  <EmptyState.Action>
+                    <Button size="sm" variant="primary" icon={<Download size="1em" />} onClick={loadTableUsers}>Load Data</Button>
+                  </EmptyState.Action>
+                </EmptyState>
+              }
+            />
+          </Card.Content>
+        </Card>
+      </div>
+    ),
+    EmptyState: (
+      <>
+        <EmptyState>
+          <EmptyState.Icon>📭</EmptyState.Icon>
+          <EmptyState.Title>No results found</EmptyState.Title>
+          <EmptyState.Description>Try adjusting your search or filters, or create a new record.</EmptyState.Description>
+          <EmptyState.Action>
+            <Button variant="primary" onClick={() => addToast({ type: 'info', message: 'Create new record clicked' })}>Create Record</Button>
+          </EmptyState.Action>
+        </EmptyState>
+      </>
+    ),
+    Filmstrip: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Shares <code>&lt;TabStrip&gt;</code>'s own overflow-scroll detection and active-indicator theming — narrow the window to see the scroll arrows appear.
+        </p>
+        <Filmstrip
+          items={FILMSTRIP_ITEMS}
+          defaultActiveId={FILMSTRIP_ITEMS[0].id}
+          onChange={id => addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
+        />
+      </>
+    ),
+    Gallery: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Click any thumbnail to open the fullscreen <code>&lt;Viewer&gt;</code> lightbox (composes <code>&lt;ViewerContent&gt;</code> inside <code>&lt;Modal&gt;</code>) — arrow keys navigate, click the image to zoom, Escape closes only the viewer. Thumbnails defer via the same <code>&lt;DeferredContent&gt;</code> used elsewhere in this demo, not a second lazy-render mechanism.
+        </p>
+        <Gallery items={GALLERY_ITEMS} columns="auto-fit" />
+      </>
+    ),
+    Heatmap: (
+      <>
+        <Heatmap
+          title="Support tickets by day and hour"
+          width={980}
+          rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
+          columns={['9am', '11am', '1pm', '3pm', '5pm']}
+          values={[
+            [8, 14, 22, 18, 9],
+            [6, 12, 19, 20, 11],
+            [5, 10, 16, 15, 8],
+            [9, 16, 24, 21, 12],
+            [7, 11, 15, 13, 6],
+          ]}
+          formatValue={v => `${v} tickets`}
+        />
+        <ScaleLegend min={5} max={24} formatValue={v => `${v} tickets`} />
+      </>
+    ),
+    LineChart: (
+      <VStack gap="md">
+        <LineChart
+          title="Weekly signups over time"
+          categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+          series={[
+            { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+            { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
+          ]}
+        />
+        <LineChart
+          title="Weekly signups by tier, stacked"
+          variant="area"
+          width={980}
+          categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+          series={[
+            { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+            { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
+          ]}
+        />
+      </VStack>
+    ),
+    Link: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Colors itself from <code>--ai-color-primary-readable</code>/<code>-secondary-readable</code> — the theme's own hue, nudged for WCAG AA contrast rather than a fixed browser blue/purple. A plain hand-written <code>&lt;a&gt;</code> anywhere in this page picks up the same link/visited colors ambiently, with no class needed.
+        </p>
+        <HStack gap="lg" wrap align="center">
+          <Link href="#">Default (primary)</Link>
+          <Link href="#" variant="secondary">Secondary variant</Link>
+          <Link href="#" subtheme="error">Delete account (subtheme)</Link>
+          <Link href="https://example.com" target="_blank">
+            Opens in new tab (auto rel=&quot;noopener noreferrer&quot;)
+          </Link>
+        </HStack>
+      </>
+    ),
+    PieChart: (
+      <>
+        <PieChart
+          title="Traffic by source"
+          innerRadius={0.6}
+          legendPosition="side"
+          data={[
+            { label: 'Organic search', value: 420 },
+            { label: 'Direct', value: 210 },
+            { label: 'Referral', value: 140 },
+            { label: 'Social', value: 95 },
+            { label: 'Email', value: 60 },
+          ]}
+        />
+      </>
+    ),
+    Progress: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Determinate Progress Bar (`&lt;Progress&gt;`)</div>
+        <VStack gap="sm">
+          <Progress id="demo-upload" aria-label="Upload progress" value={progressValue} subtheme="success" />
+          <UIGroup>
+            <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.max(0, v - 10))}>-10%</Button>
+            <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.min(100, v + 10))}>+10%</Button>
+          </UIGroup>
+          {/* size="sm"/"md"/"lg" (bar thickness), isolated from the
+              interactive default-size bar above. */}
+          <Progress value={progressValue} size="sm" aria-label="Small progress bar" />
+          <Progress value={progressValue} size="md" aria-label="Medium progress bar" />
+          <Progress value={progressValue} size="lg" aria-label="Large progress bar" />
+        </VStack>
+      </div>
+    ),
+    ScaleLegend: { seeAlso: 'Heatmap', note: <>It renders the heatmap's color scale.</> },
+    Skeleton: (
+      <HStack gap="sm" align="center">
+        <Skeleton shape="circle" width="2.5rem" height="2.5rem" />
+        <VStack gap="xs">
+          <Skeleton shape="text" width="9rem" />
+          <Skeleton shape="text" width="6rem" />
+        </VStack>
+      </HStack>
+    ),
+    Sparkline: (
+      <HStack gap="md" align="center">
+        <span style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>Active users, last 7 periods</span>
+        <Sparkline values={[7200, 7400, 7350, 7800, 8050, 8200, 8420]} title="Active users trend, last 7 periods" />
+      </HStack>
+    ),
+    Spinner: (
+      <HStack gap="md" align="center">
+        <Spinner size="sm" />
+        <Spinner size="md" subtheme="info" />
+        <Spinner size="lg" subtheme="success" />
+      </HStack>
+    ),
+    Stepper: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
+        </p>
+        <Stepper steps={STEPPER_STEPS} />
+      </>
+    ),
+    TabStrip: (
+      <VStack gap="sm">
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Arrow keys move between tabs. Each <code>TabStrip.Panel</code> is matched to its strip by <code>groupId</code>, so panels can live anywhere in the tree.
+        </p>
+        <TabStrip id="encyclopedia-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
+        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="details">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Details panel.</p>
+        </TabStrip.Panel>
+        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="activity">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Activity panel.</p>
+        </TabStrip.Panel>
+        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="settings">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Settings panel.</p>
+        </TabStrip.Panel>
+      </VStack>
+    ),
+    Tree: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) comes for free — try clicking an item, then using the arrow keys.
+        </p>
+        <div style={{ height: '14rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', padding: '0.5rem' }}>
+          <Tree
+            items={TREE_ITEMS}
+            defaultExpandedIds={['src', 'components']}
+            defaultSelectedId="card-tsx"
+            onSelectChange={id => id && addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
+          />
+        </div>
+      </>
+    ),
+
+    // Form Controls
+    Button: (
+      <>
+        <VStack gap="sm">
+          <HStack gap="sm" wrap>
+            <Button variant="primary" icon={<Rocket size="1em" />} trailingIcon={<ArrowRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
+            <Button variant="secondary" icon={<Settings size="1em" />} onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
+            <Button variant="outline" icon={<Zap size="1em" />} onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
+            <Button variant="danger" icon={<Trash2 size="1em" />} onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
+            <Button variant="ghost" icon={<Star size="1em" />} onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
+            <Button subtheme="success" icon={<CheckCircle2 size="1em" />} onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
+            <Button subtheme="warning" icon={<AlertTriangle size="1em" />} onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
+            <Button subtheme="info" icon={<Info size="1em" />} onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
+          </HStack>
+          {/* size="sm"/"md"/"lg", isolated from variant/subtheme --
+              nothing above demonstrated the size prop at all. */}
+          <HStack gap="sm" wrap align="center">
+            <Button size="sm" variant="outline">Small</Button>
+            <Button size="md" variant="outline">Medium</Button>
+            <Button size="lg" variant="outline">Large</Button>
+          </HStack>
+        </VStack>
+      </>
+    ),
+    Calendar: (
+      <VStack gap="sm">
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</div>
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot. <code>minValue</code> demonstrates a real cutoff date (issue #377): every day before today is disabled, not just visually greyed out.
+        </p>
+        {/* minValue={today(...)} (issue #377) -- react-aria-components' own
+            min-date mechanism, already forwarded by this toolkit's Calendar
+            (see CalendarProps.minValue's own JSDoc), just never demonstrated
+            here before. defaultValue is `today` too, not a fixed literal like
+            this page's other Calendar/DatePicker examples used to be (direct
+            feedback: those must always open on the real current month, not a
+            hardcoded date that silently drifts into the past) -- computing both
+            from `today` also means defaultValue can never fall behind minValue
+            itself as real time passes. */}
+        <Calendar
+          aria-label="Appointment date"
+          minValue={today(getLocalTimeZone())}
+          defaultValue={today(getLocalTimeZone())}
+          onChange={value => addToast({ type: 'info', message: `Calendar date: ${value.toString()}`, priority: 'low' })}
+        />
+        <TimeField
+          name="demoMeetingTime"
+          label="Meeting Time"
+          defaultValue={new Time(14, 30)}
+          onChange={value => addToast({ type: 'info', message: `Meeting time: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
+        />
+      </VStack>
+    ),
+    Combobox: (
+      <>
+        <Grid columns={2} gap="lg">
+          <VStack gap="sm">
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Async Server Search (`onSearch`)</div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the DataTable demo uses). No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
+            </p>
+            <Combobox
+              placeholder="Search users..."
+              ariaLabel="Search users"
+              searchDebounceMs={300}
+              onSearch={async (query) => {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                if (!query) return [];
+                const q = query.toLowerCase();
+                return dummyUsers
+                  .filter(u => u.name.toLowerCase().includes(q))
+                  .slice(0, 8)
+                  .map(u => ({ label: `${u.name} (${u.email})`, value: String(u.id) }));
+              }}
+              onChange={(value) => {
+                if (value) addToast({ type: 'info', message: `Selected user #${value}`, priority: 'low' });
+              }}
+            />
+          </VStack>
+
+          <VStack gap="sm">
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Multi-Select Tags (`multiple`)</div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip. <code>chipColor</code> colors chips per value — backend skills here use the <code>secondary</code> variant.
+            </p>
+            <Combobox
+              multiple
+              placeholder="Add skills..."
+              ariaLabel="Skills"
+              defaultValue={['react', 'typescript', 'postgres']}
+              chipColor={(value) => (['node', 'graphql', 'postgres', 'docker'].includes(value) ? { variant: 'secondary' } : undefined)}
+              options={[
+                { label: 'React', value: 'react' },
+                { label: 'TypeScript', value: 'typescript' },
+                { label: 'Node.js', value: 'node' },
+                { label: 'GraphQL', value: 'graphql' },
+                { label: 'PostgreSQL', value: 'postgres' },
+                { label: 'Docker', value: 'docker' },
+              ]}
+              onChange={(value) => {
+                addToast({ type: 'info', message: `Skills: ${(value as string[]).join(', ') || '(none)'}`, priority: 'low' });
+              }}
+            />
+          </VStack>
+        </Grid>
+      </>
+    ),
+    DatePicker: (
+      <VStack gap="sm">
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Popover Calendar (`&lt;DatePicker&gt;`)</div>
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Backed by <code>@internationalized/date</code>'s <code>CalendarDate</code>, not a raw JS <code>Date</code> — correct across timezones/DST by construction. Hosted in toolcrib's own <code>&lt;Popup&gt;</code>, not a react-aria-components popover.
+        </p>
+        <DatePicker
+          name="demoMeetingDate"
+          label="Meeting Date"
+          defaultValue={today(getLocalTimeZone())}
+          onChange={value => addToast({ type: 'info', message: `Meeting date: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
+        />
+      </VStack>
+    ),
+    FileUpload: (
+      <>
+        <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Drop a few images (or click to browse) — max 4 files, 2 MB each. The upload transport below is entirely simulated (staged progress ticks, ~20% chance of a failure to show the Retry action) since toolcrib takes no opinion on the backend protocol: <code>onUpload</code> is just a consumer-supplied <code>(file, onProgress) =&gt; Promise&lt;void&gt;</code>.
+        </p>
+        <div style={{ maxWidth: '28rem' }}>
+          <FileUpload
+            accept="image/*"
+            maxFiles={4}
+            maxSizeBytes={2 * 1024 * 1024}
+            onUpload={(file, onProgress) =>
+              new Promise<void>((resolve, reject) => {
+                let pct = 0;
+                const tick = () => {
+                  pct += 20;
+                  onProgress(Math.min(pct, 100));
+                  if (pct < 100) {
+                    setTimeout(tick, 250);
+                  } else if (Math.random() < 0.2) {
+                    reject(new Error('Simulated network error'));
+                  } else {
+                    addToast({ type: 'success', message: `${file.name} uploaded`, priority: 'low' });
+                    resolve();
+                  }
+                };
+                setTimeout(tick, 250);
+              })
+            }
+          />
+        </div>
+      </>
+    ),
+    Form: (
+      <>
+        <Form
+          id="profile-form"
+          schema={userProfileSchema}
+          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', startDate: today(getLocalTimeZone()), notifications: true, agreeTerms: false }}
+          onSubmit={values => {
+            addToast({ type: 'success', message: `User ${values.username} created successfully! (Contact: ${values.contactPref})` });
+          }}
+        >
+          <FormField name="username" label="Username" helperText="Unique username handle">
+            <Input placeholder="johndoe" />
+          </FormField>
+
+          <FormField name="email" label="Email Address">
+            <Input type="email" placeholder="john@example.com" />
+          </FormField>
+
+          <FormField name="country" label="Country" helperText="Type to filter — no Radix primitive covers this, hand-built on Popover">
+            <Combobox options={COUNTRY_OPTIONS} placeholder="Search countries..." />
+          </FormField>
+
+          <FormField name="role" label="Role Level">
+            <Select
+              options={[
+                { label: 'Administrator', value: 'admin' },
+                { label: 'Content Editor', value: 'editor' },
+                { label: 'Viewer Only', value: 'viewer' },
+              ]}
+            />
+          </FormField>
+
+          <FormField name="contactPref" label="Preferred Contact Method">
+            <RadioGroup
+              name="contactPref"
+              direction="horizontal"
+              options={[
+                { label: 'Email', value: 'email' },
+                { label: 'SMS Text', value: 'sms' },
+                { label: 'Phone Call', value: 'phone' },
+              ]}
+            />
+          </FormField>
+
+          <FormField name="startDate" label="Start Date" helperText="Zod-validated via z.instanceof(CalendarDate) — the same DatePicker as the standalone demo below, now wired into this form's own validation and submit values">
+            {/* aria-label, not label -- FormField already
+                renders "Start Date" visibly above; DatePicker's
+                own `label` would render a second, visually
+                duplicate one since its composite date-segment
+                structure can't pick up FormField's plain
+                htmlFor association the way a single <input id>
+                can. */}
+            <DatePicker aria-label="Start Date" />
+          </FormField>
+
+          <FormField name="notifications">
+            <Switch name="notifications" label="Enable Email Notifications" />
+          </FormField>
+
+          <FormField name="agreeTerms">
+            <Checkbox name="agreeTerms" label="I agree to terms and conditions" />
+          </FormField>
+
+          <FormField name="bio" label="Short Bio (Optional)">
+            <Textarea placeholder="Tell us about yourself..." />
+          </FormField>
+
+          <FormError />
+
+          <Card.Actions>
+            <SubmitButton>Save Profile</SubmitButton>
+          </Card.Actions>
+        </Form>
+      </>
+    ),
+    Input: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Input Sections (`leadingSection` / `trailingSection`, password reveal)</div>
+        <VStack gap="sm">
+          <Input aria-label="Search people" placeholder="Search people..." leadingSection={<Search size="1em" />} clearable value={inputSectionsQuery} onChange={e => setInputSectionsQuery(e.target.value)} />
+          <Input aria-label="Price" placeholder="0.00" leadingSection="$" trailingSection="USD" inputMode="decimal" />
+          <div style={{ display: 'grid', width: '100%' }}>
+            <UIGroup>
+              <Input aria-label="Website" placeholder="acme" leadingSection="https://" trailingSection=".com" />
+              <Button variant="outline">Check</Button>
+            </UIGroup>
+          </div>
+          <Input aria-label="Password" type="password" placeholder="Password" autoComplete="new-password" />
+        </VStack>
+      </div>
+    ),
+    Label: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Standalone Form Label (`&lt;Label&gt;`)</div>
+        <Label htmlFor="demo-remember-me">
+          <input id="demo-remember-me" type="checkbox" />
+          <span>Remember me on this device</span>
+        </Label>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+          Same component <code>FormField</code>'s own label uses internally — clicking the text toggles the checkbox, without hand-rolling the wrapping/`htmlFor` association.
+        </p>
+      </div>
+    ),
+    Listbox: (
+      <>
+        <Grid columns={2} gap="lg">
+          <VStack gap="sm">
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Keyboard-Navigable Picker with a Custom `render` Slot</div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              Extracted from <code>&lt;Combobox&gt;</code>'s own internals — Listbox owns no keyboard state itself, so the input below drives <code>activeIndex</code> and <code>aria-activedescendant</code> the same way Combobox already does internally.
+            </p>
+            <Input
+              value={listboxQuery}
+              placeholder="Filter teammates..."
+              clearable
+              aria-controls="demo-listbox-team"
+              aria-activedescendant={listboxActiveIndex !== undefined ? `demo-listbox-team-option-${listboxActiveIndex}` : undefined}
+              onChange={e => {
+                setListboxQuery(e.target.value);
+                setListboxActiveIndex(undefined);
+              }}
+              onKeyDown={e => {
+                const filtered = TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()));
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setListboxActiveIndex(i => Math.min(filtered.length - 1, (i ?? -1) + 1));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setListboxActiveIndex(i => Math.max(0, (i ?? 0) - 1));
+                } else if (e.key === 'Enter' && listboxActiveIndex !== undefined) {
+                  e.preventDefault();
+                  const opt = filtered[listboxActiveIndex];
+                  if (opt) {
+                    setListboxSelected(opt.value);
+                    setListboxQuery('');
+                    setListboxActiveIndex(undefined);
+                    addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
+                  }
+                }
+              }}
+            />
+            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
+              <Listbox
+                id="demo-listbox-team"
+                options={TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()))}
+                activeIndex={listboxActiveIndex}
+                selectedValues={listboxSelected ? [listboxSelected] : []}
+                aria-label="Teammates"
+                onSelect={opt => {
+                  setListboxSelected(opt.value);
+                  setListboxQuery('');
+                  setListboxActiveIndex(undefined);
+                  addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
+                }}
+              />
+            </div>
+          </VStack>
+
+          <VStack gap="sm">
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Click-Only Multi-Select (`multiSelectable`, no input)</div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              No keyboard state needed when there's no search box driving it — each click just toggles membership in <code>selectedValues</code>, the shape a "Visible Columns" quick-picker needs.
+            </p>
+            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
+              <Listbox
+                id="demo-listbox-columns"
+                options={TABLE_COLUMN_OPTIONS}
+                selectedValues={visibleColumns}
+                multiSelectable
+                aria-label="Visible table columns"
+                onSelect={opt => {
+                  setVisibleColumns(cols =>
+                    cols.includes(opt.value) ? cols.filter(c => c !== opt.value) : [...cols, opt.value]
+                  );
+                }}
+              />
+            </div>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+              Visible: {visibleColumns.length ? visibleColumns.join(', ') : '(none)'}
+            </p>
+          </VStack>
+        </Grid>
+      </>
+    ),
+    Pagination: (
+      <>
+        <p style={{ marginTop: 0 }}>
+          Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
+        </p>
+        <Pagination
+          totalItems={137}
+          pageSize={10}
+          page={paginationPage}
+          onPageChange={page => setPaginationPage(page)}
+        />
+        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
+        {/* size="md"/"lg" -- the row above only ever demonstrated
+            the default size="sm". All three stay in sync since
+            they're bound to the same controlled page state. */}
+        <VStack gap="sm">
+          <Pagination
+            totalItems={137}
+            pageSize={10}
+            size="md"
+            page={paginationPage}
+            onPageChange={page => setPaginationPage(page)}
+          />
+          <Pagination
+            totalItems={137}
+            pageSize={10}
+            size="lg"
+            page={paginationPage}
+            onPageChange={page => setPaginationPage(page)}
+          />
+        </VStack>
+      </>
+    ),
+    RadioGroup: { seeAlso: 'Form', note: <>The profile form's "Preferred Contact Method" field.</> },
+    RangeSlider: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</div>
+        <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
+      </div>
+    ),
+    Rating: (
+      <VStack gap="sm">
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Star Rating (`&lt;Rating&gt;`)</div>
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Built on Radix <code>RadioGroup</code> — real keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
+        </p>
+        <Rating
+          name="demoRating"
+          aria-label="Star rating"
+          value={ratingValue}
+          onChange={value => {
+            setRatingValue(value);
+            addToast({ type: 'info', message: `Rated ${value} of 5`, priority: 'low' });
+          }}
+        />
+        <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Read-only (fractional fill):</div>
+        <Rating readOnly value={3.5} />
+      </VStack>
+    ),
+    Select: { seeAlso: 'Form', note: <>The profile form's "Role Level" field.</> },
+    Slider: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
+        <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+      </div>
+    ),
+    ThemeEditor: (
+      <VStack gap="sm">
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          The editor lives in the drawer behind the 🎨 button in this page's header, where it restyles the whole page live.
+        </p>
+        <div>
+          <Button variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>Open the Theme Designer</Button>
+        </div>
+      </VStack>
+    ),
+    TimeField: { seeAlso: 'Calendar', note: <>Paired with the inline calendar for a full appointment slot.</> },
+    Toggle: (
+      <div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Toggle & Connected ToggleGroup (`&lt;Toggle&gt;` / `&lt;ToggleGroup&gt;`)</div>
+        <VStack gap="sm">
+          <Toggle name="favorite" onPressedChange={pressed => addToast({ type: 'info', message: `Favorite ${pressed ? 'enabled' : 'disabled'}`, priority: 'low' })}>⭐ Favorite</Toggle>
+          <ToggleGroup
+            name="text-align"
+            type="single"
+            defaultValue="left"
+            options={[
+              { value: 'left', label: '◀ Left' },
+              { value: 'center', label: '● Center' },
+              { value: 'right', label: '▶ Right' },
+            ]}
+            onChange={val => addToast({ type: 'info', message: `Alignment: ${val}`, priority: 'low' })}
+          />
+        </VStack>
+      </div>
+    ),
+    ToggleGroup: { seeAlso: 'Toggle', note: <>The connected alignment group under the single toggle.</> },
+  };
+
+  // The infrastructure every component is wired into -- the "what you get
+  // out of the box" half of the Encyclopedia.
+  const systemAreas: SystemArea[] = [
+    {
+      id: 'theme',
+      title: 'Theme engine',
+      summary: <>Every color is derived from one base hue through HSV harmonies, and text colors are computed to meet WCAG contrast targets rather than picked by hand. Themes can be saved, restored, exported and imported, rendered server-side, and edited live by end users.</>,
+      parts: ['ThemeProvider', 'useTheme', 'ThemeEditor', 'presetThemes', 'themePersistence', 'themeFileTransfer', 'serverThemeCSS', 'livingColor'],
+      demo: (
+        <VStack gap="sm">
+          <div>
+            <Button variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>Open the Theme Designer</Button>
+          </div>
+          <VStack gap="sm">
+            <div
+              className="ai-living-accent"
+              style={{
+                padding: 'var(--ai-padding-md, 0.5rem)',
+                borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                color: 'var(--ai-color-primary-text, #ffffff)',
+                textAlign: 'center',
+                fontSize: '0.875rem',
+              }}
+            >
+              .ai-living-accent
+            </div>
+            <div
+              className="ai-living-glow"
+              style={{
+                padding: 'var(--ai-padding-md, 0.5rem)',
+                borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                textAlign: 'center',
+                fontSize: '0.875rem',
+              }}
+            >
+              .ai-living-glow
+            </div>
+          </VStack>
+        </VStack>
+      ),
+    },
+    {
+      id: 'styling',
+      title: 'Styling model',
+      summary: <>No component accepts <code>className</code> or <code>style</code>. Visual changes go through typed <code>overrides</code> resolved against each component's theme slice, subthemes and color variants, and <code>StyleDomainProvider</code> for a whole subtree, so an AI can't restyle one instance into drifting from the rest.</>,
+      parts: ['overrides', 'ThemeSlice', 'useSliceOverrides', 'StyleDomainProvider', 'subtheme', 'colorVariant', 'controlSize', 'radius', 'padding', 'shadow', 'typography'],
+      demo: (
+        <Grid columns={2} gap="lg">
+          <Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
+            <Card.Header>Per-Instance Override (`overrides`)</Card.Header>
+            <Card.Content>
+              <p style={{ marginTop: 0 }}>
+                This Card passes <code>overrides={'{'}{'{'} padding: 'compact', headerStyle: 'subtle-bg' {'}'}{'}'}</code> — a sparse CSS-variable patch applied only to this Card's own root node, leaving every other Card (and the global Theme Editor's Card slice) untouched.
+              </p>
+            </Card.Content>
+          </Card>
+
+          <StyleDomainProvider subtheme="error">
+            <Card>
+              <Card.Header>Style Domain (`&lt;StyleDomainProvider&gt;`)</Card.Header>
+              <Card.Content>
+                <p style={{ marginTop: 0 }}>
+                  This Card sets no <code>overrides.subtheme</code> of its own — its error-coloured border comes entirely from the ancestor <code>&lt;StyleDomainProvider subtheme="error"&gt;</code> wrapping it, via React Context (not CSS inheritance, so it still reaches components that render through a portal).
+                </p>
+              </Card.Content>
+            </Card>
+          </StyleDomainProvider>
+        </Grid>
+      ),
+    },
+    {
+      id: 'layout',
+      title: 'Layout domains',
+      summary: <>Components know where they sit. Inside a <code>UIGroup</code> or a <code>Splitter</code> panel they square off the right corners automatically, and overlays stack on a managed z-index scale instead of ad-hoc numbers.</>,
+      parts: ['UIGroup', 'LayoutDomainContext', 'useCornerSquaring', 'zIndex', 'zIndexStack', 'responsive'],
+    },
+    {
+      id: 'event-bus',
+      title: 'Event bus',
+      summary: <>A strongly-typed <code>aiBus</code> connects components that have no parent-child relationship: open any modal, drawer or palette by id, fire toasts, and observe every interaction. The live monitor at the bottom of this page is subscribed to all of it.</>,
+      parts: ['aiBus', 'useAIEvent', 'useAnyAIEvent', 'useInteractionAnalytics'],
+      demo: (
+        <HStack gap="sm" wrap>
+          <Button variant="outline" onClick={() => aiBus.openCommandPalette('global-command-palette')}>aiBus.openCommandPalette(…)</Button>
+          <Button variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>aiBus.openDrawer(…)</Button>
+          <Button variant="outline" onClick={() => aiBus.showToast('Sent over the bus', 'info')}>aiBus.showToast(…)</Button>
+        </HStack>
+      ),
+    },
+    {
+      id: 'observers',
+      title: 'Shared observers',
+      summary: <>Resize, visibility and DOM-mutation tracking share one pooled observer per kind, instead of every component creating its own. <code>DataTable</code>'s adaptive height and <code>DeferredContent</code>'s off-screen skipping both run on it.</>,
+      parts: ['observerManager', 'useAdaptiveSize', 'useMutationObserver'],
+    },
+    {
+      id: 'forms',
+      title: 'Form engine',
+      summary: <>A Zod schema drives validation, touched-state and error display, and <code>onSubmit</code> receives the schema's parsed output (coerced numbers, transformed values), not raw field strings.</>,
+      parts: ['Form', 'FormField', 'FormError', 'useFormContext', 'SubmitButton'],
+      demo: (
+        <>
+          <p style={{ marginTop: 0 }}>
+            The <code>Form</code> component provides automatic Zod 4 schema validation, field registration, error layout, and touched field tracking without prop-drilling.
+          </p>
+          <VStack gap="sm">
+            <div style={{ padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}>
+              <strong>Strongly-Typed Event Bus:</strong> Form submission and error states automatically emit <code>form:submitted</code> and <code>form:errored</code> events.
+            </div>
+            <div style={{ padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}>
+              <strong>Theme Spacing:</strong> Every <code>&lt;FormField&gt;</code> automatically applies <code>marginBottom: var(--ai-margin-gap)</code>.
+            </div>
+          </VStack>
+        </>
+      ),
+    },
+    {
+      id: 'toasts',
+      title: 'Toast subsystem',
+      summary: <>Stacked, swipe-dismissable, priority-aware notifications, fired from anywhere with <code>useToast()</code> or over the event bus.</>,
+      parts: ['useToast', 'aiBus.showToast', 'ToastSlice'],
+      demo: (
+        <VStack gap="md">
+          <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToast()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
+          <UIGroup>
+            <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
+              Fire Info Toast
+            </Button>
+            <Button subtheme="success" onClick={() => aiBus.showToast('Success notification!', 'success', 'high')}>
+              Fire Success Toast
+            </Button>
+            <Button subtheme="warning" onClick={() => aiBus.showToast('Warning: Check parameters', 'warning', 'high')}>
+              Fire Warning Toast
+            </Button>
+            <Button subtheme="error" onClick={() => aiBus.showToast('Critical System Failure', 'error', 'urgent')}>
+              Fire Urgent Error Toast
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                addToast({
+                  type: 'error',
+                  message: 'Connection lost',
+                  sticky: true,
+                  actions: [{ label: 'Retry', onClick: () => addToast({ type: 'success', message: 'Reconnected!' }) }],
+                })
+              }
+            >
+              Fire Sticky Toast w/ Action
+            </Button>
+          </UIGroup>
+
+          <HStack gap="sm">
+            {/* Native <label>, not <span> -- this Select's own
+                trigger renders as role="combobox", which
+                (unlike role="button") doesn't derive its
+                accessible name from visible content, only from
+                an aria-label/aria-labelledby or an associated
+                <label> (axe: button-name). */}
+            <label htmlFor="toast-anchor-select" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</label>
+            <Select
+              id="toast-anchor-select"
+              defaultValue="top-right"
+              onChange={val => setAnchor(val as any)}
+              options={[
+                { label: 'Top Right', value: 'top-right' },
+                { label: 'Top Left', value: 'top-left' },
+                { label: 'Bottom Right', value: 'bottom-right' },
+                { label: 'Bottom Left', value: 'bottom-left' },
+                { label: 'Top Center', value: 'top-center' },
+                { label: 'Bottom Center', value: 'bottom-center' },
+              ]}
+            />
+          </HStack>
+        </VStack>
+      ),
+    },
+    {
+      id: 'motion',
+      title: 'Motion',
+      summary: <>Shared animation tokens and presets drive every enter/exit and state transition, and all of it honors the user's reduced-motion preference. Overlays play real exit animations before they unmount.</>,
+      parts: ['animation', 'animationKeyframes', 'reducedMotion'],
+    },
+    {
+      id: 'resilience',
+      title: 'Resilience',
+      summary: <>A render crash in one widget shows a fallback instead of taking down the page, and long off-screen content skips layout and paint until it's scrolled into view.</>,
+      parts: ['AIErrorBoundary', 'DeferredContent'],
+      demo: (
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</div>
+          <VStack gap="sm">
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+              Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>Drawer</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
+            </p>
+            <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md)' }}>
+              <AIErrorBoundary componentName="ShowcaseWidget" fallback={(error, reset) => (
+                <VStack gap="sm">
+                  <p style={{ margin: 0, color: 'var(--ai-subtheme-error)', fontSize: '0.8125rem' }}>⚠️ {error.message}</p>
+                  <Button size="sm" variant="outline" onClick={() => { setFlakyTriggerKey(0); reset(); }}>Reset</Button>
+                </VStack>
+              )}>
+                <Flaky triggerKey={flakyTriggerKey} />
+              </AIErrorBoundary>
+            </div>
+            <Button size="sm" variant="danger" onClick={() => setFlakyTriggerKey(k => k + 1)}>💥 Trigger Error</Button>
+          </VStack>
+        </div>
+      ),
+    },
+    {
+      id: 'environment',
+      title: 'Environment integration',
+      summary: <>One provider wires everything up. Plug in your router, localize every built-in string, pass a CSP nonce for injected styles, render into another document (an iframe or pop-out window), and render the theme on the server.</>,
+      parts: ['ToolcribProvider', 'RouterAdapter', 'LocaleContext', 'nonceContext', 'targetDocumentContext', 'serverThemeCSS'],
+    },
+  ];
+
+
   return (
     <>
       {/* Mounted once, near the root — same "render it once, it works from
           anywhere" shape as <ToastContainer>. Its own Cmd/Ctrl+K listener
           registers itself on mount; items are the data-driven array built
           above. Also directly openable via aiBus.openCommandPalette(id),
-          demonstrated by the button on the Overlays tab. */}
+          demonstrated by the button in its Encyclopedia entry. */}
       <CommandPalette id="global-command-palette" items={commandPaletteItems} />
       <AppShell layout="sidebar-left">
       {/* Top Header Bar */}
@@ -1566,7 +3211,7 @@ export const App: React.FC = () => {
                         </p>
                         <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
                           <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
-                          <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see the Component Showcase tab.</li>
+                          <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see its Encyclopedia entry.</li>
                           <li><strong><code>Filmstrip</code></strong> — real roving tabindex (exactly one <code>tabIndex=0</code> stop at a time, matching the APG's own composite-widget model) with Arrow/Home/End keyboard navigation, not a scrollable row of plain divs.</li>
                         </ul>
                         <p style={{ marginBottom: 0 }}>
@@ -1606,1916 +3251,304 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Tab 2: Forms & Zod Engine */}
-                <TabStrip.Panel groupId="main-demo" value="forms">
-                  <Grid columns={2} gap="lg">
-                    <Card>
-                      <Card.Header>User Profile Form (Zod 4 Validated Engine)</Card.Header>
-                      <Card.Content>
-                        <Form
-                          id="profile-form"
-                          schema={userProfileSchema}
-                          initialValues={{ username: '', email: '', country: '', role: 'editor', contactPref: 'email', startDate: today(getLocalTimeZone()), notifications: true, agreeTerms: false }}
-                          onSubmit={values => {
-                            addToast({ type: 'success', message: `User ${values.username} created successfully! (Contact: ${values.contactPref})` });
-                          }}
-                        >
-                          <FormField name="username" label="Username" helperText="Unique username handle">
-                            <Input placeholder="johndoe" />
-                          </FormField>
-
-                          <FormField name="email" label="Email Address">
-                            <Input type="email" placeholder="john@example.com" />
-                          </FormField>
-
-                          <FormField name="country" label="Country" helperText="Type to filter — no Radix primitive covers this, hand-built on Popover">
-                            <Combobox options={COUNTRY_OPTIONS} placeholder="Search countries..." />
-                          </FormField>
-
-                          <FormField name="role" label="Role Level">
-                            <Select
-                              options={[
-                                { label: 'Administrator', value: 'admin' },
-                                { label: 'Content Editor', value: 'editor' },
-                                { label: 'Viewer Only', value: 'viewer' },
-                              ]}
-                            />
-                          </FormField>
-
-                          <FormField name="contactPref" label="Preferred Contact Method">
-                            <RadioGroup
-                              name="contactPref"
-                              direction="horizontal"
-                              options={[
-                                { label: 'Email', value: 'email' },
-                                { label: 'SMS Text', value: 'sms' },
-                                { label: 'Phone Call', value: 'phone' },
-                              ]}
-                            />
-                          </FormField>
-
-                          <FormField name="startDate" label="Start Date" helperText="Zod-validated via z.instanceof(CalendarDate) — the same DatePicker as the standalone demo below, now wired into this form's own validation and submit values">
-                            {/* aria-label, not label -- FormField already
-                                renders "Start Date" visibly above; DatePicker's
-                                own `label` would render a second, visually
-                                duplicate one since its composite date-segment
-                                structure can't pick up FormField's plain
-                                htmlFor association the way a single <input id>
-                                can. */}
-                            <DatePicker aria-label="Start Date" />
-                          </FormField>
-
-                          <FormField name="notifications">
-                            <Switch name="notifications" label="Enable Email Notifications" />
-                          </FormField>
-
-                          <FormField name="agreeTerms">
-                            <Checkbox name="agreeTerms" label="I agree to terms and conditions" />
-                          </FormField>
-
-                          <FormField name="bio" label="Short Bio (Optional)">
-                            <Textarea placeholder="Tell us about yourself..." />
-                          </FormField>
-
-                          <FormError />
-
-                          <Card.Actions>
-                            <SubmitButton>Save Profile</SubmitButton>
-                          </Card.Actions>
-                        </Form>
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Form Architecture & Validation Features</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          The <code>Form</code> component provides automatic Zod 4 schema validation, field registration, error layout, and touched field tracking without prop-drilling.
-                        </p>
-                        <VStack gap="sm">
-                          <div style={{ padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}>
-                            <strong>Strongly-Typed Event Bus:</strong> Form submission and error states automatically emit <code>form:submitted</code> and <code>form:errored</code> events.
-                          </div>
-                          <div style={{ padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}>
-                            <strong>Theme Spacing:</strong> Every <code>&lt;FormField&gt;</code> automatically applies <code>marginBottom: var(--ai-margin-gap)</code>.
-                          </div>
-                        </VStack>
-                      </Card.Content>
-                    </Card>
-                  </Grid>
-
-                  {/* Calendar/TimeField/Rating live outside the Zod form above
-                      deliberately — standalone, uncontrolled-by-default demos
-                      of each control's own onChange. DatePicker itself now
-                      appears twice: once wired into the form above (Zod-
-                      validated, part of the submitted values), and again here
-                      as its own standalone onChange demo — the same
-                      component, two different integration styles. */}
-                  <Card overrides={{ padding: 'compact' }}>
-                    <Card.Header>Date, Time & Rating Inputs (`&lt;DatePicker&gt;`, `&lt;Calendar&gt;`, `&lt;TimeField&gt;`, `&lt;Rating&gt;`)</Card.Header>
-                    <Card.Content>
-                      <Grid columns={3} gap="lg">
-                        <VStack gap="sm">
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Popover Calendar (`&lt;DatePicker&gt;`)</div>
-                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                            Backed by <code>@internationalized/date</code>'s <code>CalendarDate</code>, not a raw JS <code>Date</code> — correct across timezones/DST by construction. Hosted in toolcrib's own <code>&lt;Popup&gt;</code>, not a react-aria-components popover.
-                          </p>
-                          <DatePicker
-                            name="demoMeetingDate"
-                            label="Meeting Date"
-                            defaultValue={today(getLocalTimeZone())}
-                            onChange={value => addToast({ type: 'info', message: `Meeting date: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
-                          />
-                        </VStack>
-
-                        <VStack gap="sm">
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</div>
-                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                            <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot. <code>minValue</code> demonstrates a real cutoff date (issue #377): every day before today is disabled, not just visually greyed out.
-                          </p>
-                          {/* minValue={today(...)} (issue #377) -- react-aria-components' own
-                              min-date mechanism, already forwarded by this toolkit's Calendar
-                              (see CalendarProps.minValue's own JSDoc), just never demonstrated
-                              here before. defaultValue is `today` too, not a fixed literal like
-                              this page's other Calendar/DatePicker examples used to be (direct
-                              feedback: those must always open on the real current month, not a
-                              hardcoded date that silently drifts into the past) -- computing both
-                              from `today` also means defaultValue can never fall behind minValue
-                              itself as real time passes. */}
-                          <Calendar
-                            aria-label="Appointment date"
-                            minValue={today(getLocalTimeZone())}
-                            defaultValue={today(getLocalTimeZone())}
-                            onChange={value => addToast({ type: 'info', message: `Calendar date: ${value.toString()}`, priority: 'low' })}
-                          />
-                          <TimeField
-                            name="demoMeetingTime"
-                            label="Meeting Time"
-                            defaultValue={new Time(14, 30)}
-                            onChange={value => addToast({ type: 'info', message: `Meeting time: ${value?.toString() ?? '(cleared)'}`, priority: 'low' })}
-                          />
-                        </VStack>
-
-                        <VStack gap="sm">
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Star Rating (`&lt;Rating&gt;`)</div>
-                          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                            Built on Radix <code>RadioGroup</code> — real keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
-                          </p>
-                          <Rating
-                            name="demoRating"
-                            aria-label="Star rating"
-                            value={ratingValue}
-                            onChange={value => {
-                              setRatingValue(value);
-                              addToast({ type: 'info', message: `Rated ${value} of 5`, priority: 'low' });
-                            }}
-                          />
-                          <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Read-only (fractional fill):</div>
-                          <Rating readOnly value={3.5} />
-                        </VStack>
-                      </Grid>
-                    </Card.Content>
-                  </Card>
+                {/* Encyclopedia (issue #624): every component on one page --
+                    shadow board, then a catalog card per component in the
+                    five manifest drawers, then Systems. Replaces the ten
+                    per-topic component tabs. */}
+                <TabStrip.Panel groupId="main-demo" value="encyclopedia">
+                  <Encyclopedia demos={componentDemos} systems={systemAreas} />
                 </TabStrip.Panel>
 
-                {/* Tab 3: Overlays */}
-                <TabStrip.Panel groupId="main-demo" value="overlays">
-                  <Grid columns={3} gap="lg">
-                    <Card>
-                      <Card.Header>Popup Container (Popover)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>Anchored contextual popup container with light dismiss.</p>
-                        <Popup
-                          id="demo-popup"
-                          trigger={<Button variant="outline">Toggle Popup Menu</Button>}
-                        >
-                          <VStack gap="sm">
-                            <strong style={{ fontSize: '0.875rem' }}>Account Quick Info</strong>
-                            <p style={{ margin: 0, fontSize: '0.875rem' }}>User: john_doe@example.com</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Role: Administrator</p>
-                            <Button size="sm" variant="primary" onClick={() => aiBus.closePopup('demo-popup')}>Dismiss</Button>
-                          </VStack>
-                        </Popup>
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Drawer</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>Side drawer sliding in from screen edge with backdrop and light dismiss.</p>
-                        <Drawer
-                          id="demo-drawer"
-                          title="Application Details Drawer"
-                          trigger={<Button variant="secondary">Open Drawer</Button>}
-                        >
-                          <p>This drawer is decoupled and easily controlled by AI.</p>
-                          {/* Regression coverage for a real bug: Tooltip's exit
-                              animation used to bubble an animationend event up
-                              through this Drawer's own (React-tree, portal-
-                              spanning) onAnimationEnd handler and close the
-                              drawer just from hovering then un-hovering this
-                              button. Fixed by migrating Drawer to Radix's
-                              Presence primitive, which listens on the real DOM
-                              node directly instead of via bubbling. */}
-                          <Tooltip content="Hover then un-hover — must not close the drawer">
-                            <Button variant="outline">Hover me (regression check)</Button>
-                          </Tooltip>
-                          <Button variant="danger" onClick={() => aiBus.closeDrawer('demo-drawer')}>Close Drawer</Button>
-                        </Drawer>
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Modal Dialog (Focus Trap)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</p>
-                        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} ariaLabel="Confirm Account Action">
-                          <Modal.Header>Confirm Account Action</Modal.Header>
-                          <Modal.Body>
-                            Are you sure you want to perform this action? Keyboard navigation (Tab) is trapped safely inside this dialog.
-                            <div style={{ marginTop: '0.75rem' }}>
-                              <Modal trigger={<Button variant="outline">Open Nested Modal</Button>} ariaLabel="Nested Confirmation">
-                                <Modal.Header>Nested Confirmation</Modal.Header>
-                                <Modal.Body>
-                                  Both this dialog and its parent default to the same Z_INDEX.MODAL tier — real stacking here depends on portal/DOM order, not a distinct numeric value per nesting depth.
-                                </Modal.Body>
-                                <Modal.Footer>
-                                  <Modal.Actions>
-                                    <Modal.CloseButton />
-                                  </Modal.Actions>
-                                </Modal.Footer>
-                              </Modal>
-                            </div>
-                          </Modal.Body>
-                          <Modal.Footer>
-                            <Modal.Actions>
-                              <UIGroup>
-                                <Modal.CloseButton />
-                                <Button variant="danger" onClick={() => { addToast({ type: 'success', message: 'Action confirmed!' }); }}>Confirm</Button>
-                              </UIGroup>
-                            </Modal.Actions>
-                          </Modal.Footer>
-                        </Modal>
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Command Palette (`&lt;CommandPalette&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
-                        </p>
-                        <Button variant="outline" icon={<Command size="1em" />} onClick={() => aiBus.openCommandPalette('global-command-palette')}>
-                          Open Command Palette
-                        </Button>
-                      </Card.Content>
-                    </Card>
-                  </Grid>
-                </TabStrip.Panel>
-
-                {/* Tab 4: Toasts */}
-                <TabStrip.Panel groupId="main-demo" value="toasts">
-                  <Card>
-                    <Card.Header>Toast Subsystem Controls</Card.Header>
-                    <Card.Content>
-                      <VStack gap="md">
-                        <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToast()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
-                        <UIGroup>
-                          <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
-                            Fire Info Toast
-                          </Button>
-                          <Button subtheme="success" onClick={() => aiBus.showToast('Success notification!', 'success', 'high')}>
-                            Fire Success Toast
-                          </Button>
-                          <Button subtheme="warning" onClick={() => aiBus.showToast('Warning: Check parameters', 'warning', 'high')}>
-                            Fire Warning Toast
-                          </Button>
-                          <Button subtheme="error" onClick={() => aiBus.showToast('Critical System Failure', 'error', 'urgent')}>
-                            Fire Urgent Error Toast
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              addToast({
-                                type: 'error',
-                                message: 'Connection lost',
-                                sticky: true,
-                                actions: [{ label: 'Retry', onClick: () => addToast({ type: 'success', message: 'Reconnected!' }) }],
-                              })
-                            }
-                          >
-                            Fire Sticky Toast w/ Action
-                          </Button>
-                        </UIGroup>
-
-                        <HStack gap="sm">
-                          {/* Native <label>, not <span> -- this Select's own
-                              trigger renders as role="combobox", which
-                              (unlike role="button") doesn't derive its
-                              accessible name from visible content, only from
-                              an aria-label/aria-labelledby or an associated
-                              <label> (axe: button-name). */}
-                          <label htmlFor="toast-anchor-select" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Toast Anchor Position:</label>
-                          <Select
-                            id="toast-anchor-select"
-                            defaultValue="top-right"
-                            onChange={val => setAnchor(val as any)}
-                            options={[
-                              { label: 'Top Right', value: 'top-right' },
-                              { label: 'Top Left', value: 'top-left' },
-                              { label: 'Bottom Right', value: 'bottom-right' },
-                              { label: 'Bottom Left', value: 'bottom-left' },
-                              { label: 'Top Center', value: 'top-center' },
-                              { label: 'Bottom Center', value: 'bottom-center' },
-                            ]}
-                          />
-                        </HStack>
-                      </VStack>
-                    </Card.Content>
-                  </Card>
-                </TabStrip.Panel>
-
-                {/* Tab 5: Virtualized Data Table */}
-                <TabStrip.Panel groupId="main-demo" value="datatable">
-                  {/* <Card layout="auto"> below must stay a *direct* flex
-                      child of this panel, not nested inside a <VStack> —
-                      VStack doesn't declare `flex` on its own root div, so
-                      an auto-layout descendant has nothing to grow against
-                      and collapses to a near-zero height instead of filling
-                      the panel (confirmed via a real browser run: the whole
-                      table silently vanished, leaving only the Pagination
-                      card below it). The Pagination card stays a sibling
-                      here, not wrapped together with the table, for the
-                      same reason. */}
-                  <Card layout="auto">
-                    <Card.Header>
-                      <Toolbar>
-                        <Toolbar.Left>
-                          <span>Acme Analytics — Team Directory ({tableUsers.length} Rows, Adaptive Rem Height)</span>
-                        </Toolbar.Left>
-                        <Toolbar.Right>
-                          {/* DataTable already supports this today via
-                              pagination={false} -- see the continuousScroll
-                              state's own comment. This switch is the only
-                              new demo wiring; the toolkit itself needed no
-                              change. */}
-                          <Switch label="Continuous Scroll" checked={continuousScroll} onChange={setContinuousScroll} />
-                          {/* Off by default -- this table already has an
-                              explicit checkbox column for selection, so a
-                              plain row click ALSO selecting it is
-                              redundant, and became an actual conflict once
-                              rowCommands added an "Edit" trigger to the
-                              same row (clicking to edit shouldn't also
-                              flip selection). disableRowClickSelection is
-                              the toolkit's own existing prop for this; this
-                              switch just surfaces it as a live toggle. */}
-                          <Switch label="Click Row to Select" checked={rowClickToSelect} onChange={setRowClickToSelect} />
-                        </Toolbar.Right>
-                      </Toolbar>
-                    </Card.Header>
-                    <Card.Content layout="auto" paddingMode="compact">
-                      <DataTable
-                        id="demo-users-table"
-                        data={tableUsers}
-                        columns={columns}
-                        pagination={!continuousScroll}
-                        defaultPageSize={15}
-                        pageSizeOptions={[5, 10, 15, 25, 50]}
-                        containerHeight="auto"
-                        quickFilter
-                        densitySelector
-                        // Column show/hide (issue #340).
-                        columnVisibility
-                        // Real CSV export (issue #338) -- this used to be a
-                        // hand-rolled button in renderToolbarExtra below that
-                        // only showed a toast, no actual file. csvExport
-                        // renders its own built-in toolbar button, so the
-                        // fake one is gone; renderToolbarExtra now carries
-                        // only Reload Data, which has no toolkit-native
-                        // equivalent.
-                        csvExport
-                        csvExportFileName="users.csv"
-                        // Reload Data used to live in this Card's own header
-                        // Toolbar, in a separate row above the table entirely
-                        // -- moved into the same row search/density/
-                        // bulk-actions already share, per direct feedback
-                        // ("put the command buttons in the toolbar with
-                        // search"). No longer wrapped in <UIGroup> -- that
-                        // was for the segmented look of two adjacent buttons
-                        // (this one + the old fake Export CSV button); with
-                        // just Reload Data left, a plain <Button> is enough.
-                        //
-                        // Icon-only + title/aria-label (not a visible
-                        // label), matching the built-in toolbar-right
-                        // buttons right next to it (density/Export CSV/
-                        // Columns, issue #591/#595) -- this button sits in
-                        // the exact same connected row, so leaving it as
-                        // the one remaining icon+text control here would
-                        // reproduce the original #584/#591 "one button
-                        // doesn't match its siblings" look this whole
-                        // toolbar was already fixed for.
-                        // A constant "Reload Data" label now, not the old
-                        // state-dependent "Load Data"/"Reload Data" text --
-                        // that distinction only mattered as VISIBLE text;
-                        // once icon-only, a refresh icon reads the same
-                        // regardless of whether the table has ever loaded
-                        // (it (re)fetches from source either way), and a
-                        // constant name also avoids colliding with the
-                        // emptyState's own "Load Data" button below (both
-                        // visible at once while empty -- the two used to
-                        // be told apart by the toolbar button's 🔄 emoji
-                        // prefix, which no longer exists now that it's
-                        // icon-only; e2e/nav.ts's loadDemoTableData()
-                        // updated to match).
-                        renderToolbarExtra={() => (
-                          <Button size="sm" variant="outline" aria-label="Reload Data" title="Reload Data" icon={<RefreshCw size="1em" />} onClick={loadTableUsers} />
-                        )}
-                        rowKey={rec => rec.id}
-                        editable
-                        editSchema={userEditSchema}
-                        // Controlled -- the "Edit" trigger lives in
-                        // rowCommands below (direct visual feedback: a
-                        // separate synthetic column broke the co-grid's
-                        // own column alignment with the main table), and
-                        // rowCommands can only reach this via the same
-                        // controlled-state path its own "delete" handler
-                        // already uses, not CellContext.startEditingRow.
-                        editingKeys={editingUserKeys}
-                        onEditingKeysChange={setEditingUserKeys}
-                        onRowEditSave={(record, _index, next) => {
-                          // A real update (not a simulated toast-only
-                          // change) -- same "found via direct feedback
-                          // that a toast-only version left it unclear
-                          // whether the button was doing anything at all"
-                          // reasoning renderBulkActions' own delete button
-                          // below already applies.
-                          setTableUsers(prev => prev.map(u => (u.id === record.id ? { ...u, ...next } : u)));
-                          addToast({ type: 'success', message: `Saved ${next.name}`, priority: 'low' });
-                        }}
-                        onRowEditCancel={record => addToast({ type: 'info', message: `Discarded changes to ${record.name}`, priority: 'low' })}
-                        onRowClick={rec => addToast({ type: 'info', message: `Clicked ${rec.name}`, priority: 'low' })}
-                        rowCommands={[
-                          // Folded in alongside view/delete (direct visual
-                          // feedback) -- reuses rowCommands' own already-
-                          // correct button rendering/alignment instead of
-                          // a hand-rolled button in a separate column.
-                          // isVisible hides it once the row is already
-                          // being edited (its co-grid row's own Save/
-                          // Cancel are the way out of that state instead).
-                          // isDisabled, not isVisible -- direct feedback
-                          // ("when a row is in edit, do not hide the edit
-                          // command, just disable it to maintain layout"):
-                          // hiding it entirely shifted View/Delete's own
-                          // position depending on whether Edit was showing.
-                          { id: 'edit', label: 'Edit', icon: '✏️', isDisabled: record => editingUserKeys.includes(String(record.id)) },
-                          { id: 'view', label: 'View', icon: '👁️' },
-                          { id: 'delete', label: 'Delete', icon: '🗑️' },
-                        ]}
-                        rowSubtheme={rec =>
-                          rec.status === 'Inactive'
-                            // Preset form: one of the four semantic subthemes.
-                            ? 'error'
-                            : rec.score >= 90
-                            // Custom Partial<SubthemeColors> slice form: an
-                            // arbitrary "top performer" highlight the four
-                            // presets don't cover.
-                            ? { background: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.4)', color: 'rgb(109, 40, 217)' }
-                            : undefined
-                        }
-                        selectable
-                        disableRowClickSelection={!rowClickToSelect}
-                        selectedKeys={selectedUserKeys}
-                        onSelectionChange={setSelectedUserKeys}
-                        renderBulkActions={(keys, actions) => (
-                          <>
-                          {/* Falls out of composing the already-independent
-                              selection/editing key-sets (issue #545 section
-                              6) -- zero new DataTable-level prop needed
-                              beyond the startEditingRows action already
-                              threaded through here. */}
-                          <Button size="sm" variant="outline" icon={<Pencil size="1em" />} onClick={() => actions.startEditingRows(keys)}>
-                            Edit Selected
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            icon={<Trash2 size="1em" />}
-                            onClick={() => {
-                              // A REAL delete (not a simulated toast) --
-                              // found via direct feedback that a
-                              // toast-only version left it unclear whether
-                              // the button was doing anything at all.
-                              // Deleting every row reaches the SAME
-                              // <DataTable>'s own emptyState below (no
-                              // separate empty-only instance any more --
-                              // see e2e/interactive-sweep.spec.ts's own
-                              // comment on what that requires of the sweep
-                              // itself), and "Reload Data" above restores
-                              // the full set afterward.
-                              setTableUsers(prev => prev.filter(u => !keys.includes(String(u.id))));
-                              addToast({ type: 'warning', message: `Deleted ${keys.length} user(s)`, priority: 'medium' });
-                              setSelectedUserKeys([]);
-                            }}
-                          >
-                            Delete Selected
-                          </Button>
-                          </>
-                        )}
-                        emptyState={
-                          <EmptyState>
-                            <EmptyState.Icon>👥</EmptyState.Icon>
-                            <EmptyState.Title>No team members to show</EmptyState.Title>
-                            <EmptyState.Description>Load the demo dataset, or reload it if you've deleted everyone.</EmptyState.Description>
-                            <EmptyState.Action>
-                              <Button size="sm" variant="primary" icon={<Download size="1em" />} onClick={loadTableUsers}>Load Data</Button>
-                            </EmptyState.Action>
-                          </EmptyState>
-                        }
-                      />
-                    </Card.Content>
-                  </Card>
-                </TabStrip.Panel>
-
-                {/* Tab: Charts -- a fake "Acme Analytics" dashboard, purely
-                    to exercise BarChart/LineChart/PieChart together the way
-                    a real consumer app would compose them: a filter row, a
-                    stat-tile strip, then charts. Every number below is
-                    invented for the demo, not real data. */}
-                <TabStrip.Panel groupId="main-demo" value="charts">
-                  <VStack gap="lg">
-                    <Toolbar>
-                      <Toolbar.Left>
-                        <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
-                      </Toolbar.Left>
-                      <Toolbar.Right>
-                        {/* "Export Report", not the shorter "Export" --
-                            the Event Log panel's own "Export JSONL" button
-                            (a few hundred lines down) is ALWAYS mounted
-                            regardless of which tab is active, and
-                            Playwright/testing-library's default `name`
-                            matching is a substring match, not exact --
-                            confirmed directly: `getByRole('button', {name:
-                            'Export'})` resolved BOTH buttons at once,
-                            since "Export" is a substring of "Export
-                            JSONL" too. A more specific name sidesteps the
-                            ambiguity instead of relying on every future
-                            test remembering `exact: true`. */}
-                        <Button size="sm" variant="outline" aria-label="Export Report" title="Export Report" icon={<Download size="1em" />} onClick={() => addToast({ type: 'info', message: 'Report exported!' })} />
-                      </Toolbar.Right>
-                    </Toolbar>
-
-                    {/* Filter row, above everything it scopes -- per the
-                        toolkit's dataviz method, filters are standard UI
-                        composed from existing form controls (not a chart
-                        component), date range first. Every chart/stat above
-                        stays static in this demo (there's no real backing
-                        data to refetch against), but the row demonstrates
-                        the intended composition and placement. */}
-                    <Toolbar>
-                      <Toolbar.Left>
-                        <div style={{ width: '10rem' }}>
-                          <VisuallyHidden>
-                            <Label htmlFor="dashboard-date-range">Date range</Label>
-                          </VisuallyHidden>
-                          <Select
-                            id="dashboard-date-range"
-                            value={dashboardDateRange}
-                            onChange={setDashboardDateRange}
-                            options={[
-                              { label: 'Today', value: 'today' },
-                              { label: 'Last 7 days', value: '7d' },
-                              { label: 'Last 30 days', value: '30d' },
-                              { label: 'Last 90 days', value: '90d' },
-                            ]}
-                          />
-                        </div>
-                        <div style={{ width: '10rem' }}>
-                          <VisuallyHidden>
-                            <Label htmlFor="dashboard-dimension">Channel</Label>
-                          </VisuallyHidden>
-                          <Select
-                            id="dashboard-dimension"
-                            value={dashboardDimension}
-                            onChange={setDashboardDimension}
-                            options={[
-                              { label: 'All channels', value: 'all' },
-                              { label: 'Organic search', value: 'organic' },
-                              { label: 'Paid', value: 'paid' },
-                              { label: 'Referral', value: 'referral' },
-                            ]}
-                          />
-                        </div>
-                      </Toolbar.Left>
-                    </Toolbar>
-
-                    <Grid columns={4} gap="md">
-                      {[
-                        { label: 'Revenue', value: '$2.02M', delta: '+12.4%', good: true, trend: [1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02] },
-                        { label: 'Active users', value: '8,420', delta: '+4.6%', good: true, trend: [7200, 7400, 7350, 7800, 8050, 8200, 8420] },
-                        { label: 'Conversion rate', value: '3.8%', delta: '-0.3%', good: false, trend: [4.3, 4.1, 4.2, 3.9, 4.0, 3.85, 3.8] },
-                        { label: 'Churn', value: '1.9%', delta: '-0.5%', good: true, trend: [2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9] },
-                      ].map(stat => (
-                        <Card key={stat.label}>
-                          <Card.Content>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{stat.label}</div>
-                            <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                              <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
-                              <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
-                            </div>
-                          </Card.Content>
-                        </Card>
-                      ))}
-                    </Grid>
-
-                    <Grid columns={2} gap="md">
-                      <Card>
-                        <Card.Header>Revenue vs. Cost by Quarter</Card.Header>
-                        <Card.Content>
-                          <BarChart
-                            title="Quarterly revenue vs. cost"
-                            categories={['Q1', 'Q2', 'Q3', 'Q4']}
-                            series={[
-                              { label: 'Revenue', values: [420, 510, 480, 610] },
-                              { label: 'Cost', values: [310, 340, 360, 390] },
-                            ]}
-                          />
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>Signups Over Time</Card.Header>
-                        <Card.Content>
-                          <LineChart
-                            title="Weekly signups over time"
-                            categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
-                            series={[
-                              { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
-                              { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
-                            ]}
-                          />
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-
-                    <Card>
-                      <Card.Header>Signups by Tier (Stacked Area)</Card.Header>
-                      <Card.Content>
-                        <LineChart
-                          title="Weekly signups by tier, stacked"
-                          variant="area"
-                          width={980}
-                          categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
-                          series={[
-                            { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
-                            { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
-                          ]}
-                        />
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Support Tickets by Day &amp; Hour</Card.Header>
-                      <Card.Content>
-                        <Heatmap
-                          title="Support tickets by day and hour"
-                          width={980}
-                          rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
-                          columns={['9am', '11am', '1pm', '3pm', '5pm']}
-                          values={[
-                            [8, 14, 22, 18, 9],
-                            [6, 12, 19, 20, 11],
-                            [5, 10, 16, 15, 8],
-                            [9, 16, 24, 21, 12],
-                            [7, 11, 15, 13, 6],
-                          ]}
-                          formatValue={v => `${v} tickets`}
-                        />
-                        <ScaleLegend min={5} max={24} formatValue={v => `${v} tickets`} />
-                      </Card.Content>
-                    </Card>
-
-                    <Grid columns={2} gap="md">
-                      <Card>
-                        <Card.Header>Traffic by Source</Card.Header>
-                        <Card.Content>
-                          <PieChart
-                            title="Traffic by source"
-                            innerRadius={0.6}
-                            legendPosition="side"
-                            data={[
-                              { label: 'Organic search', value: 420 },
-                              { label: 'Direct', value: 210 },
-                              { label: 'Referral', value: 140 },
-                              { label: 'Social', value: 95 },
-                              { label: 'Email', value: 60 },
-                            ]}
-                          />
-                        </Card.Content>
-                      </Card>
-
-                      {/* The pie chart's table-view twin, per the toolkit's
-                          dataviz method -- every chart should have a
-                          WCAG-clean equivalent that doesn't depend on color
-                          to read the values. */}
-                      <Card>
-                        <Card.Header>Traffic by Source (table view)</Card.Header>
-                        <Card.Content>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                            <thead>
-                              <tr style={{ borderBottom: '1px solid var(--ai-border)' }}>
-                                <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Source</th>
-                                <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Sessions</th>
-                                <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Share</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {[
-                                { label: 'Organic search', value: 420 },
-                                { label: 'Direct', value: 210 },
-                                { label: 'Referral', value: 140 },
-                                { label: 'Social', value: 95 },
-                                { label: 'Email', value: 60 },
-                              ].map(row => {
-                                const total = 420 + 210 + 140 + 95 + 60;
-                                return (
-                                  <tr key={row.label} style={{ borderBottom: '1px solid var(--ai-border)' }}>
-                                    <td style={{ padding: '0.375rem 0', color: 'var(--ai-text-primary)' }}>{row.label}</td>
-                                    <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.value.toLocaleString()}</td>
-                                    <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{((row.value / total) * 100).toFixed(1)}%</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 6: Navigation & Structure */}
-                <TabStrip.Panel groupId="main-demo" value="navigation">
+                {/* Kits: pre-assembled combinations for common jobs -- a
+                    composed dashboard, then the layout wireframes. */}
+                <TabStrip.Panel groupId="main-demo" value="kits">
                   <VStack gap="lg">
                     <Card>
-                      <Card.Header>Breadcrumb Trail (`&lt;Breadcrumb&gt;`)</Card.Header>
+                      <Card.Header>Kits</Card.Header>
                       <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Wraps <code>react-aria-components</code>'s <code>Breadcrumbs</code>. Middle items collapse into a <code>&lt;DropdownMenu&gt;</code> automatically once the trail overflows its container — narrow the browser window to see it happen.
+                        <p style={{ margin: 0 }}>
+                          Pre-assembled combinations of the tools in the Encyclopedia, laid out for a common job. The analytics dashboard below is live components; the wireframes after it show the regions and proportions of common page layouts, with the primitives that build each.
                         </p>
-                        <Breadcrumb>
-                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Home', priority: 'low' })}>Home</Breadcrumb.Item>
-                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Products', priority: 'low' })}>Products</Breadcrumb.Item>
-                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Electronics', priority: 'low' })}>Electronics</Breadcrumb.Item>
-                          <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Laptops', priority: 'low' })}>Laptops</Breadcrumb.Item>
-                          <Breadcrumb.Item>Current Model</Breadcrumb.Item>
-                        </Breadcrumb>
                       </Card.Content>
                     </Card>
 
-                    <Card>
-                      <Card.Header>Themed Hyperlinks (`&lt;Link&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Colors itself from <code>--ai-color-primary-readable</code>/<code>-secondary-readable</code> — the theme's own hue, nudged for WCAG AA contrast rather than a fixed browser blue/purple. A plain hand-written <code>&lt;a&gt;</code> anywhere in this page picks up the same link/visited colors ambiently, with no class needed.
-                        </p>
-                        <HStack gap="lg" wrap align="center">
-                          <Link href="#">Default (primary)</Link>
-                          <Link href="#" variant="secondary">Secondary variant</Link>
-                          <Link href="#" subtheme="error">Delete account (subtheme)</Link>
-                          <Link href="https://example.com" target="_blank">
-                            Opens in new tab (auto rel=&quot;noopener noreferrer&quot;)
-                          </Link>
-                        </HStack>
-                      </Card.Content>
-                    </Card>
+                    {/* Analytics dashboard kit -- the former Charts tab: a
+                        filter row, stat tiles, then charts, composed the way
+                        a real consumer app would. Every number is invented. */}
+                    <section aria-labelledby="kit-analytics-title">
+                      <h2 id="kit-analytics-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem' }}>Analytics dashboard kit</h2>
+                      <VStack gap="lg">
+                        <Toolbar>
+                          <Toolbar.Left>
+                            <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
+                          </Toolbar.Left>
+                          <Toolbar.Right>
+                            {/* "Export Report", not the shorter "Export" --
+                                the Event Log panel's own "Export JSONL" button
+                                (a few hundred lines down) is ALWAYS mounted
+                                regardless of which tab is active, and
+                                Playwright/testing-library's default `name`
+                                matching is a substring match, not exact --
+                                confirmed directly: `getByRole('button', {name:
+                                'Export'})` resolved BOTH buttons at once,
+                                since "Export" is a substring of "Export
+                                JSONL" too. A more specific name sidesteps the
+                                ambiguity instead of relying on every future
+                                test remembering `exact: true`. */}
+                            <Button size="sm" variant="outline" aria-label="Export Report" title="Export Report" icon={<Download size="1em" />} onClick={() => addToast({ type: 'info', message: 'Report exported!' })} />
+                          </Toolbar.Right>
+                        </Toolbar>
 
-                    <Grid columns={2} gap="lg">
-                      <Card>
-                        <Card.Header>Collapsible Nav Rail (`&lt;Sidebar&gt;`)</Card.Header>
-                        <Card.Content>
-                          <p style={{ marginTop: 0 }}>
-                            This page's own left-hand navigation is a real <code>&lt;Sidebar&gt;</code> inside <code>&lt;AppShell.Sidebar&gt;</code> — the same component shown here again in a bounded box, isolated from that live grouping/routing logic, so its own collapse toggle and item states are easier to try in isolation.
-                          </p>
-                          <div style={{ height: '14rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
-                            <Sidebar
-                              items={SIDEBAR_ITEMS}
-                              activeId={sidebarActiveId}
-                              aria-label="Example navigation"
-                              onItemClick={id => setSidebarActiveId(id)}
-                            />
-                            <div style={{ flex: 1, padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Active: <strong style={{ color: 'var(--ai-text-primary)' }}>{SIDEBAR_ITEMS.find(i => i.id === sidebarActiveId)?.label}</strong>
-                            </div>
-                          </div>
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>Hierarchical Tree (`&lt;Tree&gt;`)</Card.Header>
-                        <Card.Content>
-                          <p style={{ marginTop: 0 }}>
-                            Full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) comes for free — try clicking an item, then using the arrow keys.
-                          </p>
-                          <div style={{ height: '14rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', padding: '0.5rem' }}>
-                            <Tree
-                              items={TREE_ITEMS}
-                              defaultExpandedIds={['src', 'components']}
-                              defaultSelectedId="card-tsx"
-                              onSelectChange={id => id && addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
-                            />
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-
-                    <Card>
-                      <Card.Header>Multi-Step Wizard (`&lt;Stepper&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
-                        </p>
-                        <Stepper steps={STEPPER_STEPS} />
-                      </Card.Content>
-                    </Card>
-
-                    {/* Moved here from the Data Table tab: that tab's own
-                        <DataTable containerHeight="auto"> needs to flex-fill
-                        essentially all of its Splitter panel's height to show
-                        a useful number of rows — a second, fixed-height Card
-                        as a flexShrink:0 sibling there permanently squeezed
-                        DataTable's real available space down to less than its
-                        own AUTO_HEIGHT_FALLBACK_PX floor, so the floor forced
-                        DataTable taller than that shrunken allocation and it
-                        overflowed/clipped against Card.Content's own
-                        overflow:hidden (confirmed via a real browser run,
-                        computed heights inspected at every ancestor level).
-                        This tab's plain VStack has no such height budget to
-                        protect, and pagination fits its own navigation theme
-                        better here than as an unrelated aside next to the
-                        data table anyway. */}
-                    <Card>
-                      <Card.Header>Standalone Pagination (`&lt;Pagination&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
-                        </p>
-                        <Pagination
-                          totalItems={137}
-                          pageSize={10}
-                          page={paginationPage}
-                          onPageChange={page => setPaginationPage(page)}
-                        />
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
-                        {/* size="md"/"lg" -- the row above only ever demonstrated
-                            the default size="sm". All three stay in sync since
-                            they're bound to the same controlled page state. */}
-                        <VStack gap="sm">
-                          <Pagination
-                            totalItems={137}
-                            pageSize={10}
-                            size="md"
-                            page={paginationPage}
-                            onPageChange={page => setPaginationPage(page)}
-                          />
-                          <Pagination
-                            totalItems={137}
-                            pageSize={10}
-                            size="lg"
-                            page={paginationPage}
-                            onPageChange={page => setPaginationPage(page)}
-                          />
-                        </VStack>
-                      </Card.Content>
-                    </Card>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 7: Media Gallery */}
-                <TabStrip.Panel groupId="main-demo" value="media">
-                  <VStack gap="lg">
-                    <Card>
-                      <Card.Header>Swipeable Carousel (`&lt;Carousel&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Wraps <code>embla-carousel-react</code> — drag/swipe it directly, or use the arrows/dots. Looping, with a 4-second autoplay.
-                        </p>
-                        <Carousel slides={CAROUSEL_SLIDES} loop autoplay={{ delayMs: 4000 }} />
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Thumbnail Strip (`&lt;Filmstrip&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Shares <code>&lt;TabStrip&gt;</code>'s own overflow-scroll detection and active-indicator theming — narrow the window to see the scroll arrows appear.
-                        </p>
-                        <Filmstrip
-                          items={FILMSTRIP_ITEMS}
-                          defaultActiveId={FILMSTRIP_ITEMS[0].id}
-                          onChange={id => addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
-                        />
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Thumbnail Grid + Lightbox (`&lt;Gallery&gt;`, composing `&lt;Viewer&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Click any thumbnail to open the fullscreen <code>&lt;Viewer&gt;</code> lightbox (composes <code>&lt;ViewerContent&gt;</code> inside <code>&lt;Modal&gt;</code>) — arrow keys navigate, click the image to zoom, Escape closes only the viewer. Thumbnails defer via the same <code>&lt;DeferredContent&gt;</code> used elsewhere in this demo, not a second lazy-render mechanism.
-                        </p>
-                        <Gallery items={GALLERY_ITEMS} columns="auto-fit" />
-                      </Card.Content>
-                    </Card>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 8: Feedback & Status */}
-                <TabStrip.Panel groupId="main-demo" value="status">
-                  <VStack gap="lg">
-                    <Grid columns={2} gap="lg">
-                      <Card>
-                        <Card.Header>Status Badges (`&lt;Badge&gt;`)</Card.Header>
-                        <Card.Content>
-                          <VStack gap="sm">
-                            <HStack gap="sm" wrap>
-                              <Badge subtheme="info">Info</Badge>
-                              <Badge subtheme="success">Active</Badge>
-                              <Badge subtheme="warning">Pending</Badge>
-                              <Badge subtheme="error">Failed</Badge>
-                              <Badge subtheme="success" icon="✓" size="sm">Verified</Badge>
-                            </HStack>
-                            {/* size="sm" vs. size="md", isolated from icon presence --
-                                the row above only ever paired size="sm" with an icon,
-                                so it couldn't demonstrate the two independently. */}
-                            <HStack gap="sm" wrap align="center">
-                              <Badge size="sm">Small</Badge>
-                              <Badge size="md">Medium</Badge>
-                              <Badge size="sm" icon="✓">Small + Icon</Badge>
-                              <Badge size="md" icon="✓">Medium + Icon</Badge>
-                            </HStack>
-                            {/* variant (identity color, for a branded/labeled
-                                badge that isn't a status) + appearance
-                                (soft/solid/outline "hollow" style) — both
-                                orthogonal to subtheme's own 4 status colors. */}
-                            <HStack gap="sm" wrap align="center">
-                              <Badge variant="primary">Primary</Badge>
-                              <Badge variant="secondary">Secondary</Badge>
-                              <Badge subtheme="success" appearance="solid">Solid</Badge>
-                              <Badge subtheme="warning" appearance="outline">Outline</Badge>
-                              <Badge variant="primary" appearance="solid">Solid Primary</Badge>
-                              <Badge variant="secondary" appearance="outline">Outline Secondary</Badge>
-                            </HStack>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>Loading Indicators (`&lt;Skeleton&gt;`, `&lt;Spinner&gt;`)</Card.Header>
-                        <Card.Content>
-                          <VStack gap="sm">
-                            <HStack gap="sm" align="center">
-                              <Skeleton shape="circle" width="2.5rem" height="2.5rem" />
-                              <VStack gap="xs">
-                                <Skeleton shape="text" width="9rem" />
-                                <Skeleton shape="text" width="6rem" />
-                              </VStack>
-                            </HStack>
-                            <HStack gap="md" align="center">
-                              <Spinner size="sm" />
-                              <Spinner size="md" subtheme="info" />
-                              <Spinner size="lg" subtheme="success" />
-                            </HStack>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>Living Color (Ambient Breathe &amp; Glow)</Card.Header>
-                        <Card.Content>
-                          <VStack gap="sm">
-                            <div
-                              className="ai-living-accent"
-                              style={{
-                                padding: 'var(--ai-padding-md, 0.5rem)',
-                                borderRadius: 'var(--ai-radius-md, 0.375rem)',
-                                color: 'var(--ai-color-primary-text, #ffffff)',
-                                textAlign: 'center',
-                                fontSize: '0.875rem',
-                              }}
-                            >
-                              .ai-living-accent
-                            </div>
-                            <div
-                              className="ai-living-glow"
-                              style={{
-                                padding: 'var(--ai-padding-md, 0.5rem)',
-                                borderRadius: 'var(--ai-radius-md, 0.375rem)',
-                                textAlign: 'center',
-                                fontSize: '0.875rem',
-                              }}
-                            >
-                              .ai-living-glow
-                            </div>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-
-                    <Card>
-                      <Card.Header>No-Content Placeholder (`&lt;EmptyState&gt;`)</Card.Header>
-                      <Card.Content>
-                        <EmptyState>
-                          <EmptyState.Icon>📭</EmptyState.Icon>
-                          <EmptyState.Title>No results found</EmptyState.Title>
-                          <EmptyState.Description>Try adjusting your search or filters, or create a new record.</EmptyState.Description>
-                          <EmptyState.Action>
-                            <Button variant="primary" onClick={() => addToast({ type: 'info', message: 'Create new record clicked' })}>Create Record</Button>
-                          </EmptyState.Action>
-                        </EmptyState>
-                      </Card.Content>
-                    </Card>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 9: Common Layout Idioms (NEW) */}
-                <TabStrip.Panel groupId="main-demo" value="layout">
-                  <VStack gap="lg">
-                    <Grid columns={2} gap="lg">
-                      <Card>
-                        <Card.Header>Vertical & Horizontal Stacks (`&lt;VStack&gt;` & `&lt;HStack&gt;`)</Card.Header>
-                        <Card.Content>
-                          <p style={{ marginTop: 0 }}>Self-spacing flex containers that automatically apply theme <code>--ai-margin-gap</code> spacing.</p>
-                          {/* Demo chrome (background/padding/radius) lives on
-                              plain wrapper divs, not VStack/HStack — they're
-                              pure layout primitives with no styled-box
-                              concept of their own. */}
-                          <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-md)' }}>
-                            <VStack gap="md">
-                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 1</div>
-                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 2</div>
-                              <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)' }}>
-                                <HStack justify="between">
-                                  <span style={{ fontWeight: 600 }}>HStack Left Item</span>
-                                  <Button size="sm" variant="primary">HStack Right Action</Button>
-                                </HStack>
-                              </div>
-                            </VStack>
-                          </div>
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>Multi-Column Responsive Grids (`&lt;Grid&gt;`)</Card.Header>
-                        <Card.Content>
-                          <p style={{ marginTop: 0 }}>Responsive grid containers that consume <code>--ai-margin-gap</code> spacing without pixel calculations.</p>
-                          <Grid columns={2} gap="md">
-                            <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
-                              Grid Column 1
-                            </div>
-                            <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
-                              Grid Column 2
-                            </div>
-                            <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
-                              Grid Column 3
-                            </div>
-                            <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
-                              Grid Column 4
-                            </div>
-                          </Grid>
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-
-                    <Card>
-                      <Card.Header>Themed Container Divs (`&lt;Block&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          The one component that accepts real <code>style</code>/<code>className</code> — for ad-hoc layout needs the two <code>&lt;div&gt;</code>s above stand in for. Its own <code>background</code>/<code>padding</code>/<code>radius</code>/<code>border</code> stay theme-driven by default, and <code>subtheme</code> resolves the same way <code>&lt;Badge&gt;</code>'s does.
-                        </p>
-                        <HStack gap="md" wrap>
-                          <Block background="container" padding="md" radius="md">Container + padding + radius</Block>
-                          <Block background="surface" padding="md" radius="md" border>Surface + border</Block>
-                          <Block padding="md" radius="md" subtheme="success">Subtheme (soft)</Block>
-                          <Block padding="md" radius="md" subtheme="warning" appearance="solid">Subtheme (solid)</Block>
-                        </HStack>
-                      </Card.Content>
-                    </Card>
-
-                    <Card>
-                      <Card.Header>Action Toolbars with Slot Architecture (`&lt;Toolbar&gt;`)</Card.Header>
-                      <Card.Content>
-                        <VStack gap="md">
-                          <p style={{ marginTop: 0 }}>Toolbars with explicit <code>Left</code>, <code>Center</code>, and <code>Right</code> slots prevent AI from writing ad-hoc flex styles.</p>
-                          <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem 1rem', borderRadius: 'var(--ai-radius-md)' }}>
-                            <Toolbar>
-                              <Toolbar.Left>
-                                <strong>Toolbar Title Left</strong>
-                              </Toolbar.Left>
-                              <Toolbar.Center>
-                                <Button size="sm" variant="outline">Center Tab 1</Button>
-                                <Button size="sm" variant="outline">Center Tab 2</Button>
-                              </Toolbar.Center>
-                              <Toolbar.Right>
-                                <Button size="sm" variant="primary" icon={<Zap size="1em" />}>Action Right</Button>
-                              </Toolbar.Right>
-                            </Toolbar>
-                          </div>
-                        </VStack>
-                      </Card.Content>
-                    </Card>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 10: Layout Wireframe Gallery */}
-                <TabStrip.Panel groupId="main-demo" value="wireframes">
-                  <VStack gap="lg">
-                    <Card>
-                      <Card.Header>Common Layout Wireframes</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Each tile below is an isolated <code>&lt;iframe srcDoc&gt;</code> — a static structural wireframe, deliberately flat-colored and filled with lorem ipsum rather than skinned in the live HSV theme, since a wireframe's job is to communicate regions and proportions, not final finish. The caption under each names the Toolcrib layout primitives that build the real thing.
-                        </p>
-                        <HStack gap="md" wrap>
-                          {WIREFRAME_LEGEND.map(item => (
-                            <HStack key={item.label} gap="sm">
-                              <div
-                                style={{
-                                  width: '0.75rem',
-                                  height: '0.75rem',
-                                  borderRadius: '0.1875rem',
-                                  background: item.color,
-                                  flexShrink: 0,
-                                }}
+                        {/* Filter row, above everything it scopes -- per the
+                            toolkit's dataviz method, filters are standard UI
+                            composed from existing form controls (not a chart
+                            component), date range first. Every chart/stat above
+                            stays static in this demo (there's no real backing
+                            data to refetch against), but the row demonstrates
+                            the intended composition and placement. */}
+                        <Toolbar>
+                          <Toolbar.Left>
+                            <div style={{ width: '10rem' }}>
+                              <VisuallyHidden>
+                                <Label htmlFor="dashboard-date-range">Date range</Label>
+                              </VisuallyHidden>
+                              <Select
+                                id="dashboard-date-range"
+                                value={dashboardDateRange}
+                                onChange={setDashboardDateRange}
+                                options={[
+                                  { label: 'Today', value: 'today' },
+                                  { label: 'Last 7 days', value: '7d' },
+                                  { label: 'Last 30 days', value: '30d' },
+                                  { label: 'Last 90 days', value: '90d' },
+                                ]}
                               />
-                              <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>{item.label}</span>
-                            </HStack>
+                            </div>
+                            <div style={{ width: '10rem' }}>
+                              <VisuallyHidden>
+                                <Label htmlFor="dashboard-dimension">Channel</Label>
+                              </VisuallyHidden>
+                              <Select
+                                id="dashboard-dimension"
+                                value={dashboardDimension}
+                                onChange={setDashboardDimension}
+                                options={[
+                                  { label: 'All channels', value: 'all' },
+                                  { label: 'Organic search', value: 'organic' },
+                                  { label: 'Paid', value: 'paid' },
+                                  { label: 'Referral', value: 'referral' },
+                                ]}
+                              />
+                            </div>
+                          </Toolbar.Left>
+                        </Toolbar>
+
+                        <Grid columns={4} gap="md">
+                          {[
+                            { label: 'Revenue', value: '$2.02M', delta: '+12.4%', good: true, trend: [1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02] },
+                            { label: 'Active users', value: '8,420', delta: '+4.6%', good: true, trend: [7200, 7400, 7350, 7800, 8050, 8200, 8420] },
+                            { label: 'Conversion rate', value: '3.8%', delta: '-0.3%', good: false, trend: [4.3, 4.1, 4.2, 3.9, 4.0, 3.85, 3.8] },
+                            { label: 'Churn', value: '1.9%', delta: '-0.5%', good: true, trend: [2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9] },
+                          ].map(stat => (
+                            <Card key={stat.label}>
+                              <Card.Content>
+                                <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{stat.label}</div>
+                                <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                  <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
+                                  <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
+                                </div>
+                              </Card.Content>
+                            </Card>
                           ))}
-                        </HStack>
-                      </Card.Content>
-                    </Card>
+                        </Grid>
 
-                    <Grid columns={3} gap="lg">
-                      {WIREFRAMES.map(wireframe => (
-                        <Card key={wireframe.title}>
-                          <Card.Header>{wireframe.title}</Card.Header>
-                          <Card.Content>
-                            {wireframe.content ? (
-                              <LiveIframe title={`${wireframe.title} wireframe`} height="11.25rem">
-                                {wireframe.content}
-                              </LiveIframe>
-                            ) : (
-                              <iframe
-                                title={`${wireframe.title} wireframe`}
-                                srcDoc={wireframe.srcDoc}
-                                sandbox=""
-                                style={{
-                                  width: '100%',
-                                  height: '11.25rem',
-                                  border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-                                  borderRadius: 'var(--ai-radius-md, 0.375rem)',
-                                  display: 'block',
-                                }}
-                              />
-                            )}
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)', fontFamily: 'monospace' }}>
-                              {wireframe.components}
-                            </div>
-                          </Card.Content>
-                        </Card>
-                      ))}
-                    </Grid>
-                  </VStack>
-                </TabStrip.Panel>
-
-                {/* Tab 11: Component Showcase */}
-                <TabStrip.Panel groupId="main-demo" value="showcase">
-                  <VStack gap="lg">
-                    {/* Section 1: Button Variants & Subthemes */}
-                    <Card>
-                      <Card.Header>Button Subsystem (Variants, Sub-Themes & Glyphs)</Card.Header>
-                      <Card.Content>
-                        <VStack gap="sm">
-                          <HStack gap="sm" wrap>
-                            <Button variant="primary" icon={<Rocket size="1em" />} trailingIcon={<ArrowRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Primary Button clicked!', priority: 'medium' })}>Primary Launch</Button>
-                            <Button variant="secondary" icon={<Settings size="1em" />} onClick={() => addToast({ type: 'info', message: 'Secondary Button clicked!', priority: 'low' })}>Secondary Settings</Button>
-                            <Button variant="outline" icon={<Zap size="1em" />} onClick={() => addToast({ type: 'info', message: 'Outline Button clicked!', priority: 'medium' })}>Outline Action</Button>
-                            <Button variant="danger" icon={<Trash2 size="1em" />} onClick={() => addToast({ type: 'error', message: 'Danger Button clicked!', priority: 'urgent' })}>Delete Record</Button>
-                            <Button variant="ghost" icon={<Star size="1em" />} onClick={() => addToast({ type: 'info', message: 'Ghost Button clicked!', priority: 'low' })}>Favorite</Button>
-                            <Button subtheme="success" icon={<CheckCircle2 size="1em" />} onClick={() => addToast({ type: 'success', message: 'Success Subtheme Button clicked!', priority: 'medium' })}>Success Verified</Button>
-                            <Button subtheme="warning" icon={<AlertTriangle size="1em" />} onClick={() => addToast({ type: 'warning', message: 'Warning Subtheme Button clicked!', priority: 'high' })}>Warning Alert</Button>
-                            <Button subtheme="info" icon={<Info size="1em" />} onClick={() => addToast({ type: 'info', message: 'Info Subtheme Button clicked!', priority: 'medium' })}>Info Details</Button>
-                          </HStack>
-                          {/* size="sm"/"md"/"lg", isolated from variant/subtheme --
-                              nothing above demonstrated the size prop at all. */}
-                          <HStack gap="sm" wrap align="center">
-                            <Button size="sm" variant="outline">Small</Button>
-                            <Button size="md" variant="outline">Medium</Button>
-                            <Button size="lg" variant="outline">Large</Button>
-                          </HStack>
-                        </VStack>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 1.5: CardSimple (token-saving shorthand) */}
-                    <Card>
-                      <Card.Header>Token-Saving Card Shorthand (`&lt;CardSimple&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Same visual result as slot-based <code>&lt;Card&gt;</code>, without composing <code>Header</code>/<code>Content</code>/<code>Footer</code> manually — useful when the AI just needs a quick single-purpose card.
-                        </p>
-                        <CardSimple
-                          title="Quick Stats"
-                          subtitle="Updated just now"
-                          footer={<span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Auto-refreshes every 30s</span>}
-                          actions={<Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Refreshed!' })}>Refresh</Button>}
-                        >
-                          <div style={{ fontSize: '2rem', fontWeight: 800 }}>1,204</div>
-                          <div style={{ color: 'var(--ai-text-secondary)', fontSize: '0.875rem' }}>Active Sessions</div>
-                        </CardSimple>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 1.6: per-instance overrides & style domains —
-                        Card no longer accepts `style`/`className`; instance-
-                        level theme values go through `overrides`, resolved
-                        as sparse CSS variables on Card's own root node (see
-                        theme/useSliceOverrides.ts). `subtheme` follows the
-                        same prop but falls back to the nearest
-                        <StyleDomainProvider> if the instance doesn't set its
-                        own — demonstrated below via a domain wrapping a
-                        Card that doesn't set `overrides.subtheme` itself. */}
-                    <Grid columns={2} gap="lg">
-                      <Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
-                        <Card.Header>Per-Instance Override (`overrides`)</Card.Header>
-                        <Card.Content>
-                          <p style={{ marginTop: 0 }}>
-                            This Card passes <code>overrides={'{'}{'{'} padding: 'compact', headerStyle: 'subtle-bg' {'}'}{'}'}</code> — a sparse CSS-variable patch applied only to this Card's own root node, leaving every other Card (and the global Theme Editor's Card slice) untouched.
-                          </p>
-                        </Card.Content>
-                      </Card>
-
-                      <StyleDomainProvider subtheme="error">
-                        <Card>
-                          <Card.Header>Style Domain (`&lt;StyleDomainProvider&gt;`)</Card.Header>
-                          <Card.Content>
-                            <p style={{ marginTop: 0 }}>
-                              This Card sets no <code>overrides.subtheme</code> of its own — its error-coloured border comes entirely from the ancestor <code>&lt;StyleDomainProvider subtheme="error"&gt;</code> wrapping it, via React Context (not CSS inheritance, so it still reaches components that render through a portal).
-                            </p>
-                          </Card.Content>
-                        </Card>
-                      </StyleDomainProvider>
-                    </Grid>
-
-                    {/* Section 2: Adaptive Card Layout & Groups */}
-                    <Grid columns={2} gap="lg">
-                      {/* No explicit height on this wrapper (or its sibling
-                          below) — Grid's plain `display:'grid'` leaves
-                          `align-items:stretch` as the browser default, so
-                          each grid item's cross-axis size is already the
-                          row's own height (driven by whichever card's
-                          natural content is tallest), with no JS/measurement
-                          involved. `layout="auto"`'s `height:'100%'` (see
-                          Card.tsx) resolves against that stretched size
-                          correctly per the CSS Grid spec even though it was
-                          never given an explicit height — so the demo box
-                          below grows/shrinks to match its row-mate
-                          dynamically instead of both being pinned to a
-                          hardcoded value that silently drifts out of sync
-                          the moment either card's content changes. */}
-                      <div>
-                        <Card layout="auto">
-                          <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
-                          <Card.Content layout="auto">
-                            <p style={{ marginTop: 0 }}>
-                              When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
-                            </p>
-                            <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
-                              Auto-Filling Bounding Box Area
-                            </div>
-                          </Card.Content>
-                          <Card.Footer>
-                            <span>Adaptive Status: Active</span>
-                            <Card.Actions>
-                              <Button size="sm" variant="outline" icon={<Sparkles size="1em" />} onClick={() => addToast({ type: 'info', message: 'Card Action button clicked!', priority: 'medium' })}>Action</Button>
-                            </Card.Actions>
-                          </Card.Footer>
-                        </Card>
-                      </div>
-
-                      {/* No layout="auto" here, unlike its sibling to the
-                          left -- this card's content is a growing list of
-                          example rows and must size itself to its own
-                          content, driving the row's stretched height (see
-                          this Grid's own comment above), not the other way
-                          around. It previously had the same fixed-height
-                          wrapper as its sibling, left over from an earlier,
-                          shorter version of this content: harmless while it
-                          fit, but a real clip once more example rows were
-                          added -- reachable only via the browser's native
-                          focus-scroll on Tab (which can scroll an
-                          overflow:hidden ancestor even though a mouse wheel
-                          can't), reported directly as "this card had two
-                          versions of the mixed controls" being invisible to
-                          normal scrolling. */}
-                      <div>
-                        <Card>
-                          <Card.Header>Connected Toolbars & Groups (`&lt;UIGroup&gt;`)</Card.Header>
-                          <Card.Content>
-                            <VStack gap="md">
-                              <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
-                                <UIGroup>
-                                  <Button variant="outline" icon={<ChevronLeft size="1em" />} onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
-                                  <Button variant="outline" icon={<Pause size="1em" />} onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
-                                  <Button variant="outline" icon={<ChevronRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
-                                </UIGroup>
-                              </div>
-
-                              <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
-                                {/* display:'grid' (not a plain block div) —
-                                    UIGroup is inline-flex, which shrinks to
-                                    content in normal block flow regardless
-                                    of a block parent's width; a grid item
-                                    stretches to fill its track by default
-                                    (justify-items:stretch), which works
-                                    against an inline-flex child too. */}
-                                <div style={{ display: 'grid', width: '100%' }}>
-                                  <UIGroup>
-                                    <Input placeholder="Search records..." />
-                                    <Button variant="primary" icon={<Search size="1em" />} onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
-                                  </UIGroup>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Input Sections (`leadingSection` / `trailingSection`, password reveal)</div>
-                                <VStack gap="sm">
-                                  <Input aria-label="Search people" placeholder="Search people..." leadingSection={<Search size="1em" />} clearable value={inputSectionsQuery} onChange={e => setInputSectionsQuery(e.target.value)} />
-                                  <Input aria-label="Price" placeholder="0.00" leadingSection="$" trailingSection="USD" inputMode="decimal" />
-                                  <div style={{ display: 'grid', width: '100%' }}>
-                                    <UIGroup>
-                                      <Input aria-label="Website" placeholder="acme" leadingSection="https://" trailingSection=".com" />
-                                      <Button variant="outline">Check</Button>
-                                    </UIGroup>
-                                  </div>
-                                  <Input aria-label="Password" type="password" placeholder="Password" autoComplete="new-password" />
-                                </VStack>
-                              </div>
-
-                              <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Group Containing a Popup Trigger (wrapper-div squaring)</div>
-                                {/* Regression coverage, live: Modal/Popup/
-                                    AlertDialog all wrap their own `trigger`
-                                    in an internal div (for flex-stretch
-                                    inside a row like this one), which
-                                    UIGroup's own direct-child CSS can't
-                                    reach through — the actual Button here
-                                    sits two DOM layers below that
-                                    selector's reach. Squares correctly
-                                    anyway via UIGroupContext, which
-                                    propagates through that wrapper the
-                                    same way useTargetDocument()/useNonce()
-                                    already reach components nested inside
-                                    a portal. See e2e/uiGroup.spec.ts for
-                                    the real-browser assertion this exists
-                                    to back up visually. */}
-                                <UIGroup>
-                                  <Button variant="outline" icon={<ChevronLeft size="1em" />}>Prev</Button>
-                                  <Popup
-                                    id="uigroup-popup-demo"
-                                    trigger={<Button variant="outline" icon={<Settings size="1em" />} aria-label="Options" title="Options" />}
-                                    placement="bottom-start"
-                                  >
-                                    <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Popup content</div>
-                                  </Popup>
-                                  <Button variant="outline" icon={<ChevronRight size="1em" />}>Next</Button>
-                                </UIGroup>
-                              </div>
-
-                              <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</div>
-                                <VStack gap="sm">
-                                  <UIGroup>
-                                    <Button size="sm" variant="outline">sm</Button>
-                                    <Input size="sm" placeholder="Small input" />
-                                    {/* VisuallyHidden label, not just `placeholder` -- Select's
-                                        trigger renders role="combobox", which (unlike
-                                        role="button") doesn't derive its accessible name
-                                        from visible content (axe: button-name). */}
-                                    <VisuallyHidden>
-                                      <Label htmlFor="showcase-select-sm">Small select</Label>
-                                    </VisuallyHidden>
-                                    <Select id="showcase-select-sm" size="sm" options={[{ label: 'Small', value: 'sm' }]} placeholder="Small select" />
-                                  </UIGroup>
-                                  <UIGroup>
-                                    <Button size="lg" variant="outline">lg</Button>
-                                    <Input size="lg" placeholder="Large input" />
-                                    <VisuallyHidden>
-                                      <Label htmlFor="showcase-select-lg">Large select</Label>
-                                    </VisuallyHidden>
-                                    <Select id="showcase-select-lg" size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
-                                  </UIGroup>
-                                </VStack>
-                              </div>
-                            </VStack>
-                          </Card.Content>
-                        </Card>
-                      </div>
-                    </Grid>
-
-                    {/* Section 3: Radix UI Primitives */}
-                    <Card>
-                      <Card.Header>Radix UI Primitives (Accordion, Dropdown Menu, Tooltip & Slider)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
-                              <DropdownMenu
-                                trigger={<Button variant="outline" icon={<Settings size="1em" />} trailingIcon={<ChevronDown size="1em" />}>User Actions Menu</Button>}
-                                items={[
-                                  { value: 'profile', label: 'View Profile', icon: '👤', onClick: () => addToast({ type: 'info', message: 'View Profile selected', priority: 'medium' }) },
-                                  { value: 'settings', label: 'Account Settings', icon: '⚙️', onClick: () => addToast({ type: 'info', message: 'Settings selected', priority: 'low' }) },
-                                  { isSeparator: true, value: 'sep1', label: '' },
-                                  { value: 'logout', label: 'Log Out', icon: '🚪', onClick: () => addToast({ type: 'warning', message: 'User logged out', priority: 'high' }) },
+                        <Grid columns={2} gap="md">
+                          <Card>
+                            <Card.Header>Revenue vs. Cost by Quarter</Card.Header>
+                            <Card.Content>
+                              <BarChart
+                                title="Quarterly revenue vs. cost"
+                                categories={['Q1', 'Q2', 'Q3', 'Q4']}
+                                series={[
+                                  { label: 'Revenue', values: [420, 510, 480, 610] },
+                                  { label: 'Cost', values: [310, 340, 360, 390] },
                                 ]}
                               />
-                            </div>
+                            </Card.Content>
+                          </Card>
 
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
-                              <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
-                                <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
-                              </Tooltip>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
-                              <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</div>
-                              <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
-                            </div>
-                          </VStack>
-
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Expandable Accordion (`&lt;Accordion&gt;`)</div>
-                            <Accordion
-                              defaultValue="faq-1"
-                              items={[
-                                { value: 'faq-1', title: 'Why use Radix UI Primitives?', content: 'Radix UI primitives handle WAI-ARIA roles, focus trapping, keyboard navigation, and light-dismiss while Toolcrib handles slots, HSV theming, and event bus dispatching.' },
-                                { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
-                              ]}
-                            />
-                          </div>
-                        </Grid>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 4: Newer Radix wraps — AlertDialog, Progress,
-                        Separator, Avatar, Toggle/ToggleGroup, ContextMenu,
-                        Collapsible */}
-                    <Card>
-                      <Card.Header>Newer Primitives (AlertDialog, Progress, Separator, Avatar, Toggle, ContextMenu & Collapsible)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Blocking Confirmation (`&lt;AlertDialog&gt;`)</div>
-                              <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} ariaLabel="Delete confirmation">
-                                <AlertDialog.Header>Delete this record?</AlertDialog.Header>
-                                <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
-                                <AlertDialog.Footer>
-                                  <AlertDialog.Actions>
-                                    <AlertDialog.Cancel />
-                                    <AlertDialog.Action onClick={() => addToast({ type: 'success', message: 'Record deleted' })}>Delete</AlertDialog.Action>
-                                  </AlertDialog.Actions>
-                                </AlertDialog.Footer>
-                              </AlertDialog>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Determinate Progress Bar (`&lt;Progress&gt;`)</div>
-                              <VStack gap="sm">
-                                <Progress id="demo-upload" aria-label="Upload progress" value={progressValue} subtheme="success" />
-                                <UIGroup>
-                                  <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.max(0, v - 10))}>-10%</Button>
-                                  <Button size="sm" variant="outline" onClick={() => setProgressValue(v => Math.min(100, v + 10))}>+10%</Button>
-                                </UIGroup>
-                                {/* size="sm"/"md"/"lg" (bar thickness), isolated from the
-                                    interactive default-size bar above. */}
-                                <Progress value={progressValue} size="sm" aria-label="Small progress bar" />
-                                <Progress value={progressValue} size="md" aria-label="Medium progress bar" />
-                                <Progress value={progressValue} size="lg" aria-label="Large progress bar" />
-                              </VStack>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>User Avatars with Fallback (`&lt;Avatar&gt;`)</div>
-                              <HStack gap="sm" align="center">
-                                <Avatar fallback="XS" alt="Small avatar example" size="sm" />
-                                <Avatar fallback="JD" alt="Jane Doe" size="md" />
-                                <Avatar fallback="AS" alt="Alex Smith" size="lg" />
-                                <Separator orientation="vertical" decorative />
-                                <Avatar src="https://broken-image-url.example/none.png" fallback="404" alt="Broken image" />
-                              </HStack>
-                            </div>
-                          </VStack>
-
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Single Disclosure Panel (`&lt;Collapsible&gt;`)</div>
-                              <Collapsible trigger="Show advanced options">
-                                <p style={{ margin: 0 }}>Content revealed on demand — for a single panel. See the Accordion above for a data-driven set of several.</p>
-                              </Collapsible>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Toggle & Connected ToggleGroup (`&lt;Toggle&gt;` / `&lt;ToggleGroup&gt;`)</div>
-                              <VStack gap="sm">
-                                <Toggle name="favorite" onPressedChange={pressed => addToast({ type: 'info', message: `Favorite ${pressed ? 'enabled' : 'disabled'}`, priority: 'low' })}>⭐ Favorite</Toggle>
-                                <ToggleGroup
-                                  name="text-align"
-                                  type="single"
-                                  defaultValue="left"
-                                  options={[
-                                    { value: 'left', label: '◀ Left' },
-                                    { value: 'center', label: '● Center' },
-                                    { value: 'right', label: '▶ Right' },
-                                  ]}
-                                  onChange={val => addToast({ type: 'info', message: `Alignment: ${val}`, priority: 'low' })}
-                                />
-                              </VStack>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Right-Click Menu (`&lt;ContextMenu&gt;`)</div>
-                              <ContextMenu
-                                items={[
-                                  { value: 'copy', label: 'Copy', icon: '📋', onClick: () => addToast({ type: 'info', message: 'Copied', priority: 'low' }) },
-                                  { value: 'rename', label: 'Rename', icon: '✏️', onClick: () => addToast({ type: 'info', message: 'Rename selected', priority: 'low' }) },
-                                  { isSeparator: true, value: 'sep', label: '' },
-                                  { value: 'delete', label: 'Delete', icon: '🗑️', onClick: () => addToast({ type: 'warning', message: 'Deleted', priority: 'medium' }) },
+                          <Card>
+                            <Card.Header>Signups Over Time</Card.Header>
+                            <Card.Content>
+                              <LineChart
+                                title="Weekly signups over time"
+                                categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+                                series={[
+                                  { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+                                  { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
                                 ]}
-                              >
-                                <div style={{ padding: '1.25rem', border: '0.0625rem dashed var(--ai-border, #d1d5db)', borderRadius: 'var(--ai-radius-md, 0.375rem)', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                                  Right-click this area
-                                </div>
-                              </ContextMenu>
-                            </div>
-                          </VStack>
+                              />
+                            </Card.Content>
+                          </Card>
                         </Grid>
-                      </Card.Content>
-                    </Card>
 
-                    {/* Section 4.5: Combobox — async search (distinct from
-                        the client-side-filtered Country field on the Form
-                        tab; this one simulates a real server round-trip)
-                        and the multiple-selection chip mode. */}
-                    <Card>
-                      <Card.Header>Combobox: Async Search & Multi-Select (`&lt;Combobox&gt;`)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <VStack gap="sm">
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Async Server Search (`onSearch`)</div>
-                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the Data Table tab uses). No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
-                            </p>
-                            <Combobox
-                              placeholder="Search users..."
-                              ariaLabel="Search users"
-                              searchDebounceMs={300}
-                              onSearch={async (query) => {
-                                await new Promise(resolve => setTimeout(resolve, 200));
-                                if (!query) return [];
-                                const q = query.toLowerCase();
-                                return dummyUsers
-                                  .filter(u => u.name.toLowerCase().includes(q))
-                                  .slice(0, 8)
-                                  .map(u => ({ label: `${u.name} (${u.email})`, value: String(u.id) }));
-                              }}
-                              onChange={(value) => {
-                                if (value) addToast({ type: 'info', message: `Selected user #${value}`, priority: 'low' });
-                              }}
-                            />
-                          </VStack>
-
-                          <VStack gap="sm">
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Multi-Select Tags (`multiple`)</div>
-                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip. <code>chipColor</code> colors chips per value — backend skills here use the <code>secondary</code> variant.
-                            </p>
-                            <Combobox
-                              multiple
-                              placeholder="Add skills..."
-                              ariaLabel="Skills"
-                              defaultValue={['react', 'typescript', 'postgres']}
-                              chipColor={(value) => (['node', 'graphql', 'postgres', 'docker'].includes(value) ? { variant: 'secondary' } : undefined)}
-                              options={[
-                                { label: 'React', value: 'react' },
-                                { label: 'TypeScript', value: 'typescript' },
-                                { label: 'Node.js', value: 'node' },
-                                { label: 'GraphQL', value: 'graphql' },
-                                { label: 'PostgreSQL', value: 'postgres' },
-                                { label: 'Docker', value: 'docker' },
+                        <Card>
+                          <Card.Header>Signups by Tier (Stacked Area)</Card.Header>
+                          <Card.Content>
+                            <LineChart
+                              title="Weekly signups by tier, stacked"
+                              variant="area"
+                              width={980}
+                              categories={['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6']}
+                              series={[
+                                { label: 'Free tier', values: [120, 145, 160, 210, 240, 260] },
+                                { label: 'Paid tier', values: [30, 42, 55, 60, 78, 95] },
                               ]}
-                              onChange={(value) => {
-                                addToast({ type: 'info', message: `Skills: ${(value as string[]).join(', ') || '(none)'}`, priority: 'low' });
-                              }}
                             />
-                          </VStack>
-                        </Grid>
-                      </Card.Content>
-                    </Card>
+                          </Card.Content>
+                        </Card>
 
-                    {/* Section 4.55: Listbox — the keyboard-navigable
-                        option list Combobox is built on, now usable
-                        standalone. Left: a caller-owned text input drives
-                        activeIndex/aria-activedescendant, exactly the
-                        contract Combobox itself relies on internally, and
-                        each option's `render` slot replaces the plain
-                        label with a two-line name/role layout. Right: a
-                        plain multiSelectable checklist with no input and
-                        no keyboard state at all — just toggling
-                        selectedValues membership on click. */}
-                    <Card>
-                      <Card.Header>Standalone Option List (`&lt;Listbox&gt;`)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <VStack gap="sm">
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Keyboard-Navigable Picker with a Custom `render` Slot</div>
-                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              Extracted from <code>&lt;Combobox&gt;</code>'s own internals — Listbox owns no keyboard state itself, so the input below drives <code>activeIndex</code> and <code>aria-activedescendant</code> the same way Combobox already does internally.
-                            </p>
-                            <Input
-                              value={listboxQuery}
-                              placeholder="Filter teammates..."
-                              clearable
-                              aria-controls="demo-listbox-team"
-                              aria-activedescendant={listboxActiveIndex !== undefined ? `demo-listbox-team-option-${listboxActiveIndex}` : undefined}
-                              onChange={e => {
-                                setListboxQuery(e.target.value);
-                                setListboxActiveIndex(undefined);
-                              }}
-                              onKeyDown={e => {
-                                const filtered = TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()));
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault();
-                                  setListboxActiveIndex(i => Math.min(filtered.length - 1, (i ?? -1) + 1));
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault();
-                                  setListboxActiveIndex(i => Math.max(0, (i ?? 0) - 1));
-                                } else if (e.key === 'Enter' && listboxActiveIndex !== undefined) {
-                                  e.preventDefault();
-                                  const opt = filtered[listboxActiveIndex];
-                                  if (opt) {
-                                    setListboxSelected(opt.value);
-                                    setListboxQuery('');
-                                    setListboxActiveIndex(undefined);
-                                    addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
-                                  }
-                                }
-                              }}
+                        <Card>
+                          <Card.Header>Support Tickets by Day &amp; Hour</Card.Header>
+                          <Card.Content>
+                            <Heatmap
+                              title="Support tickets by day and hour"
+                              width={980}
+                              rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
+                              columns={['9am', '11am', '1pm', '3pm', '5pm']}
+                              values={[
+                                [8, 14, 22, 18, 9],
+                                [6, 12, 19, 20, 11],
+                                [5, 10, 16, 15, 8],
+                                [9, 16, 24, 21, 12],
+                                [7, 11, 15, 13, 6],
+                              ]}
+                              formatValue={v => `${v} tickets`}
                             />
-                            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
-                              <Listbox
-                                id="demo-listbox-team"
-                                options={TEAM_MEMBERS.filter(m => m.label.toLowerCase().includes(listboxQuery.toLowerCase()))}
-                                activeIndex={listboxActiveIndex}
-                                selectedValues={listboxSelected ? [listboxSelected] : []}
-                                aria-label="Teammates"
-                                onSelect={opt => {
-                                  setListboxSelected(opt.value);
-                                  setListboxQuery('');
-                                  setListboxActiveIndex(undefined);
-                                  addToast({ type: 'info', message: `Assigned to ${opt.label}`, priority: 'low' });
-                                }}
+                            <ScaleLegend min={5} max={24} formatValue={v => `${v} tickets`} />
+                          </Card.Content>
+                        </Card>
+
+                        <Grid columns={2} gap="md">
+                          <Card>
+                            <Card.Header>Traffic by Source</Card.Header>
+                            <Card.Content>
+                              <PieChart
+                                title="Traffic by source"
+                                innerRadius={0.6}
+                                legendPosition="side"
+                                data={[
+                                  { label: 'Organic search', value: 420 },
+                                  { label: 'Direct', value: 210 },
+                                  { label: 'Referral', value: 140 },
+                                  { label: 'Social', value: 95 },
+                                  { label: 'Email', value: 60 },
+                                ]}
                               />
-                            </div>
-                          </VStack>
+                            </Card.Content>
+                          </Card>
 
-                          <VStack gap="sm">
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Click-Only Multi-Select (`multiSelectable`, no input)</div>
-                            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                              No keyboard state needed when there's no search box driving it — each click just toggles membership in <code>selectedValues</code>, the shape a "Visible Columns" quick-picker needs.
+                          {/* The pie chart's table-view twin, per the toolkit's
+                              dataviz method -- every chart should have a
+                              WCAG-clean equivalent that doesn't depend on color
+                              to read the values. */}
+                          <Card>
+                            <Card.Header>Traffic by Source (table view)</Card.Header>
+                            <Card.Content>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                    <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Source</th>
+                                    <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Sessions</th>
+                                    <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Share</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {[
+                                    { label: 'Organic search', value: 420 },
+                                    { label: 'Direct', value: 210 },
+                                    { label: 'Referral', value: 140 },
+                                    { label: 'Social', value: 95 },
+                                    { label: 'Email', value: 60 },
+                                  ].map(row => {
+                                    const total = 420 + 210 + 140 + 95 + 60;
+                                    return (
+                                      <tr key={row.label} style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                        <td style={{ padding: '0.375rem 0', color: 'var(--ai-text-primary)' }}>{row.label}</td>
+                                        <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.value.toLocaleString()}</td>
+                                        <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{((row.value / total) * 100).toFixed(1)}%</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </Card.Content>
+                          </Card>
+                        </Grid>
+                      </VStack>
+                    </section>
+
+                    <section aria-labelledby="kit-wireframes-title">
+                      <h2 id="kit-wireframes-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem' }}>Layout wireframes</h2>
+                      <VStack gap="lg">
+                        <Card>
+                          <Card.Header>Common Layout Wireframes</Card.Header>
+                          <Card.Content>
+                            <p style={{ marginTop: 0 }}>
+                              Each tile below is an isolated <code>&lt;iframe srcDoc&gt;</code> — a static structural wireframe, deliberately flat-colored and filled with lorem ipsum rather than skinned in the live HSV theme, since a wireframe's job is to communicate regions and proportions, not final finish. The caption under each names the Toolcrib layout primitives that build the real thing.
                             </p>
-                            <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
-                              <Listbox
-                                id="demo-listbox-columns"
-                                options={TABLE_COLUMN_OPTIONS}
-                                selectedValues={visibleColumns}
-                                multiSelectable
-                                aria-label="Visible table columns"
-                                onSelect={opt => {
-                                  setVisibleColumns(cols =>
-                                    cols.includes(opt.value) ? cols.filter(c => c !== opt.value) : [...cols, opt.value]
-                                  );
-                                }}
-                              />
-                            </div>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                              Visible: {visibleColumns.length ? visibleColumns.join(', ') : '(none)'}
-                            </p>
-                          </VStack>
+                            <HStack gap="md" wrap>
+                              {WIREFRAME_LEGEND.map(item => (
+                                <HStack key={item.label} gap="sm">
+                                  <div
+                                    style={{
+                                      width: '0.75rem',
+                                      height: '0.75rem',
+                                      borderRadius: '0.1875rem',
+                                      background: item.color,
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>{item.label}</span>
+                                </HStack>
+                              ))}
+                            </HStack>
+                          </Card.Content>
+                        </Card>
+
+                        <Grid columns={3} gap="lg">
+                          {WIREFRAMES.map(wireframe => (
+                            <Card key={wireframe.title}>
+                              <Card.Header>{wireframe.title}</Card.Header>
+                              <Card.Content>
+                                {wireframe.content ? (
+                                  <LiveIframe title={`${wireframe.title} wireframe`} height="11.25rem">
+                                    {wireframe.content}
+                                  </LiveIframe>
+                                ) : (
+                                  <iframe
+                                    title={`${wireframe.title} wireframe`}
+                                    srcDoc={wireframe.srcDoc}
+                                    sandbox=""
+                                    style={{
+                                      width: '100%',
+                                      height: '11.25rem',
+                                      border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                                      borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                                      display: 'block',
+                                    }}
+                                  />
+                                )}
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)', fontFamily: 'monospace' }}>
+                                  {wireframe.components}
+                                </div>
+                              </Card.Content>
+                            </Card>
+                          ))}
                         </Grid>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 4.6: FileUpload — drag-and-drop with a
-                        simulated upload transport (staged progress via
-                        setTimeout, occasionally failing to demonstrate
-                        Retry), reusing <Progress> per file and <AspectRatio>
-                        for image thumbnails. */}
-                    <Card>
-                      <Card.Header>Drag-and-Drop File Upload (`&lt;FileUpload&gt;`)</Card.Header>
-                      <Card.Content>
-                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                          Drop a few images (or click to browse) — max 4 files, 2 MB each. The upload transport below is entirely simulated (staged progress ticks, ~20% chance of a failure to show the Retry action) since toolcrib takes no opinion on the backend protocol: <code>onUpload</code> is just a consumer-supplied <code>(file, onProgress) =&gt; Promise&lt;void&gt;</code>.
-                        </p>
-                        <div style={{ maxWidth: '28rem' }}>
-                          <FileUpload
-                            accept="image/*"
-                            maxFiles={4}
-                            maxSizeBytes={2 * 1024 * 1024}
-                            onUpload={(file, onProgress) =>
-                              new Promise<void>((resolve, reject) => {
-                                let pct = 0;
-                                const tick = () => {
-                                  pct += 20;
-                                  onProgress(Math.min(pct, 100));
-                                  if (pct < 100) {
-                                    setTimeout(tick, 250);
-                                  } else if (Math.random() < 0.2) {
-                                    reject(new Error('Simulated network error'));
-                                  } else {
-                                    addToast({ type: 'success', message: `${file.name} uploaded`, priority: 'low' });
-                                    resolve();
-                                  }
-                                };
-                                setTimeout(tick, 250);
-                              })
-                            }
-                          />
-                        </div>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 5: Error Boundaries & Deferred Rendering */}
-                    <Card>
-                      <Card.Header>Resilience & Off-Screen Rendering (`&lt;AIErrorBoundary&gt;`, `&lt;DeferredContent&gt;`)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</div>
-                            <VStack gap="sm">
-                              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                                Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>Drawer</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
-                              </p>
-                              <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md)' }}>
-                                <AIErrorBoundary componentName="ShowcaseWidget" fallback={(error, reset) => (
-                                  <VStack gap="sm">
-                                    <p style={{ margin: 0, color: 'var(--ai-subtheme-error)', fontSize: '0.8125rem' }}>⚠️ {error.message}</p>
-                                    <Button size="sm" variant="outline" onClick={() => { setFlakyTriggerKey(0); reset(); }}>Reset</Button>
-                                  </VStack>
-                                )}>
-                                  <Flaky triggerKey={flakyTriggerKey} />
-                                </AIErrorBoundary>
-                              </div>
-                              <Button size="sm" variant="danger" onClick={() => setFlakyTriggerKey(k => k + 1)}>💥 Trigger Error</Button>
-                            </VStack>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Defer Off-Screen Content (`&lt;DeferredContent&gt;`)</div>
-                            <VStack gap="sm">
-                              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                                Each row below is wrapped in its own <code>&lt;DeferredContent&gt;</code> — scroll the list and the browser skips layout/paint for rows currently off-screen, resuming automatically as they scroll into view. Best for long lists/grids of many content-sized (not flex-fill) repeated items.
-                              </p>
-                              {/* tabIndex -- rows are plain text, no focusable descendant of their own (axe: scrollable-region-focusable). */}
-                              <div tabIndex={0} style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
-                                {Array.from({ length: 40 }, (_, i) => (
-                                  <DeferredContent key={i} estimatedHeight={44}>
-                                    <div
-                                      style={{
-                                        padding: '0.625rem 0.875rem',
-                                        borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)',
-                                        background: i % 2 === 0 ? 'transparent' : 'var(--ai-bg-container)',
-                                        fontSize: '0.8125rem',
-                                      }}
-                                    >
-                                      Deferred row #{i + 1}
-                                    </div>
-                                  </DeferredContent>
-                                ))}
-                              </div>
-                            </VStack>
-                          </div>
-                        </Grid>
-                      </Card.Content>
-                    </Card>
-
-                    {/* Section 6: Radix accessibility/layout utilities newly
-                        added to the toolkit — VisuallyHidden, AccessibleIcon,
-                        Label, ScrollArea */}
-                    <Card>
-                      <Card.Header>Accessibility, Scroll & Preview Utilities (`&lt;VisuallyHidden&gt;`, `&lt;AccessibleIcon&gt;`, `&lt;Label&gt;`, `&lt;ScrollArea&gt;`, `&lt;HoverCard&gt;`, `&lt;AspectRatio&gt;`)</Card.Header>
-                      <Card.Content>
-                        <Grid columns={2} gap="lg">
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Accessible Name for a Decorative Icon (`&lt;AccessibleIcon&gt;`)</div>
-                              <HStack gap="sm" align="center">
-                                <AccessibleIcon label="Verified account">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai-subtheme-success, #10b981)" strokeWidth="2.5" aria-hidden="true">
-                                    <path d="M20 6 9 17l-5-5" />
-                                  </svg>
-                                </AccessibleIcon>
-                                <span style={{ fontSize: '0.8125rem' }}>Jane Doe</span>
-                              </HStack>
-                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                The checkmark is purely decorative to a sighted user — <code>AccessibleIcon</code> marks it <code>aria-hidden</code> and gives screen readers the "Verified account" text instead, without an extra visible label crowding the row.
-                              </p>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Screen-Reader-Only Text (`&lt;VisuallyHidden&gt;`)</div>
-                              <HStack gap="sm" align="center">
-                                <span aria-hidden="true" style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--ai-subtheme-error, #ef4444)', display: 'inline-block' }} />
-                                <span style={{ fontSize: '0.8125rem' }}>3</span>
-                                <VisuallyHidden>3 unread notifications</VisuallyHidden>
-                              </HStack>
-                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                The dot and "3" are enough visually; the hidden text fills in the meaning ("3 unread notifications") for anyone not reading the badge by eye.
-                              </p>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Rich Hover Preview (`&lt;HoverCard&gt;`)</div>
-                              <HoverCard
-                                id="demo-hovercard"
-                                openDelay={150}
-                                content={
-                                  <VStack gap="xs">
-                                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Jane Doe</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Senior Engineer · Joined 2022</div>
-                                    <Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Opened profile', priority: 'low' })}>View profile</Button>
-                                  </VStack>
-                                }
-                              >
-                                <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
-                              </HoverCard>
-                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
-                              </p>
-                            </div>
-                          </VStack>
-
-                          <VStack gap="md">
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Standalone Form Label (`&lt;Label&gt;`)</div>
-                              <Label htmlFor="demo-remember-me">
-                                <input id="demo-remember-me" type="checkbox" />
-                                <span>Remember me on this device</span>
-                              </Label>
-                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                Same component <code>FormField</code>'s own label uses internally — clicking the text toggles the checkbox, without hand-rolling the wrapping/`htmlFor` association.
-                              </p>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Themed Custom Scrollbar (`&lt;ScrollArea&gt;`)</div>
-                              <ScrollArea maxHeight="8rem" overrides={{ thumbWidth: 'thick' }}>
-                                <VStack gap="xs">
-                                  {Array.from({ length: 20 }, (_, i) => (
-                                    <div key={i} style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)' }}>
-                                      Row {i + 1}
-                                    </div>
-                                  ))}
-                                </VStack>
-                              </ScrollArea>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</div>
-                              <div style={{ maxWidth: '12rem' }}>
-                                <AspectRatio ratio={16 / 9}>
-                                  <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem' }}>
-                                    16:9
-                                  </div>
-                                </AspectRatio>
-                              </div>
-                              <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
-                                Stays 16:9 regardless of the parent's width — resize the window to see it hold, the way a video thumbnail or card image needs to.
-                              </p>
-                            </div>
-                          </VStack>
-                        </Grid>
-                      </Card.Content>
-                    </Card>
+                      </VStack>
+                    </section>
                   </VStack>
                 </TabStrip.Panel>
               </Content.Grow>
@@ -3553,7 +3586,7 @@ export const App: React.FC = () => {
                   <Toolbar.Right>
                     {/* A connected <UIGroup> instead of loose Toolbar.Button
                         siblings — same "3-Button Connected Group with
-                        Glyphs" pattern shown on the Component Showcase tab,
+                        Glyphs" pattern shown in UIGroup's Encyclopedia entry,
                         just applied to a real toolbar instead of a demo
                         card. Plain <Button> (not Toolbar.Button): UIGroup's
                         border-merging CSS targets its own direct children,

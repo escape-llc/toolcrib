@@ -27,7 +27,10 @@ test('a chip remove button\'s focus ring has real contrast against its own chip 
   const heading = page.getByText('Multi-Select Tags (`multiple`)', { exact: false });
   await heading.scrollIntoViewIfNeeded();
 
-  const comboboxInput = page.locator('input[role="combobox"]').last();
+  // By name, not `.last()` -- the multi-select Skills combobox used to be
+  // the last one on its tab; on the single Encyclopedia page (issue #624)
+  // the Form entry's Country combobox comes after it.
+  const comboboxInput = page.getByRole('combobox', { name: 'Skills' });
   await comboboxInput.waitFor({ state: 'visible' });
   await comboboxInput.click();
 

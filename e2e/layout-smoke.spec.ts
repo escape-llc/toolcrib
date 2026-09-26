@@ -11,18 +11,9 @@ import { gotoTab } from './nav';
 // class of bug (see e2e/README.md's "real CSS resolution" scope).
 const MIN_HEALTHY_HEIGHT_PX = 250;
 
-// Plain labels (no emoji) -- gotoTab (e2e/nav.ts) navigates to each via
-// its owning sidebar group, mirroring demo/App.tsx's own NAV_GROUPS.
-const TABS = [
-  'Overview & Architecture',
-  'Forms & Zod Engine',
-  'Overlays & Actions',
-  'Toast Subsystem',
-  'Data Table',
-  'Common Layout Idioms',
-  'Wireframe Gallery',
-  'Component Showcase',
-];
+// The demo's three pages (issue #624) -- gotoTab (e2e/nav.ts) navigates to
+// each via its sidebar link.
+const TABS = ['Overview', 'Encyclopedia', 'Kits'];
 
 test('the main content scroll region stays a healthy height on every tab, not collapsed', async ({ page }) => {
   await page.goto('/');
@@ -42,7 +33,7 @@ test('the main content scroll region stays a healthy height on every tab, not co
 
 test('a tab with enough content to overflow actually scrolls', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Component Showcase');
+  await gotoTab(page, 'Encyclopedia');
 
   const scrollRegion = page.getByTestId('main-content-scroll');
   const before = await scrollRegion.evaluate(el => el.scrollTop);

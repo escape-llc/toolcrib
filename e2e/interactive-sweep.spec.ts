@@ -19,18 +19,10 @@ import { gotoTab } from './nav';
 // (bounding boxes, console output) is the same approach every other spec in
 // this suite already uses, and it's platform-stable.
 
-// Plain labels (no emoji) -- gotoTab (e2e/nav.ts) navigates to each via
-// its owning sidebar group, mirroring demo/App.tsx's own NAV_GROUPS.
-const TABS = [
-  'Overview & Architecture',
-  'Forms & Zod Engine',
-  'Overlays & Actions',
-  'Toast Subsystem',
-  'Data Table',
-  'Common Layout Idioms',
-  'Wireframe Gallery',
-  'Component Showcase',
-];
+// The demo's three pages (issue #624 consolidated the ten per-topic
+// component tabs into the single Encyclopedia page) -- gotoTab (e2e/nav.ts)
+// navigates to each via its sidebar link.
+const TABS = ['Overview', 'Encyclopedia', 'Kits'];
 
 // Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
 // DropdownMenu, ContextMenu, Select) on Escape — one key between clicks
@@ -42,9 +34,18 @@ const TABS = [
 // after Escape. A fixed short wait here isn't reliable across every overlay
 // type's own close duration, so poll for the backdrop actually being gone
 // instead of guessing a delay long enough for the slowest one.
+//
+// Waits on the overlay surfaces themselves -- the drawer backdrop's test
+// point, any dialog, any open popup -- not every [role="presentation"]:
+// Skeleton and React Aria's DateInput carry that role permanently, so the
+// old selector could never reach 0 on a page showing either, and every
+// settle() silently burned its full 2s timeout. That went unnoticed while
+// they sat on separate tabs; issue #624's single Encyclopedia page put
+// them in every iteration.
+const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], .ai-popup-content';
 async function settle(page: Page) {
   await page.keyboard.press('Escape').catch(() => {});
-  await expect(page.locator('[role="presentation"]')).toHaveCount(0, { timeout: 2000 }).catch(() => {});
+  await expect(page.locator(OPEN_OVERLAY)).toHaveCount(0, { timeout: 2000 }).catch(() => {});
 }
 
 // A tab switch replays that panel's own entrance animation/transition;
@@ -104,9 +105,11 @@ test('no console errors while clicking through every interactive control on ever
   // Forms & Zod Engine now also carries the DatePicker/Calendar/TimeField/
   // Rating showcase, whose inline Calendar grid alone adds ~35 button
   // cells to click through. Measured at ~80s locally for the full 8-tab
-  // sweep with the current content; 120s leaves real margin for a slower
-  // CI runner without masking a genuine hang if one shows up later.
-  test.setTimeout(120_000);
+  // sweep with the content of the time. The Encyclopedia (issue #624) puts
+  // every component on one page and adds a spec-sheet toggle per catalog
+  // card, so the budget grew with it; still a hard ceiling, so a genuine
+  // hang fails rather than running forever.
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on('console', msg => {
     if (msg.type() === 'error' && !isExpectedNoise(msg.text())) errors.push(msg.text());
@@ -165,7 +168,7 @@ test("interacting with one card's own control never shifts a sibling card's posi
   // content. WebKit's rendering pipeline is measurably slower than
   // Chromium's for this, and 30s (the Playwright default) isn't enough
   // margin there even though it was fine on Chromium alone.
-  test.setTimeout(120_000);
+  test.setTimeout(300_000);
   await page.goto('/');
 
   for (const tab of TABS) {
@@ -177,12 +180,20 @@ test("interacting with one card's own control never shifts a sibling card's posi
     // Card's own root div carries data-ai-layout-auto unconditionally
     // ('true' or 'false') — a reliable, marker for "this is a Card
     // boundary" without needing a dedicated testid on every Card in the
-    // demo. Only the top-level ones on this tab; nested Cards (e.g. inside
-    // Component Showcase) are a rarer, lower-value case skipped here to
-    // keep this sweep's runtime reasonable.
-    const cards = scope.locator(':scope > * [data-ai-layout-auto], :scope > [data-ai-layout-auto]');
+    // demo. On the Encyclopedia, only the catalog/system cards themselves
+    // (each the direct child of its own <section id="enc-…">), not the
+    // demo Cards nested inside them, and only each card's two neighbors are
+    // compared: the entries stack vertically at full width, so a horizontal
+    // shift would show up in a neighbor, and all-pairs over ~80 cards would
+    // be ~13,000 bounding-box reads.
+    const isEncyclopedia = tab === 'Encyclopedia';
+    const cards = isEncyclopedia
+      ? scope.locator('section[id^="enc-"] > [data-ai-layout-auto]')
+      : scope.locator(':scope > * [data-ai-layout-auto], :scope > [data-ai-layout-auto]');
     const cardCount = await cards.count();
     if (cardCount < 2) continue; // nothing to compare a shift against
+    const comparedWith = (target: number) =>
+      isEncyclopedia ? [target - 1, target + 1].filter(i => i >= 0 && i < cardCount) : [...Array(cardCount).keys()];
 
     for (let target = 0; target < cardCount; target++) {
       // A fresh box for every card right before this interaction — not the
@@ -194,10 +205,11 @@ test("interacting with one card's own control never shifts a sibling card's posi
       // below (a horizontal shift is never legitimate document flow the
       // way a vertical one can be) — see TabStrip's own fix earlier this
       // session for exactly this failure mode.
-      const before: { x: number; width: number }[] = [];
-      for (let i = 0; i < cardCount; i++) {
+      const others = comparedWith(target);
+      const before: Record<number, { x: number; width: number }> = {};
+      for (const i of others) {
         const box = await cards.nth(i).boundingBox();
-        before.push({ x: box?.x ?? 0, width: box?.width ?? 0 });
+        before[i] = { x: box?.x ?? 0, width: box?.width ?? 0 };
       }
 
       const control = cards.nth(target).locator('button:visible:not([disabled]):not([role="tab"])').first();
@@ -205,7 +217,7 @@ test("interacting with one card's own control never shifts a sibling card's posi
       if (!(await clickRobust(control))) continue;
       await settle(page);
 
-      for (let i = 0; i < cardCount; i++) {
+      for (const i of others) {
         if (i === target) continue; // this card's own growth/shrink is expected
         const box = await cards.nth(i).boundingBox();
         expect(box?.x, `tab "${tab}", card ${i} x-position after interacting with card ${target}`).toBeCloseTo(before[i].x, 0);

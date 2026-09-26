@@ -1,5 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { gotoTab, loadDemoTableData } from './nav';
+
+// Scoped to the DataTable's own Encyclopedia entry: since issue #624 every
+// component shares one page, so page-wide getByRole('grid') / locator('table')
+// / 'Next page' also match the inline Calendar's grid and the standalone
+// Pagination demos.
+const dataTable = (page: Page) => page.locator('#enc-DataTable');
+
 
 // Real-browser confirmation of issue #339's density selector + the
 // itemHeight/density disconnect fix -- complements
@@ -23,10 +30,10 @@ test.describe('DataTable density selector (issue #339)', () => {
     // per option), not role="button" + aria-pressed. The group's own
     // aria-label ("Row density") carries that context at the group level;
     // each option's own accessible name is just its plain label.
-    const compactBtn = page.getByRole('radio', { name: 'Compact' });
+    const compactBtn = dataTable(page).getByRole('radio', { name: 'Compact' });
     await expect(compactBtn).toBeVisible();
 
-    const firstRow = page.getByRole('grid').first().locator('tbody tr[aria-rowindex]').first();
+    const firstRow = dataTable(page).getByRole('grid').first().locator('tbody tr[aria-rowindex]').first();
     const normalHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
 
     await compactBtn.click();
@@ -34,14 +41,14 @@ test.describe('DataTable density selector (issue #339)', () => {
     const compactHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(compactHeight).toBeLessThan(normalHeight);
 
-    const spaciousBtn = page.getByRole('radio', { name: 'Spacious' });
+    const spaciousBtn = dataTable(page).getByRole('radio', { name: 'Spacious' });
     await spaciousBtn.click();
     await expect(spaciousBtn).toHaveAttribute('aria-checked', 'true');
     const spaciousHeight = await firstRow.evaluate(el => el.getBoundingClientRect().height);
     expect(spaciousHeight).toBeGreaterThan(normalHeight);
 
     // Back to normal, for any test that runs after this one against the same worker/page.
-    await page.getByRole('radio', { name: 'Normal' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Normal' }).click();
   });
 
   // Regression test for a real, reported bug (see DataTableSlice.tsx's own
@@ -67,11 +74,11 @@ test.describe('DataTable density selector (issue #339)', () => {
     // demo/App.tsx's main table is `selectable` -- the checkbox column
     // that caused this exact regression is already present without
     // needing to configure anything further.
-    await page.getByRole('combobox', { name: 'Rows per page' }).selectOption('auto');
+    await dataTable(page).getByRole('combobox', { name: 'Rows per page' }).selectOption('auto');
 
     for (const densityLabel of ['Compact', 'Normal', 'Spacious'] as const) {
-      await page.getByRole('radio', { name: densityLabel }).click();
-      await expect(page.getByRole('radio', { name: densityLabel })).toHaveAttribute('aria-checked', 'true');
+      await dataTable(page).getByRole('radio', { name: densityLabel }).click();
+      await expect(dataTable(page).getByRole('radio', { name: densityLabel })).toHaveAttribute('aria-checked', 'true');
 
       // A density change plays a real cross-fade transition (issue #499,
       // datatable-density-crossfade.spec.ts): the OUTGOING density's rows
@@ -83,7 +90,7 @@ test.describe('DataTable density selector (issue #339)', () => {
       // here. Waiting for the clone to actually be removed (the same
       // real signal that spec's own first test polls for) is what makes
       // this check honest, not a race against the fade's own timing.
-      await expect.poll(() => page.locator('table').count()).toBe(1);
+      await expect.poll(() => dataTable(page).locator('table').count()).toBe(1);
 
       const scrollInfo = await page.evaluate(() => {
         const grid = document.querySelector('[role="grid"]');
@@ -104,6 +111,6 @@ test.describe('DataTable density selector (issue #339)', () => {
     }
 
     // Back to normal, for any test that runs after this one.
-    await page.getByRole('radio', { name: 'Normal' }).click();
+    await dataTable(page).getByRole('radio', { name: 'Normal' }).click();
   });
 });
