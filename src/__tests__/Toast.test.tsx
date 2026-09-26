@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { type ToastAnchor, ToastProvider, useToast } from '../components/Toast/ToastContext';
+import { type ToastAnchor, ToastProvider, useToast, useToastActions } from '../components/Toast/ToastContext';
 import { ToastContainer } from '../components/Toast/Toast';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
@@ -554,5 +554,63 @@ describe('Toast Subsystem Event Generation', () => {
       // screen instead of stacking upward).
       expect(toastA.style.getPropertyValue('--stack-offset')).toBe(`-${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
     });
+  });
+});
+
+// Issue #632: ToastContext's value carries the live toasts array, so every
+// useToast() consumer re-renders whenever any toast is added or expires.
+// useToastActions() exposes just the (stable) actions from a separate,
+// memoized context, so a component that only fires toasts doesn't.
+describe('useToastActions (issue #632)', () => {
+  it('a useToastActions() consumer does not re-render when a toast is added; a useToast() consumer does', () => {
+    const actionsRendered = vi.fn();
+    const fullRendered = vi.fn();
+    const ActionsOnly = () => {
+      actionsRendered();
+      const { addToast } = useToastActions();
+      return <button onClick={() => addToast({ type: 'info', message: 'fired' })}>Fire</button>;
+    };
+    const Full = () => {
+      fullRendered();
+      useToast();
+      return null;
+    };
+    render(
+      <ToastProvider>
+        <ActionsOnly />
+        <Full />
+      </ToastProvider>
+    );
+    const actionsBefore = actionsRendered.mock.calls.length;
+    const fullBefore = fullRendered.mock.calls.length;
+    fireEvent.click(screen.getByText('Fire'));
+    fireEvent.click(screen.getByText('Fire'));
+    expect(actionsRendered.mock.calls.length).toBe(actionsBefore);
+    expect(fullRendered.mock.calls.length).toBeGreaterThan(fullBefore);
+  });
+
+  it('returns working actions', () => {
+    const Probe = () => {
+      const { addToast } = useToastActions();
+      return <button onClick={() => addToast({ type: 'success', message: 'Saved via actions' })}>Save</button>;
+    };
+    render(
+      <ToastProvider>
+        <Probe />
+        <ToastContainer />
+      </ToastProvider>
+    );
+    fireEvent.click(screen.getByText('Save'));
+    expect(screen.getByText('Saved via actions')).toBeInTheDocument();
+  });
+
+  it('throws outside a ToastProvider', () => {
+    const Probe = () => {
+      useToastActions();
+      return null;
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => render(<Probe />)).toThrow(/useToastActions must be used within a ToastProvider/);
+    spy.mockRestore();
   });
 });
