@@ -73,7 +73,7 @@
           "description": "Visual treatment for `subtheme`'s color. Ignored unless a subtheme resolves."
         }
       },
-      "constraints": "Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps. For anything off the theme, use a raw div/span and style it directly",
+      "constraints": "Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps. Stay in theme first (props, overrides, StyleDomainProvider, theme-level changes); a raw styled div/span is the last resort, and its style still uses var(--ai-*) theme variables, never literal hex/px",
       "category": "Layout Primitives",
       "description": "Themed surface `<div>`: background, padding, radius, border and subtheme colouring, all from theme tokens — no style/className, like every toolcrib component"
     },

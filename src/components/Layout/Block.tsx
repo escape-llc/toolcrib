@@ -26,9 +26,11 @@ export type BlockRadius = 'sm' | 'md' | 'lg' | 'xl' | 'none';
  * resolved from theme tokens, so an area doesn't need hand-typed
  * `var(--ai-…)` strings (or worse, literal hex/px) to look right. Layout
  * (direction, alignment, gaps) belongs to `<VStack>`/`<HStack>`/`<Grid>`.
- * Toolcrib components are auto-themed; to go off the board, use a raw
- * `<div>`/`<span>` and style it directly -- that's the sanctioned escape,
- * visible as plain markup, not a hole in a themed component.
+ * Stay in theme as hard as possible (CORE.md principle 7's ladder:
+ * props, `overrides`, style domains, themed primitives like this one, a
+ * theme-level change). A raw styled `<div>`/`<span>` is the last resort,
+ * and even then its `style` reads the theme's CSS variables, never
+ * literal hex/px.
  */
 export interface BlockProps extends StyleFreeAttributes<HTMLDivElement> {
   /** Background surface token. @default 'transparent' */
@@ -58,7 +60,7 @@ const BACKGROUND_VAR: Record<BlockBackground, string> = {
 
 /**
  * @manifest Themed surface `<div>`: background, padding, radius, border and subtheme colouring, all from theme tokens — no style/className, like every toolcrib component
- * @manifestConstraints Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps. For anything off the theme, use a raw div/span and style it directly
+ * @manifestConstraints Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps. Stay in theme first (props, overrides, StyleDomainProvider, theme-level changes); a raw styled div/span is the last resort, and its style still uses var(--ai-*) theme variables, never literal hex/px
  * @manifestCategory Layout Primitives
  */
 export const Block: React.FC<BlockProps> = ({
