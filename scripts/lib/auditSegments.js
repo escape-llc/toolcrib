@@ -77,7 +77,7 @@ export const SEGMENTS = [
     title: 'Form Controls — Value Inputs',
     kind: 'components',
     category: SPLIT_CATEGORIES.FORM_CONTROLS,
-    names: ['Button', 'Calendar', 'Combobox', 'DatePicker', 'FileUpload', 'Label', 'Listbox', 'RadioGroup', 'Rating', 'Select', 'Slider', 'TimeField', 'Toggle', 'ToggleGroup'],
+    names: ['Button', 'Calendar', 'Combobox', 'DatePicker', 'FileUpload', 'Input', 'Label', 'Listbox', 'RadioGroup', 'Rating', 'Select', 'Slider', 'TimeField', 'Toggle', 'ToggleGroup'],
   },
   {
     id: 'form-controls-composite',
