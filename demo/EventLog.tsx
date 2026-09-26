@@ -208,8 +208,11 @@ export function EventLogList({ collapsed }: { collapsed: boolean }) {
                   dump, e.g.), so it needs to be a genuine keyboard/screen-
                   reader-operable control, not just a visual affordance. Inline
                   text link styling (no border/background) so it reads as part
-                  of the log line rather than a separate UI chrome element. */}
+                  of the log line rather than a separate UI chrome element.
+                  Toolcrib's Button has no inline-text variant, so this stays
+                  native (prefer-toolcrib-component, ladder step 6). */}
               {isLongPayload && (
+                // eslint-disable-next-line toolcrib-internal/prefer-toolcrib-component
                 <button
                   type="button"
                   onClick={() => toggleExpanded(log.id)}

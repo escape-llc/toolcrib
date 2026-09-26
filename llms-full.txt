@@ -318,7 +318,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 |---|---|---|
 | App-level shared state (not cross-component UI signaling — that's `aiBus`, see §11) | [Zustand](https://github.com/pmndrs/zustand) | Small, hooks-based, no provider ceremony — the closest thing to a consensus pick in this space, and what an AI agent already reaches for by training-data prior more often than not. |
 | Unit tests | [Vitest](https://vitest.dev/) | What toolcrib's own component suite runs on (Vite-native, fast) — pairs naturally with a Vite-based project, and is the framework toolcrib's own separately-shipped, opt-in test files are written against. |
-| Linting | [ESLint](https://eslint.org/) (flat config) | Required to actually run the vendored rules in `eslint-rules/` (`no-unexplained-zindex`, `no-computed-prop-before-spread`, `no-missing-use-client`, `no-frozen-controlled-prop`) — see that directory's own `README.md` for wiring instructions. |
+| Linting | [ESLint](https://eslint.org/) (flat config) | Required to actually run the vendored rules in `eslint-rules/` (`no-unexplained-zindex`, `no-computed-prop-before-spread`, `no-missing-use-client`, `no-frozen-controlled-prop`, and the two "stay in theme" rules for principle 7: `prefer-toolcrib-component`, `no-literal-style-values`) — see that directory's own `README.md` for wiring instructions. |
 
 ---
 
