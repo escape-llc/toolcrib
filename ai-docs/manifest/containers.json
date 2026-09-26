@@ -28,7 +28,7 @@
         },
         "icon": {
           "type": "ReactNode | false",
-          "description": "Replaces the status icon. `false` hides it. A default icon matches the subtheme (info, success, warning, error)."
+          "description": "Replaces the status icon. `false` hides it. A default icon matches the subtheme (info, success, warning, error); a branded `variant` callout gets the info icon."
         },
         "role": {
           "type": "'alert' | 'status' | 'none'",

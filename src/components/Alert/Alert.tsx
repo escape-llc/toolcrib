@@ -26,7 +26,7 @@ export interface AlertProps extends StyleFreeAttributes<HTMLDivElement> {
   variant?: ColorVariant;
   /** Visual treatment for the resolved color. @default 'soft' */
   appearance?: Appearance;
-  /** Replaces the status icon. `false` hides it. A default icon matches the subtheme (info, success, warning, error). */
+  /** Replaces the status icon. `false` hides it. A default icon matches the subtheme (info, success, warning, error); a branded `variant` callout gets the info icon. */
   icon?: ReactNode | false;
   /**
    * Live-region role. `'alert'` (assertive) for error/warning, `'status'`
@@ -126,5 +126,6 @@ Alert.Description = ({ children, ...props }) => {
   return <div {...props}>{children}</div>;
 };
 
+Alert.displayName = 'Alert';
 Alert.Title.displayName = 'Alert.Title';
 Alert.Description.displayName = 'Alert.Description';
