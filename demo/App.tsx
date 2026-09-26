@@ -83,6 +83,8 @@ import {
   Stepper,
   type StepperStepData,
   DatePicker,
+  DateRangePicker,
+  RangeCalendar,
   Calendar,
   TimeField,
   Breadcrumb,
@@ -2303,6 +2305,19 @@ export const App: React.FC = () => {
         />
       </VStack>
     ),
+    DateRangePicker: (
+      <VStack gap="sm">
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Type into either end, or open the calendar and click a start then an end day. One Form-bound <code>{'{ start, end }'}</code> value, never an end before its start.
+        </p>
+        <DateRangePicker
+          name="demoTripDates"
+          label="Trip Dates"
+          defaultValue={{ start: today(getLocalTimeZone()), end: today(getLocalTimeZone()).add({ days: 4 }) }}
+          onChange={value => addToast({ type: 'info', message: value ? `Trip: ${value.start.toString()} to ${value.end.toString()}` : 'Trip dates cleared', priority: 'low' })}
+        />
+      </VStack>
+    ),
     FileUpload: (
       <>
         <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
@@ -2553,6 +2568,19 @@ export const App: React.FC = () => {
       </>
     ),
     RadioGroup: { seeAlso: 'Form', note: <>The profile form's "Preferred Contact Method" field.</> },
+    RangeCalendar: (
+      <VStack gap="sm">
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          Click a start day, then an end day (or use the arrow keys and Enter). The two ends take the primary fill; the days between are tinted.
+        </p>
+        <RangeCalendar
+          name="demoBookingRange"
+          aria-label="Booking range"
+          defaultValue={{ start: today(getLocalTimeZone()).add({ days: 2 }), end: today(getLocalTimeZone()).add({ days: 6 }) }}
+          onChange={value => addToast({ type: 'info', message: `Booked ${value.start.toString()} to ${value.end.toString()}`, priority: 'low' })}
+        />
+      </VStack>
+    ),
     RangeSlider: (
       <div>
         <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</div>

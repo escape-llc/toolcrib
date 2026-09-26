@@ -1,23 +1,14 @@
 'use client';
 
 import React from 'react';
-import {
-  Calendar as AriaCalendar,
-  CalendarGrid,
-  CalendarGridHeader,
-  CalendarGridBody,
-  CalendarHeaderCell,
-  CalendarCell,
-  CalendarHeading,
-  Button,
-} from 'react-aria-components/Calendar';
+import { Calendar as AriaCalendar } from 'react-aria-components/Calendar';
 import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
-import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
-import { useLocaleStrings } from '../Locale/LocaleContext';
+import { type ControlSize } from '../../theme/controlSize';
+import { CalendarNav, CalendarMonthGrid } from './calendarParts';
 
 /** Props for the standalone `<Calendar>` month grid. */
 export interface CalendarProps {
@@ -79,7 +70,6 @@ export const Calendar: React.FC<CalendarProps> = ({
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
-  const strings = useLocaleStrings().calendar;
 
   const handleChange = (val: CalendarDate) => {
     onChange?.(val);
@@ -99,84 +89,8 @@ export const Calendar: React.FC<CalendarProps> = ({
         aria-labelledby={ariaLabelledBy}
         style={{ width: 'fit-content', ...vars } as React.CSSProperties}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <Button
-            slot="previous"
-            className="ai-btn"
-            aria-label={strings.previousMonth}
-            style={{
-              all: 'unset',
-              cursor: 'pointer',
-              padding: '0.25rem 0.5rem',
-              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-              color: 'var(--ai-text-secondary, #6b7280)',
-            }}
-          >
-            ◀
-          </Button>
-          <CalendarHeading style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: CONTROL_FONT_SIZE_VAR[size], color: 'var(--ai-text-primary, #111827)' }} />
-          <Button
-            slot="next"
-            className="ai-btn"
-            aria-label={strings.nextMonth}
-            style={{
-              all: 'unset',
-              cursor: 'pointer',
-              padding: '0.25rem 0.5rem',
-              borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-              color: 'var(--ai-text-secondary, #6b7280)',
-            }}
-          >
-            ▶
-          </Button>
-        </div>
-
-        <CalendarGrid style={{ borderCollapse: 'collapse' }}>
-          <CalendarGridHeader>
-            {day => (
-              <CalendarHeaderCell
-                style={{ fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', color: 'var(--ai-text-secondary, #6b7280)', padding: '0.25rem' }}
-              >
-                {day}
-              </CalendarHeaderCell>
-            )}
-          </CalendarGridHeader>
-          <CalendarGridBody>
-            {date => (
-              <CalendarCell
-                date={date}
-                style={({ isSelected, isToday, isDisabled: cellDisabled, isOutsideMonth, isUnavailable }) => ({
-                  width: 'var(--ai-datepicker-cell-size, 2.25rem)',
-                  height: 'var(--ai-datepicker-cell-size, 2.25rem)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.8125rem',
-                  borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  cursor: cellDisabled || isUnavailable ? 'not-allowed' : 'pointer',
-                  opacity: isOutsideMonth ? 0.35 : cellDisabled ? 0.4 : 1,
-                  textDecoration: isUnavailable ? 'line-through' : 'none',
-                  background: isSelected ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
-                  // --ai-color-on-primary was never actually a real
-                  // variable (paletteToCSSVariables only ever defined
-                  // --ai-color-primary-text) -- this always fell back to
-                  // its hardcoded #ffffff default, silently skipping the
-                  // theme's real WCAG-computed text color for a bright/
-                  // high-luminance primary hue. Fixed to the real variable.
-                  color: isSelected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
-                  // Issue #402: quaternary, not primary, for "today" --
-                  // "today" and "selected" are already two different
-                  // concepts (a ring vs. a fill); giving them two distinct
-                  // colors makes that existing distinction clearer instead
-                  // of using the same hue for both. The selected date's own
-                  // background above is untouched -- selection identity
-                  // stays primary everywhere.
-                  border: isToday && !isSelected ? '0.0625rem solid var(--ai-color-quaternary, #f97316)' : '0.0625rem solid transparent',
-                })}
-              />
-            )}
-          </CalendarGridBody>
-        </CalendarGrid>
+        <CalendarNav size={size} />
+        <CalendarMonthGrid />
       </AriaCalendar>
     </I18nProvider>
   );

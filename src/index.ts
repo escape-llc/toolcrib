@@ -81,6 +81,8 @@ export * from './components/DataTable/createPermissiveTableSchema';
 export * from './components/DatePicker/Calendar';
 export * from './components/DatePicker/DatePicker';
 export * from './components/DatePicker/DatePickerSlice';
+export * from './components/DatePicker/DateRangePicker';
+export * from './components/DatePicker/RangeCalendar';
 export * from './components/DatePicker/TimeField';
 export * from './components/DropdownMenu/DropdownMenu';
 export * from './components/DropdownMenu/DropdownMenuSlice';

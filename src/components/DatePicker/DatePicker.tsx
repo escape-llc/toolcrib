@@ -1,14 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext } from 'react';
-import {
-  DatePicker as AriaDatePicker,
-  DatePickerStateContext,
-  DateInput,
-  DateSegment,
-  Group,
-  Label,
-} from 'react-aria-components/DatePicker';
+import { DatePicker as AriaDatePicker, DatePickerStateContext, Group, Label } from 'react-aria-components/DatePicker';
 import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
@@ -21,7 +14,8 @@ import { Calendar } from './Calendar';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type DatePickerSliceState } from './DatePickerSlice';
-import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
+import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
+import { fieldGroupStyle, DateSegments, CalendarPopupTrigger } from './calendarParts';
 
 /** Props for the `<DatePicker>` field + calendar popover. */
 export interface DatePickerProps {
@@ -110,94 +104,9 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
   return (
     <Popup
       anchor={
-        <Group
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-            border: '0.0625rem solid var(--ai-border, #d1d5db)',
-            borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
-            borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
-            borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
-            borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
-            background: 'var(--ai-bg-surface, #ffffff)',
-            width: 'fit-content',
-            ...cornerOverrides,
-          }}
-        >
-          <DateInput style={{ display: 'flex', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
-            {segment => (
-              <DateSegment
-                segment={segment}
-                style={{
-                  padding: '0 0.0625rem',
-                  textAlign: 'end',
-                  color: segment.isPlaceholder ? 'var(--ai-text-secondary, #9ca3af)' : 'var(--ai-text-primary, #111827)',
-                  outline: 'none',
-                }}
-              />
-            )}
-          </DateInput>
-
-          {/*
-            Popup.Trigger, not the whole Group -- wrapping the segments
-            too would mean clicking into a segment to type a value could
-            also toggle the calendar open/closed, which isn't how a date
-            picker is supposed to behave -- typing edits the value, only
-            the button opens the calendar.
-          */}
-          <Popup.Trigger>
-            <button
-              type="button"
-              aria-label="Open calendar"
-              // ai-focus-ring was missing here -- reported directly: Tab
-              // correctly moves focus onto this button (confirmed via a real
-              // browser trace, both Chromium and WebKit), but `all: 'unset'`
-              // resets outline to its initial (invisible) value with nothing
-              // to replace it, so a keyboard user tabbing here saw no focus
-              // indicator at all -- indistinguishable from "Tab doesn't reach
-              // it," which is exactly how it was reported.
-              className="ai-focus-ring"
-              style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
-              // Issue #501: this button relies on the browser's own native
-              // Enter/Space -> click translation to open the calendar (via
-              // Radix's Trigger onClick) -- there's no explicit click
-              // handler here at all. But this button lives inside the
-              // <Group> above, and React Aria's own useDatePickerGroup
-              // attaches a usePress instance to that Group solely to run
-              // focusLast() on a mouse/touch/pen press. usePress's internal
-              // keydown handler unconditionally calls preventDefault() for
-              // Enter/Space on ANY descendant keydown that bubbles up to it
-              // (not just presses on the Group itself), even though its own
-              // onPress/onPressStart are no-ops for pointerType 'keyboard' --
-              // so the ancestor Group silently swallows this button's native
-              // keyboard activation before the browser ever fires the click,
-              // and the calendar never opens via Enter/Space (confirmed: a
-              // real mouse click works fine, since that's a separate native
-              // click event this bug never touches). Can't patch
-              // react-aria's own useDatePickerGroup, so intercept here
-              // instead: stopPropagation() alone keeps the keydown from
-              // ever reaching the Group's handler -- deliberately NOT also
-              // calling preventDefault()/.click() ourselves (an earlier
-              // version of this fix did, and a Gemini PR review correctly
-              // caught that it forced Space to activate on keydown instead
-              // of keyup, breaking the standard "move focus away before
-              // releasing to cancel" affordance). With propagation stopped
-              // before the Group ever sees it, nothing prevents the
-              // event's default action, so the browser's own native
-              // keyboard-to-click translation runs unmodified -- Enter on
-              // keydown, Space on keyup, exactly as it would if the Group's
-              // usePress didn't exist.
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.stopPropagation();
-                }
-              }}
-            >
-              📅
-            </button>
-          </Popup.Trigger>
+        <Group style={fieldGroupStyle(size, cornerOverrides)}>
+          <DateSegments size={size} />
+          <CalendarPopupTrigger />
         </Group>
       }
       isOpen={state.isOpen}

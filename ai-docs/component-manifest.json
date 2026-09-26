@@ -639,6 +639,14 @@
         "payload": "{ name?: string; value: string | null }"
       },
       {
+        "name": "daterangepicker:changed",
+        "payload": "{ name?: string; value: { start: string; end: string } | null }"
+      },
+      {
+        "name": "rangecalendar:changed",
+        "payload": "{ name?: string; value: { start: string; end: string } }"
+      },
+      {
         "name": "timefield:changed",
         "payload": "{ name?: string; value: string | null }"
       },
@@ -1846,6 +1854,66 @@
       "description": "Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components"
     },
     {
+      "name": "DateRangePicker",
+      "import": "import { DateRangePicker } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted. The Form value is a `{ start, end }` `CalendarDateRange`, or `null`."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label rendered above the field."
+        },
+        "value": {
+          "type": "CalendarDateRange | null",
+          "description": "Controlled value, as `@internationalized/date` `CalendarDate`s -- never\nraw JS `Date`s at this boundary."
+        },
+        "defaultValue": {
+          "type": "CalendarDateRange | null",
+          "description": "Initial value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: CalendarDateRange | null) => void",
+          "description": "Change handler. Receives the new range, or `null` if cleared."
+        },
+        "minValue": {
+          "type": "CalendarDate",
+          "description": "Earliest selectable date, inclusive."
+        },
+        "maxValue": {
+          "type": "CalendarDate",
+          "description": "Latest selectable date, inclusive."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the field is non-interactive."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag. Fixed, not browser-auto-detected -- see\n`<TimeField>`'s own doc for why an explicit default prevents an SSR\nhydration mismatch."
+        },
+        "overrides": {
+          "type": "Partial<DatePickerSliceState>",
+          "description": "Per-instance override for the calendar popover's grid cell size."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
+        }
+      },
+      "category": "Form Controls",
+      "antiPatternAvoid": "Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start",
+      "antiPatternInstead": "Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick",
+      "description": "Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components"
+    },
+    {
       "name": "DeferredContent",
       "import": "import { DeferredContent } from '#toolcrib'",
       "props": {
@@ -2730,6 +2798,58 @@
       },
       "category": "Form Controls",
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
+    },
+    {
+      "name": "RangeCalendar",
+      "import": "import { RangeCalendar } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name included in emitted `rangecalendar:changed` events."
+        },
+        "value": {
+          "type": "CalendarDateRange | null",
+          "description": "Controlled selected range, as `@internationalized/date` `CalendarDate`s\n-- never raw JS `Date`s at this boundary."
+        },
+        "defaultValue": {
+          "type": "CalendarDateRange | null",
+          "description": "Initial selected range (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: CalendarDateRange) => void",
+          "description": "Change handler. Receives the newly selected range once both ends are picked."
+        },
+        "minValue": {
+          "type": "CalendarDate",
+          "description": "Earliest selectable date, inclusive."
+        },
+        "maxValue": {
+          "type": "CalendarDate",
+          "description": "Latest selectable date, inclusive."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the whole calendar is non-interactive."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag controlling month/day names, week start day, and\ndate-grid layout. Fixed, not browser-auto-detected -- see `<TimeField>`'s\nown doc for why an explicit default prevents an SSR hydration mismatch."
+        },
+        "overrides": {
+          "type": "Partial<DatePickerSliceState>",
+          "description": "Per-instance override for grid cell size. `overrides.cellSize` wins over `size` below if both are set."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control."
+        }
+      },
+      "category": "Form Controls",
+      "antiPatternAvoid": "Build a date range from two separate `<Calendar>`s with hand-written \"end must be after start\" logic",
+      "antiPatternInstead": "Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you",
+      "description": "Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components"
     },
     {
       "name": "RangeSlider",

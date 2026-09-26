@@ -67,6 +67,8 @@ export interface AIEventMap {
   'rating:changed': { name?: string; value: number };
   'datepicker:changed': { name?: string; value: string | null };
   'calendar:changed': { name?: string; value: string | null };
+  'daterangepicker:changed': { name?: string; value: { start: string; end: string } | null };
+  'rangecalendar:changed': { name?: string; value: { start: string; end: string } };
   'timefield:changed': { name?: string; value: string | null };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
