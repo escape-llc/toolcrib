@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { type HSVColor } from './hsv';
 import {
   type HarmonyMode,
@@ -45,6 +45,11 @@ import {
   TOOLCRIB_SCROLLBAR_CSS,
 } from './serverThemeCSS';
 import './registerThemeSlices';
+
+// useLayoutEffect where a DOM exists, useEffect under server rendering
+// (where neither runs, but useLayoutEffect warns) -- for the csp-nonce meta
+// below, which must be in place before any child's passive effect.
+const useIsomorphicLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : useEffect;
 
 /** @barrelExport */
 export interface ThemeContextType {
@@ -315,6 +320,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // control. Ambient injection here is what actually makes it one.
   useEffect(() => {
     injectGlobalStyle(TOOLCRIB_TYPOGRAPHY_BASE_STYLE_ID, TOOLCRIB_TYPOGRAPHY_BASE_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
+
+  // Issue #625: react-aria-components (DatePicker/Calendar/TimeField/
+  // Breadcrumb) injects its own <style id="react-aria-pressable-style">, and
+  // reads its nonce ONLY from a `<meta name="csp-nonce">` in the document
+  // head (react-aria's getNonce/getMetaValue) -- never from React. Without
+  // this, a strict nonce-based style-src blocks it even though toolcrib's
+  // own nonce is configured. A layout effect, not a passive one: React Aria
+  // injects from a child's useEffect, and every layout effect runs before
+  // any passive effect, so the meta is in place first. An existing
+  // csp-nonce meta (the consumer's own) is left alone; one this provider
+  // created is removed again on unmount or nonce change.
+  useIsomorphicLayoutEffect(() => {
+    if (!nonce) return;
+    const doc = targetDocument ?? document;
+    if (!doc.head || doc.head.querySelector('meta[name="csp-nonce"], meta[property="csp-nonce"]')) return;
+    const meta = doc.createElement('meta');
+    meta.setAttribute('name', 'csp-nonce');
+    meta.setAttribute('content', nonce);
+    doc.head.appendChild(meta);
+    return () => meta.remove();
   }, [targetDocument, nonce]);
 
   // See TOOLCRIB_LINK_CSS's own doc comment for why this is ambient (every
