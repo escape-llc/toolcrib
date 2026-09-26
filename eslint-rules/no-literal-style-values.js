@@ -57,7 +57,8 @@ const NAMED_COLORS = new Set(
 
 const COLOR_FUNCTION = /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/i;
 const HEX = /#[0-9a-f]{3,8}\b/i;
-const PX = /(^|[^\w.-])(\d*\.?\d+)px\b/;
+// The sign is part of the capture so a negative offset ('-12px') is caught too.
+const PX = /(^|[^\w.-])(-?\d*\.?\d+)px\b/;
 
 /**
  * Removes every `var(...)` (fallback included) and `url(...)` (a path can
@@ -148,8 +149,13 @@ export const noLiteralStyleValues = {
           if (!isColor && !isLength) continue;
 
           // A bare number on a length property becomes px in React.
-          if (isLength && prop.value.type === 'Literal' && typeof prop.value.value === 'number' && prop.value.value !== 0) {
-            context.report({ node: prop.value, message: `${key}: ${prop.value.value} renders as ${prop.value.value}px, a literal length the theme can't scale. Use ${HINT_FOR(key)}.` });
+          // A bare number (or a negated one: `-12` is a unary expression) on a length property becomes px in React.
+          const v = prop.value;
+          const num = v.type === 'Literal' && typeof v.value === 'number' ? v.value
+            : v.type === 'UnaryExpression' && v.operator === '-' && v.argument.type === 'Literal' && typeof v.argument.value === 'number' ? -v.argument.value
+              : undefined;
+          if (isLength && num !== undefined && num !== 0) {
+            context.report({ node: v, message: `${key}: ${num} renders as ${num}px, a literal length the theme can't scale. Use ${HINT_FOR(key)}.` });
             continue;
           }
 

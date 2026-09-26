@@ -21,6 +21,9 @@ assert.equal(findLiteralColor("url('/a(1).png') red"), 'red');
 assert.equal(findPixelLength('0px'), undefined);
 assert.equal(findPixelLength('0.5rem 12px'), '12px');
 assert.equal(findPixelLength('var(--ai-padding-md, 12px)'), undefined);
+// Negative offsets too (Gemini, PR #658).
+assert.equal(findPixelLength('-12px'), '-12px');
+assert.equal(findPixelLength('0 -4px'), '-4px');
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -58,6 +61,8 @@ ruleTester.run('no-literal-style-values', noLiteralStyleValues, {
     { code: "<div style={{ borderBottom: '1px solid var(--ai-border)' }} />", errors: [{ message: length }] },
     { code: "<div style={{ padding: '12px' }} />", errors: [{ message: length }] },
     { code: '<div style={{ padding: 12 }} />', errors: [{ message: length }] },
+    { code: "<div style={{ marginTop: '-4px' }} />", errors: [{ message: length }] },
+    { code: '<div style={{ marginLeft: -12 }} />', errors: [{ message: length }] },
     { code: "<div style={{ fontSize: '14px' }} />", errors: [{ message: length }] },
     { code: "<div style={{ borderRadius: '8px' }} />", errors: [{ message: length }] },
     // Both arms of a ternary are checked.
