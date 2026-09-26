@@ -93,6 +93,12 @@ try {
     `'use client';\n\n${encyclopediaSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
   );
   fs.copyFileSync(path.join(REPO_ROOT, 'ai-docs/component-manifest.json'), path.join(tmpDir, 'app/component-manifest.json'));
+  // The live event log's provider/components (demo/EventLog.tsx) -- no
+  // rewriting needed, its only imports are '#toolcrib', react and lucide.
+  fs.writeFileSync(
+    path.join(tmpDir, 'app/EventLog.tsx'),
+    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/EventLog.tsx'), 'utf-8')}`
+  );
   fs.copyFileSync(path.join(REPO_ROOT, 'demo/index.css'), path.join(tmpDir, 'app/demo.css'));
   fs.mkdirSync(path.join(tmpDir, 'public'), { recursive: true });
   fs.copyFileSync(
