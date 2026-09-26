@@ -72,4 +72,8 @@ describe('generated docs stay in sync with source', () => {
   it('src/index.ts (the #toolcrib barrel) has no drift', () => {
     runDriftCheck('node scripts/generate-index.js --check');
   });
+
+  it('demo/demoSources.generated.json (the Encyclopedia\'s source snippets) has no drift from demo/App.tsx', () => {
+    runDriftCheck('node scripts/generate-demo-sources.js --check');
+  });
 });

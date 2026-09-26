@@ -20,6 +20,8 @@
     "generate-docs": "node scripts/generate-docs.js --write",
     "check-index": "node scripts/generate-index.js",
     "generate-index": "node scripts/generate-index.js --write",
+    "check-demo-sources": "node scripts/generate-demo-sources.js",
+    "generate-demo-sources": "node scripts/generate-demo-sources.js --write",
     "check-security-advisories": "node scripts/generate-security-advisories.js",
     "generate-security-advisories": "node scripts/generate-security-advisories.js --write",
     "test:e2e": "playwright test",

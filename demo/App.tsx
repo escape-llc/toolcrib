@@ -159,6 +159,16 @@ const MAIN_SPLITTER_INITIAL_SPLIT = 70;
 // A real app passes React Router's or Next's navigate here instead.
 const HASH_ROUTER: RouterAdapter = { navigate: navigateHash };
 
+// The Encyclopedia's richest demos, highlighted on its shadow board so they
+// aren't lost among 71 alphabetical tiles. Component name -> why it's worth
+// opening (the tile's tooltip and screen-reader text).
+const FEATURED_DEMOS: Record<string, string> = {
+  Form: 'a full Zod-validated profile form',
+  DataTable: 'sorting, filtering, pinning, resizing and CSV export on 250 rows',
+  CommandPalette: 'the Cmd/Ctrl+K launcher',
+  Combobox: 'async search and multi-select chips',
+};
+
 function HashRouterBridge() {
   useRouterBridge();
   return null;
@@ -3194,6 +3204,7 @@ export const App: React.FC = () => {
                   <Encyclopedia
                     demos={componentDemos}
                     systems={systemAreas}
+                    featured={FEATURED_DEMOS}
                     entry={route.page === 'encyclopedia' ? route.entry : undefined}
                     system={route.page === 'encyclopedia' ? route.system : undefined}
                   />
