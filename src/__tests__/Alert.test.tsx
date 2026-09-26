@@ -105,12 +105,14 @@ describe('Alert', () => {
     expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
   });
 
-  it('takes no style/className: a type error and a dev warning', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  // Compile-time contract, like every toolcrib component: no runtime
+  // warning or stripping (#652). tsc fails this file if either becomes a prop.
+  it('rejects style/className at compile time', () => {
     // @ts-expect-error -- style is not an Alert prop
-    render(<Alert style={{ color: 'hotpink' }}>Message</Alert>);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("<Alert> received a 'style' or 'className' prop"));
-    warn.mockRestore();
+    const withStyle = <Alert style={{ color: 'hotpink' }}>Message</Alert>;
+    // @ts-expect-error -- className is not an Alert prop
+    const withClassName = <Alert className="x">Message</Alert>;
+    expect([withStyle, withClassName]).toHaveLength(2);
   });
 
   it('has no axe violations, with slots, an action and a dismiss button', async () => {

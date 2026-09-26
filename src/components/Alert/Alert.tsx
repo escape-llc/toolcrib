@@ -2,7 +2,7 @@
 
 import React, { type ReactNode } from 'react';
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { resolveColorVariant, type ColorVariant, type Appearance } from '../../theme/colorVariant';
@@ -68,7 +68,6 @@ export const Alert: React.FC<AlertProps> & {
   Title: React.FC<AlertTitleProps>;
   Description: React.FC<AlertDescriptionProps>;
 } = ({ subtheme: instanceSubtheme, variant, appearance = 'soft', icon, role, action, onDismiss, children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Alert');
   const resolvedSubtheme = useResolvedSubtheme(instanceSubtheme);
   // An identity variant with no subtheme is a branded callout; otherwise a
   // status one, defaulting to info.
@@ -115,7 +114,6 @@ export const Alert: React.FC<AlertProps> & {
 };
 
 Alert.Title = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Alert.Title');
   return (
     <div {...props} style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
       {children}
@@ -124,7 +122,6 @@ Alert.Title = ({ children, ...props }) => {
 };
 
 Alert.Description = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Alert.Description');
   // Inherits the Alert's resolved text color; only the weight differs from the title.
   return <div {...props}>{children}</div>;
 };
