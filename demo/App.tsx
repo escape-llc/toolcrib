@@ -108,6 +108,7 @@ import {
   RouterAdapterProvider,
   useRouterBridge,
   type RouterAdapter,
+  Text,
 } from '#toolcrib';
 import {
   Command,
@@ -206,8 +207,8 @@ const TEAM_MEMBERS: ListboxOptionData[] = [
     const [name, role] = o.label.split(' — ');
     return (
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
-        <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>{name}</span>
-        <span style={{ fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>{role}</span>
+        <Text as="span" weight="semibold">{name}</Text>
+        <Text as="span" size="xs" tone="secondary">{role}</Text>
       </div>
     );
   },
@@ -430,9 +431,9 @@ const STEPPER_STEPS: StepperStepData[] = [
     id: 'account',
     label: 'Account',
     content: (
-      <p style={{ margin: 0 }}>
+      <Text>
         Step 1 of 3 — plain content, no <code>formId</code>. Forward navigation here is never blocked.
-      </p>
+      </Text>
     ),
   },
   {
@@ -441,11 +442,11 @@ const STEPPER_STEPS: StepperStepData[] = [
     formId: 'stepper-profile-form',
     content: (
       <VStack gap="sm">
-        <p style={{ margin: 0 }}>
+        <Text>
           Step 2 of 3 — this step sets <code>formId="stepper-profile-form"</code>. The "Confirm" step stays
           unreachable until the form below reports <code>isValid: true</code> at least once (type a display name
           of 3+ characters).
-        </p>
+        </Text>
         <Form id="stepper-profile-form" schema={z.object({ displayName: z.string().min(3, 'At least 3 characters') })} initialValues={{ displayName: '' }} onSubmit={() => {}}>
           <FormField name="displayName" label="Display Name">
             <Input placeholder="e.g. Jane Doe" />
@@ -457,7 +458,7 @@ const STEPPER_STEPS: StepperStepData[] = [
   {
     id: 'confirm',
     label: 'Confirm',
-    content: <p style={{ margin: 0 }}>Step 3 of 3 — reachable only once the Profile step's form is valid.</p>,
+    content: <Text>Step 3 of 3 — reachable only once the Profile step's form is valid.</Text>,
   },
 ];
 
@@ -756,7 +757,7 @@ const WIREFRAMES: WireframeDef[] = [
         </Splitter.Panel>
         <Splitter.Panel>
           <div style={{ padding: '0.625rem' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.6875rem', marginBottom: '0.375rem' }}>Explorer</div>
+            <Text weight="bold" size="xs">Explorer</Text>
             <div style={{ fontSize: '0.6875rem', color: 'var(--ai-text-secondary)', lineHeight: 1.9 }}>
               📁 src<br />&nbsp;&nbsp;📄 App.tsx<br />&nbsp;&nbsp;📄 index.ts
             </div>
@@ -774,9 +775,9 @@ const WIREFRAMES: WireframeDef[] = [
           <TabStrip id="live-diff-left" defaultActiveId="v1" items={[{ id: 'v1', label: 'v1 — App.tsx' }]} />
           <TabStrip.Panel groupId="live-diff-left" value="v1">
             <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
-              <div style={{ color: 'var(--ai-text-secondary)' }}>import React from 'react';</div>
+              <Text tone="secondary">import React from 'react';</Text>
               <div style={{ background: 'rgba(239, 68, 68, 0.15)' }}>const OLD = true;</div>
-              <div style={{ color: 'var(--ai-text-secondary)' }}>export const App = () =&gt; ...</div>
+              <Text tone="secondary">export const App = () =&gt; ...</Text>
             </div>
           </TabStrip.Panel>
         </Splitter.Panel>
@@ -784,9 +785,9 @@ const WIREFRAMES: WireframeDef[] = [
           <TabStrip id="live-diff-right" defaultActiveId="v2" items={[{ id: 'v2', label: 'v2 — App.tsx' }]} />
           <TabStrip.Panel groupId="live-diff-right" value="v2">
             <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
-              <div style={{ color: 'var(--ai-text-secondary)' }}>import React from 'react';</div>
+              <Text tone="secondary">import React from 'react';</Text>
               <div style={{ background: 'rgba(16, 185, 129, 0.15)' }}>const NEW = true;</div>
-              <div style={{ color: 'var(--ai-text-secondary)' }}>export const App = () =&gt; ...</div>
+              <Text tone="secondary">export const App = () =&gt; ...</Text>
             </div>
           </TabStrip.Panel>
         </Splitter.Panel>
@@ -815,7 +816,7 @@ const Flaky: React.FC<{ triggerKey: number }> = ({ triggerKey }) => {
   if (triggerKey > 0) {
     throw new Error(`Simulated render crash #${triggerKey}`);
   }
-  return <p style={{ margin: 0 }}>Nothing went wrong (yet). Click the button below to simulate a render crash.</p>;
+  return <Text>Nothing went wrong (yet). Click the button below to simulate a render crash.</Text>;
 };
 
 export const App: React.FC = () => {
@@ -1208,24 +1209,24 @@ export const App: React.FC = () => {
   const componentDemos: Record<string, EntryDemo> = {
     // Layout Primitives
     AccessibleIcon: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Accessible Name for a Decorative Icon (`&lt;AccessibleIcon&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Accessible Name for a Decorative Icon (`&lt;AccessibleIcon&gt;`)</Text>
         <HStack gap="sm" align="center">
           <AccessibleIcon label="Verified account">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai-subtheme-success, #10b981)" strokeWidth="2.5" aria-hidden="true">
               <path d="M20 6 9 17l-5-5" />
             </svg>
           </AccessibleIcon>
-          <span style={{ fontSize: '0.8125rem' }}>Jane Doe</span>
+          <Text as="span" size="sm">Jane Doe</Text>
         </HStack>
-        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" tone="secondary">
           The checkmark is purely decorative to a sighted user — <code>AccessibleIcon</code> marks it <code>aria-hidden</code> and gives screen readers the "Verified account" text instead, without an extra visible label crowding the row.
-        </p>
-      </div>
+        </Text>
+      </VStack>
     ),
     AspectRatio: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</Text>
         <div style={{ maxWidth: '12rem' }}>
           <AspectRatio ratio={16 / 9}>
             <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem' }}>
@@ -1233,23 +1234,41 @@ export const App: React.FC = () => {
             </div>
           </AspectRatio>
         </div>
-        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" tone="secondary">
           Stays 16:9 regardless of the parent's width — resize the window to see it hold, the way a video thumbnail or card image needs to.
-        </p>
-      </div>
+        </Text>
+      </VStack>
     ),
     Block: (
-      <>
-        <p style={{ marginTop: 0 }}>
-          The one component that accepts real <code>style</code>/<code>className</code> — for ad-hoc layout needs the two <code>&lt;div&gt;</code>s above stand in for. Its own <code>background</code>/<code>padding</code>/<code>radius</code>/<code>border</code> stay theme-driven by default, and <code>subtheme</code> resolves the same way <code>&lt;Badge&gt;</code>'s does.
-        </p>
+      <VStack gap="md">
+        <Text>
+          A themed surface: <code>background</code>/<code>padding</code>/<code>radius</code>/<code>border</code> resolve to theme tokens, and <code>subtheme</code> resolves the same way <code>&lt;Badge&gt;</code>'s does. Like every toolcrib component it takes no <code>style</code>/<code>className</code>; for layout, reach for <code>VStack</code>/<code>HStack</code>/<code>Grid</code>.
+        </Text>
         <HStack gap="md" wrap>
           <Block background="container" padding="md" radius="md">Container + padding + radius</Block>
           <Block background="surface" padding="md" radius="md" border>Surface + border</Block>
           <Block padding="md" radius="md" subtheme="success">Subtheme (soft)</Block>
           <Block padding="md" radius="md" subtheme="warning" appearance="solid">Subtheme (solid)</Block>
         </HStack>
-      </>
+      </VStack>
+    ),
+    Text: (
+      <VStack gap="md">
+        <Text>
+          Paragraph and inline text on the theme&apos;s own size ramp and palette. Nothing is hand-typed: every size, tone and weight is a token, and the Theme Editor&apos;s <em>Text Size Ramp</em> moves them all together.
+        </Text>
+        <VStack gap="xs">
+          <Text size="xl" weight="semibold">xl, semibold</Text>
+          <Text size="lg">lg — body copy</Text>
+          <Text size="md">md</Text>
+          <Text size="sm" tone="secondary">sm, secondary tone</Text>
+          <Text size="xs" tone="secondary" mono>xs, mono — BIN-A1-07</Text>
+        </VStack>
+        <Text size="sm">
+          Inline: <Text as="span" weight="bold">bold</Text>, <Text as="span" subtheme="error">error</Text>,{' '}
+          <Text as="span" subtheme="success">success</Text>, <Text as="span" variant="primary">primary</Text>.
+        </Text>
+      </VStack>
     ),
     Content: {
       pageFrame: (
@@ -1259,8 +1278,8 @@ export const App: React.FC = () => {
       ),
     },
     Grid: (
-      <>
-        <p style={{ marginTop: 0 }}>Responsive grid containers that consume <code>--ai-margin-gap</code> spacing without pixel calculations.</p>
+      <VStack gap="md">
+        <Text>Responsive grid containers that consume <code>--ai-margin-gap</code> spacing without pixel calculations.</Text>
         <Grid columns={2} gap="md">
           <div style={{ background: 'var(--ai-bg-container)', padding: '1rem', borderRadius: 'var(--ai-radius-sm)', textAlign: 'center', fontWeight: 600 }}>
             Grid Column 1
@@ -1275,14 +1294,14 @@ export const App: React.FC = () => {
             Grid Column 4
           </div>
         </Grid>
-      </>
+      </VStack>
     ),
     HStack: { seeAlso: 'VStack', note: <>The same demo lays out an <code>HStack</code> row inside the <code>VStack</code>.</> },
     Separator: { seeAlso: 'Avatar', note: <>A vertical <code>&lt;Separator decorative&gt;</code> divides the avatar row.</> },
     Toolbar: (
       <>
         <VStack gap="md">
-          <p style={{ marginTop: 0 }}>Toolbars with explicit <code>Left</code>, <code>Center</code>, and <code>Right</code> slots prevent AI from writing ad-hoc flex styles.</p>
+          <Text>Toolbars with explicit <code>Left</code>, <code>Center</code>, and <code>Right</code> slots prevent AI from writing ad-hoc flex styles.</Text>
           <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem 1rem', borderRadius: 'var(--ai-radius-md)' }}>
             <Toolbar>
               <Toolbar.Left>
@@ -1302,17 +1321,17 @@ export const App: React.FC = () => {
     ),
     UIGroup: (
       <VStack gap="md">
-        <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>3-Button Connected Group with Glyphs</div>
+        <VStack gap="sm">
+          <Text size="xs" weight="semibold" tone="secondary">3-Button Connected Group with Glyphs</Text>
           <UIGroup>
             <Button variant="outline" icon={<ChevronLeft size="1em" />} onClick={() => addToast({ type: 'info', message: 'Left toolbar button clicked!', priority: 'low' })}>Prev</Button>
             <Button variant="outline" icon={<Pause size="1em" />} onClick={() => addToast({ type: 'info', message: 'Center toolbar button clicked!', priority: 'low' })}>Pause</Button>
             <Button variant="outline" icon={<ChevronRight size="1em" />} onClick={() => addToast({ type: 'info', message: 'Right toolbar button clicked!', priority: 'low' })}>Next</Button>
           </UIGroup>
-        </div>
+        </VStack>
 
-        <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Search Input Toolbar Group</div>
+        <VStack gap="sm">
+          <Text size="xs" weight="semibold" tone="secondary">Search Input Toolbar Group</Text>
           {/* display:'grid' (not a plain block div) —
               UIGroup is inline-flex, which shrinks to
               content in normal block flow regardless
@@ -1326,9 +1345,9 @@ export const App: React.FC = () => {
               <Button variant="primary" icon={<Search size="1em" />} onClick={() => addToast({ type: 'success', message: 'Search executed!', priority: 'high' })}>Search</Button>
             </UIGroup>
           </div>
-        </div>
-        <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Group Containing a Popup Trigger (wrapper-div squaring)</div>
+        </VStack>
+        <VStack gap="sm">
+          <Text size="xs" weight="semibold" tone="secondary">Group Containing a Popup Trigger (wrapper-div squaring)</Text>
           {/* Regression coverage, live: Modal/Popup/
               AlertDialog all wrap their own `trigger`
               in an internal div (for flex-stretch
@@ -1355,10 +1374,10 @@ export const App: React.FC = () => {
             </Popup>
             <Button variant="outline" icon={<ChevronRight size="1em" />}>Next</Button>
           </UIGroup>
-        </div>
+        </VStack>
 
-        <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</div>
+        <VStack gap="sm">
+          <Text size="xs" weight="semibold" tone="secondary">Mixed Controls at a Standardized `size` (`&lt;Button&gt;`, `&lt;Input&gt;`, `&lt;Select&gt;` — same font-size + padding scale, so they line up regardless of which component renders each one)</Text>
           <VStack gap="sm">
             <UIGroup>
               <Button size="sm" variant="outline">sm</Button>
@@ -1381,25 +1400,25 @@ export const App: React.FC = () => {
               <Select id="showcase-select-lg" size="lg" options={[{ label: 'Large', value: 'lg' }]} placeholder="Large select" />
             </UIGroup>
           </VStack>
-        </div>
+        </VStack>
       </VStack>
     ),
     VisuallyHidden: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Screen-Reader-Only Text (`&lt;VisuallyHidden&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Screen-Reader-Only Text (`&lt;VisuallyHidden&gt;`)</Text>
         <HStack gap="sm" align="center">
           <span aria-hidden="true" style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--ai-subtheme-error, #ef4444)', display: 'inline-block' }} />
-          <span style={{ fontSize: '0.8125rem' }}>3</span>
+          <Text as="span" size="sm">3</Text>
           <VisuallyHidden>3 unread notifications</VisuallyHidden>
         </HStack>
-        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" tone="secondary">
           The dot and "3" are enough visually; the hidden text fills in the meaning ("3 unread notifications") for anyone not reading the badge by eye.
-        </p>
-      </div>
+        </Text>
+      </VStack>
     ),
     VStack: (
-      <>
-        <p style={{ marginTop: 0 }}>Self-spacing flex containers that automatically apply theme <code>--ai-margin-gap</code> spacing.</p>
+      <VStack gap="md">
+        <Text>Self-spacing flex containers that automatically apply theme <code>--ai-margin-gap</code> spacing.</Text>
         {/* Demo chrome (background/padding/radius) lives on
             plain wrapper divs, not VStack/HStack — they're
             pure layout primitives with no styled-box
@@ -1410,13 +1429,13 @@ export const App: React.FC = () => {
             <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)', fontWeight: 600 }}>VStack Item 2</div>
             <div style={{ background: 'var(--ai-bg-surface)', padding: '0.75rem', borderRadius: 'var(--ai-radius-sm)' }}>
               <HStack justify="between">
-                <span style={{ fontWeight: 600 }}>HStack Left Item</span>
+                <Text as="span" weight="semibold">HStack Left Item</Text>
                 <Button size="sm" variant="primary">HStack Right Action</Button>
               </HStack>
             </div>
           </VStack>
         </div>
-      </>
+      </VStack>
     ),
 
     // Containers
@@ -1462,12 +1481,14 @@ export const App: React.FC = () => {
         <Card layout="auto">
           <Card.Header>Adaptive Card (`layout="auto"`)</Card.Header>
           <Card.Content layout="auto">
-            <p style={{ marginTop: 0 }}>
-              When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
-            </p>
-            <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
-              Auto-Filling Bounding Box Area
-            </div>
+            <VStack gap="md">
+              <Text>
+                When <code>layout="auto"</code> is passed to <code>&lt;Card&gt;</code> and <code>&lt;Card.Content&gt;</code>, the card automatically fills 100% of its parent bounding box and configures flex box layout for child elements.
+              </Text>
+              <div style={{ flex: 1, background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-text-secondary)', fontWeight: 600 }}>
+                Auto-Filling Bounding Box Area
+              </div>
+            </VStack>
           </Card.Content>
           <Card.Footer>
             <span>Adaptive Status: Active</span>
@@ -1479,36 +1500,38 @@ export const App: React.FC = () => {
       </div>
     ),
     CardSimple: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Same visual result as slot-based <code>&lt;Card&gt;</code>, without composing <code>Header</code>/<code>Content</code>/<code>Footer</code> manually — useful when the AI just needs a quick single-purpose card.
-        </p>
+        </Text>
         <CardSimple
           title="Quick Stats"
           subtitle="Updated just now"
-          footer={<span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Auto-refreshes every 30s</span>}
+          footer={<Text as="span" size="xs" tone="secondary">Auto-refreshes every 30s</Text>}
           actions={<Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Refreshed!' })}>Refresh</Button>}
         >
-          <div style={{ fontSize: '2rem', fontWeight: 800 }}>1,204</div>
-          <div style={{ color: 'var(--ai-text-secondary)', fontSize: '0.875rem' }}>Active Sessions</div>
+          <VStack gap="md">
+            <div style={{ fontSize: '2rem', fontWeight: 800 }}>1,204</div>
+            <Text tone="secondary" size="md">Active Sessions</Text>
+          </VStack>
         </CardSimple>
-      </>
+      </VStack>
     ),
     Collapsible: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Single Disclosure Panel (`&lt;Collapsible&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Single Disclosure Panel (`&lt;Collapsible&gt;`)</Text>
         <Collapsible trigger="Show advanced options">
-          <p style={{ margin: 0 }}>Content revealed on demand — for a single panel. See the Accordion above for a data-driven set of several.</p>
+          <Text>Content revealed on demand — for a single panel. See the Accordion above for a data-driven set of several.</Text>
         </Collapsible>
-      </div>
+      </VStack>
     ),
     DeferredContent: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Defer Off-Screen Content (`&lt;DeferredContent&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Defer Off-Screen Content (`&lt;DeferredContent&gt;`)</Text>
         <VStack gap="sm">
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+          <Text size="sm" tone="secondary">
             Each row below is wrapped in its own <code>&lt;DeferredContent&gt;</code> — scroll the list and the browser skips layout/paint for rows currently off-screen, resuming automatically as they scroll into view. Best for long lists/grids of many content-sized (not flex-fill) repeated items.
-          </p>
+          </Text>
           {/* tabIndex -- rows are plain text, no focusable descendant of their own (axe: scrollable-region-focusable). */}
           <div tabIndex={0} style={{ height: '11.25rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)' }}>
             {Array.from({ length: 40 }, (_, i) => (
@@ -1527,11 +1550,11 @@ export const App: React.FC = () => {
             ))}
           </div>
         </VStack>
-      </div>
+      </VStack>
     ),
     ScrollArea: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Themed Custom Scrollbar (`&lt;ScrollArea&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Themed Custom Scrollbar (`&lt;ScrollArea&gt;`)</Text>
         <ScrollArea maxHeight="8rem" overrides={{ thumbWidth: 'thick' }}>
           <VStack gap="xs">
             {Array.from({ length: 20 }, (_, i) => (
@@ -1541,13 +1564,13 @@ export const App: React.FC = () => {
             ))}
           </VStack>
         </ScrollArea>
-      </div>
+      </VStack>
     ),
     Sidebar: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           This page's own left-hand navigation is a real <code>&lt;Sidebar&gt;</code> inside <code>&lt;AppShell.Sidebar&gt;</code> — the same component shown here again in a bounded box, isolated from that live grouping/routing logic, so its own collapse toggle and item states are easier to try in isolation.
-        </p>
+        </Text>
         <div style={{ height: '14rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
           <Sidebar
             items={SIDEBAR_ITEMS}
@@ -1559,13 +1582,13 @@ export const App: React.FC = () => {
             Active: <strong style={{ color: 'var(--ai-text-primary)' }}>{SIDEBAR_ITEMS.find(i => i.id === sidebarActiveId)?.label}</strong>
           </div>
         </div>
-      </>
+      </VStack>
     ),
     Splitter: (
       <VStack gap="sm">
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="sm" tone="secondary">
           Drag the handle, or focus it and use the arrow keys. The live event log at the bottom of this page is the same component in <code>orientation="vertical"</code>.
-        </p>
+        </Text>
         <div style={{ height: '10rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
           <Splitter id="encyclopedia-splitter-demo" orientation="horizontal" initialSplit={40}>
             <Splitter.Panel>
@@ -1581,8 +1604,8 @@ export const App: React.FC = () => {
 
     // Overlays
     AlertDialog: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Blocking Confirmation (`&lt;AlertDialog&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Blocking Confirmation (`&lt;AlertDialog&gt;`)</Text>
         <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} ariaLabel="Delete confirmation">
           <AlertDialog.Header>Delete this record?</AlertDialog.Header>
           <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
@@ -1593,21 +1616,21 @@ export const App: React.FC = () => {
             </AlertDialog.Actions>
           </AlertDialog.Footer>
         </AlertDialog>
-      </div>
+      </VStack>
     ),
     CommandPalette: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md" align="start">
+        <Text>
           Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
-        </p>
+        </Text>
         <Button variant="outline" icon={<Command size="1em" />} onClick={() => aiBus.openCommandPalette('global-command-palette')}>
           Open Command Palette
         </Button>
-      </>
+      </VStack>
     ),
     ContextMenu: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Right-Click Menu (`&lt;ContextMenu&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Right-Click Menu (`&lt;ContextMenu&gt;`)</Text>
         <ContextMenu
           items={[
             { value: 'copy', label: 'Copy', icon: '📋', onClick: () => addToast({ type: 'info', message: 'Copied', priority: 'low' }) },
@@ -1620,17 +1643,17 @@ export const App: React.FC = () => {
             Right-click this area
           </div>
         </ContextMenu>
-      </div>
+      </VStack>
     ),
     Drawer: (
-      <>
-        <p style={{ marginTop: 0 }}>Side drawer sliding in from screen edge with backdrop and light dismiss.</p>
+      <VStack gap="md" align="start">
+        <Text>Side drawer sliding in from screen edge with backdrop and light dismiss.</Text>
         <Drawer
           id="demo-drawer"
           title="Application Details Drawer"
           trigger={<Button variant="secondary">Open Drawer</Button>}
         >
-          <p>This drawer is decoupled and easily controlled by AI.</p>
+          <Text>This drawer is decoupled and easily controlled by AI.</Text>
           {/* Regression coverage for a real bug: Tooltip's exit
               animation used to bubble an animationend event up
               through this Drawer's own (React-tree, portal-
@@ -1644,11 +1667,11 @@ export const App: React.FC = () => {
           </Tooltip>
           <Button variant="danger" onClick={() => aiBus.closeDrawer('demo-drawer')}>Close Drawer</Button>
         </Drawer>
-      </>
+      </VStack>
     ),
     DropdownMenu: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Contextual Action Menu (`&lt;DropdownMenu&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Contextual Action Menu (`&lt;DropdownMenu&gt;`)</Text>
         <DropdownMenu
           trigger={<Button variant="outline" icon={<Settings size="1em" />} trailingIcon={<ChevronDown size="1em" />}>User Actions Menu</Button>}
           items={[
@@ -1658,32 +1681,32 @@ export const App: React.FC = () => {
             { value: 'logout', label: 'Log Out', icon: '🚪', onClick: () => addToast({ type: 'warning', message: 'User logged out', priority: 'high' }) },
           ]}
         />
-      </div>
+      </VStack>
     ),
     HoverCard: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Rich Hover Preview (`&lt;HoverCard&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Rich Hover Preview (`&lt;HoverCard&gt;`)</Text>
         <HoverCard
           id="demo-hovercard"
           openDelay={150}
           content={
             <VStack gap="xs">
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Jane Doe</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Senior Engineer · Joined 2022</div>
+              <Text weight="semibold" size="sm">Jane Doe</Text>
+              <Text size="xs" tone="secondary">Senior Engineer · Joined 2022</Text>
               <Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Opened profile', priority: 'low' })}>View profile</Button>
             </VStack>
           }
         >
           <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
         </HoverCard>
-        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" tone="secondary">
           Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
-        </p>
-      </div>
+        </Text>
+      </VStack>
     ),
     Modal: (
-      <>
-        <p style={{ marginTop: 0 }}>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</p>
+      <VStack gap="md" align="start">
+        <Text>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</Text>
         <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} ariaLabel="Confirm Account Action">
           <Modal.Header>Confirm Account Action</Modal.Header>
           <Modal.Body>
@@ -1711,39 +1734,39 @@ export const App: React.FC = () => {
             </Modal.Actions>
           </Modal.Footer>
         </Modal>
-      </>
+      </VStack>
     ),
     Popup: (
-      <>
-        <p style={{ marginTop: 0 }}>Anchored contextual popup container with light dismiss.</p>
+      <VStack gap="md" align="start">
+        <Text>Anchored contextual popup container with light dismiss.</Text>
         <Popup
           id="demo-popup"
           trigger={<Button variant="outline">Toggle Popup Menu</Button>}
         >
           <VStack gap="sm">
             <strong style={{ fontSize: '0.875rem' }}>Account Quick Info</strong>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>User: john_doe@example.com</p>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Role: Administrator</p>
+            <Text size="md">User: john_doe@example.com</Text>
+            <Text size="xs" tone="secondary">Role: Administrator</Text>
             <Button size="sm" variant="primary" onClick={() => aiBus.closePopup('demo-popup')}>Dismiss</Button>
           </VStack>
         </Popup>
-      </>
+      </VStack>
     ),
     Tooltip: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Hover Tooltip (`&lt;Tooltip&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Hover Tooltip (`&lt;Tooltip&gt;`)</Text>
         <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
           <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
         </Tooltip>
-      </div>
+      </VStack>
     ),
     Viewer: { seeAlso: 'Gallery', note: <>Click any thumbnail there to open it.</> },
     ViewerContent: { seeAlso: 'Gallery', note: <><code>Viewer</code> composes it inside a <code>Modal</code>.</> },
 
     // Data Display
     Accordion: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Expandable Accordion (`&lt;Accordion&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Expandable Accordion (`&lt;Accordion&gt;`)</Text>
         <Accordion
           defaultValue="faq-1"
           items={[
@@ -1751,11 +1774,11 @@ export const App: React.FC = () => {
             { value: 'faq-2', title: 'How does Event Bus integration work?', content: 'Every primitive action automatically emits strongly-typed events to aiBus (e.g. accordion:opened, menu:item_selected, slider:changed).' },
           ]}
         />
-      </div>
+      </VStack>
     ),
     Avatar: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>User Avatars with Fallback (`&lt;Avatar&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">User Avatars with Fallback (`&lt;Avatar&gt;`)</Text>
         <HStack gap="sm" align="center">
           <Avatar fallback="XS" alt="Small avatar example" size="sm" />
           <Avatar fallback="JD" alt="Jane Doe" size="md" />
@@ -1763,7 +1786,7 @@ export const App: React.FC = () => {
           <Separator orientation="vertical" decorative />
           <Avatar src="https://broken-image-url.example/none.png" fallback="404" alt="Broken image" />
         </HStack>
-      </div>
+      </VStack>
     ),
     Badge: (
       <>
@@ -1812,10 +1835,10 @@ export const App: React.FC = () => {
       </>
     ),
     Breadcrumb: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Wraps <code>react-aria-components</code>'s <code>Breadcrumbs</code>. Middle items collapse into a <code>&lt;DropdownMenu&gt;</code> automatically once the trail overflows its container — narrow the browser window to see it happen.
-        </p>
+        </Text>
         <Breadcrumb>
           <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Home', priority: 'low' })}>Home</Breadcrumb.Item>
           <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Products', priority: 'low' })}>Products</Breadcrumb.Item>
@@ -1823,15 +1846,15 @@ export const App: React.FC = () => {
           <Breadcrumb.Item href="#" onClick={() => addToast({ type: 'info', message: 'Navigated to Laptops', priority: 'low' })}>Laptops</Breadcrumb.Item>
           <Breadcrumb.Item>Current Model</Breadcrumb.Item>
         </Breadcrumb>
-      </>
+      </VStack>
     ),
     Carousel: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Wraps <code>embla-carousel-react</code> — drag/swipe it directly, or use the arrows/dots. Looping, with a 4-second autoplay.
-        </p>
+        </Text>
         <Carousel slides={CAROUSEL_SLIDES} loop autoplay={{ delayMs: 4000 }} />
-      </>
+      </VStack>
     ),
     DataTable: (
       // A fixed-height box: this Card (layout="auto") and the DataTable
@@ -2041,24 +2064,24 @@ export const App: React.FC = () => {
       </>
     ),
     Filmstrip: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Shares <code>&lt;TabStrip&gt;</code>'s own overflow-scroll detection and active-indicator theming — narrow the window to see the scroll arrows appear.
-        </p>
+        </Text>
         <Filmstrip
           items={FILMSTRIP_ITEMS}
           defaultActiveId={FILMSTRIP_ITEMS[0].id}
           onChange={id => addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
         />
-      </>
+      </VStack>
     ),
     Gallery: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Click any thumbnail to open the fullscreen <code>&lt;Viewer&gt;</code> lightbox (composes <code>&lt;ViewerContent&gt;</code> inside <code>&lt;Modal&gt;</code>) — arrow keys navigate, click the image to zoom, Escape closes only the viewer. Thumbnails defer via the same <code>&lt;DeferredContent&gt;</code> used elsewhere in this demo, not a second lazy-render mechanism.
-        </p>
+        </Text>
         <Gallery items={GALLERY_ITEMS} columns="auto-fit" />
-      </>
+      </VStack>
     ),
     Heatmap: (
       <>
@@ -2102,10 +2125,10 @@ export const App: React.FC = () => {
       </VStack>
     ),
     Link: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Colors itself from <code>--ai-color-primary-readable</code>/<code>-secondary-readable</code> — the theme's own hue, nudged for WCAG AA contrast rather than a fixed browser blue/purple. A plain hand-written <code>&lt;a&gt;</code> anywhere in this page picks up the same link/visited colors ambiently, with no class needed.
-        </p>
+        </Text>
         <HStack gap="lg" wrap align="center">
           <Link href="#">Default (primary)</Link>
           <Link href="#" variant="secondary">Secondary variant</Link>
@@ -2114,7 +2137,7 @@ export const App: React.FC = () => {
             Opens in new tab (auto rel=&quot;noopener noreferrer&quot;)
           </Link>
         </HStack>
-      </>
+      </VStack>
     ),
     PieChart: (
       <>
@@ -2133,8 +2156,8 @@ export const App: React.FC = () => {
       </>
     ),
     Progress: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Determinate Progress Bar (`&lt;Progress&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Determinate Progress Bar (`&lt;Progress&gt;`)</Text>
         <VStack gap="sm">
           <Progress id="demo-upload" aria-label="Upload progress" value={progressValue} subtheme="success" />
           <UIGroup>
@@ -2147,7 +2170,7 @@ export const App: React.FC = () => {
           <Progress value={progressValue} size="md" aria-label="Medium progress bar" />
           <Progress value={progressValue} size="lg" aria-label="Large progress bar" />
         </VStack>
-      </div>
+      </VStack>
     ),
     ScaleLegend: { seeAlso: 'Heatmap', note: <>It renders the heatmap's color scale.</> },
     Skeleton: (
@@ -2161,7 +2184,7 @@ export const App: React.FC = () => {
     ),
     Sparkline: (
       <HStack gap="md" align="center">
-        <span style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>Active users, last 7 periods</span>
+        <Text as="span" size="sm" tone="secondary">Active users, last 7 periods</Text>
         <Sparkline values={[7200, 7400, 7350, 7800, 8050, 8200, 8420]} title="Active users trend, last 7 periods" />
       </HStack>
     ),
@@ -2173,18 +2196,18 @@ export const App: React.FC = () => {
       </HStack>
     ),
     Stepper: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
-        </p>
+        </Text>
         <Stepper steps={STEPPER_STEPS} />
-      </>
+      </VStack>
     ),
     TabStrip: (
       <VStack gap="sm">
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="sm" tone="secondary">
           Arrow keys move between tabs. Each <code>TabStrip.Panel</code> is matched to its strip by <code>groupId</code>, so panels can live anywhere in the tree.
-        </p>
+        </Text>
         <TabStrip id="encyclopedia-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
         {/* The panels sit in a plain Block, not directly in this VStack:
             TabStrip.Panel is built to fill a full-height flex parent, and
@@ -2204,10 +2227,10 @@ export const App: React.FC = () => {
       </VStack>
     ),
     Tree: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="md">
+        <Text>
           Full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) comes for free — try clicking an item, then using the arrow keys.
-        </p>
+        </Text>
         <div style={{ height: '14rem', overflowY: 'auto', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', padding: '0.5rem' }}>
           <Tree
             items={TREE_ITEMS}
@@ -2216,7 +2239,7 @@ export const App: React.FC = () => {
             onSelectChange={id => id && addToast({ type: 'info', message: `Selected ${id}`, priority: 'low' })}
           />
         </div>
-      </>
+      </VStack>
     ),
 
     // Form Controls
@@ -2245,10 +2268,10 @@ export const App: React.FC = () => {
     ),
     Calendar: (
       <VStack gap="sm">
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</div>
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" weight="semibold" tone="secondary">Inline Grid (`&lt;Calendar&gt;`) &amp; Time (`&lt;TimeField&gt;`)</Text>
+        <Text size="sm" tone="secondary">
           <code>Calendar</code> is <code>DatePicker</code>'s own popover content, also usable standalone (inline, no popover) — paired here with <code>TimeField</code> for a full appointment slot. <code>minValue</code> demonstrates a real cutoff date (issue #377): every day before today is disabled, not just visually greyed out.
-        </p>
+        </Text>
         {/* minValue={today(...)} (issue #377) -- react-aria-components' own
             min-date mechanism, already forwarded by this toolkit's Calendar
             (see CalendarProps.minValue's own JSDoc), just never demonstrated
@@ -2276,10 +2299,10 @@ export const App: React.FC = () => {
       <>
         <Grid columns={2} gap="lg">
           <VStack gap="sm">
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Async Server Search (`onSearch`)</div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" weight="semibold" tone="secondary">Async Server Search (`onSearch`)</Text>
+            <Text size="sm" tone="secondary">
               Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the DataTable demo uses). No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
-            </p>
+            </Text>
             <Combobox
               placeholder="Search users..."
               ariaLabel="Search users"
@@ -2300,10 +2323,10 @@ export const App: React.FC = () => {
           </VStack>
 
           <VStack gap="sm">
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Multi-Select Tags (`multiple`)</div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" weight="semibold" tone="secondary">Multi-Select Tags (`multiple`)</Text>
+            <Text size="sm" tone="secondary">
               Same component, <code>multiple</code> mode — selections render as removable chips instead of filling the input, the listbox stays open between picks, and Backspace on an empty query removes the last chip. <code>chipColor</code> colors chips per value — backend skills here use the <code>secondary</code> variant.
-            </p>
+            </Text>
             <Combobox
               multiple
               placeholder="Add skills..."
@@ -2328,10 +2351,10 @@ export const App: React.FC = () => {
     ),
     DatePicker: (
       <VStack gap="sm">
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Popover Calendar (`&lt;DatePicker&gt;`)</div>
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" weight="semibold" tone="secondary">Popover Calendar (`&lt;DatePicker&gt;`)</Text>
+        <Text size="sm" tone="secondary">
           Backed by <code>@internationalized/date</code>'s <code>CalendarDate</code>, not a raw JS <code>Date</code> — correct across timezones/DST by construction. Hosted in toolcrib's own <code>&lt;Popup&gt;</code>, not a react-aria-components popover.
-        </p>
+        </Text>
         <DatePicker
           name="demoMeetingDate"
           label="Meeting Date"
@@ -2342,9 +2365,9 @@ export const App: React.FC = () => {
     ),
     DateRangePicker: (
       <VStack gap="sm">
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="sm" tone="secondary">
           Type into either end, or open the calendar and click a start then an end day. One Form-bound <code>{'{ start, end }'}</code> value, never an end before its start.
-        </p>
+        </Text>
         <DateRangePicker
           name="demoTripDates"
           label="Trip Dates"
@@ -2354,10 +2377,10 @@ export const App: React.FC = () => {
       </VStack>
     ),
     FileUpload: (
-      <>
-        <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+      <VStack gap="sm">
+        <Text size="sm" tone="secondary">
           Drop a few images (or click to browse) — max 4 files, 2 MB each. The upload transport below is entirely simulated (staged progress ticks, ~20% chance of a failure to show the Retry action) since toolcrib takes no opinion on the backend protocol: <code>onUpload</code> is just a consumer-supplied <code>(file, onProgress) =&gt; Promise&lt;void&gt;</code>.
-        </p>
+        </Text>
         <div style={{ maxWidth: '28rem' }}>
           <FileUpload
             accept="image/*"
@@ -2383,7 +2406,7 @@ export const App: React.FC = () => {
             }
           />
         </div>
-      </>
+      </VStack>
     ),
     Form: (
       <>
@@ -2461,8 +2484,8 @@ export const App: React.FC = () => {
       </>
     ),
     Input: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Input Sections (`leadingSection` / `trailingSection`, password reveal)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Input Sections (`leadingSection` / `trailingSection`, password reveal)</Text>
         <VStack gap="sm">
           <Input aria-label="Search people" placeholder="Search people..." leadingSection={<Search size="1em" />} clearable value={inputSectionsQuery} onChange={e => setInputSectionsQuery(e.target.value)} />
           <Input aria-label="Price" placeholder="0.00" leadingSection="$" trailingSection="USD" inputMode="decimal" />
@@ -2474,28 +2497,28 @@ export const App: React.FC = () => {
           </div>
           <Input aria-label="Password" type="password" placeholder="Password" autoComplete="new-password" />
         </VStack>
-      </div>
+      </VStack>
     ),
     Label: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Standalone Form Label (`&lt;Label&gt;`)</div>
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Standalone Form Label (`&lt;Label&gt;`)</Text>
         <Label htmlFor="demo-remember-me">
           <input id="demo-remember-me" type="checkbox" />
           <span>Remember me on this device</span>
         </Label>
-        <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" tone="secondary">
           Same component <code>FormField</code>'s own label uses internally — clicking the text toggles the checkbox, without hand-rolling the wrapping/`htmlFor` association.
-        </p>
-      </div>
+        </Text>
+      </VStack>
     ),
     Listbox: (
       <>
         <Grid columns={2} gap="lg">
           <VStack gap="sm">
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Keyboard-Navigable Picker with a Custom `render` Slot</div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" weight="semibold" tone="secondary">Keyboard-Navigable Picker with a Custom `render` Slot</Text>
+            <Text size="sm" tone="secondary">
               Extracted from <code>&lt;Combobox&gt;</code>'s own internals — Listbox owns no keyboard state itself, so the input below drives <code>activeIndex</code> and <code>aria-activedescendant</code> the same way Combobox already does internally.
-            </p>
+            </Text>
             <Input
               value={listboxQuery}
               placeholder="Filter teammates..."
@@ -2544,10 +2567,10 @@ export const App: React.FC = () => {
           </VStack>
 
           <VStack gap="sm">
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Click-Only Multi-Select (`multiSelectable`, no input)</div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" weight="semibold" tone="secondary">Click-Only Multi-Select (`multiSelectable`, no input)</Text>
+            <Text size="sm" tone="secondary">
               No keyboard state needed when there's no search box driving it — each click just toggles membership in <code>selectedValues</code>, the shape a "Visible Columns" quick-picker needs.
-            </p>
+            </Text>
             <div style={{ background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-md)' }}>
               <Listbox
                 id="demo-listbox-columns"
@@ -2562,25 +2585,25 @@ export const App: React.FC = () => {
                 }}
               />
             </div>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" tone="secondary">
               Visible: {visibleColumns.length ? visibleColumns.join(', ') : '(none)'}
-            </p>
+            </Text>
           </VStack>
         </Grid>
       </>
     ),
     Pagination: (
-      <>
-        <p style={{ marginTop: 0 }}>
+      <VStack gap="sm">
+        <Text>
           Same controlled/uncontrolled contract as <code>DataTable</code>'s own paging (<code>page</code>/<code>defaultPage</code>/<code>onPageChange</code>), usable anywhere a page needs paging without a table attached.
-        </p>
+        </Text>
         <Pagination
           totalItems={137}
           pageSize={10}
           page={paginationPage}
           onPageChange={page => setPaginationPage(page)}
         />
-        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Current page: {paginationPage}</p>
+        <Text size="xs" tone="secondary">Current page: {paginationPage}</Text>
         {/* size="md"/"lg" -- the row above only ever demonstrated
             the default size="sm". All three stay in sync since
             they're bound to the same controlled page state. */}
@@ -2600,14 +2623,14 @@ export const App: React.FC = () => {
             onPageChange={page => setPaginationPage(page)}
           />
         </VStack>
-      </>
+      </VStack>
     ),
     RadioGroup: { seeAlso: 'Form', note: <>The profile form's "Preferred Contact Method" field.</> },
     RangeCalendar: (
       <VStack gap="sm">
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="sm" tone="secondary">
           Click a start day, then an end day (or use the arrow keys and Enter). The two ends take the primary fill; the days between are tinted.
-        </p>
+        </Text>
         <RangeCalendar
           name="demoBookingRange"
           aria-label="Booking range"
@@ -2617,17 +2640,17 @@ export const App: React.FC = () => {
       </VStack>
     ),
     RangeSlider: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</Text>
         <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
-      </div>
+      </VStack>
     ),
     Rating: (
       <VStack gap="sm">
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>Star Rating (`&lt;Rating&gt;`)</div>
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="xs" weight="semibold" tone="secondary">Star Rating (`&lt;Rating&gt;`)</Text>
+        <Text size="sm" tone="secondary">
           Built on Radix <code>RadioGroup</code> — real keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
-        </p>
+        </Text>
         <Rating
           name="demoRating"
           aria-label="Star rating"
@@ -2637,22 +2660,22 @@ export const App: React.FC = () => {
             addToast({ type: 'info', message: `Rated ${value} of 5`, priority: 'low' });
           }}
         />
-        <div style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>Read-only (fractional fill):</div>
+        <Text size="xs" tone="secondary">Read-only (fractional fill):</Text>
         <Rating readOnly value={3.5} />
       </VStack>
     ),
     Select: { seeAlso: 'Form', note: <>The profile form's "Role Level" field.</> },
     Slider: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Interactive Range Slider (`&lt;Slider&gt;`)</Text>
         <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
-      </div>
+      </VStack>
     ),
     ThemeEditor: (
       <VStack gap="sm">
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+        <Text size="sm" tone="secondary">
           The editor lives in the drawer behind the 🎨 button in this page's header, where it restyles the whole page live.
-        </p>
+        </Text>
         <div>
           <Button variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>Open the Theme Designer</Button>
         </div>
@@ -2660,8 +2683,8 @@ export const App: React.FC = () => {
     ),
     TimeField: { seeAlso: 'Calendar', note: <>Paired with the inline calendar for a full appointment slot.</> },
     Toggle: (
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Toggle & Connected ToggleGroup (`&lt;Toggle&gt;` / `&lt;ToggleGroup&gt;`)</div>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">Toggle & Connected ToggleGroup (`&lt;Toggle&gt;` / `&lt;ToggleGroup&gt;`)</Text>
         <VStack gap="sm">
           <Toggle name="favorite" onPressedChange={pressed => addToast({ type: 'info', message: `Favorite ${pressed ? 'enabled' : 'disabled'}`, priority: 'low' })}>⭐ Favorite</Toggle>
           <ToggleGroup
@@ -2676,7 +2699,7 @@ export const App: React.FC = () => {
             onChange={val => addToast({ type: 'info', message: `Alignment: ${val}`, priority: 'low' })}
           />
         </VStack>
-      </div>
+      </VStack>
     ),
     ToggleGroup: { seeAlso: 'Toggle', note: <>The connected alignment group under the single toggle.</> },
   };
@@ -2732,9 +2755,9 @@ export const App: React.FC = () => {
           <Card overrides={{ padding: 'compact', headerStyle: 'subtle-bg' }}>
             <Card.Header>Per-Instance Override (`overrides`)</Card.Header>
             <Card.Content>
-              <p style={{ marginTop: 0 }}>
+              <Text>
                 This Card passes <code>overrides={'{'}{'{'} padding: 'compact', headerStyle: 'subtle-bg' {'}'}{'}'}</code> — a sparse CSS-variable patch applied only to this Card's own root node, leaving every other Card (and the global Theme Editor's Card slice) untouched.
-              </p>
+              </Text>
             </Card.Content>
           </Card>
 
@@ -2742,9 +2765,9 @@ export const App: React.FC = () => {
             <Card>
               <Card.Header>Style Domain (`&lt;StyleDomainProvider&gt;`)</Card.Header>
               <Card.Content>
-                <p style={{ marginTop: 0 }}>
+                <Text>
                   This Card sets no <code>overrides.subtheme</code> of its own — its error-coloured border comes entirely from the ancestor <code>&lt;StyleDomainProvider subtheme="error"&gt;</code> wrapping it, via React Context (not CSS inheritance, so it still reaches components that render through a portal).
-                </p>
+                </Text>
               </Card.Content>
             </Card>
           </StyleDomainProvider>
@@ -2782,10 +2805,10 @@ export const App: React.FC = () => {
       summary: <>A Zod schema drives validation, touched-state and error display, and <code>onSubmit</code> receives the schema's parsed output (coerced numbers, transformed values), not raw field strings.</>,
       parts: ['Form', 'FormField', 'FormError', 'useFormContext', 'SubmitButton'],
       demo: (
-        <>
-          <p style={{ marginTop: 0 }}>
+        <VStack gap="md">
+          <Text>
             The <code>Form</code> component provides automatic Zod 4 schema validation, field registration, error layout, and touched field tracking without prop-drilling.
-          </p>
+          </Text>
           <VStack gap="sm">
             <div style={{ padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}>
               <strong>Strongly-Typed Event Bus:</strong> Form submission and error states automatically emit <code>form:submitted</code> and <code>form:errored</code> events.
@@ -2794,7 +2817,7 @@ export const App: React.FC = () => {
               <strong>Theme Spacing:</strong> Every <code>&lt;FormField&gt;</code> automatically applies <code>marginBottom: var(--ai-margin-gap)</code>.
             </div>
           </VStack>
-        </>
+        </VStack>
       ),
     },
     {
@@ -2804,7 +2827,7 @@ export const App: React.FC = () => {
       parts: ['useToastActions', 'useToast', 'aiBus.showToast', 'ToastSlice'],
       demo: (
         <VStack gap="md">
-          <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToastActions()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
+          <Text>Dispatch notifications via <code>useToastActions()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</Text>
           <UIGroup>
             <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
               Fire Info Toast
@@ -2870,16 +2893,16 @@ export const App: React.FC = () => {
       summary: <>A render crash in one widget shows a fallback instead of taking down the page, and long off-screen content skips layout and paint until it's scrolled into view.</>,
       parts: ['AIErrorBoundary', 'DeferredContent'],
       demo: (
-        <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</div>
+        <VStack gap="sm">
+          <Text size="xs" weight="semibold" tone="secondary">Catch Render Crashes (`&lt;AIErrorBoundary&gt;`)</Text>
           <VStack gap="sm">
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="sm" tone="secondary">
               Wraps a subtree so a render error there shows a fallback instead of crashing the whole page — the same boundary <code>Modal</code>/<code>Drawer</code>/<code>AlertDialog</code> already wrap their own content in internally. It also emits <code>error:boundary</code> on the bus (see this card's top-right toast — that subscription is separate from the log panel below, forwarding just this one event as a real app would).
-            </p>
+            </Text>
             <div style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md)' }}>
               <AIErrorBoundary componentName="ShowcaseWidget" fallback={(error, reset) => (
                 <VStack gap="sm">
-                  <p style={{ margin: 0, color: 'var(--ai-subtheme-error)', fontSize: '0.8125rem' }}>⚠️ {error.message}</p>
+                  <Text subtheme="error" size="sm">⚠️ {error.message}</Text>
                   <Button size="sm" variant="outline" onClick={() => { setFlakyTriggerKey(0); reset(); }}>Reset</Button>
                 </VStack>
               )}>
@@ -2888,7 +2911,7 @@ export const App: React.FC = () => {
             </div>
             <Button size="sm" variant="danger" onClick={() => setFlakyTriggerKey(k => k + 1)}>💥 Trigger Error</Button>
           </VStack>
-        </div>
+        </VStack>
       ),
     },
     {
@@ -2924,7 +2947,7 @@ export const App: React.FC = () => {
           />
           <div>
             <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>Toolcrib</h1>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+            <Text size="xs" tone="secondary">
               React UI Component Package Tailored for AI Consumption
               {/* Only useful once this is actually deployed (the GitHub
                   Pages build, via deploy-demo.yml) -- a local dev server
@@ -2950,7 +2973,7 @@ export const App: React.FC = () => {
                   </a>
                 </>
               )}
-            </p>
+            </Text>
           </div>
         </HStack>
 
@@ -3102,32 +3125,38 @@ export const App: React.FC = () => {
                     <Card>
                       <Card.Header>🌐 See It In a Real App</Card.Header>
                       <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Everything else on this page is <code>Toolcrib</code>'s own component showcase. These two are real, deployed products built entirely with it — fully client-side PWAs, no backend, no shared code with this demo.
-                        </p>
-                        <Grid columns={2} gap="sm">
-                          <CardSimple title="📰 feed-farmer-pwa" overrides={{ padding: 'compact' }}>
-                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8125rem' }}>
-                              An RSS/Atom feed reader — Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
-                            </p>
-                            <a href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank" rel="noreferrer">Live demo ↗</a>
-                          </CardSimple>
-                          <CardSimple title="🏢 founders-desk" overrides={{ padding: 'compact' }}>
-                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8125rem' }}>
-                              A personal command-center — <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
-                            </p>
-                            <a href="https://escape-llc.github.io/founders-desk/" target="_blank" rel="noreferrer">Live demo ↗</a>
-                          </CardSimple>
-                        </Grid>
+                        <VStack gap="md">
+                          <Text>
+                            Everything else on this page is <code>Toolcrib</code>'s own component showcase. These two are real, deployed products built entirely with it — fully client-side PWAs, no backend, no shared code with this demo.
+                          </Text>
+                          <Grid columns={2} gap="sm">
+                            <CardSimple title="📰 feed-farmer-pwa" overrides={{ padding: 'compact' }}>
+                              <VStack gap="md">
+                                <Text size="sm">
+                                  An RSS/Atom feed reader — Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
+                                </Text>
+                                <a href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                              </VStack>
+                            </CardSimple>
+                            <CardSimple title="🏢 founders-desk" overrides={{ padding: 'compact' }}>
+                              <VStack gap="md">
+                                <Text size="sm">
+                                  A personal command-center — <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
+                                </Text>
+                                <a href="https://escape-llc.github.io/founders-desk/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                              </VStack>
+                            </CardSimple>
+                          </Grid>
+                        </VStack>
                       </Card.Content>
                     </Card>
 
                     <Card>
                       <Card.Header>🛡️ Why Toolcrib?</Card.Header>
                       <Card.Content>
-                        <p style={{ marginTop: 0 }}>
+                        <Text>
                           An AI generating UI code from scratch tends to hit the same handful of failure surfaces over and over — not because it doesn't know React, but because nothing structural is stopping it from reinventing the same broken wheel a different way each time. <code>Toolcrib</code> exists to put a real structural boundary at each one, without taking control away from you.
-                        </p>
+                        </Text>
                         {/* StyleDomainProvider, not overrides.subtheme on each
                             CardSimple individually — one ancestor setting
                             gives the whole grid a consistent informational
@@ -3170,7 +3199,7 @@ export const App: React.FC = () => {
                             },
                           ].map(item => (
                             <CardSimple key={item.title} title={<>{item.icon} {item.title}</>} overrides={{ padding: 'compact' }}>
-                              <p style={{ margin: 0, fontSize: '0.8125rem' }}>{item.body}</p>
+                              <Text size="sm">{item.body}</Text>
                             </CardSimple>
                           ))}
                           </Grid>
@@ -3182,32 +3211,36 @@ export const App: React.FC = () => {
                       <Card>
                         <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
                         <Card.Content>
-                          <p style={{ marginTop: 0 }}>
-                            An AI generating a dialog, a menu, or a set of tabs from scratch tends to get keyboard support, focus management, and ARIA roles roughly 90% right and ship it anyway — the missing 10% (a focus trap that doesn't quite trap, an escape key that doesn't close, a role that isn't announced) is invisible in a quick visual check and only shows up for a real keyboard or screen-reader user. <code>Toolcrib</code> doesn't re-solve that per component: it wraps Radix UI's unstyled primitives (`radix-ui`) once per interaction pattern and adds HSV theming, slots, and event bus dispatch on top, so every component built on the same primitive inherits the same correct behavior for free.
-                          </p>
-                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                            <li><strong>Overlays</strong>: Dialog (<code>Modal</code>, <code>AlertDialog</code>), Popover (<code>Popup</code>; <code>Combobox</code>'s anchoring only), Portal (<code>Drawer</code>) — focus trap, background lockout, light-dismiss, and correct portal targeting, handled once instead of approximated per component.</li>
-                            <li><strong>Disclosure &amp; Structure</strong>: Accordion, Collapsible, Separator, ScrollArea, AspectRatio — expand/collapse and custom-scrollbar keyboard behavior with real ARIA roles, not a styled <code>&lt;div&gt;</code> pretending to be one.</li>
-                            <li><strong>Menus &amp; Navigation</strong>: DropdownMenu, ContextMenu, NavigationMenu (<code>Sidebar</code>), Tabs (<code>TabStrip</code>, <code>Stepper</code>), Toolbar — typeahead and arrow-key/roving-tabindex traversal for free.</li>
-                            <li><strong>Form Controls</strong>: RadioGroup (<code>RadioGroup</code>, <code>Rating</code>), Checkbox, Switch, Select, Slider, Toggle/ToggleGroup, Label — real <code>aria-checked</code>/<code>aria-valuenow</code> semantics, not a row of clickable spans.</li>
-                            <li><strong>Feedback &amp; Info</strong>: Toast, Tooltip, HoverCard, Progress, Avatar — priority queueing, hover/focus delay handling, determinate/indeterminate ARIA states.</li>
-                            <li><strong>Accessibility Utilities</strong>: VisuallyHidden, AccessibleIcon — screen-reader-only text and icon labeling with zero visual footprint.</li>
-                          </ul>
+                          <VStack gap="md">
+                            <Text>
+                              An AI generating a dialog, a menu, or a set of tabs from scratch tends to get keyboard support, focus management, and ARIA roles roughly 90% right and ship it anyway — the missing 10% (a focus trap that doesn't quite trap, an escape key that doesn't close, a role that isn't announced) is invisible in a quick visual check and only shows up for a real keyboard or screen-reader user. <code>Toolcrib</code> doesn't re-solve that per component: it wraps Radix UI's unstyled primitives (`radix-ui`) once per interaction pattern and adds HSV theming, slots, and event bus dispatch on top, so every component built on the same primitive inherits the same correct behavior for free.
+                            </Text>
+                            <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                              <li><strong>Overlays</strong>: Dialog (<code>Modal</code>, <code>AlertDialog</code>), Popover (<code>Popup</code>; <code>Combobox</code>'s anchoring only), Portal (<code>Drawer</code>) — focus trap, background lockout, light-dismiss, and correct portal targeting, handled once instead of approximated per component.</li>
+                              <li><strong>Disclosure &amp; Structure</strong>: Accordion, Collapsible, Separator, ScrollArea, AspectRatio — expand/collapse and custom-scrollbar keyboard behavior with real ARIA roles, not a styled <code>&lt;div&gt;</code> pretending to be one.</li>
+                              <li><strong>Menus &amp; Navigation</strong>: DropdownMenu, ContextMenu, NavigationMenu (<code>Sidebar</code>), Tabs (<code>TabStrip</code>, <code>Stepper</code>), Toolbar — typeahead and arrow-key/roving-tabindex traversal for free.</li>
+                              <li><strong>Form Controls</strong>: RadioGroup (<code>RadioGroup</code>, <code>Rating</code>), Checkbox, Switch, Select, Slider, Toggle/ToggleGroup, Label — real <code>aria-checked</code>/<code>aria-valuenow</code> semantics, not a row of clickable spans.</li>
+                              <li><strong>Feedback &amp; Info</strong>: Toast, Tooltip, HoverCard, Progress, Avatar — priority queueing, hover/focus delay handling, determinate/indeterminate ARIA states.</li>
+                              <li><strong>Accessibility Utilities</strong>: VisuallyHidden, AccessibleIcon — screen-reader-only text and icon labeling with zero visual footprint.</li>
+                            </ul>
+                          </VStack>
                         </Card.Content>
                       </Card>
 
                       <Card>
                         <Card.Header>🧩 Why Use Common Layout Idioms & Theme Slices?</Card.Header>
                         <Card.Content>
-                          <p style={{ marginTop: 0 }}>
-                            Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>Toolcrib</code> solves this by giving the AI high-level layout idioms:
-                          </p>
-                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                            <li><strong><code>&lt;VStack&gt;</code> & <code>&lt;HStack&gt;</code></strong>: Self-spacing vertical & horizontal flex containers.</li>
-                            <li><strong><code>&lt;Grid&gt;</code></strong>: Multi-column responsive card grids.</li>
-                            <li><strong><code>&lt;Toolbar&gt;</code></strong>: Header action bars with <code>Left</code>, <code>Center</code>, and <code>Right</code> slots.</li>
-                            <li><strong><code>ThemeSlice</code> Engine</strong>: Pluggable design capabilities (<code>margin</code>, <code>padding</code>, <code>radius</code>, <code>shadow</code>, <code>table</code>).</li>
-                          </ul>
+                          <VStack gap="md">
+                            <Text>
+                              Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>Toolcrib</code> solves this by giving the AI high-level layout idioms:
+                            </Text>
+                            <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                              <li><strong><code>&lt;VStack&gt;</code> & <code>&lt;HStack&gt;</code></strong>: Self-spacing vertical & horizontal flex containers.</li>
+                              <li><strong><code>&lt;Grid&gt;</code></strong>: Multi-column responsive card grids.</li>
+                              <li><strong><code>&lt;Toolbar&gt;</code></strong>: Header action bars with <code>Left</code>, <code>Center</code>, and <code>Right</code> slots.</li>
+                              <li><strong><code>ThemeSlice</code> Engine</strong>: Pluggable design capabilities (<code>margin</code>, <code>padding</code>, <code>radius</code>, <code>shadow</code>, <code>table</code>).</li>
+                            </ul>
+                          </VStack>
                         </Card.Content>
                       </Card>
                     </Grid>
@@ -3215,46 +3248,50 @@ export const App: React.FC = () => {
                     <Card>
                       <Card.Header>🎯 No Radix Primitive to Lean On — Hand-Built to the Same Standard</Card.Header>
                       <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <a href="https://www.w3.org/WAI/ARIA/apg/" target="_blank" rel="noreferrer">WAI-ARIA Authoring Practices Guide</a> patterns Radix itself implements internally, just written by hand instead of imported:
-                        </p>
-                        <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                          <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
-                          <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see its Encyclopedia entry.</li>
-                          <li><strong><code>Filmstrip</code></strong> — real roving tabindex (exactly one <code>tabIndex=0</code> stop at a time, matching the APG's own composite-widget model) with Arrow/Home/End keyboard navigation, not a scrollable row of plain divs.</li>
-                        </ul>
-                        <p style={{ marginBottom: 0 }}>
-                          This same attention runs underneath every component regardless of whether Radix backs it: every interactive element gets a real <code>:focus-visible</code> ring from one shared, systematically-injected stylesheet (<code>injectInteractionStyles()</code>) rather than each component hand-adding its own — before this existed, several components reset the browser's default outline to nothing and never replaced it, a real WCAG 2.4.7 gap invisible in a quick visual pass and only caught by actually tabbing through the UI.
-                        </p>
+                        <VStack gap="md">
+                          <Text>
+                            Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <a href="https://www.w3.org/WAI/ARIA/apg/" target="_blank" rel="noreferrer">WAI-ARIA Authoring Practices Guide</a> patterns Radix itself implements internally, just written by hand instead of imported:
+                          </Text>
+                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                            <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
+                            <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see its Encyclopedia entry.</li>
+                            <li><strong><code>Filmstrip</code></strong> — real roving tabindex (exactly one <code>tabIndex=0</code> stop at a time, matching the APG's own composite-widget model) with Arrow/Home/End keyboard navigation, not a scrollable row of plain divs.</li>
+                          </ul>
+                          <Text>
+                            This same attention runs underneath every component regardless of whether Radix backs it: every interactive element gets a real <code>:focus-visible</code> ring from one shared, systematically-injected stylesheet (<code>injectInteractionStyles()</code>) rather than each component hand-adding its own — before this existed, several components reset the browser's default outline to nothing and never replaced it, a real WCAG 2.4.7 gap invisible in a quick visual pass and only caught by actually tabbing through the UI.
+                          </Text>
+                        </VStack>
                       </Card.Content>
                     </Card>
 
                     <Card>
                       <Card.Header>📐 AI Schema, Color Theory & WCAG Enforcement</Card.Header>
                       <Card.Content>
-                        <p style={{ marginTop: 0 }}>
-                          In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
-                          Changing the <strong>Master Font Size</strong> slider in the OOTB Theme Designer updates <code>--ai-master-font-size</code> on <code>:root</code>, smoothly scaling the entire UI layout up or down in real time!
-                        </p>
-                        <pre style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontSize: '0.75rem', overflowX: 'auto', margin: 0 }}>
-{`:root {
-  font-size: var(--ai-master-font-size, 16px);
-  --ai-padding-md: 0.5rem 1rem;
-  --ai-margin-gap: 0.875rem;
-  --ai-table-cell-padding: var(--ai-padding-sm);
-}`}
-                        </pre>
-                        <p>
-                          A whole theme is generated from a <em>single</em> base HSV color plus a <strong>harmony mode</strong> — real color theory, not designer-picked swatches: <code>analogous</code> hues sit close together on the wheel for a cohesive look, <code>complementary</code>/<code>split-complementary</code> and <code>triadic</code> spread hues apart by a fixed geometric relationship for deliberate contrast. Pick a base color and a mode in the Theme Designer, and the entire primary/secondary/accent/quaternary palette — plus every semantic subtheme below — derives from that one decision.
-                        </p>
-                        <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                          <li><strong>Readable text is computed, not chosen.</strong> <code>pickReadableTextColor()</code> checks a real WCAG contrast ratio (the same relative-luminance formula from the spec, via <code>getHSVContrastRatio()</code>) against both pure black and pure white, and picks whichever wins — provably ≥4.5:1 against <em>any</em> background, so a vivid, high-luminance primary color never silently produces unreadable white-on-bright-fill text the way a hardcoded <code>color: white</code> would.</li>
-                          <li><strong>Themed text on a neutral surface is nudged, not guessed.</strong> <code>ensureWCAGContrast()</code> takes a foreground/background pair and iteratively adjusts Value (and, if needed, Saturation) — never Hue — until a target ratio is met, so secondary text stays recognizably "the theme's color" instead of being replaced by generic black or white.</li>
-                          <li><strong>Semantic subthemes (error/success/warning/info) generate their own accessible pairs</strong> — main/background/border/text/on-main — the same way, so a themed error banner is exactly as WCAG-compliant as the default palette, in every color a consumer picks.</li>
-                        </ul>
-                        <p style={{ marginBottom: 0 }}>
-                          The result: an AI (or a human) picking an arbitrary base color and harmony mode gets a full, internally-consistent, accessible palette for free — accessibility here is a property the color <em>math</em> guarantees, not a manual contrast-checker pass someone has to remember to run.
-                        </p>
+                        <VStack gap="md">
+                          <Text>
+                            In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
+                            Changing the <strong>Master Font Size</strong> slider in the OOTB Theme Designer updates <code>--ai-master-font-size</code> on <code>:root</code>, smoothly scaling the entire UI layout up or down in real time!
+                          </Text>
+                          <pre style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontSize: '0.75rem', overflowX: 'auto', margin: 0 }}>
+  {`:root {
+    font-size: var(--ai-master-font-size, 16px);
+    --ai-padding-md: 0.5rem 1rem;
+    --ai-margin-gap: 0.875rem;
+    --ai-table-cell-padding: var(--ai-padding-sm);
+  }`}
+                          </pre>
+                          <Text>
+                            A whole theme is generated from a <em>single</em> base HSV color plus a <strong>harmony mode</strong> — real color theory, not designer-picked swatches: <code>analogous</code> hues sit close together on the wheel for a cohesive look, <code>complementary</code>/<code>split-complementary</code> and <code>triadic</code> spread hues apart by a fixed geometric relationship for deliberate contrast. Pick a base color and a mode in the Theme Designer, and the entire primary/secondary/accent/quaternary palette — plus every semantic subtheme below — derives from that one decision.
+                          </Text>
+                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
+                            <li><strong>Readable text is computed, not chosen.</strong> <code>pickReadableTextColor()</code> checks a real WCAG contrast ratio (the same relative-luminance formula from the spec, via <code>getHSVContrastRatio()</code>) against both pure black and pure white, and picks whichever wins — provably ≥4.5:1 against <em>any</em> background, so a vivid, high-luminance primary color never silently produces unreadable white-on-bright-fill text the way a hardcoded <code>color: white</code> would.</li>
+                            <li><strong>Themed text on a neutral surface is nudged, not guessed.</strong> <code>ensureWCAGContrast()</code> takes a foreground/background pair and iteratively adjusts Value (and, if needed, Saturation) — never Hue — until a target ratio is met, so secondary text stays recognizably "the theme's color" instead of being replaced by generic black or white.</li>
+                            <li><strong>Semantic subthemes (error/success/warning/info) generate their own accessible pairs</strong> — main/background/border/text/on-main — the same way, so a themed error banner is exactly as WCAG-compliant as the default palette, in every color a consumer picks.</li>
+                          </ul>
+                          <Text>
+                            The result: an AI (or a human) picking an arbitrary base color and harmony mode gets a full, internally-consistent, accessible palette for free — accessibility here is a property the color <em>math</em> guarantees, not a manual contrast-checker pass someone has to remember to run.
+                          </Text>
+                        </VStack>
                       </Card.Content>
                     </Card>
                   </VStack>
@@ -3280,9 +3317,9 @@ export const App: React.FC = () => {
                     <Card>
                       <Card.Header>Kits</Card.Header>
                       <Card.Content>
-                        <p style={{ margin: 0 }}>
+                        <Text>
                           Pre-assembled combinations of the tools in the Encyclopedia, laid out for a common job. The analytics dashboard below is live components; the wireframes after it show the regions and proportions of common page layouts, with the primitives that build each.
-                        </p>
+                        </Text>
                       </Card.Content>
                     </Card>
 
@@ -3294,7 +3331,7 @@ export const App: React.FC = () => {
                       <VStack gap="lg">
                         <Toolbar>
                           <Toolbar.Left>
-                            <span style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '1.0625rem' }}>📈 Acme Analytics</span>
+                            <Text as="span" weight="semibold" size="lg">📈 Acme Analytics</Text>
                           </Toolbar.Left>
                           <Toolbar.Right>
                             {/* "Export Report", not the shorter "Export" --
@@ -3366,12 +3403,14 @@ export const App: React.FC = () => {
                           ].map(stat => (
                             <Card key={stat.label}>
                               <Card.Content>
-                                <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{stat.label}</div>
-                                <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                  <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
-                                  <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
-                                </div>
+                                <VStack gap="md">
+                                  <Text size="sm" tone="secondary">{stat.label}</Text>
+                                  <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                    <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
+                                    <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
+                                  </div>
+                                </VStack>
                               </Card.Content>
                             </Card>
                           ))}
@@ -3509,25 +3548,27 @@ export const App: React.FC = () => {
                         <Card>
                           <Card.Header>Common Layout Wireframes</Card.Header>
                           <Card.Content>
-                            <p style={{ marginTop: 0 }}>
-                              Each tile below is an isolated <code>&lt;iframe srcDoc&gt;</code> — a static structural wireframe, deliberately flat-colored and filled with lorem ipsum rather than skinned in the live HSV theme, since a wireframe's job is to communicate regions and proportions, not final finish. The caption under each names the Toolcrib layout primitives that build the real thing.
-                            </p>
-                            <HStack gap="md" wrap>
-                              {WIREFRAME_LEGEND.map(item => (
-                                <HStack key={item.label} gap="sm">
-                                  <div
-                                    style={{
-                                      width: '0.75rem',
-                                      height: '0.75rem',
-                                      borderRadius: '0.1875rem',
-                                      background: item.color,
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>{item.label}</span>
-                                </HStack>
-                              ))}
-                            </HStack>
+                            <VStack gap="md">
+                              <Text>
+                                Each tile below is an isolated <code>&lt;iframe srcDoc&gt;</code> — a static structural wireframe, deliberately flat-colored and filled with lorem ipsum rather than skinned in the live HSV theme, since a wireframe's job is to communicate regions and proportions, not final finish. The caption under each names the Toolcrib layout primitives that build the real thing.
+                              </Text>
+                              <HStack gap="md" wrap>
+                                {WIREFRAME_LEGEND.map(item => (
+                                  <HStack key={item.label} gap="sm">
+                                    <div
+                                      style={{
+                                        width: '0.75rem',
+                                        height: '0.75rem',
+                                        borderRadius: '0.1875rem',
+                                        background: item.color,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <Text as="span" size="xs" tone="secondary">{item.label}</Text>
+                                  </HStack>
+                                ))}
+                              </HStack>
+                            </VStack>
                           </Card.Content>
                         </Card>
 
@@ -3554,9 +3595,9 @@ export const App: React.FC = () => {
                                     }}
                                   />
                                 )}
-                                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)', fontFamily: 'monospace' }}>
+                                <Text size="xs" tone="secondary" mono>
                                   {wireframe.components}
-                                </div>
+                                </Text>
                               </Card.Content>
                             </Card>
                           ))}
@@ -3595,7 +3636,7 @@ export const App: React.FC = () => {
               <Card.Header paddingMode="compact">
                 <Toolbar>
                   <Toolbar.Left>
-                    <span style={{ fontSize: '0.875rem' }}>⚡ Live AI Event Bus Monitor (`aiBus` Stream)</span>
+                    <Text as="span" size="md">⚡ Live AI Event Bus Monitor (`aiBus` Stream)</Text>
                   </Toolbar.Left>
                   <Toolbar.Right>
                     {/* A connected <UIGroup> instead of loose Toolbar.Button

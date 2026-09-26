@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Download, Trash2 } from 'lucide-react';
-import { Button, Tooltip, aiBus, useAnyAIEvent } from '#toolcrib';
+import { Button, Text, Tooltip, aiBus, useAnyAIEvent } from '#toolcrib';
 
 // The live aiBus monitor's state, in its own provider rather than App's own
 // state. Found for real in issue #624: once the Encyclopedia mounted every
@@ -194,15 +194,15 @@ export function EventLogList({ collapsed }: { collapsed: boolean }) {
           const shownPayload = isLongPayload && !isExpanded ? `${log.payload.slice(0, EVENT_LOG_PAYLOAD_ELIDE_LENGTH)}…` : log.payload;
           return (
             <div key={log.id} style={{ marginBottom: '0.2rem' }}>
-              <span style={{ color: 'var(--ai-text-secondary)' }}>[{log.time}]</span>{' '}
+              <Text as="span" tone="secondary">[{log.time}]</Text>{' '}
               {/* --ai-color-primary-readable, not --ai-color-primary -- this
                   text sits on the log panel's near-neutral background, and
                   the raw hue measures under AA contrast there (axe:
                   color-contrast); same fix/reasoning as TabSlice.tsx's own
                   activeTextColor (see its comment for why a plain
                   harmonies.ts-generated var, not color-mix()). */}
-              <span style={{ color: 'var(--ai-color-primary-readable)', fontWeight: 'bold' }}>{log.event}</span>:{' '}
-              <span style={{ color: 'var(--ai-text-primary)' }}>{shownPayload}</span>
+              <Text as="span" variant="primary" weight="bold">{log.event}</Text>:{' '}
+              <Text as="span" tone="default">{shownPayload}</Text>
               {/* A real <button>, not a styled span -- this is the only way to
                   reveal a verbose payload (theme:changed's full CSS variable
                   dump, e.g.), so it needs to be a genuine keyboard/screen-
