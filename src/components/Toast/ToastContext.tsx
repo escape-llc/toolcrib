@@ -186,7 +186,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 
   const actions = useMemo<ToastActions>(
     () => ({ addToast, dismissToast, clearAll, setAnchor }),
-    [addToast, dismissToast, clearAll]
+    // setAnchor is a useState setter (stable by React's guarantee, and exempt
+    // from exhaustive-deps) -- listed anyway so the memo stays correct if it's
+    // ever replaced with a custom function.
+    [addToast, dismissToast, clearAll, setAnchor]
   );
 
   return (
