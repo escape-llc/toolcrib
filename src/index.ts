@@ -47,6 +47,7 @@ export * from './observer/useMutationObserver';
 // Components
 export * from './components/Accordion/Accordion';
 export * from './components/Accordion/AccordionSlice';
+export * from './components/Alert/Alert';
 export * from './components/AlertDialog/AlertDialog';
 export * from './components/AlertDialog/AlertDialogSlice';
 export * from './components/AppShell/AppShell';

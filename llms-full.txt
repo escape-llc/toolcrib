@@ -365,6 +365,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Hardcode colour values (hex, rgb) | Use CSS variables: `var(--ai-color-primary)`, `var(--ai-subtheme-error)` |
 | Prop-drill callbacks through component trees | Use `aiBus.emit()` / `useAIEvent()` for cross-tree communication |
 | Pass `style={{...}}` or `className="..."` to a toolcrib component | Use that component's `overrides` prop (§10) if it has theme-controlled axes; if what you need genuinely isn't one of them, a plain `<div>` is still fine — `<Block>` is the same escape hatch with theme-aware background/padding/radius/border defaults |
+| Open an `<AlertDialog>`/`<Modal>` for a non-blocking message, or hand-roll a tinted `<div>` with an emoji and no `role` | Use `<Alert>` for a message that belongs next to its content (role `alert`/`status` announces it); `<AlertDialog>` only when the user must decide before continuing |
 | Hand-roll a full-viewport app layout frame with header/sidebar/main regions and manual sidebar-collapse state | Use `<AppShell layout="sidebar-left"|"sidebar-right">` + `<AppShell.Sidebar>` — icon-only collapse and the correct divider border side come for free |
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases) | Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
@@ -422,6 +423,7 @@ Full prop detail: `ai-docs/manifest/containers.json`
 
 | Component | Slots | Props | Description |
 |:---|:---|:---|:---|
+| `<Alert>` | `.Title`, `.Description` | `subtheme`, `variant`, `appearance`, `icon`, `role`, `action`, `onDismiss` | Inline callout (status icon, title, description, optional action and dismiss) with live-region semantics — in the page flow, never blocking |
 | `<AppShell>` | `.Header`, `.Main`, `.Sidebar` | `layout`, `overrides` | Full-viewport root layout frame with Header, Sidebar, and Main slots — the top-level wrapper for an entire app |
 | `<Card>` | `.Header`, `.Content`, `.Footer`, `.Actions` | `layout`, `squareCorners`, `overrides` | Slot-based container with automatic layout domain corner squaring |
 | `<CardSimple>` | — | `title`, `subtitle`, `footer`, `actions` | Token-saving shorthand for simple cards without slot composition |
@@ -675,7 +677,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[81]{name,payload}:
+[82]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -726,6 +728,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "calendar:changed","{ name?: string; value: string | null }"
   "daterangepicker:changed","{ name?: string; value: { start: string; end: string } | null }"
   "rangecalendar:changed","{ name?: string; value: { start: string; end: string } }"
+  "alert:dismissed","{ id?: string; subtheme?: string }"
   "timefield:changed","{ name?: string; value: string | null }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"

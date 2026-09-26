@@ -50,6 +50,7 @@ import {
   aiBus,
   useAIEvent,
   AlertDialog,
+  Alert,
   Progress,
   Separator,
   Avatar,
@@ -846,6 +847,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     document.querySelector('[data-testid="main-content-scroll"]')?.scrollTo({ top: 0 });
   }, [routeKey]);
+  const [trialAlertShown, setTrialAlertShown] = useState(true);
   const [listboxQuery, setListboxQuery] = useState('');
   const [inputSectionsQuery, setInputSectionsQuery] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([200, 800]);
@@ -1418,6 +1420,33 @@ export const App: React.FC = () => {
     ),
 
     // Containers
+    Alert: (
+      <VStack gap="sm">
+        <Alert>
+          <Alert.Description>Scheduled maintenance tonight from 02:00 to 03:00 UTC.</Alert.Description>
+        </Alert>
+        <Alert subtheme="success" action={<Button size="sm" variant="outline" onClick={() => addToast({ type: 'info', message: 'Opening the report', priority: 'low' })}>View report</Button>}>
+          <Alert.Title>Import complete</Alert.Title>
+          <Alert.Description>250 records were added to the directory.</Alert.Description>
+        </Alert>
+        {trialAlertShown ? (
+          <Alert id="demo-trial-alert" subtheme="warning" onDismiss={() => setTrialAlertShown(false)}>
+            <Alert.Title>Your trial ends in 3 days</Alert.Title>
+            <Alert.Description>Add a payment method to keep your projects.</Alert.Description>
+          </Alert>
+        ) : (
+          <div>
+            <Button size="sm" variant="ghost" onClick={() => setTrialAlertShown(true)}>
+              Show the dismissed alert again
+            </Button>
+          </div>
+        )}
+        <Alert subtheme="error">
+          <Alert.Title>Upload failed</Alert.Title>
+          <Alert.Description>The file is larger than 2 MB.</Alert.Description>
+        </Alert>
+      </VStack>
+    ),
     AppShell: {
       pageFrame: (
         <>
