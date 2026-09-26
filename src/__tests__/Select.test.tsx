@@ -6,6 +6,7 @@ import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
 import { UIGroup } from '../components/UIGroup/UIGroup';
 import { axe } from './testUtils/axe';
+import { NonceContext } from '../theme/nonceContext';
 
 const options = [
   { label: 'Admin', value: 'admin' },
@@ -33,6 +34,22 @@ describe('Select Component', () => {
     fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  // Issue #625: Radix's Select.Viewport renders its own <style> (hiding the
+  // native scrollbar). Without the configured nonce, a strict style-src CSP
+  // blocks it -- found by e2e/csp-nonce.spec.ts's production-build test.
+  it('passes the configured CSP nonce to the listbox viewport\'s own <style>', async () => {
+    render(
+      <NonceContext.Provider value="test-nonce-625">
+        <Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" />
+      </NonceContext.Provider>
+    );
+    fireEvent.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
+    const styles = Array.from(document.querySelectorAll('style')).filter(s => s.textContent?.includes('select-viewport'));
+    expect(styles.length).toBeGreaterThan(0);
+    for (const s of styles) expect(s.getAttribute('nonce')).toBe('test-nonce-625');
   });
 
   // Regression: a standalone <Select defaultValue="..."> (no Form ancestor,

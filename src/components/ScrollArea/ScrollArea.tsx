@@ -1,6 +1,9 @@
+'use client';
+
 import React, { type ReactNode } from 'react';
 import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
+import { useNonce } from '../../theme/nonceContext';
 import { ScrollAreaThemeSlice, type ScrollAreaSliceState } from './ScrollAreaSlice';
 
 /** Props for the `<ScrollArea>` themed-scrollbar container. */
@@ -39,6 +42,9 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
   overrides,
 }) => {
   const scrollAreaVars = getSparseVariables(ScrollAreaThemeSlice, overrides ?? {});
+  // Issue #625: Radix's Viewport renders its own <style> (hiding the native
+  // scrollbar) -- without the nonce, a strict style-src CSP blocks it.
+  const nonce = useNonce();
   const showVertical = orientation === 'vertical' || orientation === 'both';
   const showHorizontal = orientation === 'horizontal' || orientation === 'both';
 
@@ -58,7 +64,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
           reach and scroll it unless its content happens to contain another
           focusable element (axe: scrollable-region-focusable). Same fix as
           Content.Grow. */}
-      <ScrollAreaPrimitive.Viewport tabIndex={0} style={{ width: '100%', height: '100%' }}>
+      <ScrollAreaPrimitive.Viewport tabIndex={0} nonce={nonce} style={{ width: '100%', height: '100%' }}>
         {children}
       </ScrollAreaPrimitive.Viewport>
       {showVertical && (
