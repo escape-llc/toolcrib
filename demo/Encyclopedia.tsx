@@ -1,7 +1,11 @@
 import React, { type ReactNode } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
-import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, VStack } from '#toolcrib';
+import demoSources from './demoSources.generated.json';
+import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, VStack, VisuallyHidden } from '#toolcrib';
 import { routeHref } from './hashRoute';
+
+/** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
+const DEMO_SOURCES = demoSources as { components: Record<string, string>; systems: Record<string, string> };
 
 // The demo's component reference (issue #624), organized like a physical
 // tool crib: a shadow board index (one outline per tool, grouped into the
@@ -87,17 +91,20 @@ function byCategory(): { category: string; items: (ManifestComponent & { bin: st
   });
 }
 
-type TileState = 'demo' | 'via' | 'frame' | 'missing';
+type TileState = 'featured' | 'demo' | 'via' | 'frame' | 'missing';
 
-function tileState(demos: Record<string, EntryDemo>, name: string): TileState {
+function tileState(demos: Record<string, EntryDemo>, featured: Record<string, string>, name: string): TileState {
   const d = demos[name];
   if (d === undefined || d === null) return 'missing';
   if (isSeeAlso(d)) return 'via';
   if (isPageFrame(d)) return 'frame';
-  return 'demo';
+  return name in featured ? 'featured' : 'demo';
 }
 
 const TILE_STYLE: Record<TileState, React.CSSProperties> = {
+  // Accent, not primary: primary already means "link" and "selected" all
+  // over the page, and a featured tile is neither.
+  featured: { background: 'var(--ai-bg-surface, #ffffff)', border: '0.125rem solid var(--ai-color-accent, #8b5cf6)', color: 'var(--ai-text-primary, #111827)' },
   demo: { background: 'var(--ai-bg-surface, #ffffff)', border: '0.0625rem solid var(--ai-border, #d1d5db)', color: 'var(--ai-text-primary, #111827)' },
   via: { background: 'var(--ai-bg-surface, #ffffff)', border: '0.0625rem dashed var(--ai-border, #d1d5db)', color: 'var(--ai-text-primary, #111827)' },
   frame: { background: 'transparent', border: '0.0625rem dashed var(--ai-border, #d1d5db)', color: 'var(--ai-text-secondary, #6b7280)' },
@@ -105,6 +112,7 @@ const TILE_STYLE: Record<TileState, React.CSSProperties> = {
 };
 
 const TILE_HINT: Record<TileState, string> = {
+  featured: '',
   demo: '',
   via: 'shown with another tool',
   frame: 'this page is built with it',
@@ -112,9 +120,9 @@ const TILE_HINT: Record<TileState, string> = {
 };
 
 /** One outline per tool, grouped by drawer. A filled tile has its own live demo; a dashed one says why it doesn't. */
-function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
+function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; featured: Record<string, string> }) {
   const groups = byCategory();
-  const missing = groups.flatMap(g => g.items).filter(c => tileState(demos, c.name) === 'missing');
+  const missing = groups.flatMap(g => g.items).filter(c => tileState(demos, featured, c.name) === 'missing');
   return (
     <Card>
       <Card.Header>
@@ -123,7 +131,7 @@ function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
       <Card.Content>
         <VStack gap="md">
           <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-            {COMPONENTS.length} components, generated from the component manifest. Pick one to open its page. A solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
+            {COMPONENTS.length} components, generated from the component manifest. Pick one to open its page. A <strong>★ highlighted</strong> outline is one of the richest demos, a good place to start; a solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
             {missing.length > 0 ? <>; an <strong>amber</strong> outline has no demo yet ({missing.map(c => c.name).join(', ')}).</> : '.'}
           </p>
           {groups.map(({ category, items }) => (
@@ -133,13 +141,14 @@ function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))', gap: '0.375rem', marginTop: '0.375rem' }}>
                 {items.map(c => {
-                  const state = tileState(demos, c.name);
+                  const state = tileState(demos, featured, c.name);
+                  const hint = state === 'featured' ? featured[c.name] : TILE_HINT[state];
                   return (
                     <a
                       key={c.name}
                       href={entryHref(c.name)}
                       data-shadow-tile={state}
-                      title={TILE_HINT[state] ? `${c.name} — ${TILE_HINT[state]}` : c.name}
+                      title={hint ? `${c.name} — ${hint}` : c.name}
                       style={{
                         display: 'block',
                         padding: '0.375rem 0.5rem',
@@ -149,7 +158,10 @@ function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
                         ...TILE_STYLE[state],
                       }}
                     >
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>{c.bin}</span> {c.name}
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--ai-text-secondary)' }}>{c.bin}</span>{' '}
+                      {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★</span>}
+                      {c.name}
+                      {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
                     </a>
                   );
                 })}
@@ -207,6 +219,30 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
           </tbody>
         </table>
       </div>
+    </Collapsible>
+  );
+}
+
+/**
+ * The demo's own source, generated from demo/App.tsx (issue #638) -- the
+ * exact JSX running above it. Collapsed by default, like the spec sheet.
+ */
+function SourceSheet({ source }: { source?: string }) {
+  if (!source) return null;
+  return (
+    <Collapsible trigger="Source — this demo's code">
+      <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>
+        Straight from the demo app, so it can reference the demo's own state and handlers (<code style={codeStyle}>addToast</code>, sample data).
+      </p>
+      {/* A scroll region needs keyboard access (axe: scrollable-region-focusable). */}
+      <pre
+        tabIndex={0}
+        role="region"
+        aria-label="Demo source"
+        style={{ margin: 0, maxHeight: '28rem', overflow: 'auto', padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}
+      >
+        <code style={{ ...codeStyle, fontSize: '0.75rem' }}>{source}</code>
+      </pre>
     </Collapsible>
   );
 }
@@ -277,9 +313,12 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
             ) : demo === undefined || demo === null ? (
               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>No live demo yet.</p>
             ) : (
-              <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
-                {demo}
-              </div>
+              <>
+                <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
+                  {demo}
+                </div>
+                <SourceSheet source={DEMO_SOURCES.components[c.name]} />
+              </>
             )}
           </VStack>
         </Card.Content>
@@ -323,7 +362,12 @@ function SystemCard({ area }: { area: SystemArea }) {
                 Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
               </div>
             ) : null}
-            {area.demo && <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>}
+            {area.demo && (
+              <>
+                <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>
+                <SourceSheet source={DEMO_SOURCES.systems[area.id]} />
+              </>
+            )}
           </VStack>
         </Card.Content>
       </Card>
@@ -368,16 +412,19 @@ const neighbor = <T,>(list: T[], i: number, toLink: (t: T) => { label: string; h
  * page's live demo is mounted. `demos` is keyed by manifest component name;
  * a component with no key renders as a missing (amber) outline rather than
  * silently disappearing, so a newly added component shows up here
- * automatically the moment it's in the manifest.
+ * automatically the moment it's in the manifest. `featured` highlights a
+ * few of the richest demos on the shadow board (name -> one-line reason).
  */
 export function Encyclopedia({
   demos,
   systems,
+  featured = {},
   entry,
   system,
 }: {
   demos: Record<string, EntryDemo>;
   systems: SystemArea[];
+  featured?: Record<string, string>;
   entry?: string;
   system?: string;
 }) {
@@ -409,7 +456,7 @@ export function Encyclopedia({
 
   return (
     <VStack gap="lg">
-      <ShadowBoard demos={demos} />
+      <ShadowBoard demos={demos} featured={featured} />
       <SystemsIndex systems={systems} />
     </VStack>
   );

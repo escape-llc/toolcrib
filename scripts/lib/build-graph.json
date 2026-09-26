@@ -37,6 +37,15 @@
       "write": "npm run generate-index"
     },
     {
+      "id": "demo-sources",
+      "outputs": ["demo/demoSources.generated.json"],
+      "inputs": [
+        { "pattern": "demo/App.tsx", "reason": "generate-demo-sources.js slices each componentDemos entry and systemAreas[].demo out of this one file's source text -- nothing else is read" }
+      ],
+      "check": "npm run check-demo-sources",
+      "write": "npm run generate-demo-sources"
+    },
+    {
       "id": "security-advisories",
       "outputs": ["security-advisories.json"],
       "inputs": [],

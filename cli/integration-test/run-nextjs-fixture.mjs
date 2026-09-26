@@ -93,6 +93,9 @@ try {
     `'use client';\n\n${encyclopediaSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
   );
   fs.copyFileSync(path.join(REPO_ROOT, 'ai-docs/component-manifest.json'), path.join(tmpDir, 'app/component-manifest.json'));
+  // Each demo's generated source snippet (issue #638), imported by
+  // Encyclopedia.tsx from its own directory -- same relative path in app/.
+  fs.copyFileSync(path.join(REPO_ROOT, 'demo/demoSources.generated.json'), path.join(tmpDir, 'app/demoSources.generated.json'));
   // The live event log's provider/components (demo/EventLog.tsx) -- no
   // rewriting needed, its only imports are '#toolcrib', react and lucide.
   fs.writeFileSync(
