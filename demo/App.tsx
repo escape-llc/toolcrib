@@ -2157,15 +2157,21 @@ export const App: React.FC = () => {
           Arrow keys move between tabs. Each <code>TabStrip.Panel</code> is matched to its strip by <code>groupId</code>, so panels can live anywhere in the tree.
         </p>
         <TabStrip id="encyclopedia-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
-        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="details">
-          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Details panel.</p>
-        </TabStrip.Panel>
-        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="activity">
-          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Activity panel.</p>
-        </TabStrip.Panel>
-        <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="settings">
-          <p style={{ margin: 0, fontSize: '0.8125rem' }}>Settings panel.</p>
-        </TabStrip.Panel>
+        {/* The panels sit in a plain Block, not directly in this VStack:
+            TabStrip.Panel is built to fill a full-height flex parent, and
+            as a direct child of a content-sized flex column it collapses to
+            0px and its content spills onto whatever follows (#643). */}
+        <Block>
+          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="details">
+            <Block background="container" padding="md" radius="md">Order #1042 — 3 items, shipped to Portland.</Block>
+          </TabStrip.Panel>
+          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="activity">
+            <Block background="container" padding="md" radius="md">Shipped yesterday · Paid Monday · Placed last week.</Block>
+          </TabStrip.Panel>
+          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="settings">
+            <Block background="container" padding="md" radius="md">Email me when this order changes.</Block>
+          </TabStrip.Panel>
+        </Block>
       </VStack>
     ),
     Tree: (
