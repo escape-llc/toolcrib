@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DeferredContent } from '../components/Layout/DeferredContent';
@@ -42,6 +43,34 @@ describe('DeferredContent', () => {
     root.dispatchEvent(event);
 
     expect(onVisibilityChange).toHaveBeenCalledWith({ skipped: true });
+  });
+
+  // Issue #634: the browser fires contentvisibilityautostatechange once, in
+  // the first rendering update after the element is inserted -- which can
+  // come before a useEffect subscription runs (confirmed in real WebKit and
+  // Chromium: a listener attached ~100ms after insertion never saw an
+  // on-screen element's initial event). A parent's layout effect runs in
+  // the same commit, before any passive effect, so dispatching from one
+  // stands in for that first rendering update.
+  it('is subscribed before the first rendering update, so the initial visibility event is not missed', () => {
+    const onVisibilityChange = vi.fn();
+    function FiresOnCommit({ children }: { children: React.ReactNode }) {
+      const ref = React.useRef<HTMLDivElement>(null);
+      React.useLayoutEffect(() => {
+        const event = new Event('contentvisibilityautostatechange') as Event & { skipped: boolean };
+        event.skipped = false;
+        ref.current?.firstElementChild?.dispatchEvent(event);
+      }, []);
+      return <div ref={ref}>{children}</div>;
+    }
+    render(
+      <FiresOnCommit>
+        <DeferredContent estimatedHeight={200} onVisibilityChange={onVisibilityChange}>
+          <p>Content</p>
+        </DeferredContent>
+      </FiresOnCommit>
+    );
+    expect(onVisibilityChange).toHaveBeenCalledWith({ skipped: false });
   });
 
   it('does not throw when onVisibilityChange is omitted', () => {

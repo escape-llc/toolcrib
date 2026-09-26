@@ -1,7 +1,11 @@
 'use client';
 
-import React, { type ReactNode, useEffect, useRef } from 'react';
+import React, { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+
+// useLayoutEffect warns during server rendering; nothing here needs to run
+// there anyway (there's no content-visibility on the server).
+const useIsomorphicLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : useEffect;
 
 /** @barrelExport */
 export interface ContentVisibilityState {
@@ -35,7 +39,9 @@ export interface DeferredContentProps extends StyleFreeAttributes<HTMLDivElement
   /**
    * Called when this content's rendering is skipped or resumed by the
    * browser — e.g. to pause/resume an expensive child (a video, a live
-   * chart, a canvas animation) while it's off-screen. Optional: most
+   * chart, a canvas animation) while it's off-screen. The initial state is
+   * reported too, so content that starts on screen still gets a
+   * `{ skipped: false }` call, and work can be gated on it. Optional: most
    * children don't do continuous work and don't need this.
    */
   onVisibilityChange?: (state: ContentVisibilityState) => void;
@@ -54,7 +60,12 @@ export const DeferredContent: React.FC<DeferredContentProps> = ({
   warnIfLegacyStyleProps(props, 'DeferredContent');
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // A layout effect, not useEffect (issue #634): the browser fires
+  // contentvisibilityautostatechange once, in the first rendering update
+  // after insertion, and a passive effect can run after that -- an element
+  // that starts on screen then never reports it's visible. Layout effects
+  // run synchronously in the commit, before the browser renders again.
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el || !onVisibilityChange) return;
 

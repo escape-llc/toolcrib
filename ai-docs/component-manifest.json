@@ -1856,7 +1856,7 @@
         },
         "onVisibilityChange": {
           "type": "(state: ContentVisibilityState) => void",
-          "description": "Called when this content's rendering is skipped or resumed by the\nbrowser — e.g. to pause/resume an expensive child (a video, a live\nchart, a canvas animation) while it's off-screen. Optional: most\nchildren don't do continuous work and don't need this."
+          "description": "Called when this content's rendering is skipped or resumed by the\nbrowser — e.g. to pause/resume an expensive child (a video, a live\nchart, a canvas animation) while it's off-screen. The initial state is\nreported too, so content that starts on screen still gets a\n`{ skipped: false }` call, and work can be gated on it. Optional: most\nchildren don't do continuous work and don't need this."
         }
       },
       "category": "Containers",
