@@ -43,15 +43,20 @@ describe('Block', () => {
     expect(screen.getByTestId('block').style.border).toBe('0.0625rem solid var(--ai-border, #e5e7eb)');
   });
 
-  it('lets a consumer style/className win over the themed defaults, spread last on purpose', () => {
-    render(
-      <Block data-testid="block" background="surface" style={{ background: 'hotpink' }} className="my-class">
-        x
-      </Block>
-    );
-    const block = screen.getByTestId('block');
-    expect(block.style.background).toBe('hotpink');
-    expect(block.className).toBe('my-class');
+  // Issue #647: Block used to be the one exception to "no toolcrib component
+  // takes style/className". It has none now, like every other component:
+  // the props are type errors, and a style smuggled past the types (plain
+  // JS, a cast) warns in dev and can't override the themed values.
+  it('rejects style/className at compile time', () => {
+    // The contract is compile-time: passing either is a type error, and the
+    // caller fixes the call site. No runtime warning or stripping (the
+    // maintainer's call: no legacy shims). tsc fails this file if either
+    // line below stops being an error, i.e. if the props come back.
+    // @ts-expect-error -- style is not a Block prop
+    const withStyle = <Block style={{ background: 'hotpink' }}>x</Block>;
+    // @ts-expect-error -- className is not a Block prop
+    const withClassName = <Block className="my-class">x</Block>;
+    expect([withStyle, withClassName]).toHaveLength(2);
   });
 
   it('resolves an instance subtheme, overriding background/border/text color', () => {
