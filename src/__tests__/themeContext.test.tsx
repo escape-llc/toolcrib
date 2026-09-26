@@ -52,6 +52,64 @@ describe('ThemeProvider targetDocument', () => {
   });
 });
 
+// Issue #625: react-aria-components injects its own <style> and reads its
+// nonce only from a <meta name="csp-nonce"> in the document head. React
+// Aria skips that injection under NODE_ENV=test, so the end-to-end proof
+// is e2e/csp-nonce.spec.ts's enforced production-build test; this covers
+// the provider's half of the contract.
+describe('ThemeProvider csp-nonce meta for react-aria (issue #625)', () => {
+  const metas = (doc: Document = document) => doc.head.querySelectorAll('meta[name="csp-nonce"]');
+  afterEach(() => metas().forEach(m => m.remove()));
+
+  it('publishes the configured nonce as <meta name="csp-nonce"> and removes it on unmount', () => {
+    const { unmount } = render(
+      <ThemeProvider nonce="nonce-625">
+        <div>content</div>
+      </ThemeProvider>
+    );
+    expect(metas()).toHaveLength(1);
+    expect(metas()[0].getAttribute('content')).toBe('nonce-625');
+    unmount();
+    expect(metas()).toHaveLength(0);
+  });
+
+  it('adds nothing when no nonce is configured', () => {
+    render(
+      <ThemeProvider>
+        <div>content</div>
+      </ThemeProvider>
+    );
+    expect(metas()).toHaveLength(0);
+  });
+
+  it("leaves a consumer's own csp-nonce meta alone rather than adding a second one", () => {
+    const own = document.createElement('meta');
+    own.setAttribute('name', 'csp-nonce');
+    own.setAttribute('content', 'consumer-nonce');
+    document.head.appendChild(own);
+    const { unmount } = render(
+      <ThemeProvider nonce="nonce-625">
+        <div>content</div>
+      </ThemeProvider>
+    );
+    expect(metas()).toHaveLength(1);
+    expect(metas()[0].getAttribute('content')).toBe('consumer-nonce');
+    unmount();
+    expect(metas()).toHaveLength(1);
+  });
+
+  it('publishes into targetDocument, not the global document', () => {
+    const otherDoc = document.implementation.createHTMLDocument('other');
+    render(
+      <ThemeProvider nonce="nonce-625" targetDocument={otherDoc}>
+        <div>content</div>
+      </ThemeProvider>
+    );
+    expect(metas(otherDoc)).toHaveLength(1);
+    expect(metas()).toHaveLength(0);
+  });
+});
+
 // Regression coverage for the slice-state consolidation: ThemeProviderProps
 // used to expose 28 separate `initial<X>State` props, one per registered
 // slice. This verifies the single `initialSliceStates` prop that replaced
