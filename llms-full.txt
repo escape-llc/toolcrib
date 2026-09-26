@@ -514,7 +514,7 @@ Requires `<ToastProvider>` + `<ToastContainer>` at the root (see §1).
 aiBus.showToast('Saved successfully', 'success');
 
 // Advanced: with actions, sticky, custom anchor
-const { addToast } = useToast();
+const { addToast } = useToastActions();
 addToast({
   type: 'error',
   message: 'Connection lost',
@@ -523,6 +523,8 @@ addToast({
   anchor: 'bottom-center',
 });
 ```
+
+Use `useToastActions()` (`addToast`, `dismissToast`, `clearAll`, `setAnchor`) in any component that only *fires* toasts: its value is stable. `useToast()` also returns the live `toasts` list and current `anchor`, so its consumers re-render every time any toast is added or expires. Reserve it for components that actually render or read those.
 
 ### Theme Editor
 
