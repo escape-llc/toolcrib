@@ -95,6 +95,22 @@ concurrency:
   group: gemini-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Issue #541: pinned explicitly instead of inheriting run-gemini-cli's
+# default. The default model exhausted the monthly spend cap twice
+# (PR #540, and again 2026-09-26 at over $3/day), so this is a cheaper
+# Flash-tier model on trial -- the maintainer asked to watch review
+# quality closely. The model name is also stamped into the posted comment
+# header, so reviews before and after the switch can be compared. If it
+# misses real defects, revisit here.
+#
+# Deliberately NOT applied to gemini-audit.yml: the maintainer's call is
+# to keep the weekly audit on the stronger default model. It runs once a
+# week (low cost) over whole segments of merged code, where depth matters
+# most; the per-PR review here runs on every push and is where the spend
+# actually accumulates.
+env:
+  GEMINI_MODEL_NAME: gemini-3-flash-preview
+
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -199,6 +215,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: ${{ env.GEMINI_MODEL_NAME }}
           github_pr_number: ${{ github.event.pull_request.number }}
           workflow_name: 'gemini-review'
           settings: |
@@ -234,13 +251,43 @@ jobs:
       # interpolated directly into a `run:` script via `${{ }}` -- that
       # would be exactly the script-injection shape this repo's own
       # actions-injection-review skill exists to catch.
+      # The leading HTML comment is machine-readable metadata for analyzing
+      # review quality/cost over time (issue #541's model trial): YAML inside
+      # `<!-- -->` so it's invisible in the rendered comment but returned
+      # verbatim by the API (`gh pr view --json comments`). A bare `---`
+      # front-matter block would render as a horizontal rule plus visible
+      # text. run-gemini-cli exposes no token/usage stats, so diff_bytes and
+      # history_bytes (the two files Gemini reads) are the input-size proxy
+      # for cost. Every value comes from env, never `${{ }}` interpolation
+      # into the script -- the same injection discipline as $REVIEW above.
+      # Resolutions to findings are tagged separately by whoever evaluates
+      # them (AGENTS.md: `review-resolution`), so accuracy per model can be
+      # computed by joining the two.
       - name: Write the comment body to a file
         if: steps.gemini_review.outcome == 'success'
         env:
           REVIEW: ${{ steps.gemini_review.outputs.summary }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          diff_bytes=$(wc -c < "${GITHUB_WORKSPACE}/.gemini-review-diff.txt" 2>/dev/null || echo 0)
+          history_bytes=$(wc -c < "${GITHUB_WORKSPACE}/.gemini-review-history.txt" 2>/dev/null || echo 0)
           {
-            echo '🔎 **Gemini review**'
+            echo '<!-- gemini-review'
+            echo 'schema: 1'
+            echo "model: ${GEMINI_MODEL_NAME}"
+            echo "pr: ${PR_NUMBER}"
+            echo "head_sha: ${HEAD_SHA}"
+            echo "run_id: ${RUN_ID}"
+            echo "run_attempt: ${RUN_ATTEMPT}"
+            echo "created_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "diff_bytes: ${diff_bytes// /}"
+            echo "history_bytes: ${history_bytes// /}"
+            echo "review_chars: ${#REVIEW}"
+            echo '-->'
+            echo "🔎 **Gemini review** (\`${GEMINI_MODEL_NAME}\`)"
             echo ''
             echo "$REVIEW"
           } > "${RUNNER_TEMP}/review-comment.md"
