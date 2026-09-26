@@ -79,3 +79,13 @@ a:focus-visible {
    the JS-computed useCornerSquaring() inline style doesn't reach (a plain
    child passed directly to <Splitter> without <Splitter.Panel>, a
    non-toolcrib component child, anything nested two-plus levels deep). */
+
+/* Encyclopedia: entries scrolled well out of view pause their CSS
+   animations (Spinner, Skeleton shimmer, ...) so a page with every demo
+   mounted isn't repainting ~80 of them every frame. The attribute is set by
+   usePauseOffscreenAnimations() in demo/Encyclopedia.tsx. */
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}

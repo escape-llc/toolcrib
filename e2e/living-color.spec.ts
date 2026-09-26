@@ -52,6 +52,11 @@ test('the running animation actually drives background-color over time, not froz
   await gotoTab(page, 'Feedback & Status');
   const el = page.locator('.ai-living-accent').first();
   await expect(el).toBeVisible();
+  // The Encyclopedia pauses CSS animations in entries scrolled out of view
+  // (usePauseOffscreenAnimations in demo/Encyclopedia.tsx), so bring this one
+  // on screen and wait for its entry to be marked on-screen before sampling.
+  await el.scrollIntoViewIfNeeded();
+  await expect(el.locator('xpath=ancestor::section[@data-encyclopedia-entry]')).not.toHaveAttribute('data-offscreen');
   // Per CSS cascade semantics, a running `animation` on a property takes
   // precedence over any `transition` targeting that same property on the
   // same element (TOOLCRIB_THEME_TRANSITIONS_CSS's ambient :where(*) rule

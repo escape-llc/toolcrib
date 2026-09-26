@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
 import { Card, Badge, Block, Collapsible, HStack, VStack } from '#toolcrib';
 
@@ -204,10 +204,41 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
   );
 }
 
+const ENTRY_STYLE: React.CSSProperties = { scrollMarginTop: '0.5rem' };
+
+// Every live demo is mounted on this one page, several animating
+// continuously (Spinners, Skeleton shimmer, Progress). A software-rendered
+// engine (CI's Linux WebKit) slowed to 3x its tabbed-demo runtime repainting
+// them all. Entries scrolled well out of view get data-offscreen, and
+// demo/index.css pauses CSS animations under it. Written straight to the DOM
+// (no React state, so no re-renders), and deliberately NOT
+// `content-visibility: auto`: that skips layout too, so entries entering the
+// viewport swap a placeholder height for their real one and shift whatever
+// is being clicked mid-click -- tried first, and it broke every overlay e2e
+// test's trigger click.
+function usePauseOffscreenAnimations(rootRef: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const e of entries) {
+          const el = e.target as HTMLElement;
+          if (e.isIntersecting) delete el.dataset.offscreen;
+          else el.dataset.offscreen = '';
+        }
+      },
+      { rootMargin: '400px 0px' }
+    );
+    root.querySelectorAll('[data-encyclopedia-entry]').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [rootRef]);
+}
+
 function CatalogCard({ component, bin, demo }: { component: ManifestComponent; bin: string; demo: EntryDemo }) {
   const c = component;
   return (
-    <section id={entryAnchor(c.name)} aria-labelledby={`${entryAnchor(c.name)}-title`} style={{ scrollMarginTop: '0.5rem' }}>
+    <section id={entryAnchor(c.name)} aria-labelledby={`${entryAnchor(c.name)}-title`} data-encyclopedia-entry style={ENTRY_STYLE}>
       <Card>
         <Card.Header>
           <HStack gap="sm" wrap align="center">
@@ -290,7 +321,10 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
  */
 export function Encyclopedia({ demos, systems }: { demos: Record<string, EntryDemo>; systems: SystemArea[] }) {
   const groups = byCategory();
+  const rootRef = useRef<HTMLDivElement>(null);
+  usePauseOffscreenAnimations(rootRef);
   return (
+    <div ref={rootRef}>
     <VStack gap="lg">
       <ShadowBoard demos={demos} />
 
@@ -314,7 +348,7 @@ export function Encyclopedia({ demos, systems }: { demos: Record<string, EntryDe
             The infrastructure you get out of the box: every component above plugs into these, so an app built from them inherits all of it without writing any of it.
           </p>
           {systems.map(area => (
-            <section key={area.id} id={`enc-sys-${area.id}`} aria-labelledby={`enc-sys-${area.id}-title`} style={{ scrollMarginTop: '0.5rem' }}>
+            <section key={area.id} id={`enc-sys-${area.id}`} aria-labelledby={`enc-sys-${area.id}-title`} data-encyclopedia-entry style={ENTRY_STYLE}>
               <Card>
                 <Card.Header>
                   <h3 id={`enc-sys-${area.id}-title`} style={{ margin: 0, fontSize: '1rem' }}>{area.title}</h3>
@@ -336,5 +370,6 @@ export function Encyclopedia({ demos, systems }: { demos: Record<string, EntryDe
         </VStack>
       </section>
     </VStack>
+    </div>
   );
 }
