@@ -6,6 +6,49 @@
   "category": "Containers",
   "components": [
     {
+      "name": "Alert",
+      "import": "import { Alert } from '#toolcrib'",
+      "slots": [
+        "Title",
+        "Description"
+      ],
+      "props": {
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Status color. Falls back to the nearest `<StyleDomainProvider>`'s, then `'info'`. Wins over `variant`."
+        },
+        "variant": {
+          "type": "'primary' | 'secondary'",
+          "description": "Identity color (`primary`/`secondary`) for a branded, non-status callout. Ignored if a subtheme resolves."
+        },
+        "appearance": {
+          "type": "'soft' | 'solid' | 'outline'",
+          "default": "'soft'",
+          "description": "Visual treatment for the resolved color."
+        },
+        "icon": {
+          "type": "ReactNode | false",
+          "description": "Replaces the status icon. `false` hides it. A default icon matches the subtheme (info, success, warning, error); a branded `variant` callout gets the info icon."
+        },
+        "role": {
+          "type": "'alert' | 'status' | 'none'",
+          "description": "Live-region role. `'alert'` (assertive) for error/warning, `'status'`\n(polite) otherwise, by default -- screen readers announce the content\nwhen it appears. `'none'` for a static callout that shouldn't be\nannounced at all."
+        },
+        "action": {
+          "type": "ReactNode",
+          "description": "An action rendered after the text, e.g. a `<Button size=\"sm\">`."
+        },
+        "onDismiss": {
+          "type": "() => void",
+          "description": "Renders a close button; called when it's pressed. The Alert doesn't hide itself -- remove it from the tree in this callback. Emits `alert:dismissed`."
+        }
+      },
+      "category": "Containers",
+      "antiPatternAvoid": "Open an `<AlertDialog>`/`<Modal>` for a non-blocking message, or hand-roll a tinted `<div>` with an emoji and no `role`",
+      "antiPatternInstead": "Use `<Alert>` for a message that belongs next to its content (role `alert`/`status` announces it); `<AlertDialog>` only when the user must decide before continuing",
+      "description": "Inline callout (status icon, title, description, optional action and dismiss) with live-region semantics — in the page flow, never blocking"
+    },
+    {
       "name": "AppShell",
       "import": "import { AppShell } from '#toolcrib'",
       "slots": [

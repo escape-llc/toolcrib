@@ -103,6 +103,10 @@ export interface ToolcribLocaleStrings {
     /** Announced when `loading` transitions to false and options are present. `count` is the number of options now shown. */
     resultsAnnouncement: (count: number) => string;
   };
+  alert: {
+    /** Accessible name of `<Alert onDismiss>`'s close button. */
+    dismiss: string;
+  };
 }
 
 /**
@@ -180,6 +184,9 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     loadingAnnouncement: 'Loading results…',
     noResultsAnnouncement: 'No results found',
     resultsAnnouncement: (count) => `${count} result${count === 1 ? '' : 's'} available`,
+  },
+  alert: {
+    dismiss: 'Dismiss',
   },
 };
 
