@@ -9,6 +9,7 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
@@ -93,6 +94,9 @@ export const Select: React.FC<SelectProps> = ({
   const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
+  // Issue #625: Radix's Select.Viewport renders its own <style> (hiding the
+  // native scrollbar) -- without the nonce, a strict style-src CSP blocks it.
+  const nonce = useNonce();
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
@@ -214,7 +218,7 @@ export const Select: React.FC<SelectProps> = ({
             ...selectVars,
           }}
         >
-          <SelectPrimitive.Viewport style={{ padding: 'var(--ai-padding-xs, 0.25rem)' }}>
+          <SelectPrimitive.Viewport nonce={nonce} style={{ padding: 'var(--ai-padding-xs, 0.25rem)' }}>
             {options.map((opt) => (
               <SelectPrimitive.Item
                 key={opt.value}
