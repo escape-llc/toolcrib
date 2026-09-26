@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, type ReactNode, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { aiBus } from '../../eventBus/eventBus';
 import { type SubthemeName } from '../../theme/subtheme';
@@ -79,6 +79,19 @@ export interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+/**
+ * The stable half of `ToastContextType`: just the actions, no toast list.
+ * Returned by `useToastActions()`.
+ */
+export type ToastActions = Pick<ToastContextType, 'addToast' | 'dismissToast' | 'clearAll' | 'setAnchor'>;
+
+// Issue #632: a separate context for the actions alone, memoized so its
+// value only changes when an action itself does (addToast when the anchor
+// changes; the rest never). ToastContext's value carries the live toasts
+// array, so every useToast() consumer re-rendered whenever ANY toast was
+// added or expired -- including components that only ever called addToast.
+const ToastActionsContext = createContext<ToastActions | undefined>(undefined);
 
 export interface ToastProviderProps {
   children: ReactNode;
@@ -171,19 +184,29 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     });
   });
 
+  const actions = useMemo<ToastActions>(
+    () => ({ addToast, dismissToast, clearAll, setAnchor }),
+    // setAnchor is a useState setter (stable by React's guarantee, and exempt
+    // from exhaustive-deps) -- listed anyway so the memo stays correct if it's
+    // ever replaced with a custom function.
+    [addToast, dismissToast, clearAll, setAnchor]
+  );
+
   return (
-    <ToastContext.Provider
-      value={{
-        toasts,
-        addToast,
-        dismissToast,
-        clearAll,
-        setAnchor,
-        anchor,
-      }}
-    >
-      {children}
-    </ToastContext.Provider>
+    <ToastActionsContext.Provider value={actions}>
+      <ToastContext.Provider
+        value={{
+          toasts,
+          addToast,
+          dismissToast,
+          clearAll,
+          setAnchor,
+          anchor,
+        }}
+      >
+        {children}
+      </ToastContext.Provider>
+    </ToastActionsContext.Provider>
   );
 };
 
@@ -191,6 +214,21 @@ export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
+};
+
+/**
+ * Just the toast actions (`addToast`, `dismissToast`, `clearAll`,
+ * `setAnchor`), without the live toast list. Prefer this over `useToast()`
+ * in any component that only fires toasts: a `useToast()` consumer
+ * re-renders every time any toast is added, updated or expires, while
+ * this value stays referentially stable (issue #632).
+ */
+export const useToastActions = (): ToastActions => {
+  const context = useContext(ToastActionsContext);
+  if (!context) {
+    throw new Error('useToastActions must be used within a ToastProvider');
   }
   return context;
 };
