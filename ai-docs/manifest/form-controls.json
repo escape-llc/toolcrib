@@ -563,6 +563,78 @@
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
     },
     {
+      "name": "RangeSlider",
+      "import": "import { RangeSlider } from '#toolcrib'",
+      "props": {
+        "id": {
+          "type": "string",
+          "description": "Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — so `<FormField>`'s `<label htmlFor>` click focuses the lower thumb."
+        },
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads."
+        },
+        "value": {
+          "type": "[number, number]",
+          "description": "Controlled `[lower, upper]` value."
+        },
+        "defaultValue": {
+          "type": "[number, number]",
+          "default": "[min, max]",
+          "description": "Initial `[lower, upper]` value (uncontrolled)."
+        },
+        "min": {
+          "type": "number",
+          "default": "0",
+          "description": "Minimum value."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Maximum value."
+        },
+        "step": {
+          "type": "number",
+          "default": "1",
+          "description": "Step increment."
+        },
+        "minStepsBetweenThumbs": {
+          "type": "number",
+          "default": "0",
+          "description": "Minimum number of `step`s the two thumbs must stay apart. `0` lets them meet."
+        },
+        "onChange": {
+          "type": "(value: [number, number]) => void",
+          "description": "Change handler. Receives the new `[lower, upper]` value."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, the slider is non-interactive."
+        },
+        "commitOnRelease": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Same as `<Slider>`'s `commitOnRelease`: notify only when a drag ends (or on a discrete keyboard step), while the thumbs still track the pointer."
+        },
+        "ariaLabel": {
+          "type": "string",
+          "description": "Accessible name for the control as a whole. Only needed outside a\n`<FormField label=\"...\">`. Each thumb's name combines this (or the\nFormField's label) with its own suffix — \"Price, Minimum\" / \"Price,\nMaximum\" — since two thumbs can't share one `<label htmlFor>`."
+        },
+        "thumbLabels": {
+          "type": "[string, string]",
+          "default": "the locale's `rangeSlider.minimum` / `rangeSlider.maximum`",
+          "description": "Per-thumb name suffixes."
+        },
+        "overrides": {
+          "type": "Partial<SliderSliceState>",
+          "description": "Per-instance overrides for track height and thumb size. Shared with `<Slider>`."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider"
+    },
+    {
       "name": "Rating",
       "import": "import { Rating } from '#toolcrib'",
       "props": {

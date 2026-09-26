@@ -493,6 +493,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Listbox>` | — | `id`, `options`, `activeIndex`, `selectedValues`, `onSelect`, `loading`, `loadingMessage`, `emptyMessage`, `multiSelectable`, `itemPadding`, `size` | Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone |
 | `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides`, `size` | Single-select radio control bound to Form context, data-driven or compositional |
+| `<RangeSlider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `minStepsBetweenThumbs`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `thumbLabels`, `overrides` | Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider |
 | `<Rating>` | — | `name`, `value`, `defaultValue`, `onChange`, `max`, `icon`, `readOnly`, `overrides` | Star rating control built on Radix RadioGroup, or a read-only fractional-fill display |
 | `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides`, `size`, `squareCorners` | Dropdown select control bound to Form context, built on Radix Select |
 | `<Slider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `overrides` | Range input control built on Radix Slider |
@@ -668,7 +669,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[78]{name,payload}:
+[79]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -712,6 +713,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "combobox:changed","{ name?: string; value: string | string[] }"
   "fileupload:changed","{ name?: string; fileCount: number }"
   "slider:changed","{ name?: string; value: number }"
+  "rangeslider:changed","{ name?: string; value: [number, number] }"
   "toggle:changed","{ name?: string; pressed: boolean }"
   "rating:changed","{ name?: string; value: number }"
   "datepicker:changed","{ name?: string; value: string | null }"

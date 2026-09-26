@@ -89,6 +89,12 @@ export interface ToolcribLocaleStrings {
     /** Accessible name of the password reveal toggle. Stays fixed while toggled — the on/off state is carried by `aria-pressed`, per the WAI-ARIA toggle button pattern, not by swapping the label. */
     showPassword: string;
   };
+  rangeSlider: {
+    /** Suffix naming a `RangeSlider`'s lower thumb, combined with the field's own label (e.g. "Price, Minimum"). */
+    minimum: string;
+    /** Suffix naming a `RangeSlider`'s upper thumb. */
+    maximum: string;
+  };
   listbox: {
     /** Announced via a visually-hidden `aria-live` region whenever `loading` transitions to true -- a debounced async search (`Combobox`'s own `onSearch`) starting, with no other signal a screen-reader user would get. */
     loadingAnnouncement: string;
@@ -165,6 +171,10 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   input: {
     clear: 'Clear',
     showPassword: 'Show password',
+  },
+  rangeSlider: {
+    minimum: 'Minimum',
+    maximum: 'Maximum',
   },
   listbox: {
     loadingAnnouncement: 'Loading results…',

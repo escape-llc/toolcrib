@@ -35,6 +35,7 @@ import {
   DropdownMenu,
   Select,
   Slider,
+  RangeSlider,
   Toolbar,
   VStack,
   HStack,
@@ -876,6 +877,7 @@ export const App: React.FC = () => {
     });
   const [listboxQuery, setListboxQuery] = useState('');
   const [inputSectionsQuery, setInputSectionsQuery] = useState('');
+  const [priceRange, setPriceRange] = useState<[number, number]>([200, 800]);
   const [listboxActiveIndex, setListboxActiveIndex] = useState<number | undefined>(undefined);
   const [listboxSelected, setListboxSelected] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'email', 'status']);
@@ -3052,6 +3054,11 @@ export const App: React.FC = () => {
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Interactive Range Slider (`&lt;Slider&gt;`)</div>
                               <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', marginBottom: '0.375rem' }}>Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</div>
+                              <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
                             </div>
                           </VStack>
 
