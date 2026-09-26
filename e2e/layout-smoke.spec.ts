@@ -33,7 +33,9 @@ test('the main content scroll region stays a healthy height on every tab, not co
 
 test('a tab with enough content to overflow actually scrolls', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia');
+  // DataTable's page: its demo alone is a fixed 42rem box, taller than the
+  // viewport, on top of the catalog card.
+  await gotoTab(page, 'Data Table');
 
   const scrollRegion = page.getByTestId('main-content-scroll');
   const before = await scrollRegion.evaluate(el => el.scrollTop);

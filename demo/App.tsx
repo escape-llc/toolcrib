@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { z } from 'zod';
 import { CalendarDate, Time, today, getLocalTimeZone } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
-import { Encyclopedia, ENCYCLOPEDIA_COMPONENT_NAMES, entryAnchor, type EntryDemo, type SystemArea } from './Encyclopedia';
+import { Encyclopedia, ENCYCLOPEDIA_COMPONENT_NAMES, entryHref, type EntryDemo, type SystemArea } from './Encyclopedia';
+import { useHashRoute, navigateHash, routeHref, type Route } from './hashRoute';
 import { EventLogProvider, EventLogExportButton, EventLogClearButton, EventLogList } from './EventLog';
 import {
   useTheme,
@@ -101,6 +102,9 @@ import {
   ScaleLegend,
   useAdaptiveSize,
   SPLITTER_HANDLE_SIZE_REM,
+  RouterAdapterProvider,
+  useRouterBridge,
+  type RouterAdapter,
 } from '#toolcrib';
 import {
   Command,
@@ -149,6 +153,16 @@ const commitHash = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : un
 // without hardcoding the same magic numbers/string in two places.
 const MAIN_SPLITTER_ID = 'main-demo-splitter';
 const MAIN_SPLITTER_INITIAL_SPLIT = 70;
+
+// The demo's router, plugged into toolcrib's router seam: aiBus.navigate(to)
+// -> useRouterBridge() -> this adapter -> the URL hash (demo/hashRoute.ts).
+// A real app passes React Router's or Next's navigate here instead.
+const HASH_ROUTER: RouterAdapter = { navigate: navigateHash };
+
+function HashRouterBridge() {
+  useRouterBridge();
+  return null;
+}
 // Small enough that the Collapse button (below) actually reads as
 // "collapsed to the toolbar," not just "smaller" -- 15% of a typical
 // viewport height left a visibly scrollable slice of the event log still
@@ -799,13 +813,14 @@ export const App: React.FC = () => {
   // and with it every Encyclopedia demo (issue #632).
   const { addToast, setAnchor } = useToastActions();
 
-  // <TabStrip id="main-demo"> would happily manage this itself
-  // (uncontrolled) — it's promoted to controlled state here for exactly one
-  // reason: <CommandPalette>'s "Go to ..." items below need a way to switch
-  // tabs from a component with no ancestor/descendant relationship to the
-  // TabStrip. TabStrip still broadcasts `tab:changed` on `aiBus` the same
-  // way either way; this only adds the explicit React-level hook.
-  const [activeTab, setActiveTab] = useState('overview');
+  // The active page comes from the URL hash (demo/hashRoute.ts), not React
+  // state, so back/forward, reloads and shared links all land in the right
+  // place. setActiveTab just navigates; the hashchange re-renders with the
+  // new route. <TabStrip id="main-demo"> and <CommandPalette>'s "Go to"
+  // items both drive it the same way.
+  const route = useHashRoute();
+  const activeTab = route.page;
+  const setActiveTab = useCallback((id: string) => navigateHash(routeHref({ page: id as Route['page'] })), []);
   // Derived, not its own state -- activeTab is the single source of truth
   // for "where am I," same reasoning as Block/Listbox's own derived values
   // elsewhere in this file. Keeping a separate activeGroupId in sync with
@@ -813,6 +828,12 @@ export const App: React.FC = () => {
   // tab whose group isn't currently selected) would be exactly the kind
   // of dual-source-of-truth bug this avoids by construction.
   const activeGroup = NAV_GROUPS.find(g => g.tabIds.includes(activeTab)) ?? NAV_GROUPS[0];
+  // A new page starts at the top, like any site -- the scroll container is
+  // shared by every page and would otherwise keep the previous one's offset.
+  const routeKey = routeHref(route);
+  useEffect(() => {
+    document.querySelector('[data-testid="main-content-scroll"]')?.scrollTo({ top: 0 });
+  }, [routeKey]);
   const [listboxQuery, setListboxQuery] = useState('');
   const [inputSectionsQuery, setInputSectionsQuery] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([200, 800]);
@@ -992,17 +1013,15 @@ export const App: React.FC = () => {
       group: 'Go to',
       onSelect: () => setActiveTab(id),
     })),
-    // One "go to" per component: switch to the Encyclopedia, then scroll its
-    // catalog card into view once the page has mounted (two frames: one for
-    // the tab switch to commit, one for layout).
+    // One "go to" per component page. Goes through aiBus.navigate() rather
+    // than the hash directly: the demo's router is plugged in via
+    // <RouterAdapterProvider> (see HASH_ROUTER below), the same seam a real
+    // app uses for React Router or Next.
     ...ENCYCLOPEDIA_COMPONENT_NAMES.map(name => ({
       value: `goto-component-${name}`,
       label: name,
       group: 'Components',
-      onSelect: () => {
-        setActiveTab('encyclopedia');
-        requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(entryAnchor(name))?.scrollIntoView({ block: 'start' })));
-      },
+      onSelect: () => aiBus.navigate(entryHref(name)),
     })),
     {
       value: 'toggle-dark-mode',
@@ -2810,6 +2829,9 @@ export const App: React.FC = () => {
 
   return (
     <EventLogProvider>
+      <RouterAdapterProvider adapter={HASH_ROUTER}>
+        <HashRouterBridge />
+      </RouterAdapterProvider>
       {/* Mounted once, near the root — same "render it once, it works from
           anywhere" shape as <ToastContainer>. Its own Cmd/Ctrl+K listener
           registers itself on mount; items are the data-driven array built
@@ -2928,19 +2950,15 @@ export const App: React.FC = () => {
           on the Navigation & Structure tab. Selecting a group jumps
           activeTab to that group's first tab; activeGroup itself is
           derived from activeTab (see its own comment above), so this
-          stays in sync regardless of how activeTab changes -- a sidebar
-          click, a <CommandPalette> "go to" command, or the (now
-          shorter, per-group) <TabStrip> below all funnel through the
-          same setActiveTab. */}
+          stays in sync regardless of how the route changes -- a sidebar
+          link, a <CommandPalette> "go to" command, back/forward, or the
+          (now shorter, per-group) <TabStrip> below. Each item is a real
+          link to its page's route, so it also opens in a new tab. */}
       <AppShell.Sidebar>
         <Sidebar
-          items={NAV_GROUPS.map(g => ({ id: g.id, label: g.label, icon: g.icon }))}
+          items={NAV_GROUPS.map(g => ({ id: g.id, label: g.label, icon: g.icon, href: routeHref({ page: g.tabIds[0] as Route['page'] }) }))}
           activeId={activeGroup.id}
           aria-label="Primary navigation"
-          onItemClick={groupId => {
-            const group = NAV_GROUPS.find(g => g.id === groupId);
-            if (group) setActiveTab(group.tabIds[0]);
-          }}
         />
       </AppShell.Sidebar>
 
@@ -3169,12 +3187,16 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Encyclopedia (issue #624): every component on one page --
-                    shadow board, then a catalog card per component in the
-                    five manifest drawers, then Systems. Replaces the ten
-                    per-topic component tabs. */}
+                {/* Encyclopedia (issue #624): the shadow board index, or one
+                    component's / Systems area's page, picked by the route.
+                    Replaces the ten per-topic component tabs. */}
                 <TabStrip.Panel groupId="main-demo" value="encyclopedia">
-                  <Encyclopedia demos={componentDemos} systems={systemAreas} />
+                  <Encyclopedia
+                    demos={componentDemos}
+                    systems={systemAreas}
+                    entry={route.page === 'encyclopedia' ? route.entry : undefined}
+                    system={route.page === 'encyclopedia' ? route.system : undefined}
+                  />
                 </TabStrip.Panel>
 
                 {/* Kits: pre-assembled combinations for common jobs -- a

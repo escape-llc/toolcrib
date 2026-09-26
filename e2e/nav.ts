@@ -1,41 +1,45 @@
 import { type Page } from '@playwright/test';
 
 /**
- * Mirrors demo/App.tsx's NAV_GROUPS: three single-page sidebar groups
- * since issue #624 consolidated the ten per-topic component tabs into
- * one Encyclopedia page (and renamed the Wireframe Gallery to Kits).
+ * Mirrors demo/App.tsx's NAV_GROUPS: three sidebar pages since issue #624
+ * consolidated the ten per-topic component tabs into the Encyclopedia (and
+ * renamed the Wireframe Gallery to Kits). The Encyclopedia shows one
+ * component per page, routed by the URL hash (demo/hashRoute.ts).
  *
  * The old tab labels are kept as aliases so the ~90 existing call sites
- * didn't all need rewriting: each maps to the page its content moved to,
- * plus the anchor of the entry that best stands in for the old tab, which
- * is scrolled into view. Specs that measure real on-screen coordinates
- * (mouse drags, bounding boxes) need their subject in the viewport, and
- * Playwright's own auto-scroll only covers actions, not measurements.
+ * didn't all need rewriting: each maps to the component page that best
+ * stands in for the old tab. A spec exercising a different component
+ * passes it explicitly -- only the current page's demo is mounted.
  */
-const PAGES: Record<string, { page: string; anchor?: string }> = {
+const PAGES: Record<string, { page: string; entry?: string; system?: string }> = {
   Overview: { page: 'Overview' },
   'Overview & Architecture': { page: 'Overview' },
   Encyclopedia: { page: 'Encyclopedia' },
   Kits: { page: 'Kits' },
   // Legacy tab labels -> where that content lives now.
-  'Forms & Zod Engine': { page: 'Encyclopedia', anchor: 'enc-Form' },
-  'Data Table': { page: 'Encyclopedia', anchor: 'enc-DataTable' },
-  'Overlays & Actions': { page: 'Encyclopedia', anchor: 'enc-Drawer' },
-  'Toast Subsystem': { page: 'Encyclopedia', anchor: 'enc-sys-toasts' },
-  'Feedback & Status': { page: 'Encyclopedia', anchor: 'enc-Badge' },
-  'Navigation & Structure': { page: 'Encyclopedia', anchor: 'enc-Breadcrumb' },
-  'Common Layout Idioms': { page: 'Encyclopedia', anchor: 'enc-VStack' },
-  'Media Gallery': { page: 'Encyclopedia', anchor: 'enc-Carousel' },
-  'Component Showcase': { page: 'Encyclopedia', anchor: 'enc-Button' },
+  'Forms & Zod Engine': { page: 'Encyclopedia', entry: 'Form' },
+  'Data Table': { page: 'Encyclopedia', entry: 'DataTable' },
+  'Overlays & Actions': { page: 'Encyclopedia', entry: 'Drawer' },
+  'Toast Subsystem': { page: 'Encyclopedia', system: 'toasts' },
+  'Theme system': { page: 'Encyclopedia', system: 'theme' },
+  'Feedback & Status': { page: 'Encyclopedia', entry: 'Badge' },
+  'Navigation & Structure': { page: 'Encyclopedia', entry: 'Breadcrumb' },
+  'Common Layout Idioms': { page: 'Encyclopedia', entry: 'VStack' },
+  'Media Gallery': { page: 'Encyclopedia', entry: 'Carousel' },
+  'Component Showcase': { page: 'Encyclopedia', entry: 'Button' },
   Charts: { page: 'Kits' },
   'Wireframe Gallery': { page: 'Kits' },
 };
 
+/** The route (URL hash) of a component's Encyclopedia page, or of a Systems area's. */
+export const entryRoute = (component: string) => `#/encyclopedia/${encodeURIComponent(component)}`;
+export const systemRoute = (id: string) => `#/encyclopedia/system/${encodeURIComponent(id)}`;
+
 /**
  * Navigates to a demo page by its sidebar label (or a legacy tab label,
- * see PAGES), then scrolls the relevant entry into view. `component`
- * scrolls to that component's Encyclopedia entry instead -- e.g.
- * `gotoTab(page, 'Encyclopedia', 'TabStrip')`.
+ * see PAGES). `component` opens that component's Encyclopedia page instead
+ * -- e.g. `gotoTab(page, 'Encyclopedia', 'TabStrip')`. Waits for the page's
+ * own section to be attached, so its demo is mounted before the spec runs.
  */
 export async function gotoTab(page: Page, label: string, component?: string): Promise<void> {
   const target = PAGES[label];
@@ -44,14 +48,56 @@ export async function gotoTab(page: Page, label: string, component?: string): Pr
   }
   // Not `exact: true` -- the link's accessible name is its icon glyph
   // plus the label (e.g. "🧰 Encyclopedia"), so an exact match against
-  // the plain label alone would never hit.
-  await page.getByRole('link', { name: target.page }).click();
-  const anchor = component ? `enc-${component}` : target.anchor;
-  if (anchor) {
-    const entry = page.locator(`#${anchor}`);
-    await entry.waitFor({ state: 'attached' });
-    await entry.scrollIntoViewIfNeeded();
+  // the plain label alone would never hit. Scoped to the sidebar: an
+  // Encyclopedia page's own breadcrumb also links "Encyclopedia".
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: target.page }).click();
+  const entry = component ?? target.entry;
+  if (entry) await gotoRoute(page, entryRoute(entry), `#enc-${entry}`);
+  else if (target.system) await gotoRoute(page, systemRoute(target.system), `#enc-sys-${target.system}`);
+}
+
+export interface DemoPage {
+  /** 'Overview', 'Encyclopedia', a component name, 'system:<id>', or 'Kits'. */
+  label: string;
+  go: () => Promise<void>;
+}
+
+/**
+ * Every page of the demo, for specs that sweep the whole thing (the
+ * interactive sweep, the full axe scans): Overview, the Encyclopedia index,
+ * each component and Systems page, then Kits. The Encyclopedia's pages are
+ * read from the index's own links, so a new component is covered the moment
+ * it's in the manifest.
+ */
+export async function demoPages(page: Page): Promise<DemoPage[]> {
+  await gotoTab(page, 'Encyclopedia');
+  const hrefs = await page
+    .getByTestId('main-content-scroll')
+    .locator('a[href^="#/encyclopedia/"]')
+    .evaluateAll(links => [...new Set(links.map(a => a.getAttribute('href')!))]);
+  const pages: DemoPage[] = [
+    { label: 'Overview', go: () => gotoTab(page, 'Overview') },
+    { label: 'Encyclopedia', go: () => gotoTab(page, 'Encyclopedia') },
+  ];
+  for (const href of hrefs) {
+    const [, kind, id] = href.match(/^#\/encyclopedia\/(system\/)?(.+)$/)!;
+    const name = decodeURIComponent(id);
+    pages.push(
+      kind
+        ? { label: `system:${name}`, go: () => gotoRoute(page, href, `#enc-sys-${name}`) }
+        : { label: name, go: () => gotoRoute(page, href, `#enc-${name}`) }
+    );
   }
+  pages.push({ label: 'Kits', go: () => gotoTab(page, 'Kits') });
+  return pages;
+}
+
+/** Sets the URL hash (a real history entry, like a link click) and waits for `waitFor` to attach. */
+export async function gotoRoute(page: Page, hash: string, waitFor: string): Promise<void> {
+  await page.evaluate(h => {
+    window.location.hash = h;
+  }, hash);
+  await page.locator(waitFor).waitFor({ state: 'attached' });
 }
 
 /**

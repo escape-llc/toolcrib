@@ -22,7 +22,7 @@ import { gotoTab } from './nav';
 // fully-cascaded computed style in an actual browser.
 test('a chip remove button\'s focus ring has real contrast against its own chip background, not the shared primary-hued ring', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Component Showcase');
+  await gotoTab(page, 'Encyclopedia', 'Combobox');
 
   const heading = page.getByText('Multi-Select Tags (`multiple`)', { exact: false });
   await heading.scrollIntoViewIfNeeded();

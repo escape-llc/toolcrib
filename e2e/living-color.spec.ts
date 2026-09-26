@@ -12,7 +12,7 @@ import { gotoTab } from './nav';
 
 test('an element opted into .ai-living-accent actually runs the shared breathe keyframes', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Feedback & Status');
+  await gotoTab(page, 'Theme system');
   // Demo showcase element -- see demo/App.tsx's "Feedback & Status" tab,
   // "Living Color" card.
   const el = page.locator('.ai-living-accent').first();
@@ -25,7 +25,7 @@ test('an element opted into .ai-living-accent actually runs the shared breathe k
 
 test('a .ai-living-glow element runs the pulse keyframes with a non-zero duration', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Feedback & Status');
+  await gotoTab(page, 'Theme system');
   const el = page.locator('.ai-living-glow').first();
   await expect(el).toBeVisible();
   const animationName = await el.evaluate(node => getComputedStyle(node).animationName);
@@ -40,7 +40,7 @@ test('prefers-reduced-motion: reduce genuinely disables the living-color animati
   // evaluates against the page, not applied after the fact.
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  await gotoTab(page, 'Feedback & Status');
+  await gotoTab(page, 'Theme system');
   const el = page.locator('.ai-living-accent').first();
   await expect(el).toBeVisible();
   const animationName = await el.evaluate(node => getComputedStyle(node).animationName);
@@ -49,7 +49,7 @@ test('prefers-reduced-motion: reduce genuinely disables the living-color animati
 
 test('the running animation actually drives background-color over time, not frozen by the ambient theme-change transition', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Feedback & Status');
+  await gotoTab(page, 'Theme system');
   const el = page.locator('.ai-living-accent').first();
   await expect(el).toBeVisible();
   // Per CSS cascade semantics, a running `animation` on a property takes

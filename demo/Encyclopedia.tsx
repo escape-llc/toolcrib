@@ -1,11 +1,16 @@
 import React, { type ReactNode } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
-import { Card, Badge, Block, Collapsible, HStack, VStack } from '#toolcrib';
+import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, VStack } from '#toolcrib';
+import { routeHref } from './hashRoute';
 
-// The demo's single component page (issue #624), organized like a physical
-// tool crib: a shadow board up top (one outline per tool, so a missing
-// demo is visible at a glance), then drawers (the five @manifestCategory
-// groups) of catalog cards. Every fact on a card -- description, pick
+// The demo's component reference (issue #624), organized like a physical
+// tool crib: a shadow board index (one outline per tool, grouped into the
+// five @manifestCategory drawers, so a missing demo is visible at a glance)
+// and one page per tool -- its catalog card and live demo -- plus one per
+// Systems area. One page at a time, routed through the URL hash
+// (demo/hashRoute.ts): with every live demo mounted at once the page was
+// several times slower per interaction, badly enough that CI's WebKit e2e
+// job tripled in length. Every fact on a card -- description, pick
 // ticket (import line), spec sheet (props), slots, constraints, "commonly
 // used with", safety placard -- is read straight from the GENERATED
 // ai-docs/component-manifest.json, never hand-typed here, so it can't
@@ -64,9 +69,14 @@ export interface SystemArea {
   demo?: ReactNode;
 }
 
+/** The `id` of a component page's `<section>` -- a stable hook for tests and `aria-labelledby`. */
 export const entryAnchor = (name: string) => `enc-${name}`;
-const categoryAnchor = (category: string) => `enc-drawer-${CATEGORY_CODE[category]}`;
-export const SYSTEMS_ANCHOR = 'enc-systems';
+/** The `id` of a Systems page's `<section>`. */
+export const systemAnchor = (id: string) => `enc-sys-${id}`;
+/** Link targets (routes, see demo/hashRoute.ts). */
+export const entryHref = (name: string) => routeHref({ page: 'encyclopedia', entry: name });
+export const systemHref = (id: string) => routeHref({ page: 'encyclopedia', system: id });
+const INDEX_HREF = routeHref({ page: 'encyclopedia' });
 
 function byCategory(): { category: string; items: (ManifestComponent & { bin: string })[] }[] {
   return CATEGORY_ORDER.map(category => {
@@ -113,21 +123,21 @@ function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
       <Card.Content>
         <VStack gap="md">
           <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-            {COMPONENTS.length} components, generated from the component manifest. A solid outline has its own live demo below; a dashed one is shown alongside another tool or is part of this page's own frame
+            {COMPONENTS.length} components, generated from the component manifest. Pick one to open its page. A solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
             {missing.length > 0 ? <>; an <strong>amber</strong> outline has no demo yet ({missing.map(c => c.name).join(', ')}).</> : '.'}
           </p>
           {groups.map(({ category, items }) => (
             <div key={category}>
-              <a href={`#${categoryAnchor(category)}`} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textDecoration: 'none' }}>
+              <h3 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--ai-text-secondary)' }}>
                 {CATEGORY_CODE[category]} · {category}
-              </a>
+              </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))', gap: '0.375rem', marginTop: '0.375rem' }}>
                 {items.map(c => {
                   const state = tileState(demos, c.name);
                   return (
                     <a
                       key={c.name}
-                      href={`#${entryAnchor(c.name)}`}
+                      href={entryHref(c.name)}
                       data-shadow-tile={state}
                       title={TILE_HINT[state] ? `${c.name} — ${TILE_HINT[state]}` : c.name}
                       style={{
@@ -146,9 +156,6 @@ function ShadowBoard({ demos }: { demos: Record<string, EntryDemo> }) {
               </div>
             </div>
           ))}
-          <a href={`#${SYSTEMS_ANCHOR}`} style={{ fontSize: '0.8125rem' }}>
-            Systems — the infrastructure every tool is wired into →
-          </a>
         </VStack>
       </Card.Content>
     </Card>
@@ -207,7 +214,7 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
 function CatalogCard({ component, bin, demo }: { component: ManifestComponent; bin: string; demo: EntryDemo }) {
   const c = component;
   return (
-    <section id={entryAnchor(c.name)} aria-labelledby={`${entryAnchor(c.name)}-title`} style={{ scrollMarginTop: '0.5rem' }}>
+    <section id={entryAnchor(c.name)} aria-labelledby={`${entryAnchor(c.name)}-title`}>
       <Card>
         <Card.Header>
           <HStack gap="sm" wrap align="center">
@@ -241,7 +248,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                     {c.childComponents.map((s, i) => (
                       <React.Fragment key={s}>
                         {i > 0 && ', '}
-                        {COMPONENTS.some(x => x.name === s) ? <a href={`#${entryAnchor(s)}`}>{s}</a> : <code style={codeStyle}>{s}</code>}
+                        {COMPONENTS.some(x => x.name === s) ? <a href={entryHref(s)}>{s}</a> : <code style={codeStyle}>{s}</code>}
                       </React.Fragment>
                     ))}
                   </div>
@@ -263,7 +270,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
 
             {isSeeAlso(demo) ? (
               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                Shown in action with <a href={`#${entryAnchor(demo.seeAlso)}`}>{demo.seeAlso}</a>.{demo.note ? <> {demo.note}</> : null}
+                Shown in action with <a href={entryHref(demo.seeAlso)}>{demo.seeAlso}</a>.{demo.note ? <> {demo.note}</> : null}
               </p>
             ) : isPageFrame(demo) ? (
               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>{demo.pageFrame}</p>
@@ -281,60 +288,141 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
   );
 }
 
+const navLinkStyle: React.CSSProperties = { fontSize: '0.8125rem' };
+
+/** Breadcrumb trail plus prev/next within the same drawer (or the Systems list). */
+function EntryNav({ trail, prev, next }: { trail: string[]; prev?: { label: string; href: string }; next?: { label: string; href: string } }) {
+  return (
+    <HStack gap="md" wrap align="center" justify="between">
+      <Breadcrumb>
+        <Breadcrumb.Item href={INDEX_HREF}>Encyclopedia</Breadcrumb.Item>
+        {trail.map(t => <Breadcrumb.Item key={t}>{t}</Breadcrumb.Item>)}
+      </Breadcrumb>
+      <nav aria-label="Neighboring pages">
+        <HStack gap="md">
+          {prev && <a href={prev.href} rel="prev" style={navLinkStyle}>← {prev.label}</a>}
+          {next && <a href={next.href} rel="next" style={navLinkStyle}>{next.label} →</a>}
+        </HStack>
+      </nav>
+    </HStack>
+  );
+}
+
+function SystemCard({ area }: { area: SystemArea }) {
+  return (
+    <section id={systemAnchor(area.id)} aria-labelledby={`${systemAnchor(area.id)}-title`}>
+      <Card>
+        <Card.Header>
+          <h3 id={`${systemAnchor(area.id)}-title`} style={{ margin: 0, fontSize: '1rem' }}>{area.title}</h3>
+        </Card.Header>
+        <Card.Content>
+          <VStack gap="sm">
+            <p style={{ margin: 0 }}>{area.summary}</p>
+            {area.parts?.length ? (
+              <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+                Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
+              </div>
+            ) : null}
+            {area.demo && <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>}
+          </VStack>
+        </Card.Content>
+      </Card>
+    </section>
+  );
+}
+
+/** The Systems list on the index page: one link per area. */
+function SystemsIndex({ systems }: { systems: SystemArea[] }) {
+  return (
+    <Card>
+      <Card.Header>
+        <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Systems — what every tool is wired into</h2>
+      </Card.Header>
+      <Card.Content>
+        <VStack gap="sm">
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
+            The infrastructure you get out of the box: every component plugs into these, so an app built from them inherits all of it without writing any of it.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            {systems.map(area => (
+              <li key={area.id}>
+                <a href={systemHref(area.id)}>{area.title}</a>
+              </li>
+            ))}
+          </ul>
+        </VStack>
+      </Card.Content>
+    </Card>
+  );
+}
+
+const neighbor = <T,>(list: T[], i: number, toLink: (t: T) => { label: string; href: string }) => ({
+  prev: i > 0 ? toLink(list[i - 1]) : undefined,
+  next: i < list.length - 1 ? toLink(list[i + 1]) : undefined,
+});
+
 /**
- * The Encyclopedia page body: shadow board, the five drawers of catalog
- * cards, then Systems. `demos` is keyed by manifest component name; a
- * component with no key renders as a missing (amber) outline rather than
+ * The Encyclopedia page: the shadow board and Systems list as its index,
+ * or one tool's page (`entry`, a manifest component name) or one Systems
+ * area's page (`system`, an area id), chosen by the route. Only that one
+ * page's live demo is mounted. `demos` is keyed by manifest component name;
+ * a component with no key renders as a missing (amber) outline rather than
  * silently disappearing, so a newly added component shows up here
  * automatically the moment it's in the manifest.
  */
-export function Encyclopedia({ demos, systems }: { demos: Record<string, EntryDemo>; systems: SystemArea[] }) {
-  const groups = byCategory();
+export function Encyclopedia({
+  demos,
+  systems,
+  entry,
+  system,
+}: {
+  demos: Record<string, EntryDemo>;
+  systems: SystemArea[];
+  entry?: string;
+  system?: string;
+}) {
+  if (system !== undefined) {
+    const i = systems.findIndex(a => a.id === system);
+    if (i < 0) return <NotFound what={`Systems area "${system}"`} />;
+    const { prev, next } = neighbor(systems, i, a => ({ label: a.title, href: systemHref(a.id) }));
+    return (
+      <VStack gap="md">
+        <EntryNav trail={['Systems', systems[i].title]} prev={prev} next={next} />
+        <SystemCard area={systems[i]} />
+      </VStack>
+    );
+  }
+
+  if (entry !== undefined) {
+    const group = byCategory().find(g => g.items.some(c => c.name === entry));
+    if (!group) return <NotFound what={`component "${entry}"`} />;
+    const i = group.items.findIndex(c => c.name === entry);
+    const c = group.items[i];
+    const { prev, next } = neighbor(group.items, i, x => ({ label: x.name, href: entryHref(x.name) }));
+    return (
+      <VStack gap="md">
+        <EntryNav trail={[group.category, c.name]} prev={prev} next={next} />
+        <CatalogCard component={c} bin={c.bin} demo={demos[c.name]} />
+      </VStack>
+    );
+  }
+
   return (
     <VStack gap="lg">
       <ShadowBoard demos={demos} />
-
-      {groups.map(({ category, items }) => (
-        <section key={category} id={categoryAnchor(category)} aria-labelledby={`${categoryAnchor(category)}-title`}>
-          <VStack gap="md">
-            <h2 id={`${categoryAnchor(category)}-title`} style={{ margin: 0, fontSize: '1.125rem' }}>
-              <span style={{ fontFamily: 'monospace', color: 'var(--ai-text-secondary)', fontSize: '0.875rem' }}>{CATEGORY_CODE[category]}</span> {category}
-            </h2>
-            {items.map(c => (
-              <CatalogCard key={c.name} component={c} bin={c.bin} demo={demos[c.name]} />
-            ))}
-          </VStack>
-        </section>
-      ))}
-
-      <section id={SYSTEMS_ANCHOR} aria-labelledby={`${SYSTEMS_ANCHOR}-title`}>
-        <VStack gap="md">
-          <h2 id={`${SYSTEMS_ANCHOR}-title`} style={{ margin: 0, fontSize: '1.125rem' }}>Systems — what every tool is wired into</h2>
-          <p style={{ margin: 0, color: 'var(--ai-text-secondary)' }}>
-            The infrastructure you get out of the box: every component above plugs into these, so an app built from them inherits all of it without writing any of it.
-          </p>
-          {systems.map(area => (
-            <section key={area.id} id={`enc-sys-${area.id}`} aria-labelledby={`enc-sys-${area.id}-title`} style={{ scrollMarginTop: '0.5rem' }}>
-              <Card>
-                <Card.Header>
-                  <h3 id={`enc-sys-${area.id}-title`} style={{ margin: 0, fontSize: '1rem' }}>{area.title}</h3>
-                </Card.Header>
-                <Card.Content>
-                  <VStack gap="sm">
-                    <p style={{ margin: 0 }}>{area.summary}</p>
-                    {area.parts?.length ? (
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>
-                        Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
-                      </div>
-                    ) : null}
-                    {area.demo && <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>}
-                  </VStack>
-                </Card.Content>
-              </Card>
-            </section>
-          ))}
-        </VStack>
-      </section>
+      <SystemsIndex systems={systems} />
     </VStack>
+  );
+}
+
+function NotFound({ what }: { what: string }) {
+  return (
+    <Card>
+      <Card.Content>
+        <p style={{ margin: 0 }}>
+          No {what} in the crib. <a href={INDEX_HREF}>Back to the shadow board</a>.
+        </p>
+      </Card.Content>
+    </Card>
   );
 }

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { gotoTab } from './nav';
+import { demoPages } from './nav';
 
 // A general backstop against the whole CLASS of bug this session found and
 // fixed one instance at a time (TabStrip's active-tab fontWeight/divider
@@ -19,11 +19,9 @@ import { gotoTab } from './nav';
 // (bounding boxes, console output) is the same approach every other spec in
 // this suite already uses, and it's platform-stable.
 
-// The demo's three pages (issue #624 consolidated the ten per-topic
-// component tabs into the single Encyclopedia page) -- gotoTab (e2e/nav.ts)
-// navigates to each via its sidebar link.
-const TABS = ['Overview', 'Encyclopedia', 'Kits'];
-
+// Every page of the demo: Overview, the Encyclopedia index and each of its
+// component/Systems pages (one live demo per page since issue #624), then
+// Kits -- see demoPages in e2e/nav.ts.
 // Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
 // DropdownMenu, ContextMenu, Select) on Escape — one key between clicks
 // keeps each interaction independent instead of compounding overlay state
@@ -98,17 +96,16 @@ const EXPECTED_NOISE = [
 ];
 const isExpectedNoise = (text: string): boolean => EXPECTED_NOISE.some(re => re.test(text));
 
-test('no console errors while clicking through every interactive control on every tab', async ({ page }) => {
-  // Playwright's default 30s test timeout was enough when this sweep was
-  // written, but the demo's tab reorg (wiring every new component in)
-  // packed substantially more interactive content onto a single tab —
-  // Forms & Zod Engine now also carries the DatePicker/Calendar/TimeField/
-  // Rating showcase, whose inline Calendar grid alone adds ~35 button
-  // cells to click through. Measured at ~80s locally for the full 8-tab
-  // sweep with the content of the time. The Encyclopedia (issue #624) puts
-  // every component on one page and adds a spec-sheet toggle per catalog
-  // card, so the budget grew with it; still a hard ceiling, so a genuine
-  // hang fails rather than running forever.
+// A click that navigates (a link-like demo control, a command) would leave
+// the rest of this page's sweep clicking on a different page -- put it back.
+async function stayOn(page: Page, hash: string, go: () => Promise<void>) {
+  if (new URL(page.url()).hash !== hash) await go();
+}
+
+test('no console errors while clicking through every interactive control on every page', async ({ page }) => {
+  // Each page is small since issue #624 split the Encyclopedia into one
+  // component per page, but there are ~95 of them; still a hard ceiling, so
+  // a genuine hang fails rather than running forever.
   test.setTimeout(300_000);
   const errors: string[] = [];
   page.on('console', msg => {
@@ -120,8 +117,8 @@ test('no console errors while clicking through every interactive control on ever
 
   await page.goto('/');
 
-  for (const tab of TABS) {
-    await gotoTab(page, tab);
+  for (const { go } of await demoPages(page)) {
+    await go();
     // Lets the panel's own entrance transition finish before the sweep
     // starts clicking through it — mid-transition is exactly when a
     // locator's actionability check ("stable" — the element's bounding box
@@ -129,6 +126,7 @@ test('no console errors while clicking through every interactive control on ever
     // fighting the animation itself rather than a real problem.
     await page.waitForTimeout(300);
     await settle(page);
+    const hash = new URL(page.url()).hash;
 
     const scope = page.getByTestId('main-content-scroll');
     const count = await scope.locator('button:visible:not([disabled])').count();
@@ -141,20 +139,16 @@ test('no console errors while clicking through every interactive control on ever
       // live, re-evaluated locator.
       const btn = scope.locator('button:visible:not([disabled])').nth(i);
       // A .count() check first, not straight into clickRobust() -- found
-      // for real once the Data Table tab's "Delete Selected" started
-      // actually removing rows (issue #329): selecting all 15 rows then
-      // deleting them removes ~15 checkbox buttons in one click, leaving
-      // every later index in THIS tab's own frozen `count` stale. A
-      // missing element was already handled correctly (skip, not a
-      // failure), but only after clickRobust()'s own two full click
-      // timeouts (up to ~4.2s each) ran out first -- ~15 stale indices at
-      // that cost is what blew this suite's time budget the first time
-      // this exact shape was tried (see #315's own write-up). `.count()`
-      // resolves near-instantly with no actionability retry loop, so a
-      // genuinely-gone element now costs milliseconds instead of seconds.
+      // for real once the Data Table's "Delete Selected" started actually
+      // removing rows (issue #329): deleting ~15 rows removes ~15 checkbox
+      // buttons in one click, leaving later indices in this page's frozen
+      // `count` stale. `.count()` resolves near-instantly with no
+      // actionability retry loop, so a genuinely-gone element costs
+      // milliseconds instead of clickRobust()'s two full click timeouts.
       if ((await btn.count()) === 0) continue;
       if (!(await clickRobust(btn))) continue; // detached/obscured by the time its turn came up — skip, not a failure
       await settle(page);
+      await stayOn(page, hash, go);
     }
   }
 
@@ -162,52 +156,38 @@ test('no console errors while clicking through every interactive control on ever
 });
 
 test("interacting with one card's own control never shifts a sibling card's position", async ({ page }) => {
-  // Same reasoning as the sweep above's own timeout bump: this walks
-  // every card on every tab, taking a fresh boundingBox() per card per
-  // interaction -- real work that scales with the same growing demo
-  // content. WebKit's rendering pipeline is measurably slower than
-  // Chromium's for this, and 30s (the Playwright default) isn't enough
-  // margin there even though it was fine on Chromium alone.
+  // Same reasoning as the sweep above's own timeout: this walks every card
+  // on every page, taking a fresh boundingBox() per card per interaction.
   test.setTimeout(300_000);
   await page.goto('/');
 
-  for (const tab of TABS) {
-    await gotoTab(page, tab);
+  for (const { label, go } of await demoPages(page)) {
+    await go();
     await page.waitForTimeout(300);
     await settle(page);
+    const hash = new URL(page.url()).hash;
 
     const scope = page.getByTestId('main-content-scroll');
     // Card's own root div carries data-ai-layout-auto unconditionally
-    // ('true' or 'false') — a reliable, marker for "this is a Card
+    // ('true' or 'false') — a reliable marker for "this is a Card
     // boundary" without needing a dedicated testid on every Card in the
-    // demo. On the Encyclopedia, only the catalog/system cards themselves
-    // (each the direct child of its own <section id="enc-…">), not the
-    // demo Cards nested inside them, and only each card's two neighbors are
-    // compared: the entries stack vertically at full width, so a horizontal
-    // shift would show up in a neighbor, and all-pairs over ~80 cards would
-    // be ~13,000 bounding-box reads.
-    const isEncyclopedia = tab === 'Encyclopedia';
-    const cards = isEncyclopedia
-      ? scope.locator('section[id^="enc-"] > [data-ai-layout-auto]')
-      : scope.locator(':scope > * [data-ai-layout-auto], :scope > [data-ai-layout-auto]');
+    // demo.
+    const cards = scope.locator(':scope > * [data-ai-layout-auto], :scope > [data-ai-layout-auto]');
     const cardCount = await cards.count();
     if (cardCount < 2) continue; // nothing to compare a shift against
-    const comparedWith = (target: number) =>
-      isEncyclopedia ? [target - 1, target + 1].filter(i => i >= 0 && i < cardCount) : [...Array(cardCount).keys()];
 
     for (let target = 0; target < cardCount; target++) {
       // A fresh box for every card right before this interaction — not the
-      // tab's very first snapshot — since an earlier iteration's
+      // page's very first snapshot — since an earlier iteration's
       // interaction on a DIFFERENT card may have legitimately grown that
       // card's own height (e.g. it left an Accordion expanded), which
       // pushes later content down the page. That's normal document flow,
       // not the bug this test guards against, so only X/width are checked
       // below (a horizontal shift is never legitimate document flow the
-      // way a vertical one can be) — see TabStrip's own fix earlier this
-      // session for exactly this failure mode.
-      const others = comparedWith(target);
+      // way a vertical one can be) — see TabStrip's own fix for exactly
+      // this failure mode.
       const before: Record<number, { x: number; width: number }> = {};
-      for (const i of others) {
+      for (let i = 0; i < cardCount; i++) {
         const box = await cards.nth(i).boundingBox();
         before[i] = { x: box?.x ?? 0, width: box?.width ?? 0 };
       }
@@ -216,12 +196,16 @@ test("interacting with one card's own control never shifts a sibling card's posi
       if ((await control.count()) === 0) continue;
       if (!(await clickRobust(control))) continue;
       await settle(page);
+      if (new URL(page.url()).hash !== hash) {
+        await go(); // navigated away (see stayOn); nothing on this page to compare
+        continue;
+      }
 
-      for (const i of others) {
+      for (let i = 0; i < cardCount; i++) {
         if (i === target) continue; // this card's own growth/shrink is expected
         const box = await cards.nth(i).boundingBox();
-        expect(box?.x, `tab "${tab}", card ${i} x-position after interacting with card ${target}`).toBeCloseTo(before[i].x, 0);
-        expect(box?.width, `tab "${tab}", card ${i} width after interacting with card ${target}`).toBeCloseTo(before[i].width, 0);
+        expect(box?.x, `page "${label}", card ${i} x-position after interacting with card ${target}`).toBeCloseTo(before[i].x, 0);
+        expect(box?.width, `page "${label}", card ${i} width after interacting with card ${target}`).toBeCloseTo(before[i].width, 0);
       }
     }
   }
