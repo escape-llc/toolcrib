@@ -39,20 +39,26 @@ Skim titles/dates for relevance to the task at hand, then fetch a specific one's
 
 **Whoever evaluates a Gemini finding must post the resolution back onto the same PR thread, not just act on it silently — this is what closes the loop, not a nicety.** The workflow feeds each run the PR's own prior comment history (a second `read_file` target alongside the diff) specifically so a later push doesn't repeat something already settled — but it only works if the resolution is actually *in* that history. Found live on this exact mechanism's own first PR (#278): Gemini flagged a markdown-indentation concern, the claim was verified false (checked against the real posted comment's actual bytes — zero leading whitespace, not what the claim predicted) and simply not acted on further, and the next push's review repeated the identical claim verbatim, having no way to know it had already been checked and rejected. A short reply on the thread — "verified false positive, see \[reasoning\]" or "fixed in `<commit>`" or "not applicable because \[reason\]" — is what a later run actually reads before writing its own review. Silently deciding a finding is wrong and moving on regenerates the same finding on the next push.
 
-**Tag every resolution reply for analysis (added 2026-09-26, issue #541's model trial).** Each Gemini review comment now opens with a hidden `<!-- gemini-review ... -->` YAML block (model, PR, head SHA, run id, input sizes). It's invisible when rendered but returned verbatim by `gh pr view --json comments`. A resolution reply carries a matching hidden block, one entry per finding, so review accuracy per model can be computed by joining the two instead of re-reading prose:
+**Tag every resolution reply for analysis (added 2026-09-26, issue #541's model trial).** Each Gemini review comment now opens with a visible, collapsed **Review metadata** section: a `<details>` element holding a fenced YAML block with `kind: gemini-review`, the model, PR, head SHA, run id and input sizes. It's one click to expand, and `gh pr view --json comments` returns it verbatim. It's visible rather than hidden in an HTML comment by the maintainer's call: authorship and provenance should be readable, not just machine-parseable. A resolution reply opens with a matching section, one entry per finding, so review accuracy per model (reviewer *and* evaluator) is a join on `run_id` rather than a re-read of prose:
 
-```
-<!-- review-resolution
+````
+<details><summary>Resolution metadata</summary>
+
+```yaml
+kind: review-resolution
 schema: 1
-review_run_id: 36244736133   # the run_id from the gemini-review block being answered
+review_run_id: 36244736133      # the run_id from the gemini-review block being answered
+author_model: claude-opus-5-5   # the model writing this reply
 findings:
-  - verdict: confirmed        # confirmed | false-positive | not-applicable | duplicate
-    fixed_in: 64cb68e         # commit, when confirmed and fixed
+  - verdict: confirmed          # confirmed | false-positive | not-applicable | duplicate | missed
+    fixed_in: 64cb68e           # commit, when confirmed and fixed
   - verdict: false-positive
--->
 ```
 
-Put the prose explanation after it as usual. The prose is what a later Gemini run reads to avoid repeating a settled finding, and the tag is what analysis reads. A "nothing to flag" review needs no resolution reply unless a careful pass found something it missed. In that case, reply with `verdict: missed` entries describing what it missed, since misses are half of what the model trial is measuring.
+</details>
+````
+
+Put it first and the prose explanation after it. The prose is what a later Gemini run reads to avoid repeating a settled finding, and the block is what analysis reads. A "nothing to flag" review needs no resolution reply unless a careful pass found something it missed. In that case, reply with `verdict: missed` entries describing what it missed, since misses are half of what the model trial is measuring.
 
 **A second, opposite-direction incident on this exact same PR (#283) is why the `review` job became a required check (above): a confirmed-true finding almost got merged past anyway, because nothing had actually stopped to read it.** All 13 other CI checks were green and a merge was about to be issued when a direct instruction to check Gemini's review first turned up a real, confirmed path-traversal gap (`path.basename('..') === '..'`, so `mock-github-server.js`'s existing `path.basename(x) !== x` guard didn't reject a bare `..` segment) — fixed in commit `64cb68e`, reply posted on the thread per the paragraph above. The lesson isn't "Gemini is always right" (issue #176's own history already has a confirmed false positive, the markdown-indentation claim on PR #278) — it's that neither error direction is safe to skip past reflexively: a true finding ignored because merge already looked green is exactly as bad as a false one repeated because nothing recorded it was already checked. Read and evaluate every Gemini finding before merging, every time, regardless of what the rest of CI says.
 
