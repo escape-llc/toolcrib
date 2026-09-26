@@ -25,7 +25,7 @@ import {
   Popup,
   Drawer,
   Modal,
-  useToast,
+  useToastActions,
   DataTable,
   type Column,
   type CellContext,
@@ -794,7 +794,10 @@ const Flaky: React.FC<{ triggerKey: number }> = ({ triggerKey }) => {
 export const App: React.FC = () => {
   const { parameters, sliceStates, toggleDarkMode } = useTheme();
   const typographyState = sliceStates.typography;
-  const { addToast, setAnchor } = useToast();
+  // useToastActions, not useToast: App only fires toasts, and useToast()'s
+  // value carries the live toast list -- every toast would re-render App
+  // and with it every Encyclopedia demo (issue #632).
+  const { addToast, setAnchor } = useToastActions();
 
   // <TabStrip id="main-demo"> would happily manage this itself
   // (uncontrolled) — it's promoted to controlled state here for exactly one
@@ -2705,11 +2708,11 @@ export const App: React.FC = () => {
     {
       id: 'toasts',
       title: 'Toast subsystem',
-      summary: <>Stacked, swipe-dismissable, priority-aware notifications, fired from anywhere with <code>useToast()</code> or over the event bus.</>,
-      parts: ['useToast', 'aiBus.showToast', 'ToastSlice'],
+      summary: <>Stacked, swipe-dismissable, priority-aware notifications, fired from anywhere with <code>useToastActions()</code> or over the event bus. <code>useToast()</code> also exposes the live list, for components that render it.</>,
+      parts: ['useToastActions', 'useToast', 'aiBus.showToast', 'ToastSlice'],
       demo: (
         <VStack gap="md">
-          <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToast()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
+          <p style={{ marginTop: 0 }}>Dispatch notifications via <code>useToastActions()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</p>
           <UIGroup>
             <Button variant="primary" onClick={() => aiBus.showToast('Informational message', 'info')}>
               Fire Info Toast
