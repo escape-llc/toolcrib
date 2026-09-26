@@ -6,6 +6,7 @@ import { Label } from '../components/Form/Label';
 import { Checkbox, Switch } from '../components/Form/FormComponents';
 import { ScrollArea } from '../components/ScrollArea/ScrollArea';
 import { axe } from './testUtils/axe';
+import { NonceContext } from '../theme/nonceContext';
 
 // ScrollArea's internal ResizeObserver-driven size tracking has no effect on
 // whether its DOM nodes render (see ScrollArea.tsx's own review notes) but
@@ -103,6 +104,22 @@ describe('ScrollArea Component', () => {
       </ScrollArea>
     );
     expect(screen.getByText('Scrollable content')).toBeInTheDocument();
+  });
+
+  // Issue #625: Radix's ScrollArea.Viewport renders its own <style> (hiding
+  // the native scrollbar). Without the configured nonce, a strict style-src
+  // CSP blocks it -- found by e2e/csp-nonce.spec.ts's production-build test.
+  it('passes the configured CSP nonce to the viewport\'s own <style>', () => {
+    const { container } = render(
+      <NonceContext.Provider value="test-nonce-625">
+        <ScrollArea>
+          <div>content</div>
+        </ScrollArea>
+      </NonceContext.Provider>
+    );
+    const styles = container.querySelectorAll('style');
+    expect(styles.length).toBeGreaterThan(0);
+    for (const s of Array.from(styles)) expect(s.getAttribute('nonce')).toBe('test-nonce-625');
   });
 
   it('renders a vertical scrollbar by default and a horizontal one only for orientation="both"', () => {
