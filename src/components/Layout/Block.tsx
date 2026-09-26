@@ -25,8 +25,10 @@ export type BlockRadius = 'sm' | 'md' | 'lg' | 'xl' | 'none';
  * themed surface: background, padding, radius, border and subtheme, each
  * resolved from theme tokens, so an area doesn't need hand-typed
  * `var(--ai-…)` strings (or worse, literal hex/px) to look right. Layout
- * (direction, alignment, gaps) belongs to `<VStack>`/`<HStack>`/`<Grid>`;
- * an unstyled structural wrapper can be a plain element.
+ * (direction, alignment, gaps) belongs to `<VStack>`/`<HStack>`/`<Grid>`.
+ * Toolcrib components are auto-themed; to go off the board, use a raw
+ * `<div>`/`<span>` and style it directly -- that's the sanctioned escape,
+ * visible as plain markup, not a hole in a themed component.
  */
 export interface BlockProps extends StyleFreeAttributes<HTMLDivElement> {
   /** Background surface token. @default 'transparent' */
@@ -56,7 +58,7 @@ const BACKGROUND_VAR: Record<BlockBackground, string> = {
 
 /**
  * @manifest Themed surface `<div>`: background, padding, radius, border and subtheme colouring, all from theme tokens — no style/className, like every toolcrib component
- * @manifestConstraints Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps; a plain element is fine for an unstyled wrapper
+ * @manifestConstraints Not a layout tool: use VStack/HStack/Grid for direction, alignment and gaps. For anything off the theme, use a raw div/span and style it directly
  * @manifestCategory Layout Primitives
  */
 export const Block: React.FC<BlockProps> = ({
