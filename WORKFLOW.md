@@ -17,7 +17,7 @@ Situational, not needed for most changes — see the section named for each: `AG
 2. **Branch off an up-to-date `main`** (`git checkout main && git pull --ff-only` first — never branch off a stale local copy).
 3. **Make the change, verify it locally** before pushing — the relevant subset of: `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run check-manifest`/`check-docs`/`check-index`. See "Validate what nothing else validates" below for a real gap in this list.
 4. **Commit**, message ending with the `Co-Authored-By` trailer this session's attribution requires. Reference the issue number in the commit body if it clarifies which change it's part of.
-5. **Push, open a PR** referencing the issue. Body gets a `## Summary` and a `## Test plan` — the test plan should say what was actually verified, not just what should theoretically pass. Use `Closes #N` only when this PR is the *whole* fix — see "Partial fixes" below. Label it the same way as its issue (`gh pr edit <N> --add-label "x,y"`).
+5. **Push, open a PR** referencing the issue. Body gets a `## Summary` and a `## Test plan` — the test plan should say what was actually verified, not just what should theoretically pass. Use `Closes #N` only when this PR is the *whole* fix — see "Partial fixes" below. Label it the same way as its issue (`gh pr edit <N> --add-label "x,y"`). **An AI-authored PR description ends with a visible model footer:** one line, exactly `Model: <model-id> · Harness: <harness>` (e.g. `Model: claude-opus-5-5 · Harness: Claude Code`), placed just before any attribution line. Added 2026-09-26 at the maintainer's request. Commit `Co-Authored-By` trailers already name the model (470 `Claude Sonnet 5` trailers in history before this date), but PR descriptions, session summaries and review replies named none. Comparing sessions across models then meant inferring the model from dates. Visible rather than hidden, so readers see authorship directly, and a fixed format so it still parses.
 6. **Wait for CI to go green before merging — always.** Never merge on "the diff looks right" alone. Required checks: `test`, `cli-windows`, `e2e`, `CodeQL`.
 7. **Squash-merge, delete the branch** (`gh pr merge <N> --squash --delete-branch`).
 8. **Close the issue** if the merge didn't already auto-close it via `Closes #N`.
@@ -38,7 +38,7 @@ The concrete fix: at the start of each issue's own work, write a literal checkli
 - [ ] Branched off a freshly-synced main
 - [ ] Change made; verified locally (npm test, npx tsc --noEmit, npm run lint, check-manifest/check-docs/check-index as relevant)
 - [ ] Committed with the Co-Authored-By trailer, pushed
-- [ ] PR opened (Closes #N only if this PR is the whole fix), labeled
+- [ ] PR opened (Closes #N only if this PR is the whole fix), labeled, `Model: … · Harness: …` footer present
 - [ ] CI green
 - [ ] Gemini's review CONTENT actually read (not just the review check's pass/fail) -- every finding evaluated and replied to on the thread; confirmed-true ones fixed, false positives replied to with the actual verification
 - [ ] Squash-merged, branch deleted, issue closed

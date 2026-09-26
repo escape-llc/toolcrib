@@ -87,7 +87,14 @@ Include, as headers:
    accuracy over time (both directions — false positives AND missed real
    bugs both matter), not a critique of any single PR. Omit only if the PR
    genuinely never got a Gemini review comment at all (rare, since `review`
-   is a required check on `main`).
+   is a required check on `main`). Name the reviewer model each review
+   comment's header shows (e.g. `gemini-3-flash-preview`), since reviews
+   are being compared across models.
+
+End the post with one visible footer line, exactly:
+`Model: <your model id> · Harness: <harness>` -- e.g.
+`Model: claude-opus-5-5 · Harness: Claude Code`. Use the precise model id
+you are running as, not a family name.
 
 Keep it tight — a maintainer should be able to read the whole thing in
 under a minute. Skip anything not directly relevant to contributing to
@@ -117,6 +124,7 @@ toolcrib.
   recreated — if a `createDiscussion` mutation fails against them, re-fetch
   via `repository.discussionCategories` rather than assuming the IDs above
   are still current.
+- **Every post names its model (added 2026-09-26).** The footer line the prompt above asks for is visible on purpose, per the maintainer: authorship should be readable, and a fixed `Model: … · Harness: …` format still parses. Posts before this date have no footer. The model can only be inferred from date or from the matching commits' `Co-Authored-By` trailers (Sonnet 5 for essentially all history before 2026-09-25).
 - **Be transparent about authorship.** These are maintainer-authored (you
   prompting the agent, then posting) — let that read as what it is,
   genuine build-in-public notes, rather than implying unprompted outside
