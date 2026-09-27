@@ -377,6 +377,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Build a second horizontally-scrollable-strip-with-overflow-arrows implementation for a row of media thumbnails | Use `<Filmstrip>` — shares `<TabStrip>`'s own `useScrollOverflow` hook and active-indicator theming, not a parallel implementation that can drift from it |
 | Write `register()` or `onChange` boilerplate for form fields | Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic |
 | Build a second lazy-render/`IntersectionObserver` mechanism for a grid of many thumbnails | Use `<Gallery>` — thumbnails defer via the existing `<DeferredContent>`, not a new visibility mechanism |
+| A hand-styled `<kbd>` or `<span>` per call site for a shortcut hint | `<Kbd>Esc</Kbd>`, or `<Kbd keys={['Ctrl', 'K']} />` for a combination |
 | Hardcode a link's color (or leave it unthemed), or write `<a target="_blank">` without also setting `rel="noopener noreferrer"` (reverse-tabnabbing — the opened page gets `window.opener` and can navigate your tab) | Use `<Link>` — colors itself from `--ai-color-primary-readable`/`-secondary-readable` (hue preserved, contrast-checked) for link/visited state, and supplies the safe `rel` default automatically |
 | Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
 | Build a date range from two separate `<Calendar>`s with hand-written "end must be after start" logic | Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you |
@@ -470,6 +471,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Filmstrip>` | — | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `thumbnailSize`, `overrides` | Horizontally-scrollable thumbnail strip with an active-item indicator, reusing TabStrip's own overflow scroll detection |
 | `<Gallery>` | — | `id`, `items`, `columns`, `onItemClick`, `overrides` | Thumbnail grid with lazy-rendered items, opening a fullscreen Viewer by default |
 | `<Heatmap>` | — | `columns`, `rows`, `values`, `width`, `height`, `title`, `formatValue` | Row/column magnitude grid with a theme-tracking sequential ramp |
+| `<Kbd>` | — | `keys`, `size`, `overrides`, `id`, `title` | Keyboard key or shortcut hint (`Esc`, `Ctrl` + `K`) as a themed key cap on a semantic `<kbd>` |
 | `<LineChart>` | — | `categories`, `series`, `width`, `height`, `title`, `variant`, `legendPosition`, `overrides` | Multi-series line chart with a shared hover crosshair; `variant="area"` renders a stacked, filled area chart |
 | `<Link>` | — | `variant`, `subtheme` | Themed hyperlink — colors itself from the theme's identity palette (hue-preserving, WCAG AA against the page background) for both unvisited and `:visited` state, and auto-applies `rel="noopener noreferrer"` when `target="_blank"` |
 | `<PieChart>` | — | `data`, `width`, `height`, `innerRadius`, `title`, `legendPosition` | Part-to-whole pie or donut chart |
@@ -616,7 +618,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - An optional editor control for the Theme Editor
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`, `kbd`.
 
 Register custom slices:
 ```tsx

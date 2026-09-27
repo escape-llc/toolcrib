@@ -109,6 +109,7 @@ import {
   useRouterBridge,
   type RouterAdapter,
   Text,
+  Kbd,
 } from '#toolcrib';
 import {
   Command,
@@ -1275,6 +1276,23 @@ export const App: React.FC = () => {
         </Text>
       </VStack>
     ),
+    Kbd: (
+      <VStack gap="md">
+        <Text>
+          Keyboard key and shortcut hints on a semantic <code>&lt;kbd&gt;</code>. A combination uses the HTML spec&apos;s nested form, one key cap per key.
+        </Text>
+        <HStack gap="md" wrap align="center">
+          <Kbd>Esc</Kbd>
+          <Kbd keys={['Ctrl', 'K']} />
+          <Kbd keys={['⌘', 'Shift', 'P']} />
+          <Kbd size="sm">Enter</Kbd>
+          <Kbd overrides={{ appearance: 'flat' }}>Tab</Kbd>
+        </HStack>
+        <Text size="sm" tone="secondary">
+          Press <Kbd size="sm">?</Kbd> for help. The Theme Editor&apos;s <em>Keyboard Key Appearance</em> switches every key between raised and flat.
+        </Text>
+      </VStack>
+    ),
     Content: {
       pageFrame: (
         <>
@@ -1626,7 +1644,7 @@ export const App: React.FC = () => {
     CommandPalette: (
       <VStack gap="md" align="start">
         <Text>
-          Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd>K</kbd> from anywhere on this page, or the button below.
+          Fuzzy-searchable action launcher, hosted inside toolcrib's own <code>Modal</code> (never <code>cmdk</code>'s own <code>Command.Dialog</code>). Mounted once near the app root (see the top of this file's <code>App</code> component) — try <Kbd keys={[navigator.platform.includes('Mac') ? '⌘' : 'Ctrl', 'K']} /> from anywhere on this page, or the button below.
         </Text>
         <Button variant="outline" icon={<Command size="1em" />} onClick={() => aiBus.openCommandPalette('global-command-palette')}>
           Open Command Palette

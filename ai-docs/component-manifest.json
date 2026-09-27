@@ -108,6 +108,7 @@
       "--ai-hovercard-shadow",
       "--ai-input-border-width",
       "--ai-input-padding",
+      "--ai-kbd-border-bottom-width",
       "--ai-label-gap",
       "--ai-label-weight",
       "--ai-layout-border-bottom-left-radius",
@@ -439,6 +440,10 @@
       {
         "id": "text",
         "name": "🔡 Text Size Ramp"
+      },
+      {
+        "id": "kbd",
+        "name": "⌨️ Keyboard Key Appearance"
       }
     ]
   },
@@ -2453,6 +2458,34 @@
       },
       "category": "Form Controls",
       "description": "Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle"
+    },
+    {
+      "name": "Kbd",
+      "import": "import { Kbd } from '#toolcrib'",
+      "props": {
+        "keys": {
+          "type": "string[]",
+          "description": "A key combination, rendered as one key cap per entry joined by `+`\n(`['Ctrl', 'K']` -> Ctrl + K), using the HTML spec's nested-`<kbd>`\nform for a combination."
+        },
+        "size": {
+          "type": "'sm' | 'md'",
+          "default": "'md'"
+        },
+        "overrides": {
+          "type": "Partial<KbdSliceState>",
+          "description": "Per-instance override for the key-cap appearance (`raised`/`flat`)."
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "category": "Data Display",
+      "antiPatternAvoid": "A hand-styled `<kbd>` or `<span>` per call site for a shortcut hint",
+      "antiPatternInstead": "`<Kbd>Esc</Kbd>`, or `<Kbd keys={['Ctrl', 'K']} />` for a combination",
+      "description": "Keyboard key or shortcut hint (`Esc`, `Ctrl` + `K`) as a themed key cap on a semantic `<kbd>`"
     },
     {
       "name": "Label",

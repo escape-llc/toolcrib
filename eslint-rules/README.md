@@ -76,6 +76,7 @@ This rule flags a raw HTML element where a Toolcrib component does the same job,
 | `<select>` | `Select` or `Combobox` |
 | `<textarea>` | `Textarea` |
 | `<dialog>` | `Modal`, `AlertDialog` or `Drawer` |
+| `<kbd>` | `Kbd` (`keys={[...]}` for a combination) |
 | `<a href>` | `Link` (external links too: it adds `rel="noopener noreferrer"` for `target="_blank"`) |
 
 **No TypeScript dependency** — plain JSX AST nodes only, same as `no-unexplained-zindex.js`.

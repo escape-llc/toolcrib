@@ -9,6 +9,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Modal } from '../Overlay/Modal';
+import { Kbd } from '../Kbd/Kbd';
 import { CommandPaletteThemeSlice, type CommandPaletteSliceState } from './CommandPaletteSlice';
 
 /** Data shape for each item in a `<CommandPalette>`. */
@@ -199,9 +200,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 >
                   {item.icon && <span>{item.icon}</span>}
                   <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.shortcut && (
-                    <span style={{ color: 'var(--ai-text-secondary, #6b7280)', fontSize: '0.75rem' }}>{item.shortcut}</span>
-                  )}
+                  {item.shortcut && <Kbd size="sm">{item.shortcut}</Kbd>}
                 </CommandPrimitive.Item>
               ))}
             </CommandPrimitive.Group>
