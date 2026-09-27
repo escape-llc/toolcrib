@@ -117,9 +117,11 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   useInjectInteractionStyles();
 
   useEffect(() => {
-    // Seeded as null (not the default ''), so an untouched field submits and
-    // validates as empty rather than as a string.
-    if (fieldName && registerField) registerField(fieldName, null);
+    // Seeded with defaultValue, else null (not the default ''), so an
+    // untouched field submits and validates as a number or empty. Only applies
+    // when the Form has no value for this field yet (its initialValues win).
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
   }, [fieldName, registerField]);
 
   const isFormBound = !!(fieldName && formContext);

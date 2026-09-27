@@ -114,6 +114,32 @@ describe('CheckboxGroup', () => {
     expect(onSubmit.mock.calls[0][0]).toEqual({ toppings: ['cheese', 'peppers'] });
   });
 
+  it("seeds a Form field from defaultValue, but the Form's initialValues win", async () => {
+    const onSubmit = vi.fn();
+    const { unmount } = render(
+      <Form id="cbg-seed" schema={z.object({ toppings: z.array(z.string()) })} onSubmit={onSubmit}>
+        <FormField name="toppings" label="Toppings">
+          <CheckboxGroup options={toppings} defaultValue={['olives']} />
+        </FormField>
+        <SubmitButton>Order</SubmitButton>
+      </Form>
+    );
+    expect(box('Olives')).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Order' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ toppings: ['olives'] }));
+    unmount();
+
+    render(
+      <Form id="cbg-seed-2" schema={z.object({ toppings: z.array(z.string()) })} initialValues={{ toppings: ['cheese'] }} onSubmit={() => {}}>
+        <FormField name="toppings" label="Toppings">
+          <CheckboxGroup options={toppings} defaultValue={['olives']} />
+        </FormField>
+      </Form>
+    );
+    expect(box('Cheese')).toBeChecked();
+    expect(box('Olives')).not.toBeChecked();
+  });
+
   it('has no axe violations', async () => {
     const { container } = render(
       <div>

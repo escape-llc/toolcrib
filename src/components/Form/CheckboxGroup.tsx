@@ -82,9 +82,11 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   useInjectInteractionStyles();
 
   useEffect(() => {
-    // Seeded as [] (not the default ''), so an untouched group submits and
-    // validates as an empty array.
-    if (fieldName && registerField) registerField(fieldName, []);
+    // Seeded with defaultValue, else [] (not the default ''), so an untouched
+    // group submits and validates as an array. Only applies when the Form has
+    // no value for this field yet (its initialValues win).
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
   }, [fieldName, registerField]);
 
   const isFormBound = !!(fieldName && formContext);
