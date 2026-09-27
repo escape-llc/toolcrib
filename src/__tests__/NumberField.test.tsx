@@ -76,6 +76,13 @@ describe('NumberField', () => {
     await act(async () => {});
   });
 
+  it("gives the steppers the toolkit's shared button interaction states", async () => {
+    render(<NumberField aria-label="Qty" defaultValue={1} />);
+    expect(screen.getByRole('button', { name: /increase/i })).toHaveClass('ai-btn');
+    expect(screen.getByRole('button', { name: /decrease/i })).toHaveClass('ai-btn');
+    await act(async () => {});
+  });
+
   it('disables the increment stepper at max', async () => {
     render(<NumberField aria-label="Qty" defaultValue={10} max={10} />);
     expect(screen.getByRole('button', { name: /increase/i })).toBeDisabled();

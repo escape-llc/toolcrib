@@ -68,6 +68,8 @@ export interface NumberFieldProps {
   squareCorners?: SquareCornerOption;
 }
 
+// .ai-btn gives the steppers the toolkit's shared hover tint and press
+// scale (interactionStyles.ts), same as <Button>.
 const STEPPER_STYLE: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -181,7 +183,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
             ...cornerOverrides,
           }}
         >
-          <AriaButton slot="decrement" style={STEPPER_STYLE}>
+          <AriaButton slot="decrement" className="ai-btn" style={STEPPER_STYLE}>
             <Minus size="1em" aria-hidden="true" />
           </AriaButton>
           <AriaInput
@@ -202,7 +204,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
               fontVariantNumeric: 'tabular-nums',
             }}
           />
-          <AriaButton slot="increment" style={STEPPER_STYLE}>
+          <AriaButton slot="increment" className="ai-btn" style={STEPPER_STYLE}>
             <Plus size="1em" aria-hidden="true" />
           </AriaButton>
         </Group>
