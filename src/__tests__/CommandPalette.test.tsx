@@ -34,6 +34,12 @@ describe('CommandPalette', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  it('shows an item shortcut as a <Kbd> key cap', async () => {
+    render(<CommandPalette items={[{ value: 'save', label: 'Save', shortcut: '⌘S', onSelect: vi.fn() }]} isOpen={true} onOpenChange={() => {}} />);
+    expect(screen.getByText('⌘S').tagName).toBe('KBD');
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+
   it('renders all items grouped by their `group` field when open', async () => {
     render(<CommandPalette items={items} isOpen={true} onOpenChange={() => {}} />);
     expect(screen.getByText('New File')).toBeInTheDocument();

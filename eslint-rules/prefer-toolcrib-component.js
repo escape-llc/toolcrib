@@ -39,6 +39,7 @@ export const DEFAULT_TOOLCRIB_ELEMENTS = {
   textarea: 'Textarea',
   dialog: 'Modal, AlertDialog or Drawer',
   a: 'Link',
+  kbd: 'Kbd',
   table: false,
 };
 
@@ -110,7 +111,7 @@ export const preferToolcribComponent = {
         context.report({
           node,
           message:
-            `Raw ${label}: use Toolcrib's ${replacement} instead. It comes themed (no style needed), accessible and wired to Form and the event bus; ` +
+            `Raw ${label}: use Toolcrib's ${replacement} instead. It comes themed (no style needed) and accessible, and form controls are wired to Form and the event bus; ` +
             `a raw element skips all of that. See ai-docs/CORE.md's Component Reference. If a raw element is genuinely required here, disable this line with a comment saying why.`,
         });
       },

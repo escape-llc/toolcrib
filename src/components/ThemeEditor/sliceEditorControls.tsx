@@ -49,6 +49,7 @@ import { type ProgressSliceState, type ProgressTrackRadius } from '../Progress/P
 import { type SidebarSliceState, type SidebarItemGap } from '../Sidebar/SidebarSlice';
 import { type SeparatorSliceState, type SeparatorThickness } from '../Separator/SeparatorSlice';
 import { type TextSliceState, type TextScale } from '../Text/TextSlice';
+import { type KbdSliceState, type KbdAppearance } from '../Kbd/KbdSlice';
 import { type GallerySliceState, type GalleryThumbnailAspectRatio } from '../Gallery/GallerySlice';
 import { type DrawerSliceState, type DrawerWidth, type DrawerHeaderMargin, type DrawerBackdrop } from '../Overlay/DrawerSlice';
 import { type TabSliceState, type TabVariant, type TabSize, type TabPanelTransition } from '../TabStrip/TabSlice';
@@ -500,6 +501,17 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
             { label: 'Compact (90%)', value: 'compact' },
             { label: 'Normal', value: 'normal' },
             { label: 'Large (112.5%)', value: 'large' },
+          ]}
+        />
+  ),
+  kbd: (state: KbdSliceState, onChange: (next: KbdSliceState) => void) => (
+    <FieldRow
+          label="Keyboard Key Appearance"
+          value={state.appearance}
+          onChange={val => onChange({ ...state, appearance: val as KbdAppearance })}
+          options={[
+            { label: 'Raised (0.125rem bottom edge)', value: 'raised' },
+            { label: 'Flat (even hairline)', value: 'flat' },
           ]}
         />
   ),

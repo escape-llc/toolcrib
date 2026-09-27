@@ -112,6 +112,8 @@ export * from './components/Gallery/Gallery';
 export * from './components/Gallery/GallerySlice';
 export * from './components/HoverCard/HoverCard';
 export * from './components/HoverCard/HoverCardSlice';
+export * from './components/Kbd/Kbd';
+export * from './components/Kbd/KbdSlice';
 export * from './components/Layout/AccessibleIcon';
 export * from './components/Layout/AspectRatio';
 export * from './components/Layout/Block';
