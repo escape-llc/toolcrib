@@ -965,6 +965,13 @@
         "Cancel",
         "Action"
       ],
+      "slotProps": {
+        "Action": {
+          "onClick": {
+            "type": "() => void"
+          }
+        }
+      },
       "props": {
         "id": {
           "type": "string",
@@ -1013,6 +1020,31 @@
         "Main",
         "Sidebar"
       ],
+      "slotProps": {
+        "Header": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Main": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Sidebar": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Header": "Renders as a `<header>` with themed padding, background, and a bottom border.",
+        "Main": "Renders as a `<main>` that fills remaining vertical space.",
+        "Sidebar": "Renders as an `<aside>` with a fixed themed width, only meaningful when the parent `<AppShell>`'s `layout` is `'sidebar-left'`/`'sidebar-right'`."
+      },
       "props": {
         "layout": {
           "type": "'default' | 'sidebar-left' | 'sidebar-right'",
@@ -1201,6 +1233,18 @@
         "Item",
         "Separator"
       ],
+      "slotProps": {
+        "Item": {
+          "href": {
+            "type": "string",
+            "description": "Href for this crumb's link. Omit for the current page (the last item is automatically non-interactive regardless), or for a grouping crumb with no page of its own: with neither href nor onClick, a middle crumb renders as plain text."
+          },
+          "onClick": {
+            "type": "() => void",
+            "description": "Click handler, for a JS-driven crumb instead of a real link."
+          }
+        }
+      },
       "props": {
         "separator": {
           "type": "ReactNode",
@@ -1328,6 +1372,37 @@
         "Footer",
         "Actions"
       ],
+      "slotProps": {
+        "Header": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Content": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          },
+          "layout": {
+            "type": "'default' | 'auto'",
+            "default": "'default'",
+            "description": "`'auto'` enables flex column layout with overflow hidden and minHeight: 0,\nuseful for embedding scrollable or virtualized content."
+          }
+        },
+        "Footer": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Header": "Renders with bottom border, bold text.",
+        "Content": "Main body area of the card.",
+        "Footer": "Renders with top border and container background.",
+        "Actions": "Flex row aligned to the end, typically used inside Footer."
+      },
       "props": {
         "layout": {
           "type": "'default' | 'auto'",
@@ -3052,6 +3127,24 @@
       "slots": [
         "Option"
       ],
+      "slotProps": {
+        "Option": {
+          "value": {
+            "type": "string",
+            "required": true
+          },
+          "label": {
+            "type": "ReactNode",
+            "required": true
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "helperText": {
+            "type": "ReactNode"
+          }
+        }
+      },
       "props": {
         "name": {
           "type": "string",
@@ -3576,6 +3669,18 @@
       "slots": [
         "Panel"
       ],
+      "slotProps": {
+        "Panel": {
+          "squareCorners": {
+            "type": "'auto' | 'top' | 'bottom' | 'left' | 'right' | 'none'",
+            "default": "undefined",
+            "description": "Which corners to square off. `'auto'` defers to the layout domain."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Panel": "Squares off its own corners based on its position in the splitter; a toolcrib component nested inside it (e.g. `<Card>`, `<Content>`) squares its own corners independently via `useCornerSquaring`/the ambient layout domain — Panel no longer forwards a computed `style` into component children, only into plain DOM element children, which have no other way to receive it (see `Splitter.Panel`'s implementation)."
+      },
       "props": {
         "id": {
           "type": "string",
@@ -3648,6 +3753,21 @@
         "Panel"
       ],
       "slotProps": {
+        "Tab": {
+          "id": {
+            "type": "string",
+            "required": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "onClick": {
+            "type": "() => void"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
         "Panel": {
           "groupId": {
             "type": "string",
@@ -3660,6 +3780,9 @@
             "description": "The tab id (matching one of that TabStrip's `items`) this panel renders for."
           }
         }
+      },
+      "slotDescriptions": {
+        "Panel": "When `activeId` is provided, the panel auto-hides if `activeId !== value`. Omit `activeId` to always render (useful for manual conditional rendering)."
       },
       "props": {
         "id": {
@@ -3922,6 +4045,55 @@
         "Button",
         "Separator"
       ],
+      "slotProps": {
+        "Button": {
+          "variant": {
+            "type": "'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'",
+            "default": "'primary'",
+            "description": "Visual style variant.\n- `'primary'` — Filled with primary colour.\n- `'secondary'` — Filled with secondary colour.\n- `'outline'` — Transparent with border.\n- `'danger'` — Filled with error colour.\n- `'ghost'` — No background or border."
+          },
+          "size": {
+            "type": "'sm' | 'md' | 'lg'",
+            "default": "'md'",
+            "description": "Button size controlling padding and font-size."
+          },
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Override padding using the theme padding token scale."
+          },
+          "cornerRadiusMode": {
+            "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+            "description": "Override corner radius using the theme radius token scale."
+          },
+          "leadingIcon": {
+            "type": "ReactNode",
+            "description": "Icon rendered before the label text. Alias for `icon`."
+          },
+          "trailingIcon": {
+            "type": "ReactNode",
+            "description": "Icon rendered after the label text."
+          },
+          "icon": {
+            "type": "ReactNode",
+            "description": "Shorthand for `leadingIcon`."
+          },
+          "subtheme": {
+            "type": "'error' | 'success' | 'warning' | 'info'",
+            "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+          },
+          "squareCorners": {
+            "type": "SquareCornerOption",
+            "description": "Explicit corner-squaring override, e.g. for a trigger button whose\ncorner needs to flatten against an open `<Popup>`/`<DropdownMenu>`.\nApplied after the button's own computed radius, so it wins."
+          },
+          "overrides": {
+            "type": "Partial<ButtonSliceState>",
+            "description": "Per-instance overrides for label weight and icon spacing. Separate from\n`subtheme` above (Button already resolves that itself via\n`useResolvedSubtheme`, unrelated to this slice's own two fields)."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Button": "Supports five variants, three sizes, subtheme colouring, and icon slots."
+      },
       "props": {
         "paddingMode": {
           "type": "'compact' | 'normal' | 'spacious'",

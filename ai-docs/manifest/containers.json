@@ -56,6 +56,31 @@
         "Main",
         "Sidebar"
       ],
+      "slotProps": {
+        "Header": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Main": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Sidebar": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Header": "Renders as a `<header>` with themed padding, background, and a bottom border.",
+        "Main": "Renders as a `<main>` that fills remaining vertical space.",
+        "Sidebar": "Renders as an `<aside>` with a fixed themed width, only meaningful when the parent `<AppShell>`'s `layout` is `'sidebar-left'`/`'sidebar-right'`."
+      },
       "props": {
         "layout": {
           "type": "'default' | 'sidebar-left' | 'sidebar-right'",
@@ -82,6 +107,37 @@
         "Footer",
         "Actions"
       ],
+      "slotProps": {
+        "Header": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        },
+        "Content": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          },
+          "layout": {
+            "type": "'default' | 'auto'",
+            "default": "'default'",
+            "description": "`'auto'` enables flex column layout with overflow hidden and minHeight: 0,\nuseful for embedding scrollable or virtualized content."
+          }
+        },
+        "Footer": {
+          "paddingMode": {
+            "type": "'compact' | 'normal' | 'spacious'",
+            "description": "Overrides the default padding using the theme padding token scale."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Header": "Renders with bottom border, bold text.",
+        "Content": "Main body area of the card.",
+        "Footer": "Renders with top border and container background.",
+        "Actions": "Flex row aligned to the end, typically used inside Footer."
+      },
       "props": {
         "layout": {
           "type": "'default' | 'auto'",
@@ -253,6 +309,18 @@
       "slots": [
         "Panel"
       ],
+      "slotProps": {
+        "Panel": {
+          "squareCorners": {
+            "type": "'auto' | 'top' | 'bottom' | 'left' | 'right' | 'none'",
+            "default": "undefined",
+            "description": "Which corners to square off. `'auto'` defers to the layout domain."
+          }
+        }
+      },
+      "slotDescriptions": {
+        "Panel": "Squares off its own corners based on its position in the splitter; a toolcrib component nested inside it (e.g. `<Card>`, `<Content>`) squares its own corners independently via `useCornerSquaring`/the ambient layout domain — Panel no longer forwards a computed `style` into component children, only into plain DOM element children, which have no other way to receive it (see `Splitter.Panel`'s implementation)."
+      },
       "props": {
         "id": {
           "type": "string",

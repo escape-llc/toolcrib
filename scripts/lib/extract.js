@@ -474,6 +474,58 @@ function propsNameFromForwardRefInitializer(initializer) {
   return baseTypeName(typeArgs[1]);
 }
 
+/**
+ * The slot types a component declares on its own annotation:
+ * `React.FC<CardProps> & { Header: React.FC<CardHeaderProps>; ... }`.
+ * Most slots are assigned inline arrows (`Card.Header = ({...}) => ...`), so
+ * this annotation is the only place their props type is named. Returns
+ * slot name -> { propsType, doc }: `propsType` is the props type node (a
+ * reference like `CardHeaderProps`, or an inline type literal), `doc` the
+ * member's own JSDoc if any.
+ */
+function slotTypesFromType(typeNode) {
+  const slots = new Map();
+  if (!typeNode || !ts.isIntersectionTypeNode(typeNode)) return slots;
+  for (const part of typeNode.types) {
+    if (!ts.isTypeLiteralNode(part)) continue;
+    for (const member of part.members) {
+      if (!ts.isPropertySignature(member) || !ts.isIdentifier(member.name) || !member.type) continue;
+      slots.set(member.name.text, { propsType: slotPropsTypeNode(member.type), doc: leadingJsDoc(member) });
+    }
+  }
+  return slots;
+}
+
+/** `React.FC<P>` / `FC<P>` -> P; `React.ForwardRefExoticComponent<P & RefAttributes<...>>` -> P. */
+function slotPropsTypeNode(typeNode) {
+  if (!ts.isTypeReferenceNode(typeNode) || !typeNode.typeArguments?.length) return null;
+  const name = typeNode.typeName.getText();
+  let arg = typeNode.typeArguments[0];
+  if (/(^|\.)(FC|FunctionComponent)$/.test(name)) return arg;
+  if (/(^|\.)ForwardRefExoticComponent$/.test(name)) {
+    if (ts.isIntersectionTypeNode(arg)) arg = arg.types[0];
+    return arg;
+  }
+  return null;
+}
+
+/**
+ * A slot's description for the manifest: its own JSDoc on the component's
+ * annotation if it has one, else its Props interface's JSDoc minus the
+ * boilerplate lead ("Props for the `<Card.Header>` slot.") that every such
+ * comment opens with. Empty when nothing is left.
+ */
+function slotDescription(declaredDoc, propsDecl) {
+  const own = declaredDoc ? jsDocCommentText(declaredDoc.comment).trim() : '';
+  if (own) return own;
+  const ifaceDoc = propsDecl && ts.isInterfaceDeclaration(propsDecl) ? leadingJsDoc(propsDecl) : null;
+  if (!ifaceDoc) return '';
+  return jsDocCommentText(ifaceDoc.comment)
+    .replace(/\s+/g, ' ')
+    .replace(/^Props for [^.]*?(`[^`]*`[^.]*?)*\.\s*/, '')
+    .trim();
+}
+
 /** `FormProps<T>` -> `FormProps` (strip generic type arguments for the interface lookup). */
 function unwrapGeneric(typeNode) {
   if (ts.isTypeReferenceNode(typeNode)) return ts.factory.createTypeReferenceNode(typeNode.typeName, undefined);
@@ -500,6 +552,7 @@ export function findComponentDeclarations(sourceFile) {
         found.push({
           name: decl.name.text,
           propsName: propsInterfaceNameFromType(decl.type) ?? propsNameFromForwardRefInitializer(decl.initializer),
+          slotTypes: slotTypesFromType(decl.type),
           description: manifestDesc,
           constraints: jsDocTag(doc, 'manifestConstraints'),
           children: jsDocTag(doc, 'manifestChildren'),
@@ -734,13 +787,37 @@ function generateComponentEntry(sourceFile, decl, defs) {
     // Resolve each slot's own props (e.g. `<TabStrip.Panel>`'s `value`/
     // `groupId`) so an AI agent isn't left guessing them from the parent
     // component's prop table, which only ever describes the root element.
+    // A slot's props type comes from the slot assignment when the RHS is a
+    // named component (`TabStrip.Panel = TabPanel`), else from the
+    // component's own annotation (`& { Header: React.FC<CardHeaderProps> }`),
+    // which is the only place an inline-arrow slot's props are named. A
+    // named type is looked up in this file first, then in the cross-file
+    // index (Toolbar.Button's ButtonProps lives in FormComponents.tsx).
     const slotProps = {};
+    const slotDescriptions = {};
     for (const slot of slots) {
-      if (!slot.propsName) continue;
-      const slotInterface = findInterface(sourceFile, slot.propsName);
-      if (slotInterface) slotProps[slot.name] = extractProps(slotInterface, sourceFile, defs);
+      const declared = decl.slotTypes?.get(slot.name);
+      let propsDecl = null;
+      let propsFile = sourceFile;
+      const typeName = slot.propsName ?? (declared?.propsType && ts.isTypeReferenceNode(declared.propsType) ? declared.propsType.typeName.getText() : null);
+      if (typeName) {
+        propsDecl = findInterface(sourceFile, typeName);
+        if (!propsDecl) {
+          const hit = buildTypeIndex().interfaces.get(typeName);
+          if (hit) ({ interfaceDecl: propsDecl, sourceFile: propsFile } = hit);
+        }
+      } else if (declared?.propsType && ts.isTypeLiteralNode(declared.propsType)) {
+        propsDecl = declared.propsType;
+      }
+      if (propsDecl) {
+        const props = extractProps(propsDecl, propsFile, defs);
+        if (Object.keys(props).length > 0) slotProps[slot.name] = props;
+      }
+      const description = slotDescription(declared?.doc, propsDecl);
+      if (description) slotDescriptions[slot.name] = description;
     }
     if (Object.keys(slotProps).length > 0) entry.slotProps = slotProps;
+    if (Object.keys(slotDescriptions).length > 0) entry.slotDescriptions = slotDescriptions;
   }
 
   if (decl.propsName) {

@@ -40,7 +40,12 @@ test('the spec sheet carries the slots, with prop and slot counts as badges', as
   // Slots moved into the spec sheet: not on the card until it's opened.
   await expect(card.getByText('Card.Header')).toBeHidden();
   await trigger.click();
-  await expect(card.getByText('Card.Header')).toBeVisible();
+  // Slots are a table in the same form as the props: slot, its own props, description.
+  const slots = card.getByRole('region', { name: 'Spec sheet: slots' });
+  const header = slots.getByRole('row').filter({ hasText: 'Card.Header' });
+  await expect(header).toContainText('paddingMode');
+  await expect(header).toContainText('Renders with bottom border');
+  await expect(card.getByRole('region', { name: 'Spec sheet: props' }).getByRole('columnheader', { name: 'Type' })).toBeVisible();
 });
 
 test('fixtures are a board of their own, in a distinct hue, and mark the last one visited', async ({ page }) => {
