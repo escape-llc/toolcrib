@@ -764,6 +764,24 @@
       "slots": [
         "Option"
       ],
+      "slotProps": {
+        "Option": {
+          "value": {
+            "type": "string",
+            "required": true
+          },
+          "label": {
+            "type": "ReactNode",
+            "required": true
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "helperText": {
+            "type": "ReactNode"
+          }
+        }
+      },
       "props": {
         "name": {
           "type": "string",

@@ -16,6 +16,13 @@
         "Cancel",
         "Action"
       ],
+      "slotProps": {
+        "Action": {
+          "onClick": {
+            "type": "() => void"
+          }
+        }
+      },
       "props": {
         "id": {
           "type": "string",

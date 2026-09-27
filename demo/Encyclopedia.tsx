@@ -29,6 +29,8 @@ type ManifestComponent = {
   description: string;
   props: Record<string, ManifestProp>;
   slots?: string[];
+  slotProps?: Record<string, Record<string, ManifestProp>>;
+  slotDescriptions?: Record<string, string>;
   constraints?: string;
   childComponents?: string[];
   antiPatternAvoid?: string;
@@ -283,70 +285,120 @@ const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
 /**
  * The spec sheet: the tool's slots and every prop, straight from the manifest
- * -- together, since both are the component's contract. Collapsed by default;
- * the live demo is the headline. The counts are badges on the trigger (inline
- * spans: the trigger is a button, so no block content).
+ * -- together, since both are the component's contract, and in the same
+ * tabular form. Collapsed by default; the live demo is the headline. The
+ * counts are badges on the trigger (inline spans: the trigger is a button, so
+ * no block content).
  */
-function SpecSheet({ name, props, slots = [] }: { name: string; props: Record<string, ManifestProp>; slots?: string[] }) {
-  const names = Object.keys(props);
+function SpecSheet({ component: c }: { component: ManifestComponent }) {
+  const names = Object.keys(c.props ?? {});
+  const slots = c.slots ?? [];
   if (names.length === 0 && slots.length === 0) return null;
   return (
     <Collapsible
       trigger={
         <>
           Spec sheet{' '}
-          {names.length > 0 && <Badge size="sm">{plural(names.length, 'prop')}</Badge>}{' '}
-          {slots.length > 0 && <Badge size="sm" variant="secondary">{plural(slots.length, 'slot')}</Badge>}
+          {slots.length > 0 && <Badge size="sm" variant="secondary">{plural(slots.length, 'slot')}</Badge>}{' '}
+          {names.length > 0 && <Badge size="sm">{plural(names.length, 'prop')}</Badge>}
         </>
       }
     >
-      <VStack gap="sm">
+      <VStack gap="md">
         {slots.length > 0 && (
-          <Text size="sm" tone="secondary">
-            Slots: {slots.map((s, i) => <React.Fragment key={s}>{i > 0 && ', '}<code style={codeStyle}>{`${name}.${s}`}</code></React.Fragment>)}
-          </Text>
+          <SpecTable
+            caption="Slots"
+            columns={['Slot', 'Props', 'Description']}
+            rows={slots.map(s => {
+              const own = c.slotProps?.[s] ?? {};
+              const ownNames = Object.keys(own);
+              return {
+                key: s,
+                cells: [
+                  <code style={codeStyle}>{`${c.name}.${s}`}</code>,
+                  ownNames.length === 0 ? '' : ownNames.map((n, i) => (
+                    <React.Fragment key={n}>
+                      {i > 0 && ', '}
+                      <code style={codeStyle}>{n}</code>
+                      {own[n].required && <Text as="span" subtheme="error">*</Text>}
+                    </React.Fragment>
+                  )),
+                  c.slotDescriptions?.[s] ? md(c.slotDescriptions[s]) : '',
+                ],
+              };
+            })}
+          />
         )}
-        {names.length > 0 && <PropsTable props={props} names={names} />}
+        {names.length > 0 && (
+          <SpecTable
+            caption="Props"
+            columns={['Prop', 'Type', 'Default', 'Description']}
+            rows={names.map(n => {
+              const p = c.props[n];
+              return {
+                key: n,
+                cells: [
+                  <>
+                    <code style={codeStyle}>{n}</code>
+                    {p.required && <Text as="span" subtheme="error"> *</Text>}
+                  </>,
+                  <code style={codeStyle}>{p.type}</code>,
+                  p.default ? <code style={codeStyle}>{p.default}</code> : '',
+                  p.description ? md(p.description) : '',
+                ],
+              };
+            })}
+          />
+        )}
       </VStack>
     </Collapsible>
   );
 }
 
-function PropsTable({ props, names }: { props: Record<string, ManifestProp>; names: string[] }) {
+/**
+ * One spec-sheet table. The first column is the name (no wrap), the last is
+ * the description (secondary tone). Wide type signatures can overflow at
+ * narrow widths, and a scroll region needs keyboard access (axe:
+ * scrollable-region-focusable) and a unique name (axe: landmark-unique).
+ */
+function SpecTable({ caption, columns, rows }: { caption: string; columns: string[]; rows: { key: string; cells: ReactNode[] }[] }) {
+  const last = columns.length - 1;
+  const pad = (i: number) => (i === 0 ? '0.25rem 0.5rem 0.25rem 0' : i === last ? '0.25rem 0 0.25rem 0.5rem' : '0.25rem 0.5rem');
   return (
-      // Wide type signatures can overflow at narrow widths; a scroll region
-      // needs keyboard access (axe: scrollable-region-focusable).
-      <div tabIndex={0} role="region" aria-label="Spec sheet" style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '0.0625rem solid var(--ai-border)' }}>
-              <th scope="col" style={{ textAlign: 'left', padding: '0.25rem 0.5rem 0.25rem 0' }}>Prop</th>
-              <th scope="col" style={{ textAlign: 'left', padding: '0.25rem 0.5rem' }}>Type</th>
-              <th scope="col" style={{ textAlign: 'left', padding: '0.25rem 0.5rem' }}>Default</th>
-              <th scope="col" style={{ textAlign: 'left', padding: '0.25rem 0 0.25rem 0.5rem' }}>Description</th>
+    <div tabIndex={0} role="region" aria-label={`Spec sheet: ${caption.toLowerCase()}`} style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+        <caption style={{ textAlign: 'left', captionSide: 'top', paddingBottom: '0.25rem' }}>
+          <Text as="span" size="xs" weight="semibold" tone="secondary">{caption}</Text>
+        </caption>
+        <thead>
+          <tr style={{ borderBottom: '0.0625rem solid var(--ai-border)' }}>
+            {columns.map((col, i) => (
+              <th key={col} scope="col" style={{ textAlign: 'left', padding: pad(i) }}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.key} style={{ borderBottom: '0.0625rem solid var(--ai-border)', verticalAlign: 'top' }}>
+              {row.cells.map((cell, i) => (
+                <td
+                  key={i}
+                  style={{
+                    padding: pad(i),
+                    ...(i === 0 ? { whiteSpace: 'nowrap' } : {}),
+                    ...(i === last ? { color: 'var(--ai-text-secondary)' } : {}),
+                  }}
+                >
+                  {cell}
+                </td>
+              ))}
             </tr>
-          </thead>
-          <tbody>
-            {names.map(n => {
-              const p = props[n];
-              return (
-                <tr key={n} style={{ borderBottom: '0.0625rem solid var(--ai-border)', verticalAlign: 'top' }}>
-                  <td style={{ padding: '0.25rem 0.5rem 0.25rem 0', whiteSpace: 'nowrap' }}>
-                    <code style={codeStyle}>{n}</code>
-                    {p.required && <Text as="span" subtheme="error"> *</Text>}
-                  </td>
-                  <td style={{ padding: '0.25rem 0.5rem' }}><code style={codeStyle}>{p.type}</code></td>
-                  <td style={{ padding: '0.25rem 0.5rem' }}>{p.default ? <code style={codeStyle}>{p.default}</code> : ''}</td>
-                  <td style={{ padding: '0.25rem 0 0.25rem 0.5rem', color: 'var(--ai-text-secondary)' }}>{p.description ? md(p.description) : ''}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
-
 /**
  * The blueprint: the demo's own source, generated from demo/App.tsx (issue
  * #638) -- the exact JSX running above it, comments stripped (#678). Where the
@@ -425,7 +477,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
               </Block>
             )}
 
-            <SpecSheet name={c.name} props={c.props} slots={c.slots} />
+            <SpecSheet component={c} />
 
             {isSeeAlso(demo) ? (
               <Text size="sm" tone="secondary">
