@@ -4,7 +4,7 @@ import React, { type ReactNode } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { useCornerSquaring, useLayoutDomain } from '../Splitter/LayoutDomainContext';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { CardThemeSlice, type CardSliceState } from './CardSlice';
@@ -137,7 +137,6 @@ export const Card: React.FC<CardProps> & {
   Footer: React.FC<CardFooterProps>;
   Actions: React.FC<CardActionsProps>;
 } = ({ children, layout = 'default', squareCorners, overrides, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Card');
   const isAuto = layout === 'auto' || squareCorners === 'auto';
   const domainInfo = useLayoutDomain();
   const { style: domainCornerStyle } = useCornerSquaring(isAuto);
@@ -185,7 +184,6 @@ export const Card: React.FC<CardProps> & {
 };
 
 Card.Header = ({ children, paddingMode, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Card.Header');
   return (
     <div
       {...props}
@@ -207,7 +205,6 @@ Card.Header = ({ children, paddingMode, ...props }) => {
 };
 
 Card.Content = ({ children, paddingMode, layout = 'default', ...props }) => {
-  warnIfLegacyStyleProps(props, 'Card.Content');
   const isAuto = layout === 'auto';
   return (
     <div
@@ -232,7 +229,6 @@ Card.Content = ({ children, paddingMode, layout = 'default', ...props }) => {
 };
 
 Card.Footer = ({ children, paddingMode, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Card.Footer');
   return (
     <div
       {...props}
@@ -252,7 +248,6 @@ Card.Footer = ({ children, paddingMode, ...props }) => {
 };
 
 Card.Actions = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Card.Actions');
   return (
     <div
       {...props}

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -27,7 +27,6 @@ const SIZE_DIAMETER: Record<NonNullable<SpinnerProps['size']>, string> = {
  * @manifestAntiPatternInstead Use `<Spinner>` — already animates off the shared keyframes, not a one-off duration
  */
 export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', subtheme: instanceSubtheme, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Spinner');
   const strings = useLocaleStrings().spinner;
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;

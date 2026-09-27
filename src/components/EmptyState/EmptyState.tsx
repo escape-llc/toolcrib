@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 
 /** Props for the root `<EmptyState>` container. */
 export interface EmptyStateProps extends StyleFreeAttributes<HTMLDivElement> {
@@ -37,7 +37,6 @@ export const EmptyState: React.FC<EmptyStateProps> & {
   Description: React.FC<EmptyStateDescriptionProps>;
   Action: React.FC<EmptyStateActionProps>;
 } = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'EmptyState');
   return (
     <div
       {...props}
@@ -57,7 +56,6 @@ export const EmptyState: React.FC<EmptyStateProps> & {
 };
 
 EmptyState.Icon = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'EmptyState.Icon');
   return (
     <div
       {...props}
@@ -74,7 +72,6 @@ EmptyState.Icon = ({ children, ...props }) => {
 };
 
 EmptyState.Title = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'EmptyState.Title');
   return (
     <div
       {...props}
@@ -90,7 +87,6 @@ EmptyState.Title = ({ children, ...props }) => {
 };
 
 EmptyState.Description = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'EmptyState.Description');
   return (
     <div
       {...props}
@@ -106,7 +102,6 @@ EmptyState.Description = ({ children, ...props }) => {
 };
 
 EmptyState.Action = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'EmptyState.Action');
   return (
     <div
       {...props}

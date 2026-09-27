@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 
 // useLayoutEffect warns during server rendering; nothing here needs to run
 // there anyway (there's no content-visibility on the server).
@@ -57,7 +57,6 @@ export const DeferredContent: React.FC<DeferredContentProps> = ({
   onVisibilityChange,
   ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'DeferredContent');
   const ref = useRef<HTMLDivElement>(null);
 
   // A layout effect, not useEffect (issue #634): the browser fires

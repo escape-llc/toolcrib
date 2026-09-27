@@ -16,7 +16,6 @@ import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
-import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
@@ -207,9 +206,7 @@ export const Splitter: React.FC<SplitterProps> & {
   initialSplit = 70,
   minSize = 15,
   children,
-  ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'Splitter');
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
   useEffect(() => {

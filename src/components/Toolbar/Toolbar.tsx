@@ -14,7 +14,7 @@ import { Toolbar as ToolbarPrimitive } from 'radix-ui';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type MarginMode } from '../../theme/margin';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { ToolbarThemeSlice, type ToolbarSliceState } from './ToolbarSlice';
 import { Button, type ButtonProps } from '../Form/FormComponents';
@@ -78,7 +78,6 @@ export const Toolbar: React.FC<ToolbarProps> & {
   Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
   Separator: React.FC<{}>;
 } = ({ children, paddingMode, marginMode, cornerRadiusMode, orientation = 'horizontal', overrides, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Toolbar');
   const toolbarVars = getSparseVariables(ToolbarThemeSlice, overrides ?? {});
   return (
     // Radix's Toolbar.Root: a plain div with role="toolbar" plus the
@@ -109,7 +108,6 @@ export const Toolbar: React.FC<ToolbarProps> & {
 };
 
 Toolbar.Left = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Toolbar.Left');
   const orientation = useContext(ToolbarOrientationContext);
   return (
     <div
@@ -129,7 +127,6 @@ Toolbar.Left = ({ children, ...props }) => {
 };
 
 Toolbar.Center = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Toolbar.Center');
   const orientation = useContext(ToolbarOrientationContext);
   return (
     <div
@@ -149,7 +146,6 @@ Toolbar.Center = ({ children, ...props }) => {
 };
 
 Toolbar.Right = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Toolbar.Right');
   const orientation = useContext(ToolbarOrientationContext);
   return (
     <div

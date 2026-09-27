@@ -1,6 +1,6 @@
 import React, { type LabelHTMLAttributes } from 'react';
 import { Label as LabelPrimitive } from 'radix-ui';
-import { type StyleFree, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFree } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { LabelThemeSlice, type LabelSliceState } from './LabelSlice';
 
@@ -23,7 +23,6 @@ export interface LabelProps extends StyleFree<LabelHTMLAttributes<HTMLLabelEleme
  * @manifestCategory Form Controls
  */
 export const Label: React.FC<LabelProps> = ({ children, overrides, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Label');
   const labelVars = getSparseVariables(LabelThemeSlice, overrides ?? {});
 
   return (
