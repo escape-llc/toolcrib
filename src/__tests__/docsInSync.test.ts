@@ -76,4 +76,8 @@ describe('generated docs stay in sync with source', () => {
   it('demo/demoSources.generated.json (the Encyclopedia\'s source snippets) has no drift from demo/App.tsx', () => {
     runDriftCheck('node scripts/generate-demo-sources.js --check');
   });
+
+  it('the demo source snippets drop code comments but keep JSX text (#678)', () => {
+    runDriftCheck('node scripts/demo-sources.check.mjs');
+  });
 });
