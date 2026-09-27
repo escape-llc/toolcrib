@@ -1,27 +1,42 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { warnIfLegacyStyleProps, resolveIsDev } from '../theme/safeProps';
+import { describe, it, expect } from 'vitest';
+import type { JSXElementConstructor } from 'react';
+import { resolveIsDev } from '../theme/safeProps';
+import type * as Toolcrib from '../index';
 
-describe('warnIfLegacyStyleProps', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+// No toolcrib component takes `style`/`className` (CORE.md principle 7), and
+// the contract is compile-time only (#652): no runtime warning, no stripping.
+// This derives every component the public barrel exports (a capitalized
+// export that React can render) and fails `tsc` -- naming the offender --
+// if any of their props ever accepts either. A new component is covered the
+// moment it's exported; there's no list to keep in sync.
+type Barrel = typeof Toolcrib;
+type PropsOf<C> = C extends JSXElementConstructor<infer P> ? P : never;
+type AcceptsStyle<C> = [PropsOf<C>] extends [never] ? false : 'style' extends keyof PropsOf<C> ? true : 'className' extends keyof PropsOf<C> ? true : false;
+type ComponentNames = { [K in keyof Barrel]: K extends `${Uppercase<string>}${string}` ? (Barrel[K] extends JSXElementConstructor<never> ? K : never) : never }[keyof Barrel];
+// Slots (`Card.Header`, `AppShell.Main`, ...) are capitalized static
+// components on an export, not exports themselves, so they're scanned too
+// (Gemini, PR #660).
+type SlotNames<C, Prefix extends string> = { [S in keyof C]-?: S extends `${Uppercase<string>}${string}` ? (C[S] extends JSXElementConstructor<never> ? `${Prefix}.${S & string}` : never) : never }[keyof C];
+type AllSlotNames = { [K in ComponentNames]: SlotNames<Barrel[K], K> }[ComponentNames];
+type SlotOffenders<C, Prefix extends string> = { [S in keyof C]-?: S extends `${Uppercase<string>}${string}` ? (AcceptsStyle<C[S]> extends true ? `${Prefix}.${S & string}` : never) : never }[keyof C];
+type StyleOffenders =
+  | { [K in ComponentNames]: AcceptsStyle<Barrel[K]> extends true ? K : never }[ComponentNames]
+  | { [K in ComponentNames]: SlotOffenders<Barrel[K], K> }[ComponentNames];
 
-  it('warns when a style prop is present', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnIfLegacyStyleProps({ style: { color: 'red' } }, 'Card');
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('<Card>'));
-  });
-
-  it('warns when a className prop is present', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnIfLegacyStyleProps({ className: 'foo' }, 'Card');
-    expect(warnSpy).toHaveBeenCalled();
-  });
-
-  it('does not warn when neither prop is present', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    warnIfLegacyStyleProps({ children: 'hi' }, 'Card');
-    expect(warnSpy).not.toHaveBeenCalled();
+describe('style/className contract', () => {
+  it('no exported component accepts style or className (checked by tsc)', () => {
+    // Resolves to `true` only when StyleOffenders is empty; otherwise the
+    // assignment fails to compile with the offending component names.
+    const noOffenders: [StyleOffenders] extends [never] ? true : StyleOffenders = true;
+    // The detector itself works: a component that takes style is caught, one that doesn't isn't.
+    const catchesStyle: AcceptsStyle<(props: { style?: object }) => null> = true;
+    const catchesClassName: AcceptsStyle<(props: { className?: string }) => null> = true;
+    const passesClean: AcceptsStyle<(props: { label: string }) => null> = false;
+    // And it really scans the barrel (an empty name set would pass vacuously):
+    // a plain FC, a forwardRef component and a generic function component.
+    const scansBarrel: 'Card' | 'Link' | 'Block' | 'Text' | 'DataTable' extends ComponentNames ? true : false = true;
+    const scansSlots: 'Card.Header' | 'AppShell.Main' | 'Alert.Title' extends AllSlotNames ? true : false = true;
+    expect([noOffenders, catchesStyle, catchesClassName, passesClean, scansBarrel, scansSlots]).toEqual([true, true, true, false, true, true]);
   });
 });
 
@@ -36,7 +51,7 @@ describe('resolveIsDev', () => {
     expect(resolveIsDev(undefined, 'production')).toBe(false);
   });
 
-  it('defaults to true (warn) when neither signal is available', () => {
+  it('defaults to true (dev) when neither signal is available', () => {
     expect(resolveIsDev(undefined, undefined)).toBe(true);
   });
 });

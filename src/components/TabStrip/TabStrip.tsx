@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
@@ -396,7 +396,6 @@ function injectTabPanelStyles(targetDocument?: Document, nonce?: string): void {
 }
 
 export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'TabStrip.Panel');
   const [isActive, setIsActive] = useState(false);
   const targetDocument = useTargetDocument();
   const nonce = useNonce();

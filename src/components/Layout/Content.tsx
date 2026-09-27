@@ -5,7 +5,7 @@ import { type MarginMode, resolveMargin } from '../../theme/margin';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useCornerSquaring } from '../Splitter/LayoutDomainContext';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 
 /**
  * Props for `<Content>` — the flex-domain-establishing layout root.
@@ -45,7 +45,6 @@ export interface ContentProps extends StyleFreeAttributes<HTMLDivElement> {
 export const Content: React.FC<ContentProps> & {
   Grow: React.FC<ContentGrowProps>;
 } = ({ children, gap = 'md', marginMode, squareCorners, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Content');
   const { style: domainCornerStyle } = useCornerSquaring(true);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
 
@@ -86,7 +85,6 @@ export interface ContentGrowProps extends StyleFreeAttributes<HTMLDivElement> {
  * fixed-height header).
  */
 Content.Grow = ({ children, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Content.Grow');
   return (
     <div
       // Focusable by default so a keyboard-only user can actually reach and

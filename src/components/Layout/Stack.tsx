@@ -2,7 +2,7 @@ import React, { type ReactNode } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type MarginMode, resolveMargin } from '../../theme/margin';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 
 /**
  * Props shared by `<VStack>` and `<HStack>` layout containers.
@@ -63,7 +63,6 @@ export const VStack: React.FC<StackProps> = ({
   wrap = false,
   ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'VStack');
   return (
     <div
       {...props}
@@ -101,7 +100,6 @@ export const HStack: React.FC<StackProps> = ({
   wrap = false,
   ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'HStack');
   return (
     <div
       {...props}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 
 /** Props for the `<Skeleton>` loading placeholder. */
 export interface SkeletonProps extends StyleFreeAttributes<HTMLDivElement> {
@@ -24,7 +24,6 @@ export interface SkeletonProps extends StyleFreeAttributes<HTMLDivElement> {
  * @manifestAntiPatternInstead Use `<Skeleton shape="text"|"circle"|"rect">` — already animates off the shared keyframes, not a one-off duration
  */
 export const Skeleton: React.FC<SkeletonProps> = ({ shape = 'text', width, height, ...props }) => {
-  warnIfLegacyStyleProps(props, 'Skeleton');
 
   const resolvedWidth = width ?? (shape === 'circle' ? height ?? '2.5rem' : '100%');
   const resolvedHeight = height ?? (shape === 'circle' ? resolvedWidth : shape === 'rect' ? '8rem' : '1rem');

@@ -11,7 +11,7 @@
    this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext } from 'react';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { AppShellThemeSlice, type AppShellSliceState } from './AppShellSlice';
 
@@ -113,7 +113,6 @@ export const AppShell: React.FC<AppShellProps> & {
   Main: React.FC<AppShellMainProps>;
   Sidebar: React.FC<AppShellSidebarProps>;
 } = ({ children, layout = 'default', overrides, ...props }) => {
-  warnIfLegacyStyleProps(props, 'AppShell');
   const appShellVars = getSparseVariables(AppShellThemeSlice, overrides ?? {});
   const rootStyle: React.CSSProperties = {
     height: '100vh',
@@ -159,7 +158,6 @@ export const AppShell: React.FC<AppShellProps> & {
 };
 
 AppShell.Header = ({ children, paddingMode, ...props }) => {
-  warnIfLegacyStyleProps(props, 'AppShell.Header');
   return (
     <header
       {...props}
@@ -191,7 +189,6 @@ AppShell.Header = ({ children, paddingMode, ...props }) => {
 };
 
 AppShell.Main = ({ children, paddingMode, ...props }) => {
-  warnIfLegacyStyleProps(props, 'AppShell.Main');
   return (
     <main
       {...props}
@@ -209,7 +206,6 @@ AppShell.Main = ({ children, paddingMode, ...props }) => {
 };
 
 AppShell.Sidebar = ({ children, paddingMode, ...props }) => {
-  warnIfLegacyStyleProps(props, 'AppShell.Sidebar');
   const position = useContext(SidebarPositionContext);
   const [collapsed, setCollapsed] = React.useState(false);
   const contextValue = React.useMemo(() => ({ reportCollapsed: setCollapsed }), []);

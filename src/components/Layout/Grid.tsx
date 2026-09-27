@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { resolveMargin, type MarginMode } from '../../theme/margin';
 import { resolvePadding, type PaddingMode } from '../../theme/padding';
-import { type StyleFreeAttributes, warnIfLegacyStyleProps } from '../../theme/safeProps';
+import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { LayoutDomainContext } from '../Splitter/LayoutDomainContext';
 
 /**
@@ -41,7 +41,6 @@ export const Grid: React.FC<GridProps> = ({
   paddingMode,
   ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'Grid');
   let gridTemplateColumns: string;
 
   if (typeof columns === 'number') {

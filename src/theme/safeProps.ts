@@ -44,30 +44,12 @@ export function resolveIsDev(metaEnvDev: boolean | undefined, nodeEnv: string | 
  * Checked in order (see resolveIsDev): `import.meta.env.DEV` (Vite, and
  * anything else that follows the same convention), then
  * `process.env.NODE_ENV` (webpack, Next.js, Jest/Vitest under some
- * configs). Defaults to `true` (warn) if neither signal is available — an
- * extra console.warn a real production build silences at the log level is
- * a cheaper mistake than a real migration bug going unreported.
+ * configs). Defaults to `true` if neither signal is available — a dev-only
+ * diagnostic showing up where it wasn't strictly needed is a cheaper
+ * mistake than one silently never showing up at all.
  */
 export function isDevBuild(): boolean {
   const meta = import.meta as unknown as { env?: { DEV?: boolean } };
   const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
   return resolveIsDev(meta?.env?.DEV, proc?.env?.NODE_ENV);
-}
-
-/**
- * Dev-mode-only migration-completeness net: TypeScript removing `style`/
- * `className` from a component's Props type doesn't stop a non-TS (or
- * `any`-typed) caller from passing them at runtime — they'd still be
- * silently applied via that component's `{...props}` spread. Call this
- * once per migrated component with its raw incoming props to catch
- * stragglers under the project's existing zero-console-warnings browser
- * verification pass. No-op in production builds.
- */
-export function warnIfLegacyStyleProps(props: Record<string, unknown>, componentName: string): void {
-  if (!isDevBuild()) return;
-  if ('style' in props || 'className' in props) {
-    console.warn(
-      `[toolcrib] <${componentName}> received a 'style' or 'className' prop, which it no longer accepts. Use 'overrides' instead.`
-    );
-  }
 }

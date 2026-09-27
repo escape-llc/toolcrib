@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Children, isValidElement, type ReactNode, useEffect } from 'react';
-import { warnIfLegacyStyleProps } from '../../theme/safeProps';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { useNonce } from '../../theme/nonceContext';
@@ -128,9 +127,7 @@ export const UIGroup: React.FC<UIGroupProps> = ({
   children,
   orientation = 'horizontal',
   borderRadius = 'var(--ai-radius-md, 0.375rem)',
-  ...props
 }) => {
-  warnIfLegacyStyleProps(props, 'UIGroup');
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
   useEffect(() => {
