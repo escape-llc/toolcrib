@@ -155,6 +155,38 @@ describe('NumberField', () => {
     expect(typeof onSubmit.mock.calls[0][0].qty).toBe('number');
   });
 
+  it('an untouched Form field submits null, not a string', async () => {
+    // registerField used to seed every field with '', so an untouched
+    // NumberField failed z.number().nullable() with a type error.
+    const onSubmit = vi.fn();
+    render(
+      <Form id="nf-empty" schema={z.object({ qty: z.number().nullable() })} onSubmit={onSubmit}>
+        <FormField name="qty" label="Quantity">
+          <NumberField />
+        </FormField>
+        <SubmitButton>Save</SubmitButton>
+      </Form>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toEqual({ qty: null });
+  });
+
+  it('seeds a Form field from defaultValue when the Form has no initial value', async () => {
+    const onSubmit = vi.fn();
+    render(
+      <Form id="nf-seed" schema={z.object({ qty: z.number() })} onSubmit={onSubmit}>
+        <FormField name="qty" label="Quantity">
+          <NumberField defaultValue={4} />
+        </FormField>
+        <SubmitButton>Save</SubmitButton>
+      </Form>
+    );
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Quantity' })).toHaveValue('4'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ qty: 4 }));
+  });
+
   it('has no axe violations', async () => {
     const { container } = render(
       <div>

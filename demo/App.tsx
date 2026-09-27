@@ -111,6 +111,7 @@ import {
   Text,
   Kbd,
   NumberField,
+  CheckboxGroup,
 } from '#toolcrib';
 import {
   Command,
@@ -2669,6 +2670,32 @@ export const App: React.FC = () => {
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</Text>
         <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
+      </VStack>
+    ),
+    CheckboxGroup: (
+      <VStack gap="md">
+        <Text size="sm" tone="secondary">
+          One array-valued field for a set of checkboxes. The value lists checked options in their listed order; with <code>maxSelected</code>, the unchecked boxes lock at the limit until one is unchecked.
+        </Text>
+        <Grid columns={2} gap="md">
+          <CheckboxGroup
+            label="Toppings (pick up to 2)"
+            maxSelected={2}
+            defaultValue={['cheese']}
+            options={[
+              { value: 'cheese', label: 'Cheese' },
+              { value: 'olives', label: 'Olives' },
+              { value: 'peppers', label: 'Peppers', helperText: 'Mild' },
+              { value: 'anchovies', label: 'Anchovies', helperText: 'Out of stock', disabled: true },
+            ]}
+          />
+          <CheckboxGroup
+            label="Notify me on"
+            direction="horizontal"
+            defaultValue={['mon', 'fri']}
+            options={['mon', 'tue', 'wed', 'thu', 'fri'].map(d => ({ value: d, label: d[0].toUpperCase() + d.slice(1) }))}
+          />
+        </Grid>
       </VStack>
     ),
     NumberField: (

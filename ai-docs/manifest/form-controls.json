@@ -108,6 +108,63 @@
       "description": "Month grid for selecting a single date, built on React Aria Components"
     },
     {
+      "name": "CheckboxGroup",
+      "import": "import { CheckboxGroup } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted. Inside a `<Form>`, the stored value is a `string[]`."
+        },
+        "options": {
+          "type": "CheckboxOption[]",
+          "required": true,
+          "description": "The checkboxes, in display order."
+        },
+        "value": {
+          "type": "string[]",
+          "description": "Controlled checked values."
+        },
+        "defaultValue": {
+          "type": "string[]",
+          "description": "Initial checked values (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: string[]) => void",
+          "description": "Change handler. Receives the checked values, in `options` order."
+        },
+        "maxSelected": {
+          "type": "number",
+          "description": "Most boxes that can be checked at once. When reached, the unchecked boxes disable until one is unchecked."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Visible group label. Inside a `<FormField label>` leave it off: the field's label names the group."
+        },
+        "direction": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'vertical'",
+          "description": "Layout direction."
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "If true, every option is disabled."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control: the option label's font size."
+        },
+        "overrides": {
+          "type": "Partial<ToggleControlSliceState>",
+          "description": "Per-instance checkbox size override. Shared with `<Checkbox>`/`<Switch>`."
+        }
+      },
+      "category": "Form Controls",
+      "antiPatternAvoid": "N separate `<Checkbox>`es plus hand-written code to fold them into one array field",
+      "antiPatternInstead": "`<CheckboxGroup options={[...]} maxSelected={3} />` inside a `<FormField>`; the Form value is the array of checked values",
+      "description": "Group of checkboxes bound to one array-valued field (`string[]`), data-driven, with optional `maxSelected`"
+    },
+    {
       "name": "Combobox",
       "import": "import { Combobox } from '#toolcrib'",
       "props": {
@@ -397,6 +454,7 @@
         "NumberField",
         "Select",
         "Checkbox",
+        "CheckboxGroup",
         "Switch",
         "Textarea",
         "RadioGroup",
@@ -1143,6 +1201,26 @@
     }
   ],
   "$defs": {
+    "CheckboxOption": {
+      "label": {
+        "type": "ReactNode",
+        "required": true,
+        "description": "Display label for this checkbox."
+      },
+      "value": {
+        "type": "string",
+        "required": true,
+        "description": "Value added to the group's array when this box is checked."
+      },
+      "disabled": {
+        "type": "boolean",
+        "description": "If true, this option can't be toggled."
+      },
+      "helperText": {
+        "type": "ReactNode",
+        "description": "Additional help text below the option label."
+      }
+    },
     "ListboxOptionData": {
       "label": {
         "type": "string",

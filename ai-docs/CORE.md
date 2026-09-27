@@ -124,6 +124,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Hand-roll a breadcrumb trail with manual truncation/overflow logic | Use `<Breadcrumb>` — collapses middle items into a `<DropdownMenu>` automatically once the trail overflows its container |
 | Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases) | Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
 | Hand-roll swipe/drag physics, loop index math, or a `setInterval`-only slideshow for a slide viewport | Use `<Carousel>` — `embla-carousel-react` owns the drag/swipe/loop math; nav arrows and dot indicators are already themed and wired to it |
+| N separate `<Checkbox>`es plus hand-written code to fold them into one array field | `<CheckboxGroup options={[...]} maxSelected={3} />` inside a `<FormField>`; the Form value is the array of checked values |
 | Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener | Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)` |
 | Fake per-row emphasis via `column.render` (styling each cell individually to approximate a highlighted row), or hand-roll row selection (a `Set` of ids in parent state, a checkbox column, header indeterminate logic) | Use `<DataTable rowSubtheme={(record) => ...}>` for row emphasis — classifies a row into `'error'`/`'success'`/`'warning'`/`'info'` and tints the actual row background/border, not a per-cell approximation — and `<DataTable selectable selectedKeys={...} onSelectionChange={...}>` for selection, where the checkbox column, 3-state header checkbox, and cross-page persistence all come built in |
 | Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input | Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee |
@@ -247,6 +248,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 |:---|:---|:---|:---|
 | `<Button>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | Styled button with five variants, three sizes, subtheme colouring, and icon slots |
 | `<Calendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting a single date, built on React Aria Components |
+| `<CheckboxGroup>` | — | `name`, `options`, `value`, `defaultValue`, `onChange`, `maxSelected`, `label`, `direction`, `disabled`, `size`, `overrides` | Group of checkboxes bound to one array-valued field (`string[]`), data-driven, with optional `maxSelected` |
 | `<Combobox>` | — | `id`, `name`, `placeholder`, `ariaLabel`, `options`, `onSearch`, `searchDebounceMs`, `multiple`, `chipColor`, `value`, `defaultValue`, `onChange`, `allowCustomValue`, `disabled`, `noResultsMessage`, `overrides`, `size`, `squareCorners` | Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context |
 | `<DatePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size`, `squareCorners` | Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components |
 | `<DateRangePicker>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size`, `squareCorners` | Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components |
@@ -437,7 +439,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[83]{name,payload}:
+[84]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -491,6 +493,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "alert:dismissed","{ id?: string; subtheme?: string }"
   "timefield:changed","{ name?: string; value: string | null }"
   "numberfield:changed","{ name?: string; value: number | null }"
+  "checkboxgroup:changed","{ name?: string; value: string[] }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "carousel:changed","{ id?: string; activeIndex: number; previousIndex?: number }"

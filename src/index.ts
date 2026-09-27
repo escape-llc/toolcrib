@@ -91,6 +91,7 @@ export * from './components/EmptyState/EmptyState';
 export * from './components/ErrorBoundary/AIErrorBoundary';
 export * from './components/Filmstrip/Filmstrip';
 export * from './components/Form/ButtonSlice';
+export * from './components/Form/CheckboxGroup';
 export * from './components/Form/Combobox';
 export * from './components/Form/ComboboxSlice';
 export * from './components/Form/FileUpload';
