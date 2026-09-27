@@ -166,6 +166,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       type: newToast.type,
       message: newToast.message,
       priority: newToast.priority,
+      loading: newToast.loading,
     });
 
     return id;

@@ -39,7 +39,7 @@ export interface AIEventMap {
   'form:errored': { formId?: string; errors: Record<string, string> };
   'toast:shown': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; loading?: boolean };
   'toast:updated': { id: string; type: SubthemeName; message: string; loading?: boolean };
-  'toast:added': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
+  'toast:added': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; loading?: boolean };
   'toast:expired': { id: string; message?: string; type?: string };
   'toast:dismissed': { id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' };
   'toast:action_clicked': { id: string; actionLabel: string; message?: string };

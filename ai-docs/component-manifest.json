@@ -543,7 +543,7 @@
       },
       {
         "name": "toast:added",
-        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; loading?: boolean }"
       },
       {
         "name": "toast:expired",

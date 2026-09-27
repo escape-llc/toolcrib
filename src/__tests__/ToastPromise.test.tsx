@@ -32,7 +32,9 @@ describe('aiBus.showToastPromise', () => {
   it('shows one loading toast, then updates the same toast to success', async () => {
     renderToasts();
     const updated = vi.fn();
+    const added = vi.fn();
     const unsub = aiBus.on('toast:updated', updated);
+    const unsubAdded = aiBus.on('toast:added', added);
     const job = deferred<{ name: string }>();
 
     let returned!: Promise<{ name: string }>;
@@ -44,6 +46,8 @@ describe('aiBus.showToastPromise', () => {
     expect(loadingToast).toHaveTextContent('Saving…');
     expect(loadingToast).toHaveAttribute('aria-busy', 'true');
     expect(loadingToast).toHaveAttribute('data-loading');
+    expect(added.mock.calls[0][0]).toMatchObject({ message: 'Saving…', loading: true });
+    unsubAdded();
 
     await act(async () => {
       job.resolve({ name: 'draft' });
