@@ -12,6 +12,7 @@ import { useNonce } from '../../theme/nonceContext';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { resolveColorVariant } from '../../theme/colorVariant';
 import { useLocaleStrings } from '../Locale/LocaleContext';
+import { Spinner } from '../Spinner/Spinner';
 
 const TOAST_STYLE_ID = 'toolcrib-toast-animations';
 
@@ -274,7 +275,12 @@ export const ToastItemComponent: React.FC<ToastProps> = ({
     <ToastPrimitive.Root
       data-testid="toast-item"
       className="ai-toast-root ai-focus-ring"
-      duration={toast.sticky ? Infinity : (toast.duration || 5000)}
+      // A loading toast (aiBus.showToastPromise) holds open until it's updated;
+      // Radix restarts its timer when this prop changes, so the normal
+      // duration starts from the moment the promise settles.
+      duration={toast.sticky || toast.loading ? Infinity : (toast.duration || 5000)}
+      aria-busy={toast.loading || undefined}
+      data-loading={toast.loading ? '' : undefined}
       onSwipeStart={() => { swipedRef.current = true; }}
       onSwipeCancel={() => { swipedRef.current = false; }}
       onOpenChange={(open) => {
@@ -418,7 +424,9 @@ export const ToastItemComponent: React.FC<ToastProps> = ({
                   </span>
                 )}
               </div>
-              <ToastPrimitive.Description style={{ fontSize: '0.875rem' }}>
+              <ToastPrimitive.Description style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {/* Decorative: the message already says what's loading, and a nested role="status" inside the toast's own live region would announce twice. */}
+                {toast.loading && <span aria-hidden="true" style={{ display: 'inline-flex' }}><Spinner size="sm" subtheme={toast.type} /></span>}
                 {toast.message}
               </ToastPrimitive.Description>
             </div>

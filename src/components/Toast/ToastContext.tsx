@@ -55,6 +55,12 @@ export interface ToastItem {
   anchor?: ToastAnchor;
   /** Action buttons rendered in the toast. */
   actions?: ToastAction[];
+  /**
+   * Shows a spinner and holds the toast open (no auto-dismiss) until it's
+   * updated with `loading: false`. Set by `aiBus.showToastPromise`; an
+   * `updateToast` that clears it starts the normal duration.
+   */
+  loading?: boolean;
 }
 
 /**
@@ -68,6 +74,13 @@ export interface ToastContextType {
   toasts: ToastItem[];
   /** Add a toast and return its id. */
   addToast: (toast: Omit<ToastItem, 'id'> & { id?: string }) => string;
+  /**
+   * Change a visible toast in place (same id, same stack position), e.g. a
+   * loading toast becoming success/error. Doesn't replay the enter
+   * animation. `duration`/`sticky`/`priority` changes restart the timer.
+   * No-op if the toast is gone.
+   */
+  updateToast: (id: string, patch: Partial<Omit<ToastItem, 'id'>>) => void;
   /** Dismiss a specific toast by id. */
   dismissToast: (id: string, reason?: 'user' | 'expired' | 'action') => void;
   /** Dismiss all visible toasts. */
@@ -84,7 +97,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
  * The stable half of `ToastContextType`: just the actions, no toast list.
  * Returned by `useToastActions()`.
  */
-export type ToastActions = Pick<ToastContextType, 'addToast' | 'dismissToast' | 'clearAll' | 'setAnchor'>;
+export type ToastActions = Pick<ToastContextType, 'addToast' | 'updateToast' | 'dismissToast' | 'clearAll' | 'setAnchor'>;
 
 // Issue #632: a separate context for the actions alone, memoized so its
 // value only changes when an action itself does (addToast when the anchor
@@ -153,10 +166,26 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       type: newToast.type,
       message: newToast.message,
       priority: newToast.priority,
+      loading: newToast.loading,
     });
 
     return id;
   }, [anchor]);
+
+  const updateToast = useCallback((id: string, patch: Partial<Omit<ToastItem, 'id'>>) => {
+    // Replaced in place (map, not filter+append like addToast's re-add), so
+    // the toast keeps its stack position and React key: no remount, so the
+    // enter animation doesn't replay.
+    setToasts(prev =>
+      prev.map(t => {
+        if (t.id !== id) return t;
+        const next = { ...t, ...patch };
+        // Same stickiness rule as addToast, re-derived from the merged toast.
+        const isSticky = Boolean(next.sticky || next.duration === 0 || next.priority === 'urgent');
+        return { ...next, sticky: isSticky, duration: isSticky ? 0 : next.duration || 5000 };
+      })
+    );
+  }, []);
 
   const dismissToast = useCallback((id: string, reason: 'user' | 'expired' | 'action' = 'user') => {
     const targetToast = toastsRef.current.find(t => t.id === id);
@@ -181,15 +210,21 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       type: event.type,
       message: event.message,
       priority: event.priority || 'medium',
+      loading: event.loading,
     });
   });
 
+  // aiBus.showToastPromise settling: the same toast, updated in place.
+  useAIEvent('toast:updated', event => {
+    updateToast(event.id, { type: event.type, message: event.message, loading: event.loading });
+  });
+
   const actions = useMemo<ToastActions>(
-    () => ({ addToast, dismissToast, clearAll, setAnchor }),
+    () => ({ addToast, updateToast, dismissToast, clearAll, setAnchor }),
     // setAnchor is a useState setter (stable by React's guarantee, and exempt
     // from exhaustive-deps) -- listed anyway so the memo stays correct if it's
     // ever replaced with a custom function.
-    [addToast, dismissToast, clearAll, setAnchor]
+    [addToast, updateToast, dismissToast, clearAll, setAnchor]
   );
 
   return (
@@ -198,6 +233,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
         value={{
           toasts,
           addToast,
+          updateToast,
           dismissToast,
           clearAll,
           setAnchor,
