@@ -13,7 +13,15 @@ type Barrel = typeof Toolcrib;
 type PropsOf<C> = C extends JSXElementConstructor<infer P> ? P : never;
 type AcceptsStyle<C> = [PropsOf<C>] extends [never] ? false : 'style' extends keyof PropsOf<C> ? true : 'className' extends keyof PropsOf<C> ? true : false;
 type ComponentNames = { [K in keyof Barrel]: K extends `${Uppercase<string>}${string}` ? (Barrel[K] extends JSXElementConstructor<never> ? K : never) : never }[keyof Barrel];
-type StyleOffenders = { [K in ComponentNames]: AcceptsStyle<Barrel[K]> extends true ? K : never }[ComponentNames];
+// Slots (`Card.Header`, `AppShell.Main`, ...) are capitalized static
+// components on an export, not exports themselves, so they're scanned too
+// (Gemini, PR #660).
+type SlotNames<C, Prefix extends string> = { [S in keyof C]-?: S extends `${Uppercase<string>}${string}` ? (C[S] extends JSXElementConstructor<never> ? `${Prefix}.${S & string}` : never) : never }[keyof C];
+type AllSlotNames = { [K in ComponentNames]: SlotNames<Barrel[K], K> }[ComponentNames];
+type SlotOffenders<C, Prefix extends string> = { [S in keyof C]-?: S extends `${Uppercase<string>}${string}` ? (AcceptsStyle<C[S]> extends true ? `${Prefix}.${S & string}` : never) : never }[keyof C];
+type StyleOffenders =
+  | { [K in ComponentNames]: AcceptsStyle<Barrel[K]> extends true ? K : never }[ComponentNames]
+  | { [K in ComponentNames]: SlotOffenders<Barrel[K], K> }[ComponentNames];
 
 describe('style/className contract', () => {
   it('no exported component accepts style or className (checked by tsc)', () => {
@@ -27,7 +35,8 @@ describe('style/className contract', () => {
     // And it really scans the barrel (an empty name set would pass vacuously):
     // a plain FC, a forwardRef component and a generic function component.
     const scansBarrel: 'Card' | 'Link' | 'Block' | 'Text' | 'DataTable' extends ComponentNames ? true : false = true;
-    expect([noOffenders, catchesStyle, catchesClassName, passesClean, scansBarrel]).toEqual([true, true, true, false, true]);
+    const scansSlots: 'Card.Header' | 'AppShell.Main' | 'Alert.Title' extends AllSlotNames ? true : false = true;
+    expect([noOffenders, catchesStyle, catchesClassName, passesClean, scansBarrel, scansSlots]).toEqual([true, true, true, false, true, true]);
   });
 });
 
