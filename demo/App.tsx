@@ -113,6 +113,7 @@ import {
   NumberField,
   CheckboxGroup,
   OTPField,
+  PopupBaseUI,
 } from '#toolcrib';
 import {
   Command,
@@ -1765,7 +1766,8 @@ export const App: React.FC = () => {
     Popup: (
       <VStack gap="md" align="start">
         <Text>Anchored contextual popup container with light dismiss.</Text>
-        <Popup
+        {/* SPIKE #670: Base UI popover */}
+        <PopupBaseUI
           id="demo-popup"
           trigger={<Button variant="outline">Toggle Popup Menu</Button>}
         >
@@ -1775,7 +1777,7 @@ export const App: React.FC = () => {
             <Text size="xs" tone="secondary">Role: Administrator</Text>
             <Button size="sm" variant="primary" onClick={() => aiBus.closePopup('demo-popup')}>Dismiss</Button>
           </VStack>
-        </Popup>
+        </PopupBaseUI>
       </VStack>
     ),
     Tooltip: (

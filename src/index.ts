@@ -133,6 +133,7 @@ export * from './components/Overlay/DrawerSlice';
 export * from './components/Overlay/Modal';
 export * from './components/Overlay/ModalSlice';
 export * from './components/Overlay/Popup';
+export * from './components/Overlay/Popup.baseui';
 export * from './components/Overlay/PopupSlice';
 export * from './components/Pagination/Pagination';
 export * from './components/Progress/Progress';
