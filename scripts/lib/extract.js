@@ -520,10 +520,25 @@ function slotDescription(declaredDoc, propsDecl) {
   if (own) return own;
   const ifaceDoc = propsDecl && ts.isInterfaceDeclaration(propsDecl) ? leadingJsDoc(propsDecl) : null;
   if (!ifaceDoc) return '';
-  return jsDocCommentText(ifaceDoc.comment)
-    .replace(/\s+/g, ' ')
-    .replace(/^Props for [^.]*?(`[^`]*`[^.]*?)*\.\s*/, '')
-    .trim();
+  return stripPropsForLead(jsDocCommentText(ifaceDoc.comment).replace(/\s+/g, ' ').trim());
+}
+
+/**
+ * Drops a leading "Props for ... ." sentence. Its end is the first `.`
+ * outside backticks that's followed by whitespace or the end, so dots inside
+ * `<TabStrip.Panel>` don't end it. A single linear scan: a regex for the
+ * same rule needs nested quantifiers, which backtrack exponentially
+ * (CodeQL js/redos).
+ */
+function stripPropsForLead(text) {
+  if (!text.startsWith('Props for ')) return text;
+  let inCode = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '`') inCode = !inCode;
+    else if (ch === '.' && !inCode && (i + 1 === text.length || text[i + 1] === ' ')) return text.slice(i + 1).trim();
+  }
+  return '';
 }
 
 /** `FormProps<T>` -> `FormProps` (strip generic type arguments for the interface lookup). */
