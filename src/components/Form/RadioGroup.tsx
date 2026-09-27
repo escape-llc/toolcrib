@@ -106,7 +106,8 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   // stable for the form's lifetime (see FormContext.tsx), so this now only
   // fires when fieldName actually changes.
   React.useEffect(() => {
-    if (fieldName && registerField) registerField(fieldName);
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [fieldName, registerField]);
 
   // `?? ''` (not left as plain `formContext.values[fieldName]`) matters for
@@ -122,7 +123,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   // anyway — keeps this control controlled from its very first render
   // whenever it's form-bound, same fix `<Input>`'s own `formContext.values[name]
   // ?? ''` already applies.
-  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? '' : undefined;
+  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? defaultValue ?? '' : undefined;
   // Standalone (no `value` prop, no Form ancestor) needs its own live,
   // updating value -- not just `defaultValue` echoed back unchanged --
   // because `RadioGroup.Option`'s own checked styling below reads

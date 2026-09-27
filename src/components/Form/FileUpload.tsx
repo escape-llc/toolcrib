@@ -111,7 +111,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [rejections, setRejections] = useState<string[]>([]);
 
   useEffect(() => {
-    if (fieldName && registerField) registerField(fieldName);
+    if (fieldName && registerField) registerField(fieldName, []);
   }, [fieldName, registerField]);
 
   // Object URLs are only released here (removal/unmount), never recreated
