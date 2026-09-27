@@ -10,7 +10,7 @@ import { BreadcrumbThemeSlice, type BreadcrumbSliceState } from './BreadcrumbSli
 /** Props for the `<Breadcrumb.Item>` slot. */
 export interface BreadcrumbItemProps {
   children: ReactNode;
-  /** Href for this crumb's link. Omit for the current page (the last item is automatically non-interactive regardless). */
+  /** Href for this crumb's link. Omit for the current page (the last item is automatically non-interactive regardless), or for a grouping crumb with no page of its own: with neither href nor onClick, a middle crumb renders as plain text. */
   href?: string;
   /** Click handler, for a JS-driven crumb instead of a real link. */
   onClick?: () => void;
@@ -129,6 +129,10 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
         <span style={{ color: 'var(--ai-text-primary, #111827)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           {crumb.element.props.children}
         </span>
+      ) : !crumb.element.props.href && !crumb.element.props.onClick ? (
+        // A grouping crumb with nowhere to go (a category, a section name):
+        // plain text, not a link that does nothing when clicked.
+        <span style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>{crumb.element.props.children}</span>
       ) : (
         <AriaLink
           href={crumb.element.props.href}
