@@ -340,6 +340,8 @@ const CAROUSEL_SLIDES: CarouselSlideItem[] = ['Welcome', 'Features', 'Pricing', 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        // Stand-in photo content (MEDIA_PALETTE), not UI chrome: fixed on purpose.
+        // eslint-disable-next-line toolcrib-internal/no-literal-style-values
         color: '#fff',
         fontSize: '1.25rem',
         fontWeight: 700,
@@ -748,7 +750,10 @@ const WIREFRAMES: WireframeDef[] = [
               </TabStrip.Panel>
             </Splitter.Panel>
             <Splitter.Panel>
+              {/* A mock terminal: always dark, like a real one, whatever the theme. */}
+              {/* eslint-disable-next-line toolcrib-internal/no-literal-style-values */}
               <div style={{ background: '#111827', color: '#6ee7b7', fontFamily: 'monospace', fontSize: '0.6875rem', padding: '0.5rem', height: '100%', boxSizing: 'border-box' }}>
+                {/* eslint-disable-next-line toolcrib-internal/no-literal-style-values */}
                 <div style={{ color: '#34d399' }}>&gt; npm run dev</div>
                 <div>VITE ready in 320 ms</div>
               </div>
@@ -776,7 +781,7 @@ const WIREFRAMES: WireframeDef[] = [
           <TabStrip.Panel groupId="live-diff-left" value="v1">
             <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
               <Text tone="secondary">import React from 'react';</Text>
-              <div style={{ background: 'rgba(239, 68, 68, 0.15)' }}>const OLD = true;</div>
+              <div style={{ background: 'var(--ai-subtheme-error-bg)' }}>const OLD = true;</div>
               <Text tone="secondary">export const App = () =&gt; ...</Text>
             </div>
           </TabStrip.Panel>
@@ -786,7 +791,7 @@ const WIREFRAMES: WireframeDef[] = [
           <TabStrip.Panel groupId="live-diff-right" value="v2">
             <div style={{ padding: '0.625rem', fontFamily: 'monospace', fontSize: '0.6875rem' }}>
               <Text tone="secondary">import React from 'react';</Text>
-              <div style={{ background: 'rgba(16, 185, 129, 0.15)' }}>const NEW = true;</div>
+              <div style={{ background: 'var(--ai-subtheme-success-bg)' }}>const NEW = true;</div>
               <Text tone="secondary">export const App = () =&gt; ...</Text>
             </div>
           </TabStrip.Panel>
@@ -1229,7 +1234,7 @@ export const App: React.FC = () => {
         <Text size="xs" weight="semibold" tone="secondary">Fixed Width-to-Height Ratio (`&lt;AspectRatio&gt;`)</Text>
         <div style={{ maxWidth: '12rem' }}>
           <AspectRatio ratio={16 / 9}>
-            <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem' }}>
+            <div style={{ width: '100%', height: '100%', borderRadius: 'var(--ai-radius-md)', background: 'var(--ai-color-primary, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ai-color-primary-text, #fff)', fontSize: '0.75rem' }}>
               16:9
             </div>
           </AspectRatio>
@@ -1697,7 +1702,7 @@ export const App: React.FC = () => {
             </VStack>
           }
         >
-          <a href="#profile" style={{ fontSize: '0.8125rem', color: 'var(--ai-color-primary, #3b82f6)' }}>@janedoe</a>
+          <Link href="#profile">@janedoe</Link>
         </HoverCard>
         <Text size="xs" tone="secondary">
           Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
@@ -2503,6 +2508,8 @@ export const App: React.FC = () => {
       <VStack gap="sm" align="start">
         <Text size="xs" weight="semibold" tone="secondary">Standalone Form Label (`&lt;Label&gt;`)</Text>
         <Label htmlFor="demo-remember-me">
+          {/* Native on purpose: this demo shows Label wrapping any control. */}
+          {/* eslint-disable-next-line toolcrib-internal/prefer-toolcrib-component */}
           <input id="demo-remember-me" type="checkbox" />
           <span>Remember me on this device</span>
         </Label>
@@ -2963,14 +2970,9 @@ export const App: React.FC = () => {
               {commitHash && commitHash !== 'unknown' && (
                 <>
                   {' · '}
-                  <a
-                    href={`https://github.com/escape-llc/toolcrib/commit/${commitHash}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: 'inherit' }}
-                  >
+                  <Link href={`https://github.com/escape-llc/toolcrib/commit/${commitHash}`} target="_blank">
                     {commitHash}
-                  </a>
+                  </Link>
                 </>
               )}
             </Text>
@@ -3135,7 +3137,7 @@ export const App: React.FC = () => {
                                 <Text size="sm">
                                   An RSS/Atom feed reader — Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
                                 </Text>
-                                <a href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                                <Link href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank">Live demo ↗</Link>
                               </VStack>
                             </CardSimple>
                             <CardSimple title="🏢 founders-desk" overrides={{ padding: 'compact' }}>
@@ -3143,7 +3145,7 @@ export const App: React.FC = () => {
                                 <Text size="sm">
                                   A personal command-center — <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
                                 </Text>
-                                <a href="https://escape-llc.github.io/founders-desk/" target="_blank" rel="noreferrer">Live demo ↗</a>
+                                <Link href="https://escape-llc.github.io/founders-desk/" target="_blank">Live demo ↗</Link>
                               </VStack>
                             </CardSimple>
                           </Grid>
@@ -3250,7 +3252,7 @@ export const App: React.FC = () => {
                       <Card.Content>
                         <VStack gap="md">
                           <Text>
-                            Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <a href="https://www.w3.org/WAI/ARIA/apg/" target="_blank" rel="noreferrer">WAI-ARIA Authoring Practices Guide</a> patterns Radix itself implements internally, just written by hand instead of imported:
+                            Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <Link href="https://www.w3.org/WAI/ARIA/apg/" target="_blank">WAI-ARIA Authoring Practices Guide</Link> patterns Radix itself implements internally, just written by hand instead of imported:
                           </Text>
                           <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
                             <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
@@ -3511,7 +3513,7 @@ export const App: React.FC = () => {
                             <Card.Content>
                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                                 <thead>
-                                  <tr style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                  <tr style={{ borderBottom: '0.0625rem solid var(--ai-border)' }}>
                                     <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Source</th>
                                     <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Sessions</th>
                                     <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--ai-text-secondary)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>Share</th>
@@ -3527,7 +3529,7 @@ export const App: React.FC = () => {
                                   ].map(row => {
                                     const total = 420 + 210 + 140 + 95 + 60;
                                     return (
-                                      <tr key={row.label} style={{ borderBottom: '1px solid var(--ai-border)' }}>
+                                      <tr key={row.label} style={{ borderBottom: '0.0625rem solid var(--ai-border)' }}>
                                         <td style={{ padding: '0.375rem 0', color: 'var(--ai-text-primary)' }}>{row.label}</td>
                                         <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.value.toLocaleString()}</td>
                                         <td style={{ padding: '0.375rem 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{((row.value / total) * 100).toFixed(1)}%</td>

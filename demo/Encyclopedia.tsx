@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
 import demoSources from './demoSources.generated.json';
-import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Text, VStack, VisuallyHidden } from '#toolcrib';
+import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, Text, VStack, VisuallyHidden } from '#toolcrib';
 import { routeHref } from './hashRoute';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
@@ -144,6 +144,9 @@ function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; fe
                   const state = tileState(demos, featured, c.name);
                   const hint = state === 'featured' ? featured[c.name] : TILE_HINT[state];
                   return (
+                    // A whole tile is the link target (block, padded, bordered
+                    // by state); Link themes link text, not a tile surface.
+                    // eslint-disable-next-line toolcrib-internal/prefer-toolcrib-component
                     <a
                       key={c.name}
                       href={entryHref(c.name)}
@@ -289,7 +292,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                     {c.childComponents.map((s, i) => (
                       <React.Fragment key={s}>
                         {i > 0 && ', '}
-                        {COMPONENTS.some(x => x.name === s) ? <a href={entryHref(s)}>{s}</a> : <code style={codeStyle}>{s}</code>}
+                        {COMPONENTS.some(x => x.name === s) ? <Link href={entryHref(s)}>{s}</Link> : <code style={codeStyle}>{s}</code>}
                       </React.Fragment>
                     ))}
                   </Text>
@@ -311,7 +314,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
 
             {isSeeAlso(demo) ? (
               <Text size="sm" tone="secondary">
-                Shown in action with <a href={entryHref(demo.seeAlso)}>{demo.seeAlso}</a>.{demo.note ? <> {demo.note}</> : null}
+                Shown in action with <Link href={entryHref(demo.seeAlso)}>{demo.seeAlso}</Link>.{demo.note ? <> {demo.note}</> : null}
               </Text>
             ) : isPageFrame(demo) ? (
               <Text size="sm" tone="secondary">{demo.pageFrame}</Text>
@@ -332,7 +335,6 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
   );
 }
 
-const navLinkStyle: React.CSSProperties = { fontSize: '0.8125rem' };
 
 /** Breadcrumb trail plus prev/next within the same drawer (or the Systems list). */
 function EntryNav({ trail, prev, next }: { trail: string[]; prev?: { label: string; href: string }; next?: { label: string; href: string } }) {
@@ -344,8 +346,8 @@ function EntryNav({ trail, prev, next }: { trail: string[]; prev?: { label: stri
       </Breadcrumb>
       <nav aria-label="Neighboring pages">
         <HStack gap="md">
-          {prev && <a href={prev.href} rel="prev" style={navLinkStyle}>← {prev.label}</a>}
-          {next && <a href={next.href} rel="next" style={navLinkStyle}>{next.label} →</a>}
+          {prev && <Text as="span" size="sm"><Link href={prev.href} rel="prev">← {prev.label}</Link></Text>}
+          {next && <Text as="span" size="sm"><Link href={next.href} rel="next">{next.label} →</Link></Text>}
         </HStack>
       </nav>
     </HStack>
@@ -395,7 +397,7 @@ function SystemsIndex({ systems }: { systems: SystemArea[] }) {
           <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
             {systems.map(area => (
               <li key={area.id}>
-                <a href={systemHref(area.id)}>{area.title}</a>
+                <Link href={systemHref(area.id)}>{area.title}</Link>
               </li>
             ))}
           </ul>
@@ -472,7 +474,7 @@ function NotFound({ what }: { what: string }) {
     <Card>
       <Card.Content>
         <Text>
-          No {what} in the crib. <a href={INDEX_HREF}>Back to the shadow board</a>.
+          No {what} in the crib. <Link href={INDEX_HREF}>Back to the shadow board</Link>.
         </Text>
       </Card.Content>
     </Card>

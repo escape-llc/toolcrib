@@ -1,6 +1,6 @@
 # Vendored ESLint rules
 
-This directory ships four independent, standalone rules. Each is vendored here — not installed automatically, not wired into your config for you — because your ESLint setup (flat config vs. legacy `.eslintrc`, which parser, which other plugins) is yours to own; auto-editing it would be more likely to break something than help.
+This directory ships six independent, standalone rules. Each is vendored here — not installed automatically, not wired into your config for you — because your ESLint setup (flat config vs. legacy `.eslintrc`, which parser, which other plugins) is yours to own; auto-editing it would be more likely to break something than help.
 
 ## `no-unexplained-zindex.js`
 
@@ -57,13 +57,70 @@ This rule flags one: a JSX attribute (`value`, `checked`, `open`, or any name fo
 - **Catches:** `value={external !== undefined ? external : defaultValue}`; the same shape after one or more local `const` indirections (`const resolved = ...defaultValue; ...value={resolved}`); a chain that passes through a wrapping call (`value={x !== undefined ? x : String(y)}` where `y` itself bottoms out at `defaultValue`); the same pattern on any other controlled/uncontrolled pair (`open`/`defaultOpen`, `checked`/`defaultChecked`, `selected`/`defaultSelected`, ...) — the rule derives the expected default-prop name from the attribute name itself (`'default' + capitalize(attrName)`), not a hardcoded pair list.
 - **Doesn't catch (correctly left alone):** a chain that passes through a `useState`/`useReducer` call seeded from `defaultValue` (the correct, intended use of the prop — the returned getter genuinely is live and gets fed back after every change, e.g. `ToggleGroup`'s own fix); a renamed destructure (`{ defaultValue: dv }` binds the name `dv`, not `defaultValue` — same "structural, not semantic" limitation `no-computed-prop-before-spread.js` already documents for its own member-access check); a locally-shadowed variable that happens to be named `defaultValue` but isn't actually this component's own prop; a collision that goes through a differently-named alias, or a chain wrapped in something other than a plain call/ternary/logical expression (e.g. buried inside a member access or a function you'd need real data-flow analysis to see through).
 
-## Wiring all four in (flat config, `eslint.config.js`)
+## `prefer-toolcrib-component.js`
+
+Toolcrib's type system keeps its own components in theme (no `style`/`className`; see `ai-docs/CORE.md` principle 7), but it can't see a raw `<button>` in your own code at all. A hand-rolled control silently skips everything the Toolcrib component brings: theme colors and sizing, accessibility wiring, `<Form>` binding, and the event bus.
+
+This rule flags a raw HTML element where a Toolcrib component does the same job, and names the replacement:
+
+| Raw element | Toolcrib component |
+|---|---|
+| `<button>`, `<input type="button"/"reset">` | `Button` |
+| `<input>` (no type, text, email, password, search, ...) | `Input` |
+| `<input type="checkbox">` | `Checkbox` or `Switch` |
+| `<input type="radio">` | `RadioGroup` |
+| `<input type="range">` | `Slider` or `RangeSlider` |
+| `<input type="date">` / `"time"` | `DatePicker` / `TimeField` |
+| `<input type="file">` | `FileUpload` |
+| `<input type="submit">` | `SubmitButton` (inside a `Form`) or `Button` |
+| `<select>` | `Select` or `Combobox` |
+| `<textarea>` | `Textarea` |
+| `<dialog>` | `Modal`, `AlertDialog` or `Drawer` |
+| `<a href>` | `Link` (external links too: it adds `rel="noopener noreferrer"` for `target="_blank"`) |
+
+**No TypeScript dependency** — plain JSX AST nodes only, same as `no-unexplained-zindex.js`.
+
+### Options
+
+`{ elements: { ... } }` is merged over the defaults above. A value is the replacement to name, or `false` to switch that entry off. A key is an element name, or `input[type=<type>]` for one input type (which wins over plain `input`):
+
+```js
+'toolcrib-consumer/prefer-toolcrib-component': ['error', { elements: { table: 'DataTable', progress: 'Progress', a: false } }],
+```
+
+`<table>` is off by default: a static table is legitimate markup, and `DataTable` is for data grids. Opt in as above if your app should route every table through it.
+
+### What it does and doesn't catch
+
+- **Catches:** every element in the table above, anywhere in your own code.
+- **Leaves alone:** `<input type="hidden">`; an `<input type={dynamic}>` (it can't be mapped to one component); an `<a>` with no `href` (a named anchor); Toolcrib components themselves (capitalized names).
+- **When a raw element is genuinely right** (a native control a demo deliberately shows, a whole card-sized link target that `Link` doesn't style as a surface), disable the one line with a comment saying why. That comment is the point: it records a deliberate step off the board rather than a missed replacement.
+- **Scope it to your app code, not Toolcrib's vendored source** — those files *are* the components, so their raw elements are the implementation. Add the vendored directory to this config object's `ignores` (e.g. `ignores: ['toolcrib/**']`).
+
+## `no-literal-style-values.js`
+
+`ai-docs/CORE.md` principle 7's last rung: when you do go off the board with a raw element and `style`, the values still come from the theme. A literal color or pixel length never follows the Theme Editor, dark mode or a subtheme, so it drifts from everything around it the moment the theme changes, with nothing to say so.
+
+This rule flags a literal color (hex, `rgb()`/`hsl()`/`oklch()`/..., or a named color like `red`) in a color-bearing property (`color`, `background`, `border*`, `outline*`, `fill`, `stroke`, `boxShadow`, ...), and a pixel length (`'12px'`, or a bare number React renders as px) in a spacing, radius or font-size property, in a raw element's inline `style` object. Its message names the `var(--ai-*)` family to use instead.
+
+**No TypeScript dependency** — plain JSX AST nodes only.
+
+### What it does and doesn't catch
+
+- **Allows:** `var(--ai-*)`, including a literal *fallback* inside it (`var(--ai-border, #e5e7eb)`: the fallback only applies outside a mounted theme); `rem`/`em`/`%`, `0`, `auto`; `transparent`/`currentColor`/`inherit`; `color-mix()` over theme variables; unitless `lineHeight`/`flex`/`zIndex` (z-index is `no-unexplained-zindex`'s job); px in properties with no theme scale (`width`, `height`).
+- **Checks:** string literals, template-literal text (interpolations are skipped), and both arms of a ternary/logical expression.
+- **Doesn't catch:** a style object built elsewhere and passed by name (`style={boxStyle}`) or computed values; that needs data flow, not a syntactic check. Toolcrib components take no `style` at all, so they're never this rule's concern.
+- **A deliberate literal** (a mock terminal that should stay dark in any theme, stand-in photo colors) gets a one-line disable with a comment saying why.
+
+## Wiring all six in (flat config, `eslint.config.js`)
 
 ```js
 import { noUnexplainedZindex } from './toolcrib/eslint-rules/no-unexplained-zindex.js';
 import { noComputedPropBeforeSpread } from './toolcrib/eslint-rules/no-computed-prop-before-spread.js';
 import { noMissingUseClient } from './toolcrib/eslint-rules/no-missing-use-client.js';
 import { noFrozenControlledProp } from './toolcrib/eslint-rules/no-frozen-controlled-prop.js';
+import { preferToolcribComponent } from './toolcrib/eslint-rules/prefer-toolcrib-component.js';
+import { noLiteralStyleValues } from './toolcrib/eslint-rules/no-literal-style-values.js';
 
 export default [
   // ...your existing config objects...
@@ -76,6 +133,8 @@ export default [
           'no-computed-prop-before-spread': noComputedPropBeforeSpread,
           'no-missing-use-client': noMissingUseClient,
           'no-frozen-controlled-prop': noFrozenControlledProp,
+          'prefer-toolcrib-component': preferToolcribComponent,
+          'no-literal-style-values': noLiteralStyleValues,
         },
       },
     },
@@ -84,6 +143,16 @@ export default [
       'toolcrib-consumer/no-computed-prop-before-spread': 'error',
       'toolcrib-consumer/no-missing-use-client': 'error',
       'toolcrib-consumer/no-frozen-controlled-prop': 'error',
+    },
+  },
+  {
+    // The two "stay in theme" rules check your app code, not Toolcrib's own
+    // vendored source (those files ARE the components).
+    files: ['**/*.{jsx,tsx}'],
+    ignores: ['toolcrib/**'],
+    rules: {
+      'toolcrib-consumer/prefer-toolcrib-component': 'error',
+      'toolcrib-consumer/no-literal-style-values': 'error',
     },
   },
 ];

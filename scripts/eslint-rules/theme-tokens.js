@@ -21,6 +21,8 @@ import { noUnexplainedZindex } from '../../eslint-rules/no-unexplained-zindex.js
 import { noComputedPropBeforeSpread } from '../../eslint-rules/no-computed-prop-before-spread.js';
 import { noMissingUseClient } from '../../eslint-rules/no-missing-use-client.js';
 import { noFrozenControlledProp } from '../../eslint-rules/no-frozen-controlled-prop.js';
+import { preferToolcribComponent } from '../../eslint-rules/prefer-toolcrib-component.js';
+import { noLiteralStyleValues } from '../../eslint-rules/no-literal-style-values.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -160,5 +162,7 @@ export const themeTokensPlugin = {
     'no-computed-prop-before-spread': noComputedPropBeforeSpread,
     'no-missing-use-client': noMissingUseClient,
     'no-frozen-controlled-prop': noFrozenControlledProp,
+    'prefer-toolcrib-component': preferToolcribComponent,
+    'no-literal-style-values': noLiteralStyleValues,
   },
 };

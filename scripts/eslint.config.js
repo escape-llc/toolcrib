@@ -127,5 +127,20 @@ export default tseslint.config(
     rules: {
       'toolcrib-internal/no-missing-use-client': 'error',
     },
+  },
+  {
+    // The two consumer-facing "stay in theme" rules (#649, #650), run
+    // against demo/ -- the one part of this repo written the way a
+    // consumer app is. Not src/components: those files ARE the Toolcrib
+    // components, so their raw elements are the implementation, not a
+    // bypass of it.
+    files: ['demo/**/*.{ts,tsx}'],
+    plugins: {
+      'toolcrib-internal': themeTokensPlugin,
+    },
+    rules: {
+      'toolcrib-internal/prefer-toolcrib-component': 'error',
+      'toolcrib-internal/no-literal-style-values': 'error',
+    },
   }
 );
