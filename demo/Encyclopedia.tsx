@@ -1,7 +1,7 @@
-import React, { type ReactNode } from 'react';
+import React, { type ReactNode, useEffect, useRef } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
 import demoSources from './demoSources.generated.json';
-import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, Text, VStack, VisuallyHidden } from '#toolcrib';
+import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, StyleDomainProvider, Text, VStack, VisuallyHidden } from '#toolcrib';
 import { routeHref } from './hashRoute';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
@@ -119,8 +119,105 @@ const TILE_HINT: Record<TileState, string> = {
   missing: 'no demo yet',
 };
 
+// The last tool or fixture page opened, so a board can mark it when you come
+// back (#680): stepping through pages with back/forward keeps your place.
+// Per browser tab (sessionStorage), with an in-memory copy for when storage is
+// unavailable (a private window, blocked site data).
+const LAST_VISITED_KEY = 'toolcrib-demo:last-visited';
+let lastVisitedMemo: string | undefined;
+const visitKey = (kind: 'entry' | 'system', id: string) => `${kind}:${id}`;
+function readLastVisited(): string {
+  if (lastVisitedMemo === undefined) {
+    try {
+      lastVisitedMemo = sessionStorage.getItem(LAST_VISITED_KEY) ?? '';
+    } catch {
+      lastVisitedMemo = '';
+    }
+  }
+  return lastVisitedMemo;
+}
+function writeLastVisited(key: string) {
+  lastVisitedMemo = key;
+  try {
+    sessionStorage.setItem(LAST_VISITED_KEY, key);
+  } catch {
+    // storage unavailable: the in-memory copy still covers this session
+  }
+}
+
+/**
+ * One board tile, two lines like a bin label: part number, then the name.
+ * `state` gives a tool tile its outline (see TILE_STYLE). With no `state`
+ * (a fixture) the tile is a themed `<Block>`, so it takes its color from the
+ * nearest `<StyleDomainProvider>`. `lastVisited` rings it and scrolls it into
+ * view.
+ */
+function BoardTile({
+  href,
+  part,
+  title,
+  state,
+  lastVisited,
+  children,
+}: {
+  href: string;
+  part: string;
+  title: string;
+  state?: TileState;
+  lastVisited: boolean;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (!lastVisited) return;
+    // After the page's own scroll-to-top on route change (a parent effect,
+    // which runs after this one).
+    const frame = requestAnimationFrame(() => ref.current?.scrollIntoView?.({ block: 'center' }));
+    return () => cancelAnimationFrame(frame);
+  }, [lastVisited]);
+
+  const label = (
+    <VStack gap="xs">
+      <Text as="span" mono size="xs" tone="secondary">
+        {part}
+        {lastVisited && (
+          <Text as="span" variant="primary" weight="semibold">
+            {' '}· last visited
+          </Text>
+        )}
+      </Text>
+      <Text as="span">{children}</Text>
+    </VStack>
+  );
+  return (
+    // A whole tile is the link target (block, padded, bordered by state);
+    // Link themes link text, not a tile surface.
+    // eslint-disable-next-line toolcrib-internal/prefer-toolcrib-component
+    <a
+      ref={ref}
+      href={href}
+      title={title}
+      data-shadow-tile={state ?? 'fixture'}
+      data-last-visited={lastVisited ? '' : undefined}
+      style={{
+        display: 'block',
+        borderRadius: 'var(--ai-radius-sm, 0.25rem)',
+        fontSize: '0.8125rem',
+        textDecoration: 'none',
+        color: 'inherit',
+        // "You were here": primary is the persistent selected/active identity
+        // color (AGENTS.md color buckets).
+        ...(lastVisited ? { outline: '0.125rem solid var(--ai-color-primary, #3b82f6)', outlineOffset: '0.125rem' } : {}),
+        ...(state ? { padding: '0.375rem 0.5rem', ...TILE_STYLE[state] } : {}),
+      }}
+    >
+      {state ? label : <Block padding="sm" radius="sm" border background="surface">{label}</Block>}
+    </a>
+  );
+}
+
 /** One outline per tool, grouped by drawer. A filled tile has its own live demo; a dashed one says why it doesn't. */
-function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; featured: Record<string, string> }) {
+function ShadowBoard({ demos, featured, lastVisited }: { demos: Record<string, EntryDemo>; featured: Record<string, string>; lastVisited: string }) {
   const groups = byCategory();
   const missing = groups.flatMap(g => g.items).filter(c => tileState(demos, featured, c.name) === 'missing');
   return (
@@ -144,36 +241,21 @@ function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; fe
                   const state = tileState(demos, featured, c.name);
                   const hint = state === 'featured' ? featured[c.name] : TILE_HINT[state];
                   return (
-                    // A whole tile is the link target (block, padded, bordered
-                    // by state); Link themes link text, not a tile surface.
-                    // eslint-disable-next-line toolcrib-internal/prefer-toolcrib-component
-                    <a
+                    <BoardTile
                       key={c.name}
                       href={entryHref(c.name)}
-                      data-shadow-tile={state}
+                      part={c.bin}
                       title={hint ? `${c.name} — ${hint}` : c.name}
-                      style={{
-                        display: 'block',
-                        padding: '0.375rem 0.5rem',
-                        borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                        fontSize: '0.8125rem',
-                        textDecoration: 'none',
-                        ...TILE_STYLE[state],
-                      }}
+                      state={state}
+                      lastVisited={lastVisited === visitKey('entry', c.name)}
                     >
-                      {/* Two lines, like a bin label: part number, then the tool. */}
-                      <VStack gap="xs">
-                        <Text as="span" mono size="xs" tone="secondary">{c.bin}</Text>
-                        <Text as="span">
-                          {/* Raw span, last rung of the ladder: Text's variant covers
-                              primary/secondary only, and the featured star is
-                              deliberately the accent hue (AGENTS.md color buckets). */}
-                          {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★ </span>}
-                          {c.name}
-                          {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
-                        </Text>
-                      </VStack>
-                    </a>
+                      {/* Raw span, last rung of the ladder: Text's variant covers
+                          primary/secondary only, and the featured star is
+                          deliberately the accent hue (AGENTS.md color buckets). */}
+                      {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★ </span>}
+                      {c.name}
+                      {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
+                    </BoardTile>
                   );
                 })}
               </div>
@@ -343,12 +425,13 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
 }
 
 
-/** Breadcrumb trail plus prev/next within the same drawer (or the Systems list). */
+/** Breadcrumb trail plus prev/next within the same drawer (or the fixtures board). */
 function EntryNav({ trail, prev, next }: { trail: string[]; prev?: { label: string; href: string }; next?: { label: string; href: string } }) {
   return (
     <HStack gap="md" wrap align="center" justify="between">
       <Breadcrumb>
-        <Breadcrumb.Item href={INDEX_HREF}>Encyclopedia</Breadcrumb.Item>
+        {/* On the index itself the trail is just this crumb, as the current page. */}
+        <Breadcrumb.Item href={trail.length > 0 ? INDEX_HREF : undefined}>Encyclopedia</Breadcrumb.Item>
         {trail.map(t => <Breadcrumb.Item key={t}>{t}</Breadcrumb.Item>)}
       </Breadcrumb>
       <nav aria-label="Neighboring pages">
@@ -389,25 +472,41 @@ function SystemCard({ area }: { area: SystemArea }) {
   );
 }
 
-/** The Systems list on the index page: one link per area. */
-function SystemsIndex({ systems }: { systems: SystemArea[] }) {
+/** Fixture part numbers, in board order: FX-01, FX-02, ... */
+const fixturePart = (i: number) => `FX-${String(i + 1).padStart(2, '0')}`;
+
+/**
+ * The fixtures board: the systems every tool plugs into (theme, event bus,
+ * forms, toasts...), as a second shadow board. Its own style domain gives the
+ * whole board a distinct hue from the theme, with no per-tile colors: each
+ * tile is a `<Block>`, which follows the domain.
+ */
+function FixturesBoard({ systems, lastVisited }: { systems: SystemArea[]; lastVisited: string }) {
   return (
     <Card>
       <Card.Header>
-        <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Systems — what every tool is wired into</h2>
+        <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Fixtures — what every tool plugs into</h2>
       </Card.Header>
       <Card.Content>
-        <VStack gap="sm">
+        <VStack gap="md">
           <Text size="sm" tone="secondary">
-            The infrastructure you get out of the box: every component plugs into these, so an app built from them inherits all of it without writing any of it.
+            The infrastructure you get out of the box: every tool in the crib is wired into these, so an app built from them inherits all of it without writing any of it.
           </Text>
-          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-            {systems.map(area => (
-              <li key={area.id}>
-                <Link href={systemHref(area.id)}>{area.title}</Link>
-              </li>
-            ))}
-          </ul>
+          <StyleDomainProvider subtheme="info">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(10rem, 1fr))', gap: '0.375rem' }}>
+              {systems.map((area, i) => (
+                <BoardTile
+                  key={area.id}
+                  href={systemHref(area.id)}
+                  part={fixturePart(i)}
+                  title={area.title}
+                  lastVisited={lastVisited === visitKey('system', area.id)}
+                >
+                  {area.title}
+                </BoardTile>
+              ))}
+            </div>
+          </StyleDomainProvider>
         </VStack>
       </Card.Content>
     </Card>
@@ -442,13 +541,19 @@ export function Encyclopedia({
   entry?: string;
   system?: string;
 }) {
+  // Before any early return: hooks run on every render.
+  const visiting = system !== undefined ? visitKey('system', system) : entry !== undefined ? visitKey('entry', entry) : undefined;
+  useEffect(() => {
+    if (visiting) writeLastVisited(visiting);
+  }, [visiting]);
+
   if (system !== undefined) {
     const i = systems.findIndex(a => a.id === system);
     if (i < 0) return <NotFound what={`Systems area "${system}"`} />;
     const { prev, next } = neighbor(systems, i, a => ({ label: a.title, href: systemHref(a.id) }));
     return (
       <VStack gap="md">
-        <EntryNav trail={['Systems', systems[i].title]} prev={prev} next={next} />
+        <EntryNav trail={['Fixtures', `${fixturePart(i)} · ${systems[i].title}`]} prev={prev} next={next} />
         <SystemCard area={systems[i]} />
       </VStack>
     );
@@ -468,10 +573,12 @@ export function Encyclopedia({
     );
   }
 
+  const lastVisited = readLastVisited();
   return (
     <VStack gap="lg">
-      <ShadowBoard demos={demos} featured={featured} />
-      <SystemsIndex systems={systems} />
+      <EntryNav trail={[]} />
+      <ShadowBoard demos={demos} featured={featured} lastVisited={lastVisited} />
+      <FixturesBoard systems={systems} lastVisited={lastVisited} />
     </VStack>
   );
 }

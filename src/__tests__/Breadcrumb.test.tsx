@@ -57,6 +57,22 @@ describe('Breadcrumb', () => {
     expect(screen.queryByRole('link', { name: 'Current Page' })).not.toBeInTheDocument();
   });
 
+  it('renders a middle crumb with no href or onClick as plain text, not an inert link', () => {
+    const onClick = vi.fn();
+    render(
+      <Breadcrumb>
+        <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
+        <Breadcrumb.Item>Section</Breadcrumb.Item>
+        <Breadcrumb.Item onClick={onClick}>Scripted</Breadcrumb.Item>
+        <Breadcrumb.Item>Current Page</Breadcrumb.Item>
+      </Breadcrumb>
+    );
+    expect(screen.getByText('Section')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Section' })).not.toBeInTheDocument();
+    // A crumb with only onClick is still interactive.
+    expect(screen.getByRole('link', { name: 'Scripted' })).toBeInTheDocument();
+  });
+
   it('marks the last item data-current via react-aria-components\' own last-child detection', () => {
     const { container } = render(
       <Breadcrumb>
