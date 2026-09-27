@@ -223,12 +223,15 @@ function ShadowBoard({ demos, featured, lastVisited }: { demos: Record<string, E
   return (
     <Card>
       <Card.Header>
-        <h2 id="enc-shadow-board" style={{ margin: 0, fontSize: '1rem' }}>Shadow board — every tool in the crib</h2>
+        <HStack gap="sm" wrap align="center">
+          <h2 id="enc-shadow-board" style={{ margin: 0, fontSize: '1rem' }}>Shadow board — every tool in the crib</h2>
+          <Badge size="sm">{plural(COMPONENTS.length, 'tool')}</Badge>
+        </HStack>
       </Card.Header>
       <Card.Content>
         <VStack gap="md">
           <Text size="sm" tone="secondary">
-            {COMPONENTS.length} components, generated from the component manifest. Pick one to open its page. A <strong>★ highlighted</strong> outline is one of the richest demos, a good place to start; a solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
+            Generated from the component manifest. Pick one to open its page. A <strong>★ highlighted</strong> outline is one of the richest demos, a good place to start; a solid outline has its own live demo; a dashed one is shown alongside another tool or is part of this page's own frame
             {missing.length > 0 ? <>; an <strong>amber</strong> outline has no demo yet ({missing.map(c => c.name).join(', ')}).</> : '.'}
           </Text>
           {groups.map(({ category, items }) => (
@@ -276,14 +279,43 @@ function md(text: string): ReactNode {
   return parts.map((part, i) => (i % 2 === 1 ? <code key={i} style={codeStyle}>{part}</code> : part));
 }
 
-/** The spec sheet: every prop, straight from the manifest. Collapsed by default -- the live demo is the headline. */
-function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/**
+ * The spec sheet: the tool's slots and every prop, straight from the manifest
+ * -- together, since both are the component's contract. Collapsed by default;
+ * the live demo is the headline. The counts are badges on the trigger (inline
+ * spans: the trigger is a button, so no block content).
+ */
+function SpecSheet({ name, props, slots = [] }: { name: string; props: Record<string, ManifestProp>; slots?: string[] }) {
   const names = Object.keys(props);
-  if (names.length === 0) return null;
+  if (names.length === 0 && slots.length === 0) return null;
   return (
-    <Collapsible trigger={`Spec sheet — ${names.length} prop${names.length === 1 ? '' : 's'}`}>
-      {/* Wide type signatures can overflow at narrow widths; a scroll
-          region needs keyboard access (axe: scrollable-region-focusable). */}
+    <Collapsible
+      trigger={
+        <>
+          Spec sheet{' '}
+          {names.length > 0 && <Badge size="sm">{plural(names.length, 'prop')}</Badge>}{' '}
+          {slots.length > 0 && <Badge size="sm" variant="secondary">{plural(slots.length, 'slot')}</Badge>}
+        </>
+      }
+    >
+      <VStack gap="sm">
+        {slots.length > 0 && (
+          <Text size="sm" tone="secondary">
+            Slots: {slots.map((s, i) => <React.Fragment key={s}>{i > 0 && ', '}<code style={codeStyle}>{`${name}.${s}`}</code></React.Fragment>)}
+          </Text>
+        )}
+        {names.length > 0 && <PropsTable props={props} names={names} />}
+      </VStack>
+    </Collapsible>
+  );
+}
+
+function PropsTable({ props, names }: { props: Record<string, ManifestProp>; names: string[] }) {
+  return (
+      // Wide type signatures can overflow at narrow widths; a scroll region
+      // needs keyboard access (axe: scrollable-region-focusable).
       <div tabIndex={0} role="region" aria-label="Spec sheet" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
           <thead>
@@ -312,7 +344,6 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
           </tbody>
         </table>
       </div>
-    </Collapsible>
   );
 }
 
@@ -368,13 +399,8 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
               <code style={{ ...codeStyle, display: 'block', padding: '0.375rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
             </div>
 
-            {(c.slots?.length || c.childComponents?.length || c.constraints) && (
+            {(c.childComponents?.length || c.constraints) && (
               <VStack gap="xs">
-                {c.slots?.length ? (
-                  <Text size="sm" tone="secondary">
-                    Slots: {c.slots.map((s, i) => <React.Fragment key={s}>{i > 0 && ', '}<code style={codeStyle}>{`${c.name}.${s}`}</code></React.Fragment>)}
-                  </Text>
-                ) : null}
                 {c.childComponents?.length ? (
                   <Text size="sm" tone="secondary">
                     Commonly used with:{' '}
@@ -399,7 +425,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
               </Block>
             )}
 
-            <SpecSheet props={c.props} />
+            <SpecSheet name={c.name} props={c.props} slots={c.slots} />
 
             {isSeeAlso(demo) ? (
               <Text size="sm" tone="secondary">
@@ -411,10 +437,12 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
               <Text size="sm" tone="secondary">No live demo yet.</Text>
             ) : (
               <>
+                {/* Everything about the tool first, then the tool itself: the rule
+                    above the live demo is the border between spec and the real thing. */}
+                <Blueprint source={DEMO_SOURCES.components[c.name]} />
                 <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
                   {demo}
                 </div>
-                <Blueprint source={DEMO_SOURCES.components[c.name]} />
               </>
             )}
           </VStack>
@@ -461,8 +489,8 @@ function SystemCard({ area }: { area: SystemArea }) {
             ) : null}
             {area.demo && (
               <>
-                <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>
                 <Blueprint source={DEMO_SOURCES.systems[area.id]} />
+                <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>
               </>
             )}
           </VStack>
@@ -485,7 +513,12 @@ function FixturesBoard({ systems, lastVisited }: { systems: SystemArea[]; lastVi
   return (
     <Card>
       <Card.Header>
-        <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Fixtures — what every tool plugs into</h2>
+        <HStack gap="sm" wrap align="center">
+          <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Fixtures — what every tool plugs into</h2>
+          <StyleDomainProvider subtheme="info">
+            <Badge size="sm">{plural(systems.length, 'fixture')}</Badge>
+          </StyleDomainProvider>
+        </HStack>
       </Card.Header>
       <Card.Content>
         <VStack gap="md">

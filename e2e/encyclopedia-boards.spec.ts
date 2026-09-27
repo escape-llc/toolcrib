@@ -30,6 +30,19 @@ test('going back to the board marks the tool you just visited, in view', async (
   await expect(board.locator('[data-last-visited]')).toHaveCount(1);
 });
 
+test('the spec sheet carries the slots, with prop and slot counts as badges', async ({ page }) => {
+  await page.goto('/');
+  await gotoTab(page, 'Encyclopedia', 'Card');
+  const card = page.locator('#enc-Card');
+  const trigger = card.getByRole('button', { name: /^Spec sheet/ });
+  await expect(trigger).toContainText(/\d+ props?/);
+  await expect(trigger).toContainText(/\d+ slots?/);
+  // Slots moved into the spec sheet: not on the card until it's opened.
+  await expect(card.getByText('Card.Header')).toBeHidden();
+  await trigger.click();
+  await expect(card.getByText('Card.Header')).toBeVisible();
+});
+
 test('fixtures are a board of their own, in a distinct hue, and mark the last one visited', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Encyclopedia');
