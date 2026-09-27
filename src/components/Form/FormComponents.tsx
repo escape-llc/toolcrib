@@ -567,7 +567,8 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
   useEffect(() => {
-    if (name && registerField) registerField(name);
+    if (name && registerField) registerField(name, defaultValue ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [name, registerField]);
 
   // Issue #614: with neither a controlled `value` nor a Form binding, the
@@ -883,7 +884,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
   useEffect(() => {
-    if (name && registerField) registerField(name);
+    if (name && registerField) registerField(name, defaultChecked);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [name, registerField]);
 
   // Issue #614 -- see Input's identical local-state fallback.
@@ -982,7 +984,8 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
   useEffect(() => {
-    if (name && registerField) registerField(name);
+    if (name && registerField) registerField(name, defaultChecked);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [name, registerField]);
 
   // Issue #614 -- see Input's identical local-state fallback.
@@ -1090,7 +1093,8 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
   // so depending on it re-fires this on every keystroke anywhere in the
   // form; registerField is stable for the form's lifetime).
   useEffect(() => {
-    if (name && registerField) registerField(name);
+    if (name && registerField) registerField(name, defaultValue ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [name, registerField]);
 
   // Issue #614 -- see Input's identical local-state fallback.

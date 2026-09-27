@@ -238,7 +238,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   // shows its validation error, since handleSubmit only touches keys
   // already present in `values`.
   useEffect(() => {
-    if (fieldName && registerField) registerField(fieldName);
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? (multiple ? [] : ''));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [fieldName, registerField]);
 
   const formValue = fieldName && formContext ? formContext.values[fieldName] : undefined;

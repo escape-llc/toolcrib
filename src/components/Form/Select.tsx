@@ -115,7 +115,8 @@ export const Select: React.FC<SelectProps> = ({
   // see RadioGroup.tsx for why that distinction matters (wasted re-runs on
   // every keystroke anywhere in the form, not just this field's own).
   React.useEffect(() => {
-    if (fieldName && registerField) registerField(fieldName);
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a typed seed (#667), read once like any default
   }, [fieldName, registerField]);
 
   // `?? ''` matters beyond the empty-string fallback itself: registerField's
@@ -130,7 +131,10 @@ export const Select: React.FC<SelectProps> = ({
   // control controlled from its very first render whenever it's form-bound,
   // same fix `<Input>`'s own `formContext.values[name] ?? ''` already
   // applies.
-  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? '' : undefined;
+  // ...and falls back to the same seed registerField writes (defaultValue,
+  // #667): '' then the default made Radix's hidden native <select> push ''
+  // back through onValueChange, losing the default.
+  const formValue = fieldName && formContext ? formContext.values[fieldName] ?? defaultValue ?? '' : undefined;
   // Controlled only when there's a live source that actually re-feeds the
   // value on every render (an explicit `value` prop, or a real Form
   // ancestor) -- never merely because `defaultValue` was set. Radix's own
