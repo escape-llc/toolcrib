@@ -535,7 +535,11 @@
       },
       {
         "name": "toast:shown",
-        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' }"
+        "payload": "{ id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; loading?: boolean }"
+      },
+      {
+        "name": "toast:updated",
+        "payload": "{ id: string; type: SubthemeName; message: string; loading?: boolean }"
       },
       {
         "name": "toast:added",
@@ -854,6 +858,11 @@
         "method": "aiBus.showToast(message, type?, priority?)",
         "emits": "toast:shown",
         "returns": "string (toast id)"
+      },
+      {
+        "method": "aiBus.showToastPromise(promise, messages)",
+        "emits": "toast:shown",
+        "returns": "the same promise, for awaiting"
       }
     ]
   },

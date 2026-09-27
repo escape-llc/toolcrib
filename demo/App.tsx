@@ -2903,7 +2903,7 @@ export const App: React.FC = () => {
       id: 'toasts',
       title: 'Toast subsystem',
       summary: <>Stacked, swipe-dismissable, priority-aware notifications, fired from anywhere with <code>useToastActions()</code> or over the event bus. <code>useToast()</code> also exposes the live list, for components that render it.</>,
-      parts: ['useToastActions', 'useToast', 'aiBus.showToast', 'ToastSlice'],
+      parts: ['useToastActions', 'useToast', 'aiBus.showToast', 'aiBus.showToastPromise', 'ToastSlice'],
       demo: (
         <VStack gap="md">
           <Text>Dispatch notifications via <code>useToastActions()</code> or cross-tree via <code>aiBus.emit('toast:shown', ...)</code>.</Text>
@@ -2932,6 +2932,35 @@ export const App: React.FC = () => {
               }
             >
               Fire Sticky Toast w/ Action
+            </Button>
+          </UIGroup>
+          <UIGroup>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                aiBus.showToastPromise(new Promise<string>(resolve => setTimeout(() => resolve('report.pdf'), 1500)), {
+                  loading: 'Saving report…',
+                  success: file => `Saved ${file}`,
+                  error: 'Save failed',
+                })
+              }
+            >
+              Save (promise toast)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                aiBus
+                  .showToastPromise(new Promise<never>((_, reject) => setTimeout(() => reject(new Error('network timeout')), 1500)), {
+                    loading: 'Uploading…',
+                    success: 'Uploaded',
+                    error: e => `Upload failed: ${(e as Error).message}`,
+                  })
+                  // The helper returns the promise; handle the rejection like any caller would.
+                  .catch(() => {})
+              }
+            >
+              Upload (fails)
             </Button>
           </UIGroup>
 

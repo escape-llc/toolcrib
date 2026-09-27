@@ -37,7 +37,8 @@ export interface AIEventMap {
   'form:submitted': { formId?: string; values: Record<string, any> };
   'form:validated': { formId?: string; isValid: boolean };
   'form:errored': { formId?: string; errors: Record<string, string> };
-  'toast:shown': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
+  'toast:shown': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; loading?: boolean };
+  'toast:updated': { id: string; type: SubthemeName; message: string; loading?: boolean };
   'toast:added': { id: string; type: SubthemeName; message: string; priority?: 'low' | 'medium' | 'high' | 'urgent' };
   'toast:expired': { id: string; message?: string; type?: string };
   'toast:dismissed': { id: string; message?: string; type?: string; reason?: 'user' | 'expired' | 'action' };
@@ -369,6 +370,34 @@ class AIEventBus {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.emit('toast:shown', { id, type, message, priority });
     return id;
+  }
+
+  /**
+   * One toast for the life of a promise: a loading toast (spinner, no
+   * auto-dismiss) while it's pending, updated in place to success or error
+   * when it settles, then dismissing on the normal timer. `success`/`error`
+   * can be functions of the result or the rejection reason. Returns the
+   * same promise, so the caller can still `await` it (a rejection still
+   * reaches the caller; it isn't swallowed).
+   * @manifestReturns the same promise, for awaiting
+   */
+  showToastPromise<T>(
+    promise: Promise<T>,
+    messages: { loading: string; success: string | ((value: T) => string); error: string | ((reason: unknown) => string) }
+  ): Promise<T> {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    this.emit('toast:shown', { id, type: 'info', message: messages.loading, loading: true });
+    promise.then(
+      value => {
+        const message = typeof messages.success === 'function' ? messages.success(value) : messages.success;
+        this.emit('toast:updated', { id, type: 'success', message, loading: false });
+      },
+      (reason: unknown) => {
+        const message = typeof messages.error === 'function' ? messages.error(reason) : messages.error;
+        this.emit('toast:updated', { id, type: 'error', message, loading: false });
+      }
+    );
+    return promise;
   }
 }
 
