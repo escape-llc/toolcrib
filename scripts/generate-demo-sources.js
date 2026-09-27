@@ -50,12 +50,62 @@ function propName(prop) {
   throw new Error(`generate-demo-sources: unsupported property name at ${prop.name.getText()}`);
 }
 
-/** The expression's own source text, starting at its real column so every line can be dedented together. */
+/**
+ * Every comment inside `node`, as [start, end) ranges: comment trivia in code
+ * positions, plus whole JSX `{/* ... *\/}` containers (a JsxExpression with no
+ * expression). Found through the AST, never by text matching: JSX text is
+ * content, and can legitimately contain `//` (a URL in a sentence).
+ */
+function commentRanges(sf, node) {
+  const text = sf.text;
+  const ranges = [];
+  const add = r => {
+    if (r && r.pos >= node.getStart(sf) && r.end <= node.getEnd()) ranges.push([r.pos, r.end]);
+  };
+  const visit = n => {
+    if (ts.isJsxText(n)) return; // content, not trivia
+    if (ts.isJsxExpression(n) && !n.expression) {
+      ranges.push([n.getStart(sf), n.getEnd()]);
+      return;
+    }
+    // Leading trivia of a JSX element child lives in the preceding JsxText,
+    // so only code positions can carry comment trivia here.
+    (ts.getLeadingCommentRanges(text, n.pos) ?? []).forEach(add);
+    (ts.getTrailingCommentRanges(text, n.end) ?? []).forEach(add);
+    // getChildren, not forEachChild: punctuation tokens carry trivia too (a
+    // comment on its own line before `.catch(...)` belongs to the `.` token).
+    n.getChildren(sf).forEach(visit);
+  };
+  node.getChildren(sf).forEach(visit);
+  // Dedupe (a comment is both one node's trailing and the next one's leading trivia).
+  return [...new Map(ranges.map(r => [`${r[0]}:${r[1]}`, r])).values()].sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * The expression's own source text, starting at its real column so every
+ * line can be dedented together, with comments removed (#678): the demo's
+ * comments are notes to whoever maintains it, not part of the example a
+ * viewer reads. A line left empty by a removal is dropped.
+ */
 function snippet(sf, expr) {
   const inner = ts.isParenthesizedExpression(expr) ? expr.expression : expr;
   const start = inner.getStart(sf);
   const column = sf.getLineAndCharacterOfPosition(start).character;
-  const lines = (' '.repeat(column) + sf.text.slice(start, inner.getEnd())).split('\n');
+  const REMOVED = '\u0000';
+  let body = '';
+  let at = start;
+  for (const [from, to] of commentRanges(sf, inner)) {
+    if (from < at) continue; // nested inside a range already removed
+    body += sf.text.slice(at, from) + REMOVED;
+    at = to;
+  }
+  body += sf.text.slice(at, inner.getEnd());
+  // Spaces before an inline comment go with it (`save() /* x */}` -> `save()}`).
+  body = body.replace(/[ \t]+\u0000/g, REMOVED);
+  const lines = (' '.repeat(column) + body)
+    .split('\n')
+    .filter(l => !(l.includes(REMOVED) && !l.replaceAll(REMOVED, '').trim()))
+    .map(l => l.replaceAll(REMOVED, ''));
   const indents = lines.filter(l => l.trim()).map(l => l.match(/^ */)[0].length);
   const cut = Math.min(...indents);
   return lines.map(l => l.slice(cut).trimEnd()).join('\n');

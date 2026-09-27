@@ -161,13 +161,18 @@ function ShadowBoard({ demos, featured }: { demos: Record<string, EntryDemo>; fe
                         ...TILE_STYLE[state],
                       }}
                     >
-                      <Text as="span" mono size="xs" tone="secondary">{c.bin}</Text>{' '}
-                      {/* Raw span, last rung of the ladder: Text's variant covers
-                          primary/secondary only, and the featured star is
-                          deliberately the accent hue (AGENTS.md color buckets). */}
-                      {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★</span>}
-                      {c.name}
-                      {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
+                      {/* Two lines, like a bin label: part number, then the tool. */}
+                      <VStack gap="xs">
+                        <Text as="span" mono size="xs" tone="secondary">{c.bin}</Text>
+                        <Text as="span">
+                          {/* Raw span, last rung of the ladder: Text's variant covers
+                              primary/secondary only, and the featured star is
+                              deliberately the accent hue (AGENTS.md color buckets). */}
+                          {state === 'featured' && <span aria-hidden="true" style={{ color: 'var(--ai-color-accent, #8b5cf6)' }}>★ </span>}
+                          {c.name}
+                          {state === 'featured' && <VisuallyHidden> (featured: {featured[c.name]})</VisuallyHidden>}
+                        </Text>
+                      </VStack>
                     </a>
                   );
                 })}
@@ -230,13 +235,15 @@ function SpecSheet({ props }: { props: Record<string, ManifestProp> }) {
 }
 
 /**
- * The demo's own source, generated from demo/App.tsx (issue #638) -- the
- * exact JSX running above it. Collapsed by default, like the spec sheet.
+ * The blueprint: the demo's own source, generated from demo/App.tsx (issue
+ * #638) -- the exact JSX running above it, comments stripped (#678). Where the
+ * spec sheet says what the tool is, the blueprint shows how it's built.
+ * Collapsed by default, like the spec sheet.
  */
-function SourceSheet({ source }: { source?: string }) {
+function Blueprint({ source }: { source?: string }) {
   if (!source) return null;
   return (
-    <Collapsible trigger="Source — this demo's code">
+    <Collapsible trigger="Blueprint — how this demo is built">
       <VStack gap="sm">
         <Text size="xs" tone="secondary">
           Straight from the demo app, so it can reference the demo's own state and handlers (<code style={codeStyle}>addToast</code>, sample data).
@@ -245,7 +252,7 @@ function SourceSheet({ source }: { source?: string }) {
         <pre
           tabIndex={0}
           role="region"
-          aria-label="Demo source"
+          aria-label="Blueprint"
           style={{ margin: 0, maxHeight: '28rem', overflow: 'auto', padding: '0.75rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)' }}
         >
           <code style={{ ...codeStyle, fontSize: '0.75rem' }}>{source}</code>
@@ -325,7 +332,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
                   {demo}
                 </div>
-                <SourceSheet source={DEMO_SOURCES.components[c.name]} />
+                <Blueprint source={DEMO_SOURCES.components[c.name]} />
               </>
             )}
           </VStack>
@@ -372,7 +379,7 @@ function SystemCard({ area }: { area: SystemArea }) {
             {area.demo && (
               <>
                 <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>
-                <SourceSheet source={DEMO_SOURCES.systems[area.id]} />
+                <Blueprint source={DEMO_SOURCES.systems[area.id]} />
               </>
             )}
           </VStack>
