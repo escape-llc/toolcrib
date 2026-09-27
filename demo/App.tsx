@@ -112,6 +112,7 @@ import {
   Kbd,
   NumberField,
   CheckboxGroup,
+  OTPField,
 } from '#toolcrib';
 import {
   Command,
@@ -2696,6 +2697,18 @@ export const App: React.FC = () => {
             options={['mon', 'tue', 'wed', 'thu', 'fri'].map(d => ({ value: d, label: d[0].toUpperCase() + d.slice(1) }))}
           />
         </Grid>
+      </VStack>
+    ),
+    OTPField: (
+      <VStack gap="md">
+        <Text size="sm" tone="secondary">
+          Type, paste a whole code into any cell, or let the phone autofill it from an SMS (<code>autocomplete=&quot;one-time-code&quot;</code>). Backspace steps back; <code>onComplete</code> fires once every cell is filled.
+        </Text>
+        <Grid columns={2} gap="md">
+          <OTPField label="Verification code" onComplete={code => addToast({ type: 'success', message: `Code ${code} entered`, priority: 'low' })} />
+          <OTPField label="PIN" length={4} mask />
+        </Grid>
+        <OTPField label="Invite code" length={5} mode="alphanumeric" />
       </VStack>
     ),
     NumberField: (

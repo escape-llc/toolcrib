@@ -135,6 +135,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | A hand-styled `<kbd>` or `<span>` per call site for a shortcut hint | `<Kbd>Esc</Kbd>`, or `<Kbd keys={['Ctrl', 'K']} />` for a combination |
 | Hardcode a link's color (or leave it unthemed), or write `<a target="_blank">` without also setting `rel="noopener noreferrer"` (reverse-tabnabbing — the opened page gets `window.opener` and can navigate your tab) | Use `<Link>` — colors itself from `--ai-color-primary-readable`/`-secondary-readable` (hue preserved, contrast-checked) for link/visited state, and supplies the safe `rel` default automatically |
 | `<Input type="number">` plus hand-rolled +/- buttons, clamping and `Intl.NumberFormat` display | `<NumberField min={0} max={99} formatOptions={{ style: 'currency', currency: 'USD' }} />` — inside a `<Form>` it stores a real `number` |
+| A row of hand-rolled single-character `<input>`s with manual focus moving, paste splitting and keyboard handling | `<OTPField length={6} onComplete={verify} />` inside a `<FormField>`; the Form value is the code as one string |
 | Hand-roll page-index math (clamping, prev/next, page-size resets) | Use `<Pagination>` — same controlled/uncontrolled `page`/`defaultPage`/`onPageChange` contract as `<DataTable>`'s own paging |
 | Build a date range from two separate `<Calendar>`s with hand-written "end must be after start" logic | Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you |
 | Build a row of clickable star `<span>`s with manual hover/click state for a rating input | Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them |
@@ -258,6 +259,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<Label>` | — | `overrides` | Accessible label for a form control, associated via htmlFor or by wrapping it |
 | `<Listbox>` | — | `id`, `options`, `activeIndex`, `selectedValues`, `onSelect`, `loading`, `loadingMessage`, `emptyMessage`, `multiSelectable`, `itemPadding`, `size` | Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone |
 | `<NumberField>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `min`, `max`, `step`, `formatOptions`, `locale`, `isDisabled`, `placeholder`, `size`, `squareCorners` | Numeric input with −/+ steppers, min/max clamping, step snapping, arrow/PageUp/PageDown keys and locale-aware currency/percent/unit formatting, built on React Aria Components |
+| `<OTPField>` | — | `name`, `length`, `value`, `defaultValue`, `onChange`, `onComplete`, `mode`, `mask`, `label`, `disabled`, `size` | One-time code / PIN input: one cell per character with auto-advance, backspace-to-previous, paste distribution and SMS autofill (`autocomplete="one-time-code"`), bound to a Form as one string |
 | `<Pagination>` | — | `id`, `totalItems`, `pageSize`, `page`, `defaultPage`, `onPageChange`, `size` | Page-number navigation control with Prev/Next, built on `<Button>` and shared page-index math with `<DataTable>` |
 | `<RadioGroup>` | `.Option` | `name`, `value`, `defaultValue`, `onChange`, `options`, `direction`, `disabled`, `overrides`, `size` | Single-select radio control bound to Form context, data-driven or compositional |
 | `<RangeCalendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components |
@@ -439,7 +441,7 @@ Most events are fire-and-forget: a subscriber only sees them from the moment it 
 Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` header, one indented row per entry) — more token-compact than a Markdown table for a strongly-typed AI reader, and generated directly from `eventBus.channels` in `component-manifest.json` so it can't drift from it:
 
 ```
-[84]{name,payload}:
+[85]{name,payload}:
   "theme:changed","{ parameters: ThemeParameters; palette: GeneratedPalette; cssVariables: Record<string, string>; }"
   "element:resized","{ id?: string; target: HTMLElement; width: number; height: number; contentHeight: number }"
   "element:intersected","{ id?: string; target: HTMLElement; isIntersecting: boolean; ratio: number }"
@@ -494,6 +496,7 @@ Rendered in [TOON](https://github.com/toon-format/spec) form (`[count]{keys}:` h
   "timefield:changed","{ name?: string; value: string | null }"
   "numberfield:changed","{ name?: string; value: number | null }"
   "checkboxgroup:changed","{ name?: string; value: string[] }"
+  "otpfield:changed","{ name?: string; value: string; complete: boolean }"
   "togglegroup:changed","{ name?: string; value: string | string[] }"
   "progress:changed","{ id?: string; value: number; max: number }"
   "carousel:changed","{ id?: string; activeIndex: number; previousIndex?: number }"

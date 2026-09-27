@@ -127,6 +127,7 @@ export * from './components/Link/Link';
 export * from './components/Listbox/Listbox';
 export * from './components/Locale/LocaleContext';
 export * from './components/NumberField/NumberField';
+export * from './components/OTPField/OTPField';
 export * from './components/Overlay/Drawer';
 export * from './components/Overlay/DrawerSlice';
 export * from './components/Overlay/Modal';

@@ -73,6 +73,7 @@ export interface AIEventMap {
   'timefield:changed': { name?: string; value: string | null };
   'numberfield:changed': { name?: string; value: number | null };
   'checkboxgroup:changed': { name?: string; value: string[] };
+  'otpfield:changed': { name?: string; value: string; complete: boolean };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
   'carousel:changed': { id?: string; activeIndex: number; previousIndex?: number };

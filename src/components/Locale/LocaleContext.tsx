@@ -107,6 +107,12 @@ export interface ToolcribLocaleStrings {
     /** Accessible name of `<Alert onDismiss>`'s close button. */
     dismiss: string;
   };
+  otpField: {
+    /** Accessible name of one `<OTPField>` cell in numeric mode; `position` is 1-based. */
+    digit: (position: number, total: number) => string;
+    /** Accessible name of one `<OTPField>` cell in alphanumeric mode; `position` is 1-based. */
+    character: (position: number, total: number) => string;
+  };
 }
 
 /**
@@ -187,6 +193,10 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   },
   alert: {
     dismiss: 'Dismiss',
+  },
+  otpField: {
+    digit: (position, total) => `Digit ${position} of ${total}`,
+    character: (position, total) => `Character ${position} of ${total}`,
   },
 };
 
