@@ -110,6 +110,7 @@ import {
   type RouterAdapter,
   Text,
   Kbd,
+  NumberField,
 } from '#toolcrib';
 import {
   Command,
@@ -2668,6 +2669,19 @@ export const App: React.FC = () => {
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</Text>
         <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
+      </VStack>
+    ),
+    NumberField: (
+      <VStack gap="md">
+        <Text size="sm" tone="secondary">
+          Steppers, arrow keys (Home/End jump to the limits), min/max clamping on commit, and <code>Intl.NumberFormat</code> display. The value stays a plain number: the percent field below holds <code>0.15</code>, and inside a <code>Form</code> the schema gets a real <code>number</code>.
+        </Text>
+        <Grid columns={3} gap="md">
+          <NumberField label="Quantity" defaultValue={1} min={1} max={99} />
+          <NumberField label="Price" defaultValue={24.99} formatOptions={{ style: 'currency', currency: 'USD' }} min={0} />
+          <NumberField label="Discount" defaultValue={0.15} step={0.05} min={0} max={1} formatOptions={{ style: 'percent' }} />
+        </Grid>
+        <NumberField label="Gewicht (de-DE)" locale="de-DE" defaultValue={1250.5} formatOptions={{ style: 'unit', unit: 'kilogram', maximumFractionDigits: 1 }} />
       </VStack>
     ),
     Rating: (

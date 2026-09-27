@@ -670,6 +670,10 @@
         "payload": "{ name?: string; value: string | null }"
       },
       {
+        "name": "numberfield:changed",
+        "payload": "{ name?: string; value: number | null }"
+      },
+      {
         "name": "togglegroup:changed",
         "payload": "{ name?: string; value: string | string[] }"
       },
@@ -2208,6 +2212,7 @@
         "Button",
         "SubmitButton",
         "Input",
+        "NumberField",
         "Select",
         "Checkbox",
         "Switch",
@@ -2682,6 +2687,74 @@
       },
       "category": "Overlays",
       "description": "Dialog overlay with focus trap, backdrop, and slot composition"
+    },
+    {
+      "name": "NumberField",
+      "import": "import { NumberField } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted. Inside a `<Form>`, the stored value is a real `number` (or `null` when empty)."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label rendered above the input."
+        },
+        "value": {
+          "type": "number | null",
+          "description": "Controlled value. `null` is an empty field."
+        },
+        "defaultValue": {
+          "type": "number | null",
+          "description": "Initial value (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(value: number | null) => void",
+          "description": "Change handler, called when the value commits (blur, Enter, a stepper, arrow keys). Receives `null` when the field is cleared."
+        },
+        "min": {
+          "type": "number",
+          "description": "Lowest allowed value; typed values clamp to it on commit."
+        },
+        "max": {
+          "type": "number",
+          "description": "Highest allowed value; typed values clamp to it on commit."
+        },
+        "step": {
+          "type": "number",
+          "description": "Increment for the steppers and arrow keys. When set, typed values also\nsnap to it (`step={0.25}` turns 1.1 into 1.0). Leave it unset for\nfree-form decimals like prices: the steppers still move by 1 and nothing\nis rounded."
+        },
+        "formatOptions": {
+          "type": "Intl.NumberFormatOptions",
+          "description": "Display format, as `Intl.NumberFormat` options: `{ style: 'currency', currency: 'USD' }`,\n`{ style: 'percent' }`, `{ style: 'unit', unit: 'kilogram' }`, `{ maximumFractionDigits: 2 }`.\nThe value itself stays a plain number (a percent of 25% is `0.25`)."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag for formatting and parsing (decimal and group\nseparators, currency placement). Fixed rather than browser-detected,\nso server and client render the same text (no hydration mismatch)."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "If true, the field is non-interactive."
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder shown while the field is empty."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>`/`<Input>` so instances line up in a `<UIGroup>` row."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s identical prop."
+        }
+      },
+      "category": "Form Controls",
+      "antiPatternAvoid": "`<Input type=\"number\">` plus hand-rolled +/- buttons, clamping and `Intl.NumberFormat` display",
+      "antiPatternInstead": "`<NumberField min={0} max={99} formatOptions={{ style: 'currency', currency: 'USD' }} />` — inside a `<Form>` it stores a real `number`",
+      "description": "Numeric input with −/+ steppers, min/max clamping, step snapping, arrow/PageUp/PageDown keys and locale-aware currency/percent/unit formatting, built on React Aria Components"
     },
     {
       "name": "Pagination",

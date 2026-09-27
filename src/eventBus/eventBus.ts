@@ -71,6 +71,7 @@ export interface AIEventMap {
   'rangecalendar:changed': { name?: string; value: { start: string; end: string } };
   'alert:dismissed': { id?: string; subtheme?: string };
   'timefield:changed': { name?: string; value: string | null };
+  'numberfield:changed': { name?: string; value: number | null };
   'togglegroup:changed': { name?: string; value: string | string[] };
   'progress:changed': { id?: string; value: number; max: number };
   'carousel:changed': { id?: string; activeIndex: number; previousIndex?: number };
