@@ -40,7 +40,8 @@ import { demoPages } from './nav';
 // settle() silently burned its full 2s timeout. That went unnoticed while
 // they sat on separate tabs; issue #624's single Encyclopedia page put
 // them in every iteration.
-const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], .ai-popup-content';
+// SPIKE #670: Base UI toasts are role=alertdialog; they aren't blocking overlays.
+const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"]:not(.ai-toast-root), .ai-popup-content';
 async function settle(page: Page) {
   await page.keyboard.press('Escape').catch(() => {});
   await expect(page.locator(OPEN_OVERLAY)).toHaveCount(0, { timeout: 2000 }).catch(() => {});

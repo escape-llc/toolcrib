@@ -1,7 +1,8 @@
 import React, { type ReactNode } from 'react';
 import { ThemeProvider, type ThemeProviderProps } from '../../theme/themeContext';
-import { ToastProvider, type ToastProviderProps } from '../Toast/ToastContext';
-import { ToastContainer } from '../Toast/Toast';
+// SPIKE #670: Base UI toasts.
+import { type ToastProviderProps } from '../Toast/ToastContext';
+import { ToastProviderBaseUI as ToastProvider, ToastContainerBaseUI as ToastContainer } from '../Toast/ToastBaseUI';
 import { LocaleProvider, type LocaleStringsOverride } from '../Locale/LocaleContext';
 
 export interface ToolcribProviderProps {

@@ -54,7 +54,7 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
     dataState: el.getAttribute('data-state'),
   }));
   expect(openInfo.animationName).toBe('toolcrib-toast-slide-in');
-  expect(openInfo.dataState).toBe('open');
+  // SPIKE #670: Radix's data-state; Base UI has no equivalent attribute on an open toast.
 
   // Regression test: dismissToast used to remove the toast from
   // ToastContext's state array immediately on click, which unmounted this

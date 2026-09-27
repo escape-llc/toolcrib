@@ -91,7 +91,8 @@ export interface ToastContextType {
   anchor: ToastAnchor;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+// SPIKE #670: exported so ToastBaseUI.tsx can serve the same contexts.
+export const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 /**
  * The stable half of `ToastContextType`: just the actions, no toast list.
@@ -104,7 +105,7 @@ export type ToastActions = Pick<ToastContextType, 'addToast' | 'updateToast' | '
 // changes; the rest never). ToastContext's value carries the live toasts
 // array, so every useToast() consumer re-rendered whenever ANY toast was
 // added or expired -- including components that only ever called addToast.
-const ToastActionsContext = createContext<ToastActions | undefined>(undefined);
+export const ToastActionsContext = createContext<ToastActions | undefined>(undefined);
 
 export interface ToastProviderProps {
   children: ReactNode;
