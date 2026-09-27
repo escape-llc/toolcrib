@@ -3214,29 +3214,75 @@ export const App: React.FC = () => {
                 {/* Tab 1: Overview & Architecture */}
                 <TabStrip.Panel groupId="main-demo" value="overview">
                   <VStack gap="lg">
-                    {/* issue #380, direct request: link out to the two real,
-                        deployed consumer apps (feed-farmer-pwa, founders-desk)
-                        from the lead demo page itself, not just README.md's
-                        own "Examples" section (which already had these same
-                        two links -- this is the in-app counterpart, since a
-                        visitor exploring the live component showcase has no
-                        reason to also be reading the repo's README). Kept as
-                        the very first card: everything below this is "here's
-                        the toolkit," this is "and here's what a real app
-                        built with it looks like," which reads better before
-                        the pitch than after it. */}
                     <Card>
-                      <Card.Header>🌐 See It In a Real App</Card.Header>
+                      <Card.Header>🧰 Welcome to the crib</Card.Header>
                       <Card.Content>
                         <VStack gap="md">
                           <Text>
-                            Everything else on this page is <code>Toolcrib</code>'s own component showcase. These two are real, deployed products built entirely with it — fully client-side PWAs, no backend, no shared code with this demo.
+                            A tool crib is the room on a shop floor where every tool has a place on the board, a part number, and a spec. <code>Toolcrib</code> is that room for React apps built with AI: {ENCYCLOPEDIA_COMPONENT_NAMES.length} tools and {systemAreas.length} fixtures that come out themed, accessible and typed. An agent assembling a UI picks proven tools off the board instead of machining its own, and gets the same result every time.
+                          </Text>
+                          <Text>
+                            It isn't a black box you install and hope for the best. <code>toolcrib init</code> vendors the whole crib into your repo as reviewable patches: every file is yours to read, patch or fork, and <code>toolcrib merge</code> brings in updates the same way.
+                          </Text>
+                        </VStack>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>🗺️ How the crib is laid out</Card.Header>
+                      <Card.Content>
+                        <Grid columns={3} gap="sm">
+                          <CardSimple title="🔧 Shadow board" overrides={{ padding: 'compact' }}>
+                            <VStack gap="sm">
+                              <Text size="sm">Every tool in its outline, grouped by drawer: layout, containers, overlays, data display, form controls. Open one for its full bin.</Text>
+                              <Link href={routeHref({ page: 'encyclopedia' })}>Go to the shadow board</Link>
+                            </VStack>
+                          </CardSimple>
+                          <CardSimple title="🔌 Fixtures" overrides={{ padding: 'compact' }}>
+                            <VStack gap="sm">
+                              <Text size="sm">What every tool plugs into: the theme engine, the event bus, the form engine, toasts, motion. An app built from the tools inherits all of it.</Text>
+                              <Link href={routeHref({ page: 'encyclopedia', system: 'theme' })}>Start with the theme engine</Link>
+                            </VStack>
+                          </CardSimple>
+                          <CardSimple title="📦 Kits" overrides={{ padding: 'compact' }}>
+                            <VStack gap="sm">
+                              <Text size="sm">Tools pre-assembled for a common job: a live analytics dashboard, and wireframes of the page layouts you'll build most.</Text>
+                              <Link href={routeHref({ page: 'kits' })}>Open the kits</Link>
+                            </VStack>
+                          </CardSimple>
+                        </Grid>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>🏷️ Reading a bin</Card.Header>
+                      <Card.Content>
+                        <VStack gap="sm">
+                          <Text>Every tool's page reads top to bottom: everything <em>about</em> the tool first, then the tool itself, live.</Text>
+                          <ul style={{ paddingLeft: '1.25rem', margin: 0 }}>
+                            <li><strong>Part number</strong>: drawer code and position (<code>FC-05</code>, <code>FX-02</code>), the same on the board and the page.</li>
+                            <li><strong>Pick ticket</strong>: the exact import line to take it off the shelf.</li>
+                            <li><strong>Safety placard</strong>: the mistake this tool exists to prevent, and what to do instead.</li>
+                            <li><strong>Spec sheet</strong>: the contract, meaning its slots and every prop with type, default and meaning, generated from the source.</li>
+                            <li><strong>Blueprint</strong>: the demo's own code, straight from this app.</li>
+                            <li><strong>The tool itself</strong>: below the rule, running for real.</li>
+                          </ul>
+                        </VStack>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>🌐 Out on the job</Card.Header>
+                      <Card.Content>
+                        <VStack gap="md">
+                          <Text>
+                            Two real, deployed products built entirely from the crib: fully client-side PWAs, no backend, no code shared with this demo.
                           </Text>
                           <Grid columns={2} gap="sm">
                             <CardSimple title="📰 feed-farmer-pwa" overrides={{ padding: 'compact' }}>
                               <VStack gap="md">
                                 <Text size="sm">
-                                  An RSS/Atom feed reader — Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
+                                  An RSS/Atom feed reader: Zod-driven forms, the event bus, <code>Tree</code>, <code>CommandPalette</code>, <code>Combobox</code>, the live Theme Editor, <code>UIGroup</code>, <code>Skeleton</code>, and the responsive breakpoint framework.
                                 </Text>
                                 <Link href="https://escape-llc.github.io/feed-farmer-pwa/" target="_blank">Live demo ↗</Link>
                               </VStack>
@@ -3244,7 +3290,7 @@ export const App: React.FC = () => {
                             <CardSimple title="🏢 founders-desk" overrides={{ padding: 'compact' }}>
                               <VStack gap="md">
                                 <Text size="sm">
-                                  A personal command-center — <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
+                                  A personal command center: <code>Tree</code> + <code>TabStrip</code> + <code>Splitter</code> for a notebook, <code>DataTable</code> + a bar chart + <code>DatePicker</code> for a ledger, and <code>CommandPalette</code> quick-open across both.
                                 </Text>
                                 <Link href="https://escape-llc.github.io/founders-desk/" target="_blank">Live demo ↗</Link>
                               </VStack>
@@ -3255,144 +3301,92 @@ export const App: React.FC = () => {
                     </Card>
 
                     <Card>
-                      <Card.Header>🛡️ Why Toolcrib?</Card.Header>
-                      <Card.Content>
-                        <Text>
-                          An AI generating UI code from scratch tends to hit the same handful of failure surfaces over and over — not because it doesn't know React, but because nothing structural is stopping it from reinventing the same broken wheel a different way each time. <code>Toolcrib</code> exists to put a real structural boundary at each one, without taking control away from you.
-                        </Text>
-                        {/* StyleDomainProvider, not overrides.subtheme on each
-                            CardSimple individually — one ancestor setting
-                            gives the whole grid a consistent informational
-                            tint without repeating "subtheme: 'info'" six
-                            times, and (being Context-based, not CSS
-                            inheritance) it'd still reach a card even if one
-                            rendered through a portal. */}
-                        <StyleDomainProvider subtheme="info">
-                          <Grid columns={2} gap="sm">
-                          {[
-                            {
-                              icon: '🎨',
-                              title: 'Ad-hoc CSS drift',
-                              body: <>Hardcoded pixels, hex colors, and z-index values scattered across components make theming and consistency nearly impossible to maintain by hand. Every value in <code>Toolcrib</code> is <code>rem</code>-based and resolves through the HSV-derived CSS variable theme system, so one change at <code>:root</code> (or one preset swap) reaches every component at once.</>,
-                            },
-                            {
-                              icon: '🪟',
-                              title: 'Reinvented, subtly-broken overlays',
-                              body: <>A hand-rolled modal is easy to get 90% right and very easy to ship without a real focus trap, light-dismiss, or correct portal target. <code>Popup</code>, <code>Modal</code>, <code>Drawer</code>, and <code>AlertDialog</code> wrap Radix UI primitives specifically so that 90% is handled once, correctly, instead of approximated per-component.</>,
-                            },
-                            {
-                              icon: '🔌',
-                              title: 'Cross-tree wiring hacks',
-                              body: <>Passing callbacks through five layers of props (or reaching for a global singleton) just to let two unrelated components talk is a common improvisation. The <code>aiBus</code> event bus (<code>aiBus.emit()</code> / <code>useAIEvent()</code>) is the one sanctioned escape hatch for that specific problem, so it doesn't need reinventing per feature.</>,
-                            },
-                            {
-                              icon: '♿',
-                              title: 'Silent accessibility gaps',
-                              body: <>A missing focus-visible ring or keyboard interaction is invisible in a quick visual check and only surfaces later, for a real keyboard/screen-reader user. Interactive states (hover, focus-visible, active) are injected systematically across every component from one shared stylesheet, not hand-added per instance.</>,
-                            },
-                            {
-                              icon: '👻',
-                              title: 'Hallucinated props and APIs',
-                              body: <>Guessing at a prop name that doesn't exist is a routine AI failure mode against an unfamiliar library. Full TypeScript coverage plus a generated component manifest (<code>ai-docs/component-manifest.json</code>) mean the real API surface is always mechanically derivable, never guessed at.</>,
-                            },
-                            {
-                              icon: '🔓',
-                              title: 'Losing control to a black box',
-                              body: <>The usual tradeoff for all of the above is an opaque, locked-down component library you can't see inside or diverge from. <code>Toolcrib</code> is vendored directly into your project via <code>toolcrib init</code> — every file is yours to read, patch, or fork — and the <code>overrides</code> prop plus per-instance style domains give you fine-grained control without ever reaching for a raw <code>style</code>/<code>className</code> escape hatch.</>,
-                            },
-                          ].map(item => (
-                            <CardSimple key={item.title} title={<>{item.icon} {item.title}</>} overrides={{ padding: 'compact' }}>
-                              <Text size="sm">{item.body}</Text>
-                            </CardSimple>
-                          ))}
-                          </Grid>
-                        </StyleDomainProvider>
-                      </Card.Content>
-                    </Card>
-
-                    <Grid columns={2} gap="lg">
-                      <Card>
-                        <Card.Header>⚡ Why Use Radix UI Primitives Underneath?</Card.Header>
-                        <Card.Content>
-                          <VStack gap="md">
-                            <Text>
-                              An AI generating a dialog, a menu, or a set of tabs from scratch tends to get keyboard support, focus management, and ARIA roles roughly 90% right and ship it anyway — the missing 10% (a focus trap that doesn't quite trap, an escape key that doesn't close, a role that isn't announced) is invisible in a quick visual check and only shows up for a real keyboard or screen-reader user. <code>Toolcrib</code> doesn't re-solve that per component: it wraps Radix UI's unstyled primitives (`radix-ui`) once per interaction pattern and adds HSV theming, slots, and event bus dispatch on top, so every component built on the same primitive inherits the same correct behavior for free.
-                            </Text>
-                            <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                              <li><strong>Overlays</strong>: Dialog (<code>Modal</code>, <code>AlertDialog</code>), Popover (<code>Popup</code>; <code>Combobox</code>'s anchoring only), Portal (<code>Drawer</code>) — focus trap, background lockout, light-dismiss, and correct portal targeting, handled once instead of approximated per component.</li>
-                              <li><strong>Disclosure &amp; Structure</strong>: Accordion, Collapsible, Separator, ScrollArea, AspectRatio — expand/collapse and custom-scrollbar keyboard behavior with real ARIA roles, not a styled <code>&lt;div&gt;</code> pretending to be one.</li>
-                              <li><strong>Menus &amp; Navigation</strong>: DropdownMenu, ContextMenu, NavigationMenu (<code>Sidebar</code>), Tabs (<code>TabStrip</code>, <code>Stepper</code>), Toolbar — typeahead and arrow-key/roving-tabindex traversal for free.</li>
-                              <li><strong>Form Controls</strong>: RadioGroup (<code>RadioGroup</code>, <code>Rating</code>), Checkbox, Switch, Select, Slider, Toggle/ToggleGroup, Label — real <code>aria-checked</code>/<code>aria-valuenow</code> semantics, not a row of clickable spans.</li>
-                              <li><strong>Feedback &amp; Info</strong>: Toast, Tooltip, HoverCard, Progress, Avatar — priority queueing, hover/focus delay handling, determinate/indeterminate ARIA states.</li>
-                              <li><strong>Accessibility Utilities</strong>: VisuallyHidden, AccessibleIcon — screen-reader-only text and icon labeling with zero visual footprint.</li>
-                            </ul>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
-
-                      <Card>
-                        <Card.Header>🧩 Why Use Common Layout Idioms & Theme Slices?</Card.Header>
-                        <Card.Content>
-                          <VStack gap="md">
-                            <Text>
-                              Traditional LLM code generation often suffers from ad-hoc CSS clutter (`p-1`, `mb-4`, hardcoded pixels). <code>Toolcrib</code> solves this by giving the AI high-level layout idioms:
-                            </Text>
-                            <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                              <li><strong><code>&lt;VStack&gt;</code> & <code>&lt;HStack&gt;</code></strong>: Self-spacing vertical & horizontal flex containers.</li>
-                              <li><strong><code>&lt;Grid&gt;</code></strong>: Multi-column responsive card grids.</li>
-                              <li><strong><code>&lt;Toolbar&gt;</code></strong>: Header action bars with <code>Left</code>, <code>Center</code>, and <code>Right</code> slots.</li>
-                              <li><strong><code>ThemeSlice</code> Engine</strong>: Pluggable design capabilities (<code>margin</code>, <code>padding</code>, <code>radius</code>, <code>shadow</code>, <code>table</code>).</li>
-                            </ul>
-                          </VStack>
-                        </Card.Content>
-                      </Card>
-                    </Grid>
-
-                    <Card>
-                      <Card.Header>🎯 No Radix Primitive to Lean On — Hand-Built to the Same Standard</Card.Header>
+                      <Card.Header>🛡️ Why a crib?</Card.Header>
                       <Card.Content>
                         <VStack gap="md">
                           <Text>
-                            Radix ships no Combobox, no standalone option-list, and no horizontal filmstrip-style strip primitive at all — for these, <code>Toolcrib</code> doesn't approximate something close and call it done. It follows the same <Link href="https://www.w3.org/WAI/ARIA/apg/" target="_blank">WAI-ARIA Authoring Practices Guide</Link> patterns Radix itself implements internally, just written by hand instead of imported:
+                            An AI generating UI from scratch doesn't fail because it doesn't know React. It fails because nothing stops it from machining the same part a slightly different, slightly broken way each time. The crib puts a guard on each of those spots without taking the keys away from you.
                           </Text>
-                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                            <li><strong><code>Combobox</code></strong> — the APG Combobox pattern (listbox + filtering + keyboard navigation hand-built on top of Popover purely for anchored positioning), including Escape-to-close and scroll-into-view as the highlighted option moves out of frame.</li>
-                            <li><strong><code>Listbox</code></strong> — the APG Listbox pattern (<code>role="listbox"</code>/<code>"option"</code>, <code>aria-selected</code>, <code>aria-activedescendant</code>) extracted standalone from Combobox's own internals — see its Encyclopedia entry.</li>
-                            <li><strong><code>Filmstrip</code></strong> — real roving tabindex (exactly one <code>tabIndex=0</code> stop at a time, matching the APG's own composite-widget model) with Arrow/Home/End keyboard navigation, not a scrollable row of plain divs.</li>
-                          </ul>
+                          <StyleDomainProvider subtheme="info">
+                            <Grid columns={2} gap="sm">
+                              {[
+                                {
+                                  icon: '🎨',
+                                  title: 'Every finish comes from the theme',
+                                  body: <>No hand-picked hex colors or pixel values. Every size is <code>rem</code> and every color resolves through the HSV-derived theme, so one change (a preset, a slider) reaches every tool at once.</>,
+                                },
+                                {
+                                  icon: '🪟',
+                                  title: 'Guards on the dangerous tools',
+                                  body: <>A hand-rolled modal is easy to get 90% right and ship without a real focus trap, light dismiss or correct stacking. Overlays, menus and form controls sit on proven accessible primitives, and where none exists (<code>Combobox</code>, <code>Listbox</code>, <code>Filmstrip</code>) they're hand-built to the WAI-ARIA Authoring Practices.</>,
+                                },
+                                {
+                                  icon: '🔌',
+                                  title: 'One wiring loom',
+                                  body: <>No callbacks threaded through five layers to let two distant parts talk. The typed <code>aiBus</code> event bus carries it: open a modal, fire a toast or react to a change from anywhere.</>,
+                                },
+                                {
+                                  icon: '♿',
+                                  title: 'Tested at the bench',
+                                  body: <>Focus rings, keyboard paths and live regions are built in once and shared, not remembered per call site. Every page of this demo is scanned for WCAG 2.1 AA violations in light and dark mode on every change.</>,
+                                },
+                                {
+                                  icon: '👻',
+                                  title: 'Every tool labeled',
+                                  body: <>Agents guess at props that don't exist. Full TypeScript types plus a generated component manifest mean the real API is always there to read, never hallucinated.</>,
+                                },
+                                {
+                                  icon: '🔓',
+                                  title: 'Your shop, your keys',
+                                  body: <>Vendored into your repo, not locked in a package. Per-instance <code>overrides</code> and style domains give fine control without a raw <code>style</code>/<code>className</code> escape hatch.</>,
+                                },
+                              ].map(item => (
+                                <CardSimple key={item.title} title={<>{item.icon} {item.title}</>} overrides={{ padding: 'compact' }}>
+                                  <Text size="sm">{item.body}</Text>
+                                </CardSimple>
+                              ))}
+                            </Grid>
+                          </StyleDomainProvider>
+                        </VStack>
+                      </Card.Content>
+                    </Card>
+
+                    <Card>
+                      <Card.Header>📏 Shop rule: stay in theme</Card.Header>
+                      <Card.Content>
+                        <VStack gap="sm">
                           <Text>
-                            This same attention runs underneath every component regardless of whether Radix backs it: every interactive element gets a real <code>:focus-visible</code> ring from one shared, systematically-injected stylesheet (<code>injectInteractionStyles()</code>) rather than each component hand-adding its own — before this existed, several components reset the browser's default outline to nothing and never replaced it, a real WCAG 2.4.7 gap invisible in a quick visual pass and only caught by actually tabbing through the UI.
+                            No tool takes <code>style</code> or <code>className</code>. That's a type error, not a convention, so a call site that tries simply doesn't compile. When a tool needs a different look, work down the ladder and stop at the first rung that holds:
+                          </Text>
+                          <ol style={{ paddingLeft: '1.25rem', margin: 0 }}>
+                            <li>the tool's own props (<code>variant</code>, <code>size</code>, <code>subtheme</code>, <code>appearance</code>);</li>
+                            <li><code>overrides</code>, for tools with a theme slice;</li>
+                            <li>a style domain: <code>&lt;StyleDomainProvider subtheme="…"&gt;</code> tints a whole area, like the Fixtures board;</li>
+                            <li>themed stock: <code>Block</code> for a surface, <code>Text</code> for words, <code>VStack</code>/<code>HStack</code>/<code>Grid</code> for layout;</li>
+                            <li>a change to the theme itself, so it applies everywhere;</li>
+                            <li>only then a raw element, and even its style reads the theme's <code>var(--ai-*)</code> variables.</li>
+                          </ol>
+                          <Text size="sm" tone="secondary">
+                            The crib ships lint rules that hold the line in your own code too: <code>prefer-toolcrib-component</code> flags a raw <code>&lt;button&gt;</code> where a tool exists, and <code>no-literal-style-values</code> flags a hard-coded color or pixel size.
                           </Text>
                         </VStack>
                       </Card.Content>
                     </Card>
 
                     <Card>
-                      <Card.Header>📐 AI Schema, Color Theory & WCAG Enforcement</Card.Header>
+                      <Card.Header>🎨 The finish: one color, a whole palette</Card.Header>
                       <Card.Content>
                         <VStack gap="md">
                           <Text>
-                            In <code>Toolcrib</code>, all component dimensions, paddings, gaps, and font sizes are calculated in <code>rem</code> units.
-                            Changing the <strong>Master Font Size</strong> slider in the OOTB Theme Designer updates <code>--ai-master-font-size</code> on <code>:root</code>, smoothly scaling the entire UI layout up or down in real time!
+                            A whole theme grows from a <em>single</em> base color plus a <strong>harmony mode</strong>: analogous hues for a cohesive look, complementary or triadic for deliberate contrast. The primary, secondary, accent and quaternary colors and the status subthemes (info, success, warning, error) all derive from that one decision. Open the Theme Designer and try it.
                           </Text>
-                          <pre style={{ background: 'var(--ai-bg-container)', padding: '0.75rem', borderRadius: 'var(--ai-radius-md, 0.375rem)', fontSize: '0.75rem', overflowX: 'auto', margin: 0 }}>
-  {`:root {
-    font-size: var(--ai-master-font-size, 16px);
-    --ai-padding-md: 0.5rem 1rem;
-    --ai-margin-gap: 0.875rem;
-    --ai-table-cell-padding: var(--ai-padding-sm);
-  }`}
-                          </pre>
-                          <Text>
-                            A whole theme is generated from a <em>single</em> base HSV color plus a <strong>harmony mode</strong> — real color theory, not designer-picked swatches: <code>analogous</code> hues sit close together on the wheel for a cohesive look, <code>complementary</code>/<code>split-complementary</code> and <code>triadic</code> spread hues apart by a fixed geometric relationship for deliberate contrast. Pick a base color and a mode in the Theme Designer, and the entire primary/secondary/accent/quaternary palette — plus every semantic subtheme below — derives from that one decision.
-                          </Text>
-                          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0' }}>
-                            <li><strong>Readable text is computed, not chosen.</strong> <code>pickReadableTextColor()</code> checks a real WCAG contrast ratio (the same relative-luminance formula from the spec, via <code>getHSVContrastRatio()</code>) against both pure black and pure white, and picks whichever wins — provably ≥4.5:1 against <em>any</em> background, so a vivid, high-luminance primary color never silently produces unreadable white-on-bright-fill text the way a hardcoded <code>color: white</code> would.</li>
-                            <li><strong>Themed text on a neutral surface is nudged, not guessed.</strong> <code>ensureWCAGContrast()</code> takes a foreground/background pair and iteratively adjusts Value (and, if needed, Saturation) — never Hue — until a target ratio is met, so secondary text stays recognizably "the theme's color" instead of being replaced by generic black or white.</li>
-                            <li><strong>Semantic subthemes (error/success/warning/info) generate their own accessible pairs</strong> — main/background/border/text/on-main — the same way, so a themed error banner is exactly as WCAG-compliant as the default palette, in every color a consumer picks.</li>
+                          <ul style={{ paddingLeft: '1.25rem', margin: 0 }}>
+                            <li><strong>Readable text is computed, not chosen.</strong> Text on a filled color is picked by real WCAG contrast math, so a vivid primary never produces unreadable white-on-bright text.</li>
+                            <li><strong>Themed text is nudged, not guessed.</strong> Colored text on a neutral surface is adjusted (value, then saturation, never hue) until it meets its contrast target, and stays recognizably the theme's color.</li>
+                            <li><strong>It all scales.</strong> Every size is <code>rem</code>, so the Master Font Size slider scales the whole UI in real time.</li>
                           </ul>
-                          <Text>
-                            The result: an AI (or a human) picking an arbitrary base color and harmony mode gets a full, internally-consistent, accessible palette for free — accessibility here is a property the color <em>math</em> guarantees, not a manual contrast-checker pass someone has to remember to run.
+                          <Text size="sm" tone="secondary">
+                            The fixtures board has the details: the theme engine, the styling model, motion, and the rest.
                           </Text>
                         </VStack>
                       </Card.Content>
