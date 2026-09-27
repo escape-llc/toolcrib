@@ -117,7 +117,9 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   useInjectInteractionStyles();
 
   useEffect(() => {
-    if (fieldName && registerField) registerField(fieldName);
+    // Seeded as null (not the default ''), so an untouched field submits and
+    // validates as empty rather than as a string.
+    if (fieldName && registerField) registerField(fieldName, null);
   }, [fieldName, registerField]);
 
   const isFormBound = !!(fieldName && formContext);

@@ -23,8 +23,16 @@ export interface FormContextType {
   setFieldValue: (name: string, value: any) => void;
   /** Mark a field as touched (triggers error display). */
   setFieldTouched: (name: string, touched?: boolean) => void;
-  /** Register a field name in the values map (called automatically by controls). */
-  registerField: (name: string) => void;
+  /**
+   * Register a field name in the values map (called automatically by
+   * controls), seeding it with the control's own empty value when it has
+   * none yet: `''` for text, `[]` for an array-valued control like
+   * `CheckboxGroup`, `null` for `NumberField`. The seed is what an untouched
+   * field submits and validates as, so it has to match the field's type:
+   * otherwise a schema like `z.array(...).min(1, 'Pick one')` reports a type
+   * error instead of its own message.
+   */
+  registerField: (name: string, emptyValue?: unknown) => void;
   /** Validate a single field against the schema. Returns true if valid. */
   validateField: (name: string, val?: any) => boolean;
   /** Trigger full form validation and submission. */
@@ -67,7 +75,7 @@ export interface FormProps<T extends Record<string, any> = Record<string, any>> 
 
 /**
  * @manifest Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate
- * @manifestChildren FormField, FormError, Button, SubmitButton, Input, NumberField, Select, Checkbox, Switch, Textarea, RadioGroup, Slider
+ * @manifestChildren FormField, FormError, Button, SubmitButton, Input, NumberField, Select, Checkbox, CheckboxGroup, Switch, Textarea, RadioGroup, Slider
  * @manifestCategory Form Controls
  * @manifestAntiPatternAvoid Write `register()` or `onChange` boilerplate for form fields
  * @manifestAntiPatternInstead Nest `<Input>`, `<Select>`, etc. inside `<FormField name="...">` — binding is automatic
@@ -151,8 +159,8 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   // re-firing every field's mount-registration effect on every keystroke
   // anywhere in the form; depending on this stable function fixes that at
   // the source for every consumer at once.
-  const registerField = useCallback((name: string) => {
-    setValues(prev => (prev[name] === undefined ? { ...prev, [name]: '' } : prev));
+  const registerField = useCallback((name: string, emptyValue: unknown = '') => {
+    setValues(prev => (prev[name] === undefined ? { ...prev, [name]: emptyValue } : prev));
   }, []);
 
   const validateField = (name: string, val?: any): boolean => {
