@@ -9,13 +9,10 @@ import { test, expect, type Frame, type Page } from '@playwright/test';
 // It asserts the correct behavior, so a failure names which piece still
 // reaches for the global document.
 //
-// RADIX_IFRAME_DEFECT marks the checks Radix fails on both engines (#692):
-// its focus trap, focus return, outside-press for Modal and Popup, and
-// scroll lock all act on the global document. They run as expected
-// failures until Modal and Popup move to Base UI (switch-over PR 2), which
-// passes them; that PR removes each annotation, and Playwright fails any
-// annotated test that starts passing, so none can be forgotten.
-const RADIX_IFRAME_DEFECT = 'Radix acts on the global document, not the iframe (#670, #692)';
+// Radix failed five of these on both engines (focus trap, focus return,
+// outside-press for Modal and Popup, scroll lock: all acted on the global
+// document). They were pinned as expected failures (#692) until Modal and
+// Popup moved to Base UI (#696), which passes them all.
 
 async function openHarness(page: Page): Promise<Frame> {
   await page.goto('/demo/harness/iframe.html');
@@ -65,7 +62,6 @@ test.describe('Modal in an iframe', () => {
 
   for (const where of ['iframe', 'same-document control'] as const) {
     test(`traps Tab inside the dialog (${where})`, async ({ page }) => {
-      test.fail(where === 'iframe', RADIX_IFRAME_DEFECT);
       const iframe = await openHarness(page);
       const frame = where === 'iframe' ? iframe : page.mainFrame();
       await frame.getByRole('button', { name: where === 'iframe' ? 'Open modal' : 'Open outer modal' }).click();
@@ -87,7 +83,6 @@ test.describe('Modal in an iframe', () => {
   }
 
   test('Escape closes and focus returns to the trigger', async ({ page }) => {
-    test.fail(true, RADIX_IFRAME_DEFECT);
     const frame = await openHarness(page);
     await frame.getByRole('button', { name: 'Open modal' }).click();
     await expect.poll(() => focusInDialog(frame)).toBe(true);
@@ -97,7 +92,6 @@ test.describe('Modal in an iframe', () => {
   });
 
   test('a press outside the dialog closes it', async ({ page }) => {
-    test.fail(true, RADIX_IFRAME_DEFECT);
     const frame = await openHarness(page);
     await frame.getByRole('button', { name: 'Open modal' }).click();
     await expect(frame.getByRole('dialog')).toBeVisible();
@@ -126,7 +120,6 @@ test.describe('Modal in an iframe', () => {
   });
 
   test('locks scrolling in the iframe document, and leaves the parent page alone', async ({ page }) => {
-    test.fail(true, RADIX_IFRAME_DEFECT);
     const frame = await openHarness(page);
     const outerOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
     await frame.getByRole('button', { name: 'Open modal' }).click();
@@ -157,7 +150,6 @@ test.describe('Popup in an iframe', () => {
   });
 
   test('a press elsewhere in the iframe closes it', async ({ page }) => {
-    test.fail(true, RADIX_IFRAME_DEFECT);
     const frame = await openHarness(page);
     await frame.getByRole('button', { name: 'Open popup' }).click();
     await expect(frame.getByText('Popup body')).toBeVisible();

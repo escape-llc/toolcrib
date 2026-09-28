@@ -9,11 +9,21 @@ import { Modal } from '../components/Overlay/Modal';
 import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
 const MARCH = { start: new CalendarDate(2026, 3, 15), end: new CalendarDate(2026, 3, 18) };
 
 function openCalendar() {
-  fireEvent.click(screen.getByLabelText('Open calendar'));
+  return actAndSettle(() => {
+    fireEvent.click(screen.getByLabelText('Open calendar'));
+  });
+}
+
+/** Picks a day in the open calendar; the second pick of a range closes it. */
+function pickDay(day: number) {
+  return actAndSettle(() => {
+    fireEvent.click(getDayCell(calendar(), day));
+  });
 }
 
 function calendar(): HTMLElement {
@@ -44,14 +54,14 @@ describe('DateRangePicker', () => {
     expect(document.querySelector('.react-aria-RangeCalendar')).not.toBeInTheDocument();
   });
 
-  it('opens a range calendar hosted in <Popup>, picks a range, closes, and updates both fields', () => {
+  it('opens a range calendar hosted in <Popup>, picks a range, closes, and updates both fields', async () => {
     const onChange = vi.fn();
-    const { baseElement } = render(<DateRangePicker aria-label="Trip dates" defaultValue={MARCH} onChange={onChange} />);
-    openCalendar();
-    expect(baseElement.querySelector('[data-radix-popper-content-wrapper]')).toBeInTheDocument();
+    render(<DateRangePicker aria-label="Trip dates" defaultValue={MARCH} onChange={onChange} />);
+    await openCalendar();
+    expect(calendar().closest('.ai-popup-content')).not.toBeNull();
 
-    fireEvent.click(getDayCell(calendar(), 3));
-    fireEvent.click(getDayCell(calendar(), 7));
+    await pickDay(3);
+    await pickDay(7);
 
     // Exactly once: React Aria's own context already commits the range, and
     // committing it again from our handler used to fire this twice.
@@ -76,13 +86,13 @@ describe('DateRangePicker', () => {
     expect(daySegments()).toEqual(['15', '19']);
   });
 
-  it('emits daterangepicker:changed with ISO date strings', () => {
+  it('emits daterangepicker:changed with ISO date strings', async () => {
     const handler = vi.fn();
     const unsub = aiBus.on('daterangepicker:changed', handler);
     render(<DateRangePicker name="trip" aria-label="Trip dates" defaultValue={MARCH} />);
-    openCalendar();
-    fireEvent.click(getDayCell(calendar(), 20));
-    fireEvent.click(getDayCell(calendar(), 22));
+    await openCalendar();
+    await pickDay(20);
+    await pickDay(22);
     expect(handler).toHaveBeenLastCalledWith({ name: 'trip', value: { start: '2026-03-20', end: '2026-03-22' } });
     unsub();
   });
@@ -98,10 +108,10 @@ describe('DateRangePicker', () => {
         <SubmitButton>Save</SubmitButton>
       </Form>
     );
-    openCalendar();
+    await openCalendar();
     // Empty Form value -> the calendar opens on today's month; pick two days in it.
-    fireEvent.click(getDayCell(calendar(), 10));
-    fireEvent.click(getDayCell(calendar(), 12));
+    await pickDay(10);
+    await pickDay(12);
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
@@ -110,16 +120,22 @@ describe('DateRangePicker', () => {
     expect([trip.start.day, trip.end.day]).toEqual([10, 12]);
   });
 
-  it('pressing Escape with the calendar open closes only the calendar, not an enclosing Modal', () => {
+  it('pressing Escape with the calendar open closes only the calendar, not an enclosing Modal', async () => {
     render(
       <Modal isOpen>
         <DateRangePicker aria-label="Trip dates" defaultValue={MARCH} />
       </Modal>
     );
-    openCalendar();
+    await openCalendar();
     expect(document.querySelector('.react-aria-RangeCalendar')).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: 'Escape' });
+    await actAndSettle(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
     expect(document.querySelector('.react-aria-RangeCalendar')).not.toBeInTheDocument();
+    // Whether the Modal also asked to close isn't checkable here: jsdom
+    // doesn't move focus into a popover nested in a Base UI dialog, so it
+    // can't tell which overlay is topmost. e2e/nested-overlay-escape.spec.ts
+    // checks that in a real browser.
     expect(screen.getByTestId('modal-container')).toBeInTheDocument();
   });
 
@@ -138,7 +154,7 @@ describe('DateRangePicker', () => {
   it('has no axe violations, closed or with the calendar open', async () => {
     const { container, baseElement } = render(<DateRangePicker label="Trip dates" defaultValue={MARCH} />);
     expect(await axe(container)).toHaveNoViolations();
-    openCalendar();
+    await openCalendar();
     expect(await axe(baseElement)).toHaveNoViolations();
   });
 });

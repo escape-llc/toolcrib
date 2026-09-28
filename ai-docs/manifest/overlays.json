@@ -30,7 +30,7 @@
         },
         "trigger": {
           "type": "ReactElement",
-          "description": "Element that opens the dialog on click. Rendered inline; the dialog manages open/close state automatically."
+          "description": "Element that opens the dialog on click; the dialog manages open/close state automatically.\nIt becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role=\"button\"` and keyboard activation automatically."
         },
         "isOpen": {
           "type": "boolean",
@@ -135,7 +135,7 @@
         },
         "trigger": {
           "type": "ReactElement",
-          "description": "Element that toggles the drawer on click. Rendered inline."
+          "description": "Element that toggles the drawer on click.\nIt becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role=\"button\"` and keyboard activation automatically."
         },
         "position": {
           "type": "'top' | 'right' | 'bottom' | 'left'",
@@ -263,7 +263,7 @@
         },
         "trigger": {
           "type": "ReactElement",
-          "description": "Element that opens the modal on click. Rendered inline; the modal manages open/close state automatically."
+          "description": "Element that opens the modal on click; the modal manages open/close state automatically.\nIt becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role=\"button\"` and keyboard activation automatically."
         },
         "isOpen": {
           "type": "boolean",
@@ -318,7 +318,7 @@
         },
         "trigger": {
           "type": "ReactElement",
-          "description": "Trigger element -- both the popup's visual anchor point AND its\nclick/keyboard open control. Required unless `anchor` is given\ninstead (issue #502) -- the two are mutually exclusive."
+          "description": "Trigger element -- both the popup's visual anchor point AND its\nclick/keyboard open control. Required unless `anchor` is given\ninstead (issue #502) -- the two are mutually exclusive.\nIt becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role=\"button\"` and keyboard activation automatically."
         },
         "anchor": {
           "type": "ReactElement",

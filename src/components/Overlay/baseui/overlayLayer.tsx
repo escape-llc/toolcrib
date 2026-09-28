@@ -14,7 +14,7 @@
 //      while open, data-closed through the exit. Base UI keeps the node mounted
 //      until the element's running animations finish, the same guarantee Radix
 //      Presence gives (measured in the #670 Popup spike: animationend, no cancel).
-import React, { useEffect, type ReactNode } from 'react';
+import React, { useEffect, type ReactElement, type ReactNode } from 'react';
 import { CSPProvider } from '@base-ui/react/csp-provider';
 import { useStackedZIndex } from '../../../theme/zIndexStack';
 import { type ZIndexScale } from '../../../theme/zIndex';
@@ -49,6 +49,20 @@ export const OverlayCSP: React.FC<{ children: ReactNode }> = ({ children }) => {
 };
 
 /**
+ * Props for a Base UI trigger part that renders the consumer's own element
+ * (`<Dialog.Trigger {...triggerRenderProps(trigger)} />`). Base UI assumes
+ * that element is a native `<button>` unless told otherwise; when it isn't,
+ * `nativeButton: false` makes Base UI add `role="button"`, a tab stop and
+ * Enter/Space activation itself. An intrinsic element is native only if it's
+ * a `<button>`. A component is assumed to render one (Button does, and a
+ * Tooltip-wrapped Button passes it through); if it doesn't, Base UI's own
+ * dev warning names the trigger.
+ */
+export function triggerRenderProps(trigger: ReactElement): { render: ReactElement; nativeButton: boolean } {
+  return { render: trigger, nativeButton: typeof trigger.type === 'string' ? trigger.type === 'button' : true };
+}
+
+/**
  * Enter/exit keyframes for one overlay part, keyed on Base UI's state
  * attributes. `enter` and `exit` are the toolkit's shared keyframe names
  * (animationKeyframes.ts: ai-fade-in, ai-scale-out, ...).
@@ -57,16 +71,18 @@ export interface PartAnimation {
   className: string;
   enter: string | string[];
   exit: string | string[];
+  /** Duration and easing, for a part with its own theme timing (Drawer's --ai-drawer-duration/-easing). Defaults to the shared transition tokens. */
+  timing?: string;
 }
 
 const TIMING = 'var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)';
-const list = (names: string | string[], fill = '') => (Array.isArray(names) ? names : [names]).map(n => `${n} ${TIMING}${fill}`).join(', ');
+const list = (names: string | string[], timing = TIMING, fill = '') => (Array.isArray(names) ? names : [names]).map(n => `${n} ${timing}${fill}`).join(', ');
 
 export function useOverlayAnimations(styleId: string, parts: PartAnimation[]): void {
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
   const css = parts
-    .map(p => `.${p.className}[data-open] { animation: ${list(p.enter)}; }\n.${p.className}[data-closed] { animation: ${list(p.exit, ' forwards')}; }`)
+    .map(p => `.${p.className}[data-open] { animation: ${list(p.enter, p.timing)}; }\n.${p.className}[data-closed] { animation: ${list(p.exit, p.timing, ' forwards')}; }`)
     .join('\n');
   useEffect(() => {
     injectGlobalStyle(styleId, css, targetDocument, nonce);

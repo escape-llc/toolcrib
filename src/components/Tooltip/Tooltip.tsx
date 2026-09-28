@@ -1,6 +1,7 @@
 'use client';
 
-import React, { type ReactNode, type ReactElement, useState, useEffect } from 'react';
+import React, { type HTMLAttributes, type ReactNode, type ReactElement, useState, useEffect } from 'react';
+import { type StyleFree } from '../../theme/safeProps';
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import { aiBus } from '../../eventBus/eventBus';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -47,7 +48,15 @@ function injectTooltipAnimations(targetDocument?: Document, nonce?: string): voi
  * Wraps the `children` element and shows a tooltip on hover/focus.
  * Emits `tooltip:shown` / `tooltip:hidden` events on the event bus.
  */
-export interface TooltipProps {
+/**
+ * Props for `<Tooltip>`. Anything beyond the tooltip's own props (event
+ * handlers, `aria-*`, a ref) is forwarded to the trigger child, so a Tooltip
+ * composes inside another component's trigger: a Popup/Modal/DropdownMenu
+ * whose trigger merges its props and ref into the element it's given
+ * (Base UI's `render`, Radix's `asChild`) reaches the real button through
+ * the Tooltip instead of stopping at it.
+ */
+export interface TooltipProps extends Omit<StyleFree<HTMLAttributes<HTMLElement>>, 'content' | 'children' | 'id'> {
   /** Unique identifier for event bus targeting. */
   id?: string;
   /** Text or ReactNode rendered inside the tooltip bubble. */
@@ -84,7 +93,7 @@ export interface TooltipProps {
  * @manifest Hover/focus tooltip wrapping a child trigger element
  * @manifestCategory Overlays
  */
-export const Tooltip: React.FC<TooltipProps> = ({
+export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   id,
   content,
   children,
@@ -92,7 +101,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
   align = 'center',
   delayDuration = 200,
   overrides,
-}) => {
+  onClick,
+  onPointerDown,
+  ...triggerProps
+}, ref) => {
   const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
   const [isOpen, setIsOpen] = useState(false);
   const targetDocument = useTargetDocument();
@@ -133,8 +145,19 @@ export const Tooltip: React.FC<TooltipProps> = ({
             workaround (e.g. an explicit `squareCorners` prop) per instance. */}
         <TooltipPrimitive.Trigger
           asChild
-          onClick={() => setIsOpen(false)}
-          onPointerDown={() => setIsOpen(false)}
+          {...triggerProps}
+          // Radix types this as a button ref; under asChild it's whatever element the child is.
+          ref={ref as React.Ref<HTMLButtonElement>}
+          // Composed, not replaced: a parent trigger's own handlers (a Popup
+          // opening on click) must still run. See AGENTS.md on spread order.
+          onClick={e => {
+            onClick?.(e);
+            setIsOpen(false);
+          }}
+          onPointerDown={e => {
+            onPointerDown?.(e);
+            setIsOpen(false);
+          }}
         >
           {children}
         </TooltipPrimitive.Trigger>
@@ -194,4 +217,5 @@ export const Tooltip: React.FC<TooltipProps> = ({
       </TooltipPrimitive.Root>
     </TooltipPrimitive.Provider>
   );
-};
+});
+Tooltip.displayName = 'Tooltip';

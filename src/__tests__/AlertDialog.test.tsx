@@ -29,23 +29,27 @@ describe('AlertDialog Component', () => {
     expect(container).toBeInTheDocument();
     expect(screen.getByRole('alertdialog', { name: 'Delete confirmation' })).toBeInTheDocument();
     // Open-state scan: full dialog content (header/body/footer/actions) now
-    // mounted. aria-hidden-focus disabled -- same Radix hideOthers()
-    // carve-out DropdownMenu.test.tsx/Overlay.test.tsx's own open-state
-    // scans already need.
+    // mounted. aria-hidden-focus disabled for the same reason as
+    // Overlay.test.tsx's Modal scan: the page behind is aria-hidden and the
+    // focus guards are aria-hidden tab stops, both safe only because of a
+    // runtime focus trap axe can't observe.
     expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
-    // Radix's AlertDialog prevents onPointerDownOutside/onInteractOutside
-    // by design (see AlertDialog.tsx's own comment on why) — clicking
-    // outside the content must not close it, unlike Modal.
+    // Base UI's AlertDialog disables pointer dismissal by design (see
+    // AlertDialog.tsx) — a full press outside the content must not close
+    // it, unlike Modal.
     fireEvent.pointerDown(document.body);
+    fireEvent.mouseDown(document.body);
+    fireEvent.pointerUp(document.body);
+    fireEvent.mouseUp(document.body);
+    fireEvent.click(document.body);
     expect(screen.getByTestId('alertdialog-container')).toBeInTheDocument();
   });
 
-  // Regression guard: @radix-ui/react-alert-dialog is built directly on
-  // @radix-ui/react-dialog (confirmed in its own source) and inherits the
-  // identical gap -- its DialogContentImpl never sets aria-modal itself.
-  // See Overlay.test.tsx's matching Modal test for the full reasoning.
-  it('declares aria-modal="true" explicitly, since the underlying Radix primitive never sets it itself', () => {
+  // Regression guard: Base UI's AlertDialog reuses Dialog.Popup, which
+  // never sets aria-modal itself (nor did Radix's). See Overlay.test.tsx's
+  // matching Modal test for the full reasoning.
+  it('declares aria-modal="true" explicitly, since the underlying primitive never sets it itself', () => {
     render(
       <AlertDialog trigger={<Button>Delete Record</Button>} ariaLabel="Delete confirmation">
         <AlertDialog.Body>This cannot be undone.</AlertDialog.Body>

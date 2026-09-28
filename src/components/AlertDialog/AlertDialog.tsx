@@ -1,59 +1,21 @@
 'use client';
 
-import React, { useEffect, useState, type ReactNode, type ReactElement } from 'react';
-import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
+// AlertDialog on Base UI's AlertDialog (#670, #696). Base UI's AlertDialog
+// root hard-disables pointer dismissal, which is this component's whole
+// contract: no light dismiss, Escape still cancels. Portal container,
+// stacked z-index, CSP nonce and enter/exit keyframes come from the shared
+// overlay layer (../Overlay/baseui/overlayLayer), as for Modal.
+import React, { useState, type ReactNode, type ReactElement } from 'react';
+import { AlertDialog as BaseAlertDialog } from '@base-ui/react/alert-dialog';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { useStackedZIndex } from '../../theme/zIndexStack';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
-import { useNonce } from '../../theme/nonceContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
+import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { AlertDialogThemeSlice, type AlertDialogSliceState } from './AlertDialogSlice';
-
-const ALERTDIALOG_STYLE_ID = 'toolcrib-alertdialog-animations';
-
-// Issue #408: identical bug shape to Modal.tsx (issue #373) -- see that
-// component's own injectModalAnimations comment for the full diagnosis.
-// Overlay/Content used to carry a static, unconditional inline `animation`
-// string (entrance only) that's already finished by the time Radix flips
-// data-state to "closed", so Radix's internal Presence (which
-// AlertDialogPrimitive.Content/Overlay already use -- no `forceMount`
-// needed) finds nothing running to wait for and tears the node down
-// instantly. A real stylesheet keyed on [data-state="open"/"closed"]
-// (same mechanism as Modal's/Tooltip's) gives Presence a fresh,
-// genuinely-triggered animation on the way out too. Reuses the same
-// shared ai-fade-in/-out and ai-scale-in/-out keyframes already injected
-// by ThemeProvider -- no new keyframes needed. Not a `.ai-focus-ring`
-// transition-shorthand collision (see Modal.tsx's identical note) --
-// this uses `animation`, a separate property from the `transition`
-// that bug is specific to.
-function injectAlertDialogAnimations(targetDocument?: Document, nonce?: string): void {
-  injectGlobalStyle(
-    ALERTDIALOG_STYLE_ID,
-    `
-    .ai-alertdialog-overlay[data-state="open"] {
-      animation: ai-fade-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
-    }
-    .ai-alertdialog-overlay[data-state="closed"] {
-      animation: ai-fade-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
-    }
-    .ai-alertdialog-content[data-state="open"] {
-      animation: ai-scale-in var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease);
-    }
-    .ai-alertdialog-content[data-state="closed"] {
-      animation: ai-scale-out var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease) forwards;
-    }
-    `,
-    targetDocument,
-    nonce
-  );
-}
 
 /**
  * Props for the `<AlertDialog>` blocking confirmation dialog.
@@ -62,11 +24,9 @@ function injectAlertDialogAnimations(targetDocument?: Document, nonce?: string):
  * `AlertDialog.Footer`, `AlertDialog.Actions`, `AlertDialog.Cancel`,
  * `AlertDialog.Action`.
  *
- * Unlike `<Modal>`, this cannot be dismissed by clicking outside it —
- * Radix's `AlertDialog.Content` prevents `onPointerDownOutside`/
- * `onInteractOutside` by default, confirmed directly in
- * `@radix-ui/react-alert-dialog`'s source, not assumed. Escape still closes
- * it (that path isn't overridden), matching a native browser confirm
+ * Unlike `<Modal>`, this cannot be dismissed by clicking outside it: Base
+ * UI's AlertDialog root disables pointer dismissal and doesn't expose the
+ * option. Escape still closes it, matching a native browser confirm
  * dialog's own Esc-to-cancel convention. Reserve this for interruptions
  * that require an explicit decision (e.g. "Delete this record?"), not
  * general-purpose content — use `<Modal>` for that.
@@ -76,7 +36,10 @@ function injectAlertDialogAnimations(targetDocument?: Document, nonce?: string):
 export interface AlertDialogProps {
   /** Unique identifier used for event bus targeting (e.g. `aiBus.openAlertDialog('confirm-delete')`). Auto-generated if omitted. */
   id?: string;
-  /** Element that opens the dialog on click. Rendered inline; the dialog manages open/close state automatically. */
+  /**
+   * Element that opens the dialog on click; the dialog manages open/close state automatically.
+   * It becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role="button"` and keyboard activation automatically.
+   */
   trigger?: ReactElement;
   /** Slot content rendered inside the dialog. Use `AlertDialog.Header`, `AlertDialog.Body`, etc. */
   children: ReactNode;
@@ -131,15 +94,12 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   ariaLabel = 'Confirm Action',
   overrides,
 }) => {
-  const autoZIndex = useStackedZIndex('MODAL');
-  const zIndex = zIndexProp ?? autoZIndex;
   const id = useStableId(propId, 'alertdialog');
-  const targetDocument = useTargetDocument();
-  const nonce = useNonce();
-  useInjectInteractionStyles();
-  useEffect(() => {
-    injectAlertDialogAnimations(targetDocument, nonce);
-  }, [targetDocument, nonce]);
+  const { container, zIndex } = useOverlayLayer('MODAL', zIndexProp);
+  useOverlayAnimations('toolcrib-alertdialog-animations', [
+    { className: 'ai-alertdialog-overlay', enter: 'ai-fade-in', exit: 'ai-fade-out' },
+    { className: 'ai-alertdialog-content', enter: 'ai-scale-in', exit: 'ai-scale-out' },
+  ]);
   const { vars: alertDialogVars } = useSliceOverrides(AlertDialogThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -169,64 +129,63 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   });
 
   return (
-    <AlertDialogPrimitive.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
-      {trigger && (
-        <AlertDialogPrimitive.Trigger asChild>
-          {/* aria-haspopup/aria-expanded explicitly nulled -- see
-              Popup.tsx's identical wrapper for the full reasoning
-              (role="button" here traded aria-allowed-attr for
-              nested-interactive). */}
-          <div aria-haspopup={undefined} aria-expanded={undefined} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{trigger}</div>
-        </AlertDialogPrimitive.Trigger>
-      )}
-
-      <AlertDialogPrimitive.Portal container={targetDocument?.body}>
-        <AlertDialogPrimitive.Overlay
-          className="ai-alertdialog-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: zIndex,
-            background: 'var(--ai-alertdialog-overlay-bg, rgba(0, 0, 0, 0.5))',
-            backdropFilter: 'blur(var(--ai-alertdialog-backdrop-blur, 0.1875rem))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--ai-padding-lg, 1.25rem)',
-            ...alertDialogVars,
-          }}
-        >
-          <AlertDialogPrimitive.Content
-            aria-modal="true"
-            data-testid="alertdialog-container"
-            className="ai-focus-ring ai-alertdialog-content"
+    <OverlayCSP>
+      <BaseAlertDialog.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
+        {/* render, not a wrapper div: trigger semantics and focus return
+            land on the consumer's own element (see Modal). */}
+        {trigger && <BaseAlertDialog.Trigger {...triggerRenderProps(trigger)} />}
+        <BaseAlertDialog.Portal container={container}>
+          <BaseAlertDialog.Backdrop
+            className="ai-alertdialog-overlay"
             style={{
-              background: 'var(--ai-bg-surface, #ffffff)',
-              borderRadius: 'var(--ai-radius-lg, 0.75rem)',
-              border: '0.0625rem solid var(--ai-border, #e5e7eb)',
-              boxShadow: 'var(--ai-shadow-lg, 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3))',
-              width,
-              maxWidth: '90vw',
-              maxHeight: '90vh',
+              position: 'fixed',
+              inset: 0,
+              zIndex,
+              background: 'var(--ai-alertdialog-overlay-bg, rgba(0, 0, 0, 0.5))',
+              backdropFilter: 'blur(var(--ai-alertdialog-backdrop-blur, 0.1875rem))',
+              ...alertDialogVars,
+            }}
+          />
+          <BaseAlertDialog.Viewport
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex,
               display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: zIndex + 1,
-              outline: 'none',
-              // See Modal.tsx's identical comment — same self-contained
-              // dialog-panel shape.
-              contain: 'content',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--ai-padding-lg, 1.25rem)',
             }}
           >
-            <AlertDialogPrimitive.Title style={{ display: 'none' }}>{ariaLabel}</AlertDialogPrimitive.Title>
-            <AIErrorBoundary componentName="AlertDialog">
-              {children}
-            </AIErrorBoundary>
-          </AlertDialogPrimitive.Content>
-        </AlertDialogPrimitive.Overlay>
-      </AlertDialogPrimitive.Portal>
-    </AlertDialogPrimitive.Root>
+            <BaseAlertDialog.Popup
+              aria-modal="true"
+              data-testid="alertdialog-container"
+              className="ai-focus-ring ai-alertdialog-content"
+              style={{
+                background: 'var(--ai-bg-surface, #ffffff)',
+                borderRadius: 'var(--ai-radius-lg, 0.75rem)',
+                border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                boxShadow: 'var(--ai-shadow-lg, 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3))',
+                width,
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                position: 'relative',
+                zIndex: zIndex + 1,
+                outline: 'none',
+                // See Modal.tsx: the same self-contained dialog-panel shape.
+                contain: 'content',
+              }}
+            >
+              <BaseAlertDialog.Title style={{ display: 'none' }}>{ariaLabel}</BaseAlertDialog.Title>
+              <AIErrorBoundary componentName="AlertDialog">{children}</AIErrorBoundary>
+            </BaseAlertDialog.Popup>
+          </BaseAlertDialog.Viewport>
+        </BaseAlertDialog.Portal>
+      </BaseAlertDialog.Root>
+    </OverlayCSP>
   );
 };
 
@@ -288,20 +247,15 @@ AlertDialog.Actions = ({ children }) => (
 );
 
 AlertDialog.Cancel = ({ children = 'Cancel' }) => (
-  <AlertDialogPrimitive.Cancel asChild>
-    <Button variant="outline">{children}</Button>
-  </AlertDialogPrimitive.Cancel>
+  <BaseAlertDialog.Close render={<Button variant="outline" />}>{children}</BaseAlertDialog.Close>
 );
 
-// Radix's AlertDialogPrimitive.Action closes the dialog on click once its
-// own (and any consumer-supplied) onClick handler finishes synchronously —
-// there's no separate "confirm" state to manage here, unlike Toast's close
-// paths, since AlertDialog only ever closes via an explicit user choice
-// (Cancel or Action), never a timer or swipe.
+// Close merges its own click handler with the Button's, so the consumer's
+// onClick runs and the dialog closes. There's no separate "confirm" state:
+// AlertDialog only closes on an explicit choice (Cancel, Action, Escape),
+// never a timer or swipe.
 AlertDialog.Action = ({ children = 'Confirm', onClick }) => (
-  <AlertDialogPrimitive.Action asChild>
-    <Button variant="danger" onClick={onClick}>{children}</Button>
-  </AlertDialogPrimitive.Action>
+  <BaseAlertDialog.Close render={<Button variant="danger" onClick={onClick} />}>{children}</BaseAlertDialog.Close>
 );
 
 AlertDialog.Header.displayName = 'AlertDialog.Header';
