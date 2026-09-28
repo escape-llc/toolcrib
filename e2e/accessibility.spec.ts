@@ -50,6 +50,17 @@ import { gotoTab, loadDemoTableData, demoPages } from './nav';
 // real ratio (verified by hand against the WCAG formula).
 const COLOR_CONTRAST_DISABLED = ['color-contrast'];
 
+// Base UI's focus guards (#670, #692): a trapped overlay renders sentinel
+// <span>s with aria-hidden="true" and tabindex="0", and redirects focus the
+// moment one receives it. axe's aria-hidden-focus rule flags each one
+// statically. Upstream closed this as not a bug (mui/base-ui#5706, also
+// #5237), citing W3C ACT rule 6cfa84 Passed Example 4: focus never rests
+// there. Excluding just the guard elements keeps aria-hidden-focus on for
+// everything else. e2e/overlay-focus-guards.spec.ts is the runtime half of
+// this carve-out: it proves Tab never settles on a guard or any hidden
+// element, which axe's static reading can't observe.
+const BASE_UI_FOCUS_GUARD = '[data-base-ui-focus-guard]';
+
 /**
  * Scans every page of the demo (demoPages: Overview, the Encyclopedia index
  * and each component/Systems page, Kits) on whatever theme state the caller
@@ -114,6 +125,7 @@ async function scanEveryTab(page: Page): Promise<string[]> {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .disableRules(COLOR_CONTRAST_DISABLED)
       .exclude('iframe')
+      .exclude(BASE_UI_FOCUS_GUARD)
       .analyze();
     for (const violation of results.violations) {
       const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
@@ -151,6 +163,7 @@ async function runAxe(page: Page, extraDisabledRules: string[] = []) {
   return new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .disableRules([...COLOR_CONTRAST_DISABLED, ...extraDisabledRules])
+    .exclude(BASE_UI_FOCUS_GUARD)
     .analyze();
 }
 
