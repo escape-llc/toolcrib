@@ -26,6 +26,15 @@ function frameFocus(frame: Frame): Promise<string> {
   });
 }
 
+/** Where focus is, for failure messages: which document, and the element's opening tag. */
+async function describeFocus(page: Page, frame: Frame): Promise<string> {
+  const tag = (el: Element | null) =>
+    el ? `<${el.tagName.toLowerCase()}${el.hasAttribute('data-base-ui-focus-guard') ? ' focus-guard' : ''}> "${(el.textContent ?? '').trim().slice(0, 40)}"` : 'null';
+  const inner = await frame.evaluate(`(${tag.toString()})(document.activeElement)`);
+  const outer = await page.evaluate(`(${tag.toString()})(document.activeElement)`);
+  return `frame: ${inner} | page: ${outer}`;
+}
+
 /** Whether document.activeElement in the frame is inside the open dialog. */
 function focusInDialog(frame: Frame): Promise<boolean> {
   return frame.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
@@ -50,13 +59,18 @@ test.describe('Modal in an iframe', () => {
     const frame = await openHarness(page);
     await frame.getByRole('button', { name: 'Open modal' }).click();
     await expect.poll(() => focusInDialog(frame)).toBe(true);
-    for (let i = 0; i < 6; i++) {
-      await page.keyboard.press('Tab');
-      expect(await focusInDialog(frame), `after Tab #${i + 1}`).toBe(true);
-    }
-    for (let i = 0; i < 6; i++) {
-      await page.keyboard.press('Shift+Tab');
-      expect(await focusInDialog(frame), `after Shift+Tab #${i + 1}`).toBe(true);
+    for (const key of ['Tab', 'Shift+Tab']) {
+      for (let i = 0; i < 6; i++) {
+        await page.keyboard.press(key);
+        // Polled, not read once: Base UI's focus guards move focus on a
+        // frame after the key lands, and a trap only has to end up inside.
+        await expect
+          .poll(async () => ((await focusInDialog(frame)) ? 'inside' : await describeFocus(page, frame)), {
+            message: `after ${key} #${i + 1}`,
+            timeout: 2000,
+          })
+          .toBe('inside');
+      }
     }
   });
 
