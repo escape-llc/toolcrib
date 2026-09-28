@@ -155,11 +155,19 @@ jobs:
       # dot keeps it visually distinct as tool-generated, matching the
       # `.gemini/` gitignore convention already in this repo; it's never
       # committed, and the runner is discarded after the job either way.
+      # Generated files are filtered out first (issue #694): CI's check-*
+      # jobs already verify them, and regenerated artifacts made some
+      # reviews 10x their usual input size. The filter reads
+      # build-graph.json's declared outputs, so a new generator is covered
+      # automatically, and needs no npm install (see its header comment).
       - name: Write the PR diff to a file
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          gh pr diff "${{ github.event.pull_request.number }}" > "${GITHUB_WORKSPACE}/.gemini-review-diff.txt"
+          set -o pipefail
+          gh pr diff "${{ github.event.pull_request.number }}" \
+            | node scripts/filter-review-diff.js --count-file "${RUNNER_TEMP}/omitted-generated-count" \
+            > "${GITHUB_WORKSPACE}/.gemini-review-diff.txt"
 
       # `synchronize` (a new push to the same PR) re-runs this whole
       # workflow from scratch -- without this, each run has no memory of
@@ -277,6 +285,7 @@ jobs:
         run: |
           diff_bytes=$(wc -c < "${GITHUB_WORKSPACE}/.gemini-review-diff.txt" 2>/dev/null || echo 0)
           history_bytes=$(wc -c < "${GITHUB_WORKSPACE}/.gemini-review-history.txt" 2>/dev/null || echo 0)
+          omitted_generated=$(cat "${RUNNER_TEMP}/omitted-generated-count" 2>/dev/null || echo 0)
           {
             echo "🔎 **Gemini review** (\`${GEMINI_MODEL_NAME}\`)"
             echo ''
@@ -293,6 +302,7 @@ jobs:
             echo "created_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "diff_bytes: ${diff_bytes// /}"
             echo "history_bytes: ${history_bytes// /}"
+            echo "omitted_generated_files: ${omitted_generated}"
             echo "review_chars: ${#REVIEW}"
             echo '```'
             echo ''
