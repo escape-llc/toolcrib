@@ -30,6 +30,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { ROOT, COMPONENTS_DIR, listSourceFiles, parse, findComponentDeclarations } from './lib/extract.js';
 import { SEGMENTS, SPLIT_CATEGORIES, getSegmentForDate, findSegmentById, findCategorySplitDrift } from './lib/auditSegments.js';
+import { GRAPH } from './lib/buildGraph.js';
+import { isGeneratedPath } from './lib/generatedPaths.js';
 
 function toRepoRelativePosix(absPath) {
   return path.relative(ROOT, absPath).split(path.sep).join('/');
@@ -70,14 +72,15 @@ function gitLsFiles(repoRelativeDir) {
 // real against this repo's own tree: demo/toolcrib-256x256.png (binary --
 // fs.readFileSync(..., 'utf-8') on it produces garbage, not a helpful
 // review target) and scripts/package-lock.json (65KB of auto-generated
-// noise no review has any use for). Reviewable source/text only.
+// noise no review has any use for). Reviewable source/text only, and never a
+// generated file (issue #694: build-graph outputs such as the 70KB
+// demo/demoSources.generated.json, plus lockfiles), since CI's check-* jobs
+// already verify those against their source.
 const REVIEWABLE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.md', '.css', '.yml', '.yaml', '.html']);
-const EXCLUDED_BASENAMES = new Set(['package-lock.json']);
 
 function isReviewable(repoRelativePath) {
-  const basename = path.basename(repoRelativePath);
-  if (EXCLUDED_BASENAMES.has(basename)) return false;
-  return REVIEWABLE_EXTENSIONS.has(path.extname(basename));
+  if (isGeneratedPath(GRAPH, repoRelativePath)) return false;
+  return REVIEWABLE_EXTENSIONS.has(path.extname(repoRelativePath));
 }
 
 function resolveSegmentFiles(segment, componentIndex) {
