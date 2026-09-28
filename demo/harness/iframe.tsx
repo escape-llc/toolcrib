@@ -61,6 +61,19 @@ const Harness: React.FC = () => {
   return (
     <VStack>
       <Button>Outer page button</Button>
+      {/* Same-document control: tells an iframe-specific failure from a
+          general one in the same engine. */}
+      <Modal ariaLabel="Outer modal" trigger={<Button>Open outer modal</Button>}>
+        <Modal.Body>
+          <VStack>
+            <Button>First inside</Button>
+            <Button>Second inside</Button>
+          </VStack>
+        </Modal.Body>
+        <Modal.Footer>
+          <Modal.CloseButton />
+        </Modal.Footer>
+      </Modal>
       {/* Raw element: nothing in toolcrib renders an iframe. Sized with theme
           vars and rem only. */}
       <iframe

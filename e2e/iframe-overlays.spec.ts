@@ -55,24 +55,27 @@ test.describe('Modal in an iframe', () => {
     await expect.poll(() => focusInDialog(frame)).toBe(true);
   });
 
-  test('traps Tab inside the dialog', async ({ page }) => {
-    const frame = await openHarness(page);
-    await frame.getByRole('button', { name: 'Open modal' }).click();
-    await expect.poll(() => focusInDialog(frame)).toBe(true);
-    for (const key of ['Tab', 'Shift+Tab']) {
-      for (let i = 0; i < 6; i++) {
-        await page.keyboard.press(key);
-        // Polled, not read once: Base UI's focus guards move focus on a
-        // frame after the key lands, and a trap only has to end up inside.
-        await expect
-          .poll(async () => ((await focusInDialog(frame)) ? 'inside' : await describeFocus(page, frame)), {
-            message: `after ${key} #${i + 1}`,
-            timeout: 2000,
-          })
-          .toBe('inside');
+  for (const where of ['iframe', 'same-document control'] as const) {
+    test(`traps Tab inside the dialog (${where})`, async ({ page }) => {
+      const iframe = await openHarness(page);
+      const frame = where === 'iframe' ? iframe : page.mainFrame();
+      await frame.getByRole('button', { name: where === 'iframe' ? 'Open modal' : 'Open outer modal' }).click();
+      await expect.poll(() => focusInDialog(frame)).toBe(true);
+      for (const key of ['Tab', 'Shift+Tab']) {
+        for (let i = 0; i < 6; i++) {
+          await page.keyboard.press(key);
+          // Polled, not read once: Base UI's focus guards move focus on a
+          // frame after the key lands, and a trap only has to end up inside.
+          await expect
+            .poll(async () => ((await focusInDialog(frame)) ? 'inside' : await describeFocus(page, frame)), {
+              message: `after ${key} #${i + 1}`,
+              timeout: 2000,
+            })
+            .toBe('inside');
+        }
       }
-    }
-  });
+    });
+  }
 
   test('Escape closes and focus returns to the trigger', async ({ page }) => {
     const frame = await openHarness(page);
