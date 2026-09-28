@@ -1,5 +1,7 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { Toast as BaseToast } from '@base-ui/react/toast';
 import { type ToastAnchor, useToast, useToastActions } from '../components/Toast/ToastContext';
 import { ToastProviderBaseUI as ToastProvider } from '../components/Toast/ToastBaseUI';
 import { ToastContainerBaseUI as ToastContainer } from '../components/Toast/ToastBaseUI';
@@ -288,9 +290,7 @@ describe('Toast Subsystem Event Generation', () => {
       );
 
       fireEvent.click(screen.getByText('Trigger Toast'));
-      // ToastPrimitive.Viewport renders as a plain <ol> with no distinguishing
-      // role/label — the toast list itself, found via its known children.
-      const viewport = screen.getByText('Toast message').closest('ol')!;
+      const viewport = screen.getByRole('region', { name: /Notifications/ });
       for (const declaration of expectedCss.split(';').filter(Boolean)) {
         const [prop, value] = declaration.trim().split(':').map(s => s.trim());
         expect(viewport.style.getPropertyValue(prop)).toBe(value);
@@ -423,7 +423,120 @@ describe('Toast Subsystem Event Generation', () => {
       aiBus.emit('toast:shown', { id: 'bus-toast', type: 'info', message: 'From the bus', priority: 'high' });
     });
 
-    expect(screen.getByText('From the bus')).toBeInTheDocument();
+    // The toast itself, not its screen-reader announcement copy.
+    expect(screen.getByTestId('toast-item')).toHaveTextContent('From the bus');
+  });
+
+  // Announcements come from the toolkit's own live regions (ToastAnnouncer),
+  // not Base UI's high-priority path, which aria-hides a focusable toast
+  // (mui/base-ui#5659).
+  describe('screen-reader announcements', () => {
+    const show = (priority: 'low' | 'medium' | 'high' | 'urgent', message: string) =>
+      act(() => {
+        aiBus.emit('toast:shown', { id: `t-${priority}`, type: 'info', message, priority });
+      });
+    const renderContainer = () =>
+      render(
+        <ToastProvider>
+          <ToastContainer />
+        </ToastProvider>
+      );
+
+    it('announces low and medium toasts politely, high and urgent ones assertively', async () => {
+      renderContainer();
+      show('medium', 'Saved');
+      show('urgent', 'Connection lost');
+      const polite = screen.getByTestId('toast-announcer-polite');
+      const assertive = screen.getByTestId('toast-announcer-assertive');
+      expect(polite).toHaveAttribute('aria-live', 'polite');
+      expect(assertive).toHaveAttribute('role', 'alert');
+      await waitFor(() => expect(polite).toHaveTextContent('Saved'));
+      await waitFor(() => expect(assertive).toHaveTextContent('Connection lost'));
+      expect(polite).not.toHaveTextContent('Connection lost');
+      expect(assertive).not.toHaveTextContent('Saved');
+    });
+
+    it('re-announces a toast whose message changes (a settled promise toast)', async () => {
+      renderContainer();
+      act(() => {
+        aiBus.emit('toast:shown', { id: 'job', type: 'info', message: 'Uploading…', priority: 'medium', loading: true });
+      });
+      const polite = screen.getByTestId('toast-announcer-polite');
+      await waitFor(() => expect(polite).toHaveTextContent('Uploading…'));
+      act(() => {
+        aiBus.emit('toast:updated', { id: 'job', type: 'success', message: 'Uploaded', loading: false });
+      });
+      await waitFor(() => expect(polite).toHaveTextContent('Uploaded'));
+    });
+
+    it('clears the announcement copy once read, leaving one copy of the text on the page', async () => {
+      renderContainer();
+      show('medium', 'Transient');
+      const polite = screen.getByTestId('toast-announcer-polite');
+      await waitFor(() => expect(polite).toHaveTextContent('Transient'));
+      await waitFor(() => expect(polite).not.toHaveTextContent('Transient'), { timeout: 2000 });
+      expect(screen.getAllByText('Transient')).toHaveLength(1);
+    });
+
+    it('the live regions exist before any toast, so the first one is announced', () => {
+      renderContainer();
+      expect(screen.getByTestId('toast-announcer-polite')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-announcer-assertive')).toBeInTheDocument();
+    });
+
+    it('never hides a toast from assistive tech, whatever its priority', () => {
+      renderContainer();
+      show('high', 'High one');
+      show('urgent', 'Urgent one');
+      for (const toast of screen.getAllByTestId('toast-item')) {
+        expect(toast.closest('[aria-hidden="true"]')).toBeNull();
+      }
+    });
+
+    it('a toast is a named group, not a dialog, so it never reads as an open dialog', () => {
+      renderContainer();
+      show('medium', 'Named by its message');
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(screen.getByRole('group', { name: 'Named by its message' })).toBe(screen.getByTestId('toast-item'));
+    });
+
+    it('the viewport does not announce as well (no double announcement)', () => {
+      renderContainer();
+      show('medium', 'Once only');
+      expect(screen.getByRole('region', { name: /Notifications/ })).toHaveAttribute('aria-live', 'off');
+    });
+
+    // Pins mui/base-ui#5659. Fails once Base UI stops aria-hiding a focusable
+    // high-priority toast: then ToastAnnouncer can likely go (see #5731).
+    it('pin: Base UI still aria-hides a focusable high-priority toast (mui/base-ui#5659)', () => {
+      const Probe = () => {
+        const manager = BaseToast.useToastManager();
+        React.useEffect(() => {
+          manager.add({ title: 'Probe', description: 'Probe', priority: 'high', timeout: 0 });
+          // eslint-disable-next-line react-hooks/exhaustive-deps -- once
+        }, []);
+        return (
+          <BaseToast.Portal>
+            <BaseToast.Viewport>
+              {manager.toasts.map(t => (
+                <BaseToast.Root key={t.id} toast={t} data-testid="probe-root">
+                  <BaseToast.Title />
+                </BaseToast.Root>
+              ))}
+            </BaseToast.Viewport>
+          </BaseToast.Portal>
+        );
+      };
+      render(
+        <BaseToast.Provider>
+          <Probe />
+        </BaseToast.Provider>
+      );
+      const root = screen.getByTestId('probe-root');
+      expect(root).toHaveAttribute('aria-hidden', 'true');
+      expect(root).toHaveAttribute('tabindex', '0');
+    });
   });
 
   it('useToast throws when called outside a ToastProvider', () => {

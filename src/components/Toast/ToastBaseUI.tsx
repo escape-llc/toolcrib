@@ -26,6 +26,7 @@ import { useNonce } from '../../theme/nonceContext';
 import { resolveColorVariant } from '../../theme/colorVariant';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { Spinner } from '../Spinner/Spinner';
+import { VisuallyHidden } from '../Layout/VisuallyHidden';
 
 type DismissReason = 'user' | 'expired' | 'action';
 interface ToastData {
@@ -41,7 +42,9 @@ const deriveSticky = (t: ToastItem): ToastItem => {
   const sticky = Boolean(t.sticky || t.duration === 0 || t.priority === 'urgent');
   return { ...t, sticky, duration: sticky ? 0 : t.duration ?? 5000 };
 };
-const basePriority = (t: ToastItem): 'low' | 'high' => (t.priority === 'high' || t.priority === 'urgent' ? 'high' : 'low');
+// Always low: Base UI's high priority aria-hides a focusable toast
+// (mui/base-ui#5659). Urgency is announced by ToastAnnouncer instead.
+const basePriority = (): 'low' => 'low';
 
 /** Drop-in for `<ToastProvider>` (spike). */
 export const ToastProviderBaseUI: React.FC<{ children: ReactNode; defaultAnchor?: ToastAnchor }> = ({ children, defaultAnchor = 'top-right' }) => (
@@ -69,7 +72,7 @@ const Bridge: React.FC<{ children: ReactNode; defaultAnchor: ToastAnchor }> = ({
         description: item.message,
         type: item.type,
         timeout: timeoutFor(item),
-        priority: basePriority(item),
+        priority: basePriority(),
         data: { item },
         onClose: () => {
           if (!reasons.current.has(id)) {
@@ -92,7 +95,7 @@ const Bridge: React.FC<{ children: ReactNode; defaultAnchor: ToastAnchor }> = ({
     (id: string, patch: Partial<Omit<ToastItem, 'id'>>) => {
       manager.update(id, prev => {
         const next = deriveSticky({ ...(prev.data as ToastData).item, ...patch });
-        return { title: next.title, description: next.message, type: next.type, timeout: timeoutFor(next), priority: basePriority(next), data: { item: next } };
+        return { title: next.title, description: next.message, type: next.type, timeout: timeoutFor(next), priority: basePriority(), data: { item: next } };
       });
     },
     [manager]
@@ -214,21 +217,99 @@ export const ToastContainerBaseUI: React.FC = () => {
   });
   const offsetFor = (id: string, ending: boolean) => (ending ? frozen[id] ?? lastOpen.current.get(id) ?? 0 : open.get(id) ?? 0);
 
-  if (newestFirst.length === 0) return null;
   const vertical = anchor.startsWith('bottom') ? { bottom: 0 } : { top: 0 };
   const horizontal = anchor.endsWith('left') ? { left: 0 } : anchor.endsWith('right') ? { right: 0 } : { left: '50%', transform: 'translateX(-50%)' };
+  const showing = oldestFirst.filter(t => t.transitionStatus !== 'ending').map(t => (t.data as ToastData).item);
 
   return (
     <BaseToast.Portal container={targetDocument?.body}>
-      <BaseToast.Viewport
-        className="ai-focus-ring"
-        style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, height: '100vh', width: '100%', padding: '1rem', boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...vertical, ...horizontal }}
-      >
-        {oldestFirst.map(t => (
-          <ToastItemBaseUI key={t.id} toast={t} anchor={anchor} stackOffset={offsetFor(t.id, t.transitionStatus === 'ending')} />
-        ))}
-      </BaseToast.Viewport>
+      {/* Mounted before the first toast: a live region only announces
+          changes that happen after it exists. */}
+      <ToastAnnouncer toasts={showing} />
+      {newestFirst.length > 0 && (
+        <BaseToast.Viewport
+          // Announcements come from ToastAnnouncer, not the viewport.
+          aria-live="off"
+          className="ai-focus-ring"
+          style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, height: '100vh', width: '100%', padding: '1rem', boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...vertical, ...horizontal }}
+        >
+          {oldestFirst.map(t => (
+            <ToastItemBaseUI key={t.id} toast={t} anchor={anchor} stackOffset={offsetFor(t.id, t.transitionStatus === 'ending')} />
+          ))}
+        </BaseToast.Viewport>
+      )}
     </BaseToast.Portal>
+  );
+};
+
+/** Whether a toast is announced assertively (role="alert") rather than politely. */
+const isUrgent = (t: ToastItem) => t.priority === 'high' || t.priority === 'urgent';
+
+/**
+ * Screen-reader announcements for toasts, in two live regions this toolkit
+ * owns: `high`/`urgent` toasts in role="alert" (assertive), the rest in
+ * role="status" (polite).
+ *
+ * Fallback for mui/base-ui#5659. Base UI announces a high-priority toast from
+ * a hidden role="alert" copy and sets aria-hidden on the visible toast, which
+ * stays focusable. Here every toast goes to Base UI as low priority (visible,
+ * focusable, never aria-hidden) and the viewport's own polite region is off,
+ * so each toast is announced exactly once, at the right politeness.
+ * mui/base-ui#5731 proposes the same shape upstream; if it lands, this can go.
+ *
+ * Each announcement is keyed by its text, so a promise toast whose message
+ * changes (loading, then done) is announced again. Like Radix's toast
+ * announcer, the text is inserted a moment after the toast appears (the
+ * insertion is what a live region reports) and removed once it has had time
+ * to be read (removals aren't announced), so the page doesn't carry a second
+ * copy of every toast's text.
+ */
+const ANNOUNCE_DELAY_MS = 50;
+const ANNOUNCE_HOLD_MS = 1000;
+interface Announcement {
+  key: string;
+  text: string;
+  urgent: boolean;
+}
+
+const ToastAnnouncer: React.FC<{ toasts: ToastItem[] }> = ({ toasts }) => {
+  const [live, setLive] = useState<Announcement[]>([]);
+  const seen = useRef(new Set<string>());
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+
+  useEffect(() => {
+    const fresh = toasts
+      .map(t => ({ key: `${t.id}:${t.title ?? ''}:${t.message}`, text: t.title ? `${t.title}. ${t.message}` : t.message, urgent: isUrgent(t) }))
+      .filter(a => !seen.current.has(a.key));
+    if (fresh.length === 0) return;
+    for (const a of fresh) seen.current.add(a.key);
+    const later = (ms: number, fn: () => void) => {
+      const timer = setTimeout(() => {
+        timers.current.delete(timer);
+        fn();
+      }, ms);
+      timers.current.add(timer);
+    };
+    later(ANNOUNCE_DELAY_MS, () => setLive(prev => [...prev, ...fresh]));
+    later(ANNOUNCE_DELAY_MS + ANNOUNCE_HOLD_MS, () => setLive(prev => prev.filter(a => !fresh.includes(a))));
+  }, [toasts]);
+
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
+  }, []);
+
+  const entries = (urgent: boolean) =>
+    live.filter(a => a.urgent === urgent).map(a => <span key={a.key}>{a.text} </span>);
+  return (
+    <>
+      <div role="status" aria-live="polite" aria-atomic="false" data-testid="toast-announcer-polite">
+        <VisuallyHidden>{entries(false)}</VisuallyHidden>
+      </div>
+      <div role="alert" aria-atomic="false" data-testid="toast-announcer-assertive">
+        <VisuallyHidden>{entries(true)}</VisuallyHidden>
+      </div>
+    </>
   );
 };
 
@@ -245,8 +326,18 @@ const ToastItemBaseUI: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; s
       toast={t}
       swipeDirection="right"
       data-testid="toast-item"
-      // Base UI renders each toast as role=alertdialog, which needs a name;
-      // most toolcrib toasts have no title, so the message names it.
+      // Base UI makes each toast a non-modal role=dialog. A toast isn't one:
+      // screen readers would list every toast among the page's dialogs, and
+      // anything finding "the open dialog" by role (a consumer's
+      // getByRole('dialog') for their Modal, our own e2e overlay checks)
+      // would also match whatever toasts are on screen. A named group is the
+      // neutral container for a focusable cluster of controls.
+      role="group"
+      // Base UI's aria-modal="false" belongs to its dialog role; on a group
+      // it's an unsupported attribute (axe aria-allowed-attr).
+      aria-modal={undefined}
+      // A group needs a name; most toolcrib toasts have no title, so the
+      // message names it.
       aria-label={item.title ? undefined : item.message}
       data-loading={item.loading ? '' : undefined}
       aria-busy={item.loading || undefined}
