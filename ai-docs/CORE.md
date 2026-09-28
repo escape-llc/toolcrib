@@ -265,7 +265,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<RangeCalendar>` | — | `name`, `value`, `defaultValue`, `onChange`, `minValue`, `maxValue`, `isDisabled`, `locale`, `overrides`, `size` | Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components |
 | `<RangeSlider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `minStepsBetweenThumbs`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `thumbLabels`, `overrides` | Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider |
 | `<Rating>` | — | `name`, `value`, `defaultValue`, `onChange`, `max`, `icon`, `readOnly`, `overrides` | Star rating control built on Radix RadioGroup, or a read-only fractional-fill display |
-| `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides`, `size`, `squareCorners` | Dropdown select control bound to Form context, built on Radix Select |
+| `<Select>` | — | `id`, `name`, `placeholder`, `options`, `value`, `defaultValue`, `onChange`, `disabled`, `overrides`, `size`, `squareCorners` | Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox |
 | `<Slider>` | — | `id`, `name`, `value`, `defaultValue`, `min`, `max`, `step`, `onChange`, `disabled`, `commitOnRelease`, `ariaLabel`, `overrides` | Range input control built on Radix Slider |
 | `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot` | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing. |
