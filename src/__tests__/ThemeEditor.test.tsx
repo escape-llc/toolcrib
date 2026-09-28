@@ -7,6 +7,19 @@ import { globalThemeSliceRegistry } from '../theme/slice';
 import { SLICE_EDITOR_CONTROLS } from '../components/ThemeEditor/sliceEditorControls';
 import { axe } from './testUtils/axe';
 
+/**
+ * An option that isn't the current value, whichever select implementation
+ * rendered it (Radix marks the selected item data-state="checked"; the
+ * toolkit's Listbox marks it aria-selected="true").
+ */
+const isUnselected = (opt: HTMLElement) =>
+  opt.getAttribute('data-state') !== 'checked' && opt.getAttribute('aria-selected') !== 'true';
+
+/** Picks an option the way a pointer does: press, then click. */
+const pickOption = (opt: HTMLElement) => {
+  fireEvent.mouseDown(opt);
+  fireEvent.click(opt);
+};
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
 // RadixPrimitives.test.tsx and eventBusTraffic.test.tsx for the same reason.
@@ -287,13 +300,12 @@ describe('ThemeEditor', () => {
 
           const listbox = screen.getByRole('listbox');
           const options = within(listbox).getAllByRole('option');
-          // Pick any option that isn't already selected (Radix marks the
-          // current value's Item with data-state="checked") — its label is
-          // read here, before the click, since the option itself grows a
-          // "✓" ItemIndicator the instant it becomes selected.
-          const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+          // Pick any option that isn't already selected -- its label is read
+          // here, before the pick, since the option itself grows a "✓" the
+          // instant it becomes selected.
+          const target = options.find(opt => isUnselected(opt)) ?? options[0];
           const targetLabel = target.textContent ?? '';
-          fireEvent.click(target);
+          pickOption(target);
 
           // A single-option field can't demonstrate a value *change*, but
           // still exercises onChange being wired up and callable.
@@ -345,9 +357,9 @@ describe('ThemeEditor', () => {
         fireEvent.click(combo);
         const listbox = screen.getByRole('listbox');
         const options = within(listbox).getAllByRole('option');
-        const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+        const target = options.find(opt => isUnselected(opt)) ?? options[0];
         const targetLabel = target.textContent ?? '';
-        fireEvent.click(target);
+        pickOption(target);
         expect(combo.textContent).toContain(targetLabel);
       }
     });
@@ -360,9 +372,9 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => isUnselected(opt))!;
       const targetLabel = target.textContent ?? '';
-      fireEvent.click(target);
+      pickOption(target);
       expect(combo.textContent).toContain(targetLabel);
 
       const slider = screen.getByRole('slider');
@@ -379,9 +391,9 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => isUnselected(opt))!;
       const targetLabel = target.textContent ?? '';
-      fireEvent.click(target);
+      pickOption(target);
       expect(combo.textContent).toContain(targetLabel);
 
       // commitOnRelease Sliders fire onValueCommit (not onValueChange) — a
@@ -414,9 +426,9 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => isUnselected(opt))!;
       const targetLabel = target.textContent ?? '';
-      fireEvent.click(target);
+      pickOption(target);
       expect(combo.textContent).toContain(targetLabel);
 
       // Named query, not a bare getByRole('slider') -- regression: this
@@ -463,7 +475,7 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const monochromaticOption = within(listbox).getByRole('option', { name: 'Monochromatic' });
-      fireEvent.click(monochromaticOption);
+      pickOption(monochromaticOption);
 
       expect(secondarySwatch.textContent).not.toBe(before);
 

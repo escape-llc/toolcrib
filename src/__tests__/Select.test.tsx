@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { ComponentProps } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import { Select } from '../components/Form/Select';
@@ -36,10 +37,13 @@ describe('Select Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  // Issue #625: Radix's Select.Viewport renders its own <style> (hiding the
-  // native scrollbar). Without the configured nonce, a strict style-src CSP
-  // blocks it -- found by e2e/csp-nonce.spec.ts's production-build test.
-  it('passes the configured CSP nonce to the listbox viewport\'s own <style>', async () => {
+  // Issue #625: a <style> injected while the listbox opens (Radix's
+  // Select.Viewport injected one) is blocked by a strict style-src CSP unless
+  // it carries the configured nonce -- found by e2e/csp-nonce.spec.ts's
+  // production-build test. Checks every style that appears while this Select
+  // renders and opens, whichever layer injected it.
+  it('gives every <style> it injects the configured CSP nonce', async () => {
+    const before = new Set(document.querySelectorAll('style'));
     render(
       <NonceContext.Provider value="test-nonce-625">
         <Select value="editor" onChange={vi.fn()} options={options} aria-label="Role" />
@@ -47,9 +51,8 @@ describe('Select Component', () => {
     );
     fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
-    const styles = Array.from(document.querySelectorAll('style')).filter(s => s.textContent?.includes('select-viewport'));
-    expect(styles.length).toBeGreaterThan(0);
-    for (const s of styles) expect(s.getAttribute('nonce')).toBe('test-nonce-625');
+    const added = Array.from(document.querySelectorAll('style')).filter(s => !before.has(s));
+    for (const s of added) expect(s.getAttribute('nonce')).toBe('test-nonce-625');
   });
 
   // Regression: a standalone <Select defaultValue="..."> (no Form ancestor,
@@ -68,11 +71,102 @@ describe('Select Component', () => {
 
     fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('option', { name: 'Viewer' }));
+    // Press then click, as a pointer does: the toolkit's Listbox selects on
+    // press (Radix selected on click).
+    const viewer = screen.getByRole('option', { name: 'Viewer' });
+    fireEvent.mouseDown(viewer);
+    fireEvent.click(viewer);
 
     expect(onChange).toHaveBeenCalledWith('viewer');
     await waitFor(() => expect(screen.getByText('Viewer')).toBeInTheDocument());
     expect(screen.queryByText('Editor')).not.toBeInTheDocument();
+  });
+
+  // The keyboard model is the WAI-ARIA APG select-only combobox: focus stays
+  // on the trigger, and aria-activedescendant names the highlighted option.
+  describe('keyboard (select-only combobox)', () => {
+    const withDisabled = [
+      { label: 'Admin', value: 'admin' },
+      { label: 'Editor', value: 'editor', disabled: true },
+      { label: 'Viewer', value: 'viewer' },
+      { label: 'Visitor', value: 'visitor' },
+    ];
+    const setup = (props: Partial<ComponentProps<typeof Select>> = {}) => {
+      const onChange = vi.fn();
+      render(<Select options={withDisabled} onChange={onChange} aria-label="Role" {...props} />);
+      const trigger = screen.getByRole('combobox');
+      trigger.focus();
+      const active = () => {
+        const id = trigger.getAttribute('aria-activedescendant');
+        return id ? document.getElementById(id)?.textContent?.replace('✓', '') : undefined;
+      };
+      return { onChange, trigger, active };
+    };
+
+    it('ArrowDown opens on the selected option; arrows skip disabled options', () => {
+      const { trigger, active } = setup({ defaultValue: 'admin' });
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      expect(active()).toBe('Admin');
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      expect(active()).toBe('Viewer');
+      fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+      expect(active()).toBe('Admin');
+      fireEvent.keyDown(trigger, { key: 'End' });
+      expect(active()).toBe('Visitor');
+      fireEvent.keyDown(trigger, { key: 'Home' });
+      expect(active()).toBe('Admin');
+    });
+
+    it('Enter picks the highlighted option and closes; focus stays on the trigger', () => {
+      const { trigger, onChange } = setup();
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      fireEvent.keyDown(trigger, { key: 'Enter' });
+      expect(onChange).toHaveBeenCalledWith('viewer');
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      expect(trigger).toHaveTextContent('Viewer');
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it('Escape and Tab close without changing the value', () => {
+      const { trigger, onChange } = setup({ defaultValue: 'admin' });
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      fireEvent.keyDown(trigger, { key: 'Escape' });
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      fireEvent.keyDown(trigger, { key: 'Tab' });
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      expect(onChange).not.toHaveBeenCalled();
+      expect(trigger).toHaveTextContent('Admin');
+    });
+
+    it('typing jumps to the first match; repeating a letter cycles through matches', () => {
+      const { trigger, active } = setup();
+      fireEvent.keyDown(trigger, { key: 'v' });
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      expect(active()).toBe('Viewer');
+      fireEvent.keyDown(trigger, { key: 'v' });
+      expect(active()).toBe('Visitor');
+    });
+
+    it('typing several letters matches the whole prefix', () => {
+      const { trigger, active } = setup();
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      for (const key of 'vis') fireEvent.keyDown(trigger, { key });
+      expect(active()).toBe('Visitor');
+    });
+
+    it('never highlights or picks a disabled option', () => {
+      const { trigger, onChange, active } = setup();
+      fireEvent.keyDown(trigger, { key: 'e' });
+      expect(active()).not.toBe('Editor');
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+      const editor = screen.getByRole('option', { name: 'Editor' });
+      fireEvent.mouseDown(editor);
+      expect(onChange).not.toHaveBeenCalledWith('editor');
+    });
   });
 
   describe('regression: FormField name inheritance and touched-on-submit', () => {

@@ -279,21 +279,12 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // conditional branches driven by instance props, so one representative,
   // properly-labeled instance covers the real gap.
   //
-  // Shares the identical aria-hidden-focus carve-out DropdownMenu/
-  // ContextMenu already use above, for the identical underlying reason.
-  // @radix-ui/react-select's own SelectContentImpl calls the same
-  // `hideOthers()` (from the `aria-hidden` package) on mount that Radix's
-  // Menu-family primitives do -- `if (content) return hideOthers(content);`
-  // in node_modules/@radix-ui/react-select/dist/index.mjs -- which is what
-  // flags #root as "aria-hidden with a focusable descendant" here.
-  // Confirmed directly (not just by source reading), same discipline as
-  // the original carve-out above: a real Tab-trace with the dropdown open
-  // (6 presses) left focus on an option inside the listbox every time,
-  // never escaping to the sidebar or anything else nominally tabbable
-  // underneath -- Radix's FocusScope genuinely traps Tab inside
-  // Select.Content while open, axe just can't observe that at runtime.
+  // SPIKE (#670): no aria-hidden-focus carve-out any more. The Radix Select
+  // called hideOthers() on open, aria-hiding #root; the select-only combobox
+  // hides nothing, so the only findings left are Base UI's focus guards
+  // (option (a)'s exclusion).
   await page.getByRole('combobox', { name: 'Role Level' }).click();
-  await scanNamed('Select (Role Level dropdown)', ARIA_HIDDEN_FOCUS_DISABLED);
+  await scanNamed('Select (Role Level dropdown)');
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Encyclopedia', 'DatePicker');
