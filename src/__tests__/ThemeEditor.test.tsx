@@ -6,6 +6,7 @@ import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
 import { globalThemeSliceRegistry } from '../theme/slice';
 import { SLICE_EDITOR_CONTROLS } from '../components/ThemeEditor/sliceEditorControls';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -173,7 +174,9 @@ describe('ThemeEditor', () => {
       renderEditor();
 
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      });
       expect(screen.getByPlaceholderText('Theme name...')).toBeInTheDocument();
       // Open-portal-state scan: the "Save current theme" Popup's real
       // content now mounted.
@@ -185,24 +188,32 @@ describe('ThemeEditor', () => {
       fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'My Saved Theme' } });
       expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      });
 
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument(); // popup closed itself
       expect(screen.getByRole('button', { name: 'My Saved Theme' })).toBeInTheDocument(); // now in the Saved list
     });
 
-    it('discards the typed name and closes on Cancel, without saving anything', () => {
+    it('discards the typed name and closes on Cancel, without saving anything', async () => {
       renderEditor();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      });
       fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'Abandoned Theme' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      });
 
       expect(screen.queryByPlaceholderText('Theme name...')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Abandoned Theme' })).not.toBeInTheDocument();
 
       // Reopening starts fresh — Cancel cleared the name, not just hid the popup.
-      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      });
       expect(screen.getByPlaceholderText('Theme name...')).toHaveValue('');
     });
   });
@@ -477,9 +488,11 @@ describe('ThemeEditor', () => {
   });
 
   describe('regression coverage: Save & Load Themes toolbar handlers', () => {
-    it('loading a bundled preset applies its snapshot (color swatch reflects the new base color)', () => {
+    it('loading a bundled preset applies its snapshot (color swatch reflects the new base color)', async () => {
       renderEditor();
-      fireEvent.click(screen.getByRole('button', { name: 'Theme presets' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Theme presets' }));
+      });
 
       // Presets render as their emoji + first word only (see ThemeEditor's
       // own comment on why) — "Tailwind (Default)" for example is only
@@ -491,6 +504,7 @@ describe('ThemeEditor', () => {
       // Loading a preset shouldn't throw, and the popup stays interactive
       // (Popup itself isn't asserted closed — presets don't auto-close it).
       expect(() => fireEvent.click(presetButtons[0])).not.toThrow();
+      await actAndSettle(() => {});
     });
 
     it('Export theme downloads a .json snapshot via Blob/createObjectURL', () => {
@@ -562,12 +576,16 @@ describe('ThemeEditor', () => {
       });
     });
 
-    it('loading and then deleting a saved theme both work from the Saved list', () => {
+    it('loading and then deleting a saved theme both work from the Saved list', async () => {
       renderEditor();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save current theme' }));
+      });
       fireEvent.change(screen.getByPlaceholderText('Theme name...'), { target: { value: 'Regression Theme' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await actAndSettle(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      });
 
       const loadButton = screen.getByRole('button', { name: 'Regression Theme' });
       expect(() => fireEvent.click(loadButton)).not.toThrow();

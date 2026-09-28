@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { actAndSettle } from './testUtils/overlay';
 import { Popup } from '../components/Overlay/Popup';
 import { Drawer } from '../components/Overlay/Drawer';
 import { Modal } from '../components/Overlay/Modal';
@@ -28,12 +29,10 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.queryByText('Popup Content')).not.toBeInTheDocument();
   });
 
-  // Issue #421: Radix's own default close-autofocus targets whatever it
-  // stored as "the trigger" -- but `asChild` (Popup.tsx) binds that ref to
-  // the plain, non-focusable wrapper <div> around the real trigger, not
-  // the real trigger itself. Focusing a non-focusable div is a silent
-  // no-op, so focus fell through to <body> on every close before this fix
-  // (confirmed directly against a real running demo, not assumed).
+  // Issue #421: the Radix version wrapped the trigger in a non-focusable
+  // <div> for `asChild`, so its close-autofocus landed on that div and focus
+  // fell through to <body>. Base UI renders the trigger as the consumer's
+  // own element (#696), so focus return is the default; this guards it.
   it('returns focus to the real trigger element after closing, not <body> (issue #421)', async () => {
     render(
       <Popup trigger={<Button>Open Popup</Button>}>
@@ -141,27 +140,27 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(container.style.borderRadius).toBe('var(--ai-radius-lg, 0.75rem)');
     expect(screen.getByText('Modal Title')).toBeInTheDocument();
     // Open-state scan: full dialog content (header/body/footer/close
-    // button) now mounted. aria-hidden-focus disabled -- Radix's own
-    // hideOthers() (real focus-trap behavior neither axe variant can
-    // observe) reads as an aria-hidden ancestor with a focusable
-    // descendant to static analysis, same carve-out DropdownMenu.test.tsx's
-    // own open-state scan already needs.
+    // button) now mounted. aria-hidden-focus disabled: the modal dialog
+    // aria-hides the page behind it and adds focus guards, and static
+    // analysis reads both as aria-hidden with a focusable descendant. The
+    // focus trap that makes that safe is runtime behavior axe can't see;
+    // e2e/overlay-focus-guards.spec.ts checks it in a real browser.
     expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();
   });
 
-  // Regression guard: @radix-ui/react-dialog's own DialogContent never sets
-  // aria-modal itself (confirmed directly in its source -- it relies on the
-  // `aria-hidden` package's hideOthers() to hide siblings instead, which
-  // achieves real modal *behavior* but not the spec-declared attribute).
+  // Regression guard: neither Radix's DialogContent nor Base UI's
+  // Dialog.Popup (@base-ui/react 1.8, checked in its source) sets
+  // aria-modal itself. Both hide the rest of the page instead, which gives
+  // real modal *behavior* but not the spec-declared attribute.
   // Nothing about the dialog looks or behaves broken without it, and
   // aria-modal isn't a *required* attribute for role="dialog" -- so neither
   // axe-core nor manual interaction testing would ever flag its absence.
   // Modal.tsx now sets it explicitly; this test is the only thing standing
   // between that and a silent regression next time Content's props change.
-  it('declares aria-modal="true" explicitly, since the underlying Radix primitive never sets it itself', () => {
+  it('declares aria-modal="true" explicitly, since the underlying primitive never sets it itself', () => {
     render(
       <Modal trigger={<Button>Open Modal</Button>}>
         <Modal.Body>Content</Modal.Body>
@@ -300,11 +299,8 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       expect(button.style.borderBottomLeftRadius).toBe('');
     });
 
-    // Radix's own default close-autofocus (not Popup's #421 override,
-    // which is deliberately skipped in anchor mode -- see Popup.tsx's own
-    // comment) should still correctly return focus to the real button,
-    // since Popup.Trigger's asChild wraps it directly with no
-    // intermediate wrapper div for the ref to bind to instead.
+    // Focus returns to the real nested button: Popup.Trigger renders it
+    // directly, with no wrapper for the trigger ref to bind to instead.
     it('returns focus to the real nested trigger button after closing, not <body>', async () => {
       renderAnchorPopup();
       const button = screen.getByText('Open calendar');
@@ -323,8 +319,8 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     // plain style-clone approach would be a silent no-op on one, not an
     // error. Confirmed directly here rather than just documented: a real
     // <Button> passed as `anchor` still opens/closes correctly (Popup.
-    // Trigger's own Radix-context wiring doesn't care what anchor's type
-    // is), it just never visibly squares its corner -- exactly the
+    // Trigger reads the Popover context wherever it sits, whatever anchor's
+    // type is), it just never visibly squares its corner -- exactly the
     // documented limitation, not a crash or a different, unexpected
     // failure mode.
     it('a toolcrib-component anchor still opens/closes correctly, but does not visibly square its corner (documented limitation)', () => {
@@ -396,15 +392,25 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       </Drawer>
     );
 
-    fireEvent.click(screen.getByText('Open'));
+    // A full press: Base UI's outside-press dismissal reacts to the
+    // pointer/mouse down-up sequence, not a bare click event.
+    const press = (el: Element) => {
+      fireEvent.pointerDown(el);
+      fireEvent.mouseDown(el);
+      fireEvent.pointerUp(el);
+      fireEvent.mouseUp(el);
+      fireEvent.click(el);
+    };
+
+    await actAndSettle(() => fireEvent.click(screen.getByText('Open')));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    // Clicking inside the dialog panel stops propagation — shouldn't close.
-    fireEvent.click(screen.getByText('Body'));
+    // A press inside the panel isn't an outside press, so it doesn't close.
+    await actAndSettle(() => press(screen.getByText('Body')));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    // Clicking the backdrop itself (role="presentation") closes it.
-    fireEvent.click(screen.getByRole('presentation'));
+    // A press on the backdrop closes it.
+    await actAndSettle(() => press(screen.getByTestId('drawer-backdrop')));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 

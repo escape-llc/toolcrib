@@ -1,16 +1,27 @@
 'use client';
 
-import React, { useState, useLayoutEffect, useRef, type ReactNode, type ReactElement } from 'react';
-import { Portal } from 'radix-ui';
-import { Presence } from '@radix-ui/react-presence';
+// Drawer on Base UI's Dialog (#670, #696). Base UI supplies what the earlier
+// hand-rolled version lacked: a focus trap, scroll lock, focus return to the
+// trigger, and Escape/outside-press dismissal that act on the right document
+// (iframes, pop-outs). The panel keeps its four edge positions and slide
+// keyframes. Base UI's own Drawer part (swipe-to-dismiss) is a possible
+// follow-up; it drives motion differently and isn't needed for parity.
+import React, { useState, type ReactNode, type ReactElement } from 'react';
+import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { useStackedZIndex } from '../../theme/zIndexStack';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
-import { useInjectInteractionStyles } from '../../theme/interactionStyles';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
+import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
+
+const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
+const DRAWER_TIMING = 'var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease)';
+// Every position's keyframes in one stylesheet, so drawers on different
+// edges share it instead of overwriting each other's.
+const DRAWER_ANIMATIONS = [
+  { className: 'ai-drawer-backdrop', enter: 'ai-fade-in', exit: 'ai-fade-out', timing: DRAWER_TIMING },
+  ...POSITIONS.map(p => ({ className: `ai-drawer-panel-${p}`, enter: `ai-slide-in-${p}`, exit: `ai-slide-out-${p}`, timing: DRAWER_TIMING })),
+];
 
 /**
  * Props for the `<Drawer>` edge overlay.
@@ -21,7 +32,10 @@ import { TRIGGER_WRAPPER_STYLE } from '../../theme/triggerWrapperStyle';
 export interface DrawerProps {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
-  /** Element that toggles the drawer on click. Rendered inline. */
+  /**
+   * Element that toggles the drawer on click.
+   * It becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, and focus returns to it on close, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role="button"` and keyboard activation automatically.
+   */
   trigger?: ReactElement;
   /** Content rendered inside the drawer panel body. */
   children: ReactNode;
@@ -67,30 +81,18 @@ export const Drawer: React.FC<DrawerProps> = ({
   zIndex: zIndexProp,
 }) => {
   const id = useStableId(propId, 'drawer');
-  const targetDocument = useTargetDocument();
-  const autoZIndex = useStackedZIndex('DRAWER');
-  const zIndex = zIndexProp ?? autoZIndex;
-  useInjectInteractionStyles();
+  const { container, zIndex } = useOverlayLayer('DRAWER', zIndexProp);
+  useOverlayAnimations('toolcrib-drawer-animations', DRAWER_ANIMATIONS);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-  const drawerRef = useRef<HTMLDivElement>(null);
 
-  const toggle = (state?: boolean, fromBus = false) => {
-    const nextState = state !== undefined ? state : !isOpen;
+  const toggle = (nextState: boolean, fromBus = false) => {
     if (nextState === isOpen && fromBus) return;
-
-    if (externalIsOpen === undefined) {
-      setInternalIsOpen(nextState);
-    }
-    if (onOpenChange) {
-      onOpenChange(nextState);
-    }
+    if (externalIsOpen === undefined) setInternalIsOpen(nextState);
+    onOpenChange?.(nextState);
     if (!fromBus) {
-      if (nextState) {
-        aiBus.emit('drawer:shown', { id, position });
-      } else {
-        aiBus.emit('drawer:hidden', { id });
-      }
+      if (nextState) aiBus.emit('drawer:shown', { id, position });
+      else aiBus.emit('drawer:hidden', { id });
     }
   };
 
@@ -100,31 +102,6 @@ export const Drawer: React.FC<DrawerProps> = ({
   useAIEvent('drawer:hidden', e => {
     if (e.id === id) toggle(false, true);
   });
-
-  // useLayoutEffect, not useEffect — this listener must be attached
-  // synchronously within the same commit as isOpen becoming true, not
-  // deferred until after the browser paints (useEffect's own timing).
-  // Reproduced directly: an Escape key dispatched with zero delay after
-  // the click that opens this drawer was silently swallowed 100% of the
-  // time (any wait ≥5ms worked fine) because the useEffect version hadn't
-  // attached its listener yet — a real, if narrow, race for any fast
-  // keyboard interaction, not just automated testing.
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-    const doc = targetDocument ?? document;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        toggle(false);
-      }
-    };
-
-    doc.addEventListener('keydown', handleKeyDown);
-    return () => {
-      doc.removeEventListener('keydown', handleKeyDown);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, targetDocument]);
 
   const resolvedWidth = propWidth || 'var(--ai-drawer-width, 23.75rem)';
 
@@ -143,119 +120,83 @@ export const Drawer: React.FC<DrawerProps> = ({
     }
   };
 
-  // Keyed off the plain isOpen prop rather than derived "isClosing" state —
-  // Presence (below) keeps this component rendering with isOpen already
-  // false throughout the exit animation, so the fade-out/slide-out variant
-  // is simply whatever isOpen currently says.
-  const backdropAnim = isOpen
-    ? 'ai-fade-in var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards'
-    : 'ai-fade-out var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards';
-
-  const drawerAnim = isOpen
-    ? `ai-slide-in-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`
-    : `ai-slide-out-${position} var(--ai-drawer-duration, 250ms) var(--ai-drawer-easing, ease) forwards`;
-
   return (
-    <>
-      {trigger && (
-        // TRIGGER_WRAPPER_STYLE's alignItems:'stretch' already stretches
-        // trigger to fill this wrapper's height on its own — no need to
-        // cloneElement-inject height/alignSelf into it directly.
-        <div onClick={() => toggle()} style={TRIGGER_WRAPPER_STYLE}>
-          {trigger}
-        </div>
-      )}
-      <Portal.Root container={targetDocument?.body}>
-        {/* Presence (Radix's own primitive, already used internally by
-            Modal's Dialog) replaces the previous hand-rolled
-            useAnimatedMount + onAnimationEnd combo. It attaches its
-            animationend listener directly to this backdrop's real DOM
-            node (via ref) rather than React's bubbling onAnimationEnd
-            prop, and explicitly checks event.target === node itself --
-            so it can't be fooled by a portaled-but-React-descendant
-            Tooltip's own animationend bubbling through, which is exactly
-            what broke the old hand-rolled version (a Tooltip inside this
-            Drawer reusing the same 'ai-fade-out' keyframe name). */}
-        <Presence present={isOpen}>
-          <div
-            role="presentation"
+    <OverlayCSP>
+      <BaseDialog.Root open={isOpen} onOpenChange={open => toggle(open)}>
+        {/* render, not a wrapper div: trigger semantics and focus return land
+            on the consumer's own element (see Modal). */}
+        {trigger && <BaseDialog.Trigger {...triggerRenderProps(trigger)} />}
+        <BaseDialog.Portal container={container}>
+          <BaseDialog.Backdrop
             // Test point (AGENTS.md: a data-testid over a guessed selector).
-            // role="presentation" alone isn't unique to this backdrop --
-            // Skeleton and React Aria's DateInput use it too.
             data-testid="drawer-backdrop"
-            onClick={() => toggle(false)}
+            className="ai-drawer-backdrop"
             style={{
               position: 'fixed',
               inset: 0,
-              zIndex: zIndex,
+              zIndex,
               background: 'rgba(0, 0, 0, 0.4)',
               backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',
+            }}
+          />
+          <BaseDialog.Popup
+            aria-modal="true"
+            className={`ai-drawer-panel-${position}`}
+            style={{
+              position: 'fixed',
+              background: 'var(--ai-bg-surface, #ffffff)',
+              boxShadow: 'var(--ai-shadow-lg, 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
               display: 'flex',
-              animation: backdropAnim,
+              flexDirection: 'column',
+              zIndex: zIndex + 1,
+              overflowY: 'auto',
+              outline: 'none',
+              // Self-contained drawer panel -- see Modal.tsx's identical
+              // reasoning. Being position:'fixed' itself doesn't conflict with
+              // also being a containment boundary for what's inside it.
+              contain: 'content',
+              ...getPositionStyles(),
             }}
           >
             <div
-              ref={drawerRef}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={`${id}-title`}
-              onClick={e => e.stopPropagation()}
               style={{
-                position: 'fixed',
-                background: 'var(--ai-bg-surface, #ffffff)',
-                boxShadow: 'var(--ai-shadow-lg, 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
                 display: 'flex',
-                flexDirection: 'column',
-                zIndex: zIndex + 1,
-                overflowY: 'auto',
-                animation: drawerAnim,
-                // Self-contained drawer panel — see Modal.tsx's identical
-                // reasoning. Being position:'fixed' itself doesn't conflict with
-                // also being a containment boundary for what's inside it.
-                contain: 'content',
-                ...getPositionStyles(),
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
+                margin: 'var(--ai-drawer-header-margin, 0)',
+                borderRadius: 'var(--ai-drawer-header-border-radius, 0)',
+                borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                background: 'var(--ai-bg-surface, #ffffff)',
               }}
             >
-              <div
+              <BaseDialog.Title
+                style={{ margin: 0, fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}
+              >
+                {title || 'Drawer Panel'}
+              </BaseDialog.Title>
+              <BaseDialog.Close
+                aria-label="Close"
+                className="ai-btn"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 'var(--ai-padding-lg, 1rem 1.25rem)',
-                  margin: 'var(--ai-drawer-header-margin, 0)',
-                  borderRadius: 'var(--ai-drawer-header-border-radius, 0)',
-                  borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
-                  background: 'var(--ai-bg-surface, #ffffff)',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: 'var(--ai-text-secondary, #6b7280)',
+                  ['--ai-btn-bg' as string]: 'transparent',
                 }}
               >
-                <div id={`${id}-title`} style={{ fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}>
-                  {title || 'Drawer Panel'}
-                </div>
-                <button
-                  onClick={() => toggle(false)}
-                  className="ai-btn"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    fontSize: '1.25rem',
-                    cursor: 'pointer',
-                    color: 'var(--ai-text-secondary, #6b7280)',
-                    ['--ai-btn-bg' as string]: 'transparent',
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
-                <AIErrorBoundary componentName="Drawer">
-                  {children}
-                </AIErrorBoundary>
-              </div>
+                ×
+              </BaseDialog.Close>
             </div>
-          </div>
-        </Presence>
-      </Portal.Root>
-    </>
+
+            <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', flex: 1, color: 'var(--ai-text-primary, #111827)' }}>
+              <AIErrorBoundary componentName="Drawer">{children}</AIErrorBoundary>
+            </div>
+          </BaseDialog.Popup>
+        </BaseDialog.Portal>
+      </BaseDialog.Root>
+    </OverlayCSP>
   );
 };

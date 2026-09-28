@@ -28,7 +28,6 @@ export * from './theme/themeContext';
 export * from './theme/themeFileTransfer';
 export * from './theme/themeLibrary';
 export * from './theme/themePersistence';
-export * from './theme/triggerWrapperStyle';
 export * from './theme/typography';
 export * from './theme/useSliceOverrides';
 export * from './theme/zIndex';

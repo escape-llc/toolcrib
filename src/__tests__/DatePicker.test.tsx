@@ -5,9 +5,12 @@ import { DatePicker } from '../components/DatePicker/DatePicker';
 import { Modal } from '../components/Overlay/Modal';
 import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
+import { actAndSettle } from './testUtils/overlay';
 
 function openCalendar() {
-  fireEvent.click(screen.getByLabelText('Open calendar'));
+  return actAndSettle(() => {
+    fireEvent.click(screen.getByLabelText('Open calendar'));
+  });
 }
 
 function getDayCell(container: HTMLElement, day: number): HTMLElement {
@@ -34,23 +37,25 @@ describe('DatePicker', () => {
     expect(screen.getByLabelText('Open calendar').className).toContain('ai-focus-ring');
   });
 
-  it('opens the calendar via the toggle button, hosted in <Popup> (not a react-aria-components Popover)', () => {
-    const { baseElement } = render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
-    openCalendar();
-    expect(document.querySelector('.react-aria-Calendar')).toBeInTheDocument();
-    // Popup portals its content to the real document body via Radix's own
-    // Popover.Portal -- confirms the calendar is actually inside *our*
-    // overlay primitive's portal output, not react-aria-components' own.
-    expect(baseElement.querySelector('[data-radix-popper-content-wrapper]')).toBeInTheDocument();
+  it('opens the calendar via the toggle button, hosted in <Popup> (not a react-aria-components Popover)', async () => {
+    render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
+    await openCalendar();
+    const calendar = document.querySelector('.react-aria-Calendar');
+    expect(calendar).toBeInTheDocument();
+    // Confirms the calendar is inside *our* overlay primitive's popup, not
+    // react-aria-components' own Popover.
+    expect(calendar!.closest('.ai-popup-content')).not.toBeNull();
   });
 
-  it('selects a date, closes the calendar, and calls onChange with a CalendarDate', () => {
+  it('selects a date, closes the calendar, and calls onChange with a CalendarDate', async () => {
     const onChange = vi.fn();
     render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} onChange={onChange} />);
-    openCalendar();
+    await openCalendar();
 
     const grid = document.querySelector('.react-aria-Calendar') as HTMLElement;
-    fireEvent.click(getDayCell(grid, 20));
+    await actAndSettle(() => {
+      fireEvent.click(getDayCell(grid, 20));
+    });
 
     expect(onChange).toHaveBeenCalled();
     const emitted = onChange.mock.calls[0][0];
@@ -93,13 +98,15 @@ describe('DatePicker', () => {
     expect(daySegment).toHaveTextContent('17');
   });
 
-  it('emits datepicker:changed with an ISO date string', () => {
+  it('emits datepicker:changed with an ISO date string', async () => {
     const changedFn = vi.fn();
     const unsub = aiBus.on('datepicker:changed', changedFn);
     render(<DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />);
-    openCalendar();
+    await openCalendar();
     const grid = document.querySelector('.react-aria-Calendar') as HTMLElement;
-    fireEvent.click(getDayCell(grid, 20));
+    await actAndSettle(() => {
+      fireEvent.click(getDayCell(grid, 20));
+    });
     expect(changedFn).toHaveBeenLastCalledWith({ name: 'meetingDate', value: '2026-03-20' });
     unsub();
   });
@@ -108,7 +115,7 @@ describe('DatePicker', () => {
   // Modal, press Escape once, confirm only the calendar popover closes --
   // proving Popup (not react-aria-components' own Escape handling) owns
   // the calendar's dismissal, so it doesn't compound with Modal's.
-  it('pressing Escape once with the calendar open closes only the calendar, not an enclosing Modal', () => {
+  it('pressing Escape once with the calendar open closes only the calendar, not an enclosing Modal', async () => {
     render(
       <Modal isOpen>
         <DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />
@@ -116,15 +123,21 @@ describe('DatePicker', () => {
     );
     expect(screen.getByTestId('modal-container')).toBeInTheDocument();
 
-    openCalendar();
+    await openCalendar();
     expect(document.querySelector('.react-aria-Calendar')).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    await actAndSettle(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
     expect(document.querySelector('.react-aria-Calendar')).not.toBeInTheDocument();
+    // Whether the Modal also asked to close isn't checkable here: jsdom
+    // doesn't move focus into a popover nested in a Base UI dialog, so it
+    // can't tell which overlay is topmost. e2e/nested-overlay-escape.spec.ts
+    // checks that in a real browser.
     expect(screen.getByTestId('modal-container')).toBeInTheDocument();
   });
 
-  it('disables dates outside minValue/maxValue', () => {
+  it('disables dates outside minValue/maxValue', async () => {
     render(
       <DatePicker
         name="meetingDate"
@@ -134,7 +147,7 @@ describe('DatePicker', () => {
         maxValue={new CalendarDate(2026, 3, 20)}
       />
     );
-    openCalendar();
+    await openCalendar();
     const grid = document.querySelector('.react-aria-Calendar') as HTMLElement;
     expect(getDayCell(grid, 25)).toHaveAttribute('aria-disabled', 'true');
   });

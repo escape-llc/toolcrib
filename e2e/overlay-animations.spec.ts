@@ -193,7 +193,8 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
 // to actually perceive" -- unlike Modal/AlertDialog (which at least had a
 // broken entrance-only animation), Popup.Content had NO animation
 // whatsoever: open/close were both an instant, un-eased DOM swap. Fixed by
-// injectPopupAnimations (Popup.tsx), the same [data-state]-keyed stylesheet
+// injectPopupAnimations (Popup.tsx; now overlayLayer's useOverlayAnimations,
+// keyed on Base UI's data-open/data-closed), the same state-keyed stylesheet
 // mechanism as Tooltip's own injectTooltipAnimations, using a plain fade
 // (matching Tooltip, the closest architectural analog -- a small anchored
 // panel via Portal, not a centered dialog) rather than Modal/AlertDialog's
@@ -205,12 +206,14 @@ test('a Popup plays real ai-fade-in/ai-fade-out entrance/exit animations and is 
 
   const popup = page.locator('.ai-popup-content');
   await popup.waitFor({ state: 'visible', timeout: 2000 });
+  // Open-state marker: Radix's data-state="open", Base UI's bare data-open
+  // (#696). Either proves the entrance keyframe is keyed on the open state.
   const openInfo = await popup.evaluate(el => ({
     animationName: getComputedStyle(el).animationName,
-    dataState: el.getAttribute('data-state'),
+    open: el.getAttribute('data-state') === 'open' || el.hasAttribute('data-open'),
   }));
   expect(openInfo.animationName).toBe('ai-fade-in');
-  expect(openInfo.dataState).toBe('open');
+  expect(openInfo.open).toBe(true);
 
   const exitAnimationEndPromise = popup.evaluate(el => new Promise<string>(resolve => {
     el.addEventListener('animationend', function handler(e) {

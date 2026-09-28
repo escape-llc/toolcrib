@@ -55,7 +55,7 @@ npx toolcrib init
 
 **Component Library**
 - Many production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
-- Built on Radix UI / React Aria Components primitives — real keyboard nav, focus traps, and ARIA semantics, not approximated
+- Built on Base UI, Radix UI and React Aria Components primitives (moving from Radix to Base UI) — real keyboard nav, focus traps, and ARIA semantics, not approximated
 - No `style`/`className` on any component — every visual axis goes through a typed `overrides` prop instead
 
 **Theming**
