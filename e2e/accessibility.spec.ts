@@ -371,29 +371,27 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Encyclopedia', 'HoverCard');
-  // HoverCard opens on focus as well as hover -- focus is the
-  // keyboard-reachable path and what a screen-reader user actually
-  // triggers, so exercise that path rather than a mouse hover.
-  // Base UI opens the card only when the trigger matches :focus-visible, and
-  // a programmatic .focus() right after gotoTab's mouse click doesn't. A key
-  // press first puts the page in keyboard modality, as a keyboard user's
-  // would be. Not a real Tab to the link: WebKit leaves links out of the Tab
-  // order by default.
-  await page.keyboard.press('Shift');
-  await page.getByRole('link', { name: '@janedoe' }).focus();
-  const viewProfile = page.getByRole('button', { name: 'View profile' });
-  await expect(viewProfile).toBeVisible(); // openDelay={150} on this instance
+  // Opened by hover. Base UI also opens it on keyboard focus, but only when
+  // the trigger matches :focus-visible, and whether a test's synthetic focus
+  // counts differs by engine (it opened in Chromium and Windows WebKit, not
+  // Linux WebKit in CI). Hover is the same in every engine, and the scan
+  // only needs the card's content mounted.
+  const trigger = page.getByRole('link', { name: '@janedoe' });
+  await trigger.hover();
+  await expect(page.getByRole('button', { name: 'View profile' })).toBeVisible(); // openDelay={150} on this instance
   await scanNamed('HoverCard');
 
   // aria-compliance-review §4: HoverCard content is supplemental and not in
   // the Tab order (use <Popup> when it must be keyboard-operable). The Radix
   // version did this by forcing tabindex="-1" onto the content's focusables.
   // On Base UI's PreviewCard (#700) the card is portaled to the end of
-  // <body>, so Tab from the trigger moves on through the page, and the card
-  // closes once focus leaves its trigger. This locks that in: Tab never
-  // lands inside the card.
+  // <body>, so Tab from the trigger moves on through the page. This locks
+  // that in: with the card open, Tab from its trigger never lands inside it.
+  await trigger.focus();
   await page.keyboard.press('Tab');
-  await expect(viewProfile).not.toBeAttached();
+  const focusInsideCard = await page.evaluate(() => Boolean(document.activeElement?.closest('.ai-hovercard-content')));
+  expect(focusInsideCard, 'Tab from the HoverCard trigger moved focus into the card').toBe(false);
+  await page.mouse.move(0, 0);
 
   // aria-compliance-review's own §4 finding: the dark-mode test below opens
   // this same Theme Designer drawer only long enough to click its
