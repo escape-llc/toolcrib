@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { Modal } from '../Overlay/Modal';
 import { ViewerContent, type ViewerContentProps } from './ViewerContent';
 
@@ -40,22 +41,24 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
+  // Own emissions are marked so the listeners below skip their echo (#705).
+  const { emitOwn, isOwnEcho } = useOwnEmit();
   const handleOpenChange = (open: boolean, fromBus = false) => {
     if (externalIsOpen === undefined) {
       setInternalIsOpen(open);
     }
     onOpenChange?.(open);
     if (!fromBus) {
-      aiBus.emit(open ? 'viewer:shown' : 'viewer:hidden', { id });
+      emitOwn(() => aiBus.emit(open ? 'viewer:shown' : 'viewer:hidden', { id }));
     }
   };
 
   useAIEvent('viewer:shown', e => {
-    if (e.id === id && !isOpen) handleOpenChange(true, true);
+    if (e.id === id && !isOpen && !isOwnEcho()) handleOpenChange(true, true);
   });
 
   useAIEvent('viewer:hidden', e => {
-    if (e.id === id && isOpen) handleOpenChange(false, true);
+    if (e.id === id && isOpen && !isOwnEcho()) handleOpenChange(false, true);
   });
 
   return (

@@ -10,6 +10,7 @@ import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
@@ -86,21 +87,22 @@ export const Drawer: React.FC<DrawerProps> = ({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
+  // Own emissions are marked so the listeners below skip their echo (#705).
+  const { emitOwn, isOwnEcho } = useOwnEmit();
   const toggle = (nextState: boolean, fromBus = false) => {
     if (nextState === isOpen && fromBus) return;
     if (externalIsOpen === undefined) setInternalIsOpen(nextState);
     onOpenChange?.(nextState);
     if (!fromBus) {
-      if (nextState) aiBus.emit('drawer:shown', { id, position });
-      else aiBus.emit('drawer:hidden', { id });
+      emitOwn(() => (nextState ? aiBus.emit('drawer:shown', { id, position }) : aiBus.emit('drawer:hidden', { id })));
     }
   };
 
   useAIEvent('drawer:shown', e => {
-    if (e.id === id) toggle(true, true);
+    if (e.id === id && !isOwnEcho()) toggle(true, true);
   });
   useAIEvent('drawer:hidden', e => {
-    if (e.id === id) toggle(false, true);
+    if (e.id === id && !isOwnEcho()) toggle(false, true);
   });
 
   const resolvedWidth = propWidth || 'var(--ai-drawer-width, 23.75rem)';

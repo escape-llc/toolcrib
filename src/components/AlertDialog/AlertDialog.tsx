@@ -9,6 +9,7 @@ import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { AlertDialog as BaseAlertDialog } from '@base-ui/react/alert-dialog';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -104,6 +105,8 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
+  // Own emissions are marked so the listeners below skip their echo (#705).
+  const { emitOwn, isOwnEcho } = useOwnEmit();
   const handleOpenChange = (open: boolean, fromBus = false) => {
     if (externalIsOpen === undefined) {
       setInternalIsOpen(open);
@@ -111,21 +114,15 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
     if (onOpenChange) {
       onOpenChange(open);
     }
-    if (!fromBus) {
-      if (open) {
-        aiBus.emit('alertdialog:shown', { id });
-      } else {
-        aiBus.emit('alertdialog:hidden', { id });
-      }
-    }
+    if (!fromBus) emitOwn(() => aiBus.emit(open ? 'alertdialog:shown' : 'alertdialog:hidden', { id }));
   };
 
   useAIEvent('alertdialog:shown', e => {
-    if (e.id === id && !isOpen) handleOpenChange(true, true);
+    if (e.id === id && !isOpen && !isOwnEcho()) handleOpenChange(true, true);
   });
 
   useAIEvent('alertdialog:hidden', e => {
-    if (e.id === id && isOpen) handleOpenChange(false, true);
+    if (e.id === id && isOpen && !isOwnEcho()) handleOpenChange(false, true);
   });
 
   return (

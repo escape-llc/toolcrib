@@ -4,6 +4,7 @@ import React, { useEffect, useState, type ReactNode } from 'react';
 import { Collapsible as BaseCollapsible } from '@base-ui/react/collapsible';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -101,6 +102,8 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
   const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
+  // Own emissions are marked so the listeners below skip their echo (#705).
+  const { emitOwn, isOwnEcho } = useOwnEmit();
   const handleOpenChange = (open: boolean, fromBus = false) => {
     if (externalIsOpen === undefined) {
       setInternalIsOpen(open);
@@ -109,15 +112,15 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
       onOpenChange(open);
     }
     if (!fromBus) {
-      aiBus.emit(open ? 'collapsible:opened' : 'collapsible:closed', { id });
+      emitOwn(() => aiBus.emit(open ? 'collapsible:opened' : 'collapsible:closed', { id }));
     }
   };
 
   useAIEvent('collapsible:opened', e => {
-    if (e.id === id && !isOpen) handleOpenChange(true, true);
+    if (e.id === id && !isOpen && !isOwnEcho()) handleOpenChange(true, true);
   });
   useAIEvent('collapsible:closed', e => {
-    if (e.id === id && isOpen) handleOpenChange(false, true);
+    if (e.id === id && isOpen && !isOwnEcho()) handleOpenChange(false, true);
   });
 
   return (
