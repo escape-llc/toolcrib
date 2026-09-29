@@ -751,6 +751,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
           // popup must never take focus on open or hand it back on close.
           initialFocus={false}
           finalFocus={false}
+          // A press anywhere in the popup (an option, the list's padding,
+          // its scrollbar) keeps focus in the input. Without this, a press
+          // on the background blurs the input and handleBlur closes the
+          // list under the pointer. Options also preventDefault their own
+          // press; this covers everything between them. Same as Select.
+          onMouseDown={e => e.preventDefault()}
           style={{
             width: 'var(--anchor-width)',
             background: 'var(--ai-bg-surface, #ffffff)',

@@ -76,3 +76,16 @@ test('clicking the input again while open keeps the listbox open', async ({ page
   await page.waitForTimeout(300);
   await expect(listbox).toBeVisible();
 });
+
+// A press on the list's own background (its padding, or its scrollbar) is
+// not a pick and not an outside press: focus must stay in the input, or the
+// input's blur handler closes the list under the pointer. Gemini review on
+// #710; Select already guarded this, Combobox didn't (Radix version either).
+test('pressing the listbox background keeps it open and focus in the input', async ({ page }) => {
+  const { input, listbox } = await openSkills(page);
+  const box = (await listbox.boundingBox())!;
+  // Inside the listbox's padding, clear of every option.
+  await page.mouse.click(box.x + 2, box.y + 2);
+  await expect(listbox).toBeVisible();
+  await expect(input).toBeFocused();
+});
