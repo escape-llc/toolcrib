@@ -1,21 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RangeSlider } from '../components/Form/RangeSlider';
 import { FormField } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
-// Radix Slider's internal useSize hook uses ResizeObserver -- not
-// implemented in jsdom. Same polyfill as Slider.test.tsx.
-if (typeof window !== 'undefined' && !window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as any;
-  (globalThis as any).ResizeObserver = ResizeObserverMock as any;
-}
+// Base UI's thumb sets state in its focus handler, so a raw .focus() goes
+// inside act() (AGENTS.md's act() case 4).
+const focus = (el: HTMLElement) => act(() => el.focus());
 
 describe('RangeSlider Component', () => {
   it('renders two thumbs at the given [lower, upper] value', () => {
@@ -36,11 +28,11 @@ describe('RangeSlider Component', () => {
     const onChange = vi.fn();
     render(<RangeSlider ariaLabel="Price" defaultValue={[20, 80]} onChange={onChange} />);
     const [lower, upper] = screen.getAllByRole('slider');
-    lower.focus();
+    focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
     expect(onChange).toHaveBeenLastCalledWith([21, 80]);
     expect(lower).toHaveAttribute('aria-valuenow', '21');
-    upper.focus();
+    focus(upper);
     fireEvent.keyDown(upper, { key: 'ArrowLeft' });
     expect(onChange).toHaveBeenLastCalledWith([21, 79]);
     expect(upper).toHaveAttribute('aria-valuenow', '79');
@@ -51,7 +43,7 @@ describe('RangeSlider Component', () => {
     const unsub = aiBus.on('rangeslider:changed', handler);
     render(<RangeSlider name="price" ariaLabel="Price" defaultValue={[20, 80]} />);
     const [lower] = screen.getAllByRole('slider');
-    lower.focus();
+    focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
     expect(handler).toHaveBeenCalledWith({ name: 'price', value: [21, 80] });
     unsub();
@@ -61,7 +53,7 @@ describe('RangeSlider Component', () => {
     const onChange = vi.fn();
     render(<RangeSlider ariaLabel="Price" defaultValue={[48, 50]} minStepsBetweenThumbs={2} onChange={onChange} />);
     const [lower] = screen.getAllByRole('slider');
-    lower.focus();
+    focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
     expect(onChange).not.toHaveBeenCalled();
     expect(lower).toHaveAttribute('aria-valuenow', '48');
@@ -80,15 +72,16 @@ describe('RangeSlider Component', () => {
     expect(screen.getByRole('slider', { name: 'Price Maximum' })).toBeInTheDocument();
   });
 
-  it('names each thumb from the FormField label + suffix, and the label targets the lower thumb', () => {
+  it('names each thumb from the FormField label + suffix', () => {
     render(
       <FormField name="price" label="Price range">
         <RangeSlider defaultValue={[20, 80]} />
       </FormField>
     );
-    const lower = screen.getByRole('slider', { name: 'Price range Minimum' });
+    // Named through aria-labelledby, not the label's htmlFor: Base UI
+    // generates the thumb inputs' ids (#701).
+    expect(screen.getByRole('slider', { name: 'Price range Minimum' })).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Price range Maximum' })).toBeInTheDocument();
-    expect(lower.id).toBe('price');
   });
 
   it('accepts custom thumb labels', () => {
@@ -101,8 +94,8 @@ describe('RangeSlider Component', () => {
     const onChange = vi.fn();
     render(<RangeSlider ariaLabel="Price" defaultValue={[20, 80]} commitOnRelease onChange={onChange} />);
     const [lower] = screen.getAllByRole('slider');
-    lower.focus();
-    // A keyboard step is a discrete commit in Radix (onValueCommit fires).
+    focus(lower);
+    // A keyboard step is a discrete commit (onValueCommitted fires).
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith([21, 80]);

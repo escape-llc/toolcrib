@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useContext, useId, useState } from 'react';
-import { Slider as SliderPrimitive } from 'radix-ui';
+import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
@@ -19,7 +19,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
  * payload, has to be narrowed by every consumer.
  */
 export interface RangeSliderProps {
-  /** Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — so `<FormField>`'s `<label htmlFor>` click focuses the lower thumb. */
+  /** Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Each thumb is named through `aria-labelledby` (see `ariaLabel`). */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
   name?: string;
@@ -58,7 +58,7 @@ const sameRange = (a: [number, number] | undefined, b: [number, number] | undefi
   a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
 
 /**
- * @manifest Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider
+ * @manifest Two-thumb range control (lower/upper bound) built on Base UI Slider, styled identically to Slider
  * @manifestCategory Form Controls
  */
 export const RangeSlider: React.FC<RangeSliderProps> = ({
@@ -115,36 +115,41 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
       {!fieldCtx.labelId && ariaLabel && <span id={`${baseId}-name`} hidden>{ariaLabel}</span>}
       <span id={`${baseId}-lower`} hidden>{lowerLabel}</span>
       <span id={`${baseId}-upper`} hidden>{upperLabel}</span>
-      <SliderPrimitive.Root
+      <BaseSlider.Root
         value={currentVal}
         onValueChange={(vals) => {
           const next: [number, number] = [vals[0], vals[1]];
           setLocalValue(next);
           if (!commitOnRelease) commitValue(next);
         }}
-        onValueCommit={commitOnRelease ? (vals) => commitValue([vals[0], vals[1]]) : undefined}
+        onValueCommitted={commitOnRelease ? (vals) => commitValue([vals[0], vals[1]]) : undefined}
         min={min}
         max={max}
         step={step}
-        minStepsBetweenThumbs={minStepsBetweenThumbs}
+        minStepsBetweenValues={minStepsBetweenThumbs}
         disabled={disabled}
         style={sliderRootStyle(disabled, sliderVars)}
       >
-        <SliderPrimitive.Track style={SLIDER_TRACK_STYLE}>
-          <SliderPrimitive.Range style={SLIDER_RANGE_STYLE} />
-        </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb
-          id={effectiveId}
-          aria-labelledby={labelledBy(`${baseId}-lower`)}
-          className="ai-focus-ring"
-          style={sliderThumbStyle(disabled)}
-        />
-        <SliderPrimitive.Thumb
-          aria-labelledby={labelledBy(`${baseId}-upper`)}
-          className="ai-focus-ring"
-          style={sliderThumbStyle(disabled)}
-        />
-      </SliderPrimitive.Root>
+        <BaseSlider.Control style={sliderControlStyle(disabled)}>
+          <BaseSlider.Track style={SLIDER_TRACK_STYLE}>
+            <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
+            {/* index: required for a multi-thumb slider to render on the server. */}
+            <BaseSlider.Thumb
+              index={0}
+              id={effectiveId}
+              aria-labelledby={labelledBy(`${baseId}-lower`)}
+              className="ai-focus-ring"
+              style={sliderThumbStyle(disabled)}
+            />
+            <BaseSlider.Thumb
+              index={1}
+              aria-labelledby={labelledBy(`${baseId}-upper`)}
+              className="ai-focus-ring"
+              style={sliderThumbStyle(disabled)}
+            />
+          </BaseSlider.Track>
+        </BaseSlider.Control>
+      </BaseSlider.Root>
     </>
   );
 };

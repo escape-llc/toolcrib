@@ -3249,7 +3249,7 @@
       "props": {
         "id": {
           "type": "string",
-          "description": "Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — so `<FormField>`'s `<label htmlFor>` click focuses the lower thumb."
+          "description": "Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Each thumb is named through `aria-labelledby` (see `ariaLabel`)."
         },
         "name": {
           "type": "string",
@@ -3313,7 +3313,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Two-thumb range control (lower/upper bound) built on Radix Slider, styled identically to Slider"
+      "description": "Two-thumb range control (lower/upper bound) built on Base UI Slider, styled identically to Slider"
     },
     {
       "name": "Rating",
@@ -3358,8 +3358,8 @@
       },
       "category": "Form Controls",
       "antiPatternAvoid": "Build a row of clickable star `<span>`s with manual hover/click state for a rating input",
-      "antiPatternInstead": "Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them",
-      "description": "Star rating control built on Radix RadioGroup, or a read-only fractional-fill display"
+      "antiPatternInstead": "Use `<Rating>` — built on a Base UI radio group, inherits real keyboard operability and `aria-checked` semantics instead of approximating them",
+      "description": "Star rating control built on a Base UI radio group, or a read-only fractional-fill display"
     },
     {
       "name": "ScaleLegend",
@@ -3563,7 +3563,7 @@
       "props": {
         "id": {
           "type": "string",
-          "description": "Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control."
+          "description": "Element id for the thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Inside a `<FormField label>`, the thumb's accessible name comes from that label via `aria-labelledby`."
         },
         "name": {
           "type": "string",
@@ -3617,7 +3617,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Range input control built on Radix Slider"
+      "description": "Range input control built on Base UI Slider"
     },
     {
       "name": "Sparkline",

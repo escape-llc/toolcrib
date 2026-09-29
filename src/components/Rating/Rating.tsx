@@ -1,7 +1,8 @@
 'use client';
 
 import React, { type ReactNode } from 'react';
-import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
+import { RadioGroup } from '@base-ui/react/radio-group';
+import { Radio } from '@base-ui/react/radio';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -45,10 +46,10 @@ export interface RatingProps {
 const DEFAULT_ICON = '★';
 
 /**
- * @manifest Star rating control built on Radix RadioGroup, or a read-only fractional-fill display
+ * @manifest Star rating control built on a Base UI radio group, or a read-only fractional-fill display
  * @manifestCategory Form Controls
  * @manifestAntiPatternAvoid Build a row of clickable star `<span>`s with manual hover/click state for a rating input
- * @manifestAntiPatternInstead Use `<Rating>` — built on Radix `RadioGroup`, inherits real keyboard operability and `aria-checked` semantics instead of approximating them
+ * @manifestAntiPatternInstead Use `<Rating>` — built on a Base UI radio group, inherits real keyboard operability and `aria-checked` semantics instead of approximating them
  */
 export const Rating: React.FC<RatingProps> = ({
   name,
@@ -67,7 +68,7 @@ export const Rating: React.FC<RatingProps> = ({
   const ratingVars = getSparseVariables(RatingThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
-  const handleChange = (val: string) => {
+  const handleChange = (val: unknown) => {
     const numeric = Number(val);
     if (!isControlled) setInternalValue(numeric);
     onChange?.(numeric);
@@ -124,7 +125,7 @@ export const Rating: React.FC<RatingProps> = ({
   }
 
   return (
-    <RadioGroupPrimitive.Root
+    <RadioGroup
       value={String(value)}
       onValueChange={handleChange}
       className="ai-focus-ring"
@@ -135,7 +136,7 @@ export const Rating: React.FC<RatingProps> = ({
         const position = i + 1;
         const isFilled = position <= value;
         return (
-          <RadioGroupPrimitive.Item
+          <Radio.Root
             key={position}
             value={String(position)}
             aria-label={`${position} star${position === 1 ? '' : 's'}`}
@@ -153,9 +154,9 @@ export const Rating: React.FC<RatingProps> = ({
             }}
           >
             {icon ?? DEFAULT_ICON}
-          </RadioGroupPrimitive.Item>
+          </Radio.Root>
         );
       })}
-    </RadioGroupPrimitive.Root>
+    </RadioGroup>
   );
 };

@@ -12,7 +12,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type { ZodType } from 'zod';
-import { Checkbox as CheckboxPrimitive } from 'radix-ui';
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { Menu } from '@base-ui/react/menu';
 import { OverlayCSP } from '../Overlay/baseui/overlayLayer';
 import { menuItemStyle, menuPopupStyle } from '../DropdownMenu/menuParts';
@@ -2353,9 +2353,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       every other column's own real header text. */}
                   {selectionMode === 'single' && <VisuallyHidden>Row selection</VisuallyHidden>}
                   {selectionMode !== 'single' && (
-                    <CheckboxPrimitive.Root
-                      checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
-                      onCheckedChange={toggleSelectAllOnPage}
+                    <BaseCheckbox.Root
+                      checked={allOnPageSelected}
+                      indeterminate={!allOnPageSelected && someOnPageSelected}
+                      onCheckedChange={() => toggleSelectAllOnPage()}
                       aria-label="Select all rows on this page"
                       className="ai-focus-ring"
                       data-grid-row={0}
@@ -2375,12 +2376,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         boxSizing: 'border-box',
                       }}
                     >
-                      <CheckboxPrimitive.Indicator
+                      <BaseCheckbox.Indicator
                         style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
                       >
                         {allOnPageSelected ? '✓' : '−'}
-                      </CheckboxPrimitive.Indicator>
-                    </CheckboxPrimitive.Root>
+                      </BaseCheckbox.Indicator>
+                    </BaseCheckbox.Root>
                   )}
                 </th>
               )}
@@ -2866,7 +2867,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         >
                           {selectionMode === 'single' ? (
                             // A plain hand-rolled role="radio" button, not
-                            // CheckboxPrimitive -- Radix's Checkbox always
+                            // BaseCheckbox -- a checkbox primitive always
                             // owns its own role="checkbox" internally, and
                             // its sibling RadioGroup primitive brings its
                             // OWN internal arrow-key navigation between
@@ -2911,7 +2912,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               )}
                             </button>
                           ) : (
-                            <CheckboxPrimitive.Root
+                            <BaseCheckbox.Root
                               checked={isRowSelected}
                               onCheckedChange={() => toggleRowSelected(selectionKey, actualIndex)}
                               aria-label={`Select row ${actualIndex + 1}`}
@@ -2933,12 +2934,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <CheckboxPrimitive.Indicator
+                              <BaseCheckbox.Indicator
                                 style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex' }}
                               >
                                 ✓
-                              </CheckboxPrimitive.Indicator>
-                            </CheckboxPrimitive.Root>
+                              </BaseCheckbox.Indicator>
+                            </BaseCheckbox.Root>
                           )}
                         </td>
                       )}

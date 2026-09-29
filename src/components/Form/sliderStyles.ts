@@ -8,6 +8,15 @@ import type React from 'react';
 /** `vars` is a slice's CSS-custom-property map (`getSparseVariables`'s result), spread last so a per-instance override wins. */
 export function sliderRootStyle(disabled: boolean, vars: object): React.CSSProperties {
   return {
+    width: '100%',
+    opacity: disabled ? 0.6 : 1,
+    ...vars,
+  };
+}
+
+/** The pointer area (Base UI's `Slider.Control`): the whole row a press or drag lands on, not just the thin track. */
+export function sliderControlStyle(disabled: boolean): React.CSSProperties {
+  return {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
@@ -16,8 +25,6 @@ export function sliderRootStyle(disabled: boolean, vars: object): React.CSSPrope
     width: '100%',
     height: '1.25rem',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    ...vars,
   };
 }
 
@@ -36,6 +43,8 @@ export const SLIDER_RANGE_STYLE: React.CSSProperties = {
   height: '100%',
 };
 
+// No position/offset here: Base UI positions the thumb itself (absolute,
+// inset along the track, translated -50% to center on the value).
 export function sliderThumbStyle(disabled: boolean): React.CSSProperties {
   return {
     display: 'block',
