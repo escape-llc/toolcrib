@@ -28,12 +28,12 @@ describe('TabStrip Component', () => {
   it('manages its own active tab when uncontrolled (no activeId/onChange given)', async () => {
     render(<TabStrip id="uncontrolled-demo" items={items} defaultActiveId="tab2" />);
 
-    // Radix marks the active trigger's tab state via data-state="active".
-    expect(screen.getByText('Tab 2').closest('button')).toHaveAttribute('data-state', 'active');
+    // The active tab is aria-selected.
+    expect(screen.getByText('Tab 2').closest('button')).toHaveAttribute('aria-selected', 'true');
 
     fireEvent.click(screen.getByText('Tab 3'));
-    expect(screen.getByText('Tab 3').closest('button')).toHaveAttribute('data-state', 'active');
-    // A "paging" control -- the actual post-switch DOM (data-state moved,
+    expect(screen.getByText('Tab 3').closest('button')).toHaveAttribute('aria-selected', 'true');
+    // A "paging" control -- the actual post-switch DOM (selection moved,
     // unlike the controlled test above where nothing visually changes
     // without a parent re-render) is worth its own scan.
     expect(await axe(document.body)).toHaveNoViolations();

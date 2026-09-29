@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useState } from 'react';
-import { NavigationMenu as NavigationMenuPrimitive } from 'radix-ui';
+import { NavigationMenu as BaseNavigationMenu } from '@base-ui/react/navigation-menu';
 import { getSparseVariables } from '../../theme/slice';
 import { SidebarThemeSlice, type SidebarSliceState } from './SidebarSlice';
 import { useReportSidebarCollapsed } from '../AppShell/AppShell';
@@ -36,7 +36,7 @@ export interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   /** Per-instance override for nav item spacing. */
   overrides?: Partial<SidebarSliceState>;
-  /** Accessible name for the nav landmark. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, Radix's NavigationMenu warns and the landmark has none at all. */
+  /** Accessible name for the nav landmark. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, the nav landmark has none at all. */
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */
   'aria-labelledby'?: string;
@@ -50,7 +50,7 @@ export interface SidebarProps {
 const COLLAPSED_WIDTH = '3.5rem';
 
 /**
- * @manifest Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode
+ * @manifest Vertical nav-item list built on Base UI NavigationMenu, with a collapsed icon-only mode
  * @manifestCategory Containers
  * @manifestAntiPatternAvoid Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state
  * @manifestAntiPatternInstead Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <NavigationMenuPrimitive.Root
+    <BaseNavigationMenu.Root
       orientation="vertical"
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {collapsed ? '»' : '«'}
       </button>
 
-      <NavigationMenuPrimitive.List
+      <BaseNavigationMenu.List
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -142,8 +142,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {items.map(item => {
           const isActive = item.id === activeId;
           return (
-            <NavigationMenuPrimitive.Item key={item.id}>
-              <NavigationMenuPrimitive.Link
+            <BaseNavigationMenu.Item key={item.id}>
+              <BaseNavigationMenu.Link
                 href={item.href ?? '#'}
                 active={isActive}
                 aria-current={isActive ? 'page' : undefined}
@@ -184,11 +184,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {item.icon && <span style={{ flexShrink: 0, display: 'inline-flex' }}>{item.icon}</span>}
                 {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>}
-              </NavigationMenuPrimitive.Link>
-            </NavigationMenuPrimitive.Item>
+              </BaseNavigationMenu.Link>
+            </BaseNavigationMenu.Item>
           );
         })}
-      </NavigationMenuPrimitive.List>
-    </NavigationMenuPrimitive.Root>
+      </BaseNavigationMenu.List>
+    </BaseNavigationMenu.Root>
   );
 };

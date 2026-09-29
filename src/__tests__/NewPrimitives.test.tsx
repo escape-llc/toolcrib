@@ -7,19 +7,7 @@ import { Checkbox, Switch } from '../components/Form/FormComponents';
 import { ScrollArea } from '../components/ScrollArea/ScrollArea';
 import { axe } from './testUtils/axe';
 import { NonceContext } from '../theme/nonceContext';
-
-// ScrollArea's internal ResizeObserver-driven size tracking has no effect on
-// whether its DOM nodes render (see ScrollArea.tsx's own review notes) but
-// Radix still constructs one on mount — same polyfill as RadixPrimitives.test.tsx.
-if (typeof window !== 'undefined' && !window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as any;
-  (globalThis as any).ResizeObserver = ResizeObserverMock as any;
-}
+import { settleOverlay } from './testUtils/overlay';
 
 describe('VisuallyHidden Component', () => {
   it('keeps content queryable (announced to assistive tech) while rendering it', async () => {
@@ -97,40 +85,50 @@ describe('Label Component', () => {
 });
 
 describe('ScrollArea Component', () => {
-  it('renders its children inside the scrollable viewport', () => {
+  // Issue #625: the scroll area renders its own <style> (hiding the native
+  // scrollbar), plus toolcrib's own scrollbar-visibility style. Without the
+  // configured nonce, a strict style-src CSP blocks them -- found by
+  // e2e/csp-nonce.spec.ts's production-build test. Both are inserted once per
+  // document and deduplicated after that (Base UI's is a React-hoisted
+  // <style href precedence>, #702), so the FIRST render decides the nonce.
+  // In an app the nonce provider wraps everything; here this has to be the
+  // file's first ScrollArea render, which is why it leads this block.
+  it('passes the configured CSP nonce to the <style>s it adds', async () => {
     render(
-      <ScrollArea>
-        <div>Scrollable content</div>
-      </ScrollArea>
-    );
-    expect(screen.getByText('Scrollable content')).toBeInTheDocument();
-  });
-
-  // Issue #625: Radix's ScrollArea.Viewport renders its own <style> (hiding
-  // the native scrollbar). Without the configured nonce, a strict style-src
-  // CSP blocks it -- found by e2e/csp-nonce.spec.ts's production-build test.
-  it('passes the configured CSP nonce to the viewport\'s own <style>', () => {
-    const { container } = render(
       <NonceContext.Provider value="test-nonce-625">
         <ScrollArea>
           <div>content</div>
         </ScrollArea>
       </NonceContext.Provider>
     );
-    const styles = container.querySelectorAll('style');
-    expect(styles.length).toBeGreaterThan(0);
-    for (const s of Array.from(styles)) expect(s.getAttribute('nonce')).toBe('test-nonce-625');
+    await settleOverlay();
+    const baseUiStyle = document.querySelector('style[data-href="base-ui-disable-scrollbar"]');
+    const ownStyle = document.getElementById('toolcrib-scrollarea-styles');
+    expect(baseUiStyle).not.toBeNull();
+    expect(ownStyle).not.toBeNull();
+    expect(baseUiStyle!.getAttribute('nonce')).toBe('test-nonce-625');
+    expect(ownStyle!.getAttribute('nonce')).toBe('test-nonce-625');
   });
 
-  it('renders a vertical scrollbar by default and a horizontal one only for orientation="both"', () => {
-    // type="always" forces the scrollbar to mount unconditionally — the
-    // default 'hover' type gates it behind Radix's own Presence/pointer
-    // tracking, which never fires without real pointer events.
+  it('renders its children inside the scrollable viewport', async () => {
+    render(
+      <ScrollArea>
+        <div>Scrollable content</div>
+      </ScrollArea>
+    );
+    await settleOverlay();
+    expect(screen.getByText('Scrollable content')).toBeInTheDocument();
+  });
+
+  it('renders a vertical scrollbar by default and a horizontal one only for orientation="both"', async () => {
+    // type="always" keeps the scrollbar mounted without real overflow,
+    // which jsdom (no layout) never has.
     const { container, rerender } = render(
       <ScrollArea type="always">
         <div>content</div>
       </ScrollArea>
     );
+    await settleOverlay();
     expect(container.querySelector('[data-orientation="vertical"]')).toBeInTheDocument();
     expect(container.querySelector('[data-orientation="horizontal"]')).not.toBeInTheDocument();
 
@@ -139,21 +137,23 @@ describe('ScrollArea Component', () => {
         <div>content</div>
       </ScrollArea>
     );
+    await settleOverlay();
     expect(container.querySelector('[data-orientation="vertical"]')).toBeInTheDocument();
     expect(container.querySelector('[data-orientation="horizontal"]')).toBeInTheDocument();
   });
 
-  it('applies a thumbWidth override as a scoped CSS custom property', () => {
+  it('applies a thumbWidth override as a scoped CSS custom property', async () => {
     const { container } = render(
       <ScrollArea overrides={{ thumbWidth: 'thick' }}>
         <div>content</div>
       </ScrollArea>
     );
+    await settleOverlay();
     const root = container.firstElementChild as HTMLElement;
     expect(root.style.getPropertyValue('--ai-scrollarea-thumb-size')).toBe('0.75rem');
   });
 
-  it('applies maxHeight to the root, falling back to 100% when omitted', () => {
+  it('applies maxHeight to the root, falling back to 100% when omitted', async () => {
     const { container: withMax } = render(
       <ScrollArea maxHeight="8rem">
         <div>content</div>
@@ -164,6 +164,7 @@ describe('ScrollArea Component', () => {
         <div>content</div>
       </ScrollArea>
     );
+    await settleOverlay();
     expect((withMax.firstElementChild as HTMLElement).style.height).toBe('8rem');
     expect((withoutMax.firstElementChild as HTMLElement).style.height).toBe('100%');
   });

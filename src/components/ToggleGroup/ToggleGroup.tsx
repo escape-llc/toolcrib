@@ -1,7 +1,8 @@
 'use client';
 
 import React, { type ReactNode, useState } from 'react';
-import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
+import { Toggle as BaseToggle } from '@base-ui/react/toggle';
+import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -56,9 +57,9 @@ export const Toggle: React.FC<ToggleProps> = ({
   };
 
   return (
-    <TogglePrimitive.Root
+    <BaseToggle
       pressed={isPressed}
-      onPressedChange={handlePressedChange}
+      onPressedChange={next => handlePressedChange(next)}
       disabled={disabled}
       className="ai-btn"
       style={{
@@ -87,7 +88,7 @@ export const Toggle: React.FC<ToggleProps> = ({
       }}
     >
       {children}
-    </TogglePrimitive.Root>
+    </BaseToggle>
   );
 };
 
@@ -108,7 +109,7 @@ export interface ToggleGroupOption {
  *
  * Data-driven: pass an `options` array. `type="single"` behaves like a
  * segmented control (one selection, re-clicking the active option
- * deselects it — Radix's own behavior); `type="multiple"` allows any
+ * is a no-op, so one option always stays selected); `type="multiple"` allows any
  * combination, like a set of independent toggles that happen to share a
  * connected visual border.
  */
@@ -143,8 +144,8 @@ export interface ToggleGroupProps {
    */
   squareCorners?: SquareCornerOption;
   /**
-   * Accessible name for the whole group (Radix's own `role="group"` on
-   * the root) — e.g. "Row density" for a set of density options. Distinct
+   * Accessible name for the whole group (the root's `role="radiogroup"`
+   * or `role="group"`) — e.g. "Row density" for a set of density options. Distinct
    * from each option's own accessible name (its `label`), the same way a
    * native `<fieldset><legend>` names the group without repeating into
    * every `<input>` inside it.
@@ -193,12 +194,12 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const outerCornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
 
-  const handleValueChange = (next: string | string[]) => {
-    // type="single" renders role="radiogroup" (Radix's own
-    // ToggleGroupImplSingle), but Radix's underlying value model is still a
-    // plain toggle, not a true radio: clicking the currently-selected
-    // option calls its own onItemDeactivate, which sets the value to ''
-    // (fully deselected) -- valid, ordinary behavior for `type="multiple"`
+  const handleValueChange = (groupValue: string[]) => {
+    const next: string | string[] = type === 'multiple' ? groupValue : groupValue[0] ?? '';
+    // type="single" is announced as a radiogroup (see the render below), but
+    // the primitive's value model is still a plain toggle, not a true
+    // radio: clicking the currently-selected option deselects it, leaving
+    // no value -- valid, ordinary behavior for `type="multiple"`
     // (a toolbar of independent toggles can legitimately have none
     // pressed), but a real WAI-ARIA violation for `type="single"` (a
     // radiogroup must always have exactly one option checked once
@@ -222,13 +223,26 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   const isSelected = (optValue: string): boolean =>
     type === 'multiple' ? (currentValue as string[]).includes(optValue) : currentValue === optValue;
 
+  const groupValue = type === 'multiple' ? (currentValue as string[]) : currentValue ? [currentValue as string] : [];
+  const isSingle = type === 'single';
+
   return (
-    <ToggleGroupPrimitive.Root
-      type={type as any}
-      value={currentValue as any}
-      onValueChange={handleValueChange as any}
+    // Base UI's ToggleGroup is a group of aria-pressed toggle buttons in
+    // both modes. Single mode keeps the radio semantics the Radix version
+    // had (#702): the root is a radiogroup and each option a radio with
+    // aria-checked, so "one of N" is announced as such. Arrow keys move
+    // focus and Space/Enter selects, as before. `ai-choice-group` is what
+    // the choice-separator rule (theme/choiceSeparator.ts) keys on.
+    <BaseToggleGroup
+      multiple={!isSingle}
+      value={groupValue}
+      onValueChange={v => handleValueChange(v as string[])}
       disabled={disabled}
+      // Only set in single mode: an explicit `role={undefined}` would erase
+      // Base UI's own role="group" for a multiple group.
+      {...(isSingle ? { role: 'radiogroup' } : {})}
       aria-label={ariaLabel}
+      className="ai-choice-group"
       style={{ display: 'inline-flex', alignItems: 'stretch' }}
     >
       {options.map((opt, index) => {
@@ -240,10 +254,13 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
         const borderColor = selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)';
 
         return (
-          <ToggleGroupPrimitive.Item
+          <BaseToggle
             key={opt.value}
             value={opt.value}
             disabled={itemDisabled}
+            role={isSingle ? 'radio' : undefined}
+            aria-checked={isSingle ? selected : undefined}
+            aria-pressed={isSingle ? undefined : selected}
             className="ai-btn"
             style={{
               display: 'inline-flex',
@@ -356,9 +373,9 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
           >
             {opt.icon}
             {opt.label}
-          </ToggleGroupPrimitive.Item>
+          </BaseToggle>
         );
       })}
-    </ToggleGroupPrimitive.Root>
+    </BaseToggleGroup>
   );
 };

@@ -6,7 +6,7 @@ import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
 import { globalThemeSliceRegistry } from '../theme/slice';
 import { SLICE_EDITOR_CONTROLS } from '../components/ThemeEditor/sliceEditorControls';
 import { axe } from './testUtils/axe';
-import { actAndSettle } from './testUtils/overlay';
+import { actAndSettle, settleOverlay } from './testUtils/overlay';
 
 // ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -363,9 +363,13 @@ describe('ThemeEditor', () => {
       }
     });
 
-    it('Motion, Transitions & Physics section: preset select and duration-factor slider both update', () => {
+    it('Motion, Transitions & Physics section: preset select and duration-factor slider both update', async () => {
       renderEditor();
       fireEvent.click(screen.getByText(/Motion, Transitions & Physics/));
+      // The section that was open stays mounted through its close until a
+      // frame later (Base UI Accordion, #702); its sliders would otherwise
+      // still match below.
+      await settleOverlay();
 
       const combo = screen.getByRole('combobox');
       fireEvent.click(combo);

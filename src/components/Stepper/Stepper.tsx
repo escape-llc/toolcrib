@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useState, useRef, useEffect } from 'react';
-import { Tabs as TabsPrimitive } from 'radix-ui';
+import { Tabs as BaseTabs } from '@base-ui/react/tabs';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
@@ -43,11 +43,11 @@ export interface StepperProps {
 }
 
 /**
- * @manifest Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating
+ * @manifest Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating
  * @manifestConstraints Forward navigation past a step with `formId` set is blocked until that step's `<Form>` reports `isValid: true`
  * @manifestCategory Data Display
  * @manifestAntiPatternAvoid Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks
- * @manifestAntiPatternInstead Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId`
+ * @manifestAntiPatternInstead Use `<Stepper>` — built on the same Base UI Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId`
  */
 export const Stepper: React.FC<StepperProps> = ({
   id: propId,
@@ -111,7 +111,7 @@ export const Stepper: React.FC<StepperProps> = ({
   const canAdvance = activeStep ? isStepSatisfied(activeStep) && activeIndex < steps.length - 1 : false;
 
   return (
-    <TabsPrimitive.Root
+    <BaseTabs.Root
       value={activeStep?.id}
       onValueChange={val => {
         const index = steps.findIndex(s => s.id === val);
@@ -119,14 +119,15 @@ export const Stepper: React.FC<StepperProps> = ({
       }}
       style={{ display: 'flex', flexDirection: 'column', width: '100%', ...stepperVars }}
     >
-      <TabsPrimitive.List style={{ display: 'flex', alignItems: 'center', marginBottom: '1.25rem' }}>
+      {/* activateOnFocus: arrow keys select the step they reach, as with Radix (#702). */}
+      <BaseTabs.List activateOnFocus style={{ display: 'flex', alignItems: 'center', marginBottom: '1.25rem' }}>
         {steps.map((step, index) => {
           const isCompleted = index < activeIndex && isStepSatisfied(step);
           const isActive = index === activeIndex;
           const isReachable = index <= maxReachableIndex && !step.disabled;
           return (
             <React.Fragment key={step.id}>
-              <TabsPrimitive.Trigger
+              <BaseTabs.Tab
                 value={step.id}
                 disabled={!isReachable}
                 aria-current={isActive ? 'step' : undefined}
@@ -170,7 +171,7 @@ export const Stepper: React.FC<StepperProps> = ({
                 >
                   {step.label}
                 </span>
-              </TabsPrimitive.Trigger>
+              </BaseTabs.Tab>
               {index < steps.length - 1 && (
                 <div
                   style={{
@@ -184,12 +185,12 @@ export const Stepper: React.FC<StepperProps> = ({
             </React.Fragment>
           );
         })}
-      </TabsPrimitive.List>
+      </BaseTabs.List>
 
       {steps.map(step => (
-        <TabsPrimitive.Content key={step.id} value={step.id} style={{ flex: 1 }}>
+        <BaseTabs.Panel key={step.id} value={step.id} style={{ flex: 1 }}>
           {step.content}
-        </TabsPrimitive.Content>
+        </BaseTabs.Panel>
       ))}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.25rem' }}>
@@ -242,6 +243,6 @@ export const Stepper: React.FC<StepperProps> = ({
           Next
         </button>
       </div>
-    </TabsPrimitive.Root>
+    </BaseTabs.Root>
   );
 };

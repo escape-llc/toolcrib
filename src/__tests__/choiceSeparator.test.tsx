@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { ToggleGroup } from '../components/ToggleGroup/ToggleGroup';
 import { useInjectChoiceSeparatorStyles } from '../theme/choiceSeparator';
 
 function Probe() {
@@ -7,25 +8,29 @@ function Probe() {
   return null;
 }
 
-// Regression: the injected rule originally only matched
-// `[role="radiogroup"] > .ai-btn` -- correct for a `type="single"`
-// ToggleGroup, but Radix's own ToggleGroupPrimitive renders
-// `role="toolbar"` (not `role="radiogroup"`, and not `role="group"` either
-// -- confirmed directly against Radix's own source) for `type="multiple"`.
-// Once ToggleGroup.tsx's own interior borders went transparent (relying on
-// this rule as the sole visual divider), a multi-select group silently lost
-// ALL division between its options -- caught by an external review, then
-// confirmed via a real browser screenshot before fixing. jsdom can't render
+// Regression: the injected rule originally keyed on ARIA roles and only
+// matched a `type="single"` group's `[role="radiogroup"]` -- a
+// `type="multiple"` group silently lost ALL division between its options
+// once ToggleGroup.tsx's own interior borders went transparent (relying on
+// this rule as the sole visual divider). It now keys on an explicit
+// `.ai-choice-group` class both modes carry (#702). jsdom can't render
 // the pseudo-element itself, but it CAN read the injected `<style>` tag's
 // real text content directly, which is enough to pin the selector contract
 // so this exact regression can't silently reappear.
 describe('choiceSeparator', () => {
-  it('injects a rule covering both role="radiogroup" (single) and role="toolbar" (multiple)', () => {
+  it('injects a rule keyed on .ai-choice-group, which both single and multiple ToggleGroups carry', () => {
     render(<Probe />);
     const style = document.getElementById('toolcrib-choice-separator');
     expect(style).toBeInTheDocument();
-    expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn');
-    expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn');
+    expect(style?.textContent).toContain('.ai-choice-group > .ai-btn:not(:first-child)::before');
+
+    const opts = [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }];
+    render(<ToggleGroup aria-label="Single" type="single" defaultValue="a" options={opts} />);
+    render(<ToggleGroup aria-label="Multiple" type="multiple" options={opts} />);
+    expect(screen.getByRole('radiogroup', { name: 'Single' })).toHaveClass('ai-choice-group');
+    expect(screen.getByRole('group', { name: 'Multiple' })).toHaveClass('ai-choice-group');
+    // The selected-state hook the second rule keys on.
+    expect(screen.getByRole('radio', { name: 'A' })).toHaveAttribute('data-pressed');
   });
 
   // Regression: the default gray divider is unreadable against a selected
@@ -40,10 +45,8 @@ describe('choiceSeparator', () => {
   it('switches the divider to a primary-contrast color when it would otherwise sit on a selected fill', () => {
     render(<Probe />);
     const style = document.getElementById('toolcrib-choice-separator');
-    expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn[data-state="on"]:not(:first-child)::before');
-    expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn[data-state="on"]:not(:first-child)::before');
-    expect(style?.textContent).toContain('[role="radiogroup"] > .ai-btn[data-state="on"] + .ai-btn::before');
-    expect(style?.textContent).toContain('[role="toolbar"] > .ai-btn[data-state="on"] + .ai-btn::before');
+    expect(style?.textContent).toContain('.ai-choice-group > .ai-btn[data-pressed]:not(:first-child)::before');
+    expect(style?.textContent).toContain('.ai-choice-group > .ai-btn[data-pressed] + .ai-btn::before');
     expect(style?.textContent).toContain('--ai-color-primary-text');
   });
 

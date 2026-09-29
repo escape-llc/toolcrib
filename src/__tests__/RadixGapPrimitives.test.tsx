@@ -133,11 +133,10 @@ describe('Toolbar roving-focus upgrade', () => {
   });
 
   it('registers Toolbar.Button items with the roving-focus group, unlike a plain button', () => {
-    // Confirms the mechanism-level fact ("did this button join Radix's
-    // RovingFocusGroup Collection") rather than the timing-sensitive
-    // tabIndex bookkeeping the group derives from it — jsdom's effect
-    // ordering for Radix's Collection-backed roving group doesn't reliably
-    // match a real browser's settled state within one synchronous render.
+    // Roving tabindex (#702, Base UI): once the group settles, the one
+    // Toolbar.Button is the group's single tab stop (tabindex 0), while a
+    // plain button inside the toolbar keeps its own native tab order and
+    // gets no tabindex from the group at all.
     render(
       <Toolbar>
         <Toolbar.Left>
@@ -147,8 +146,8 @@ describe('Toolbar roving-focus upgrade', () => {
       </Toolbar>
     );
 
-    expect(screen.getByText('Roving')).toHaveAttribute('data-radix-collection-item');
-    expect(screen.getByText('Plain')).not.toHaveAttribute('data-radix-collection-item');
+    expect(screen.getByText('Roving')).toHaveAttribute('tabindex', '0');
+    expect(screen.getByText('Plain')).not.toHaveAttribute('tabindex');
   });
 
   it('applies a slotGap override as a scoped CSS custom property on the root', () => {
@@ -162,8 +161,8 @@ describe('Toolbar roving-focus upgrade', () => {
     expect(screen.getByRole('toolbar').style.getPropertyValue('--ai-toolbar-slot-gap')).toContain('0.875rem');
   });
 
-  // Toolbar.Button is composed via Radix's asChild (ToolbarPrimitive.Button
-  // wrapping toolcrib's own <Button>) — a real place a prop like `disabled`
+  // Toolbar.Button is composed via Base UI's render prop (Toolbar.Button
+  // rendering toolcrib's own <Button>) — a real place a prop like `disabled`
   // could get lost in transit without ever surfacing as a type error, since
   // both layers separately accept a `disabled` prop of the same name.
   it('forwards disabled through to the real button and blocks its onClick', () => {

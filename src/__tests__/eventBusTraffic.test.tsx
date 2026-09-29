@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { z } from 'zod';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
@@ -160,7 +160,7 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     });
   });
 
-  it('verifies TabStrip emits tab:changed event, including its group id', () => {
+  it('verifies TabStrip emits tab:changed event, including its group id', async () => {
     // Uncontrolled (defaultActiveId, no onChange) -- a controlled instance
     // whose onChange never actually writes the new value back to the
     // activeId prop wouldn't really change tabs at all (same contract as
@@ -174,10 +174,12 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
       />
     );
 
-    const tab2 = screen.getByText('Tab 2').closest('button');
-    if (tab2) {
-      fireEvent.keyDown(tab2, { key: 'Enter', code: 'Enter' });
-    }
+    // Arrow keys select the tab they move to (activateOnFocus, kept from
+    // the Radix version's automatic activation, #702).
+    const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
+    act(() => tab1.focus());
+    // Base UI moves focus a frame later, and selection follows it.
+    await actAndSettle(() => fireEvent.keyDown(tab1, { key: 'ArrowRight' }));
     expect(trafficSpy).toHaveBeenCalledWith({
       type: 'tab:changed',
       detail: expect.objectContaining({ id: 'traffic-tabs', activeId: 'tab2', previousId: 'tab1' }),
