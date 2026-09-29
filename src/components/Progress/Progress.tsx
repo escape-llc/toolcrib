@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Progress as ProgressPrimitive } from 'radix-ui';
+import { Progress as BaseProgress } from '@base-ui/react/progress';
 import { aiBus } from '../../eventBus/eventBus';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
@@ -62,17 +62,14 @@ export const Progress: React.FC<ProgressProps> = ({
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
   const progressVars = getSparseVariables(ProgressThemeSlice, overrides ?? {});
   const clampedValue = Math.min(Math.max(value, 0), max);
-  const percentage = max > 0 ? (clampedValue / max) * 100 : 0;
 
   useEffect(() => {
     aiBus.emit('progress:changed', { id, value: clampedValue, max });
   }, [id, clampedValue, max]);
 
   return (
-    <ProgressPrimitive.Root
-      aria-label={ariaLabel}
-      value={clampedValue}
-      max={max}
+    <BaseProgress.Root aria-label={ariaLabel} value={clampedValue} max={max} style={{ width: '100%' }}>
+      <BaseProgress.Track
       style={{
         position: 'relative',
         overflow: 'hidden',
@@ -83,13 +80,15 @@ export const Progress: React.FC<ProgressProps> = ({
         ...progressVars,
       }}
     >
-      <ProgressPrimitive.Indicator
+      {/* Base UI sizes the fill itself (width: N%, #702); the Radix version
+          slid a full-width bar with translateX. */}
+      <BaseProgress.Indicator
         style={{
-          width: '100%',
-          height: '100%',
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
           background: subthemeColors ? subthemeColors.main : 'var(--ai-color-primary, #3b82f6)',
           borderRadius: 'inherit',
-          transform: `translateX(-${100 - percentage}%)`,
           // The var alone, not `transform ${var}` -- see Sidebar.tsx's
           // own comment on why prepending a property name in front of
           // --ai-transition-normal (which already resolves to a complete
@@ -98,6 +97,7 @@ export const Progress: React.FC<ProgressProps> = ({
           transition: 'var(--ai-transition-normal, all 0.3s cubic-bezier(0.4, 0, 0.2, 1))',
         }}
       />
-    </ProgressPrimitive.Root>
+      </BaseProgress.Track>
+    </BaseProgress.Root>
   );
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useEffect, useRef } from 'react';
-import { Accordion as AccordionPrimitive } from 'radix-ui';
+import { Accordion as BaseAccordion } from '@base-ui/react/accordion';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AccordionThemeSlice, type AccordionSliceState } from './AccordionSlice';
@@ -13,8 +13,9 @@ import { useNonce } from '../../theme/nonceContext';
 const ACCORDION_STYLE_ID = 'toolcrib-accordion-styles';
 
 // Same rationale as Toast's injectToastAnimations(): the expand/collapse
-// animation needs to play a *different* keyframe depending on
-// `[data-state="open"/"closed"]`, which an inline `style.animation` can't
+// animation needs to play a *different* keyframe depending on the panel's
+// state (Base UI: `[data-open]` while open, `[data-ending-style]` through
+// the close, #702), which an inline `style.animation` can't
 // express (its value doesn't change between renders just because a
 // data-attribute did, so the browser never restarts it) — only a real
 // stylesheet rule can react to the attribute change. This used to live
@@ -28,19 +29,19 @@ function injectAccordionStyles(targetDocument?: Document, nonce?: string): void 
     `
     @keyframes ai-accordion-slide-down {
       from { height: 0; opacity: 0; transform: translateY(-0.25rem); }
-      to { height: var(--radix-accordion-content-height); opacity: 1; transform: translateY(0); }
+      to { height: var(--accordion-panel-height); opacity: 1; transform: translateY(0); }
     }
     @keyframes ai-accordion-slide-up {
-      from { height: var(--radix-accordion-content-height); opacity: 1; transform: translateY(0); }
+      from { height: var(--accordion-panel-height); opacity: 1; transform: translateY(0); }
       to { height: 0; opacity: 0; transform: translateY(-0.25rem); }
     }
     .ai-accordion-content {
       overflow: hidden;
     }
-    .ai-accordion-content[data-state="open"] {
+    .ai-accordion-content[data-open] {
       animation: var(--ai-accordion-animation, ai-accordion-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
-    .ai-accordion-content[data-state="closed"] {
+    .ai-accordion-content[data-ending-style] {
       animation: var(--ai-accordion-close-animation, ai-accordion-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
     .ai-accordion-trigger:hover {
@@ -51,7 +52,7 @@ function injectAccordionStyles(targetDocument?: Document, nonce?: string): void 
       transition: transform var(--ai-transition-duration-normal, 0.22s) var(--ai-transition-easing, cubic-bezier(0.16, 1, 0.3, 1));
       display: inline-block;
     }
-    .ai-accordion-trigger[data-state="open"] .ai-accordion-chevron {
+    .ai-accordion-trigger[data-panel-open] .ai-accordion-chevron {
       transform: rotate(180deg);
       color: var(--ai-color-primary, #3b82f6);
     }
@@ -117,19 +118,17 @@ export const Accordion: React.FC<AccordionProps> = ({
 
   // Tracks which item values are currently open so onValueChange can emit
   // one accordion:opened/closed per item that actually changed state —
-  // Radix's onValueChange only reports the new value(s) (a single string
-  // for type="single", an array for type="multiple"), not a diff, so a
-  // naive "truthy = opened, falsy = closed" read can't tell which item
-  // closed when switching between single-mode panels or toggling one item
-  // in multi-mode while others stay open.
+  // onValueChange only reports the new open values, not a diff, so it
+  // can't tell which item closed when switching between single-mode panels
+  // or toggling one item in multi-mode while others stay open.
   const previousOpenRef = useRef<Set<string>>(new Set(defaultValue ? [defaultValue] : []));
 
   return (
-    <AccordionPrimitive.Root
-      type={type as any}
-      defaultValue={defaultValue}
-      onValueChange={(val: any) => {
-        const nextOpen = new Set<string>(Array.isArray(val) ? val : val ? [val] : []);
+    <BaseAccordion.Root
+      multiple={type === 'multiple'}
+      defaultValue={defaultValue ? [defaultValue] : undefined}
+      onValueChange={(val) => {
+        const nextOpen = new Set<string>(val as string[]);
         const previousOpen = previousOpenRef.current;
 
         for (const itemValue of nextOpen) {
@@ -154,7 +153,7 @@ export const Accordion: React.FC<AccordionProps> = ({
       }}
     >
       {items.map((item) => (
-        <AccordionPrimitive.Item
+        <BaseAccordion.Item
           key={item.value}
           value={item.value}
           disabled={item.disabled}
@@ -165,8 +164,8 @@ export const Accordion: React.FC<AccordionProps> = ({
             overflow: 'hidden',
           }}
         >
-          <AccordionPrimitive.Header style={{ margin: 0 }}>
-            <AccordionPrimitive.Trigger
+          <BaseAccordion.Header style={{ margin: 0 }}>
+            <BaseAccordion.Trigger
               className="ai-accordion-trigger"
               style={{
                 all: 'unset',
@@ -186,10 +185,10 @@ export const Accordion: React.FC<AccordionProps> = ({
             >
               <span>{item.title}</span>
               <span className="ai-accordion-chevron" style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)' }}>▼</span>
-            </AccordionPrimitive.Trigger>
-          </AccordionPrimitive.Header>
+            </BaseAccordion.Trigger>
+          </BaseAccordion.Header>
 
-          <AccordionPrimitive.Content
+          <BaseAccordion.Panel
             className="ai-accordion-content"
             data-testid={`accordion-content-${item.value}`}
             style={{
@@ -200,8 +199,8 @@ export const Accordion: React.FC<AccordionProps> = ({
               // defined "used height" clamp). With padding living here,
               // the close animation visibly stalled at ~33px (its own
               // padding+border-top) for the remainder of its 200ms
-              // duration, then snapped to a true 0 only when Radix's
-              // Presence unmounted the node on animationend — a discrete,
+              // duration, then snapped to a true 0 only when the node was
+              // unmounted on animationend — a discrete,
               // non-animated jump, not part of the animation at all.
               // Confirmed via a real per-frame height trace, not just
               // reasoning about the CSS. Moving padding/border to the
@@ -210,8 +209,8 @@ export const Accordion: React.FC<AccordionProps> = ({
               // 0 smoothly, by the time the animation itself ends.
               // Isolates each panel's content reflow from its sibling
               // panels during expand/collapse. Not `size` (that axis is
-              // left alone), so Radix's own height-driving CSS var/
-              // animation for this panel is unaffected.
+              // left alone), so the height-driving CSS var/animation for
+              // this panel is unaffected.
               contain: 'content',
             }}
           >
@@ -225,9 +224,9 @@ export const Accordion: React.FC<AccordionProps> = ({
             >
               {item.content}
             </div>
-          </AccordionPrimitive.Content>
-        </AccordionPrimitive.Item>
+          </BaseAccordion.Panel>
+        </BaseAccordion.Item>
       ))}
-    </AccordionPrimitive.Root>
+    </BaseAccordion.Root>
   );
 };

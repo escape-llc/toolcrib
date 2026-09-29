@@ -1,5 +1,4 @@
 import React from 'react';
-import { Separator as SeparatorPrimitive } from 'radix-ui';
 import { getSparseVariables } from '../../theme/slice';
 import { SeparatorThemeSlice, type SeparatorSliceState } from './SeparatorSlice';
 
@@ -33,10 +32,15 @@ export const Separator: React.FC<SeparatorProps> = ({
   const separatorVars = getSparseVariables(SeparatorThemeSlice, overrides ?? {});
   const thickness = 'var(--ai-separator-thickness, 0.0625rem)';
 
+  // A plain element, not a library primitive (#702): Base UI's Separator is
+  // always role="separator" with no decorative mode, and there's nothing
+  // else to it. Decorative is role="none" (Radix's shape); a semantic one is
+  // role="separator", with aria-orientation only where it differs from the
+  // role's implicit horizontal.
   return (
-    <SeparatorPrimitive.Root
-      orientation={orientation}
-      decorative={decorative}
+    <div
+      role={decorative ? 'none' : 'separator'}
+      aria-orientation={!decorative && orientation === 'vertical' ? 'vertical' : undefined}
       style={
         orientation === 'horizontal'
           ? { width: '100%', height: thickness, background: 'var(--ai-border, #e5e7eb)', border: 'none', flexShrink: 0, ...separatorVars }

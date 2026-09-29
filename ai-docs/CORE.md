@@ -145,7 +145,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 | Hand-roll a pulsing/shimmering loading placeholder `<div>` for content that hasn't loaded yet | Use `<Skeleton shape="text"|"circle"|"rect">` — already animates off the shared keyframes, not a one-off duration |
 | Hand-roll a spinning-border `<div>` for indeterminate loading | Use `<Spinner>` — already animates off the shared keyframes, not a one-off duration |
 | When computing a pixel-exact `split` via `splitter:split_changed` (e.g. "collapse this panel to exactly its own header's height"), measuring an inner child's content box instead of the actual outermost element whose full rendered box (padding/border included) needs to fit | Measure the real outer element (e.g. a `Card.Header`, not the `<Toolbar>` inside it) with `getBoundingClientRect()`, and add half of `SPLITTER_HANDLE_SIZE_REM` (in px) before converting the target height to a percentage — both omissions clip the panel identically regardless of viewport size, confirmed directly via real Playwright measurement, not assumed |
-| Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
+| Hand-roll a multi-step wizard with `useState` for the active step and manual "can I advance" checks | Use `<Stepper>` — built on the same Base UI Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId` |
 | A raw `<p style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>` or a styled `<span>` for secondary text | `<Text size="sm" tone="secondary">`, or `<Text as="span" ...>` inline |
 | Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation) | Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free |
 | Hand-roll a nested list's expand/collapse with `useState` per node, or a custom keydown handler for arrow-key navigation | Use `<Tree>` — full WAI-ARIA Treeview keyboard nav (arrows, Home/End, type-ahead) and `aria-expanded`/`aria-level`/`aria-selected` come for free |
@@ -192,7 +192,7 @@ Full prop detail: `ai-docs/manifest/containers.json`
 | `<Collapsible>` | — | `id`, `trigger`, `defaultOpen`, `isOpen`, `onOpenChange`, `disabled`, `overrides` | Single expand/collapse content panel — see Accordion for a data-driven set of panels |
 | `<DeferredContent>` | — | `estimatedHeight`, `onVisibilityChange` | Defers layout/paint of off-screen content via native content-visibility, for long lists/grids of many repeated items (e.g. many <Card>s, a long <Accordion>) — not for flex `1 1 0px` fill panels like Splitter.Panel/TabStrip.Panel, which are already always-visible and get no benefit from this |
 | `<ScrollArea>` | — | `orientation`, `type`, `maxHeight`, `overrides` | Scrollable container with a themed, cross-browser custom scrollbar |
-| `<Sidebar>` | — | `items`, `activeId`, `onItemClick`, `collapsed`, `defaultCollapsed`, `onCollapsedChange`, `overrides` | Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode |
+| `<Sidebar>` | — | `items`, `activeId`, `onItemClick`, `collapsed`, `defaultCollapsed`, `onCollapsedChange`, `overrides` | Vertical nav-item list built on Base UI NavigationMenu, with a collapsed icon-only mode |
 | `<Splitter>` | `.Panel` | `id`, `orientation`, `initialSplit`, `minSize` | Resizable two-panel layout with automatic corner-squaring domain |
 
 ### Overlays
@@ -239,7 +239,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
 | `<Sparkline>` | — | `values`, `width`, `height`, `title` | Minimal inline trend line for a stat tile |
 | `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
-| `<Stepper>` | — | `id`, `steps`, `activeIndex`, `defaultActiveIndex`, `onActiveIndexChange`, `overrides` | Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating |
+| `<Stepper>` | — | `id`, `steps`, `activeIndex`, `defaultActiveIndex`, `onActiveIndexChange`, `overrides` | Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 | `<Tree>` | — | `id`, `items`, `expandedIds`, `defaultExpandedIds`, `onExpandedChange`, `selectedId`, `defaultSelectedId`, `onSelectChange`, `overrides` | Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation |
 

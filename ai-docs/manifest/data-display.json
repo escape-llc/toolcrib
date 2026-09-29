@@ -60,7 +60,7 @@
         },
         "fallbackDelayMs": {
           "type": "number",
-          "description": "Delay in milliseconds before the fallback renders while the image is\nstill loading, avoiding a flash of fallback content for a fast-loading\nimage. Omitted by default — Radix's own `AvatarPrimitive.Fallback`\nrenders immediately with no artificial delay unless `delayMs` is\nexplicitly passed (confirmed in `@radix-ui/react-avatar`'s source:\nits `canRender` state starts `true` only when `delayMs === undefined`),\nso defaulting this to a nonzero value here would force every avatar\nwith no `src` — the common initials-only case — to sit blank for that\nlong before showing its fallback, for no benefit."
+          "description": "Delay in milliseconds before the fallback renders while the image is\nstill loading, avoiding a flash of fallback content for a fast-loading\nimage. Omitted by default — the fallback renders immediately with no\nartificial delay unless one is passed, so defaulting this to a\nnonzero value here would force every avatar\nwith no `src` — the common initials-only case — to sit blank for that\nlong before showing its fallback, for no benefit."
         },
         "overrides": {
           "type": "Partial<AvatarSliceState>",
@@ -896,8 +896,8 @@
       "constraints": "Forward navigation past a step with `formId` set is blocked until that step's `<Form>` reports `isValid: true`",
       "category": "Data Display",
       "antiPatternAvoid": "Hand-roll a multi-step wizard with `useState` for the active step and manual \"can I advance\" checks",
-      "antiPatternInstead": "Use `<Stepper>` — built on the same Radix Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId`",
-      "description": "Linear step wizard built on the same Radix Tabs primitive as `<TabStrip>`, with per-step Form validation gating"
+      "antiPatternInstead": "Use `<Stepper>` — built on the same Base UI Tabs primitive as `<TabStrip>`, and blocks forward navigation past a step automatically once you set that step's `formId`",
+      "description": "Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating"
     },
     {
       "name": "TabStrip",

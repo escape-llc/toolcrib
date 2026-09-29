@@ -325,7 +325,7 @@
         "orientation": {
           "type": "'horizontal' | 'vertical'",
           "default": "'horizontal'",
-          "description": "Arrow-key axis for the roving-tabindex group Radix's own `Toolbar.Root`\nestablishes. Only affects children rendered via `<Toolbar.Button>` —\narbitrary children (a plain `<Button>`, a `<Select>`, a `<Tooltip>`\ntrigger) never joined the group in the first place, so they keep normal\ntab order regardless of this setting."
+          "description": "Arrow-key axis for the roving-tabindex group the toolbar root\nestablishes. Only affects children rendered via `<Toolbar.Button>` —\narbitrary children (a plain `<Button>`, a `<Select>`, a `<Tooltip>`\ntrigger) never joined the group in the first place, so they keep normal\ntab order regardless of this setting."
         },
         "overrides": {
           "type": "Partial<ToolbarSliceState>",

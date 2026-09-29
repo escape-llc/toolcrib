@@ -1,9 +1,12 @@
 'use client';
 
-import React, { type ReactNode } from 'react';
-import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui';
+import React, { useEffect, type ReactNode } from 'react';
+import { ScrollArea as BaseScrollArea } from '@base-ui/react/scroll-area';
 import { getSparseVariables } from '../../theme/slice';
 import { useNonce } from '../../theme/nonceContext';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { OverlayCSP } from '../Overlay/baseui/overlayLayer';
 import { ScrollAreaThemeSlice, type ScrollAreaSliceState } from './ScrollAreaSlice';
 
 /** Props for the `<ScrollArea>` themed-scrollbar container. */
@@ -26,6 +29,19 @@ export interface ScrollAreaProps {
   overrides?: Partial<ScrollAreaSliceState>;
 }
 
+const SCROLLBAR_CLASS = 'ai-scrollarea-scrollbar';
+
+// The `type` prop, on Base UI's scrollbar attributes (#702). Base UI keeps a
+// scrollbar mounted whenever its axis overflows and marks it data-hovering
+// (pointer over the area) and data-scrolling; showing and hiding it is left
+// to CSS. `auto` is visible whenever it's mounted, i.e. whenever there's
+// overflow; `always` is also kept mounted without overflow (keepMounted).
+const SCROLLBAR_CSS = `
+.${SCROLLBAR_CLASS} { transition: opacity var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease); }
+.${SCROLLBAR_CLASS}[data-visibility="hover"]:not([data-hovering]):not([data-scrolling]),
+.${SCROLLBAR_CLASS}[data-visibility="scroll"]:not([data-scrolling]) { opacity: 0; }
+`;
+
 /**
  * Cross-browser themed scrollbar, replacing the native OS scrollbar (which
  * can't be styled through the HSV variable system) whenever an AI-generated
@@ -42,15 +58,21 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
   overrides,
 }) => {
   const scrollAreaVars = getSparseVariables(ScrollAreaThemeSlice, overrides ?? {});
-  // Issue #625: Radix's Viewport renders its own <style> (hiding the native
-  // scrollbar) -- without the nonce, a strict style-src CSP blocks it.
+  // Issue #625: the viewport's own injected <style> (hiding the native
+  // scrollbar) needs the CSP nonce; OverlayCSP below hands it to Base UI.
   const nonce = useNonce();
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectGlobalStyle('toolcrib-scrollarea-styles', SCROLLBAR_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const showVertical = orientation === 'vertical' || orientation === 'both';
   const showHorizontal = orientation === 'horizontal' || orientation === 'both';
 
+  const scrollbarProps = { className: SCROLLBAR_CLASS, keepMounted: type === 'always', 'data-visibility': type } as const;
+
   return (
-    <ScrollAreaPrimitive.Root
-      type={type}
+    <OverlayCSP>
+    <BaseScrollArea.Root
       style={{
         width: '100%',
         height: maxHeight ?? '100%',
@@ -59,17 +81,18 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
         ...scrollAreaVars,
       }}
     >
-      {/* tabIndex -- Radix's own Viewport is overflow:scroll internally
+      {/* tabIndex -- the Viewport is overflow:scroll internally
           with no tabIndex of its own, so a keyboard-only user has no way to
           reach and scroll it unless its content happens to contain another
           focusable element (axe: scrollable-region-focusable). Same fix as
           Content.Grow. */}
-      <ScrollAreaPrimitive.Viewport tabIndex={0} nonce={nonce} style={{ width: '100%', height: '100%' }}>
+      <BaseScrollArea.Viewport tabIndex={0} style={{ width: '100%', height: '100%' }}>
         {children}
-      </ScrollAreaPrimitive.Viewport>
+      </BaseScrollArea.Viewport>
       {showVertical && (
-        <ScrollAreaPrimitive.Scrollbar
+        <BaseScrollArea.Scrollbar
           orientation="vertical"
+          {...scrollbarProps}
           style={{
             display: 'flex',
             userSelect: 'none',
@@ -80,7 +103,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             transition: 'background var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease)',
           }}
         >
-          <ScrollAreaPrimitive.Thumb
+          <BaseScrollArea.Thumb
             style={{
               flex: 1,
               background: 'var(--ai-border, #d1d5db)',
@@ -88,11 +111,12 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
               position: 'relative',
             }}
           />
-        </ScrollAreaPrimitive.Scrollbar>
+        </BaseScrollArea.Scrollbar>
       )}
       {showHorizontal && (
-        <ScrollAreaPrimitive.Scrollbar
+        <BaseScrollArea.Scrollbar
           orientation="horizontal"
+          {...scrollbarProps}
           style={{
             display: 'flex',
             userSelect: 'none',
@@ -103,7 +127,7 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             transition: 'background var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease)',
           }}
         >
-          <ScrollAreaPrimitive.Thumb
+          <BaseScrollArea.Thumb
             style={{
               flex: 1,
               background: 'var(--ai-border, #d1d5db)',
@@ -111,11 +135,12 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
               position: 'relative',
             }}
           />
-        </ScrollAreaPrimitive.Scrollbar>
+        </BaseScrollArea.Scrollbar>
       )}
       {orientation === 'both' && (
-        <ScrollAreaPrimitive.Corner style={{ background: 'var(--ai-bg-container, #f3f4f6)' }} />
+        <BaseScrollArea.Corner style={{ background: 'var(--ai-bg-container, #f3f4f6)' }} />
       )}
-    </ScrollAreaPrimitive.Root>
+    </BaseScrollArea.Root>
+    </OverlayCSP>
   );
 };

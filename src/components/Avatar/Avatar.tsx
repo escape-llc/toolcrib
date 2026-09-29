@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { Avatar as AvatarPrimitive } from 'radix-ui';
+import { Avatar as BaseAvatar } from '@base-ui/react/avatar';
 import { getSparseVariables } from '../../theme/slice';
 import { AvatarThemeSlice, type AvatarSliceState } from './AvatarSlice';
 
@@ -16,11 +16,9 @@ export interface AvatarProps {
   /**
    * Delay in milliseconds before the fallback renders while the image is
    * still loading, avoiding a flash of fallback content for a fast-loading
-   * image. Omitted by default — Radix's own `AvatarPrimitive.Fallback`
-   * renders immediately with no artificial delay unless `delayMs` is
-   * explicitly passed (confirmed in `@radix-ui/react-avatar`'s source:
-   * its `canRender` state starts `true` only when `delayMs === undefined`),
-   * so defaulting this to a nonzero value here would force every avatar
+   * image. Omitted by default — the fallback renders immediately with no
+   * artificial delay unless one is passed, so defaulting this to a
+   * nonzero value here would force every avatar
    * with no `src` — the common initials-only case — to sit blank for that
    * long before showing its fallback, for no benefit.
    */
@@ -55,7 +53,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 }) => {
   const avatarVars = getSparseVariables(AvatarThemeSlice, overrides ?? {});
   return (
-  <AvatarPrimitive.Root
+  <BaseAvatar.Root
     style={{
       display: 'inline-flex',
       alignItems: 'center',
@@ -70,13 +68,13 @@ export const Avatar: React.FC<AvatarProps> = ({
       ...avatarVars,
     }}
   >
-    <AvatarPrimitive.Image
+    <BaseAvatar.Image
       src={src}
       alt={alt}
       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
     />
-    <AvatarPrimitive.Fallback
-      delayMs={fallbackDelayMs}
+    <BaseAvatar.Fallback
+      delay={fallbackDelayMs}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -90,7 +88,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       }}
     >
       {fallback}
-    </AvatarPrimitive.Fallback>
-  </AvatarPrimitive.Root>
+    </BaseAvatar.Fallback>
+  </BaseAvatar.Root>
   );
 };

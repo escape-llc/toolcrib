@@ -2224,7 +2224,7 @@ export const App: React.FC = () => {
     Stepper: (
       <VStack gap="md">
         <Text>
-          Built on the same Radix Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
+          Built on the same Tabs primitive as <code>&lt;TabStrip&gt;</code>. The "Confirm" step blocks forward navigation until the Profile step's own form reports valid — try clicking ahead before filling in a display name.
         </Text>
         <Stepper steps={STEPPER_STEPS} />
       </VStack>
@@ -2728,7 +2728,7 @@ export const App: React.FC = () => {
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Star Rating (`&lt;Rating&gt;`)</Text>
         <Text size="sm" tone="secondary">
-          Built on Radix <code>RadioGroup</code> — real keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
+          Built on a real radio group — keyboard operability and <code>aria-checked</code> semantics, not a row of clickable spans.
         </Text>
         <Rating
           name="demoRating"

@@ -53,25 +53,14 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * Implemented as a `::before` pseudo-element (inline `style` props can
  * never target one -- a fundamental CSS/DOM limit, not a React one), via
  * this codebase's own established `injectGlobalStyle` mechanism. Scoped by
- * the real WAI-ARIA shape a "radio-strip" control renders as -- but that
- * shape isn't just `role="radiogroup"`: Radix's own `ToggleGroupPrimitive`
- * renders `role="radiogroup"` for `type="single"` but `role="toolbar"` for
- * `type="multiple"` (confirmed directly against Radix's own source, not
- * assumed), so a `type="multiple"` ToggleGroup matched neither this rule
- * NOR the old always-on full border it used to (transparent) rely on --
- * caught by an external review, once `ToggleGroup.tsx`'s own interior
- * borders went transparent: a multi-select group rendered with literally
- * no visible division between any of its options at all, a real
- * regression this rule's selector alone was responsible for. `role="group"`
- * (the reviewer's own guess) isn't actually what Radix renders either --
- * verify a primitive's real DOM shape directly before matching a selector
- * to it, the same discipline AGENTS.md already asks for elsewhere.
- * `[role="toolbar"] > .ai-btn` is safe to add alongside `[role="radiogroup"]`
- * -- confirmed the plain `<Toolbar>` component (`Toolbar.tsx`) also renders
- * `role="toolbar"`, but its own `Toolbar.Button`s are never DIRECT children
- * of that role element (always nested one level deeper inside
- * `Toolbar.Left`/`.Center`/`.Right`), so the direct-child (`>`) combinator
- * here can't accidentally match it.
+ * an explicit `.ai-choice-group` class on ToggleGroup's root (#702), not by
+ * ARIA role. It used to key on roles (`[role="radiogroup"]` for a single
+ * group, `[role="toolbar"]` for Radix's multiple group), and that coupling
+ * failed once: a `type="multiple"` group matched neither selector and
+ * rendered with no division between its options at all. On Base UI a
+ * multiple group is `role="group"`, which UIGroup and other wrappers also
+ * use, so a role selector would now over-match as well. The class says what
+ * it means; the selected state is the toggle's own `data-pressed`.
  *
  * A THIRD real gap, reported directly with a screenshot: the default gray
  * (`--ai-text-secondary`) divider, tuned to read clearly against a plain
@@ -84,7 +73,7 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * recreate that same failure against a plain surface instead of a colored
  * one). Considered and rejected: hiding the divider entirely wherever a
  * neighbor is selected, since the color change alone already marks that
- * boundary -- but this rule's own `[role="toolbar"]` support means TWO
+ * boundary -- but a `type="multiple"` group means TWO
  * ADJACENT items can both be selected at once (`type="multiple"`, e.g.
  * Bold + Italic both active), where hiding it would put two
  * identically-colored fills flush against each other with no boundary
@@ -93,7 +82,7 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * The actual fix: this rule's own `::before` is a pseudo-element of
  * whichever option is NOT `:first-child` (the "owning" item, positioned at
  * its own `left: 0`) -- a divider whose OWNING item is selected, or whose
- * immediately PRECEDING sibling is selected (Radix's own `data-state="on"`
+ * immediately PRECEDING sibling is selected (the toggle's own `data-pressed`
  * attribute marks this directly), ends up rendered right at a boundary
  * with a primary-colored fill either way. Both cases get a second,
  * higher-specificity rule switching the divider to `--ai-color-primary-text`
@@ -164,8 +153,7 @@ function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string):
   injectGlobalStyle(
     CHOICE_SEPARATOR_STYLE_ID,
     `
-    [role="radiogroup"] > .ai-btn:not(:first-child)::before,
-    [role="toolbar"] > .ai-btn:not(:first-child)::before {
+    .ai-choice-group > .ai-btn:not(:first-child)::before {
       content: '';
       position: absolute;
       left: 0;
@@ -175,10 +163,8 @@ function injectChoiceSeparatorStyles(targetDocument?: Document, nonce?: string):
       background: var(--ai-choice-separator, var(--ai-text-secondary, #6b7280));
       pointer-events: none;
     }
-    [role="radiogroup"] > .ai-btn[data-state="on"]:not(:first-child)::before,
-    [role="toolbar"] > .ai-btn[data-state="on"]:not(:first-child)::before,
-    [role="radiogroup"] > .ai-btn[data-state="on"] + .ai-btn::before,
-    [role="toolbar"] > .ai-btn[data-state="on"] + .ai-btn::before {
+    .ai-choice-group > .ai-btn[data-pressed]:not(:first-child)::before,
+    .ai-choice-group > .ai-btn[data-pressed] + .ai-btn::before {
       background: var(--ai-choice-separator-selected, color-mix(in srgb, var(--ai-color-primary-text, #ffffff) 65%, transparent));
     }
     `,

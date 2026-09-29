@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, type ReactNode } from 'react';
-import { Tabs as TabsPrimitive } from 'radix-ui';
+import { Tabs as BaseTabs } from '@base-ui/react/tabs';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { type StyleFreeAttributes } from '../../theme/safeProps';
@@ -95,7 +95,7 @@ export const TabStrip: React.FC<TabStripProps> & {
   // a router) — still broadcasts. A version of this that only emitted from
   // inside handleChange was reported directly: choosing a "go to tab"
   // command re-highlighted the clicked tab (the prop change alone re-renders
-  // TabsPrimitive.Root correctly) but never switched the panel, since
+  // the tabs root correctly) but never switched the panel, since
   // nothing had called handleChange to fire the broadcast. `tab:changed` is
   // a sticky event (see eventBus.ts), so a <TabStrip.Panel> that subscribes
   // after this fires still gets the current value replayed to it.
@@ -128,9 +128,9 @@ export const TabStrip: React.FC<TabStripProps> & {
   };
 
   return (
-    <TabsPrimitive.Root
+    <BaseTabs.Root
       value={activeId}
-      onValueChange={handleChange}
+      onValueChange={v => handleChange(String(v))}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -138,7 +138,7 @@ export const TabStrip: React.FC<TabStripProps> & {
         borderRadius: 'var(--ai-radius-lg, 0.5rem)',
         border: '0.0625rem solid var(--ai-border, #e5e7eb)',
         // Vertical padding only -- horizontal breathing room now lives on
-        // the scrollable <TabsPrimitive.List> below instead, so the scroll
+        // the scrollable <BaseTabs.List> below instead, so the scroll
         // buttons can sit flush against the frame's own left/right edges
         // (full height, matching the frame's own corner radius) rather
         // than floating as an inset chip inside a uniform padding box.
@@ -179,9 +179,12 @@ export const TabStrip: React.FC<TabStripProps> & {
         </button>
       )}
 
-      {/* Connected Tab List Scroll Container using Radix Tabs.List */}
-      <TabsPrimitive.List
+      {/* Connected Tab List Scroll Container. activateOnFocus: arrow keys
+          select the tab they move to, as the Radix version did (Base UI's
+          default waits for Enter/Space, #702). */}
+      <BaseTabs.List
         ref={scrollContainerRef}
+        activateOnFocus
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -223,18 +226,17 @@ export const TabStrip: React.FC<TabStripProps> & {
                   }}
                 />
               )}
-              <TabsPrimitive.Trigger
+              <BaseTabs.Tab
                 value={item.id}
                 disabled={item.disabled}
                 onClick={() => !item.disabled && handleChange(item.id)}
                 className="ai-tab-trigger"
-                // Overrides Radix's own auto-generated aria-controls, which
-                // points at the id of a same-value `Tabs.Content` this
-                // component deliberately never renders -- `<TabStrip>` and
-                // `<TabStrip.Panel>` coordinate purely over the `tab:changed`
-                // event (see this file's own doc comment on `id`/`groupId`),
-                // not a shared Radix Root/Content tree, so that id never
-                // resolves to a real element (axe: aria-valid-attr-value).
+                // No aria-controls: it would point at a same-value tab panel
+                // this component deliberately never renders -- `<TabStrip>`
+                // and `<TabStrip.Panel>` coordinate purely over the
+                // `tab:changed` event (see this file's own doc comment on
+                // `id`/`groupId`), not a shared Root/Panel tree, so that id
+                // never resolves to a real element (axe: aria-valid-attr-value).
                 aria-controls={undefined}
                 style={{
                   display: 'inline-flex',
@@ -275,11 +277,11 @@ export const TabStrip: React.FC<TabStripProps> & {
               >
                 {item.icon && <span>{item.icon}</span>}
                 <span>{item.label}</span>
-              </TabsPrimitive.Trigger>
+              </BaseTabs.Tab>
             </React.Fragment>
           );
         })}
-      </TabsPrimitive.List>
+      </BaseTabs.List>
 
       {/* Filmstrip Right Scroll Button -- mirrors the left one: flush
           against the frame's right edge, full height, rounded only on
@@ -310,7 +312,7 @@ export const TabStrip: React.FC<TabStripProps> & {
           ▶
         </button>
       )}
-    </TabsPrimitive.Root>
+    </BaseTabs.Root>
   );
 };
 

@@ -301,7 +301,7 @@
       "category": "Containers",
       "antiPatternAvoid": "Hand-roll a left/right nav rail with a raw `<nav>`/`<ul>` and manual active-link state",
       "antiPatternInstead": "Use `<Sidebar>` (inside `<AppShell.Sidebar>`) — active-item tracking and the correct icon-only collapsed rendering come for free",
-      "description": "Vertical nav-item list built on Radix NavigationMenu, with a collapsed icon-only mode"
+      "description": "Vertical nav-item list built on Base UI NavigationMenu, with a collapsed icon-only mode"
     },
     {
       "name": "Splitter",
