@@ -53,7 +53,7 @@ npx toolcrib init
 
 **Component Library**
 - Many production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
-- Built on Base UI, Radix UI and React Aria Components primitives (moving from Radix to Base UI) — real keyboard nav, focus traps, and ARIA semantics, not approximated
+- Built on Base UI and React Aria Components primitives — real keyboard nav, focus traps, and ARIA semantics, not approximated
 - No `style`/`className` on any component — every visual axis goes through a typed `overrides` prop instead
 
 **Theming**
@@ -160,7 +160,7 @@ This is just the tip of a long list of features unguided generation re-invents a
 - Real Composite UI Components (e.g. Autocomplete, Combobox, DataTable)
 
 The Floor and Guardrails you get with Toolcrib are extensive and multi-layer!
-- Leverage existing hardened primitives (Radix, React ARIA)
+- Leverage existing hardened primitives (Base UI, React ARIA)
 - Model Guidance
 - E2E tests
 - OWASP Scans
@@ -237,5 +237,5 @@ Infrastructure goals:
 - Codify the boilerplate AI can get wrong or inconsistently apply.
 - Reliability is in the framework, not your "vibe".
 - Signal techniques that guide away from anti-patterns like prop-drilling.
-- Leverage Radix primitives for ARIA etc.
+- Leverage Base UI primitives for ARIA etc.
 - Leverage other primitives where it makes sense.

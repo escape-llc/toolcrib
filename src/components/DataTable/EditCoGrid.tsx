@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Presence } from '@radix-ui/react-presence';
+import { Presence } from '../shared/Presence';
 import type { ZodType } from 'zod';
 import { Form, useFormContext, useOptionalFormContext } from '../Form/FormContext';
 import { Input, Label } from '../Form/FormComponents';
@@ -638,8 +638,7 @@ function EditCoGridRow<T extends Record<string, any>>({
  * single existing precedent in this codebase to reuse wholesale --
  * `useRowSetCrossFade.ts` cross-fades an ENTIRE table atomically on one
  * trigger-key change (density/page), a different shape of problem. This
- * instead uses Radix's own `Presence` (already used this way by
- * `Drawer.tsx`) per row: `rows` is a local render-tracking map that gains
+ * instead uses toolcrib's own `Presence` (`../shared/Presence`) per row: `rows` is a local render-tracking map that gains
  * a key the instant it appears in `entries`, and only loses it once that
  * row's OWN COMPONENT actually unmounts (see `EditCoGridRow`'s `onGone`)
  * -- not the instant it disappears from `entries`, which would remove it
@@ -702,8 +701,7 @@ export function EditCoGrid<T extends Record<string, any>>({
     // Presence needs a real DOM node for its ref, same reason
     // `EditCoGridRow`'s own row-level animation lives on a plain `<div>`
     // in the `.map()` below rather than on that component directly --
-    // this outer container is a real, direct-child `<div>`, matching
-    // `Drawer.tsx`'s own established Presence usage.
+    // this outer container is a real, direct-child `<div>`.
     <Presence present={shouldShow}>
       <div
         id={`${tableId}-edit-cogrid`}

@@ -1,5 +1,4 @@
 import React, { type ReactNode } from 'react';
-import { AspectRatio as AspectRatioPrimitive } from 'radix-ui';
 
 /** Props for `<AspectRatio>`. */
 export interface AspectRatioProps {
@@ -18,5 +17,10 @@ export interface AspectRatioProps {
  * @manifestCategory Layout Primitives
  */
 export const AspectRatio: React.FC<AspectRatioProps> = ({ ratio = 1, children }) => (
-  <AspectRatioPrimitive.Root ratio={ratio}>{children}</AspectRatioPrimitive.Root>
+  // toolcrib's own (#703), the same box Radix's AspectRatio rendered: an
+  // outer box whose height comes from padding-bottom (a percentage of its
+  // width), and the content filling it absolutely.
+  <div style={{ position: 'relative', width: '100%', paddingBottom: `${100 / ratio}%` }}>
+    <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+  </div>
 );
