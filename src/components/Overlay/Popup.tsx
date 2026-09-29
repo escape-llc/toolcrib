@@ -14,6 +14,7 @@ import React, { useRef, useState, type ReactNode, type ReactElement } from 'reac
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
+import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -114,16 +115,18 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
+  // Own emissions are marked so the listeners below skip their echo (#705).
+  const { emitOwn, isOwnEcho } = useOwnEmit();
   const handleOpenChange = (open: boolean, fromBus = false) => {
     if (externalIsOpen === undefined) setInternalIsOpen(open);
     onOpenChange?.(open);
-    if (!fromBus) aiBus.emit(open ? 'popup:shown' : 'popup:hidden', { id });
+    if (!fromBus) emitOwn(() => aiBus.emit(open ? 'popup:shown' : 'popup:hidden', { id }));
   };
   useAIEvent('popup:shown', e => {
-    if (e.id === id && !isOpen) handleOpenChange(true, true);
+    if (e.id === id && !isOpen && !isOwnEcho()) handleOpenChange(true, true);
   });
   useAIEvent('popup:hidden', e => {
-    if (e.id === id && isOpen) handleOpenChange(false, true);
+    if (e.id === id && isOpen && !isOwnEcho()) handleOpenChange(false, true);
   });
 
   const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
