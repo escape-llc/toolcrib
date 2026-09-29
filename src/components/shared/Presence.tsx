@@ -28,7 +28,11 @@ export function Presence({ present, children }: { present: boolean; children: Re
     const node = nodeRef.current;
     // Read after this commit applied the child's exit style, so a newly
     // started exit animation is already in the list.
-    const animations = node && typeof node.getAnimations === 'function' ? node.getAnimations() : [];
+    // Only running animations that end: an infinite one (a pulse, a spinner)
+    // or a paused one would otherwise hold the node mounted forever.
+    const animations = (node && typeof node.getAnimations === 'function' ? node.getAnimations() : []).filter(
+      a => a.playState === 'running' && Number.isFinite(Number(a.effect?.getComputedTiming().endTime ?? Infinity))
+    );
     if (animations.length === 0) {
       // Nothing to wait for: unmount in this same commit rather than a
       // microtask later, so a test's act() or a reduced-motion user never
