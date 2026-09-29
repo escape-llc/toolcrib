@@ -19,11 +19,15 @@
    unrelated re-render happened to occur. Confirmed correct as-is, not
    deferred out of caution. */
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Popover as PopoverPrimitive } from 'radix-ui';
+// The popover layer is Base UI's Popover (#670, #697); the listbox,
+// keyboard model and ARIA wiring stay this component's own. Deliberately not
+// Base UI's Combobox (mui/base-ui#5528: its non-modal popup aria-hides outside
+// content that stays tabbable).
+import { Popover as BasePopover } from '@base-ui/react/popover';
+import { OverlayCSP, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
-import { Z_INDEX } from '../../theme/zIndex';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { computeCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
@@ -209,21 +213,13 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const strings = useLocaleStrings().combobox;
   const targetDocument = useTargetDocument();
   const inputRef = useRef<HTMLInputElement>(null);
-  // Radix's non-modal Popover.Content only exempts clicks on
-  // context.triggerRef (populated by <Popover.Trigger>) from its own
-  // "interact outside -> dismiss" logic. Combobox deliberately uses
-  // <Popover.Anchor> instead of <Popover.Trigger> -- Trigger's built-in
-  // click-to-toggle would fight this component's own open-on-focus/typing
-  // behavior -- which leaves triggerRef permanently empty, so *every*
-  // interaction with the input (including the click that opens it) reads
-  // as "outside" and immediately closes the popover again. Reported
-  // directly as "clicking in does not display the list, it flashes
-  // briefly" -- confirmed via a real timeline trace (opens then closes
-  // ~11ms later, every time, regardless of sideOffset). This ref lets the
-  // onInteractOutside handler below exempt the anchor region itself, the
-  // same way Radix's own Trigger is exempted internally.
+  // The input's own wrapper, which the popover is positioned against. It is
+  // not a Popover.Trigger (a trigger's click-to-toggle would fight
+  // open-on-focus/typing), so Base UI treats a press on it as an outside
+  // press; handleOpenChange below ignores close requests that start here.
   const anchorRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { container, zIndex } = useOverlayLayer('DROPDOWN');
   useInjectInteractionStyles();
   const nonce = useNonce();
   useEffect(() => {
@@ -285,12 +281,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const isUserTypingRef = useRef(false);
 
   // Requests opening directly below the input, at the input's own width
-  // (`width: var(--radix-popover-trigger-width)` on Content below) -- so
+  // (`width: var(--anchor-width)`, set by Base UI's Positioner) -- so
   // the whole bottom edge of the input meets the whole top edge of the
   // listbox, not just one corner. align="stretch" squares both connecting
   // corners on each side accordingly. Unlike DropdownMenu/Popup, side/align
   // aren't configurable here, so 'bottom' is a fixed request rather than
-  // threaded through as a prop -- but Radix still auto-flips to 'top' on
+  // threaded through as a prop -- but the positioner still auto-flips to 'top' on
   // collision regardless of what's requested, so the actual, possibly
   // flipped side (see useActualPopoverSide) is what corner-squaring uses.
   const actualSide = useActualPopoverSide(contentRef, 'bottom', open && !disabled);
@@ -390,10 +386,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
       // reopening the listbox each time. No explicit refocus needed either
       // — neither a keyboard Enter nor a mousedown on this non-focusable
       // option div ever actually moves focus off the input to begin with,
-      // and calling .focus() anyway (the previous version of this code did)
-      // reads to Radix's non-modal Popover as a fresh focus-from-outside
-      // transition, which auto-dismisses it — confirmed by a real test
-      // failure, not just reasoning about it.
+      // and calling .focus() anyway (an earlier version did) read to the
+      // non-modal popover as a fresh focus-from-outside transition, which
+      // auto-dismissed it — confirmed by a real test failure at the time.
       const already = selectedValues.includes(option.value);
       const next = already ? selectedValues.filter(v => v !== option.value) : [...selectedValues, option.value];
       setQuery('');
@@ -432,6 +427,16 @@ export const Combobox: React.FC<ComboboxProps> = ({
       setQuery(labelFor(selectedValues[0] ?? ''));
     }
     setOpen(false);
+  };
+
+  // Base UI asks to close on an outside press, focus leaving, or Escape. The
+  // input's wrapper counts as outside (see anchorRef), so a close request
+  // that starts there is ignored: the input's own handlers own that region.
+  const handleOpenChange = (next: boolean, details: BasePopover.Root.ChangeEventDetails) => {
+    const event = details.event as (Event & { relatedTarget?: EventTarget | null }) | undefined;
+    const starts = [event?.target, event?.relatedTarget].filter(Boolean) as Node[];
+    if (!next && starts.some(n => anchorRef.current?.contains(n))) return;
+    setOpen(next);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -497,8 +502,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   }, [activeOptionId, open, targetDocument]);
 
   return (
-    <PopoverPrimitive.Root open={open && !disabled} onOpenChange={setOpen}>
-      <PopoverPrimitive.Anchor asChild>
+    <OverlayCSP>
+    <BasePopover.Root open={open && !disabled} onOpenChange={handleOpenChange}>
         <div
           ref={anchorRef}
           className="ai-focus-ring"
@@ -610,7 +615,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             role="combobox"
             // `open && !disabled`, not `open` alone -- the actual Popover
             // below is gated on that same combined condition
-            // (`<PopoverPrimitive.Root open={open && !disabled}>`), so
+            // (`<BasePopover.Root open={open && !disabled}>`), so
             // `open` alone can be stale-true (e.g. the input became
             // disabled while already open, or -- confirmed via a real axe
             // failure, not assumed -- the onChange handler below could
@@ -621,7 +626,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // bug (axe: aria-valid-attr-value), not just a style issue.
             aria-expanded={open && !disabled}
             // Only while open -- the listbox this points to (Listbox below,
-            // inside PopoverPrimitive.Content) only mounts when open is
+            // inside BasePopover.Popup) only mounts when open is
             // true, so pointing at its id while closed is a reference to an
             // element that isn't in the DOM (axe: aria-valid-attr-value).
             aria-controls={open && !disabled ? listboxId : undefined}
@@ -726,50 +731,34 @@ export const Combobox: React.FC<ComboboxProps> = ({
             </button>
           )}
         </div>
-      </PopoverPrimitive.Anchor>
 
-      <PopoverPrimitive.Portal container={targetDocument?.body}>
-        <PopoverPrimitive.Content
-          ref={contentRef}
-          // Radix's own Popover.Content hardcodes role="dialog" -- correct
-          // for Popover's usual real-dialog-like usage, wrong here: this
-          // wrapper is purely an anchored-positioning container around a
-          // real role="listbox" (the WAI-ARIA Combobox pattern this
-          // component implements calls for no wrapping role around the
-          // listbox at all). Overriding to role="presentation" strips the
-          // redundant, unnamed "dialog" semantics rather than just adding
-          // a name to silence axe's aria-dialog-name rule -- the listbox
-          // inside already carries the real, correct semantics. Confirmed
-          // this override actually takes effect (not assumed): Radix's own
-          // source spreads consumer props after its own `role: "dialog"`,
-          // so a later `role` here wins.
-          role="presentation"
+      <BasePopover.Portal container={container}>
+        <BasePopover.Positioner
+          anchor={anchorRef}
           side="bottom"
           align="start"
           sideOffset={squaring.sideOffset}
-          // The input must keep real DOM focus the whole time — the
-          // listbox itself is never focused (options are plain, non-
-          // focusable divs highlighted via aria-activedescendant), so any
-          // of Radix's own auto-focus behavior on open/close would fight
-          // typing. Non-modal Popover (the default) already skips focus
-          // trapping/outside-pointer-blocking, but auto-focus on open/close
-          // still needs suppressing explicitly.
-          onOpenAutoFocus={e => e.preventDefault()}
-          onCloseAutoFocus={e => e.preventDefault()}
-          // See anchorRef's own comment above: Radix's non-modal Content
-          // only recognizes a <Popover.Trigger> as exempt from "interact
-          // outside" dismissal, and this component uses Anchor instead, so
-          // every click/focus on the input read as outside and closed the
-          // popover the instant it opened. Exempting the anchor region here
-          // is the direct fix.
-          onInteractOutside={e => {
-            if (anchorRef.current?.contains(e.target as Node)) {
-              e.preventDefault();
-            }
-          }}
+          style={{ zIndex }}
+        >
+        <BasePopover.Popup
+          ref={contentRef}
+          // A positioning container around a real role="listbox"; the
+          // WAI-ARIA Combobox pattern wants no wrapping role at all, so
+          // Base UI's default dialog role is removed.
+          role="presentation"
+          // The input keeps real DOM focus the whole time: options are
+          // non-focusable and highlighted via aria-activedescendant, so the
+          // popup must never take focus on open or hand it back on close.
+          initialFocus={false}
+          finalFocus={false}
+          // A press anywhere in the popup (an option, the list's padding,
+          // its scrollbar) keeps focus in the input. Without this, a press
+          // on the background blurs the input and handleBlur closes the
+          // list under the pointer. Options also preventDefault their own
+          // press; this covers everything between them. Same as Select.
+          onMouseDown={e => e.preventDefault()}
           style={{
-            zIndex: Z_INDEX.DROPDOWN,
-            width: 'var(--radix-popover-trigger-width)',
+            width: 'var(--anchor-width)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
             boxShadow: 'var(--ai-shadow-md, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
@@ -791,8 +780,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
             itemPadding="var(--ai-combobox-item-padding, 0.4375rem 0.75rem)"
             size={size}
           />
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+        </BasePopover.Popup>
+        </BasePopover.Positioner>
+      </BasePopover.Portal>
+    </BasePopover.Root>
+    </OverlayCSP>
   );
 };

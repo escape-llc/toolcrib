@@ -71,7 +71,7 @@ describe('Combobox Component — client-side filtering', () => {
     const input = screen.getByRole('combobox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'ed' } });
 
-    fireEvent.mouseDown(screen.getByText('Editor'));
+    fireEvent.click(screen.getByText('Editor'));
 
     expect(input.value).toBe('Editor');
     expect(onChange).toHaveBeenCalledWith('editor');
@@ -246,7 +246,7 @@ describe('Combobox Component — multiple mode', () => {
     const input = screen.getByRole('combobox') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'ed' } });
-    fireEvent.mouseDown(screen.getByText('Editor'));
+    fireEvent.click(screen.getByText('Editor'));
 
     expect(onChange).toHaveBeenCalledWith(['editor']);
     // The query clears (not filled with the label) — selections render as
@@ -276,7 +276,7 @@ describe('Combobox Component — multiple mode', () => {
     fireEvent.change(input, { target: { value: '' } });
     // Both an "Admin" chip and an "Admin" listbox option are on screen at
     // this point — scope to the listbox to target the option unambiguously.
-    fireEvent.mouseDown(within(screen.getByRole('listbox')).getByText('Admin'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Admin'));
     expect(onChange).toHaveBeenCalledWith(['editor']);
   });
 
