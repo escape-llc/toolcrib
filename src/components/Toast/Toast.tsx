@@ -25,6 +25,16 @@ import { VisuallyHidden } from '../Layout/VisuallyHidden';
 
 const STACK_GAP_PX = 10;
 const ESTIMATED_HEIGHT_PX = 72;
+/** The viewport's own `padding`, on the theme's density scale (a shorthand token, fine for `padding`). */
+const VIEWPORT_PADDING = 'var(--ai-padding-xl, 1rem)';
+/**
+ * Each toast's `top`/`right`/`bottom`/`left` inset: a single-length literal on
+ * purpose. `--ai-padding-xl` can resolve to two values ("1rem 1.5rem"), which
+ * is invalid for a single-length property, and an invalid `var()` silently
+ * resets the whole declaration to `auto` -- the bug that once put
+ * bottom-anchored toasts near the top. No single-value token in the scale
+ * fits (`--ai-padding-xs` is far too tight).
+ */
 const ITEM_INSET = '1rem';
 
 // toolcrib's keyframes, keyed on Base UI's attributes instead of Radix's
@@ -129,7 +139,7 @@ export const ToastContainer: React.FC = () => {
           // Announcements come from ToastAnnouncer, not the viewport.
           aria-live="off"
           className="ai-focus-ring"
-          style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, height: '100vh', width: '100%', padding: '1rem', boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...vertical, ...horizontal }}
+          style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, height: '100vh', width: '100%', padding: VIEWPORT_PADDING, boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...vertical, ...horizontal }}
         >
           {oldestFirst.map(t => (
             <ToastView key={t.id} toast={t} anchor={anchor} stackOffset={offsetFor(t.id, t.transitionStatus === 'ending')} />
@@ -268,7 +278,7 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               {item.title && <BaseToast.Title style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.9rem' }}>{item.title}</BaseToast.Title>}
               {item.sticky && !item.loading && (
-                <span style={{ fontSize: '0.6875rem', padding: '0.0625rem 0.375rem', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'var(--ai-subtheme-error-bg)', color: 'var(--ai-subtheme-error-text)', fontWeight: 'var(--ai-font-weight-bold, 700)' }}>📌 Sticky</span>
+                <span style={{ fontSize: '0.6875rem', padding: 'var(--ai-padding-xs, 0.0625rem 0.375rem)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', background: 'var(--ai-subtheme-error-bg)', color: 'var(--ai-subtheme-error-text)', fontWeight: 'var(--ai-font-weight-bold, 700)' }}>📌 Sticky</span>
               )}
             </div>
             <BaseToast.Description render={<div />} style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -284,7 +294,7 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
             aria-label={strings.dismissToast}
             onClick={() => actions.dismissToast(item.id, 'user')}
             className="ai-btn"
-            style={{ background: 'transparent', border: 'none', color: 'var(--ai-text-secondary, #6b7280)', cursor: 'pointer', fontSize: '1rem', padding: '0.125rem 0.375rem', ['--ai-btn-bg' as string]: 'transparent' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--ai-text-secondary, #6b7280)', cursor: 'pointer', fontSize: '1rem', padding: 'var(--ai-padding-xs, 0.125rem 0.375rem)', ['--ai-btn-bg' as string]: 'transparent' }}
           >
             ×
           </BaseToast.Close>
@@ -301,7 +311,7 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
                   act.onClick();
                   actions.dismissToast(item.id, 'action');
                 }}
-                style={{ padding: '0.25rem 0.625rem', borderRadius: 'var(--ai-radius-sm, 0.25rem)', border: `0.0625rem solid ${outline.color}`, background: 'transparent', color: outline.color, fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', cursor: 'pointer', ['--ai-btn-bg' as string]: 'transparent' }}
+                style={{ padding: 'var(--ai-padding-xs, 0.25rem 0.625rem)', borderRadius: 'var(--ai-radius-sm, 0.25rem)', border: `0.0625rem solid ${outline.color}`, background: 'transparent', color: outline.color, fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', cursor: 'pointer', ['--ai-btn-bg' as string]: 'transparent' }}
               >
                 {act.label}
               </button>
