@@ -76,9 +76,12 @@ export const ToastContainer: React.FC = () => {
   useInjectInteractionStyles();
   useEffect(() => injectToastAnimations(targetDocument, nonce), [targetDocument, nonce]);
 
-  // FIFO stacking (oldest nearest the anchored edge) from Base UI's measured
-  // heights. Base UI's own --toast-offset-y stacks newest-first (Sonner
-  // style), the opposite of toolcrib's order, so offsets are computed here.
+  // The toolkit's stacking order, from Base UI's measured heights: read top to
+  // bottom, toasts are always oldest first. So at a top anchor the oldest
+  // toast sits at the edge and newer ones stack below it; at a bottom anchor
+  // the newest sits at the edge and older ones are pushed up, the same as
+  // the Radix version. Base UI's own --toast-offset-y always stacks
+  // newest-at-the-edge (Sonner style), so offsets are computed here.
   // A closing toast leaves the flow at once (the rest slide into place) and
   // keeps the offset it had when it started closing.
   const newestFirst = manager.toasts; // Base UI prepends new toasts
@@ -173,9 +176,12 @@ const ToastAnnouncer: React.FC<{ toasts: ToastItem[] }> = ({ toasts }) => {
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
 
   useEffect(() => {
-    const fresh = toasts
-      .map(t => ({ key: `${t.id}:${t.title ?? ''}:${t.message}`, text: t.title ? `${t.title}. ${t.message}` : t.message, urgent: isUrgent(t) }))
-      .filter(a => !seen.current.has(a.key));
+    const current = toasts.map(t => ({ key: `${t.id}:${t.title ?? ''}:${t.message}`, text: t.title ? `${t.title}. ${t.message}` : t.message, urgent: isUrgent(t) }));
+    // Forget keys for toasts no longer showing (or whose text changed), so
+    // `seen` stays bounded over a long session.
+    const currentKeys = new Set(current.map(a => a.key));
+    for (const key of seen.current) if (!currentKeys.has(key)) seen.current.delete(key);
+    const fresh = current.filter(a => !seen.current.has(a.key));
     if (fresh.length === 0) return;
     for (const a of fresh) seen.current.add(a.key);
     const later = (ms: number, fn: () => void) => {

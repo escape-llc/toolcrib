@@ -499,6 +499,28 @@ describe('Toast Subsystem Event Generation', () => {
       expect(screen.getByRole('group', { name: 'Named by its message' })).toBe(screen.getByTestId('toast-item'));
     });
 
+    // With a title, the explicit aria-label is dropped and the name comes
+    // from Base UI linking the root to its Title (aria-labelledby). Pinned
+    // here so a Base UI change to that wiring can't leave titled toasts
+    // unnamed (Gemini review on #712).
+    it('a toast with a title is named by the title', () => {
+      const Fire = () => {
+        const { addToast } = useToastActions();
+        React.useEffect(() => {
+          addToast({ type: 'info', title: 'Upload finished', message: '3 files', sticky: true });
+          // eslint-disable-next-line react-hooks/exhaustive-deps -- once
+        }, []);
+        return null;
+      };
+      render(
+        <ToastProvider>
+          <Fire />
+          <ToastContainer />
+        </ToastProvider>
+      );
+      expect(screen.getByRole('group', { name: 'Upload finished' })).toBe(screen.getByTestId('toast-item'));
+    });
+
     it('the viewport does not announce as well (no double announcement)', () => {
       renderContainer();
       show('medium', 'Once only');
