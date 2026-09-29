@@ -143,8 +143,8 @@ test('a lazily-mounted component (Toast) also carries the configured nonce once 
   await gotoTab(page, 'Toast Subsystem');
   await page.getByRole('button', { name: 'Fire Info Toast' }).click();
 
-  // ToastItemComponent (and its injectToastAnimations call) only exists
-  // once a real toast is showing -- confirms the nonce reaches a
+  // <ToastContainer>'s injectToastAnimations call only runs once a real
+  // toast is showing -- confirms the nonce reaches a
   // conditionally-mounted component too, not just ones present at load.
   const nonce = await nonceOf(page, 'toolcrib-toast-animations');
   expect(nonce).toBe(NONCE);
