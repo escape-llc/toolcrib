@@ -180,7 +180,7 @@
         "trigger": {
           "type": "ReactElement",
           "required": true,
-          "description": "Trigger element that opens the menu on click."
+          "description": "Trigger element that opens the menu on click.\nIt becomes the trigger itself, not a child of a wrapper: it receives the trigger's props, ARIA and ref, so it must be a native element or a component that forwards props and a ref to its DOM node (toolcrib's `<Button>` and `<Tooltip>` both do). A non-`<button>` native element gets `role=\"button\"` and keyboard activation automatically."
         },
         "items": {
           "type": "MenuItemData[]",

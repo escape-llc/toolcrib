@@ -233,11 +233,10 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
   // Regression test: this component used to reference a keyframe name
   // (ai-popup-fade) that didn't exist anywhere, so Presence's wait-for-
   // animationend never resolved and the tooltip stayed mounted and fully
-  // visible forever after hovering away — reported directly. Fixed by
-  // injecting a real, data-state-conditioned stylesheet (see Tooltip.tsx's
-  // own injectTooltipAnimations comment for why a static inline `animation`
-  // string can't express "different animation in vs. out" for a node that
-  // persists across the state change).
+  // visible forever after hovering away — reported directly. The keyframes
+  // are now keyed on Base UI's data-open/data-closed (#700, the shared
+  // useOverlayAnimations); Base UI, like Radix's Presence, keeps the node
+  // mounted until the exit animation finishes.
   await page.goto('/');
 
   const trigger = page.getByRole('button', { name: 'Export JSONL' });
@@ -248,10 +247,10 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
 
   const openInfo = await tooltip.evaluate(el => ({
     animationName: getComputedStyle(el).animationName,
-    dataState: el.getAttribute('data-state'),
+    open: el.hasAttribute('data-open'),
   }));
   expect(openInfo.animationName).toBe('ai-fade-in');
-  expect(['delayed-open', 'instant-open']).toContain(openInfo.dataState);
+  expect(openInfo.open).toBe(true);
 
   // Filtered, not { once: true } on the raw event — see toast-animation.spec.ts's
   // own identical comment: the entrance animation's own animationend would

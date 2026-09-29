@@ -85,7 +85,8 @@ test('every <style> tag present on initial load carries the configured nonce', a
     'toolcrib-responsive-theme', // present because demo/main.tsx's marginMode is responsive
     'toolcrib-corner-squaring',
     'toolcrib-group-styles',
-    'toolcrib-tooltip-animations',
+    'toolcrib-tooltip-animations-baseui',
+    'toolcrib-overlay-arrow-baseui', // Tooltip's arrow (#700)
     'toolcrib-theme-transitions',
     'toolcrib-living-color-styles',
   ];

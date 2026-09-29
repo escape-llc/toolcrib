@@ -92,20 +92,17 @@ not the parent). None of this is inspectable from a single static DOM
 snapshot, which is all axe ever sees.
 
 **`HoverCard` is the one deliberate exception, confirmed, not a bug to
-report.** `@radix-ui/react-hover-card`'s `Content` runs a `useEffect` (no
-dep array, every render) that walks every tabbable descendant and
-force-sets `tabindex="-1"` on each — verified directly in
-`node_modules/@radix-ui/react-hover-card/dist/index.js`, not inferred from
-symptoms. Radix's own accessibility docs for this component state this is
-intentional: hover-card content is supplemental preview material,
-deliberately excluded from the Tab order, and their own guidance is to use
-Popover (toolcrib's `<Popup>`) instead whenever interactive content inside
-genuinely needs to be keyboard-reachable. `HoverCard.tsx`'s own JSDoc and
-`e2e/accessibility.spec.ts`'s regression test (asserting Tab does *not*
-reach a button inside) both document this — a future audit finding "a
-button inside `HoverCard` has `tabindex="-1"`" should confirm this is still
-that same known, upstream-confirmed mechanism before reporting it as a
-fresh finding.
+report.** Hover-card content is supplemental preview material, kept out of
+the Tab order by design; `<Popup>` is the component for content that must be
+keyboard-operable. On Base UI's PreviewCard (#700) this falls out of the
+structure: the card is portaled to the end of `<body>`, so Tab from the
+trigger moves on through the page, and the card closes once focus leaves the
+trigger. (The Radix version got there differently, by forcing
+`tabindex="-1"` onto the content's focusables.) `HoverCard.tsx`'s JSDoc and
+`e2e/accessibility.spec.ts`'s regression test (Tab never lands inside the
+card) both document this. A future finding that "a button inside
+`HoverCard` isn't Tab-reachable" should confirm it's still this mechanism
+before reporting it as new.
 
 ## 5. `:focus-visible` vs `:focus-within` scope errors
 
@@ -134,20 +131,16 @@ future contrast complaint in this environment is the same known false
 positive. Re-run that hand calculation for any element newly relying on
 this disable, don't just cite the existing comment as blanket cover.
 
-A second carve-out lives alongside it: `ARIA_HIDDEN_FOCUS_DISABLED`
-(`aria-hidden-focus`), scoped only to `DropdownMenu`/`ContextMenu` scans —
-both Radix Menu-family primitives (`@radix-ui/react-menu`) call
-`hideOthers()` to `aria-hidden` the rest of the page while open, but since
-this demo's whole app lives inside one `#root`, axe sees "aria-hidden
-container with focusable descendants" everywhere underneath. Confirmed by
-direct Tab-trace (not assumed): pressing Tab repeatedly with the menu open
-never moves focus outside it — Radix's `FocusScope` intercepts Tab at the
-keydown level regardless of what's nominally still tabbable in the DOM. Same
-discipline as the color-contrast carve-out: re-verify the Tab-trace by hand
-if Radix's menu internals ever change, don't extend this disable to a new
-overlay type without confirming the same trap-vs-static-DOM gap actually
-applies there too — `Modal`/`Drawer`/`AlertDialog`/`Popup` do **not** need
-it (confirmed clean without the disable in the same test file).
+The only other scan exclusion is `BASE_UI_FOCUS_GUARD`: every scan
+excludes `[data-base-ui-focus-guard]`, the invisible `aria-hidden`,
+`tabindex="0"` sentinels Base UI puts at the edges of a focus trap (upstream
+closed this as not a bug, citing W3C ACT rule 6cfa84). It excludes those
+elements only; `aria-hidden-focus` stays on for everything else, and
+`e2e/overlay-focus-guards.spec.ts` is its runtime half (Tab never settles on
+a guard). Don't widen it to a rule-level disable. The Radix-era
+`ARIA_HIDDEN_FOCUS_DISABLED` carve-out for DropdownMenu/ContextMenu is gone
+(#700): Radix's menus `aria-hidden` the page via `hideOthers()`, Base UI's
+don't.
 
 ## 7. Live-region / dynamic-content announcement correctness
 

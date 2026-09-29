@@ -167,25 +167,6 @@ async function runAxe(page: Page, extraDisabledRules: string[] = []) {
     .analyze();
 }
 
-// A second deliberate, hand-verified carve-out alongside COLOR_CONTRAST_DISABLED
-// above -- same discipline: confirmed by direct investigation, not assumed.
-// Radix's Menu-family primitives (DropdownMenu, ContextMenu -- both built on
-// @radix-ui/react-menu) call `hideOthers()` to set aria-hidden="true" on the
-// rest of the page while open, but this demo's entire app lives inside one
-// #root container, so *every* interactive element on the page (sidebar,
-// tab content, everything) ends up "aria-hidden with a focusable descendant"
-// by axe's static reading -- axe's aria-hidden-focus rule has no way to know
-// whether those elements are actually Tab-reachable at runtime. Confirmed by
-// direct Tab-trace testing (not assumed): with a DropdownMenu/ContextMenu
-// open, pressing Tab six times in a row never moves focus outside the menu's
-// own content -- Radix's FocusScope intercepts Tab at the keydown level and
-// keeps it cycling within the menu, regardless of what's still nominally
-// tabbable in the DOM underneath. The WCAG requirement (nothing hidden is
-// keyboard-reachable) is genuinely met; axe just can't observe the runtime
-// focus trap that makes it so. Re-verify this Tab-trace by hand before
-// trusting the carve-out again if Radix's menu internals ever change.
-const ARIA_HIDDEN_FOCUS_DISABLED = ['aria-hidden-focus'];
-
 test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1 AA violations', async ({ page }) => {
   // scanEveryTab() above only ever sees each tab's *closed* state -- every
   // Popup/Drawer/Modal/AlertDialog/Collapsible/ContextMenu/CommandPalette/
@@ -351,16 +332,19 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Collapsible (expanded)');
   await page.getByText('Show advanced options').click(); // collapse again, leave state as found
 
-  // Same Radix Menu-family primitive as ContextMenu below (@radix-ui/react-menu)
-  // -- shares the identical aria-hidden-focus carve-out for the identical reason.
+  // No aria-hidden-focus carve-out (#700). The Radix menus called
+  // hideOthers() on open, aria-hiding #root; Base UI's menus hide nothing,
+  // and its focus guards are excluded globally (see BASE_UI_FOCUS_GUARD).
   await gotoTab(page, 'Encyclopedia', 'DropdownMenu');
   await page.getByRole('button', { name: 'User Actions Menu' }).click();
-  await scanNamed('DropdownMenu', ARIA_HIDDEN_FOCUS_DISABLED);
+  await expect(page.getByRole('menu')).toBeVisible();
+  await scanNamed('DropdownMenu');
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Encyclopedia', 'ContextMenu');
   await page.getByText('Right-click this area').click({ button: 'right' });
-  await scanNamed('ContextMenu', ARIA_HIDDEN_FOCUS_DISABLED);
+  await expect(page.getByRole('menu')).toBeVisible();
+  await scanNamed('ContextMenu');
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Encyclopedia', 'Combobox');
@@ -387,30 +371,27 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.keyboard.press('Escape');
 
   await gotoTab(page, 'Encyclopedia', 'HoverCard');
-  // HoverCard opens on focus as well as hover (Radix default) -- focus is
-  // the keyboard-reachable path and what a screen-reader user actually
-  // triggers, so exercise that path rather than a mouse hover.
-  await page.getByRole('link', { name: '@janedoe' }).focus();
-  await page.waitForTimeout(300); // openDelay={150} on this instance, plus animation
+  // Opened by hover. Base UI also opens it on keyboard focus, but only when
+  // the trigger matches :focus-visible, and whether a test's synthetic focus
+  // counts differs by engine (it opened in Chromium and Windows WebKit, not
+  // Linux WebKit in CI). Hover is the same in every engine, and the scan
+  // only needs the card's content mounted.
+  const trigger = page.getByRole('link', { name: '@janedoe' });
+  await trigger.hover();
+  await expect(page.getByRole('button', { name: 'View profile' })).toBeVisible(); // openDelay={150} on this instance
   await scanNamed('HoverCard');
 
-  // aria-compliance-review's own §4 finding, resolved from "plausible,
-  // unconfirmed" to a confirmed *deliberate Radix design choice*, not a
-  // toolcrib bug: @radix-ui/react-hover-card's HoverCardContentImpl runs a
-  // useEffect (dist/index.js, no dep array, every render) that walks every
-  // tabbable descendant of Content and force-sets tabindex="-1" on each --
-  // confirmed directly against node_modules source, not inferred. Radix's
-  // own accessibility docs for HoverCard state this is intentional (content
-  // is supplemental preview material, excluded from the Tab order by
-  // design) and recommend Popover -- toolcrib's <Popup> -- instead when
-  // interactive content genuinely needs to be keyboard-reachable. This
-  // assertion locks in that *known* behavior so a future Radix upgrade that
-  // silently changes it gets caught, rather than asserting the opposite
-  // (unreachable) as if it were the bug.
+  // aria-compliance-review §4: HoverCard content is supplemental and not in
+  // the Tab order (use <Popup> when it must be keyboard-operable). The Radix
+  // version did this by forcing tabindex="-1" onto the content's focusables.
+  // On Base UI's PreviewCard (#700) the card is portaled to the end of
+  // <body>, so Tab from the trigger moves on through the page. This locks
+  // that in: with the card open, Tab from its trigger never lands inside it.
+  await trigger.focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'View profile' })).not.toBeFocused();
-
-  await page.keyboard.press('Escape');
+  const focusInsideCard = await page.evaluate(() => Boolean(document.activeElement?.closest('.ai-hovercard-content')));
+  expect(focusInsideCard, 'Tab from the HoverCard trigger moved focus into the card').toBe(false);
+  await page.mouse.move(0, 0);
 
   // aria-compliance-review's own §4 finding: the dark-mode test below opens
   // this same Theme Designer drawer only long enough to click its

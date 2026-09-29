@@ -1,13 +1,18 @@
 'use client';
 
+// HoverCard on Base UI's PreviewCard (#670, #700), a drop-in for the earlier
+// Radix version (same export, props and events). Portal container, stacked
+// z-index, CSP nonce, enter/exit keyframes and the arrow come from the shared
+// overlay layer (../Overlay/baseui/overlayLayer).
 import React, { type ReactNode, type ReactElement } from 'react';
-import { HoverCard as HoverCardPrimitive } from 'radix-ui';
+import { PreviewCard } from '@base-ui/react/preview-card';
 import { aiBus } from '../../eventBus/eventBus';
-import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice';
+import { OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+
+const BORDER = 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e7eb))';
 
 /**
  * Props for the `<HoverCard>` hover-triggered preview card.
@@ -17,16 +22,10 @@ import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice'
  * the way Tooltip deliberately does, so a *mouse* click inside it reaches
  * its target normally.
  *
- * **Not reachable via keyboard Tab, by Radix's own design, not a toolcrib
- * limitation.** `@radix-ui/react-hover-card`'s `Content` forces
- * `tabindex="-1"` onto every focusable descendant on every render — Radix's
- * own accessibility guidance states this is intentional (a hover card is
- * supplemental preview content, not a fully keyboard-operable surface) and
- * recommends `<Popup>` (Popover-based) instead whenever the content's
- * interactive elements genuinely need to be keyboard-reachable. Confirmed
- * via `e2e/accessibility.spec.ts`'s own regression test locking in this
- * behavior. Don't rely on a button/link inside `content` being operable by
- * anyone who can't use a mouse.
+ * **Supplemental, not keyboard-operable.** The card opens when its trigger
+ * gets keyboard focus, so its content is announced, but Tab from the trigger
+ * moves on through the page rather than into the card. Use `<Popup>` when
+ * the content's buttons or links need to be keyboard-reachable.
  */
 export interface HoverCardProps {
   /** Unique identifier for event bus targeting. */
@@ -34,10 +33,10 @@ export interface HoverCardProps {
   /** Rich content shown inside the card. */
   content: ReactNode;
   /**
-   * The element that triggers the card on hover/focus. A single element —
-   * passed straight through to Radix's own `asChild`, which requires one
-   * ref-forwarding element to clone (same requirement as `<Tooltip>`'s own
-   * `children`).
+   * The element that triggers the card on hover/focus. A single element that
+   * becomes the trigger itself, with no wrapper: it receives the trigger's
+   * props and ref, so it must forward both to its DOM node (same requirement
+   * as `<Tooltip>`'s own `children`). Usually a link.
    */
   children: ReactElement;
   /** Which side of the trigger the card appears on. @default 'bottom' */
@@ -67,42 +66,41 @@ export const HoverCard: React.FC<HoverCardProps> = ({
   overrides,
 }) => {
   const { vars } = useSliceOverrides(HoverCardThemeSlice, overrides);
-  const targetDocument = useTargetDocument();
-
-  const handleOpenChange = (open: boolean) => {
-    aiBus.emit(open ? 'hovercard:shown' : 'hovercard:hidden', { id });
-  };
+  const { container, zIndex } = useOverlayLayer('TOOLTIP');
+  useOverlayArrowStyles();
+  useOverlayAnimations('toolcrib-hovercard-animations-baseui', [{ className: 'ai-hovercard-content', enter: 'ai-fade-in', exit: 'ai-fade-out' }]);
 
   return (
-    <HoverCardPrimitive.Root openDelay={openDelay} closeDelay={closeDelay} onOpenChange={handleOpenChange}>
-      <HoverCardPrimitive.Trigger asChild>{children}</HoverCardPrimitive.Trigger>
-
-      <HoverCardPrimitive.Portal container={targetDocument?.body}>
-        <HoverCardPrimitive.Content
-          side={side}
-          align={align}
-          sideOffset={8}
-          className="ai-focus-ring"
-          style={{
-            zIndex: Z_INDEX.TOOLTIP,
-            background: 'var(--ai-bg-surface, #ffffff)',
-            border: 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e7eb))',
-            boxShadow: 'var(--ai-hovercard-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
-            borderRadius: 'var(--ai-radius-md, 0.375rem)',
-            padding: 'var(--ai-padding-lg, 0.75rem)',
-            maxWidth: '20rem',
-            outline: 'none',
-            // Self-contained floating panel — already Radix-portaled to
-            // document.body, so nothing inside needs to escape this box
-            // (same reasoning as Popup/Modal's identical `contain: content`).
-            contain: 'content',
-            ...vars,
-          }}
-        >
-          <AIErrorBoundary componentName="HoverCard">{content}</AIErrorBoundary>
-          <HoverCardPrimitive.Arrow style={{ fill: 'var(--ai-bg-surface, #ffffff)' }} />
-        </HoverCardPrimitive.Content>
-      </HoverCardPrimitive.Portal>
-    </HoverCardPrimitive.Root>
+    <OverlayCSP>
+      <PreviewCard.Root onOpenChange={open => aiBus.emit(open ? 'hovercard:shown' : 'hovercard:hidden', { id })}>
+        <PreviewCard.Trigger render={children} delay={openDelay} closeDelay={closeDelay} />
+        <PreviewCard.Portal container={container}>
+          <PreviewCard.Positioner side={side} align={align} sideOffset={8} style={{ zIndex }}>
+            <PreviewCard.Popup
+              className="ai-focus-ring ai-hovercard-content"
+              style={{
+                background: 'var(--ai-bg-surface, #ffffff)',
+                border: BORDER,
+                boxShadow: 'var(--ai-hovercard-shadow, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
+                borderRadius: 'var(--ai-radius-md, 0.375rem)',
+                padding: 'var(--ai-padding-lg, 0.75rem)',
+                maxWidth: '20rem',
+                outline: 'none',
+                // Not paint containment: it would clip the arrow (see
+                // useOverlayArrowStyles).
+                contain: 'layout style',
+                ...vars,
+              }}
+            >
+              <AIErrorBoundary componentName="HoverCard">{content}</AIErrorBoundary>
+              <PreviewCard.Arrow
+                className={OVERLAY_ARROW_CLASS}
+                style={{ ['--ai-arrow-bg' as string]: 'var(--ai-bg-surface, #ffffff)', ['--ai-arrow-border' as string]: BORDER }}
+              />
+            </PreviewCard.Popup>
+          </PreviewCard.Positioner>
+        </PreviewCard.Portal>
+      </PreviewCard.Root>
+    </OverlayCSP>
   );
 };

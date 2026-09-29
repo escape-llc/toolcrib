@@ -1,60 +1,28 @@
 'use client';
 
-import React, { type HTMLAttributes, type ReactNode, type ReactElement, useState, useEffect } from 'react';
+// Tooltip on Base UI's Tooltip (#670, #700), a drop-in for the earlier Radix
+// version (same export, props, events and forwardRef). Portal container,
+// stacked z-index, CSP nonce, enter/exit keyframes and the arrow come from the
+// shared overlay layer (../Overlay/baseui/overlayLayer).
+import React, { useId, useState, type HTMLAttributes, type ReactNode, type ReactElement } from 'react';
 import { type StyleFree } from '../../theme/safeProps';
-import { Tooltip as TooltipPrimitive } from 'radix-ui';
+import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
 import { aiBus } from '../../eventBus/eventBus';
-import { Z_INDEX } from '../../theme/zIndex';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { useTargetDocument } from '../../theme/targetDocumentContext';
-import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
-import { useNonce } from '../../theme/nonceContext';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
-
-const TOOLTIP_STYLE_ID = 'toolcrib-tooltip-animations';
-
-// Radix's Tooltip.Content carries data-state="delayed-open" | "instant-open"
-// (the two ways it can become visible — after the hover delay, or instantly
-// via keyboard focus / a rapid re-hover within skipDelayDuration) or
-// "closed". A real stylesheet, not a static inline `animation` string, is
-// what lets the SAME persisting DOM node (Presence keeps Content mounted
-// through its own close animation, unlike Toast — see that component's own
-// comment on the one case where an ancestor removing it defeats this) play
-// a genuinely different animation on the way in vs. the way out: an inline
-// value that doesn't change between renders never restarts, so a static
-// `animation: ai-fade-in` would only ever play once. Reuses the same
-// shared ai-fade-in/ai-fade-out keyframes Modal's overlay uses — no new
-// keyframes needed for a plain fade.
-function injectTooltipAnimations(targetDocument?: Document, nonce?: string): void {
-  injectGlobalStyle(
-    TOOLTIP_STYLE_ID,
-    `
-    .ai-tooltip-content[data-state="delayed-open"],
-    .ai-tooltip-content[data-state="instant-open"] {
-      animation: ai-fade-in var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease);
-    }
-    .ai-tooltip-content[data-state="closed"] {
-      animation: ai-fade-out var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease) forwards;
-    }
-    `,
-    targetDocument,
-    nonce
-  );
-}
+import { OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
 /**
  * Props for the `<Tooltip>` hover/focus information overlay.
  *
  * Wraps the `children` element and shows a tooltip on hover/focus.
  * Emits `tooltip:shown` / `tooltip:hidden` events on the event bus.
- */
-/**
- * Props for `<Tooltip>`. Anything beyond the tooltip's own props (event
- * handlers, `aria-*`, a ref) is forwarded to the trigger child, so a Tooltip
- * composes inside another component's trigger: a Popup/Modal/DropdownMenu
- * whose trigger merges its props and ref into the element it's given
- * (Base UI's `render`, Radix's `asChild`) reaches the real button through
- * the Tooltip instead of stopping at it.
+ *
+ * Anything beyond the tooltip's own props (event handlers, `aria-*`, a ref)
+ * is forwarded to the trigger child, so a Tooltip composes inside another
+ * component's trigger: a Popup/Modal/DropdownMenu whose trigger merges its
+ * props and ref into the element it's given (Base UI's `render`) reaches the
+ * real button through the Tooltip instead of stopping at it.
  */
 export interface TooltipProps extends Omit<StyleFree<HTMLAttributes<HTMLElement>>, 'content' | 'children' | 'id'> {
   /** Unique identifier for event bus targeting. */
@@ -63,11 +31,10 @@ export interface TooltipProps extends Omit<StyleFree<HTMLAttributes<HTMLElement>
   content: ReactNode;
   /**
    * The element that triggers the tooltip on hover/focus. A single element
-   * (not text or a Fragment) — passed straight through to Radix's own
-   * `asChild` with no wrapper of its own (see this component's own comment
-   * on why), which requires exactly one ref-forwarding element to clone.
-   * Every toolkit component (`Button`, `Input`, ...) already forwards refs;
-   * a plain DOM element (`<span>`, `<div>`) always does too.
+   * (not text or a Fragment) that becomes the trigger itself, with no
+   * wrapper: it receives the trigger's props and ref, so it must forward
+   * both to its DOM node. Every toolkit component (`Button`, `Input`, ...)
+   * already does; a plain DOM element (`<span>`, `<div>`) always does too.
    */
   children: ReactElement;
   /**
@@ -101,121 +68,77 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   align = 'center',
   delayDuration = 200,
   overrides,
-  onClick,
-  onPointerDown,
+  'aria-describedby': consumerDescribedBy,
   ...triggerProps
 }, ref) => {
   const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
+  const { container, zIndex } = useOverlayLayer('TOOLTIP');
+  useOverlayArrowStyles();
+  useOverlayAnimations('toolcrib-tooltip-animations-baseui', [
+    { className: 'ai-tooltip-content', enter: 'ai-fade-in', exit: 'ai-fade-out', timing: 'var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease)' },
+  ]);
   const [isOpen, setIsOpen] = useState(false);
-  const targetDocument = useTargetDocument();
-  const nonce = useNonce();
-  useEffect(() => {
-    injectTooltipAnimations(targetDocument, nonce);
-  }, [targetDocument, nonce]);
+  const popupId = useId();
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open) {
-      aiBus.emit('tooltip:shown', { id, content: String(content) });
-    } else {
-      aiBus.emit('tooltip:hidden', { id });
-    }
+    aiBus.emit(open ? 'tooltip:shown' : 'tooltip:hidden', open ? { id, content: String(content) } : { id });
   };
 
-  return (
-    <TooltipPrimitive.Provider delayDuration={delayDuration} skipDelayDuration={0}>
-      <TooltipPrimitive.Root
-        open={isOpen}
-        onOpenChange={handleOpenChange}
-        disableHoverableContent={true}
-      >
-        {/* No wrapper <span> — children passed straight through asChild.
-            The previous version wrapped children in its own span (matching
-            Modal/Popup/Drawer's own trigger-wrapper pattern) specifically
-            to be a stretch-to-fill flex container for a height-constrained
-            child; asChild removes the need for that entirely by making the
-            child itself the *actual* rendered trigger element, with no
-            extra DOM layer for a parent's `alignItems: 'stretch'` (a
-            <UIGroup>, a taller sibling in a row) to reach through in the
-            first place. That extra layer was also the reason a <UIGroup>
-            wrapping a Tooltip-wrapped Button couldn't corner-square it:
-            UIGroup's own CSS only reaches *direct* children, and the span
-            — not the Button — was the one actually sitting there. Gone now,
-            so both problems disappear at the root instead of needing a
-            workaround (e.g. an explicit `squareCorners` prop) per instance. */}
-        <TooltipPrimitive.Trigger
-          asChild
-          {...triggerProps}
-          // Radix types this as a button ref; under asChild it's whatever element the child is.
-          ref={ref as React.Ref<HTMLButtonElement>}
-          // Composed, not replaced: a parent trigger's own handlers (a Popup
-          // opening on click) must still run. See AGENTS.md on spread order.
-          onClick={e => {
-            onClick?.(e);
-            setIsOpen(false);
-          }}
-          onPointerDown={e => {
-            onPointerDown?.(e);
-            setIsOpen(false);
-          }}
-        >
-          {children}
-        </TooltipPrimitive.Trigger>
+  // Base UI's Tooltip sets no role="tooltip" and no aria-describedby (its
+  // docs treat a tooltip as visual-only). The Radix version had both, so a
+  // screen reader announced the tooltip text as the trigger's description;
+  // this keeps that. The description only points at the popup while it's
+  // mounted, and a consumer's own aria-describedby is kept alongside it.
+  const describedBy = [consumerDescribedBy, isOpen ? popupId : undefined].filter(Boolean).join(' ') || undefined;
 
-        <TooltipPrimitive.Portal container={targetDocument?.body}>
-          {/* className, not an inline `animation` string — this component
-              used to set `animation: 'ai-popup-fade 0.12s ease-out'`
-              directly, a keyframe name never defined anywhere in the
-              codebase, so Presence's wait-for-animationend never resolved
-              and the content stayed mounted and fully visible forever
-              (confirmed via a real browser run: animationstart/
-              animationend/animationcancel listeners, computed-style
-              inspection). Left off entirely after that fix — but an
-              instant show/hide isn't the goal either, just the safe
-              fallback; injectTooltipAnimations above is what now supplies
-              a real, data-state-conditioned animation (see its own
-              comment for why an inline string can't express "different
-              animation on the way in vs. out" for a node that persists
-              across the state change, unlike a freshly-mounted one). */}
-          <TooltipPrimitive.Content
-            side={side}
-            align={align}
-            sideOffset={5}
-            className="ai-tooltip-content"
-            style={{
-              zIndex: Z_INDEX.TOOLTIP,
-              // No maxWidth previously — a long `content` string (a full
-              // sentence of help text, not just a short label) rendered as
-              // one extremely wide, un-wrapped line instead of a normal
-              // multi-line tooltip bubble, reported directly. Matches
-              // Modal's own `maxWidth: '90vw'` in being a plain layout
-              // constant rather than a theme color/spacing token.
-              maxWidth: '20rem',
-              padding: 'var(--ai-tooltip-padding, 0.375rem 0.75rem)',
-              fontSize: 'var(--ai-tooltip-font-size, 0.75rem)',
-              fontWeight: 'var(--ai-font-weight-semibold, 600)',
-              borderRadius: 'var(--ai-tooltip-border-radius, var(--ai-radius-md, 0.375rem))',
-              background: 'var(--ai-tooltip-bg, var(--ai-text-primary, #111827))',
-              color: 'var(--ai-tooltip-color, var(--ai-bg-surface, #ffffff))',
-              boxShadow: 'var(--ai-shadow-sm, 0 0.25rem 0.75rem rgba(0,0,0,0.15))',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              // Verified empirically (Playwright screenshot test) before
-              // applying here: `contain: paint` does not clip a descendant
-              // — like `TooltipPrimitive.Arrow` below, positioned to poke
-              // past this box's edge — as long as `overflow` stays
-              // `visible` (the default, and what this element uses). It
-              // only clips when `overflow` is already non-`visible`.
-              contain: 'content',
-              ...vars,
-            }}
-          >
-            {content}
-            <TooltipPrimitive.Arrow style={{ fill: 'var(--ai-text-primary, #111827)' }} />
-          </TooltipPrimitive.Content>
-        </TooltipPrimitive.Portal>
-      </TooltipPrimitive.Root>
-    </TooltipPrimitive.Provider>
+  return (
+    <OverlayCSP>
+      {/* No Provider: each Tooltip keeps its own delay, like the Radix
+          version's per-instance Provider with skipDelayDuration={0}.
+          disableHoverablePopup: the bubble is pointer-events: none anyway. */}
+      <BaseTooltip.Root onOpenChange={handleOpenChange} disableHoverablePopup>
+        {/* The child is the trigger (render), with no wrapper of its own, so a
+            parent's alignItems: 'stretch' and a <UIGroup>'s direct-child
+            corner squaring both reach it. Base UI merges the forwarded
+            props' handlers with its own, and closes the tooltip on click
+            (closeOnClick, on by default). */}
+        <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={children} delay={delayDuration} closeDelay={0} />
+        <BaseTooltip.Portal container={container}>
+          <BaseTooltip.Positioner side={side} align={align} sideOffset={5} style={{ zIndex }}>
+            <BaseTooltip.Popup
+              id={popupId}
+              role="tooltip"
+              className="ai-tooltip-content"
+              style={{
+                // Plain layout constant, like Modal's maxWidth: 90vw -- a long
+                // content string wraps instead of running on as one line.
+                maxWidth: '20rem',
+                padding: 'var(--ai-tooltip-padding, 0.375rem 0.75rem)',
+                fontSize: 'var(--ai-tooltip-font-size, 0.75rem)',
+                fontWeight: 'var(--ai-font-weight-semibold, 600)',
+                borderRadius: 'var(--ai-tooltip-border-radius, var(--ai-radius-md, 0.375rem))',
+                background: 'var(--ai-tooltip-bg, var(--ai-text-primary, #111827))',
+                color: 'var(--ai-tooltip-color, var(--ai-bg-surface, #ffffff))',
+                boxShadow: 'var(--ai-shadow-sm, 0 0.25rem 0.75rem rgba(0,0,0,0.15))',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                // Not paint containment: it would clip the arrow (see
+                // useOverlayArrowStyles).
+                contain: 'layout style',
+                ...vars,
+              }}
+            >
+              {content}
+              <BaseTooltip.Arrow
+                className={OVERLAY_ARROW_CLASS}
+                style={{ ['--ai-arrow-bg' as string]: 'var(--ai-tooltip-bg, var(--ai-text-primary, #111827))' }}
+              />
+            </BaseTooltip.Popup>
+          </BaseTooltip.Positioner>
+        </BaseTooltip.Portal>
+      </BaseTooltip.Root>
+    </OverlayCSP>
   );
 });
 Tooltip.displayName = 'Tooltip';

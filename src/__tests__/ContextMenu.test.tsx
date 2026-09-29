@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ContextMenu } from '../components/ContextMenu/ContextMenu';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
+
+// Base UI mounts the popup a frame after the contextmenu event.
+const rightClick = (text: string) => actAndSettle(() => fireEvent.contextMenu(screen.getByText(text)));
 
 describe('ContextMenu Component', () => {
   it('opens on right-click (not left-click) and renders items', async () => {
@@ -17,20 +21,17 @@ describe('ContextMenu Component', () => {
     // the closed state genuinely omits.
     expect(await axe(document.body)).toHaveNoViolations();
 
-    fireEvent.click(screen.getByText('Right-click target'));
+    await actAndSettle(() => fireEvent.click(screen.getByText('Right-click target')));
     expect(screen.queryByText('Copy')).not.toBeInTheDocument();
 
-    fireEvent.contextMenu(screen.getByText('Right-click target'));
-    expect(screen.getByText('Copy')).toBeInTheDocument();
-    // Radix Menu-family hideOthers() reads as an aria-hidden ancestor with
-    // a focusable descendant to any static analysis -- the same confirmed
-    // false positive e2e/accessibility.spec.ts's own ARIA_HIDDEN_FOCUS_DISABLED
-    // carve-out exists for, real in jsdom for the identical structural
-    // reason (neither axe variant can observe Radix's runtime focus-trap).
-    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
+    await rightClick('Right-click target');
+    expect(screen.getByRole('menuitem', { name: 'Copy' })).toBeInTheDocument();
+    // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
+    // page behind an open menu the way Radix's hideOthers() did.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('emits menu:opened and menu:item_selected, matching DropdownMenu\'s event shape', () => {
+  it('emits menu:opened and menu:item_selected, matching DropdownMenu\'s event shape', async () => {
     const openedFn = vi.fn();
     const selectedFn = vi.fn();
     const itemAction = vi.fn();
@@ -43,10 +44,10 @@ describe('ContextMenu Component', () => {
       </ContextMenu>
     );
 
-    fireEvent.contextMenu(screen.getByText('Target'));
+    await rightClick('Target');
     expect(openedFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'test-context-menu' }));
 
-    fireEvent.click(screen.getByText('Delete'));
+    await actAndSettle(() => fireEvent.click(screen.getByText('Delete')));
     expect(itemAction).toHaveBeenCalledTimes(1);
     expect(selectedFn).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'test-context-menu', itemValue: 'delete' })
@@ -56,14 +57,14 @@ describe('ContextMenu Component', () => {
     unsub2();
   });
 
-  it('renders a separator instead of a clickable item', () => {
+  it('renders a separator instead of a clickable item', async () => {
     render(
       <ContextMenu items={[{ value: 'a', label: 'A' }, { isSeparator: true, value: 'sep', label: '' }, { value: 'b', label: 'B' }]}>
         <div>Target</div>
       </ContextMenu>
     );
 
-    fireEvent.contextMenu(screen.getByText('Target'));
+    await rightClick('Target');
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.queryAllByRole('separator').length).toBe(1);
