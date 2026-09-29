@@ -34,7 +34,6 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@internationalized/date": "^3.12.4",
-    "@radix-ui/react-presence": "^1.1.10",
     "@visx/axis": "^4.0.0",
     "@visx/curve": "^4.0.0",
     "@visx/event": "^4.0.0",
@@ -45,7 +44,6 @@
     "cmdk": "^1.1.1",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.48.0",
-    "radix-ui": "^1.0.0",
     "react": "^18.3.1 || ^19.0.0",
     "react-aria-components": "^1.21.1",
     "react-dom": "^18.3.1 || ^19.0.0",

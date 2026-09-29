@@ -84,7 +84,7 @@ describe('AspectRatio Component', () => {
   // The `ratio` prop is the entire point of this component — worth
   // confirming it actually changes the rendered box, not just that
   // *a* box with *some* ratio renders (the padding-bottom-percentage
-  // technique Radix uses is easy to get right for one ratio and wrong for
+  // technique AspectRatio uses is easy to get right for one ratio and wrong for
   // a different one without either failing the "renders" assertion alone).
   it('produces a different padding-bottom percentage for different ratios', () => {
     const { container: square } = render(
@@ -97,8 +97,9 @@ describe('AspectRatio Component', () => {
         <img src="b.png" alt="wide" />
       </AspectRatio>
     );
-    const squareWrapper = square.querySelector('[data-radix-aspect-ratio-wrapper]') as HTMLElement;
-    const wideWrapper = wide.querySelector('[data-radix-aspect-ratio-wrapper]') as HTMLElement;
+    // The outer box carries the ratio as padding-bottom.
+    const squareWrapper = square.firstElementChild as HTMLElement;
+    const wideWrapper = wide.firstElementChild as HTMLElement;
 
     expect(squareWrapper.style.paddingBottom).toBe('100%');
     expect(wideWrapper.style.paddingBottom).toBe('56.25%');

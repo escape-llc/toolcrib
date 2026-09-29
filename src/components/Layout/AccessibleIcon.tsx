@@ -1,5 +1,5 @@
 import React, { type ReactElement } from 'react';
-import { AccessibleIcon as AccessibleIconPrimitive } from 'radix-ui';
+import { VisuallyHidden } from './VisuallyHidden';
 
 /** Props for `<AccessibleIcon>`. */
 export interface AccessibleIconProps {
@@ -19,5 +19,10 @@ export interface AccessibleIconProps {
  * @manifestCategory Layout Primitives
  */
 export const AccessibleIcon: React.FC<AccessibleIconProps> = ({ children, label }) => (
-  <AccessibleIconPrimitive.Root label={label}>{children}</AccessibleIconPrimitive.Root>
+  // toolcrib's own (#703), what Radix's AccessibleIcon did: `focusable` is
+  // for legacy IE/Edge SVGs that were otherwise Tab stops.
+  <>
+    {React.cloneElement(children as ReactElement<Record<string, unknown>>, { 'aria-hidden': 'true', focusable: 'false' })}
+    <VisuallyHidden>{label}</VisuallyHidden>
+  </>
 );

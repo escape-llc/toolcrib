@@ -55,7 +55,7 @@ npx toolcrib init
 
 **Component Library**
 - Many production components across Layout Primitives, Containers, Overlays, Data Display, and Form Controls
-- Built on Base UI, Radix UI and React Aria Components primitives (moving from Radix to Base UI) — real keyboard nav, focus traps, and ARIA semantics, not approximated
+- Built on Base UI and React Aria Components primitives — real keyboard nav, focus traps, and ARIA semantics, not approximated
 - No `style`/`className` on any component — every visual axis goes through a typed `overrides` prop instead
 
 **Theming**
@@ -162,7 +162,7 @@ This is just the tip of a long list of features unguided generation re-invents a
 - Real Composite UI Components (e.g. Autocomplete, Combobox, DataTable)
 
 The Floor and Guardrails you get with Toolcrib are extensive and multi-layer!
-- Leverage existing hardened primitives (Radix, React ARIA)
+- Leverage existing hardened primitives (Base UI, React ARIA)
 - Model Guidance
 - E2E tests
 - OWASP Scans
@@ -239,7 +239,7 @@ Infrastructure goals:
 - Codify the boilerplate AI can get wrong or inconsistently apply.
 - Reliability is in the framework, not your "vibe".
 - Signal techniques that guide away from anti-patterns like prop-drilling.
-- Leverage Radix primitives for ARIA etc.
+- Leverage Base UI primitives for ARIA etc.
 - Leverage other primitives where it makes sense.
 
 <!-- ===== ai-docs/CORE.md ===== -->
@@ -352,7 +352,7 @@ Router/auth/analytics above (§1) work through a library-agnostic adapter, so to
 
 > **Content-Security-Policy note.** toolcrib works under a strict `style-src` (no `'unsafe-inline'`), confirmed by a real Playwright run enforcing an actual CSP header — not just reasoned about. Inline `style` objects — the vast majority of every component's styling — need nothing extra: React applies the `style` prop via direct CSSOM property assignment (`element.style.setProperty(...)`/`element.style[prop] = value`), never by writing a literal `style="..."` attribute string, and CSP's `style-src-attr` enforcement specifically hooks attribute mutation, not CSSOM property calls. The other half — the handful of dynamically-injected `<style>` *tags* (the typography base rule, responsive `@media` blocks, shared animation `@keyframes`, a few hover rules, all via `injectGlobalStyle`/`upsertGlobalStyle`) — is genuinely subject to `style-src-elem`, so it needs a nonce: pass it via `ToolcribProvider`'s `theme.nonce` option (or `ThemeProvider`'s own `nonce` prop directly) with the same value your server put in the `style-src` directive, and every `<style>` tag toolcrib creates carries it. Everything else about toolcrib is PWA/offline-friendly: zero runtime `fetch`/network calls anywhere in the vendored source, and `localStorage` usage (saved Theme Editor presets) is guarded to degrade safely rather than throw when storage is unavailable.
 
-> **axe / accessibility-scanner note.** Overlays built on Base UI (toolcrib is moving its primitives there from Radix) render invisible focus-guard `<span>`s at the edges of a focus trap: `aria-hidden="true"`, `tabindex="0"`, marked `data-base-ui-focus-guard`. When focus lands on one, the trap moves it back inside the overlay immediately, so it never rests on a hidden element. axe-core's `aria-hidden-focus` rule can't see that redirect and reports every guard. Base UI's maintainers closed this as working as intended, citing W3C ACT rule 6cfa84, Passed Example 4. If your app runs axe (e.g. `@axe-core/playwright`), exclude just the guards rather than disabling the rule: `new AxeBuilder({ page }).exclude('[data-base-ui-focus-guard]')`. Everything else still gets `aria-hidden-focus` checking.
+> **axe / accessibility-scanner note.** Overlays built on Base UI (toolcrib's primitives) render invisible focus-guard `<span>`s at the edges of a focus trap: `aria-hidden="true"`, `tabindex="0"`, marked `data-base-ui-focus-guard`. When focus lands on one, the trap moves it back inside the overlay immediately, so it never rests on a hidden element. axe-core's `aria-hidden-focus` rule can't see that redirect and reports every guard. Base UI's maintainers closed this as working as intended, citing W3C ACT rule 6cfa84, Passed Example 4. If your app runs axe (e.g. `@axe-core/playwright`), exclude just the guards rather than disabling the rule: `new AxeBuilder({ page }).exclude('[data-base-ui-focus-guard]')`. Everything else still gets `aria-hidden-focus` checking.
 
 ---
 
