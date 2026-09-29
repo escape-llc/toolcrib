@@ -9,7 +9,7 @@ export type PopoverSide = 'top' | 'right' | 'bottom' | 'left';
 /**
  * `'stretch'` is for a popup sized to match the trigger exactly on the
  * cross axis (e.g. `Combobox`'s listbox, `width:
- * var(--radix-popover-trigger-width)`) — the whole connecting edge meets
+ * var(--anchor-width)`, set by Base UI's Positioner) — the whole connecting edge meets
  * the trigger, not just one corner, so *both* corners on that edge square
  * off. `'center'` still squares nothing (no single connecting corner).
  * @barrelExport

@@ -153,7 +153,7 @@ export const Listbox: React.FC<ListboxProps> = ({
             open (aria-compliance-review's own §1 coverage-gap finding).
             aria-disabled (not omitting a role, or disabled on a real
             <button>) keeps it correctly non-interactive without breaking
-            the required-children contract -- mousedown never reaches
+            the required-children contract -- a click never reaches
             onSelect for it since it's not part of options.map below. */}
         {loading && (
           <div role="option" aria-disabled="true" style={{ padding: itemPadding, fontSize: '0.8125rem', color: 'var(--ai-text-secondary, #6b7280)' }}>
@@ -176,8 +176,12 @@ export const Listbox: React.FC<ListboxProps> = ({
                 aria-selected={isSelected}
                 data-highlighted={index === activeIndex ? '' : undefined}
                 className="ai-menu-item"
-                onMouseDown={e => {
-                  e.preventDefault();
+                // Press only keeps focus where it is (the combobox input or
+                // trigger); the pick happens on click (#697). That matches a
+                // native control: a user who presses on an option can still
+                // cancel by moving off it before releasing.
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
                   if (!opt.disabled) onSelect(opt);
                 }}
                 style={{

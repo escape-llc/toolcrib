@@ -1048,7 +1048,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Dropdown select control bound to Form context, built on Radix Select"
+      "description": "Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox"
     },
     {
       "name": "Slider",
@@ -1351,6 +1351,10 @@
       "disabled": {
         "type": "boolean",
         "description": "If true, the option is visible but not selectable."
+      },
+      "textValue": {
+        "type": "string",
+        "description": "Plain text for typeahead matching when `label` isn't a plain string\n(an icon plus text, say). Defaults to the text found in `label`."
       }
     },
     "ToggleGroupOption": {

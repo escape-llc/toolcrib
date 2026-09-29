@@ -298,11 +298,11 @@ describe('ThemeEditor', () => {
 
           const listbox = screen.getByRole('listbox');
           const options = within(listbox).getAllByRole('option');
-          // Pick any option that isn't already selected (Radix marks the
-          // current value's Item with data-state="checked") — its label is
-          // read here, before the click, since the option itself grows a
-          // "✓" ItemIndicator the instant it becomes selected.
-          const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+          // Pick any option that isn't already selected (aria-selected on the
+          // current value's option) — its label is read here, before the
+          // click, since the option itself grows a "✓" the instant it
+          // becomes selected.
+          const target = options.find(opt => opt.getAttribute('aria-selected') !== 'true') ?? options[0];
           const targetLabel = target.textContent ?? '';
           fireEvent.click(target);
 
@@ -356,7 +356,7 @@ describe('ThemeEditor', () => {
         fireEvent.click(combo);
         const listbox = screen.getByRole('listbox');
         const options = within(listbox).getAllByRole('option');
-        const target = options.find(opt => opt.getAttribute('data-state') !== 'checked') ?? options[0];
+        const target = options.find(opt => opt.getAttribute('aria-selected') !== 'true') ?? options[0];
         const targetLabel = target.textContent ?? '';
         fireEvent.click(target);
         expect(combo.textContent).toContain(targetLabel);
@@ -371,7 +371,7 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => opt.getAttribute('aria-selected') !== 'true')!;
       const targetLabel = target.textContent ?? '';
       fireEvent.click(target);
       expect(combo.textContent).toContain(targetLabel);
@@ -390,7 +390,7 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => opt.getAttribute('aria-selected') !== 'true')!;
       const targetLabel = target.textContent ?? '';
       fireEvent.click(target);
       expect(combo.textContent).toContain(targetLabel);
@@ -425,7 +425,7 @@ describe('ThemeEditor', () => {
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
-      const target = options.find(opt => opt.getAttribute('data-state') !== 'checked')!;
+      const target = options.find(opt => opt.getAttribute('aria-selected') !== 'true')!;
       const targetLabel = target.textContent ?? '';
       fireEvent.click(target);
       expect(combo.textContent).toContain(targetLabel);

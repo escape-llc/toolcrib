@@ -33,19 +33,28 @@ describe('Listbox', () => {
     expect(document.getElementById('lb-option-1')).toHaveTextContent('Editor');
   });
 
-  it('calls onSelect on mousedown (not click), matching native listbox feel', () => {
+  // #697: selection happens on click, so a press can still be cancelled by
+  // moving off the option before releasing, as on a native control.
+  it('calls onSelect on click, not on the press', () => {
     const onSelect = vi.fn();
     render(<Listbox id="lb" options={options} onSelect={onSelect} />);
     fireEvent.mouseDown(screen.getByText('Admin'));
-    expect(onSelect).toHaveBeenCalledWith(options[0]);
-    fireEvent.click(screen.getByText('Editor'));
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Admin'));
     expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(options[0]);
+  });
+
+  it('prevents the press default, so focus stays in the combobox input or trigger', () => {
+    render(<Listbox id="lb" options={options} onSelect={vi.fn()} />);
+    // fireEvent returns false when a handler called preventDefault().
+    expect(fireEvent.mouseDown(screen.getByText('Admin'))).toBe(false);
   });
 
   it('never calls onSelect for a disabled option', () => {
     const onSelect = vi.fn();
     render(<Listbox id="lb" options={options} onSelect={onSelect} />);
-    fireEvent.mouseDown(screen.getByText('Viewer'));
+    fireEvent.click(screen.getByText('Viewer'));
     expect(onSelect).not.toHaveBeenCalled();
   });
 
