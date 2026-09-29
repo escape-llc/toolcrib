@@ -91,7 +91,7 @@ describe('aiBus.showToastPromise', () => {
       vi.advanceTimersByTime(20000);
     });
     expect(toastItems()).toHaveLength(1);
-    expect(toastItems()[0]).toHaveAttribute('data-state', 'open');
+    expect(toastItems()[0]).toHaveTextContent('Working…');
 
     await act(async () => {
       job.resolve();

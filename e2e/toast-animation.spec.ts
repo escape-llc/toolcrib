@@ -49,12 +49,14 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
   const toast = page.locator('[data-testid="toast-item"]').first();
   await toast.waitFor({ state: 'visible', timeout: 2000 });
 
+  // Not closing: Radix marked an open toast data-state="open"; Base UI
+  // (#698) has no open marker, only data-ending-style while it closes.
   const openInfo = await toast.evaluate(el => ({
     animationName: getComputedStyle(el).animationName,
-    dataState: el.getAttribute('data-state'),
+    closing: el.getAttribute('data-state') === 'closed' || el.hasAttribute('data-ending-style'),
   }));
   expect(openInfo.animationName).toBe('toolcrib-toast-slide-in');
-  expect(openInfo.dataState).toBe('open');
+  expect(openInfo.closing).toBe(false);
 
   // Regression test: dismissToast used to remove the toast from
   // ToastContext's state array immediately on click, which unmounted this
@@ -97,7 +99,7 @@ test('a toast that times out on its own (never clicked) also plays its exit anim
   const toast = page.locator('[data-testid="toast-item"]').first();
   await toast.waitFor({ state: 'visible', timeout: 2000 });
 
-  // Install the listener before Radix's own duration timer (default
+  // Install the listener before the toast's own duration timer (default
   // 5000ms) fires — see the manual-dismiss test above for why a polling
   // assertion on data-state can't reliably catch this instead.
   // Filtered, not { once: true } on the raw event — the entrance animation

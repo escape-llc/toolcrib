@@ -126,12 +126,29 @@ test.describe('DataTable empty->populated load transition', () => {
             return;
           }
           const before = row.style.animation;
+          // Hold the row's real animation still while the check runs. The
+          // two frames below used to be a race under full-suite load: if
+          // they took longer than the ~220ms entrance animation, the real
+          // animationend cleared justLeftEmptyState legitimately and `after`
+          // read empty with the guard intact (seen on WebKit, #698). This
+          // pauses through the Web Animations API, not the
+          // animation-play-state CSS property the note above found
+          // unreliable on WebKit. With the guard broken, React still strips
+          // the style, which cancels the animation, so `after` still fails.
+          const running = row.getAnimations();
+          running.forEach(a => a.pause());
           child.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'not-the-real-one' }));
           // React's own state update from the dispatched event is
           // processed asynchronously relative to this synchronous
           // handler -- give it a real frame to actually commit before
           // reading the DOM again.
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve({ before, after: row.style.animation })));
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const after = row.style.animation;
+              running.forEach(a => a.play());
+              resolve({ before, after });
+            })
+          );
         });
       });
     });
