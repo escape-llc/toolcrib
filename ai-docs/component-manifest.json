@@ -1678,7 +1678,11 @@
         "items": {
           "type": "CommandPaletteItemData[]",
           "required": true,
-          "description": "Array of items to render, fuzzy-filtered by `cmdk` as the user types."
+          "description": "Array of items to render, filtered as the user types (see `filter`)."
+        },
+        "filter": {
+          "type": "CommandPaletteFilter",
+          "description": "Custom matcher, e.g. a fuzzy scorer. The default is a case- and\naccent-insensitive substring match on the item's text and keywords,\nkeeping the list's own order."
         },
         "placeholder": {
           "type": "string",
@@ -1705,8 +1709,8 @@
       },
       "category": "Overlays",
       "antiPatternAvoid": "Hand-roll a fuzzy-searchable command launcher with a raw `<input>` and manual filtering, or wire your own global `Cmd/Ctrl+K` listener",
-      "antiPatternInstead": "Use `<CommandPalette items={...}>` — fuzzy filter, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)`",
-      "description": "Fuzzy-searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement)"
+      "antiPatternInstead": "Use `<CommandPalette items={...}>` — filtering, grouping, and the global shortcut are wired in automatically once mounted; triggerable from anywhere via `aiBus.openCommandPalette(id)`",
+      "description": "Searchable command launcher opened via Cmd/Ctrl+K, hosted in a top-anchored Modal (VS Code-style quick-switcher placement); pluggable matcher for fuzzy search"
     },
     {
       "name": "Content",
@@ -4413,7 +4417,7 @@
       "value": {
         "type": "string",
         "required": true,
-        "description": "Unique string value emitted in the `commandpalette:item_selected` event, and used by `cmdk` for filtering/selection identity."
+        "description": "Unique string value emitted in the `commandpalette:item_selected` event. Also what the search matches when `label` isn't plain text."
       },
       "label": {
         "type": "ReactNode",
@@ -4434,7 +4438,7 @@
       },
       "keywords": {
         "type": "string[]",
-        "description": "Additional terms `cmdk`'s fuzzy filter should match against, beyond `label`'s own text."
+        "description": "Additional terms the search matches against, beyond the label's own text."
       },
       "onSelect": {
         "type": "() => void",

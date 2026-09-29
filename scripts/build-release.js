@@ -92,7 +92,7 @@ const COMPANION_PEER_DEPENDENCIES = {
 //    APIs removed or deprecated in React 19 (no ReactDOM.render/hydrate, no
 //    function-component defaultProps/propTypes, no string refs, no legacy
 //    contextTypes/getChildContext). Every runtime dependency the toolkit
-//    actually ships with (@base-ui/react, react-aria-components, cmdk,
+//    actually ships with (@base-ui/react, react-aria-components,
 //    embla-carousel-react) already declares its own React 19-compatible
 //    peer range, so there is nothing downstream forcing React 18 either.
 //    The ^18.3.1 the scan would otherwise emit reflects only what CI
