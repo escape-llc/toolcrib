@@ -1,7 +1,8 @@
 'use client';
 
 import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useRef, useState } from 'react';
-import { Checkbox as CheckboxPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
+import { Switch as BaseSwitch } from '@base-ui/react/switch';
 import { Eye, EyeOff } from 'lucide-react';
 import { useOptionalFormContext } from './FormContext';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
@@ -846,7 +847,7 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
 };
 
 // --- Select ---
-// Select is imported and exported from ./Select (Radix UI Primitive)
+// Select is imported and exported from ./Select
 
 /** Props for `<Checkbox>` — boolean toggle bound to Form context via `name`. */
 export interface CheckboxProps {
@@ -905,7 +906,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
 
   return (
     <Label>
-      <CheckboxPrimitive.Root
+      <BaseCheckbox.Root
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
@@ -939,10 +940,10 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
           ...cornerOverrides,
         }}
       >
-        <CheckboxPrimitive.Indicator style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <BaseCheckbox.Indicator aria-hidden="true" style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           ✓
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
+        </BaseCheckbox.Indicator>
+      </BaseCheckbox.Root>
       {label && <span>{label}</span>}
     </Label>
   );
@@ -1009,7 +1010,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
     // exactly matching what this component's own hand-rolled <label> used
     // before both were consolidated onto the shared <Label> component.
     <Label overrides={{ gap: 'spacious' }}>
-      <SwitchPrimitive.Root
+      <BaseSwitch.Root
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
@@ -1041,7 +1042,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
           ...cornerOverrides,
         }}
       >
-        <SwitchPrimitive.Thumb
+        <BaseSwitch.Thumb
           style={{
             display: 'block',
             width: 'var(--ai-togglecontrol-switch-thumb-size, 1rem)',
@@ -1055,14 +1056,14 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
             transform: checked
               ? 'translateX(var(--ai-togglecontrol-switch-thumb-travel, 1.25rem))'
               : 'translateX(var(--ai-togglecontrol-switch-thumb-inset, 0.125rem))',
-            // No shared class on this element (it's SwitchPrimitive.Thumb,
+            // No shared class on this element (it's BaseSwitch.Thumb,
             // not .Root) -- no collision, so this transition genuinely
             // applies, just needed the floored duration token (issue #411).
             transition: 'transform var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)',
             boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.1875rem rgba(0,0,0,0.2))',
           }}
         />
-      </SwitchPrimitive.Root>
+      </BaseSwitch.Root>
       {label && <span>{label}</span>}
     </Label>
   );

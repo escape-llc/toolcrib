@@ -65,21 +65,21 @@ describe('OTPField', () => {
     unsub();
   });
 
-  it('backspace clears a filled cell and moves back; in an empty cell it just moves back', async () => {
+  it('backspace clears a filled cell and moves back; in an empty cell it deletes the previous character', async () => {
     const onChange = vi.fn();
-    render(<OTPField aria-label="Code" defaultValue="12" onChange={onChange} />);
-    // Filled cell: the key clears it (the browser's input event) and focus steps back.
-    act(() => cell(2).focus());
-    fireEvent.keyDown(cell(2), { key: 'Backspace' });
-    fireEvent.change(cell(2), { target: { value: '' } });
+    render(<OTPField aria-label="Code" defaultValue="123" onChange={onChange} />);
+    // Filled cell: the key clears it and focus steps back.
+    act(() => cell(3).focus());
+    act(() => { fireEvent.keyDown(cell(3), { key: 'Backspace' }); });
+    expect(onChange).toHaveBeenLastCalledWith('12');
+    await waitFor(() => expect(cell(2)).toHaveFocus());
+    // Empty cell (#701, Base UI): one Backspace per character wherever the
+    // caret is -- it deletes the previous cell's character and moves there.
+    // The Radix version only moved focus.
+    act(() => cell(3).focus());
+    act(() => { fireEvent.keyDown(cell(3), { key: 'Backspace' }); });
     expect(onChange).toHaveBeenLastCalledWith('1');
-    expect(cell(1)).toHaveFocus();
-    // Empty cell: only focus moves (on the next frame), nothing is cleared.
-    onChange.mockClear();
-    act(() => cell(2).focus());
-    fireEvent.keyDown(cell(2), { key: 'Backspace' });
-    await waitFor(() => expect(cell(1)).toHaveFocus());
-    expect(onChange).not.toHaveBeenCalled();
+    await waitFor(() => expect(cell(2)).toHaveFocus());
   });
 
   it('masks cells for a PIN and accepts letters in alphanumeric mode', () => {

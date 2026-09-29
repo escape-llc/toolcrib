@@ -10,7 +10,8 @@
    not a real bug -- this renders and tests correctly today. Scoped to just
    this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext, useState } from 'react';
-import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
+import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
+import { Radio } from '@base-ui/react/radio';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
@@ -116,7 +117,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   // with no `initialValues` entry reads as `undefined` here for exactly
   // one paint, then flips to `''` once registerField's effect commits —
   // a real "component is changing from uncontrolled to controlled" React
-  // warning (Radix's RadioGroupPrimitive.Root gets `value={undefined}`,
+  // warning (the group primitive gets `value={undefined}`,
   // then `value={''}`), invisible in this suite until a global
   // console.error/warn assertion actually looked for it. Resolving to `''`
   // immediately here — matching what registerField is about to set
@@ -127,11 +128,11 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   // Standalone (no `value` prop, no Form ancestor) needs its own live,
   // updating value -- not just `defaultValue` echoed back unchanged --
   // because `RadioGroup.Option`'s own checked styling below reads
-  // `ctx.selectedValue` from this component's context, not from Radix's
-  // internal per-item DOM state, so it never updates on its own the way
-  // Radix's own indicator would. Without this, a standalone
+  // `ctx.selectedValue` from this component's context, not from the
+  // primitive's internal per-item state, so it never updates on its own the
+  // way the primitive's indicator would. Without this, a standalone
   // `<RadioGroup defaultValue="a">` looked identical to a fully controlled
-  // one from Radix's perspective (a `value` prop that's non-undefined on
+  // one from the primitive's perspective (a `value` prop that's non-undefined on
   // every render) with nothing ever feeding a new value back down after a
   // click -- the same class of freeze found live in `<DatePicker>`/
   // `<TimeField>` (see their own comments), just requiring a different fix
@@ -163,9 +164,9 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         size,
       }}
     >
-      <RadioGroupPrimitive.Root
+      <BaseRadioGroup
         value={stringVal}
-        onValueChange={handleChange}
+        onValueChange={v => handleChange(String(v))}
         disabled={disabled}
         className="ai-focus-ring"
         style={{
@@ -189,7 +190,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
               />
             ))
           : children}
-      </RadioGroupPrimitive.Root>
+      </BaseRadioGroup>
     </RadioGroupContext.Provider>
   );
 };
@@ -214,7 +215,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
         userSelect: 'none',
       }}
     >
-      <RadioGroupPrimitive.Item
+      <Radio.Root
         value={value}
         disabled={isDisabled}
         className="ai-focus-ring"
@@ -240,7 +241,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
           cursor: isDisabled ? 'not-allowed' : 'pointer',
         }}
       >
-        <RadioGroupPrimitive.Indicator
+        <Radio.Indicator
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -257,8 +258,8 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
               background: 'var(--ai-color-primary, #3b82f6)',
             }}
           />
-        </RadioGroupPrimitive.Indicator>
-      </RadioGroupPrimitive.Item>
+        </Radio.Indicator>
+      </Radio.Root>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span

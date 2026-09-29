@@ -765,29 +765,29 @@ describe('DataTable Virtualized Component', () => {
     it('the header checkbox reflects unchecked/indeterminate/checked for the current page only', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       const headerCheckbox = screen.getByLabelText('Select all rows on this page');
-      expect(headerCheckbox).toHaveAttribute('data-state', 'unchecked');
+      expect(headerCheckbox).toHaveAttribute('aria-checked', 'false');
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
-      expect(headerCheckbox).toHaveAttribute('data-state', 'indeterminate');
+      expect(headerCheckbox).toHaveAttribute('aria-checked', 'mixed');
 
       for (let i = 1; i <= 10; i++) {
         fireEvent.click(screen.getByLabelText(`Select row ${i}`));
       }
       // Row 1 was already selected -- clicking it again above toggled it off, so re-select it.
       fireEvent.click(screen.getByLabelText('Select row 1'));
-      expect(headerCheckbox).toHaveAttribute('data-state', 'checked');
+      expect(headerCheckbox).toHaveAttribute('aria-checked', 'true');
     });
 
     it('the header checkbox selects/deselects every row on the current page at once', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByLabelText('Select all rows on this page'));
       for (let i = 1; i <= 10; i++) {
-        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'checked');
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('aria-checked', 'true');
       }
 
       fireEvent.click(screen.getByLabelText('Select all rows on this page'));
       for (let i = 1; i <= 10; i++) {
-        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'unchecked');
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('aria-checked', 'false');
       }
     });
 
@@ -797,7 +797,7 @@ describe('DataTable Virtualized Component', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(screen.getByLabelText('Next page'));
       // "Select row 1" is a page-relative label (matching rowSubtheme's own
@@ -805,10 +805,10 @@ describe('DataTable Virtualized Component', () => {
       // underlying record (page 2's first row, id 11) -- confirm that one
       // shows unchecked, proving selection tracks real row identity via
       // rowKey, not display position.
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
 
       fireEvent.click(screen.getByLabelText('Previous page'));
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('supports a controlled selectedKeys, calling onSelectionChange instead of managing its own state', () => {
@@ -824,12 +824,12 @@ describe('DataTable Virtualized Component', () => {
           onSelectionChange={onSelectionChange}
         />
       );
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(screen.getByLabelText('Select row 2'));
       expect(onSelectionChange).toHaveBeenCalledWith(['1', '2']);
       // Still only row 1 checked -- the parent hasn't re-rendered with the new selection yet.
-      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'false');
 
       rerender(
         <DataTable
@@ -842,7 +842,7 @@ describe('DataTable Virtualized Component', () => {
           onSelectionChange={onSelectionChange}
         />
       );
-      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('emits datatable:selection_changed', () => {
@@ -1137,24 +1137,24 @@ describe('DataTable Virtualized Component', () => {
     it('a plain row click selects only that row, replacing any prior selection', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByLabelText('Select row 1'));
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(screen.getByText('Item 2'));
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
-      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('Ctrl/Cmd-click toggles just that row, keeping the rest of the selection', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />);
       fireEvent.click(screen.getByText('Item 1'));
       fireEvent.click(screen.getByText('Item 2'), { ctrlKey: true });
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
-      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
 
       // Ctrl-clicking an already-selected row toggles it OFF, leaving the other alone.
       fireEvent.click(screen.getByText('Item 1'), { metaKey: true });
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
-      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByLabelText('Select row 2')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('Shift-click range-selects from the last acted-on row to the clicked one', () => {
@@ -1162,10 +1162,10 @@ describe('DataTable Virtualized Component', () => {
       fireEvent.click(screen.getByText('Item 2')); // anchor = row 2
       fireEvent.click(screen.getByText('Item 5'), { shiftKey: true });
       for (let i = 2; i <= 5; i++) {
-        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('data-state', 'checked');
+        expect(screen.getByLabelText(`Select row ${i}`)).toHaveAttribute('aria-checked', 'true');
       }
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
-      expect(screen.getByLabelText('Select row 6')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByLabelText('Select row 6')).toHaveAttribute('aria-checked', 'false');
     });
 
     // Regression test for a real Gemini-caught defect (PR #333): Shift-click
@@ -1222,10 +1222,10 @@ describe('DataTable Virtualized Component', () => {
       );
       fireEvent.click(screen.getByText('Item 1'));
       expect(onRowClick).toHaveBeenCalled();
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
 
       fireEvent.click(screen.getByLabelText('Select row 1'));
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
     });
 
     describe('selectionMode="single"', () => {
@@ -1292,7 +1292,7 @@ describe('DataTable Virtualized Component', () => {
       const idCell = container.querySelector('[data-grid-row="1"][data-grid-col="1"]') as HTMLElement;
       expect(idCell).toHaveFocus();
       fireEvent.keyDown(idCell, { key: ' ' });
-      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'checked');
+      expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
     });
 
     // Issue #360: selection used to wash the whole row with a translucent
@@ -1388,7 +1388,7 @@ describe('DataTable Virtualized Component', () => {
         fireEvent.click(row1.querySelector('[aria-label="Edit"]')!);
         expect(handler).toHaveBeenLastCalledWith({ id: 'cmd-table', command: 'edit', key: '1', index: 0 });
         // Clicking a command button doesn't also select the row.
-        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('data-state', 'unchecked');
+        expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'false');
         unsub();
       });
 

@@ -1,13 +1,12 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect, useId, useState } from 'react';
-// Radix ships this primitive under an `unstable_` name (v0.1.x): its API may
-// change in a minor radix-ui release. It's used anyway because paste
-// distribution, auto-advance, backspace, SMS autofill (one real input with
-// autocomplete="one-time-code") and password-manager opt-outs are exactly
-// the edge cases a hand-rolled version gets wrong. If a radix-ui upgrade
-// breaks this file, OTPField.test.tsx is what will say so.
-import { unstable_OneTimePasswordField as OneTimePasswordField } from 'radix-ui';
+// Base UI's stable OTP field (#670, #701), replacing Radix's
+// unstable_OneTimePasswordField. Paste distribution, auto-advance, backspace,
+// SMS autofill (autocomplete="one-time-code" on the first cell) and the
+// password-manager opt-outs are the edge cases a hand-rolled version gets
+// wrong, which is why this stays on a library primitive.
+import { OTPField as BaseOTPField } from '@base-ui/react/otp-field';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
@@ -109,11 +108,16 @@ export const OTPField: React.FC<OTPFieldProps> = ({
           {label}
         </span>
       )}
-      <OneTimePasswordField.Root
+      {/* Base UI names the first cell from the group's aria-labelledby and
+          ignores an aria-label on it, so its per-cell name ("Digit 1 of 6")
+          comes from this hidden span instead. */}
+      <span id={`${ownLabelId}-cell-1`} hidden>{cellName(1, length)}</span>
+      <BaseOTPField.Root
+        length={length}
         value={code}
         onValueChange={handleChange}
         validationType={mode}
-        type={mask ? 'password' : 'text'}
+        mask={mask}
         disabled={disabled}
         name={fieldName || undefined}
         aria-labelledby={labelledBy}
@@ -122,9 +126,10 @@ export const OTPField: React.FC<OTPFieldProps> = ({
         style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
       >
         {Array.from({ length }, (_, i) => (
-          <OneTimePasswordField.Input
+          <BaseOTPField.Input
             key={i}
-            aria-label={cellName(i + 1, length)}
+            aria-label={i === 0 ? undefined : cellName(i + 1, length)}
+            aria-labelledby={i === 0 ? `${ownLabelId}-cell-1` : undefined}
             aria-invalid={isError || undefined}
             className="ai-focus-ring"
             style={{
@@ -143,8 +148,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
             }}
           />
         ))}
-        <OneTimePasswordField.HiddenInput />
-      </OneTimePasswordField.Root>
+      </BaseOTPField.Root>
     </div>
   );
 };

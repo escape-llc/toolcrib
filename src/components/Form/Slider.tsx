@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useContext, useState } from 'react';
-import { Slider as SliderPrimitive } from 'radix-ui';
+import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
 
 /**
  * Props for the `<Slider>` range input control.
@@ -15,7 +15,7 @@ import { sliderRootStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbSty
  * Emits `slider:changed` events on the event bus.
  */
 export interface SliderProps {
-  /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
+  /** Element id for the thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Inside a `<FormField label>`, the thumb's accessible name comes from that label via `aria-labelledby`. */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
   name?: string;
@@ -64,7 +64,7 @@ export interface SliderProps {
 }
 
 /**
- * @manifest Range input control built on Radix Slider
+ * @manifest Range input control built on Base UI Slider
  * @manifestCategory Form Controls
  */
 export const Slider: React.FC<SliderProps> = ({
@@ -128,33 +128,40 @@ export const Slider: React.FC<SliderProps> = ({
   };
 
   return (
-    <SliderPrimitive.Root
-      value={[currentVal]}
-      onValueChange={(vals) => {
+    <BaseSlider.Root
+      value={currentVal}
+      onValueChange={(val) => {
         // Always kept in sync, live, regardless of commitOnRelease -- it's
         // what the thumb's own position (currentVal, above) renders from
         // in every uncontrolled/deferred-commit case.
-        setLocalValue(vals[0]);
+        setLocalValue(val);
         if (!commitOnRelease) {
-          commitValue(vals[0]);
+          commitValue(val);
         }
       }}
-      onValueCommit={commitOnRelease ? (vals) => commitValue(vals[0]) : undefined}
+      onValueCommitted={commitOnRelease ? (val) => commitValue(val) : undefined}
       min={min}
       max={max}
       step={step}
       disabled={disabled}
       style={sliderRootStyle(disabled, sliderVars)}
     >
-      <SliderPrimitive.Track style={SLIDER_TRACK_STYLE}>
-        <SliderPrimitive.Range style={SLIDER_RANGE_STYLE} />
-      </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb
-        id={effectiveId}
-        aria-label={ariaLabel}
-        className="ai-focus-ring"
-        style={sliderThumbStyle(disabled)}
-      />
-    </SliderPrimitive.Root>
+      <BaseSlider.Control style={sliderControlStyle(disabled)}>
+        <BaseSlider.Track style={SLIDER_TRACK_STYLE}>
+          <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
+          {/* The thumb wraps a real <input type="range">, which carries the
+              name. Base UI generates that input's id, so a FormField's
+              <label htmlFor> can't target it; the label names it through
+              aria-labelledby instead (#701). */}
+          <BaseSlider.Thumb
+            id={effectiveId}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
+            className="ai-focus-ring"
+            style={sliderThumbStyle(disabled)}
+          />
+        </BaseSlider.Track>
+      </BaseSlider.Control>
+    </BaseSlider.Root>
   );
 };

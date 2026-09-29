@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect, useId, useState } from 'react';
-import { Checkbox as CheckboxPrimitive } from 'radix-ui';
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
@@ -158,12 +158,12 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
                 userSelect: 'none',
               }}
             >
-              <CheckboxPrimitive.Root
+              <BaseCheckbox.Root
                 value={opt.value}
                 checked={isChecked}
                 disabled={isDisabled}
                 aria-describedby={helperId}
-                onCheckedChange={c => toggle(opt.value, c === true)}
+                onCheckedChange={c => toggle(opt.value, c)}
                 className="ai-focus-ring"
                 style={{
                   all: 'unset',
@@ -181,10 +181,13 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
                   cursor: isDisabled ? 'not-allowed' : 'pointer',
                 }}
               >
-                <CheckboxPrimitive.Indicator style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* aria-hidden: Base UI names a checkbox inside a <label> by
+                    aria-labelledby on that label, whose text would otherwise
+                    include this glyph ("✓ Cheese"). Same in Checkbox. */}
+                <BaseCheckbox.Indicator aria-hidden="true" style={{ color: 'var(--ai-color-primary-text, #ffffff)', fontSize: '0.75rem', fontWeight: 'var(--ai-font-weight-black, 900)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   ✓
-                </CheckboxPrimitive.Indicator>
-              </CheckboxPrimitive.Root>
+                </BaseCheckbox.Indicator>
+              </BaseCheckbox.Root>
               <span style={{ fontSize: CONTROL_FONT_SIZE_VAR[size], color: 'var(--ai-text-primary, #111827)' }}>{opt.label}</span>
             </label>
             {opt.helperText && (

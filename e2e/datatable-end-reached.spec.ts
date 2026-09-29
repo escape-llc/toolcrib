@@ -19,7 +19,9 @@ test('scrolling a continuous-scroll table to its real bottom emits datatable:end
   await gotoTab(page, 'Data Table');
   await loadDemoTableData(page);
 
-  await page.getByLabel('Continuous Scroll').click();
+  // By role: getByLabel also matches the switch's hidden form <input>
+  // (Base UI, #701), which the label points at.
+  await page.getByRole('switch', { name: 'Continuous Scroll' }).click();
   await page.waitForTimeout(300);
 
   const table = page.locator('table').first();

@@ -23,28 +23,19 @@ describe('Rating', () => {
     expect(onChange).toHaveBeenCalledWith(3);
   });
 
-  // Real arrow-key roving-focus movement is Radix RadioGroup's own
-  // behavior (RovingFocusGroup), not logic this component implements --
-  // jsdom's synthetic fireEvent doesn't reproduce Radix's real-browser
-  // focus-management for that mechanism reliably enough to assert the
-  // exact post-keypress focus target here (confirmed: this fails the same
-  // way against RadioGroup.tsx's own primitive, not something introduced
-  // by this component). What *is* meaningfully verifiable in this
-  // environment, and what actually determines whether arrow-key nav works
-  // in a real browser, is that each star is a real `role="radio"` item
-  // inside Radix's `RadioGroupPrimitive.Root` -- that wiring is what
-  // "inherited for free from the shared primitive" cashes out to.
+  // Real arrow-key roving-focus movement is the radio group primitive's own
+  // behavior, not logic this component implements. What's verifiable here,
+  // and what determines whether arrow-key nav works in a real browser, is
+  // that each star is a real `role="radio"` item inside that primitive's
+  // radiogroup -- that wiring is what "inherited for free from the shared
+  // primitive" cashes out to.
   it('is keyboard operable via arrow keys, inherited from the underlying RadioGroup primitive', () => {
     render(<Rating name="quality" defaultValue={2} />);
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(5);
-    // Real per-keystroke focus movement is Radix's RovingFocusGroup's own
-    // internal bookkeeping, not logic this component implements -- what's
-    // meaningfully verifiable here, and what actually determines whether
-    // arrow-key nav works in a real browser, is that each star is a real
-    // `role="radio"` item inside Radix's `RadioGroupPrimitive.Root` (not,
-    // say, a plain `<button>` or `<div onClick>`), and that the currently
-    // selected one reports `aria-checked` correctly for assistive tech.
+    // Each star is a real `role="radio"` item (not a plain `<button>` or
+    // `<div onClick>`), and the selected one reports `aria-checked` for
+    // assistive tech.
     expect(screen.getByLabelText('2 stars')).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByLabelText('3 stars')).toHaveAttribute('aria-checked', 'false');
   });
@@ -55,10 +46,10 @@ describe('Rating', () => {
     fireEvent.click(screen.getByLabelText('4 stars'));
     expect(onChange).toHaveBeenCalledWith(4);
     // Still shows 2 selected -- the parent hasn't re-rendered with the new value yet.
-    expect(screen.getByLabelText('2 stars')).toHaveAttribute('data-state', 'checked');
+    expect(screen.getByLabelText('2 stars')).toHaveAttribute('aria-checked', 'true');
 
     rerender(<Rating name="quality" value={4} onChange={onChange} />);
-    expect(screen.getByLabelText('4 stars')).toHaveAttribute('data-state', 'checked');
+    expect(screen.getByLabelText('4 stars')).toHaveAttribute('aria-checked', 'true');
   });
 
   it('emits rating:changed', () => {

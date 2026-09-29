@@ -1,5 +1,6 @@
+'use client';
+
 import React, { type LabelHTMLAttributes } from 'react';
-import { Label as LabelPrimitive } from 'radix-ui';
 import { type StyleFree } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { LabelThemeSlice, type LabelSliceState } from './LabelSlice';
@@ -22,12 +23,21 @@ export interface LabelProps extends StyleFree<LabelHTMLAttributes<HTMLLabelEleme
  * @manifest Accessible label for a form control, associated via htmlFor or by wrapping it
  * @manifestCategory Form Controls
  */
-export const Label: React.FC<LabelProps> = ({ children, overrides, ...props }) => {
+export const Label: React.FC<LabelProps> = ({ children, overrides, onMouseDown, ...props }) => {
   const labelVars = getSparseVariables(LabelThemeSlice, overrides ?? {});
 
   return (
-    <LabelPrimitive.Root
+    <label
       {...props}
+      // A native <label>, not a library primitive (#670, #701: Base UI has no
+      // standalone label). This is the one behavior Radix's Label added: a
+      // double-click on the label text doesn't select it. A press on a
+      // control nested inside the label is left alone.
+      onMouseDown={e => {
+        if ((e.target as Element).closest('button, input, select, textarea')) return;
+        onMouseDown?.(e);
+        if (!e.defaultPrevented && e.detail > 1) e.preventDefault();
+      }}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -40,6 +50,6 @@ export const Label: React.FC<LabelProps> = ({ children, overrides, ...props }) =
       }}
     >
       {children}
-    </LabelPrimitive.Root>
+    </label>
   );
 };

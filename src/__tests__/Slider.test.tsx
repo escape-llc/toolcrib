@@ -1,21 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Slider } from '../components/Form/Slider';
 import { FormField } from '../components/Form/FormComponents';
 import { axe } from './testUtils/axe';
-
-// Radix Slider's internal useSize hook uses ResizeObserver — not
-// implemented in jsdom. Same polyfill pattern already used in
-// RadixPrimitives.test.tsx and eventBusTraffic.test.tsx for the same reason.
-if (typeof window !== 'undefined' && !window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as any;
-  (globalThis as any).ResizeObserver = ResizeObserverMock as any;
-}
 
 describe('Slider Component', () => {
   it('renders a slider with the given value', () => {
@@ -27,7 +14,8 @@ describe('Slider Component', () => {
     const onChange = vi.fn();
     render(<Slider name="volume" defaultValue={50} onChange={onChange} />);
     const thumb = screen.getByRole('slider');
-    thumb.focus();
+    // Base UI's thumb sets state in its focus handler (AGENTS.md act() case 4).
+    act(() => thumb.focus());
     fireEvent.keyDown(thumb, { key: 'ArrowRight' });
     expect(onChange).toHaveBeenCalledWith(51);
     expect(thumb).toHaveAttribute('aria-valuenow', '51');
@@ -41,15 +29,16 @@ describe('Slider Component', () => {
     // accessible name at all — Radix's Thumb only falls back to a generic
     // positional label like "Value" when neither aria-label nor a
     // <label htmlFor> resolves.
-    it('gives the thumb an id matching the surrounding FormField label\'s htmlFor', () => {
+    it('names the thumb from the surrounding FormField label', async () => {
       render(
         <FormField name="volume" label="Volume">
           <Slider onChange={vi.fn()} />
         </FormField>
       );
-      const thumb = screen.getByRole('slider');
-      expect(thumb).toHaveAttribute('id', 'volume');
-      expect(screen.getByText('Volume')).toHaveAttribute('for', 'volume');
+      // Through aria-labelledby, not htmlFor: Base UI generates the thumb
+      // input's id (#701).
+      expect(screen.getByRole('slider', { name: 'Volume' })).toBeInTheDocument();
+      expect(await axe(document.body)).toHaveNoViolations();
     });
 
     it('applies an explicit ariaLabel for standalone use outside a FormField', async () => {
