@@ -33,13 +33,15 @@ describe('HoverCard Component', () => {
     // distinct from, and no substitute for, the open-state scan below.
     expect(await axe(document.body)).toHaveNoViolations();
 
+    // Base UI's hover handling listens to mouse events, not pointer events.
     const trigger = screen.getByText('@jane');
-    fireEvent.pointerEnter(trigger, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseMove(trigger);
     await waitFor(() => expect(screen.getByText('Rich preview content')).toBeInTheDocument());
     expect(shownFn).toHaveBeenCalledWith({ id: 'test-hovercard' });
     expect(await axe(document.body)).toHaveNoViolations();
 
-    fireEvent.pointerLeave(trigger, { pointerType: 'mouse' });
+    fireEvent.mouseLeave(trigger);
     await waitFor(() => expect(screen.queryByText('Rich preview content')).not.toBeInTheDocument());
     expect(hiddenFn).toHaveBeenCalledWith({ id: 'test-hovercard' });
 
@@ -59,9 +61,10 @@ describe('HoverCard Component', () => {
       </HoverCard>
     );
 
-    fireEvent.pointerEnter(screen.getByText('@jane'), { pointerType: 'mouse' });
+    fireEvent.mouseEnter(screen.getByText('@jane'));
+    fireEvent.mouseMove(screen.getByText('@jane'));
     await waitFor(() => expect(screen.getByText('Preview')).toBeInTheDocument());
-    const content = document.querySelector('.ai-focus-ring') as HTMLElement;
+    const content = document.querySelector('.ai-hovercard-content') as HTMLElement;
 
     expect(content.style.getPropertyValue('--ai-hovercard-shadow')).not.toBe('');
     expect(content.style.getPropertyValue('--ai-hovercard-border')).toBe('none');

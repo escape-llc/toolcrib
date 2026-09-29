@@ -7,9 +7,9 @@ import { gotoTab, loadDemoTableData } from './nav';
 // interaction exhaustively). The one thing genuinely worth re-confirming
 // here is that unchecking a real menu item actually removes a real column
 // from the real rendered grid, and that the menu itself opens/behaves
-// correctly in a real browser (jsdom's Radix DropdownMenu quirks -- opens on
-// pointerdown, background aria-hidden while open -- are themselves jsdom
-// artifacts, not necessarily proof of real-browser behavior).
+// correctly in a real browser (the jsdom suite has to open the Base UI menu
+// with a synthetic mousedown and flush its deferred mount, which proves
+// nothing about a real click).
 //
 // "Role Level" (below), not "User Name" -- User Name is pinned-left in
 // demo/App.tsx, and pinned columns are deliberately excluded from this
@@ -66,10 +66,8 @@ test.describe('DataTable column show/hide (issue #340)', () => {
     await expect(page.getByRole('menuitemcheckbox', { name: 'Status' })).toBeVisible();
     await expect(page.getByRole('menuitemcheckbox', { name: 'Actions' })).toBeVisible();
 
-    // Close the menu first -- Radix's DropdownMenu applies aria-hidden to
-    // background content while open, which excludes the grid from the
-    // accessibility tree entirely and would make every query below
-    // find nothing regardless of what's actually rendered underneath.
+    // Close the menu first, so the grid below is back to its normal,
+    // uncovered state before it's queried.
     await page.keyboard.press('Escape');
 
     // Both pinned columns are still genuinely visible in the grid itself
@@ -126,9 +124,7 @@ test.describe('DataTable column show/hide (issue #340)', () => {
       await expect(page.getByRole('menuitemcheckbox', { name })).toHaveAttribute('aria-checked', 'false');
       await expect(page.getByRole('menuitemcheckbox', { name })).not.toHaveAttribute('data-disabled');
     }
-    // Close the menu first -- see the previous test's own comment on why
-    // (Radix's aria-hidden background while open would hide the grid
-    // from every query below regardless of what's actually rendered).
+    // Close the menu first (see the previous test).
     await page.keyboard.press('Escape');
 
     // The two pinned columns are still genuinely visible -- the table

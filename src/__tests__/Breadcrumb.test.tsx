@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Breadcrumb, computeVisibleCrumbs } from '../components/Breadcrumb/Breadcrumb';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
 describe('computeVisibleCrumbs (pure collapse decision)', () => {
   const crumbs = ['a', 'b', 'c', 'd', 'e'].map((key, i, arr) => ({
@@ -137,37 +138,21 @@ describe('Breadcrumb', () => {
       expect(screen.getByText('Current')).toBeInTheDocument();
       expect(screen.queryByText('Category')).not.toBeInTheDocument();
 
-      // Radix's DropdownMenu trigger opens on pointerdown, not click --
-      // fireEvent.click alone doesn't reliably reproduce that in jsdom
-      // (confirmed: this codebase's own existing DropdownMenu test has the
-      // same limitation, asserting only that the trigger is clickable, not
-      // that the menu's items actually appear afterward). What's reliably
-      // verifiable here is that the trigger is real and the collapsed
-      // items were handed to it correctly -- covered by
-      // computeVisibleCrumbs' own dedicated tests above for the data, and
-      // this presence check for the wiring. Not asserting aria-haspopup
-      // here anymore -- DropdownMenu's Radix asChild wrapper deliberately
-      // no longer carries it (see DropdownMenu.tsx's own comment: role=
-      // generic doesn't support it, and role="button" there instead
-      // produced a real nested-interactive violation), and this component
-      // doesn't clone it onto the real trigger element either.
+      // The trigger is the real button itself now (#700: Base UI's render
+      // prop, no wrapper), so it carries the menu-button ARIA directly.
       const trigger = screen.getByLabelText('Show hidden breadcrumb items');
-      expect(trigger).toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
       // Closed-state scan: the collapsed trigger is present, but the
       // DropdownMenu's own portal content is absent until opened.
       expect(await axe(document.body)).toHaveNoViolations();
 
-      // Radix's DropdownMenu trigger opens on pointerdown, not click (see
-      // this file's own comment above) -- matches DropdownMenu.test.tsx's
-      // own established fix for actually exercising the open state.
-      fireEvent.pointerDown(trigger, { button: 0 });
+      // Base UI's Menu opens on mousedown, not click (see
+      // DropdownMenu.test.tsx).
+      await actAndSettle(() => fireEvent.mouseDown(trigger));
       await waitFor(() => expect(screen.getByText('Category')).toBeInTheDocument());
-      // aria-hidden-focus disabled here for the identical reason
-      // DropdownMenu.test.tsx's own open-state scan already needs it: Radix's
-      // hideOthers() (real focus-trap behavior neither axe variant can
-      // observe) reads as an aria-hidden ancestor with a focusable
-      // descendant to static analysis.
-      expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
+      // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
+      // page behind an open menu the way Radix's hideOthers() did.
+      expect(await axe(document.body)).toHaveNoViolations();
     } finally {
       scrollWidthSpy.mockRestore();
       clientWidthSpy.mockRestore();

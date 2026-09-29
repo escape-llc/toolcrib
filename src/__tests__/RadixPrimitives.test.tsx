@@ -111,13 +111,34 @@ describe('Radix Primitives Subsystem', () => {
       </Tooltip>
     );
 
+    // Base UI's hover handling listens to mouse events, not pointer events.
     const trigger = screen.getByText('Hover target');
-    fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseMove(trigger);
     const content = await waitFor(() => screen.getByRole('tooltip'));
     expect(content.style.animation).toBe('');
+    // role="tooltip" and aria-describedby are toolcrib's own (#700): Base UI
+    // sets neither, and the Radix version announced the text this way.
+    expect(trigger).toHaveAttribute('aria-describedby', content.id);
+    expect(content).toHaveTextContent('Help text');
 
-    fireEvent.pointerLeave(trigger);
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    fireEvent.mouseLeave(trigger);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+    expect(trigger).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('keeps a consumer\'s own aria-describedby alongside the tooltip\'s', async () => {
+    render(
+      <Tooltip content="Help text" delayDuration={0} aria-describedby="hint">
+        <button>Hover target</button>
+      </Tooltip>
+    );
+    const trigger = screen.getByText('Hover target');
+    expect(trigger).toHaveAttribute('aria-describedby', 'hint');
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseMove(trigger);
+    const content = await waitFor(() => screen.getByRole('tooltip'));
+    expect(trigger).toHaveAttribute('aria-describedby', `hint ${content.id}`);
   });
 
   it('renders Select component with Radix UI options', () => {

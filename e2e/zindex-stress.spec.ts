@@ -81,16 +81,12 @@ test('two nested Modals get strictly increasing z-index, not a tie', async ({ pa
 
 test('a Toast fired from inside an open Modal stacks above it, per Z_INDEX.TOAST > Z_INDEX.MODAL', async ({ page }) => {
   // Deliberately not DropdownMenu/ContextMenu paired with anything else --
-  // confirmed live (see the first attempt at this test, kept as a lesson):
-  // Radix's Menu-family hideOthers() correctly aria-hides the entire rest
-  // of the page while open, which also makes everything outside the menu
-  // genuinely unfocusable, not just marked unfocusable. That's a real,
-  // stronger accessibility guarantee (already the reason
-  // accessibility.spec.ts carries its own ARIA_HIDDEN_FOCUS_DISABLED
-  // carve-out) -- it also means "two different overlay types open at once"
-  // isn't achievable with a Menu-family component as one of the two. Toast
-  // is: it doesn't take focus or hide the page, so it's the one overlay
-  // type that can genuinely coexist with any other. The demo's own Modal
+  // a menu is modal while open (Base UI blocks pointer interaction outside
+  // it and traps focus; the Radix version aria-hid the page), so "two
+  // different overlay types open at once" isn't achievable with a
+  // Menu-family component as one of the two. Toast is: it doesn't take
+  // focus or hide the page, so it's the one overlay type that can
+  // genuinely coexist with any other. The demo's own Modal
   // instance already fires one from its "Confirm" button without closing
   // itself, which is what this test drives.
   await page.goto('/');

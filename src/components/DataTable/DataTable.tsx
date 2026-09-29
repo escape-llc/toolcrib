@@ -12,7 +12,10 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type { ZodType } from 'zod';
-import { Checkbox as CheckboxPrimitive, DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
+import { Checkbox as CheckboxPrimitive } from 'radix-ui';
+import { Menu } from '@base-ui/react/menu';
+import { OverlayCSP } from '../Overlay/baseui/overlayLayer';
+import { menuItemStyle, menuPopupStyle } from '../DropdownMenu/menuParts';
 import { Rows2, Rows3, Rows4, Download, Columns3, ChevronRight, ChevronDown } from 'lucide-react';
 import { UIGroup } from '../UIGroup/UIGroup';
 import { ToggleGroup } from '../ToggleGroup/ToggleGroup';
@@ -2066,40 +2069,24 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   />
                 )}
                 {columnVisibility && (
-                  // A bespoke Radix DropdownMenu built directly from the
-                  // primitive (not the toolkit's own <DropdownMenu>) --
-                  // matching this file's own established precedent
-                  // (CheckboxPrimitive above, for row selection) of reaching
-                  // for a raw Radix primitive when a grid-integrated control
-                  // needs a shape the shared component doesn't offer. Here:
-                  // <DropdownMenu>'s own MenuItemData is action-item-only
-                  // (onSelect always closes the menu), but toggling several
-                  // columns in sequence needs the menu to STAY open across
-                  // each click -- Radix's own CheckboxItem is built for
-                  // exactly that (onSelect prevented below), and the shared
-                  // component doesn't expose it.
-                  <DropdownMenuPrimitive.Root>
-                    <DropdownMenuPrimitive.Trigger asChild>
-                      <Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon={<Columns3 size="1em" />} />
-                    </DropdownMenuPrimitive.Trigger>
-                    <DropdownMenuPrimitive.Portal container={targetDocument?.body}>
-                      <DropdownMenuPrimitive.Content
-                        align="end"
-                        sideOffset={4}
+                  // A bespoke Base UI Menu built from the parts (not the
+                  // toolkit's own <DropdownMenu>): <DropdownMenu>'s
+                  // MenuItemData is action-item-only (a click always closes
+                  // the menu), but toggling several columns in sequence needs
+                  // the menu to STAY open across each click. Base UI's
+                  // CheckboxItem is built for exactly that (closeOnClick is
+                  // off by default), and the shared component doesn't expose
+                  // it. The popup and item looks are the shared ones.
+                  <OverlayCSP>
+                  <Menu.Root>
+                    <Menu.Trigger render={<Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon={<Columns3 size="1em" />} />} />
+                    <Menu.Portal container={targetDocument?.body}>
+                      <Menu.Positioner align="end" sideOffset={4} style={{ zIndex: Z_INDEX.DROPDOWN }}>
+                      <Menu.Popup
                         className="ai-focus-ring"
                         style={{
-                          zIndex: Z_INDEX.DROPDOWN,
-                          minWidth: '11.25rem',
-                          padding: 'var(--ai-padding-sm, 0.375rem)',
-                          background: 'var(--ai-bg-surface, #ffffff)',
-                          border: '0.0625rem solid var(--ai-border, #e5e7eb)',
+                          ...menuPopupStyle('--ai-shadow-md'),
                           borderRadius: 'var(--ai-radius-md, 0.375rem)',
-                          boxShadow: 'var(--ai-shadow-md, 0 0.625rem 1.5625rem -0.3125rem rgba(0,0,0,0.15))',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.125rem',
-                          outline: 'none',
-                          contain: 'content',
                         }}
                       >
                         {/*
@@ -2135,38 +2122,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           // without ever appearing in this list).
                           const isDisabled = isChecked && totalVisibleColumnCount <= 1;
                           return (
-                            <DropdownMenuPrimitive.CheckboxItem
+                            <Menu.CheckboxItem
                               key={col.key}
                               checked={isChecked}
                               disabled={isDisabled}
                               onCheckedChange={() => toggleColumnVisibility(col.key)}
-                              // Keeps the menu open across multiple toggles --
-                              // a checklist, not a one-shot action list (see
-                              // this feature's own comment above).
-                              onSelect={e => e.preventDefault()}
                               className="ai-menu-item"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
-                                fontSize: '0.875rem',
-                                fontWeight: 'var(--ai-font-weight-medium, 500)',
-                                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                                color: 'var(--ai-text-primary, #111827)',
-                                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isDisabled ? 0.5 : 1,
-                                outline: 'none',
-                              }}
+                              style={menuItemStyle(isDisabled, '--ai-dropdownmenu-item-padding')}
                             >
                               {/* Fixed-width reserved space so the label
                                   doesn't visually shift left/right as items
                                   toggle in and out of the checked state. */}
                               <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
-                                <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
+                                <Menu.CheckboxItemIndicator>✓</Menu.CheckboxItemIndicator>
                               </span>
                               {col.title}
-                            </DropdownMenuPrimitive.CheckboxItem>
+                            </Menu.CheckboxItem>
                           );
                         })}
                         {/*
@@ -2182,37 +2153,26 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                           const isChecked = !hiddenColumnSet.has(ROW_COMMANDS_COLUMN_KEY);
                           const isDisabled = isChecked && totalVisibleColumnCount <= 1;
                           return (
-                            <DropdownMenuPrimitive.CheckboxItem
+                            <Menu.CheckboxItem
                               key={ROW_COMMANDS_COLUMN_KEY}
                               checked={isChecked}
                               disabled={isDisabled}
                               onCheckedChange={() => toggleColumnVisibility(ROW_COMMANDS_COLUMN_KEY)}
-                              onSelect={e => e.preventDefault()}
                               className="ai-menu-item"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: 'var(--ai-dropdownmenu-item-padding, 0.4375rem 0.75rem)',
-                                fontSize: '0.875rem',
-                                fontWeight: 'var(--ai-font-weight-medium, 500)',
-                                borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                                color: 'var(--ai-text-primary, #111827)',
-                                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isDisabled ? 0.5 : 1,
-                                outline: 'none',
-                              }}
+                              style={menuItemStyle(isDisabled, '--ai-dropdownmenu-item-padding')}
                             >
                               <span aria-hidden="true" style={{ width: '1rem', display: 'inline-flex', justifyContent: 'center' }}>
-                                <DropdownMenuPrimitive.ItemIndicator>✓</DropdownMenuPrimitive.ItemIndicator>
+                                <Menu.CheckboxItemIndicator>✓</Menu.CheckboxItemIndicator>
                               </span>
                               {strings.actionsColumnLabel}
-                            </DropdownMenuPrimitive.CheckboxItem>
+                            </Menu.CheckboxItem>
                           );
                         })()}
-                      </DropdownMenuPrimitive.Content>
-                    </DropdownMenuPrimitive.Portal>
-                  </DropdownMenuPrimitive.Root>
+                      </Menu.Popup>
+                      </Menu.Positioner>
+                    </Menu.Portal>
+                  </Menu.Root>
+                  </OverlayCSP>
                 )}
                 {renderToolbarExtra?.()}
                 </UIGroup>

@@ -3,22 +3,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DropdownMenu } from '../components/DropdownMenu/DropdownMenu';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
-// Radix DropdownMenu's positioning internals use ResizeObserver — not
-// implemented in jsdom. Same polyfill pattern already used in
-// RadixPrimitives.test.tsx and eventBusTraffic.test.tsx for the same reason.
-if (typeof window !== 'undefined' && !window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as any;
-  (globalThis as any).ResizeObserver = ResizeObserverMock as any;
-}
+// Base UI's Menu opens on mousedown (a plain click on the trigger is a no-op)
+// and mounts the popup a frame later.
+const openMenu = (name: string) => actAndSettle(() => fireEvent.mouseDown(screen.getByText(name)));
 
 describe('DropdownMenu Component', () => {
-  it('opens on trigger click, emits menu:opened, and renders every item', async () => {
+  it('opens on trigger mousedown, emits menu:opened, and renders every item', async () => {
     const openedFn = vi.fn();
     const unsub = aiBus.on('menu:opened', openedFn);
 
@@ -37,21 +29,26 @@ describe('DropdownMenu Component', () => {
     // Closed-state scan: DropdownMenu's items are Portal-rendered.
     expect(await axe(document.body)).toHaveNoViolations();
 
-    fireEvent.pointerDown(screen.getByText('Options'), { button: 0 });
+    await openMenu('Options');
 
     expect(openedFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'actions-menu' }));
-    expect(screen.getByText('Edit')).toBeInTheDocument();
-    expect(screen.getByText('Delete')).toBeInTheDocument();
-    // Radix Menu-family hideOthers() reads as an aria-hidden ancestor with
-    // a focusable descendant to any static analysis -- the same confirmed
-    // false positive e2e/accessibility.spec.ts's own ARIA_HIDDEN_FOCUS_DISABLED
-    // carve-out exists for (ContextMenu.test.tsx hit this identically).
-    expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
+    // page behind an open menu the way Radix's hideOthers() did.
+    expect(await axe(document.body)).toHaveNoViolations();
 
     unsub();
   });
 
-  it('selecting an item calls its onClick, emits menu:item_selected, and closes the menu (emitting menu:closed)', () => {
+  it('puts the trigger semantics on the consumer\'s own element, with no wrapper', () => {
+    render(<DropdownMenu trigger={<button>Options</button>} items={[{ value: 'a', label: 'A' }]} />);
+    const trigger = screen.getByRole('button', { name: 'Options' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('selecting an item calls its onClick, emits menu:item_selected, and closes the menu (emitting menu:closed)', async () => {
     const selectedFn = vi.fn();
     const closedFn = vi.fn();
     const itemAction = vi.fn();
@@ -66,8 +63,8 @@ describe('DropdownMenu Component', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByText('Options'), { button: 0 });
-    fireEvent.click(screen.getByText('Edit'));
+    await openMenu('Options');
+    await actAndSettle(() => fireEvent.click(screen.getByText('Edit')));
 
     expect(itemAction).toHaveBeenCalledTimes(1);
     expect(selectedFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'actions-menu', itemValue: 'edit' }));
@@ -77,7 +74,7 @@ describe('DropdownMenu Component', () => {
     unsub2();
   });
 
-  it('renders an icon before the label when given', () => {
+  it('renders an icon before the label when given', async () => {
     render(
       <DropdownMenu
         trigger={<button>Options</button>}
@@ -85,11 +82,11 @@ describe('DropdownMenu Component', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByText('Options'), { button: 0 });
+    await openMenu('Options');
     expect(screen.getByTestId('edit-icon')).toBeInTheDocument();
   });
 
-  it('renders a separator instead of a clickable item, and skips onSelect for a disabled item', () => {
+  it('renders a separator instead of a clickable item, and skips onClick for a disabled item', async () => {
     const itemAction = vi.fn();
 
     render(
@@ -103,10 +100,10 @@ describe('DropdownMenu Component', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByText('Options'), { button: 0 });
+    await openMenu('Options');
     expect(screen.queryAllByRole('separator').length).toBe(1);
 
-    fireEvent.click(screen.getByText('B'));
+    await actAndSettle(() => fireEvent.click(screen.getByText('B')));
     expect(itemAction).not.toHaveBeenCalled();
   });
 

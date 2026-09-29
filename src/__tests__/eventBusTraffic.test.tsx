@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
 // Mock ResizeObserver for Radix UI Slider in JSDOM
 (globalThis as any).ResizeObserver = class {
@@ -127,7 +128,7 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('verifies DropdownMenu emits menu:opened event via keyboard', () => {
+  it('verifies DropdownMenu emits menu:opened event via keyboard', async () => {
     render(
       <DropdownMenu
         id="test-menu"
@@ -136,8 +137,11 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
       />
     );
 
-    const triggerBtn = screen.getByText('Open Menu').closest('button') || screen.getByText('Open Menu');
-    fireEvent.keyDown(triggerBtn, { key: 'Enter', code: 'Enter' });
+    const triggerBtn = screen.getByRole('button', { name: 'Open Menu' });
+    // A native <button> turns Enter/Space into a click with detail 0, which
+    // is what Base UI's Menu opens on for the keyboard (mousedown is its
+    // pointer path). jsdom doesn't synthesize that click from a keydown.
+    await actAndSettle(() => fireEvent.click(triggerBtn, { detail: 0 }));
     expect(trafficSpy).toHaveBeenCalledWith({
       type: 'menu:opened',
       detail: expect.objectContaining({ id: 'test-menu' }),

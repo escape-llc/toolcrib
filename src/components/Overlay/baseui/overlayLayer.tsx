@@ -78,6 +78,47 @@ export interface PartAnimation {
 const TIMING = 'var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)';
 const list = (names: string | string[], timing = TIMING, fill = '') => (Array.isArray(names) ? names : [names]).map(n => `${n} ${timing}${fill}`).join(', ');
 
+/** Class for a Base UI `*.Arrow` part styled by `useOverlayArrowStyles`. */
+export const OVERLAY_ARROW_CLASS = 'ai-overlay-arrow';
+
+const ARROW_SIZE = 0.625; // rem
+const ARROW_OUTER_EDGES: Record<string, [string, string]> = {
+  bottom: ['top', 'left'],
+  top: ['bottom', 'right'],
+  right: ['bottom', 'left'],
+  left: ['top', 'right'],
+};
+
+/**
+ * The arrow for an anchored overlay (Tooltip, HoverCard). Radix's Arrow was an
+ * SVG triangle to fill; Base UI's is an empty element it positions along the
+ * cross axis, with `data-side` naming the popup's side. This draws it as a
+ * square rotated 45°, pulled half out of the popup on the main axis, so its
+ * outer half reads as a point. Set on the arrow's inline style:
+ * `--ai-arrow-bg` (the popup's background) and, for a bordered popup,
+ * `--ai-arrow-border` (the popup's border shorthand), drawn on the two outward
+ * edges only.
+ *
+ * Keep the popup's `contain` to `layout style`: paint containment clips
+ * descendants to the popup's box, which cuts the arrow off.
+ */
+export function useOverlayArrowStyles(): void {
+  const targetDocument = useTargetDocument();
+  const nonce = useNonce();
+  useEffect(() => {
+    const half = `-${ARROW_SIZE / 2}rem`;
+    const opposite: Record<string, string> = { bottom: 'top', top: 'bottom', right: 'left', left: 'right' };
+    const css = [
+      `.${OVERLAY_ARROW_CLASS} { width: ${ARROW_SIZE}rem; height: ${ARROW_SIZE}rem; transform: rotate(45deg); background: var(--ai-arrow-bg); }`,
+      ...Object.entries(ARROW_OUTER_EDGES).map(
+        ([side, [a, b]]) =>
+          `.${OVERLAY_ARROW_CLASS}[data-side="${side}"] { ${opposite[side]}: ${half}; border-${a}: var(--ai-arrow-border, none); border-${b}: var(--ai-arrow-border, none); }`
+      ),
+    ].join('\n');
+    injectGlobalStyle('toolcrib-overlay-arrow-baseui', css, targetDocument, nonce);
+  }, [targetDocument, nonce]);
+}
+
 export function useOverlayAnimations(styleId: string, parts: PartAnimation[]): void {
   const targetDocument = useTargetDocument();
   const nonce = useNonce();

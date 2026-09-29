@@ -1726,7 +1726,7 @@ export const App: React.FC = () => {
           <Link href="#profile">@janedoe</Link>
         </HoverCard>
         <Text size="xs" tone="secondary">
-          Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Mouse-only, by Radix's own design: <code>HoverCard</code> content is excluded from the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
+          Hover the username — unlike <code>Tooltip</code>, the card can hold a real, clickable <code>Button</code>; it doesn't dismiss on pointer-down. Keyboard focus on the link opens it too, but the card's content isn't in the Tab order (use <code>Popup</code> instead if this needs to be keyboard-reachable).
         </Text>
       </VStack>
     ),
@@ -1781,7 +1781,7 @@ export const App: React.FC = () => {
     Tooltip: (
       <VStack gap="sm" align="start">
         <Text size="xs" weight="semibold" tone="secondary">Hover Tooltip (`&lt;Tooltip&gt;`)</Text>
-        <Tooltip content="Radix UI Accessible Tooltip with HSV Styling">
+        <Tooltip content="Accessible Tooltip with HSV Styling">
           <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
         </Tooltip>
       </VStack>
