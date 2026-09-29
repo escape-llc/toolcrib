@@ -143,8 +143,11 @@ test('expanding an Accordion item plays its ai-accordion-slide-down animation', 
   // And the close plays the slide-up to completion before the panel goes
   // away -- the height keyframes read Base UI's --accordion-panel-height, and
   // nothing errors if that variable is misnamed (issue #702's own warning).
-  const heightAtStart = await panel.evaluate(el => el.getBoundingClientRect().height);
-  expect(heightAtStart).toBeGreaterThan(0);
+  // The open animation starts from height 0, so let it finish before
+  // measuring (a first version measured at its start and read 0 in WebKit).
+  await panel.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+  const openHeight = await panel.evaluate(el => el.getBoundingClientRect().height);
+  expect(openHeight).toBeGreaterThan(0);
   const exitEnd = panel.evaluate(el => new Promise<string>(resolve => {
     el.addEventListener('animationend', function handler(e) {
       if ((e as AnimationEvent).animationName === 'ai-accordion-slide-up') {
@@ -156,6 +159,36 @@ test('expanding an Accordion item plays its ai-accordion-slide-down animation', 
   await page.getByText('How does Event Bus integration work?').click();
   expect(await exitEnd).toBe('ai-accordion-slide-up');
   await expect(panel).not.toBeAttached();
+});
+
+test('a Collapsible plays its slide-down on open and its slide-up through the close before unmounting', async ({ page }) => {
+  // Base UI keeps a closing panel mounted while its exit animation runs,
+  // and the panel carries data-closed through that exit (#702), which is
+  // what the slide-up rule keys on. The height keyframes read
+  // --collapsible-panel-height; a wrong name fails silently.
+  await page.goto('/');
+  await gotoTab(page, 'Encyclopedia', 'Collapsible');
+  const text = page.getByText('Content revealed on demand');
+  await expect(text).not.toBeAttached();
+
+  await page.getByText('Show advanced options').click();
+  const panel = page.locator('.ai-collapsible-content');
+  await expect(panel).toHaveAttribute('data-open', '');
+  expect(await panel.evaluate(el => getComputedStyle(el).animationName)).toBe('ai-collapsible-slide-down');
+  await panel.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+  expect(await panel.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThan(0);
+
+  const exitEnd = panel.evaluate(el => new Promise<string>(resolve => {
+    el.addEventListener('animationend', function handler(e) {
+      if ((e as AnimationEvent).animationName === 'ai-collapsible-slide-up') {
+        el.removeEventListener('animationend', handler);
+        resolve((e as AnimationEvent).animationName);
+      }
+    });
+  }));
+  await page.getByText('Show advanced options').click();
+  expect(await exitEnd).toBe('ai-collapsible-slide-up');
+  await expect(text).not.toBeAttached();
 });
 
 test('opening a Drawer plays its entrance animations and closing plays real exit animations before removal', async ({ page }) => {
