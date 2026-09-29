@@ -1,30 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { CommandPalette, type CommandPaletteItemData } from '../components/CommandPalette/CommandPalette';
+import { CommandPalette, type CommandPaletteItemData, type CommandPaletteFilter } from '../components/CommandPalette/CommandPalette';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
-
-if (typeof window !== 'undefined' && !window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as any;
-  (globalThis as any).ResizeObserver = ResizeObserverMock as any;
-}
-
-// cmdk calls scrollIntoView() on the active item whenever selection moves
-// (including on mount/filter) -- jsdom doesn't implement it at all.
-if (typeof window !== 'undefined' && !window.HTMLElement.prototype.scrollIntoView) {
-  window.HTMLElement.prototype.scrollIntoView = () => {};
-}
 
 const items: CommandPaletteItemData[] = [
   { value: 'new-file', label: 'New File', group: 'File', onSelect: vi.fn() },
   { value: 'open-file', label: 'Open File', group: 'File', onSelect: vi.fn() },
-  { value: 'toggle-theme', label: 'Toggle Theme', group: 'View', onSelect: vi.fn() },
+  { value: 'toggle-theme', label: 'Toggle Theme', group: 'View', keywords: ['dark mode'], onSelect: vi.fn() },
 ];
+
+const search = (text: string) => fireEvent.change(screen.getByPlaceholderText('Type a command or search...'), { target: { value: text } });
+const shown = () => screen.queryAllByRole('menuitem').map(el => el.textContent);
 
 describe('CommandPalette', () => {
   it('renders nothing when closed (Modal not open)', async () => {
@@ -50,20 +37,67 @@ describe('CommandPalette', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('fuzzy-filters the list as the user types, without this wrapper redundantly managing selection', () => {
+  it('filters the list as the user types', () => {
     render(<CommandPalette items={items} isOpen={true} onOpenChange={() => {}} />);
-    const input = screen.getByPlaceholderText('Type a command or search...');
-    fireEvent.change(input, { target: { value: 'theme' } });
+    search('theme');
 
     expect(screen.getByText('Toggle Theme')).toBeInTheDocument();
     expect(screen.queryByText('New File')).not.toBeInTheDocument();
     expect(screen.queryByText('Open File')).not.toBeInTheDocument();
   });
 
+  it('matches case- and accent-insensitively by default, and on keywords', () => {
+    render(<CommandPalette items={[...items, { value: 'cafe', label: 'Café menu' }]} isOpen={true} onOpenChange={() => {}} />);
+    search('FILE');
+    expect(shown()).toEqual(['New File', 'Open File']);
+    search('cafe');
+    expect(shown()).toEqual(['Café menu']);
+    search('dark');
+    expect(shown()).toEqual(['Toggle Theme']);
+  });
+
+  // #720: the matcher is pluggable. A number ranks (higher first, across
+  // groups too), 0/false hides, and true keeps the list's own order.
+  it('uses a custom filter, ranking by its score', () => {
+    const filter: CommandPaletteFilter = (query, { text }) =>
+      text.toLowerCase().startsWith(query) ? 2 : text.toLowerCase().includes(query) ? 1 : 0;
+    render(<CommandPalette items={items} isOpen={true} onOpenChange={() => {}} filter={filter} />);
+    search('o');
+    // 'Open File' starts with o (2), 'Toggle Theme' only contains it (1),
+    // and 'New File' has no o (0, hidden).
+    expect(shown()).toEqual(['Open File', 'Toggle Theme']);
+    search('t');
+    // Only 'Toggle Theme' has a t; its View group is all that's left.
+    expect(shown()).toEqual(['Toggle Theme']);
+    search('file');
+    // Both File items score 1: ties keep the list's own order.
+    expect(shown()).toEqual(['New File', 'Open File']);
+    search('zz');
+    // Nothing scores: the empty state is what's left (react-aria renders it
+    // as the menu's one row).
+    expect(shown()).toEqual(['No results found.']);
+  });
+
+  it('passes the item value as the text when the label is not plain text', () => {
+    const filter = vi.fn(() => true);
+    render(<CommandPalette items={[{ value: 'rich', label: <b>Rich</b>, keywords: ['k'] }]} isOpen={true} onOpenChange={() => {}} filter={filter} />);
+    search('r');
+    expect(filter).toHaveBeenCalledWith('r', { value: 'rich', text: 'rich', keywords: ['k'] });
+  });
+
+  it('starts each opening from an empty search', () => {
+    render(<CommandPalette items={items} />);
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+    search('theme');
+    expect(shown()).toEqual(['Toggle Theme']);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+    expect(shown()).toHaveLength(3);
+  });
+
   it('shows the empty message when no item matches the search', () => {
     render(<CommandPalette items={items} isOpen={true} onOpenChange={() => {}} emptyMessage="Nothing here" />);
-    const input = screen.getByPlaceholderText('Type a command or search...');
-    fireEvent.change(input, { target: { value: 'zzz-no-match' } });
+    search('zzz-no-match');
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
   });
 
