@@ -74,14 +74,12 @@ export interface ListboxProps {
   /** Control size, standardized with `<Button>` and every other sized control — drives the option row's font-size. @default 'md' */
   size?: ControlSize;
   /**
-   * Accessible name for the listbox. Omit when a caller already establishes
-   * one via its own `aria-controls`/`aria-activedescendant` relationship
-   * from a labeled control (e.g. `Combobox`'s own input, itself named
-   * through a wrapping `<FormField label="...">` — the same convention
-   * every other Form control in this toolkit relies on rather than a
-   * standalone label prop of its own). Required for a meaningful
-   * accessible name in any other standalone use — a `<div role="listbox">`
-   * with neither this nor `aria-labelledby` has none at all.
+   * Accessible name for the listbox. A listbox always needs one: a
+   * controlling field's `aria-controls` doesn't name it. When it's the popup
+   * of a field, give it the field's name (Combobox and Select pass their
+   * `aria-label`, or the FormField label via `aria-labelledby`). A
+   * `<div role="listbox">` with neither this nor `aria-labelledby` has no
+   * name at all.
    */
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */

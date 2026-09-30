@@ -7,7 +7,7 @@
 // outside-press dismissal only.
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { OverlayCSP, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
@@ -104,6 +104,7 @@ export const Select: React.FC<SelectProps> = ({
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
+  useOverlayAnimations('toolcrib-select-animations', [{ className: 'ai-select-popup', ...ANCHORED_POP }]);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
@@ -324,7 +325,7 @@ export const Select: React.FC<SelectProps> = ({
         </button>
 
         <BasePopover.Portal container={container}>
-          <BasePopover.Positioner anchor={triggerRef} side="bottom" align="start" sideOffset={4} style={{ zIndex }}>
+          <BasePopover.Positioner anchor={triggerRef} side="bottom" align="start" sideOffset={4} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             {/* selectVars again: the popup portals away from the trigger, and
                 CSS variables only inherit through the real DOM tree. */}
             <BasePopover.Popup
@@ -337,7 +338,14 @@ export const Select: React.FC<SelectProps> = ({
               // (options, padding, the scroll area), so onBlur above doesn't
               // close the list mid-pick.
               onMouseDown={e => e.preventDefault()}
+              className="ai-select-popup"
               style={{
+                // Fits the viewport (#736): Base UI's Positioner sets --available-height
+                // (space from the trigger to the viewport edge on this side),
+                // and the list inside shrinks to it and scrolls.
+                maxHeight: 'var(--available-height)',
+                display: 'flex',
+                flexDirection: 'column',
                 minWidth: 'max(11.25rem, var(--anchor-width))',
                 background: 'var(--ai-bg-surface, #ffffff)',
                 borderRadius: 'var(--ai-radius-md, 0.375rem)',
@@ -349,6 +357,11 @@ export const Select: React.FC<SelectProps> = ({
             >
               <Listbox
                 id={listboxId}
+                // Named like the field it belongs to: axe exempts a listbox only while
+                // an open combobox points at it, and during the exit animation the field
+                // has already dropped aria-controls (#736).
+                aria-label={ariaLabel}
+                aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
                 options={listOptions}
                 activeIndex={activeIndex}
                 selectedValues={selected ? [selected.value] : []}

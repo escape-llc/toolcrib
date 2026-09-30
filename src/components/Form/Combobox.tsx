@@ -24,7 +24,7 @@ import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, u
 // Base UI's Combobox (mui/base-ui#5528: its non-modal popup aria-hides outside
 // content that stays tabbable).
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { OverlayCSP, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
@@ -220,6 +220,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
+  useOverlayAnimations('toolcrib-combobox-animations', [{ className: 'ai-combobox-popup', ...ANCHORED_POP }]);
   useInjectInteractionStyles();
   const nonce = useNonce();
   useEffect(() => {
@@ -738,6 +739,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
           side="bottom"
           align="start"
           sideOffset={squaring.sideOffset}
+          collisionAvoidance={DROPDOWN_COLLISION}
           style={{ zIndex }}
         >
         <BasePopover.Popup
@@ -757,7 +759,14 @@ export const Combobox: React.FC<ComboboxProps> = ({
           // list under the pointer. Options also preventDefault their own
           // press; this covers everything between them. Same as Select.
           onMouseDown={e => e.preventDefault()}
+          className="ai-combobox-popup"
           style={{
+            // Fits the viewport (#736): Base UI's Positioner sets --available-height
+            // (space from the trigger to the viewport edge on this side),
+            // and the list inside shrinks to it and scrolls.
+            maxHeight: 'var(--available-height)',
+            display: 'flex',
+            flexDirection: 'column',
             width: 'var(--anchor-width)',
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -769,6 +778,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
         >
           <Listbox
             id={listboxId}
+            // Named like the field it belongs to: axe exempts a listbox only while
+            // an open combobox points at it, and during the exit animation the field
+            // has already dropped aria-controls (#736).
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
             options={filteredOptions}
             activeIndex={activeIndex}
             selectedValues={selectedValues}

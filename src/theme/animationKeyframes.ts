@@ -41,6 +41,14 @@ export const TOOLCRIB_SHARED_KEYFRAMES_CSS = `
       from { opacity: 1; transform: scale(1); }
       to { opacity: 0; transform: scale(0.92); }
     }
+    @keyframes ai-pop-in {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes ai-pop-out {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.96); }
+    }
     @keyframes ai-slide-in-right {
       from { transform: translateX(100%); }
       to { transform: translateX(0); }

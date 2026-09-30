@@ -14,7 +14,7 @@ import {
 import type { ZodType } from 'zod';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { Menu } from '@base-ui/react/menu';
-import { OverlayCSP } from '../Overlay/baseui/overlayLayer';
+import { DROPDOWN_COLLISION, OverlayCSP } from '../Overlay/baseui/overlayLayer';
 import { menuItemStyle, menuPopupStyle } from '../DropdownMenu/menuParts';
 import { Rows2, Rows3, Rows4, Download, Columns3, ChevronRight, ChevronDown } from 'lucide-react';
 import { UIGroup } from '../UIGroup/UIGroup';
@@ -2081,7 +2081,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   <Menu.Root>
                     <Menu.Trigger render={<Button type="button" size="sm" variant="outline" aria-label={strings.columnsButtonLabel} title={strings.columnsButtonLabel} icon={<Columns3 size="1em" />} />} />
                     <Menu.Portal container={targetDocument?.body}>
-                      <Menu.Positioner align="end" sideOffset={4} style={{ zIndex: Z_INDEX.DROPDOWN }}>
+                      <Menu.Positioner align="end" sideOffset={4} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex: Z_INDEX.DROPDOWN }}>
                       <Menu.Popup
                         className="ai-focus-ring"
                         style={{

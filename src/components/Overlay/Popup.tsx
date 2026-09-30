@@ -23,7 +23,7 @@ import { type SubthemeName } from '../../theme/subtheme';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, renderAnchorWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
-import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
+import { ANCHORED_POP, OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -111,7 +111,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
   }
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('DROPDOWN', zIndexProp);
-  useOverlayAnimations('toolcrib-popup-animations-baseui', [{ className: 'ai-popup-content', enter: 'ai-fade-in', exit: 'ai-fade-out' }]);
+  useOverlayAnimations('toolcrib-popup-animations-baseui', [{ className: 'ai-popup-content', ...ANCHORED_POP }]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 

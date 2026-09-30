@@ -12,7 +12,7 @@ import { type MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { ContextMenuThemeSlice, type ContextMenuSliceState } from './ContextMenuSlice';
-import { OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { MENU_POPUP_CLASS, MenuItemList, menuPopupStyle } from '../DropdownMenu/menuParts';
 
 /**
@@ -47,14 +47,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   const id = useStableId(propId, 'contextmenu');
   const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
-  useOverlayAnimations('toolcrib-menu-animations-baseui', [{ className: MENU_POPUP_CLASS, enter: 'ai-fade-in', exit: 'ai-fade-out' }]);
+  useOverlayAnimations('toolcrib-menu-animations-baseui', [{ className: MENU_POPUP_CLASS, ...ANCHORED_POP }]);
 
   return (
     <OverlayCSP>
       <BaseContextMenu.Root onOpenChange={open => aiBus.emit(open ? 'menu:opened' : 'menu:closed', { id })}>
         <BaseContextMenu.Trigger style={{ display: 'inline-block' }}>{children}</BaseContextMenu.Trigger>
         <BaseContextMenu.Portal container={container}>
-          <BaseContextMenu.Positioner style={{ zIndex }}>
+          <BaseContextMenu.Positioner collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             <BaseContextMenu.Popup
               className={`ai-focus-ring ${MENU_POPUP_CLASS}`}
               style={{

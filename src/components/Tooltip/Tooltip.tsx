@@ -10,7 +10,7 @@ import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
-import { OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
 /**
  * Props for the `<Tooltip>` hover/focus information overlay.
@@ -75,7 +75,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   const { container, zIndex } = useOverlayLayer('TOOLTIP');
   useOverlayArrowStyles();
   useOverlayAnimations('toolcrib-tooltip-animations-baseui', [
-    { className: 'ai-tooltip-content', enter: 'ai-fade-in', exit: 'ai-fade-out', timing: 'var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease)' },
+    { className: 'ai-tooltip-content', ...ANCHORED_POP, timing: 'var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease)' },
   ]);
   const [isOpen, setIsOpen] = useState(false);
   const popupId = useId();
