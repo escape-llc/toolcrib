@@ -10,7 +10,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice';
-import { OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
 const BORDER = 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e7eb))';
 
@@ -68,7 +68,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
   const { vars } = useSliceOverrides(HoverCardThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('TOOLTIP');
   useOverlayArrowStyles();
-  useOverlayAnimations('toolcrib-hovercard-animations-baseui', [{ className: 'ai-hovercard-content', enter: 'ai-fade-in', exit: 'ai-fade-out' }]);
+  useOverlayAnimations('toolcrib-hovercard-animations-baseui', [{ className: 'ai-hovercard-content', ...ANCHORED_POP }]);
 
   return (
     <OverlayCSP>

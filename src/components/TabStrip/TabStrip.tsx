@@ -186,6 +186,9 @@ export const TabStrip: React.FC<TabStripProps> & {
         ref={scrollContainerRef}
         activateOnFocus
         style={{
+          // The indicator below is absolutely positioned in the list's own
+          // scroll coordinates, so it scrolls with the tabs.
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
           gap: '0.125rem',
@@ -256,8 +259,12 @@ export const TabStrip: React.FC<TabStripProps> & {
                   // real overflow trigger too, not just a cosmetic wobble.
                   fontWeight: 'var(--ai-font-weight-semibold, 600)',
                   color: isActive ? 'var(--ai-tab-active-color, #ffffff)' : 'var(--ai-tab-inactive-color, var(--ai-text-primary, #111827))',
-                  background: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',
-                  border: isActive ? 'var(--ai-tab-active-border, none)' : 'none',
+                  // The active background and border are the sliding
+                  // indicator's (#734), drawn behind every tab.
+                  background: 'transparent',
+                  border: 'none',
+                  position: 'relative',
+                  zIndex: 1,
                   borderRadius: 'var(--ai-tab-border-radius, var(--ai-radius-md, 0.375rem))',
                   cursor: item.disabled ? 'not-allowed' : 'pointer',
                   opacity: item.disabled ? 0.5 : 1,
@@ -269,10 +276,10 @@ export const TabStrip: React.FC<TabStripProps> & {
                   // (issue #411).
                   flexShrink: 0,
                   outline: 'none',
-                  // Same live color-mix hover as `.ai-btn` (see interactionStyles.ts)
-                  // — this just publishes the active/inactive background this
-                  // trigger already resolved to as the mix base.
-                  ['--ai-tab-bg' as string]: isActive ? 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))' : 'transparent',
+                  // Same live color-mix hover as `.ai-btn` (see interactionStyles.ts),
+                  // mixed over transparent: on the active tab the tint sits on
+                  // top of the indicator.
+                  ['--ai-tab-bg' as string]: 'transparent',
                 }}
               >
                 {item.icon && <span>{item.icon}</span>}
@@ -281,6 +288,30 @@ export const TabStrip: React.FC<TabStripProps> & {
             </React.Fragment>
           );
         })}
+        {/* One active-tab background that glides to the selected tab (#734).
+            Base UI publishes the active tab's box as --active-tab-left/-top/
+            -width/-height, in the list's scroll coordinates; the transition
+            tokens make it follow the Motion preset and reduced motion. It
+            carries every variant's active look: fill, border and radius. */}
+        <BaseTabs.Indicator
+          className="ai-tab-indicator"
+          style={{
+            position: 'absolute',
+            left: 'var(--active-tab-left)',
+            top: 'var(--active-tab-top)',
+            width: 'var(--active-tab-width)',
+            height: 'var(--active-tab-height)',
+            boxSizing: 'border-box',
+            background: 'var(--ai-tab-active-bg, var(--ai-color-primary, #3b82f6))',
+            border: 'var(--ai-tab-active-border, none)',
+            borderRadius: 'var(--ai-tab-border-radius, var(--ai-radius-md, 0.375rem))',
+            pointerEvents: 'none',
+            zIndex: 0,
+            transitionProperty: 'left, top, width, height',
+            transitionDuration: 'var(--ai-transition-duration-normal, 0.22s)',
+            transitionTimingFunction: 'var(--ai-transition-easing, ease)',
+          }}
+        />
       </BaseTabs.List>
 
       {/* Filmstrip Right Scroll Button -- mirrors the left one: flush

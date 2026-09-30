@@ -245,11 +245,9 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
 // whatsoever: open/close were both an instant, un-eased DOM swap. Fixed by
 // injectPopupAnimations (Popup.tsx; now overlayLayer's useOverlayAnimations,
 // keyed on Base UI's data-open/data-closed), the same state-keyed stylesheet
-// mechanism as Tooltip's own injectTooltipAnimations, using a plain fade
-// (matching Tooltip, the closest architectural analog -- a small anchored
-// panel via Portal, not a centered dialog) rather than Modal/AlertDialog's
-// scale.
-test('a Popup plays real ai-fade-in/ai-fade-out entrance/exit animations and is cleanly removed after', async ({ page }) => {
+// mechanism as Tooltip's own injectTooltipAnimations. Anchored popups now
+// pop (a fade plus a small scale) out of their trigger (#735).
+test('a Popup plays real ai-pop-in/ai-pop-out entrance/exit animations and is cleanly removed after', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Encyclopedia', 'Popup');
   await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
@@ -262,12 +260,12 @@ test('a Popup plays real ai-fade-in/ai-fade-out entrance/exit animations and is 
     animationName: getComputedStyle(el).animationName,
     open: el.getAttribute('data-state') === 'open' || el.hasAttribute('data-open'),
   }));
-  expect(openInfo.animationName).toBe('ai-fade-in');
+  expect(openInfo.animationName).toBe('ai-pop-in');
   expect(openInfo.open).toBe(true);
 
   const exitAnimationEndPromise = popup.evaluate(el => new Promise<string>(resolve => {
     el.addEventListener('animationend', function handler(e) {
-      if ((e as AnimationEvent).animationName === 'ai-fade-out') {
+      if ((e as AnimationEvent).animationName === 'ai-pop-out') {
         el.removeEventListener('animationend', handler);
         resolve((e as AnimationEvent).animationName);
       }
@@ -275,7 +273,7 @@ test('a Popup plays real ai-fade-in/ai-fade-out entrance/exit animations and is 
   }));
 
   await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
-  expect(await exitAnimationEndPromise).toBe('ai-fade-out');
+  expect(await exitAnimationEndPromise).toBe('ai-pop-out');
   await expect(popup).not.toBeAttached({ timeout: 2000 });
 });
 
@@ -299,7 +297,7 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
     animationName: getComputedStyle(el).animationName,
     open: el.hasAttribute('data-open'),
   }));
-  expect(openInfo.animationName).toBe('ai-fade-in');
+  expect(openInfo.animationName).toBe('ai-pop-in');
   expect(openInfo.open).toBe(true);
 
   // Filtered, not { once: true } on the raw event — see toast-animation.spec.ts's
@@ -307,7 +305,7 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
   // otherwise resolve this with the wrong name.
   const exitAnimationEndPromise = tooltip.evaluate(el => new Promise<string>(resolve => {
     el.addEventListener('animationend', function handler(e) {
-      if ((e as AnimationEvent).animationName === 'ai-fade-out') {
+      if ((e as AnimationEvent).animationName === 'ai-pop-out') {
         el.removeEventListener('animationend', handler);
         resolve((e as AnimationEvent).animationName);
       }
@@ -315,6 +313,6 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
   }));
 
   await page.mouse.move(10, 10); // move away from the trigger to close it
-  expect(await exitAnimationEndPromise).toBe('ai-fade-out');
+  expect(await exitAnimationEndPromise).toBe('ai-pop-out');
   await expect(tooltip).not.toBeAttached({ timeout: 2000 });
 });

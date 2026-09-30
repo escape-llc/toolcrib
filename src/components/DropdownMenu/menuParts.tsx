@@ -25,6 +25,11 @@ export function menuPopupStyle(shadowVar: string): CSSProperties {
     flexDirection: 'column',
     gap: '0.125rem',
     outline: 'none',
+    // Fits the viewport (#736): Base UI's Positioner sets --available-height
+    // (space from the trigger, or the pointer, to the viewport edge on this
+    // side); a longer menu scrolls instead of running off-screen.
+    maxHeight: 'var(--available-height)',
+    overflowY: 'auto',
     // Self-contained floating menu — see Modal.tsx's identical reasoning.
     contain: 'content',
   };

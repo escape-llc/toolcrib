@@ -19,7 +19,7 @@ import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopove
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type SubthemeName } from '../../theme/subtheme';
 import { DropdownMenuThemeSlice, type DropdownMenuSliceState } from './DropdownMenuSlice';
-import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { MENU_POPUP_CLASS, MenuItemList, menuPopupStyle } from './menuParts';
 
 /** Data shape for each item in a `<DropdownMenu>`. */
@@ -83,7 +83,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const id = useStableId(propId, 'menu');
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
-  useOverlayAnimations('toolcrib-menu-animations-baseui', [{ className: MENU_POPUP_CLASS, enter: 'ai-fade-in', exit: 'ai-fade-out' }]);
+  useOverlayAnimations('toolcrib-menu-animations-baseui', [{ className: MENU_POPUP_CLASS, ...ANCHORED_POP }]);
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   // Base UI's popup carries data-side like Radix's, so the collision-aware
@@ -103,7 +103,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       >
         <Menu.Trigger {...triggerRenderProps(renderedTrigger)} />
         <Menu.Portal container={container}>
-          <Menu.Positioner side={side} align={align} sideOffset={squaring.sideOffset} style={{ zIndex }}>
+          <Menu.Positioner side={side} align={align} sideOffset={squaring.sideOffset} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             <Menu.Popup
               ref={contentRef}
               className={`ai-focus-ring ${MENU_POPUP_CLASS}`}

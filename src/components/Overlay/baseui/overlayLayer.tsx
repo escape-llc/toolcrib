@@ -73,7 +73,27 @@ export interface PartAnimation {
   exit: string | string[];
   /** Duration and easing, for a part with its own theme timing (Drawer's --ai-drawer-duration/-easing). Defaults to the shared transition tokens. */
   timing?: string;
+  /**
+   * For an anchored popup (#735): scale from the point nearest its anchor.
+   * Base UI's Positioner sets `--transform-origin` there, and the popup
+   * inherits it; pair with ai-pop-in/ai-pop-out.
+   */
+  fromAnchor?: boolean;
 }
+
+/**
+ * Collision avoidance for a list capped at `var(--available-height)` (Select,
+ * Combobox, menus; #736): flip between the preferred side and its opposite,
+ * never to the perpendicular axis. Base UI's own Select and Combobox use this
+ * (its internal DROPDOWN_COLLISION_AVOIDANCE); toolcrib's are built on
+ * Popover, whose default also falls back sideways. Sideways, a cramped list
+ * jumped beside its field, and its size, which depends on the space on the
+ * current side, set Base UI flipping back and forth (a ResizeObserver loop).
+ */
+export const DROPDOWN_COLLISION = { fallbackAxisSide: 'none' } as const;
+
+/** The enter/exit pair for anchored popups: a fade plus a small scale, from the anchor (#735). */
+export const ANCHORED_POP = { enter: 'ai-pop-in', exit: 'ai-pop-out', fromAnchor: true } as const;
 
 const TIMING = 'var(--ai-transition-duration-normal, 0.2s) var(--ai-transition-easing, ease)';
 const list = (names: string | string[], timing = TIMING, fill = '') => (Array.isArray(names) ? names : [names]).map(n => `${n} ${timing}${fill}`).join(', ');
@@ -123,7 +143,11 @@ export function useOverlayAnimations(styleId: string, parts: PartAnimation[]): v
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
   const css = parts
-    .map(p => `.${p.className}[data-open] { animation: ${list(p.enter, p.timing)}; }\n.${p.className}[data-closed] { animation: ${list(p.exit, p.timing, ' forwards')}; }`)
+    .map(
+      p =>
+        (p.fromAnchor ? `.${p.className} { transform-origin: var(--transform-origin, center); }\n` : '') +
+        `.${p.className}[data-open] { animation: ${list(p.enter, p.timing)}; }\n.${p.className}[data-closed] { animation: ${list(p.exit, p.timing, ' forwards')}; }`
+    )
     .join('\n');
   useEffect(() => {
     injectGlobalStyle(styleId, css, targetDocument, nonce);
