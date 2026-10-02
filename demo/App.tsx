@@ -2699,6 +2699,39 @@ export const App: React.FC = () => {
         </Grid>
       </VStack>
     ),
+    Checkbox: (
+      <VStack gap="sm" align="start">
+        <Text size="sm" tone="secondary">
+          Outside a <code>Form</code> it keeps its own state (<code>defaultChecked</code>); inside one, <code>name</code> binds it to the field. Note the handler shape: <code>onChange</code> gets an event-like <code>{'{ target: { checked } }'}</code>, unlike <code>Switch</code>'s plain boolean.
+        </Text>
+        <Checkbox label="Email me a receipt" defaultChecked onChange={e => addToast({ type: 'info', message: `Receipt ${e.target.checked ? 'on' : 'off'}`, priority: 'low' })} />
+        <Checkbox label="Keep me signed in" />
+      </VStack>
+    ),
+    Switch: (
+      <VStack gap="sm" align="start">
+        <Text size="sm" tone="secondary">
+          The same binding rules as <code>Checkbox</code>, for a setting that takes effect immediately. <code>onChange</code> gets the new <code>boolean</code> directly.
+        </Text>
+        <Switch label="Dark sidebar" onChange={on => addToast({ type: 'info', message: `Dark sidebar ${on ? 'on' : 'off'}`, priority: 'low' })} />
+        <Switch label="Auto-save drafts" defaultChecked />
+      </VStack>
+    ),
+    Textarea: (
+      <VStack gap="sm">
+        <Text size="sm" tone="secondary">
+          Multi-line text with the same sizes and theme slice as <code>Input</code>, so the two line up in one form.
+        </Text>
+        <Textarea aria-label="Release notes" placeholder="What changed in this release?" rows={4} />
+        <Grid columns={2} gap="md">
+          <Textarea aria-label="Small note" size="sm" placeholder={'size="sm"'} />
+          <Textarea aria-label="Large note" size="lg" placeholder={'size="lg"'} />
+        </Grid>
+      </VStack>
+    ),
+    FormField: { seeAlso: 'Form', note: <>Every field in the profile form: each wraps one control with its label, helper text and error.</> },
+    FormError: { seeAlso: 'Form', note: <>The profile form's summary banner, above Save Profile, shown whenever the form has validation errors.</> },
+    SubmitButton: { seeAlso: 'Form', note: <>The profile form's Save Profile button, disabled while the form submits.</> },
     OTPField: (
       <VStack gap="md">
         <Text size="sm" tone="secondary">
