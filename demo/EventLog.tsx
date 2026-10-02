@@ -3,7 +3,7 @@ import { Download, Trash2 } from 'lucide-react';
 import { Button, Text, Tooltip, aiBus, useAnyAIEvent } from '#toolcrib';
 
 // The live aiBus monitor's state, in its own provider rather than App's own
-// state. Found for real in issue #624: once the Encyclopedia mounted every
+// state. Found for real in issue #624: once the Catalog mounted every
 // component demo at once, App owning the log meant EVERY bus event -- the
 // burst of element:resized on load, each carousel tick, every hover and
 // click -- re-rendered all ~70 demos, enough to push WebKit's CI e2e run

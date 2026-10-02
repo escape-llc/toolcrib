@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoTab } from './nav';
 
-// Regression for a report on the TabStrip Encyclopedia page: the active
+// Regression for a report on the TabStrip Catalog page: the active
 // panel's content drew on top of the section after it. Cause: TabStrip.Panel
 // is built to fill a full-height flex parent (flex: 1 1 0px, min-height: 0),
 // so as a direct child of a content-sized flex column (VStack) it collapsed to
@@ -10,11 +10,11 @@ import { gotoTab } from './nav';
 // (#680), so the check is that the panel stays inside the demo's own area.
 test('the TabStrip demo panel has real height and stays inside the demo area', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'TabStrip');
+  await gotoTab(page, 'Catalog', 'TabStrip');
 
-  const panel = page.locator('#enc-TabStrip .ai-tabstrip-panel');
+  const panel = page.locator('#cat-TabStrip .ai-tabstrip-panel');
   await expect(panel).toBeVisible();
-  const demoArea = page.locator('[data-encyclopedia-demo="TabStrip"]');
+  const demoArea = page.locator('[data-catalog-demo="TabStrip"]');
 
   const panelBox = (await panel.boundingBox())!;
   const panelContentBox = (await panel.locator(':scope > *').first().boundingBox())!;

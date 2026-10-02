@@ -78,23 +78,23 @@ try {
     );
   }
   fs.writeFileSync(path.join(tmpDir, 'app/DemoApp.tsx'), `'use client';\n\n${demoAppSrc}`);
-  // demo/App.tsx imports './Encyclopedia' (issue #624), which in turn reads
+  // demo/App.tsx imports './Catalog' (issue #624), which in turn reads
   // the generated component manifest -- copy both alongside DemoApp.tsx,
   // rewriting the manifest import to its copied location.
   const MANIFEST_IMPORT = "import manifest from '../ai-docs/component-manifest.json';";
-  const encyclopediaSrc = fs.readFileSync(path.join(REPO_ROOT, 'demo/Encyclopedia.tsx'), 'utf-8');
-  if (!encyclopediaSrc.includes(MANIFEST_IMPORT)) {
+  const catalogSrc = fs.readFileSync(path.join(REPO_ROOT, 'demo/Catalog.tsx'), 'utf-8');
+  if (!catalogSrc.includes(MANIFEST_IMPORT)) {
     throw new Error(
-      `demo/Encyclopedia.tsx no longer contains the expected manifest import (${MANIFEST_IMPORT}) -- update this script's replacement to match.`
+      `demo/Catalog.tsx no longer contains the expected manifest import (${MANIFEST_IMPORT}) -- update this script's replacement to match.`
     );
   }
   fs.writeFileSync(
-    path.join(tmpDir, 'app/Encyclopedia.tsx'),
-    `'use client';\n\n${encyclopediaSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
+    path.join(tmpDir, 'app/Catalog.tsx'),
+    `'use client';\n\n${catalogSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
   );
   fs.copyFileSync(path.join(REPO_ROOT, 'ai-docs/component-manifest.json'), path.join(tmpDir, 'app/component-manifest.json'));
   // Each demo's generated source snippet (issue #638), imported by
-  // Encyclopedia.tsx from its own directory -- same relative path in app/.
+  // Catalog.tsx from its own directory -- same relative path in app/.
   fs.copyFileSync(path.join(REPO_ROOT, 'demo/demoSources.generated.json'), path.join(tmpDir, 'app/demoSources.generated.json'));
   // The live event log's provider/components (demo/EventLog.tsx) -- no
   // rewriting needed, its only imports are '#toolcrib', react and lucide.
@@ -103,7 +103,7 @@ try {
     `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/EventLog.tsx'), 'utf-8')}`
   );
   // The demo's hash router (demo/hashRoute.ts), imported by both App and
-  // Encyclopedia. Its only import is react; the server snapshot it hands
+  // Catalog. Its only import is react; the server snapshot it hands
   // useSyncExternalStore keeps prerendering off `window`.
   fs.writeFileSync(
     path.join(tmpDir, 'app/hashRoute.ts'),

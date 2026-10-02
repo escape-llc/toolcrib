@@ -73,7 +73,7 @@ describe('generated docs stay in sync with source', () => {
     runDriftCheck('node scripts/generate-index.js --check');
   });
 
-  it('demo/demoSources.generated.json (the Encyclopedia\'s source snippets) has no drift from demo/App.tsx', () => {
+  it('demo/demoSources.generated.json (the Catalog\'s source snippets) has no drift from demo/App.tsx', () => {
     runDriftCheck('node scripts/generate-demo-sources.js --check');
   });
 

@@ -14,12 +14,12 @@ import { gotoTab } from './nav';
 // browser (see e2e/README.md's "real CSS resolution" scope).
 test('clicking a tab does not shift any tab\'s x-position', async ({ page }) => {
   await page.goto('/');
-  // The Encyclopedia's own TabStrip demo (3 tabs). Every sidebar group is a
+  // The Catalog's own TabStrip demo (3 tabs). Every sidebar group is a
   // single page since issue #624, so the page-level strip is hidden and no
   // longer has tabs to click between.
-  await gotoTab(page, 'Encyclopedia', 'TabStrip');
+  await gotoTab(page, 'Catalog', 'TabStrip');
 
-  const tabs = page.locator(`#enc-TabStrip [role="tablist"]`).first().locator('[role="tab"]');
+  const tabs = page.locator(`#cat-TabStrip [role="tablist"]`).first().locator('[role="tab"]');
   const count = await tabs.count();
   expect(count).toBeGreaterThan(2);
 

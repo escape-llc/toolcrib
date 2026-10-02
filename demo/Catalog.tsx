@@ -2,6 +2,7 @@ import React, { type ReactNode, useEffect, useRef } from 'react';
 import manifest from '../ai-docs/component-manifest.json';
 import demoSources from './demoSources.generated.json';
 import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, StyleDomainProvider, Text, VStack, VisuallyHidden } from '#toolcrib';
+import { Eye } from 'lucide-react';
 import { routeHref } from './hashRoute';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
@@ -40,7 +41,7 @@ type ManifestComponent = {
 const COMPONENTS = (manifest as unknown as { components: ManifestComponent[] }).components;
 
 /** Every manifest component name, alphabetical -- for per-component "go to" commands. */
-export const ENCYCLOPEDIA_COMPONENT_NAMES = COMPONENTS.map(c => c.name).sort((a, b) => a.localeCompare(b));
+export const CATALOG_COMPONENT_NAMES = COMPONENTS.map(c => c.name).sort((a, b) => a.localeCompare(b));
 
 /** Drawer order on the page -- the same five categories, in the order a reader builds a UI: layout first, inputs last. */
 const CATEGORY_ORDER = ['Layout Primitives', 'Containers', 'Overlays', 'Data Display', 'Form Controls'] as const;
@@ -64,6 +65,14 @@ const isSeeAlso = (d: EntryDemo): d is { seeAlso: string; note?: ReactNode } =>
   typeof d === 'object' && d !== null && !React.isValidElement(d) && 'seeAlso' in d;
 const isPageFrame = (d: EntryDemo): d is { pageFrame: ReactNode } =>
   typeof d === 'object' && d !== null && !React.isValidElement(d) && 'pageFrame' in d;
+const isLiveDemo = (d: EntryDemo) => d !== undefined && d !== null && !isSeeAlso(d) && !isPageFrame(d);
+
+/** The live demo's frame: a rule above and below sets it off from the description and the documentation. */
+const DEMO_FRAME_STYLE: React.CSSProperties = {
+  borderTop: '0.0625rem solid var(--ai-border)',
+  borderBottom: '0.0625rem solid var(--ai-border)',
+  padding: '0.75rem 0',
+};
 
 export interface SystemArea {
   id: string;
@@ -76,13 +85,13 @@ export interface SystemArea {
 }
 
 /** The `id` of a component page's `<section>` -- a stable hook for tests and `aria-labelledby`. */
-export const entryAnchor = (name: string) => `enc-${name}`;
+export const entryAnchor = (name: string) => `cat-${name}`;
 /** The `id` of a Systems page's `<section>`. */
-export const systemAnchor = (id: string) => `enc-sys-${id}`;
+export const systemAnchor = (id: string) => `cat-sys-${id}`;
 /** Link targets (routes, see demo/hashRoute.ts). */
-export const entryHref = (name: string) => routeHref({ page: 'encyclopedia', entry: name });
-export const systemHref = (id: string) => routeHref({ page: 'encyclopedia', system: id });
-const INDEX_HREF = routeHref({ page: 'encyclopedia' });
+export const entryHref = (name: string) => routeHref({ page: 'catalog', entry: name });
+export const systemHref = (id: string) => routeHref({ page: 'catalog', system: id });
+const INDEX_HREF = routeHref({ page: 'catalog' });
 
 function byCategory(): { category: string; items: (ManifestComponent & { bin: string })[] }[] {
   return CATEGORY_ORDER.map(category => {
@@ -182,9 +191,12 @@ function BoardTile({
     <VStack gap="xs">
       <Text as="span" mono size="xs" tone="secondary">
         {part}
+        {/* A glyph, not the words (#704): the outline already says "this
+            one", the eye just says why. Screen readers get the words. */}
         {lastVisited && (
-          <Text as="span" variant="primary" weight="semibold">
-            {' '}· last visited
+          <Text as="span" variant="primary">
+            {' '}<Eye size="1.1em" aria-hidden="true" style={{ verticalAlign: '-0.2em' }} />
+            <VisuallyHidden> (last visited)</VisuallyHidden>
           </Text>
         )}
       </Text>
@@ -198,7 +210,7 @@ function BoardTile({
     <a
       ref={ref}
       href={href}
-      title={title}
+      title={lastVisited ? `${title} (last visited)` : title}
       data-shadow-tile={state ?? 'fixture'}
       data-last-visited={lastVisited ? '' : undefined}
       style={{
@@ -226,7 +238,7 @@ function ShadowBoard({ demos, featured, lastVisited }: { demos: Record<string, E
     <Card>
       <Card.Header>
         <HStack gap="sm" wrap align="center">
-          <h2 id="enc-shadow-board" style={{ margin: 0, fontSize: '1rem' }}>Shadow board — every tool in the crib</h2>
+          <h2 id="cat-shadow-board" style={{ margin: 0, fontSize: '1rem' }}>Shadow board — every tool in the crib</h2>
           <Badge size="sm">{plural(COMPONENTS.length, 'tool')}</Badge>
         </HStack>
       </Card.Header>
@@ -442,6 +454,24 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
           <VStack gap="sm">
             <Text>{md(c.description)}</Text>
 
+            {/* The tool itself right under its one-line description, then
+                everything about it (#704): documentation first pushed a big
+                spec sheet or placard's worth of demo below the fold. Rules
+                above and below the demo mark it off from the documentation. */}
+            {isSeeAlso(demo) ? (
+              <Text size="sm" tone="secondary">
+                Shown in action with <Link href={entryHref(demo.seeAlso)}>{demo.seeAlso}</Link>.{demo.note ? <> {demo.note}</> : null}
+              </Text>
+            ) : isPageFrame(demo) ? (
+              <Text size="sm" tone="secondary">{demo.pageFrame}</Text>
+            ) : demo === undefined || demo === null ? (
+              <Text size="sm" tone="secondary">No live demo yet.</Text>
+            ) : (
+              <div data-catalog-demo={c.name} style={DEMO_FRAME_STYLE}>
+                {demo}
+              </div>
+            )}
+
             <div>
               <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
               {/* Wraps rather than scrolls: a horizontally-scrollable <code>
@@ -478,25 +508,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
             )}
 
             <SpecSheet component={c} />
-
-            {isSeeAlso(demo) ? (
-              <Text size="sm" tone="secondary">
-                Shown in action with <Link href={entryHref(demo.seeAlso)}>{demo.seeAlso}</Link>.{demo.note ? <> {demo.note}</> : null}
-              </Text>
-            ) : isPageFrame(demo) ? (
-              <Text size="sm" tone="secondary">{demo.pageFrame}</Text>
-            ) : demo === undefined || demo === null ? (
-              <Text size="sm" tone="secondary">No live demo yet.</Text>
-            ) : (
-              <>
-                {/* Everything about the tool first, then the tool itself: the rule
-                    above the live demo is the border between spec and the real thing. */}
-                <Blueprint source={DEMO_SOURCES.components[c.name]} />
-                <div data-encyclopedia-demo={c.name} style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>
-                  {demo}
-                </div>
-              </>
-            )}
+            {isLiveDemo(demo) && <Blueprint source={DEMO_SOURCES.components[c.name]} />}
           </VStack>
         </Card.Content>
       </Card>
@@ -511,7 +523,7 @@ function EntryNav({ trail, prev, next }: { trail: string[]; prev?: { label: stri
     <HStack gap="md" wrap align="center" justify="between">
       <Breadcrumb>
         {/* On the index itself the trail is just this crumb, as the current page. */}
-        <Breadcrumb.Item href={trail.length > 0 ? INDEX_HREF : undefined}>Encyclopedia</Breadcrumb.Item>
+        <Breadcrumb.Item href={trail.length > 0 ? INDEX_HREF : undefined}>Catalog</Breadcrumb.Item>
         {trail.map(t => <Breadcrumb.Item key={t}>{t}</Breadcrumb.Item>)}
       </Breadcrumb>
       <nav aria-label="Neighboring pages">
@@ -534,17 +546,14 @@ function SystemCard({ area }: { area: SystemArea }) {
         <Card.Content>
           <VStack gap="sm">
             <Text>{area.summary}</Text>
+            {/* Demo first, then the documentation -- same order as a tool's page (#704). */}
+            {area.demo && <div style={DEMO_FRAME_STYLE}>{area.demo}</div>}
             {area.parts?.length ? (
               <Text size="sm" tone="secondary">
                 Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
               </Text>
             ) : null}
-            {area.demo && (
-              <>
-                <Blueprint source={DEMO_SOURCES.systems[area.id]} />
-                <div style={{ borderTop: '0.0625rem solid var(--ai-border)', paddingTop: '0.75rem' }}>{area.demo}</div>
-              </>
-            )}
+            {area.demo && <Blueprint source={DEMO_SOURCES.systems[area.id]} />}
           </VStack>
         </Card.Content>
       </Card>
@@ -566,7 +575,7 @@ function FixturesBoard({ systems, lastVisited }: { systems: SystemArea[]; lastVi
     <Card>
       <Card.Header>
         <HStack gap="sm" wrap align="center">
-          <h2 id="enc-systems" style={{ margin: 0, fontSize: '1rem' }}>Fixtures — what every tool plugs into</h2>
+          <h2 id="cat-systems" style={{ margin: 0, fontSize: '1rem' }}>Fixtures — what every tool plugs into</h2>
           <StyleDomainProvider subtheme="info">
             <Badge size="sm">{plural(systems.length, 'fixture')}</Badge>
           </StyleDomainProvider>
@@ -604,7 +613,7 @@ const neighbor = <T,>(list: T[], i: number, toLink: (t: T) => { label: string; h
 });
 
 /**
- * The Encyclopedia page: the shadow board and Systems list as its index,
+ * The Catalog page: the shadow board and Systems list as its index,
  * or one tool's page (`entry`, a manifest component name) or one Systems
  * area's page (`system`, an area id), chosen by the route. Only that one
  * page's live demo is mounted. `demos` is keyed by manifest component name;
@@ -613,7 +622,7 @@ const neighbor = <T,>(list: T[], i: number, toLink: (t: T) => { label: string; h
  * automatically the moment it's in the manifest. `featured` highlights a
  * few of the richest demos on the shadow board (name -> one-line reason).
  */
-export function Encyclopedia({
+export function Catalog({
   demos,
   systems,
   featured = {},

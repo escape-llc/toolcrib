@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
 // and Enter runs the highlighted one. jsdom can't show any of that: the
 // highlight is aria-activedescendant plus focus handling only a real
 // browser does. The demo's "Components" items navigate to that
-// component's Encyclopedia page, which is the observable effect.
+// component's Catalog page, which is the observable effect.
 
 // The shortcut listener is attached in an effect after mount, so a key
 // pressed the instant the page loads can land before it (seen in WebKit).

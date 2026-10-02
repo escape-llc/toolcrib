@@ -1,11 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { gotoTab, loadDemoTableData } from './nav';
 
-// Scoped to the DataTable's own Encyclopedia entry: since issue #624 every
+// Scoped to the DataTable's own Catalog entry: since issue #624 every
 // component shares one page, so page-wide getByRole('grid') / locator('table')
 // / 'Next page' also match the inline Calendar's grid and the standalone
 // Pagination demos.
-const dataTable = (page: Page) => page.locator('#enc-DataTable');
+const dataTable = (page: Page) => page.locator('#cat-DataTable');
 
 
 // Real-browser confirmation for issue #517 (the pagination half of

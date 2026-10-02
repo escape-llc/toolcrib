@@ -20,7 +20,7 @@ import { gotoTab } from './nav';
 
 test('two nested Modals get strictly increasing z-index, not a tie', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Modal');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const outerContent = page.getByTestId('modal-container').first();
@@ -90,7 +90,7 @@ test('a Toast fired from inside an open Modal stacks above it, per Z_INDEX.TOAST
   // instance already fires one from its "Confirm" button without closing
   // itself, which is what this test drives.
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Modal');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const modal = page.getByTestId('modal-container');

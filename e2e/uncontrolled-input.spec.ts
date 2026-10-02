@@ -8,7 +8,7 @@ import { gotoTab } from './nav';
 // password field never showed what was typed.
 test('a standalone uncontrolled Input accepts typing', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'UIGroup');
+  await gotoTab(page, 'Catalog', 'UIGroup');
   const input = page.getByPlaceholder('Search records...');
   await input.scrollIntoViewIfNeeded();
   await input.click();

@@ -19,7 +19,7 @@ import { demoPages } from './nav';
 // (bounding boxes, console output) is the same approach every other spec in
 // this suite already uses, and it's platform-stable.
 
-// Every page of the demo: Overview, the Encyclopedia index and each of its
+// Every page of the demo: Overview, the Catalog index and each of its
 // component/Systems pages (one live demo per page since issue #624), then
 // Kits -- see demoPages in e2e/nav.ts.
 // Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
@@ -38,7 +38,7 @@ import { demoPages } from './nav';
 // Skeleton and React Aria's DateInput carry that role permanently, so the
 // old selector could never reach 0 on a page showing either, and every
 // settle() silently burned its full 2s timeout. That went unnoticed while
-// they sat on separate tabs; issue #624's single Encyclopedia page put
+// they sat on separate tabs; issue #624's single Catalog page put
 // them in every iteration.
 const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], .ai-popup-content';
 async function settle(page: Page) {
@@ -103,7 +103,7 @@ async function stayOn(page: Page, hash: string, go: () => Promise<void>) {
 }
 
 test('no console errors while clicking through every interactive control on every page', async ({ page }) => {
-  // Each page is small since issue #624 split the Encyclopedia into one
+  // Each page is small since issue #624 split the Catalog into one
   // component per page, but there are ~95 of them; still a hard ceiling, so
   // a genuine hang fails rather than running forever.
   test.setTimeout(300_000);

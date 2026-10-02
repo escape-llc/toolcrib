@@ -15,7 +15,7 @@ import { gotoTab } from './nav';
 
 async function openSkills(page: Page) {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Combobox');
+  await gotoTab(page, 'Catalog', 'Combobox');
   const input = page.getByRole('combobox', { name: 'Skills' });
   await input.scrollIntoViewIfNeeded();
   await input.click();

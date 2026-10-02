@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { z } from 'zod';
 import { CalendarDate, Time, today, getLocalTimeZone } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
-import { Encyclopedia, ENCYCLOPEDIA_COMPONENT_NAMES, entryHref, type EntryDemo, type SystemArea } from './Encyclopedia';
+import { Catalog, CATALOG_COMPONENT_NAMES, entryHref, type EntryDemo, type SystemArea } from './Catalog';
 import { useHashRoute, navigateHash, routeHref, type Route } from './hashRoute';
 import { EventLogProvider, EventLogExportButton, EventLogClearButton, EventLogList } from './EventLog';
 import {
@@ -167,7 +167,7 @@ const MAIN_SPLITTER_INITIAL_SPLIT = 70;
 // A real app passes React Router's or Next's navigate here instead.
 const HASH_ROUTER: RouterAdapter = { navigate: navigateHash };
 
-// The Encyclopedia's richest demos, highlighted on its shadow board so they
+// The Catalog's richest demos, highlighted on its shadow board so they
 // aren't lost among 71 alphabetical tiles. Component name -> why it's worth
 // opening (the tile's tooltip and screen-reader text).
 const FEATURED_DEMOS: Record<string, string> = {
@@ -416,10 +416,10 @@ const SIDEBAR_ITEMS: SidebarItemData[] = [
 // `plainLabel` strips the leading emoji for contexts (the command
 // palette's own list rows) that already render an icon column of their
 // own. Issue #624 consolidated the ten per-topic component tabs into the
-// single Encyclopedia page, and renamed the Wireframe Gallery to Kits.
+// single Catalog page, and renamed the Wireframe Gallery to Kits.
 const TAB_DEFS: Record<string, { label: string; plainLabel: string }> = {
   overview: { label: '🚀 Overview & Architecture', plainLabel: 'Overview & Architecture' },
-  encyclopedia: { label: '🧰 Encyclopedia', plainLabel: 'Encyclopedia' },
+  catalog: { label: '🧰 Catalog', plainLabel: 'Catalog' },
   kits: { label: '📦 Kits', plainLabel: 'Kits' },
 };
 
@@ -428,7 +428,7 @@ const TAB_DEFS: Record<string, { label: string; plainLabel: string }> = {
 // broadcast -- see its own comment in the render.
 const NAV_GROUPS: { id: string; label: string; icon: string; tabIds: string[] }[] = [
   { id: 'overview', label: 'Overview', icon: '🚀', tabIds: ['overview'] },
-  { id: 'encyclopedia', label: 'Encyclopedia', icon: '🧰', tabIds: ['encyclopedia'] },
+  { id: 'catalog', label: 'Catalog', icon: '🧰', tabIds: ['catalog'] },
   { id: 'kits', label: 'Kits', icon: '📦', tabIds: ['kits'] },
 ];
 
@@ -833,7 +833,7 @@ export const App: React.FC = () => {
   const typographyState = sliceStates.typography;
   // useToastActions, not useToast: App only fires toasts, and useToast()'s
   // value carries the live toast list -- every toast would re-render App
-  // and with it every Encyclopedia demo (issue #632).
+  // and with it every Catalog demo (issue #632).
   const { addToast, setAnchor } = useToastActions();
 
   // The active page comes from the URL hash (demo/hashRoute.ts), not React
@@ -1041,7 +1041,7 @@ export const App: React.FC = () => {
     // than the hash directly: the demo's router is plugged in via
     // <RouterAdapterProvider> (see HASH_ROUTER below), the same seam a real
     // app uses for React Router or Next.
-    ...ENCYCLOPEDIA_COMPONENT_NAMES.map(name => ({
+    ...CATALOG_COMPONENT_NAMES.map(name => ({
       value: `goto-component-${name}`,
       label: name,
       group: 'Components',
@@ -1205,9 +1205,9 @@ export const App: React.FC = () => {
     { key: 'score', title: 'Score', width: 90, sortable: true, pinned: 'right' },
   ];
 
-  // --- Encyclopedia (issue #624) -------------------------------------------
+  // --- Catalog (issue #624) -------------------------------------------
   // One live demo per manifest component, keyed by its manifest name, for
-  // the single Encyclopedia page (demo/Encyclopedia.tsx renders the catalog
+  // the single Catalog page (demo/Catalog.tsx renders the catalog
   // card around each from the generated manifest). These are the same demo
   // blocks the old per-topic tabs rendered -- moved, not rewritten -- with
   // the multi-component cards (Newer Primitives, Radix Primitives, the
@@ -1616,7 +1616,7 @@ export const App: React.FC = () => {
           Drag the handle, or focus it and use the arrow keys. The live event log at the bottom of this page is the same component in <code>orientation="vertical"</code>.
         </Text>
         <div style={{ height: '10rem', border: '0.0625rem solid var(--ai-border, #e5e7eb)', borderRadius: 'var(--ai-radius-md)', overflow: 'hidden', display: 'flex' }}>
-          <Splitter id="encyclopedia-splitter-demo" orientation="horizontal" initialSplit={40}>
+          <Splitter id="catalog-splitter-demo" orientation="horizontal" initialSplit={40}>
             <Splitter.Panel>
               <div style={{ padding: '0.75rem', fontSize: '0.8125rem' }}>Left pane</div>
             </Splitter.Panel>
@@ -2234,19 +2234,19 @@ export const App: React.FC = () => {
         <Text size="sm" tone="secondary">
           Arrow keys move between tabs. Each <code>TabStrip.Panel</code> is matched to its strip by <code>groupId</code>, so panels can live anywhere in the tree.
         </Text>
-        <TabStrip id="encyclopedia-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
+        <TabStrip id="catalog-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
         {/* The panels sit in a plain Block, not directly in this VStack:
             TabStrip.Panel is built to fill a full-height flex parent, and
             as a direct child of a content-sized flex column it collapses to
             0px and its content spills onto whatever follows (#643). */}
         <Block>
-          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="details">
+          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="details">
             <Block background="container" padding="md" radius="md">Order #1042 — 3 items, shipped to Portland.</Block>
           </TabStrip.Panel>
-          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="activity">
+          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="activity">
             <Block background="container" padding="md" radius="md">Shipped yesterday · Paid Monday · Placed last week.</Block>
           </TabStrip.Panel>
-          <TabStrip.Panel groupId="encyclopedia-tabstrip-demo" value="settings">
+          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="settings">
             <Block background="container" padding="md" radius="md">Email me when this order changes.</Block>
           </TabStrip.Panel>
         </Block>
@@ -2817,7 +2817,7 @@ export const App: React.FC = () => {
   };
 
   // The infrastructure every component is wired into -- the "what you get
-  // out of the box" half of the Encyclopedia.
+  // out of the box" half of the Catalog.
   const systemAreas: SystemArea[] = [
     {
       id: 'theme',
@@ -3073,7 +3073,7 @@ export const App: React.FC = () => {
           anywhere" shape as <ToastContainer>. Its own Cmd/Ctrl+K listener
           registers itself on mount; items are the data-driven array built
           above. Also directly openable via aiBus.openCommandPalette(id),
-          demonstrated by the button in its Encyclopedia entry. */}
+          demonstrated by the button in its Catalog entry. */}
       <CommandPalette id="global-command-palette" items={commandPaletteItems} />
       <AppShell layout="sidebar-left">
       {/* Top Header Bar */}
@@ -3252,7 +3252,7 @@ export const App: React.FC = () => {
                       <Card.Content>
                         <VStack gap="md">
                           <Text>
-                            A tool crib is the room on a shop floor where every tool has a place on the board, a part number, and a spec. <code>Toolcrib</code> is that room for React apps built with AI: {ENCYCLOPEDIA_COMPONENT_NAMES.length} tools and {systemAreas.length} fixtures that come out themed, accessible and typed. An agent assembling a UI picks proven tools off the board instead of machining its own, and gets the same result every time.
+                            A tool crib is the room on a shop floor where every tool has a place on the board, a part number, and a spec. <code>Toolcrib</code> is that room for React apps built with AI: {CATALOG_COMPONENT_NAMES.length} tools and {systemAreas.length} fixtures that come out themed, accessible and typed. An agent assembling a UI picks proven tools off the board instead of machining its own, and gets the same result every time.
                           </Text>
                           <Text>
                             It isn't a black box you install and hope for the best. <code>toolcrib init</code> vendors the whole crib into your repo as reviewable patches: every file is yours to read, patch or fork, and <code>toolcrib merge</code> brings in updates the same way.
@@ -3268,13 +3268,13 @@ export const App: React.FC = () => {
                           <CardSimple title="🔧 Shadow board" overrides={{ padding: 'compact' }}>
                             <VStack gap="sm">
                               <Text size="sm">Every tool in its outline, grouped by drawer: layout, containers, overlays, data display, form controls. Open one for its full bin.</Text>
-                              <Link href={routeHref({ page: 'encyclopedia' })}>Go to the shadow board</Link>
+                              <Link href={routeHref({ page: 'catalog' })}>Go to the shadow board</Link>
                             </VStack>
                           </CardSimple>
                           <CardSimple title="🔌 Fixtures" overrides={{ padding: 'compact' }}>
                             <VStack gap="sm">
                               <Text size="sm">What every tool plugs into: the theme engine, the event bus, the form engine, toasts, motion. An app built from the tools inherits all of it.</Text>
-                              <Link href={routeHref({ page: 'encyclopedia', system: 'theme' })}>Start with the theme engine</Link>
+                              <Link href={routeHref({ page: 'catalog', system: 'theme' })}>Start with the theme engine</Link>
                             </VStack>
                           </CardSimple>
                           <CardSimple title="📦 Kits" overrides={{ padding: 'compact' }}>
@@ -3427,16 +3427,16 @@ export const App: React.FC = () => {
                   </VStack>
                 </TabStrip.Panel>
 
-                {/* Encyclopedia (issue #624): the shadow board index, or one
+                {/* Catalog (issue #624): the shadow board index, or one
                     component's / Systems area's page, picked by the route.
                     Replaces the ten per-topic component tabs. */}
-                <TabStrip.Panel groupId="main-demo" value="encyclopedia">
-                  <Encyclopedia
+                <TabStrip.Panel groupId="main-demo" value="catalog">
+                  <Catalog
                     demos={componentDemos}
                     systems={systemAreas}
                     featured={FEATURED_DEMOS}
-                    entry={route.page === 'encyclopedia' ? route.entry : undefined}
-                    system={route.page === 'encyclopedia' ? route.system : undefined}
+                    entry={route.page === 'catalog' ? route.entry : undefined}
+                    system={route.page === 'catalog' ? route.system : undefined}
                   />
                 </TabStrip.Panel>
 
@@ -3448,7 +3448,7 @@ export const App: React.FC = () => {
                       <Card.Header>Kits</Card.Header>
                       <Card.Content>
                         <Text>
-                          Pre-assembled combinations of the tools in the Encyclopedia, laid out for a common job. The analytics dashboard below is live components; the wireframes after it show the regions and proportions of common page layouts, with the primitives that build each.
+                          Pre-assembled combinations of the tools in the Catalog, laid out for a common job. The analytics dashboard below is live components; the wireframes after it show the regions and proportions of common page layouts, with the primitives that build each.
                         </Text>
                       </Card.Content>
                     </Card>
@@ -3771,7 +3771,7 @@ export const App: React.FC = () => {
                   <Toolbar.Right>
                     {/* A connected <UIGroup> instead of loose Toolbar.Button
                         siblings — same "3-Button Connected Group with
-                        Glyphs" pattern shown in UIGroup's Encyclopedia entry,
+                        Glyphs" pattern shown in UIGroup's Catalog entry,
                         just applied to a real toolbar instead of a demo
                         card. Plain <Button> (not Toolbar.Button): UIGroup's
                         border-merging CSS targets its own direct children,
