@@ -1508,8 +1508,8 @@
           "description": "Initial checked state when neither `checked` nor a Form binding is present (uncontrolled)."
         },
         "onChange": {
-          "type": "(e: { target: { checked: boolean } }) => void",
-          "description": "Change handler. Receives a synthetic event with `target.checked`."
+          "type": "(checked: boolean) => void",
+          "description": "Change handler. Receives the new boolean value directly, like `<Switch>`'s."
         },
         "overrides": {
           "type": "Partial<ToggleControlSliceState>",
@@ -1521,7 +1521,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Boolean checkbox bound to Form context; `onChange` receives an event-like `{ target: { checked } }` (unlike Switch)"
+      "description": "Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element"
     },
     {
       "name": "CheckboxGroup",
@@ -3870,7 +3870,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "`<Button type=\"submit\">` that stays disabled while the enclosing Form is submitting; takes the same `ButtonProps` (but no `ref`)"
+      "description": "`<Button type=\"submit\">` that stays disabled while the enclosing Form is submitting; takes every Button prop, `ref` included"
     },
     {
       "name": "Switch",
@@ -3895,7 +3895,7 @@
         },
         "onChange": {
           "type": "(checked: boolean) => void",
-          "description": "Change handler. Receives the new boolean value directly."
+          "description": "Change handler. Receives the new boolean value directly, like `<Checkbox>`'s."
         },
         "overrides": {
           "type": "Partial<ToggleControlSliceState>",
@@ -3907,7 +3907,7 @@
         }
       },
       "category": "Form Controls",
-      "description": "Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives a plain `boolean` (unlike Checkbox)"
+      "description": "Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element"
     },
     {
       "name": "TabStrip",

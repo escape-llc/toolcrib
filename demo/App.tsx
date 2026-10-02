@@ -2702,9 +2702,9 @@ export const App: React.FC = () => {
     Checkbox: (
       <VStack gap="sm" align="start">
         <Text size="sm" tone="secondary">
-          Outside a <code>Form</code> it keeps its own state (<code>defaultChecked</code>); inside one, <code>name</code> binds it to the field. Note the handler shape: <code>onChange</code> gets an event-like <code>{'{ target: { checked } }'}</code>, unlike <code>Switch</code>'s plain boolean.
+          Outside a <code>Form</code> it keeps its own state (<code>defaultChecked</code>); inside one, <code>name</code> binds it to the field. <code>onChange</code> gets the new <code>boolean</code>, the same as <code>Switch</code>.
         </Text>
-        <Checkbox label="Email me a receipt" defaultChecked onChange={e => addToast({ type: 'info', message: `Receipt ${e.target.checked ? 'on' : 'off'}`, priority: 'low' })} />
+        <Checkbox label="Email me a receipt" defaultChecked onChange={on => addToast({ type: 'info', message: `Receipt ${on ? 'on' : 'off'}`, priority: 'low' })} />
         <Checkbox label="Keep me signed in" />
       </VStack>
     ),
