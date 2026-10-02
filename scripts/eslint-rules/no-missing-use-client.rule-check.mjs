@@ -48,6 +48,7 @@ const ruleTester = new RuleTester({
     parser: tseslint.parser,
     ecmaVersion: 2022,
     sourceType: 'module',
+    parserOptions: { ecmaFeatures: { jsx: true } },
   },
 });
 
@@ -86,6 +87,13 @@ ruleTester.run('no-missing-use-client', noMissingUseClient, {
     // An unrelated class sharing no name with Component/PureComponent
     // isn't flagged.
     `class Widget extends SomethingElse {}`,
+
+    // Category 5: rendering an imported context's Provider, directive present.
+    `'use client';\nconst Grid = ({ children }) => <Ctx.Provider value={null}>{children}</Ctx.Provider>;`,
+
+    // A compound-component slot (Card.Header) is a member-expression JSX
+    // name too, but not a context -- not flagged.
+    `const Page = () => <Card.Header>title</Card.Header>;`,
   ],
 
   invalid: [
@@ -148,6 +156,19 @@ ruleTester.run('no-missing-use-client', noMissingUseClient, {
     {
       code: `class Boundary extends React.PureComponent {}`,
       errors: [{ message: `This file defines a class component (extends PureComponent) but is missing the 'use client' directive -- class components aren't usable in a Server Component. ${HINT}` }],
+    },
+
+    // Category 5: rendering an imported context's Provider with no hook or
+    // createContext call in the file (Grid.tsx's shape, issue #690).
+    {
+      code: `import { LayoutDomainContext } from './ctx';\nconst Grid = ({ children }) => <LayoutDomainContext.Provider value={null}>{children}</LayoutDomainContext.Provider>;`,
+      errors: [{ message: `This file renders a context <...Provider> but is missing the 'use client' directive -- a Server Component can't render a context, and can't dot into a client module's export at all. ${HINT}` }],
+    },
+
+    // Category 5: the Consumer form.
+    {
+      code: `const View = () => <Ctx.Consumer>{(v) => v}</Ctx.Consumer>;`,
+      errors: [{ message: `This file renders a context <...Consumer> but is missing the 'use client' directive -- a Server Component can't render a context, and can't dot into a client module's export at all. ${HINT}` }],
     },
 
     // The directive is present but isn't the file's first statement (an
