@@ -1487,6 +1487,43 @@
       "description": "Swipeable slide carousel with drag/loop physics via embla-carousel-react, plus themed nav arrows and dot indicators"
     },
     {
+      "name": "Checkbox",
+      "import": "import { Checkbox } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label text rendered beside the checkbox."
+        },
+        "checked": {
+          "type": "boolean",
+          "description": "Controlled checked state."
+        },
+        "defaultChecked": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial checked state when neither `checked` nor a Form binding is present (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(e: { target: { checked: boolean } }) => void",
+          "description": "Change handler. Receives a synthetic event with `target.checked`."
+        },
+        "overrides": {
+          "type": "Partial<ToggleControlSliceState>",
+          "description": "Per-instance size override. Shared with `<Switch>`."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member.\nSee `<Button>`'s own identical prop for the general pattern."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Boolean checkbox bound to Form context; `onChange` receives an event-like `{ target: { checked } }` (unlike Switch)"
+    },
+    {
       "name": "CheckboxGroup",
       "import": "import { CheckboxGroup } from '#toolcrib'",
       "props": {
@@ -2382,6 +2419,39 @@
       "antiPatternAvoid": "Write `register()` or `onChange` boilerplate for form fields",
       "antiPatternInstead": "Nest `<Input>`, `<Select>`, etc. inside `<FormField name=\"...\">` — binding is automatic",
       "description": "Zod 4 schema-driven form. Controls bind via context — no register() or onChange boilerplate"
+    },
+    {
+      "name": "FormError",
+      "import": "import { FormError } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name to show the error for. Omit for a summary error banner."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Validation error display: one field's error (after it is touched) with `name`, or a summary banner of all errors without it"
+    },
+    {
+      "name": "FormField",
+      "import": "import { FormField } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "Field name that binds to the form schema and context."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label rendered above the control."
+        },
+        "helperText": {
+          "type": "ReactNode",
+          "description": "Help text shown below the control (hidden when there's a validation error)."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Wraps one form control with its label, helper text and validation error, and binds the control to the Form field `name` via context"
     },
     {
       "name": "Gallery",
@@ -3753,6 +3823,93 @@
       "description": "Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating"
     },
     {
+      "name": "SubmitButton",
+      "import": "import { SubmitButton } from '#toolcrib'",
+      "props": {
+        "variant": {
+          "type": "'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'",
+          "default": "'primary'",
+          "description": "Visual style variant.\n- `'primary'` — Filled with primary colour.\n- `'secondary'` — Filled with secondary colour.\n- `'outline'` — Transparent with border.\n- `'danger'` — Filled with error colour.\n- `'ghost'` — No background or border."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Button size controlling padding and font-size."
+        },
+        "paddingMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override padding using the theme padding token scale."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "leadingIcon": {
+          "type": "ReactNode",
+          "description": "Icon rendered before the label text. Alias for `icon`."
+        },
+        "trailingIcon": {
+          "type": "ReactNode",
+          "description": "Icon rendered after the label text."
+        },
+        "icon": {
+          "type": "ReactNode",
+          "description": "Shorthand for `leadingIcon`."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour. Falls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a trigger button whose\ncorner needs to flatten against an open `<Popup>`/`<DropdownMenu>`.\nApplied after the button's own computed radius, so it wins."
+        },
+        "overrides": {
+          "type": "Partial<ButtonSliceState>",
+          "description": "Per-instance overrides for label weight and icon spacing. Separate from\n`subtheme` above (Button already resolves that itself via\n`useResolvedSubtheme`, unrelated to this slice's own two fields)."
+        }
+      },
+      "category": "Form Controls",
+      "description": "`<Button type=\"submit\">` that stays disabled while the enclosing Form is submitting; takes the same `ButtonProps` (but no `ref`)"
+    },
+    {
+      "name": "Switch",
+      "import": "import { Switch } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "label": {
+          "type": "ReactNode",
+          "description": "Label text rendered beside the switch."
+        },
+        "checked": {
+          "type": "boolean",
+          "description": "Controlled checked state."
+        },
+        "defaultChecked": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial checked state when neither `checked` nor a Form binding is present (uncontrolled)."
+        },
+        "onChange": {
+          "type": "(checked: boolean) => void",
+          "description": "Change handler. Receives the new boolean value directly."
+        },
+        "overrides": {
+          "type": "Partial<ToggleControlSliceState>",
+          "description": "Per-instance size override. Shared with `<Checkbox>`."
+        },
+        "squareCorners": {
+          "type": "SquareCornerOption",
+          "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member.\nSee `<Button>`'s own identical prop for the general pattern."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives a plain `boolean` (unlike Checkbox)"
+    },
+    {
       "name": "TabStrip",
       "import": "import { TabStrip } from '#toolcrib'",
       "slots": [
@@ -3878,6 +4035,31 @@
       "antiPatternAvoid": "A raw `<p style={{ fontSize: '0.8125rem', color: 'var(--ai-text-secondary)' }}>` or a styled `<span>` for secondary text",
       "antiPatternInstead": "`<Text size=\"sm\" tone=\"secondary\">`, or `<Text as=\"span\" ...>` inline",
       "description": "Themed paragraph or inline text: size, tone, weight and status color from theme tokens, never literal styles"
+    },
+    {
+      "name": "Textarea",
+      "import": "import { Textarea } from '#toolcrib'",
+      "props": {
+        "name": {
+          "type": "string",
+          "description": "Field name. Auto-inherited from parent `<FormField>` if omitted."
+        },
+        "cornerRadiusMode": {
+          "type": "'sharp' | 'subtle' | 'rounded' | 'pill'",
+          "description": "Override corner radius using the theme radius token scale."
+        },
+        "overrides": {
+          "type": "Partial<InputSliceState> & { subtheme?: SubthemeName }",
+          "description": "Per-instance overrides for padding and border width. Shared with `<Input>`. Only applies at the default `size=\"md\"` — see `<Input>`'s own `size` doc."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        }
+      },
+      "category": "Form Controls",
+      "description": "Multi-line text input bound to Form context, sized and themed like Input"
     },
     {
       "name": "ThemeEditor",
