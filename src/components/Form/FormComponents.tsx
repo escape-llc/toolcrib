@@ -485,7 +485,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
 Button.displayName = 'Button';
 
 /**
- * @manifest `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes every Button prop
+ * @manifest `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes the same `ButtonProps` (but no `ref`)
  * @manifestCategory Form Controls
  */
 export const SubmitButton: React.FC<ButtonProps> = (props) => {
