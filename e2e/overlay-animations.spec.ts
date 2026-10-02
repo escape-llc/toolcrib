@@ -16,7 +16,7 @@ import { gotoTab } from './nav';
 
 test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Modal');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const modal = page.getByTestId('modal-container');
@@ -39,7 +39,7 @@ test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }
 // polling data-state after the fact.
 test('closing a Modal plays real ai-fade-out/ai-scale-out exit animations before removal', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Modal');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
   const modal = page.getByTestId('modal-container');
@@ -71,7 +71,7 @@ test('closing a Modal plays real ai-fade-out/ai-scale-out exit animations before
 
 test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animations', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'AlertDialog');
+  await gotoTab(page, 'Catalog', 'AlertDialog');
   // Two "Delete Record" buttons exist on this tab (the Button Subsystem
   // showcase's own danger-variant example, and this AlertDialog's real
   // trigger) -- scoping by the section heading picks the actual trigger
@@ -93,7 +93,7 @@ test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animation
 // injectModalAnimations mechanism exactly.
 test('closing an AlertDialog plays real ai-fade-out/ai-scale-out exit animations before removal', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'AlertDialog');
+  await gotoTab(page, 'Catalog', 'AlertDialog');
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
 
   const dialog = page.getByTestId('alertdialog-container');
@@ -125,7 +125,7 @@ test('closing an AlertDialog plays real ai-fade-out/ai-scale-out exit animations
 
 test('expanding an Accordion item plays its ai-accordion-slide-down animation', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Accordion');
+  await gotoTab(page, 'Catalog', 'Accordion');
 
   // faq-1 is open by default (defaultValue) — faq-2 starts closed, so
   // clicking it is a real closed-to-open transition, not just a fresh
@@ -167,7 +167,7 @@ test('a Collapsible plays its slide-down on open and its slide-up through the cl
   // what the slide-up rule keys on. The height keyframes read
   // --collapsible-panel-height; a wrong name fails silently.
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Collapsible');
+  await gotoTab(page, 'Catalog', 'Collapsible');
   const text = page.getByText('Content revealed on demand');
   await expect(text).not.toBeAttached();
 
@@ -249,7 +249,7 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
 // pop (a fade plus a small scale) out of their trigger (#735).
 test('a Popup plays real ai-pop-in/ai-pop-out entrance/exit animations and is cleanly removed after', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Popup');
+  await gotoTab(page, 'Catalog', 'Popup');
   await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
 
   const popup = page.locator('.ai-popup-content');

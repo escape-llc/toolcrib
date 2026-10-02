@@ -8,7 +8,7 @@ import { gotoTab } from './nav';
 
 test('a themed <Link> resolves its real color from --ai-color-primary-readable, preserving the theme\'s own hue rather than a neutral/gray color', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Link');
+  await gotoTab(page, 'Catalog', 'Link');
 
   const link = page.getByRole('link', { name: 'Default (primary)' });
   await link.waitFor({ state: 'visible' });
@@ -74,7 +74,7 @@ test('a plain hand-written <a> with no class picks up the exact same ambient lin
     return c;
   });
 
-  await gotoTab(page, 'Encyclopedia', 'Link');
+  await gotoTab(page, 'Catalog', 'Link');
   const link = page.getByRole('link', { name: 'Default (primary)' });
   await link.waitFor({ state: 'visible' });
   const linkColor = await link.evaluate(el => getComputedStyle(el).color);
@@ -84,7 +84,7 @@ test('a plain hand-written <a> with no class picks up the exact same ambient lin
 
 test('variant="secondary" resolves to a real, different color than the default primary link — the per-instance --ai-link-color override actually takes effect', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Link');
+  await gotoTab(page, 'Catalog', 'Link');
 
   const primary = page.getByRole('link', { name: 'Default (primary)' });
   const secondary = page.getByRole('link', { name: 'Secondary variant' });

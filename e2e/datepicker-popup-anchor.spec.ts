@@ -21,16 +21,16 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
   await gotoTab(page, 'Forms & Zod Engine');
 
   // The profile form's Start Date picker (the first one on the old Forms
-  // tab) -- scoped to its Encyclopedia entry since issue #624 put every
+  // tab) -- scoped to its Catalog entry since issue #624 put every
   // DatePicker on one page.
-  const button = page.locator('#enc-Form').getByRole('button', { name: 'Open calendar' }).first();
+  const button = page.locator('#cat-Form').getByRole('button', { name: 'Open calendar' }).first();
   await button.waitFor({ state: 'visible' });
 
   const group = button.locator('xpath=ancestor::div[@role="group"][1]');
   // Scroll it into view BEFORE measuring: button.click() below auto-scrolls
   // the button into view, which would move the group after its box was
   // read. That never happened on the old short Forms tab; on the single
-  // Encyclopedia page (issue #624) the field starts partly out of view.
+  // Catalog page (issue #624) the field starts partly out of view.
   await group.scrollIntoViewIfNeeded();
   const groupBox = await group.boundingBox();
   expect(groupBox).not.toBeNull();
@@ -91,9 +91,9 @@ test('clicking the date field itself (not the calendar button) does not open the
   await gotoTab(page, 'Forms & Zod Engine');
 
   // The profile form's Start Date picker (the first one on the old Forms
-  // tab) -- scoped to its Encyclopedia entry since issue #624 put every
+  // tab) -- scoped to its Catalog entry since issue #624 put every
   // DatePicker on one page.
-  const button = page.locator('#enc-Form').getByRole('button', { name: 'Open calendar' }).first();
+  const button = page.locator('#cat-Form').getByRole('button', { name: 'Open calendar' }).first();
   await button.waitFor({ state: 'visible' });
   const group = button.locator('xpath=ancestor::div[@role="group"][1]');
 

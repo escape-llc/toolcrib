@@ -2,8 +2,8 @@ import { type Page } from '@playwright/test';
 
 /**
  * Mirrors demo/App.tsx's NAV_GROUPS: three sidebar pages since issue #624
- * consolidated the ten per-topic component tabs into the Encyclopedia (and
- * renamed the Wireframe Gallery to Kits). The Encyclopedia shows one
+ * consolidated the ten per-topic component tabs into the Catalog (and
+ * renamed the Wireframe Gallery to Kits). The Catalog shows one
  * component per page, routed by the URL hash (demo/hashRoute.ts).
  *
  * The old tab labels are kept as aliases so the ~90 existing call sites
@@ -14,31 +14,31 @@ import { type Page } from '@playwright/test';
 const PAGES: Record<string, { page: string; entry?: string; system?: string }> = {
   Overview: { page: 'Overview' },
   'Overview & Architecture': { page: 'Overview' },
-  Encyclopedia: { page: 'Encyclopedia' },
+  Catalog: { page: 'Catalog' },
   Kits: { page: 'Kits' },
   // Legacy tab labels -> where that content lives now.
-  'Forms & Zod Engine': { page: 'Encyclopedia', entry: 'Form' },
-  'Data Table': { page: 'Encyclopedia', entry: 'DataTable' },
-  'Overlays & Actions': { page: 'Encyclopedia', entry: 'Drawer' },
-  'Toast Subsystem': { page: 'Encyclopedia', system: 'toasts' },
-  'Theme system': { page: 'Encyclopedia', system: 'theme' },
-  'Feedback & Status': { page: 'Encyclopedia', entry: 'Badge' },
-  'Navigation & Structure': { page: 'Encyclopedia', entry: 'Breadcrumb' },
-  'Common Layout Idioms': { page: 'Encyclopedia', entry: 'VStack' },
-  'Media Gallery': { page: 'Encyclopedia', entry: 'Carousel' },
-  'Component Showcase': { page: 'Encyclopedia', entry: 'Button' },
+  'Forms & Zod Engine': { page: 'Catalog', entry: 'Form' },
+  'Data Table': { page: 'Catalog', entry: 'DataTable' },
+  'Overlays & Actions': { page: 'Catalog', entry: 'Drawer' },
+  'Toast Subsystem': { page: 'Catalog', system: 'toasts' },
+  'Theme system': { page: 'Catalog', system: 'theme' },
+  'Feedback & Status': { page: 'Catalog', entry: 'Badge' },
+  'Navigation & Structure': { page: 'Catalog', entry: 'Breadcrumb' },
+  'Common Layout Idioms': { page: 'Catalog', entry: 'VStack' },
+  'Media Gallery': { page: 'Catalog', entry: 'Carousel' },
+  'Component Showcase': { page: 'Catalog', entry: 'Button' },
   Charts: { page: 'Kits' },
   'Wireframe Gallery': { page: 'Kits' },
 };
 
-/** The route (URL hash) of a component's Encyclopedia page, or of a Systems area's. */
-export const entryRoute = (component: string) => `#/encyclopedia/${encodeURIComponent(component)}`;
-export const systemRoute = (id: string) => `#/encyclopedia/system/${encodeURIComponent(id)}`;
+/** The route (URL hash) of a component's Catalog page, or of a Systems area's. */
+export const entryRoute = (component: string) => `#/catalog/${encodeURIComponent(component)}`;
+export const systemRoute = (id: string) => `#/catalog/system/${encodeURIComponent(id)}`;
 
 /**
  * Navigates to a demo page by its sidebar label (or a legacy tab label,
- * see PAGES). `component` opens that component's Encyclopedia page instead
- * -- e.g. `gotoTab(page, 'Encyclopedia', 'TabStrip')`. Waits for the page's
+ * see PAGES). `component` opens that component's Catalog page instead
+ * -- e.g. `gotoTab(page, 'Catalog', 'TabStrip')`. Waits for the page's
  * own section to be attached, so its demo is mounted before the spec runs.
  */
 export async function gotoTab(page: Page, label: string, component?: string): Promise<void> {
@@ -47,45 +47,45 @@ export async function gotoTab(page: Page, label: string, component?: string): Pr
     throw new Error(`gotoTab: no page mapped for "${label}" -- update e2e/nav.ts's PAGES`);
   }
   // Not `exact: true` -- the link's accessible name is its icon glyph
-  // plus the label (e.g. "🧰 Encyclopedia"), so an exact match against
+  // plus the label (e.g. "🧰 Catalog"), so an exact match against
   // the plain label alone would never hit. Scoped to the sidebar: an
-  // Encyclopedia page's own breadcrumb also links "Encyclopedia".
+  // Catalog page's own breadcrumb also links "Catalog".
   await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: target.page }).click();
   const entry = component ?? target.entry;
-  if (entry) await gotoRoute(page, entryRoute(entry), `#enc-${entry}`);
-  else if (target.system) await gotoRoute(page, systemRoute(target.system), `#enc-sys-${target.system}`);
+  if (entry) await gotoRoute(page, entryRoute(entry), `#cat-${entry}`);
+  else if (target.system) await gotoRoute(page, systemRoute(target.system), `#cat-sys-${target.system}`);
 }
 
 export interface DemoPage {
-  /** 'Overview', 'Encyclopedia', a component name, 'system:<id>', or 'Kits'. */
+  /** 'Overview', 'Catalog', a component name, 'system:<id>', or 'Kits'. */
   label: string;
   go: () => Promise<void>;
 }
 
 /**
  * Every page of the demo, for specs that sweep the whole thing (the
- * interactive sweep, the full axe scans): Overview, the Encyclopedia index,
- * each component and Systems page, then Kits. The Encyclopedia's pages are
+ * interactive sweep, the full axe scans): Overview, the Catalog index,
+ * each component and Systems page, then Kits. The Catalog's pages are
  * read from the index's own links, so a new component is covered the moment
  * it's in the manifest.
  */
 export async function demoPages(page: Page): Promise<DemoPage[]> {
-  await gotoTab(page, 'Encyclopedia');
+  await gotoTab(page, 'Catalog');
   const hrefs = await page
     .getByTestId('main-content-scroll')
-    .locator('a[href^="#/encyclopedia/"]')
+    .locator('a[href^="#/catalog/"]')
     .evaluateAll(links => [...new Set(links.map(a => a.getAttribute('href')!))]);
   const pages: DemoPage[] = [
     { label: 'Overview', go: () => gotoTab(page, 'Overview') },
-    { label: 'Encyclopedia', go: () => gotoTab(page, 'Encyclopedia') },
+    { label: 'Catalog', go: () => gotoTab(page, 'Catalog') },
   ];
   for (const href of hrefs) {
-    const [, kind, id] = href.match(/^#\/encyclopedia\/(system\/)?(.+)$/)!;
+    const [, kind, id] = href.match(/^#\/catalog\/(system\/)?(.+)$/)!;
     const name = decodeURIComponent(id);
     pages.push(
       kind
-        ? { label: `system:${name}`, go: () => gotoRoute(page, href, `#enc-sys-${name}`) }
-        : { label: name, go: () => gotoRoute(page, href, `#enc-${name}`) }
+        ? { label: `system:${name}`, go: () => gotoRoute(page, href, `#cat-sys-${name}`) }
+        : { label: name, go: () => gotoRoute(page, href, `#cat-${name}`) }
     );
   }
   pages.push({ label: 'Kits', go: () => gotoTab(page, 'Kits') });

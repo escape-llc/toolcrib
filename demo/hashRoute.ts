@@ -2,14 +2,14 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 // The demo's router (issue #624): the whole navigation state lives in the
 // URL hash, so browser back/forward, reloads and shared links all work, and
-// the Encyclopedia can show one component per page instead of mounting
+// the Catalog can show one component per page instead of mounting
 // every live demo at once.
 //
 //   #/overview                     Overview & Architecture
 //   #/kits                         Kits
-//   #/encyclopedia                 the shadow board (index)
-//   #/encyclopedia/Button          one component's page
-//   #/encyclopedia/system/toasts   one Systems area's page
+//   #/catalog                 the shadow board (index)
+//   #/catalog/Button          one component's page
+//   #/catalog/system/toasts   one Systems area's page
 //
 // Only hashes starting with `#/` are routes. Anything else -- a demo's own
 // `<Link href="#">`, HoverCard's `#profile` -- leaves the current route
@@ -18,7 +18,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 export type Route =
   | { page: 'overview' }
   | { page: 'kits' }
-  | { page: 'encyclopedia'; entry?: string; system?: string };
+  | { page: 'catalog'; entry?: string; system?: string };
 
 const DEFAULT_HASH = '#/overview';
 
@@ -27,20 +27,20 @@ export function parseRoute(hash: string): Route {
   switch (parts[0]) {
     case 'kits':
       return { page: 'kits' };
-    case 'encyclopedia':
-      if (parts[1] === 'system' && parts[2]) return { page: 'encyclopedia', system: parts[2] };
-      return parts[1] ? { page: 'encyclopedia', entry: parts[1] } : { page: 'encyclopedia' };
+    case 'catalog':
+      if (parts[1] === 'system' && parts[2]) return { page: 'catalog', system: parts[2] };
+      return parts[1] ? { page: 'catalog', entry: parts[1] } : { page: 'catalog' };
     default:
       return { page: 'overview' };
   }
 }
 
-/** The `href` for a route -- `routeHref({ page: 'encyclopedia', entry: 'Button' })` is `#/encyclopedia/Button`. */
+/** The `href` for a route -- `routeHref({ page: 'catalog', entry: 'Button' })` is `#/catalog/Button`. */
 export function routeHref(route: Route): string {
-  if (route.page !== 'encyclopedia') return `#/${route.page}`;
-  if (route.system) return `#/encyclopedia/system/${encodeURIComponent(route.system)}`;
-  if (route.entry) return `#/encyclopedia/${encodeURIComponent(route.entry)}`;
-  return '#/encyclopedia';
+  if (route.page !== 'catalog') return `#/${route.page}`;
+  if (route.system) return `#/catalog/system/${encodeURIComponent(route.system)}`;
+  if (route.entry) return `#/catalog/${encodeURIComponent(route.entry)}`;
+  return '#/catalog';
 }
 
 /** Navigates by setting the hash, which pushes a history entry -- back/forward just work. Accepts `/kits` or `#/kits`. */

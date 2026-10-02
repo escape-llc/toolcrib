@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generates demo/demoSources.generated.json: the exact source of every live
- * demo in the Encyclopedia (issue #638), so each component's page can show
+ * demo in the Catalog (issue #638), so each component's page can show
  * the code next to the running demo. Sliced straight out of demo/App.tsx
  * with the TypeScript Compiler API -- never hand-copied, so a snippet can't
  * drift from the demo it describes; `--check` (CI) fails if it does.

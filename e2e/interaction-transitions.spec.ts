@@ -20,7 +20,7 @@ import { gotoTab } from './nav';
 
 test('a ToggleGroup item transitions background-color/border-color, not just outline-color', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Toggle');
+  await gotoTab(page, 'Catalog', 'Toggle');
 
   const leftOption = page.getByText('◀ Left', { exact: true });
   await leftOption.waitFor({ state: 'visible' });

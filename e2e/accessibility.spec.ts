@@ -62,7 +62,7 @@ const COLOR_CONTRAST_DISABLED = ['color-contrast'];
 const BASE_UI_FOCUS_GUARD = '[data-base-ui-focus-guard]';
 
 /**
- * Scans every page of the demo (demoPages: Overview, the Encyclopedia index
+ * Scans every page of the demo (demoPages: Overview, the Catalog index
  * and each component/Systems page, Kits) on whatever theme state the caller
  * already set up -- deliberately doesn't navigate to '/' itself, since dark
  * mode (set by the caller before invoking this) is plain React state with
@@ -150,7 +150,7 @@ test('every tab has zero automatable WCAG 2.1 AA violations in light mode', asyn
   // second engine at all) -- Chromium-only for this spec until axe-core's
   // own WebKit support is more stable; re-test before removing this skip.
   test.skip(browserName === 'webkit', 'axe-core repeatedly crashes WebKit across a 12-tab scan -- see comment');
-  // ~95 scans since issue #624 split the Encyclopedia into one page per
+  // ~95 scans since issue #624 split the Catalog into one page per
   // component -- each small, but the count grew with it.
   test.setTimeout(300_000);
   await page.goto('/');
@@ -199,15 +199,15 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
     }
   };
 
-  await gotoTab(page, 'Encyclopedia', 'Popup');
+  await gotoTab(page, 'Catalog', 'Popup');
 
-  // One component per Encyclopedia page (issue #624): each overlay's trigger
+  // One component per Catalog page (issue #624): each overlay's trigger
   // is only mounted on its own component's page, so navigate before each.
   await page.getByRole('button', { name: 'Toggle Popup Menu' }).click();
   await scanNamed('Popup (Overlays tab)');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'Drawer');
+  await gotoTab(page, 'Catalog', 'Drawer');
   await page.getByRole('button', { name: 'Open Drawer' }).click();
   await scanNamed('Drawer');
   await page.keyboard.press('Escape');
@@ -215,7 +215,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // until then.
   await expect(page.getByTestId('drawer-backdrop')).not.toBeAttached();
 
-  await gotoTab(page, 'Encyclopedia', 'Modal');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
   await scanNamed('Modal');
 
@@ -249,7 +249,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.keyboard.press('Escape'); // closes the outer modal
   await expect(page.getByTestId('modal-container')).toHaveCount(0);
 
-  await gotoTab(page, 'Encyclopedia', 'CommandPalette');
+  await gotoTab(page, 'Catalog', 'CommandPalette');
   await page.getByRole('button', { name: 'Open Command Palette' }).click();
   await scanNamed('CommandPalette');
   await page.keyboard.press('Escape');
@@ -281,18 +281,18 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Select (Role Level dropdown)');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'DatePicker');
+  await gotoTab(page, 'Catalog', 'DatePicker');
   await page.getByRole('button', { name: 'Open calendar' }).first().click();
   await scanNamed('DatePicker calendar popover (Meeting Date, standalone)');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'UIGroup');
+  await gotoTab(page, 'Catalog', 'UIGroup');
 
   await page.getByRole('button', { name: 'Options', exact: true }).click();
   await scanNamed('Popup (Component Showcase tab)');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'Accordion');
+  await gotoTab(page, 'Catalog', 'Accordion');
 
   // aria-compliance-review's own §1 finding (issue #262): Accordion's
   // second panel (`defaultValue="faq-1"` leaves only the first item's
@@ -314,13 +314,13 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Accordion (second panel expanded)');
   await faq1Trigger.click(); // collapse again, leave state as found
 
-  await gotoTab(page, 'Encyclopedia', 'AlertDialog');
+  await gotoTab(page, 'Catalog', 'AlertDialog');
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
   await scanNamed('AlertDialog');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('alertdialog-container')).toHaveCount(0);
 
-  await gotoTab(page, 'Encyclopedia', 'Collapsible');
+  await gotoTab(page, 'Catalog', 'Collapsible');
   await page.getByText('Show advanced options').click();
   await scanNamed('Collapsible (expanded)');
   await page.getByText('Show advanced options').click(); // collapse again, leave state as found
@@ -328,19 +328,19 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // No aria-hidden-focus carve-out (#700). The Radix menus called
   // hideOthers() on open, aria-hiding #root; Base UI's menus hide nothing,
   // and its focus guards are excluded globally (see BASE_UI_FOCUS_GUARD).
-  await gotoTab(page, 'Encyclopedia', 'DropdownMenu');
+  await gotoTab(page, 'Catalog', 'DropdownMenu');
   await page.getByRole('button', { name: 'User Actions Menu' }).click();
   await expect(page.getByRole('menu')).toBeVisible();
   await scanNamed('DropdownMenu');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'ContextMenu');
+  await gotoTab(page, 'Catalog', 'ContextMenu');
   await page.getByText('Right-click this area').click({ button: 'right' });
   await expect(page.getByRole('menu')).toBeVisible();
   await scanNamed('ContextMenu');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'Combobox');
+  await gotoTab(page, 'Catalog', 'Combobox');
 
   // aria-compliance-review's own §1 finding: Combobox's real listbox
   // markup (both instances) was never axe-scanned -- its content only
@@ -363,7 +363,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Combobox (multi-select)');
   await page.keyboard.press('Escape');
 
-  await gotoTab(page, 'Encyclopedia', 'HoverCard');
+  await gotoTab(page, 'Catalog', 'HoverCard');
   // Opened by hover. Base UI also opens it on keyboard focus, but only when
   // the trigger matches :focus-visible, and whether a test's synthetic focus
   // counts differs by engine (it opened in Chromium and Windows WebKit, not
@@ -406,7 +406,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
 test('every tab has zero automatable WCAG 2.1 AA violations in dark mode', async ({ page, browserName }) => {
   // See the light-mode test's identical skip above for why.
   test.skip(browserName === 'webkit', 'axe-core repeatedly crashes WebKit across a 12-tab scan -- see comment');
-  // ~95 scans since issue #624 split the Encyclopedia into one page per
+  // ~95 scans since issue #624 split the Catalog into one page per
   // component -- each small, but the count grew with it.
   test.setTimeout(300_000);
   await page.goto('/');

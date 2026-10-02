@@ -9,7 +9,7 @@ const box = async (l: Locator) => (await l.boundingBox())!;
 
 test('TabStrip: the active-tab indicator glides to the clicked tab (#734)', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'TabStrip');
+  await gotoTab(page, 'Catalog', 'TabStrip');
   const target = page.getByRole('tab', { name: 'Activity' });
   const indicator = target.locator('xpath=ancestor::*[@role="tablist"][1]').locator('.ai-tab-indicator');
   const active = page.getByRole('tab', { selected: true }).filter({ has: page.locator('xpath=.') }).first();
@@ -39,7 +39,7 @@ test('TabStrip: the active-tab indicator glides to the clicked tab (#734)', asyn
 
 test('an anchored menu pops in from its trigger side (#735)', async ({ page }) => {
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'DropdownMenu');
+  await gotoTab(page, 'Catalog', 'DropdownMenu');
   await page.getByRole('button', { name: 'User Actions Menu' }).click();
   const menu = page.locator('.ai-menu-popup');
   await expect(menu).toBeVisible();
@@ -63,7 +63,7 @@ test('a long Combobox list stays inside a short viewport, above or below its fie
   });
   await page.setViewportSize({ width: 1280, height: 320 });
   await page.goto('/');
-  await gotoTab(page, 'Encyclopedia', 'Combobox');
+  await gotoTab(page, 'Catalog', 'Combobox');
   const input = page.getByPlaceholder('Search users...');
   // Centre the field so neither side has room for the full ~15rem list.
   await input.evaluate(el => el.scrollIntoView({ block: 'center' }));

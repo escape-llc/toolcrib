@@ -114,7 +114,7 @@ jobs:
       - name: Check src/index.ts matches source
         run: node scripts/generate-index.js --check
 
-      - name: Check the Encyclopedia's demo source snippets match demo/App.tsx
+      - name: Check the Catalog's demo source snippets match demo/App.tsx
         run: node scripts/generate-demo-sources.js --check
 
       # Unlike the three checks above, this one's "source" is live GitHub

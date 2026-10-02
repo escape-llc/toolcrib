@@ -13,7 +13,7 @@ const MIN_HEALTHY_HEIGHT_PX = 250;
 
 // The demo's three pages (issue #624) -- gotoTab (e2e/nav.ts) navigates to
 // each via its sidebar link.
-const TABS = ['Overview', 'Encyclopedia', 'Kits'];
+const TABS = ['Overview', 'Catalog', 'Kits'];
 
 test('the main content scroll region stays a healthy height on every tab, not collapsed', async ({ page }) => {
   await page.goto('/');
