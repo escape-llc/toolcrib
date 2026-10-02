@@ -21,8 +21,7 @@
  * Primitives, Overlays, Containers) -- those need no `names` list at all,
  * and can never drift, since a new component in that category is
  * automatically included by audit-segment.js's own category scan. The
- * other two base categories (Data Display: 22 components, Form Controls:
- * 17) are each split into two segments along a natural sub-grouping (see
+ * other two base categories (Data Display, Form Controls) are each split into two segments along a natural sub-grouping (see
  * issue #407's own proposal) -- that split HAS to be a hand-maintained
  * `names` list, since "charts & media" vs. "lists & status" isn't a fact
  * derivable from the category alone. audit-segment.js cross-checks every
@@ -77,14 +76,14 @@ export const SEGMENTS = [
     title: 'Form Controls — Value Inputs',
     kind: 'components',
     category: SPLIT_CATEGORIES.FORM_CONTROLS,
-    names: ['Button', 'Calendar', 'CheckboxGroup', 'Combobox', 'DatePicker', 'DateRangePicker', 'FileUpload', 'Input', 'Label', 'Listbox', 'NumberField', 'OTPField', 'RadioGroup', 'RangeCalendar', 'RangeSlider', 'Rating', 'Select', 'Slider', 'TimeField', 'Toggle', 'ToggleGroup'],
+    names: ['Button', 'Calendar', 'Checkbox', 'CheckboxGroup', 'Combobox', 'DatePicker', 'DateRangePicker', 'FileUpload', 'Input', 'Label', 'Listbox', 'NumberField', 'OTPField', 'RadioGroup', 'RangeCalendar', 'RangeSlider', 'Rating', 'Select', 'Slider', 'Switch', 'Textarea', 'TimeField', 'Toggle', 'ToggleGroup'],
   },
   {
     id: 'form-controls-composite',
     title: 'Form Controls — Composite',
     kind: 'components',
     category: SPLIT_CATEGORIES.FORM_CONTROLS,
-    names: ['Form', 'Pagination', 'ThemeEditor'],
+    names: ['Form', 'FormError', 'FormField', 'Pagination', 'SubmitButton', 'ThemeEditor'],
     // The shared slice.ts/useSliceOverrides.ts plumbing every form control
     // in segment 5 leans on -- reviewed once here, excluded from
     // 'theme-engine' below so the two segments don't overlap.

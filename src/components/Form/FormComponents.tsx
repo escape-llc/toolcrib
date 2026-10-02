@@ -46,6 +46,10 @@ export interface FormFieldProps {
   children: ReactNode;
 }
 
+/**
+ * @manifest Wraps one form control with its label, helper text and validation error, and binds the control to the Form field `name` via context
+ * @manifestCategory Form Controls
+ */
 export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children }) => {
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
@@ -194,6 +198,10 @@ export interface FormErrorProps {
   name?: string;
 }
 
+/**
+ * @manifest Validation error display: one field's error (after it is touched) with `name`, or a summary banner of all errors without it
+ * @manifestCategory Form Controls
+ */
 export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   const formContext = useOptionalFormContext();
   // Computed unconditionally, before the `!formContext` early return
@@ -476,6 +484,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
 });
 Button.displayName = 'Button';
 
+/**
+ * @manifest `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes every Button prop
+ * @manifestCategory Form Controls
+ */
 export const SubmitButton: React.FC<ButtonProps> = (props) => {
   const formContext = useOptionalFormContext();
   const isSubmitting = formContext ? formContext.isSubmitting : false;
@@ -870,6 +882,10 @@ export interface CheckboxProps {
   squareCorners?: SquareCornerOption;
 }
 
+/**
+ * @manifest Boolean checkbox bound to Form context; `onChange` receives an event-like `{ target: { checked } }` (unlike Switch)
+ * @manifestCategory Form Controls
+ */
 export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
@@ -970,6 +986,10 @@ export interface SwitchProps {
   squareCorners?: SquareCornerOption;
 }
 
+/**
+ * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives a plain `boolean` (unlike Checkbox)
+ * @manifestCategory Form Controls
+ */
 export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
@@ -1081,6 +1101,10 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   size?: ControlSize;
 }
 
+/**
+ * @manifest Multi-line text input bound to Form context, sized and themed like Input
+ * @manifestCategory Form Controls
+ */
 export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
