@@ -374,6 +374,15 @@ jobs:
   # (both were confirmed working normally in a real browser) -- excluded
   # below rather than accepted as a passing status code, which would be
   # broader than needed and could mask a genuinely gated page elsewhere.
+  #
+  # 429 and 503 ARE accepted, globally (issue #763): neither ever means a
+  # link is dead, only that the server won't answer a bot right now. On
+  # 2026-10-02 github.com's blob pages (blob/main/LICENSE, package.json,
+  # README.md) returned 503 to automated requests for hours while issue
+  # pages answered 200, with githubstatus.com showing no incident -- three
+  # CI runs in a row, main included, failed on the one blob link the docs
+  # carry. What this job exists to catch, a typo'd or rotted link, is a
+  # 404, which still fails.
   link-check:
     runs-on: ubuntu-latest
     steps:
@@ -383,5 +392,5 @@ jobs:
       - name: Check links in docs
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
         with:
-          args: --no-progress --exclude 'npmjs\.com' --exclude 'badge\.fury\.io' './**/*.md' './**/*.txt'
+          args: --no-progress --accept '200..=299,429,503' --exclude 'npmjs\.com' --exclude 'badge\.fury\.io' './**/*.md' './**/*.txt'
           fail: true
