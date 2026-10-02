@@ -1,6 +1,6 @@
 'use client';
 
-import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useRef, useState } from 'react';
+import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { Switch as BaseSwitch } from '@base-ui/react/switch';
 import { Eye, EyeOff } from 'lucide-react';
@@ -343,12 +343,12 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
  * @manifest Styled button with five variants, three sizes, subtheme colouring, and icon slots
  * @manifestCategory Form Controls
  */
-// forwardRef, not a plain React.FC — Button is used as the child of Radix
-// `asChild` compositions (Modal.CloseButton, AlertDialog.Cancel/Action), and
-// Radix's Slot mechanism clones the child with a composed `ref` prop.
-// Giving a ref to a plain function component is a silent no-op that also
-// logs a dev-mode console warning ("Function components cannot be given
-// refs") — forwardRef is what makes that composition actually work cleanly.
+// forwardRef, not a plain React.FC — Button is the element of Base UI
+// `render` compositions (Modal.CloseButton, AlertDialog.Cancel/Action), which
+// merge their own `ref` into it. On React 18, giving a ref to a plain
+// function component is a silent no-op with a dev-mode console warning
+// ("Function components cannot be given refs"). Every other Form control is
+// a forwardRef too (#759), so a consumer can focus it.
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   children,
   variant = 'primary',
@@ -485,10 +485,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
 Button.displayName = 'Button';
 
 /**
- * @manifest `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes the same `ButtonProps` (but no `ref`)
+ * @manifest `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes every Button prop, `ref` included
  * @manifestCategory Form Controls
  */
-export const SubmitButton: React.FC<ButtonProps> = (props) => {
+export const SubmitButton = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
   const formContext = useOptionalFormContext();
   const isSubmitting = formContext ? formContext.isSubmitting : false;
   // `disabled` must be applied AFTER `{...props}`, not before — see the
@@ -500,11 +500,12 @@ export const SubmitButton: React.FC<ButtonProps> = (props) => {
   // `isSubmitting ||` guard the instant the trailing spread runs — the
   // button would stop showing disabled while actively submitting.
   return (
-    <Button type="submit" {...props} disabled={isSubmitting || props.disabled}>
+    <Button ref={ref} type="submit" {...props} disabled={isSubmitting || props.disabled}>
       {isSubmitting ? 'Submitting...' : props.children || 'Submit'}
     </Button>
   );
-};
+});
+SubmitButton.displayName = 'SubmitButton';
 
 /** Props for `<Input>` — text input bound to Form context via `name`. */
 export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInputElement>, 'name' | 'size'>> {
@@ -565,7 +566,10 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"
  * @manifest Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle
  * @manifestCategory Form Controls
  */
-export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }) => {
+// forwardRef (#759), like every Form control: a consumer needs the element to
+// focus it, e.g. the first invalid field after a failed submit. React 18 is
+// still in the peer range, so `ref` can't just be a prop.
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -574,6 +578,9 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
   const strings = useLocaleStrings().input;
   useInjectInteractionStyles();
   const inputRef = useRef<HTMLInputElement>(null);
+  // The clear button and the section click-to-focus need their own ref to
+  // the same <input>; hand the consumer that element rather than merging refs.
+  useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, []);
 
   // Depends on registerField itself, not the whole formContext object —
   // see RadioGroup.tsx for why (Form recreates that object on every render,
@@ -856,7 +863,8 @@ export const Input: React.FC<InputProps> = ({ id, name: propName, type = 'text',
       )}
     </div>
   );
-};
+});
+Input.displayName = 'Input';
 
 // --- Select ---
 // Select is imported and exported from ./Select
@@ -871,8 +879,8 @@ export interface CheckboxProps {
   checked?: boolean;
   /** Initial checked state when neither `checked` nor a Form binding is present (uncontrolled). @default false */
   defaultChecked?: boolean;
-  /** Change handler. Receives a synthetic event with `target.checked`. */
-  onChange?: (e: { target: { checked: boolean } }) => void;
+  /** Change handler. Receives the new boolean value directly, like `<Switch>`'s. */
+  onChange?: (checked: boolean) => void;
   /** Per-instance size override. Shared with `<Switch>`. */
   overrides?: Partial<ToggleControlSliceState>;
   /**
@@ -883,10 +891,10 @@ export interface CheckboxProps {
 }
 
 /**
- * @manifest Boolean checkbox bound to Form context; `onChange` receives an event-like `{ target: { checked } }` (unlike Switch)
+ * @manifest Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element
  * @manifestCategory Form Controls
  */
-export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -917,12 +925,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
     } else if (externalChecked === undefined) {
       setLocalChecked(val);
     }
-    if (onChange) onChange({ target: { checked: val } });
+    if (onChange) onChange(val);
   };
 
   return (
     <Label>
       <BaseCheckbox.Root
+        ref={ref}
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
@@ -963,7 +972,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ name: propName, label, check
       {label && <span>{label}</span>}
     </Label>
   );
-};
+});
+Checkbox.displayName = 'Checkbox';
 
 /** Props for `<Switch>` — boolean toggle with a sliding track, bound to Form context via `name`. */
 export interface SwitchProps {
@@ -975,7 +985,7 @@ export interface SwitchProps {
   checked?: boolean;
   /** Initial checked state when neither `checked` nor a Form binding is present (uncontrolled). @default false */
   defaultChecked?: boolean;
-  /** Change handler. Receives the new boolean value directly. */
+  /** Change handler. Receives the new boolean value directly, like `<Checkbox>`'s. */
   onChange?: (checked: boolean) => void;
   /** Per-instance size override. Shared with `<Checkbox>`. */
   overrides?: Partial<ToggleControlSliceState>;
@@ -987,10 +997,10 @@ export interface SwitchProps {
 }
 
 /**
- * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives a plain `boolean` (unlike Checkbox)
+ * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element
  * @manifestCategory Form Controls
  */
-export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }) => {
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1031,6 +1041,7 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
     // before both were consolidated onto the shared <Label> component.
     <Label overrides={{ gap: 'spacious' }}>
       <BaseSwitch.Root
+        ref={ref}
         id={name || undefined}
         checked={checked}
         onCheckedChange={handleCheckedChange}
@@ -1087,7 +1098,8 @@ export const Switch: React.FC<SwitchProps> = ({ name: propName, label, checked: 
       {label && <span>{label}</span>}
     </Label>
   );
-};
+});
+Switch.displayName = 'Switch';
 
 /** Props for `<Textarea>` — multi-line text input bound to Form context via `name`. */
 export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'>> {
@@ -1105,7 +1117,7 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
  * @manifest Multi-line text input bound to Form context, sized and themed like Input
  * @manifestCategory Form Controls
  */
-export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }) => {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1131,6 +1143,7 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
   return (
     <textarea
       {...props}
+      ref={ref}
       id={id ?? (name || undefined)}
       name={name || undefined}
       rows={rows}
@@ -1163,4 +1176,5 @@ export const Textarea: React.FC<TextareaProps> = ({ id, name: propName, rows = 3
       }}
     />
   );
-};
+});
+Textarea.displayName = 'Textarea';

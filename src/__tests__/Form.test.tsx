@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { z } from 'zod';
 import { Form, useFormContext } from '../components/Form/FormContext';
 import { FormField, Input, Textarea, Checkbox, Switch, FormError, SubmitButton, Button } from '../components/Form/FormComponents';
@@ -1216,5 +1217,61 @@ describe('Form & Zod Validation Engine', () => {
       expect(toggle.style.borderTopLeftRadius).toBe('0px');
       expect(toggle.style.borderTopRightRadius).toBe('0px');
     });
+  });
+});
+
+// Issue #759: every Form control takes a ref (Button already did), so a
+// consumer can focus a field, e.g. the first invalid one after a failed
+// submit; and Checkbox's onChange gets the same plain boolean as Switch's.
+describe('Form controls forward refs and share one boolean onChange (issue #759)', () => {
+  it('Input: the ref is the <input>, the same element its clear button refocuses', () => {
+    const ref = React.createRef<HTMLInputElement>();
+    render(<Input ref={ref} aria-label="Name" value="x" onChange={vi.fn()} clearable />);
+    expect(ref.current).toBe(screen.getByRole('textbox', { name: 'Name' }));
+    act(() => ref.current!.focus());
+    expect(document.activeElement).toBe(ref.current);
+  });
+
+  it('Textarea: the ref is the <textarea>', () => {
+    const ref = React.createRef<HTMLTextAreaElement>();
+    render(<Textarea ref={ref} aria-label="Notes" />);
+    expect(ref.current).toBe(screen.getByRole('textbox', { name: 'Notes' }));
+  });
+
+  it('Checkbox and Switch: the ref is the focusable control', () => {
+    const boxRef = React.createRef<HTMLElement>();
+    const switchRef = React.createRef<HTMLElement>();
+    render(
+      <>
+        <Checkbox ref={boxRef} label="Agree" />
+        <Switch ref={switchRef} label="Notify" />
+      </>
+    );
+    expect(boxRef.current).toBe(screen.getByRole('checkbox'));
+    expect(switchRef.current).toBe(screen.getByRole('switch'));
+    act(() => boxRef.current!.focus());
+    expect(document.activeElement).toBe(boxRef.current);
+  });
+
+  it('SubmitButton: the ref is its submit <button>', () => {
+    const ref = React.createRef<HTMLButtonElement>();
+    render(<SubmitButton ref={ref}>Save</SubmitButton>);
+    expect(ref.current).toBe(screen.getByRole('button', { name: 'Save' }));
+    expect(ref.current!.type).toBe('submit');
+  });
+
+  it('Checkbox: onChange receives the new boolean, like Switch', () => {
+    const onBox = vi.fn();
+    const onSwitch = vi.fn();
+    render(
+      <>
+        <Checkbox label="Agree" onChange={onBox} />
+        <Switch label="Notify" onChange={onSwitch} />
+      </>
+    );
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('switch'));
+    expect(onBox).toHaveBeenCalledWith(true);
+    expect(onSwitch).toHaveBeenCalledWith(true);
   });
 });
