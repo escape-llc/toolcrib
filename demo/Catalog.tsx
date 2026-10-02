@@ -67,12 +67,29 @@ const isPageFrame = (d: EntryDemo): d is { pageFrame: ReactNode } =>
   typeof d === 'object' && d !== null && !React.isValidElement(d) && 'pageFrame' in d;
 const isLiveDemo = (d: EntryDemo) => d !== undefined && d !== null && !isSeeAlso(d) && !isPageFrame(d);
 
-/** The live demo's frame: a rule above and below sets it off from the description and the documentation. */
+/** The live demo's frame: a rule above sets it off from the description; DocsPanel's tint sets it off from what follows. */
 const DEMO_FRAME_STYLE: React.CSSProperties = {
   borderTop: '0.0625rem solid var(--ai-border)',
-  borderBottom: '0.0625rem solid var(--ai-border)',
   padding: '0.75rem 0',
 };
+
+/**
+ * The documentation under a live demo (pick ticket, spec sheet, blueprint...),
+ * tinted so it can't be mistaken for more demo. A rule alone wasn't enough:
+ * the docs are themed components too, so they looked like part of the demo.
+ * A style domain (not a per-Block subtheme), so everything inside that follows
+ * the domain picks up the same hue. `info` matches the fixtures board, the
+ * page's other reference material.
+ */
+function DocsPanel({ children }: { children: ReactNode }) {
+  return (
+    <StyleDomainProvider subtheme="info">
+      <Block padding="md" radius="md" border>
+        <VStack gap="sm">{children}</VStack>
+      </Block>
+    </StyleDomainProvider>
+  );
+}
 
 export interface SystemArea {
   id: string;
@@ -456,8 +473,9 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
 
             {/* The tool itself right under its one-line description, then
                 everything about it (#704): documentation first pushed a big
-                spec sheet or placard's worth of demo below the fold. Rules
-                above and below the demo mark it off from the documentation. */}
+                spec sheet or placard's worth of demo below the fold. The
+                documentation sits in a tinted DocsPanel, so the border between
+                the live demo and the docs about it reads at a glance. */}
             {isSeeAlso(demo) ? (
               <Text size="sm" tone="secondary">
                 Shown in action with <Link href={entryHref(demo.seeAlso)}>{demo.seeAlso}</Link>.{demo.note ? <> {demo.note}</> : null}
@@ -472,43 +490,45 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
               </div>
             )}
 
-            <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
-              {/* Wraps rather than scrolls: a horizontally-scrollable <code>
-                  is a scroll region with no keyboard access (axe:
-                  scrollable-region-focusable) -- Form's grouped import is
-                  long enough to trigger it. */}
-              <code style={{ ...codeStyle, display: 'block', padding: '0.375rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
-            </div>
+            <DocsPanel>
+              <div>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
+                {/* Wraps rather than scrolls: a horizontally-scrollable <code>
+                    is a scroll region with no keyboard access (axe:
+                    scrollable-region-focusable) -- Form's grouped import is
+                    long enough to trigger it. */}
+                <code style={{ ...codeStyle, display: 'block', padding: '0.375rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
+              </div>
 
-            {(c.childComponents?.length || c.constraints) && (
-              <VStack gap="xs">
-                {c.childComponents?.length ? (
-                  <Text size="sm" tone="secondary">
-                    Commonly used with:{' '}
-                    {c.childComponents.map((s, i) => (
-                      <React.Fragment key={s}>
-                        {i > 0 && ', '}
-                        {COMPONENTS.some(x => x.name === s) ? <Link href={entryHref(s)}>{s}</Link> : <code style={codeStyle}>{s}</code>}
-                      </React.Fragment>
-                    ))}
+              {(c.childComponents?.length || c.constraints) && (
+                <VStack gap="xs">
+                  {c.childComponents?.length ? (
+                    <Text size="sm" tone="secondary">
+                      Commonly used with:{' '}
+                      {c.childComponents.map((s, i) => (
+                        <React.Fragment key={s}>
+                          {i > 0 && ', '}
+                          {COMPONENTS.some(x => x.name === s) ? <Link href={entryHref(s)}>{s}</Link> : <code style={codeStyle}>{s}</code>}
+                        </React.Fragment>
+                      ))}
+                    </Text>
+                  ) : null}
+                  {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
+                </VStack>
+              )}
+
+              {c.antiPatternAvoid && (
+                <Block subtheme="warning" padding="sm" radius="sm">
+                  <Text size="sm">
+                    <strong>⚠ Safety placard.</strong> <strong>Don't:</strong> {md(c.antiPatternAvoid)}
+                    {c.antiPatternInstead && <><br /><strong>Do:</strong> {md(c.antiPatternInstead)}</>}
                   </Text>
-                ) : null}
-                {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
-              </VStack>
-            )}
+                </Block>
+              )}
 
-            {c.antiPatternAvoid && (
-              <Block subtheme="warning" padding="sm" radius="sm">
-                <Text size="sm">
-                  <strong>⚠ Safety placard.</strong> <strong>Don't:</strong> {md(c.antiPatternAvoid)}
-                  {c.antiPatternInstead && <><br /><strong>Do:</strong> {md(c.antiPatternInstead)}</>}
-                </Text>
-              </Block>
-            )}
-
-            <SpecSheet component={c} />
-            {isLiveDemo(demo) && <Blueprint source={DEMO_SOURCES.components[c.name]} />}
+              <SpecSheet component={c} />
+              {isLiveDemo(demo) && <Blueprint source={DEMO_SOURCES.components[c.name]} />}
+            </DocsPanel>
           </VStack>
         </Card.Content>
       </Card>
@@ -548,12 +568,16 @@ function SystemCard({ area }: { area: SystemArea }) {
             <Text>{area.summary}</Text>
             {/* Demo first, then the documentation -- same order as a tool's page (#704). */}
             {area.demo && <div style={DEMO_FRAME_STYLE}>{area.demo}</div>}
-            {area.parts?.length ? (
-              <Text size="sm" tone="secondary">
-                Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
-              </Text>
-            ) : null}
-            {area.demo && <Blueprint source={DEMO_SOURCES.systems[area.id]} />}
+            {(area.parts?.length || area.demo) && (
+              <DocsPanel>
+                {area.parts?.length ? (
+                  <Text size="sm" tone="secondary">
+                    Parts: {area.parts.map((p, i) => <React.Fragment key={p}>{i > 0 && ', '}<code style={codeStyle}>{p}</code></React.Fragment>)}
+                  </Text>
+                ) : null}
+                {area.demo && <Blueprint source={DEMO_SOURCES.systems[area.id]} />}
+              </DocsPanel>
+            )}
           </VStack>
         </Card.Content>
       </Card>
