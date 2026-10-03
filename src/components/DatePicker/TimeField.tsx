@@ -155,6 +155,8 @@ export const TimeField: React.FC<TimeFieldProps> = ({
             fontSize: CONTROL_FONT_SIZE_VAR[size],
             color: 'var(--ai-text-primary, #111827)',
             width: 'fit-content',
+            cursor: isDisabled ? 'not-allowed' : undefined,
+            opacity: isDisabled ? 0.6 : undefined,
             ...cornerOverrides,
           }}
         >

@@ -710,6 +710,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
         // The section side's own padding provides the gap to the section.
         paddingLeft: hasLeading ? '0.375rem' : undefined,
         paddingRight: hasTrailing || showClearButton || showRevealToggle ? '0.375rem' : undefined,
+        // The wrapper already dims; the input just has to not undo its cursor.
+        cursor: disabled ? 'not-allowed' : undefined,
         border: 'none',
         borderRadius: 0,
         background: 'transparent',
@@ -731,6 +733,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
         fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
+        // Same dimmed + not-allowed look as the grouped layout's wrapper,
+        // Checkbox and Select.
+        cursor: disabled ? 'not-allowed' : undefined,
+        opacity: disabled ? 0.6 : undefined,
         // No inline transition -- .ai-focus-ring's own shared rule
         // (interactionStyles.ts) already covers border-color and
         // box-shadow and is !important, so this would be silently
@@ -979,7 +985,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
           ✓
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Root>
-      {label && <span>{label}</span>}
+      {label && <span style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>{label}</span>}
     </Label>
   );
 });
@@ -1110,7 +1116,7 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
           }}
         />
       </BaseSwitch.Root>
-      {label && <span>{label}</span>}
+      {label && <span style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>{label}</span>}
     </Label>
   );
 });

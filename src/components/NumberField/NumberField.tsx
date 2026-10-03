@@ -186,6 +186,8 @@ export const NumberField: React.FC<NumberFieldProps> = ({
             borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
             background: isDisabled ? 'var(--ai-bg-container, #f3f4f6)' : 'var(--ai-bg-surface, #ffffff)',
             overflow: 'hidden',
+            cursor: isDisabled ? 'not-allowed' : undefined,
+            opacity: isDisabled ? 0.6 : undefined,
             ...cornerOverrides,
           }}
         >

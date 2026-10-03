@@ -79,3 +79,14 @@ a:focus-visible {
    the JS-computed useCornerSquaring() inline style doesn't reach (a plain
    child passed directly to <Splitter> without <Splitter.Panel>, a
    non-toolcrib component child, anything nested two-plus levels deep). */
+
+
+/* Catalog "States" taxonomy (demo/stateExamples.tsx): draws the focus ring on
+   a control inside a [data-demo-state="focused"] wrapper without moving real
+   focus. Same colour the real :focus-visible rule uses (interactionStyles.ts). */
+/* Outermost ring element only: a real focus lights the wrapper, not also
+   the control nested inside it (DatePicker's calendar button). */
+[data-demo-state="focused"] .ai-focus-ring:not(.ai-focus-ring .ai-focus-ring),
+[data-demo-state="focused"] .ai-btn {
+  outline-color: var(--ai-focus-ring, #3b82f6) !important;
+}

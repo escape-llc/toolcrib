@@ -109,6 +109,12 @@ try {
     path.join(tmpDir, 'app/hashRoute.ts'),
     `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/hashRoute.ts'), 'utf-8')}`
   );
+  // The Catalog's per-control States examples (demo/stateExamples.tsx),
+  // imported by Catalog.tsx. Its imports are '#toolcrib', react and zod.
+  fs.writeFileSync(
+    path.join(tmpDir, 'app/stateExamples.tsx'),
+    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/stateExamples.tsx'), 'utf-8')}`
+  );
   fs.copyFileSync(path.join(REPO_ROOT, 'demo/index.css'), path.join(tmpDir, 'app/demo.css'));
   fs.mkdirSync(path.join(tmpDir, 'public'), { recursive: true });
   fs.copyFileSync(

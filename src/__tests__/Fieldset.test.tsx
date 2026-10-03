@@ -139,6 +139,24 @@ describe('Fieldset', () => {
     });
   });
 
+  describe('looks disabled, not just behaves disabled', () => {
+    it('dims a plain Input and shows the not-allowed cursor', () => {
+      render(<Fieldset legend="g" disabled><Input name="a" aria-label="a" /></Fieldset>);
+      expect(screen.getByLabelText('a')).toHaveStyle({ opacity: '0.6', cursor: 'not-allowed' });
+    });
+
+    it('dims the Checkbox and Switch labels along with the control', () => {
+      render(<Fieldset legend="g" disabled><Checkbox name="c" label="Gift" /><Switch name="s" label="Notify" /></Fieldset>);
+      expect(screen.getByText('Gift')).toHaveStyle({ opacity: '0.6', cursor: 'not-allowed' });
+      expect(screen.getByText('Notify')).toHaveStyle({ opacity: '0.6', cursor: 'not-allowed' });
+    });
+
+    it('leaves an enabled Input undimmed', () => {
+      render(<Input name="a" aria-label="a" />);
+      expect(screen.getByLabelText('a').style.opacity).toBe('');
+    });
+  });
+
   describe('Checkbox and Switch take their own disabled prop', () => {
     it('ignores a click when disabled, with no Fieldset involved', () => {
       const onChange = vi.fn();
