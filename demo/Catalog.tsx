@@ -174,6 +174,27 @@ function writeLastVisited(key: string) {
 }
 
 /**
+ * Centre `el` in its nearest scroll container, and scroll nothing else.
+ * Not `el.scrollIntoView()`: that scrolls every scrollable ancestor, and an
+ * `overflow: hidden` one counts. The page's splitter is one, so going back
+ * from a fixture page shoved the whole splitter up inside the window: the
+ * top clipped, a blank band under the event log. A component page's tile is
+ * already in view by then, so only the fixtures board showed it.
+ */
+function centerInScrollParent(el: HTMLElement) {
+  let parent = el.parentElement;
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent);
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) break;
+    parent = parent.parentElement;
+  }
+  if (!parent) return;
+  const box = el.getBoundingClientRect();
+  const view = parent.getBoundingClientRect();
+  parent.scrollTop += box.top + box.height / 2 - (view.top + view.height / 2);
+}
+
+/**
  * One board tile, two lines like a bin label: part number, then the name.
  * `state` gives a tool tile its outline (see TILE_STYLE). With no `state`
  * (a fixture) the tile is a themed `<Block>`, so it takes its color from the
@@ -200,7 +221,7 @@ function BoardTile({
     if (!lastVisited) return;
     // After the page's own scroll-to-top on route change (a parent effect,
     // which runs after this one).
-    const frame = requestAnimationFrame(() => ref.current?.scrollIntoView?.({ block: 'center' }));
+    const frame = requestAnimationFrame(() => ref.current && centerInScrollParent(ref.current));
     return () => cancelAnimationFrame(frame);
   }, [lastVisited]);
 

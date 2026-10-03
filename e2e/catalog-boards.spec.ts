@@ -71,3 +71,31 @@ test('fixtures are a board of their own, in a distinct hue, and mark the last on
   await expect(board.locator(`a[href="${href}"]`)).toHaveAttribute('data-last-visited', '');
   await expect(board.locator('[data-last-visited]')).toHaveCount(1);
 });
+
+// Going back from a fixture used to shove the whole page splitter up inside
+// the window (top clipped, a blank band under the event log): the last-visited
+// tile was scrolled into view with scrollIntoView(), which scrolls every
+// scrollable ancestor, overflow:hidden ones included. A tool tile didn't show
+// it, because it was already in view.
+test('going back from a fixture leaves the page layout where it was', async ({ page }) => {
+  await page.setViewportSize({ width: 1680, height: 1100 });
+  await page.goto('/');
+  await gotoTab(page, 'Catalog');
+  const board = page.getByTestId('main-content-scroll');
+  const before = (await board.boundingBox())!;
+
+  const last = board.locator('[data-shadow-tile="fixture"]').last();
+  const href = (await last.getAttribute('href'))!;
+  await last.click();
+  await expect(page.getByText('Fixtures', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(board.locator(`a[href="${href}"]`)).toHaveAttribute('data-last-visited', '');
+
+  // Both the board and the window are unmoved, and the tile is in view in the
+  // board's own scroll region.
+  await expect(board.locator(`a[href="${href}"]`)).toBeInViewport();
+  const after = (await board.boundingBox())!;
+  expect(after.y).toBe(before.y);
+  expect(after.height).toBe(before.height);
+  expect(await page.evaluate(() => [window.scrollX, window.scrollY, document.scrollingElement?.scrollTop])).toEqual([0, 0, 0]);
+});
