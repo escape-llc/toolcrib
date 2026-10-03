@@ -40,8 +40,16 @@ import { demoPages } from './nav';
 // settle() silently burned its full 2s timeout. That went unnoticed while
 // they sat on separate tabs; issue #624's single Catalog page put
 // them in every iteration.
-const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], .ai-popup-content';
+//
+// Menus count too (#722): a Base UI menu is modal, so while it is open its
+// inert backdrop intercepts every click behind it. They weren't listed, so
+// settle() thought a still-open menu was closed.
+const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], [role="menu"], [data-base-ui-inert], .ai-popup-content';
 async function settle(page: Page) {
+  // Base UI mounts a popup a frame after the click that opens it. Escape sent
+  // before that finds nothing to close and is lost, leaving the menu to open
+  // right after and block every later click (#722). Let two frames pass first.
+  await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done())))).catch(() => {});
   await page.keyboard.press('Escape').catch(() => {});
   await expect(page.locator(OPEN_OVERLAY)).toHaveCount(0, { timeout: 2000 }).catch(() => {});
 }
@@ -102,10 +110,16 @@ async function stayOn(page: Page, hash: string, go: () => Promise<void>) {
   if (new URL(page.url()).hash !== hash) await go();
 }
 
-test('no console errors while clicking through every interactive control on every page', async ({ page }) => {
-  // Each page is small since issue #624 split the Catalog into one
-  // component per page, but there are ~95 of them; still a hard ceiling, so
-  // a genuine hang fails rather than running forever.
+// The ~95 pages are dealt round-robin into SWEEP_SHARDS independent tests,
+// each with its own timeout. One serial test used about 60% of its 300s on a
+// quiet machine and went over on a loaded WebKit runner (#722), failing with
+// no page to blame. Every page is still swept exactly once; page i goes to
+// shard i % SWEEP_SHARDS, so a new page lands in a shard on its own.
+const SWEEP_SHARDS = 8;
+
+for (let shard = 0; shard < SWEEP_SHARDS; shard++) {
+test(`no console errors while clicking through every interactive control on every page (shard ${shard + 1}/${SWEEP_SHARDS})`, async ({ page }) => {
+  // A hard ceiling per shard, so a genuine hang fails rather than running forever.
   test.setTimeout(300_000);
   const errors: string[] = [];
   page.on('console', msg => {
@@ -117,7 +131,8 @@ test('no console errors while clicking through every interactive control on ever
 
   await page.goto('/');
 
-  for (const { go } of await demoPages(page)) {
+  const pages = await demoPages(page);
+  for (const { go } of pages.filter((_, i) => i % SWEEP_SHARDS === shard)) {
     await go();
     // Lets the panel's own entrance transition finish before the sweep
     // starts clicking through it — mid-transition is exactly when a
@@ -146,14 +161,24 @@ test('no console errors while clicking through every interactive control on ever
       // actionability retry loop, so a genuinely-gone element costs
       // milliseconds instead of clickRobust()'s two full click timeouts.
       if ((await btn.count()) === 0) continue;
-      if (!(await clickRobust(btn))) continue; // detached/obscured by the time its turn came up — skip, not a failure
+      let clicked = await clickRobust(btn);
+      // A click that fails while an overlay is still open is that overlay's
+      // doing, not the control's: close it and try once more. Skipping on, with
+      // the overlay still up, made every remaining control on the page burn two
+      // full click timeouts (~4.3s each) before being skipped too (#722).
+      if (!clicked && (await page.locator(OPEN_OVERLAY).count()) > 0) {
+        await settle(page);
+        clicked = await clickRobust(btn);
+      }
+      if (!clicked) continue; // detached/obscured by the time its turn came up — skip, not a failure
       await settle(page);
       await stayOn(page, hash, go);
     }
   }
 
-  expect(errors, `console errors during full interactive sweep:\n${errors.join('\n')}`).toEqual([]);
+  expect(errors, `console errors during interactive sweep (shard ${shard + 1}/${SWEEP_SHARDS}):\n${errors.join('\n')}`).toEqual([]);
 });
+}
 
 test("interacting with one card's own control never shifts a sibling card's position", async ({ page }) => {
   // Same reasoning as the sweep above's own timeout: this walks every card
