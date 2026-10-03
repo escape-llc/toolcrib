@@ -110,10 +110,16 @@ async function stayOn(page: Page, hash: string, go: () => Promise<void>) {
   if (new URL(page.url()).hash !== hash) await go();
 }
 
-test('no console errors while clicking through every interactive control on every page', async ({ page }) => {
-  // Each page is small since issue #624 split the Catalog into one
-  // component per page, but there are ~95 of them; still a hard ceiling, so
-  // a genuine hang fails rather than running forever.
+// The ~95 pages are dealt round-robin into SWEEP_SHARDS independent tests,
+// each with its own timeout. One serial test used about 60% of its 300s on a
+// quiet machine and went over on a loaded WebKit runner (#722), failing with
+// no page to blame. Every page is still swept exactly once; page i goes to
+// shard i % SWEEP_SHARDS, so a new page lands in a shard on its own.
+const SWEEP_SHARDS = 8;
+
+for (let shard = 0; shard < SWEEP_SHARDS; shard++) {
+test(`no console errors while clicking through every interactive control on every page (shard ${shard + 1}/${SWEEP_SHARDS})`, async ({ page }) => {
+  // A hard ceiling per shard, so a genuine hang fails rather than running forever.
   test.setTimeout(300_000);
   const errors: string[] = [];
   page.on('console', msg => {
@@ -125,7 +131,8 @@ test('no console errors while clicking through every interactive control on ever
 
   await page.goto('/');
 
-  for (const { go } of await demoPages(page)) {
+  const pages = await demoPages(page);
+  for (const { go } of pages.filter((_, i) => i % SWEEP_SHARDS === shard)) {
     await go();
     // Lets the panel's own entrance transition finish before the sweep
     // starts clicking through it — mid-transition is exactly when a
@@ -169,8 +176,9 @@ test('no console errors while clicking through every interactive control on ever
     }
   }
 
-  expect(errors, `console errors during full interactive sweep:\n${errors.join('\n')}`).toEqual([]);
+  expect(errors, `console errors during interactive sweep (shard ${shard + 1}/${SWEEP_SHARDS}):\n${errors.join('\n')}`).toEqual([]);
 });
+}
 
 test("interacting with one card's own control never shifts a sibling card's position", async ({ page }) => {
   // Same reasoning as the sweep above's own timeout: this walks every card
