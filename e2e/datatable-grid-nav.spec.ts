@@ -183,7 +183,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // not role="button" -- DataTable composes the shared <ToggleGroup>
     // for this now (the real WAI-ARIA "Radio Group" pattern), not 3
     // hand-rolled Buttons. `.focus()` still works directly on a
-    // tabindex="-1" option despite Radix's own roving-tabindex management
+    // tabindex="-1" option despite the primitive's own roving-tabindex management
     // (only one option is a real Tab stop at a time) -- tabindex="-1"
     // elements remain focusable via script, just not via sequential Tab.
     await page.getByRole('radio', { name: 'Normal' }).focus();

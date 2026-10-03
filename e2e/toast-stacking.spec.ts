@@ -14,7 +14,7 @@ import { gotoTab } from './nav';
 // Also the thing that actually caught useAdaptiveSize's own portal-timing
 // bug (fixed alongside this): the FIRST toast ever mounted never got its
 // real height measured at all (rootRef.current was still null on that
-// hook's very first effect run, since Radix's Toast.Root portals into a
+// hook's very first effect run, since the toast root portals into a
 // Viewport that's itself still being set up in the same commit) -- every
 // OTHER toast's stackOffset kept computing off the stale
 // TOAST_ESTIMATED_HEIGHT_PX fallback for it forever, which this spec's own

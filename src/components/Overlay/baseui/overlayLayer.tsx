@@ -3,7 +3,7 @@
 // The mechanics every portal overlay built on Base UI shares, done once
 // (#670, #692). Modal/AlertDialog/Drawer (modal family) and Popup/Tooltip/
 // HoverCard/menus/Select/Combobox (anchored family) all need the same four
-// things the Radix versions each wire by hand:
+// things each would otherwise wire by hand:
 //   1. the portal container: the target document's body, so an overlay opened
 //      inside an iframe or pop-out window renders there, not in the host page;
 //   2. a z-index from the toolkit's tiers, stacked strictly upward for nested
@@ -12,8 +12,8 @@
 //      (toolcrib's injectGlobalStyle already takes it);
 //   4. enter/exit keyframes keyed on Base UI's state attributes: data-open
 //      while open, data-closed through the exit. Base UI keeps the node mounted
-//      until the element's running animations finish, the same guarantee Radix
-//      Presence gives (measured in the #670 Popup spike: animationend, no cancel).
+//      until the element's running animations finish, the same guarantee a
+//      Presence component gives (measured in the #670 Popup spike: animationend, no cancel).
 import React, { useEffect, type ReactElement, type ReactNode } from 'react';
 import { CSPProvider } from '@base-ui/react/csp-provider';
 import { useStackedZIndex } from '../../../theme/zIndexStack';
@@ -110,9 +110,8 @@ const ARROW_OUTER_EDGES: Record<string, [string, string]> = {
 };
 
 /**
- * The arrow for an anchored overlay (Tooltip, HoverCard). Radix's Arrow was an
- * SVG triangle to fill; Base UI's is an empty element it positions along the
- * cross axis, with `data-side` naming the popup's side. This draws it as a
+ * The arrow for an anchored overlay (Tooltip, HoverCard). Base UI's is an
+ * empty element it positions along the cross axis, with `data-side` naming the popup's side. This draws it as a
  * square rotated 45°, pulled half out of the popup on the main axis, so its
  * outer half reads as a point. Set on the arrow's inline style:
  * `--ai-arrow-bg` (the popup's background) and, for a bordered popup,

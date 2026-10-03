@@ -46,11 +46,11 @@ describe('resolveDependencyDecisions', () => {
     const result = resolveDependencyDecisions(userPkg, {
       react: '^18.0.0',
       zod: '^4.0.0',
-      '@radix-ui/react-dialog': '^1.1.0', // toAdd
+      '@base-ui/react': '^1.1.0', // toAdd
     });
     expect(result.compatible.map((c) => c.name)).toEqual(['react']);
     expect(result.conflicts.map((c) => c.name)).toEqual(['zod']);
-    expect(result.toAdd.map((c) => c.name)).toEqual(['@radix-ui/react-dialog']);
+    expect(result.toAdd.map((c) => c.name)).toEqual(['@base-ui/react']);
   });
 });
 

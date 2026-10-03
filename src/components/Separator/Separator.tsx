@@ -34,7 +34,7 @@ export const Separator: React.FC<SeparatorProps> = ({
 
   // A plain element, not a library primitive (#702): Base UI's Separator is
   // always role="separator" with no decorative mode, and there's nothing
-  // else to it. Decorative is role="none" (Radix's shape); a semantic one is
+  // else to it. Decorative is role="none"; a semantic one is
   // role="separator", with aria-orientation only where it differs from the
   // role's implicit horizontal.
   return (

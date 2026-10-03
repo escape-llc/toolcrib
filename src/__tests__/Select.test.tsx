@@ -37,7 +37,7 @@ describe('Select Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  // Issue #625: a <style> injected while the listbox opens (Radix's
+  // Issue #625: a <style> injected while the listbox opens (the previous primitive's
   // Select.Viewport injected one) is blocked by a strict style-src CSP unless
   // it carries the configured nonce -- found by e2e/csp-nonce.spec.ts's
   // production-build test. Checks every style that appears while this Select
@@ -60,7 +60,7 @@ describe('Select Component', () => {
   // back into the trigger after picking a different option -- passing
   // `defaultValue` through the `value` prop (the previous implementation)
   // made the trigger look controlled from the very first render, so
-  // Radix's own internal selection change was silently discarded and the
+  // the primitive's own internal selection change was silently discarded and the
   // trigger stayed pinned to the original `defaultValue` forever. The
   // identical freeze found live in `<DatePicker>`/`<TimeField>` (see their
   // own component comments) and in `<RadioGroup>`.

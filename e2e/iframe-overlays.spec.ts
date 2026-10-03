@@ -9,7 +9,7 @@ import { test, expect, type Frame, type Page } from '@playwright/test';
 // It asserts the correct behavior, so a failure names which piece still
 // reaches for the global document.
 //
-// Radix failed five of these on both engines (focus trap, focus return,
+// The previous overlay primitives failed five of these on both engines (focus trap, focus return,
 // outside-press for Modal and Popup, scroll lock: all acted on the global
 // document). They were pinned as expected failures (#692) until Modal and
 // Popup moved to Base UI (#696), which passes them all.

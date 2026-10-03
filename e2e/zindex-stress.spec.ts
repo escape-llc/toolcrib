@@ -61,11 +61,11 @@ test('two nested Modals get strictly increasing z-index, not a tie', async ({ pa
   // reconfirms AGENTS.md's prior manual finding as a standing, automated
   // regression rather than a one-time check. A brief settle wait between
   // the two Escape presses is required, not just defensive: Modal has no
-  // custom Escape handler of its own, relying entirely on Radix Dialog's
+  // custom Escape handler of its own, relying entirely on the Dialog's
   // built-in dismissable-layer stack (which tracks which mounted dialog is
   // currently "top" and should receive the keydown). React removing the
   // nested dialog's DOM node (what toHaveCount(1) alone confirms) and
-  // Radix's own internal layer-stack bookkeeping registering that removal
+  // the internal layer-stack bookkeeping registering that removal
   // are two different things -- confirmed for real: on a real CI runner
   // (ubuntu-latest, headless Chromium), firing the second Escape
   // immediately after the count-1 assertion passed twice in a row without
@@ -82,7 +82,7 @@ test('two nested Modals get strictly increasing z-index, not a tie', async ({ pa
 test('a Toast fired from inside an open Modal stacks above it, per Z_INDEX.TOAST > Z_INDEX.MODAL', async ({ page }) => {
   // Deliberately not DropdownMenu/ContextMenu paired with anything else --
   // a menu is modal while open (Base UI blocks pointer interaction outside
-  // it and traps focus; the Radix version aria-hid the page), so "two
+  // it and traps focus), so "two
   // different overlay types open at once" isn't achievable with a
   // Menu-family component as one of the two. Toast is: it doesn't take
   // focus or hide the page, so it's the one overlay type that can

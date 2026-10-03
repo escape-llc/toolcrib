@@ -26,7 +26,7 @@ describe('Slider Component', () => {
     // (a) a Slider inside <FormField name="x" label="X"> had the same
     // broken htmlFor association Select/Combobox/Input had before their own
     // fixes, and (b) a standalone Slider outside any FormField had no
-    // accessible name at all — Radix's Thumb only falls back to a generic
+    // accessible name at all — the thumb only falls back to a generic
     // positional label like "Value" when neither aria-label nor a
     // <label htmlFor> resolves.
     it('names the thumb from the surrounding FormField label', async () => {

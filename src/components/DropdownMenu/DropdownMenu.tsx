@@ -1,15 +1,14 @@
 'use client';
 
-// DropdownMenu on Base UI's Menu (#670, #700), a drop-in for the earlier Radix
-// version (same export, props and events). Portal container, stacked z-index,
+// DropdownMenu on Base UI's Menu (#670, #700), a drop-in for the earlier
+// implementation (same export, props and events). Portal container, stacked z-index,
 // CSP nonce and enter/exit keyframes come from the shared overlay layer; the
 // popup and item looks are shared with ContextMenu (./menuParts).
 //
-// What Base UI removes, as in Popup: the Radix version wrapped the trigger in a
-// <div> for asChild and nulled that div's ARIA attributes. Base UI's render
-// prop puts the trigger semantics on the consumer's own element, and doesn't
-// aria-hide the rest of the page while open (Radix's hideOthers() did, which
-// needed an aria-hidden-focus axe carve-out).
+// What Base UI gives us, as in Popup: its render prop puts the trigger
+// semantics on the consumer's own element (no wrapper <div> to null the ARIA
+// attributes of), and it doesn't aria-hide the rest of the page while open, so
+// there is no aria-hidden-focus axe carve-out.
 import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { aiBus } from '../../eventBus/eventBus';
@@ -86,7 +85,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   useOverlayAnimations('toolcrib-menu-animations-baseui', [{ className: MENU_POPUP_CLASS, ...ANCHORED_POP }]);
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  // Base UI's popup carries data-side like Radix's, so the collision-aware
+  // Base UI's popup carries data-side, so the collision-aware
   // corner squaring (see Popup.tsx) works unchanged.
   const actualSide = useActualPopoverSide(contentRef, side, isOpen);
   const squaring = computeCornerSquaring(actualSide, align, isOpen, 'var(--ai-radius-md, 0.375rem)');

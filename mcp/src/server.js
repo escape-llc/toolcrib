@@ -164,7 +164,7 @@ export function buildServer({ root, parserMap } = {}) {
     'list_examples',
     {
       description:
-        'Lists the worked examples available for mechanisms with no prior in ordinary React/Radix training data (event bus sticky replay, overrides+StyleDomain composition, router integration, etc.).',
+        'Lists the worked examples available for mechanisms with no prior in ordinary React training data (event bus sticky replay, overrides+StyleDomain composition, router integration, etc.).',
     },
     async () => {
       refreshIfStale();

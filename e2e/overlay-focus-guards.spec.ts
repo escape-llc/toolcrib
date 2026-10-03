@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
 // on something hidden from assistive tech. axe reads the DOM statically and
 // can't see that redirect; this spec does. It drives Tab and Shift+Tab
 // around an open Modal and checks where focus settles after each key.
-// Library-agnostic: it holds for Radix's guards and for Base UI's.
+// Library-agnostic: it holds for any focus guards, Base UI's included.
 
 /** Where focus settled: 'ok', or a description of what's wrong with it. */
 function focusProblem(page: Page): Promise<string> {
@@ -14,7 +14,7 @@ function focusProblem(page: Page): Promise<string> {
     const el = document.activeElement;
     if (!el || el === document.body) return 'focus is on <body>';
     const label = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? '').trim().slice(0, 40)}"`;
-    if (el.hasAttribute('data-base-ui-focus-guard') || el.hasAttribute('data-radix-focus-guard')) return `focus guard ${label}`;
+    if (el.hasAttribute('data-base-ui-focus-guard')) return `focus guard ${label}`;
     if (el.closest('[aria-hidden="true"]')) return `aria-hidden ${label}`;
     if (!el.closest('[role="dialog"]')) return `outside the dialog ${label}`;
     return 'ok';

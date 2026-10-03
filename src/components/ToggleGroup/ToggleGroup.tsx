@@ -228,10 +228,10 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
 
   return (
     // Base UI's ToggleGroup is a group of aria-pressed toggle buttons in
-    // both modes. Single mode keeps the radio semantics the Radix version
-    // had (#702): the root is a radiogroup and each option a radio with
+    // both modes. Single mode uses radio semantics
+    // (#702): the root is a radiogroup and each option a radio with
     // aria-checked, so "one of N" is announced as such. Arrow keys move
-    // focus and Space/Enter selects, as before. `ai-choice-group` is what
+    // focus and Space/Enter selects. `ai-choice-group` is what
     // the choice-separator rule (theme/choiceSeparator.ts) keys on.
     <BaseToggleGroup
       multiple={!isSingle}

@@ -35,7 +35,7 @@ describe('DropdownMenu Component', () => {
     expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
-    // page behind an open menu the way Radix's hideOthers() did.
+    // page behind an open menu.
     expect(await axe(document.body)).toHaveNoViolations();
 
     unsub();

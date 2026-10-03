@@ -10,7 +10,7 @@ import { gotoTab } from './nav';
 // the button), matching every other connected popover in the toolkit
 // (Combobox's own dropdown, e.g.).
 //
-// This also exercises the fix for a real, confirmed Radix bug found
+// This also exercises the fix for a real, confirmed positioning bug found
 // while building this: `virtualRef`-based anchoring (tried first, see
 // Popup.tsx's own comment) never picks up a real anchor size at all --
 // `anchor` mode sidesteps it entirely by anchoring to a REAL, always-
@@ -51,7 +51,7 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
 
   // Adjacent to the group vertically -- either just below its bottom
   // edge (bottom-start, requested) or just above its top edge (top-start,
-  // if Radix's own avoidCollisions auto-flipped on viewport overlap; see
+  // if the popup's own avoidCollisions auto-flipped on viewport overlap; see
   // useActualPopoverSide's own comment). Either way, genuinely adjacent,
   // not floating at some unrelated position.
   const isBelow = popupBox!.y >= groupBox!.y + groupBox!.height - 2;
@@ -59,7 +59,7 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
   expect(isBelow || isAbove).toBe(true);
 
   // The connecting corner should be squared (0px) regardless of which
-  // side Radix actually chose -- computeCornerSquaring keys off the
+  // side the popup actually chose -- computeCornerSquaring keys off the
   // REAL, actual side (useActualPopoverSide), not just the requested
   // one. TRIGGER_CORNER (connectedPopoverStyles.ts) maps 'top-start' to
   // the anchor's own top-left (popup sits above, connects at the
@@ -79,7 +79,7 @@ test('DatePicker calendar popup anchors to the whole field edge, with the connec
 
   // Escape closes it and returns focus to the real button (issue #421's
   // fix still applies correctly in anchor mode -- see Popup.tsx's own
-  // comment on why Radix's own default close-autofocus, not the #421
+  // comment on why the popup's own default close-autofocus, not the #421
   // override, is what runs here).
   await page.keyboard.press('Escape');
   await expect(popupContent).not.toBeVisible();

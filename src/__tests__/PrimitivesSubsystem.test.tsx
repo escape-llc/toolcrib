@@ -18,7 +18,7 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
   (globalThis as any).ResizeObserver = ResizeObserverMock as any;
 }
 
-describe('Radix Primitives Subsystem', () => {
+describe('Primitives Subsystem', () => {
   it('renders Accordion and handles item expansion', async () => {
     const openedFn = vi.fn();
     const unsub = aiBus.on('accordion:opened', openedFn);
@@ -95,7 +95,7 @@ describe('Radix Primitives Subsystem', () => {
 
   // Regression: Tooltip.Content previously set `animation: 'ai-popup-fade
   // 0.12s ease-out'`, a keyframe name never defined anywhere in the
-  // codebase. Radix's Presence (used internally by Tooltip.Content) waits
+  // codebase. Presence (used internally by Tooltip.Content) waits
   // for a real `animationend` event before unmounting a closed tooltip's
   // DOM node — with no matching @keyframes, the browser never fires that
   // event, so the tooltip stayed mounted and fully visible forever after
@@ -118,7 +118,7 @@ describe('Radix Primitives Subsystem', () => {
     const content = await waitFor(() => screen.getByRole('tooltip'));
     expect(content.style.animation).toBe('');
     // role="tooltip" and aria-describedby are toolcrib's own (#700): Base UI
-    // sets neither, and the Radix version announced the text this way.
+    // sets neither, so toolcrib adds both to announce the text.
     expect(trigger).toHaveAttribute('aria-describedby', content.id);
     expect(content).toHaveTextContent('Help text');
 
@@ -141,7 +141,7 @@ describe('Radix Primitives Subsystem', () => {
     expect(trigger).toHaveAttribute('aria-describedby', `hint ${content.id}`);
   });
 
-  it('renders Select component with Radix UI options', () => {
+  it('renders Select component with its options', () => {
     const handleChange = vi.fn();
 
     render(

@@ -224,7 +224,7 @@ describe('GlobalObserverManager MutationObserver wiring (real jsdom MutationObse
     const spy = vi.fn();
     const unsubscribe = aiBus.on('element:mutated', spy);
 
-    // subtree: true, observed on `root` -- Radix's own real shape this
+    // subtree: true, observed on `root` -- the real shape this
     // was built for (the attribute lands on a descendant of whichever
     // node a caller's ref points to, not necessarily that node itself).
     observerManager.observe(root, { id: 'mut-subtree', mutationOptions: { attributes: true, attributeFilter: ['data-side'], subtree: true } });

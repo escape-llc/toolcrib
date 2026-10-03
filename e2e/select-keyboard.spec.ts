@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { gotoTab } from './nav';
 
 // Select's keyboard and pointer model in a real browser (#670, #697). Library-agnostic, so the
-// same spec runs on the Radix Select and on the select-only combobox. What
+// same spec runs on any Select implementation, including the select-only combobox. What
 // jsdom can't show: the trigger is a real <button>, where Enter and Space
 // also fire a click (Enter on keydown, Space on keyup). A pick with either key
 // must not be undone by that click reopening the list.

@@ -8,9 +8,9 @@ import { UIGroup } from '../components/UIGroup/UIGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
-// Switch (Radix Switch) uses react-use-size internally, which relies on
-// ResizeObserver — not implemented in jsdom. Same polyfill pattern already
-// used in RadixPrimitives.test.tsx and elsewhere for the same reason.
+// The form controls can rely on ResizeObserver internally, which jsdom doesn't
+// implement. Same polyfill pattern already used in
+// PrimitivesSubsystem.test.tsx and elsewhere for the same reason.
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
     observe() {}

@@ -75,8 +75,8 @@ export const CalendarPopupTrigger: React.FC = () => (
       className="ai-focus-ring"
       style={{ all: 'unset', cursor: 'pointer', color: 'var(--ai-text-secondary, #6b7280)', display: 'flex' }}
       // Issue #501: this button relies on the browser's own native
-      // Enter/Space -> click translation to open the calendar (via Radix's
-      // Trigger onClick) -- there's no explicit click handler here at all.
+      // Enter/Space -> click translation to open the calendar (via the
+      // Trigger's onClick) -- there's no explicit click handler here at all.
       // But this button lives inside the field's <Group>, and React Aria's
       // own useDatePickerGroup attaches a usePress instance to that Group
       // solely to run focusLast() on a mouse/touch/pen press. usePress's

@@ -98,7 +98,7 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
   // off the field's own edge -- reported directly. Using a REAL anchored
   // DOM node (the Group itself, always rendered) rather than Popup's
   // earlier-tried `anchorRef`/`virtualRef` design sidesteps a real,
-  // confirmed Radix `virtualRef` timing gap (see Popup.tsx's own comment
+  // confirmed `virtualRef` timing gap (see Popup.tsx's own comment
   // on why `anchor` mode exists) entirely -- there's no separate
   // registration to race here.
   return (

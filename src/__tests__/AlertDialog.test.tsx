@@ -47,7 +47,7 @@ describe('AlertDialog Component', () => {
   });
 
   // Regression guard: Base UI's AlertDialog reuses Dialog.Popup, which
-  // never sets aria-modal itself (nor did Radix's). See Overlay.test.tsx's
+  // never sets aria-modal itself. See Overlay.test.tsx's
   // matching Modal test for the full reasoning.
   it('declares aria-modal="true" explicitly, since the underlying primitive never sets it itself', () => {
     render(

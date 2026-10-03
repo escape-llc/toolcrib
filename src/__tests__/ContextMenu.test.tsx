@@ -27,7 +27,7 @@ describe('ContextMenu Component', () => {
     await rightClick('Right-click target');
     expect(screen.getByRole('menuitem', { name: 'Copy' })).toBeInTheDocument();
     // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
-    // page behind an open menu the way Radix's hideOthers() did.
+    // page behind an open menu.
     expect(await axe(document.body)).toHaveNoViolations();
   });
 

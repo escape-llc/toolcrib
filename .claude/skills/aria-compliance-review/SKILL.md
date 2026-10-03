@@ -97,8 +97,7 @@ the Tab order by design; `<Popup>` is the component for content that must be
 keyboard-operable. On Base UI's PreviewCard (#700) this falls out of the
 structure: the card is portaled to the end of `<body>`, so Tab from the
 trigger moves on through the page, and the card closes once focus leaves the
-trigger. (The Radix version got there differently, by forcing
-`tabindex="-1"` onto the content's focusables.) `HoverCard.tsx`'s JSDoc and
+trigger. `HoverCard.tsx`'s JSDoc and
 `e2e/accessibility.spec.ts`'s regression test (Tab never lands inside the
 card) both document this. A future finding that "a button inside
 `HoverCard` isn't Tab-reachable" should confirm it's still this mechanism
@@ -137,10 +136,9 @@ excludes `[data-base-ui-focus-guard]`, the invisible `aria-hidden`,
 closed this as not a bug, citing W3C ACT rule 6cfa84). It excludes those
 elements only; `aria-hidden-focus` stays on for everything else, and
 `e2e/overlay-focus-guards.spec.ts` is its runtime half (Tab never settles on
-a guard). Don't widen it to a rule-level disable. The Radix-era
-`ARIA_HIDDEN_FOCUS_DISABLED` carve-out for DropdownMenu/ContextMenu is gone
-(#700): Radix's menus `aria-hidden` the page via `hideOthers()`, Base UI's
-don't.
+a guard). Don't widen it to a rule-level disable. There is no
+`ARIA_HIDDEN_FOCUS_DISABLED` carve-out for DropdownMenu/ContextMenu (#700):
+Base UI's menus don't `aria-hidden` the rest of the page.
 
 ## 7. Live-region / dynamic-content announcement correctness
 

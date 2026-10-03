@@ -5,7 +5,7 @@ import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 import { actAndSettle } from './testUtils/overlay';
 
-// Mock ResizeObserver for Radix UI Slider in JSDOM
+// Mock ResizeObserver for the Slider in JSDOM
 (globalThis as any).ResizeObserver = class {
   observe() {}
   unobserve() {}
@@ -174,8 +174,7 @@ describe('EventBus Traffic & Emission Verification Suite', () => {
       />
     );
 
-    // Arrow keys select the tab they move to (activateOnFocus, kept from
-    // the Radix version's automatic activation, #702).
+    // Arrow keys select the tab they move to (activateOnFocus, #702).
     const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
     act(() => tab1.focus());
     // Base UI moves focus a frame later, and selection follows it.

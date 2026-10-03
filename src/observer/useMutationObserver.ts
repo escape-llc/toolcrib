@@ -40,8 +40,8 @@ export interface UseMutationObserverConfig {
  *
  * Mirrors `useAdaptiveSize`'s own bounded `requestAnimationFrame` retry
  * for a `ref.current` that's still null on this effect's first run (a
- * real, confirmed case: Radix `Presence`-mounted content, e.g. a Popover
- * `Content`, can land one render tick after its own `isOpen` flips true)
+ * real, confirmed case: `Presence`-mounted content, e.g. a Popover
+ * popup, can land one render tick after its own `isOpen` flips true)
  * -- see that hook's own comment for the full reasoning; this is not a
  * new precaution invented for this hook.
  */

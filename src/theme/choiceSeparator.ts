@@ -55,7 +55,7 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * this codebase's own established `injectGlobalStyle` mechanism. Scoped by
  * an explicit `.ai-choice-group` class on ToggleGroup's root (#702), not by
  * ARIA role. It used to key on roles (`[role="radiogroup"]` for a single
- * group, `[role="toolbar"]` for Radix's multiple group), and that coupling
+ * group, `[role="toolbar"]` for the multiple group), and that coupling
  * failed once: a `type="multiple"` group matched neither selector and
  * rendered with no division between its options at all. On Base UI a
  * multiple group is `role="group"`, which UIGroup and other wrappers also
@@ -116,7 +116,7 @@ import { injectGlobalStyle } from './injectGlobalStyle';
  * neighbor, from the fix above). First hypothesis was a stray
  * `:focus-visible` ring visually interfering with an adjacent divider --
  * disproven directly: a real mouse `.click()` (not `.focus()`, which
- * doesn't reproduce Radix's roving-tabindex selection at all) reproduces
+ * doesn't reproduce a roving-tabindex selection at all) reproduces
  * the exact selected state with zero focus ring visible, and the
  * thickness mismatch was still there. Actually measuring both dividers'
  * computed style (`getComputedStyle(el, '::before')`, since a

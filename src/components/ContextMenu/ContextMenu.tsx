@@ -1,7 +1,7 @@
 'use client';
 
 // ContextMenu on Base UI's ContextMenu (#670, #700), a drop-in for the earlier
-// Radix version. Base UI positions the menu at the pointer and opens it on
+// implementation. Base UI positions the menu at the pointer and opens it on
 // right-click or long press; its parts are Menu's own, so the popup and items
 // are the ones DropdownMenu renders (../DropdownMenu/menuParts).
 import React, { type ReactNode } from 'react';

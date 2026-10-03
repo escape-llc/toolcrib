@@ -6,8 +6,8 @@ import { Form } from '../components/Form/FormContext';
 import { FormField, SubmitButton } from '../components/Form/FormComponents';
 import { axe } from './testUtils/axe';
 
-// Radix's RadioGroup uses ResizeObserver — not implemented in jsdom. Same
-// polyfill pattern already used in RadixPrimitives.test.tsx for the same
+// RadioGroup can rely on ResizeObserver — not implemented in jsdom. Same
+// polyfill pattern already used in PrimitivesSubsystem.test.tsx for the same
 // reason.
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
@@ -47,7 +47,7 @@ describe('RadioGroup Component', () => {
   // selection back into the group after a click -- the previous
   // implementation echoed `defaultValue` straight into `selectedValue`
   // every render with nothing ever updating it, which made the group look
-  // fully controlled to Radix (and to this component's own
+  // fully controlled to the primitive (and to this component's own
   // context-driven option styling) from the very first render, with no
   // way to ever move off the initial option. The test above never caught
   // this because it always passes an explicit `value` prop (genuinely

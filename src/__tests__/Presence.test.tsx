@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { Presence } from '../components/shared/Presence';
 
-// toolcrib's own Presence (#703), replacing @radix-ui/react-presence. jsdom
+// toolcrib's own Presence (#703). jsdom
 // runs no animations and has no Element.getAnimations, so the exit path is
 // driven by a stubbed getAnimations whose `finished` promise the test settles.
 const anim = (finished: Promise<void>, endTime = 200, playState = 'running') =>

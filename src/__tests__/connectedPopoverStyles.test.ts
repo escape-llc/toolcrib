@@ -56,8 +56,8 @@ describe('computeCornerSquaring', () => {
     // even while closed, because its parent's own radius happened to be 0).
     expect(closed.triggerCornerStyle.borderBottomLeftRadius).toBe('var(--ai-radius-lg, 0.5rem)');
     expect(closed.triggerSquareCorners).toBe('none');
-    // The popup's own corner style is independent of isOpen -- Radix only
-    // mounts Content while open anyway, so there's nothing to gate there.
+    // The popup's own corner style is independent of isOpen -- the popup only
+    // mounts while open anyway, so there's nothing to gate there.
     expect(closed.popupCornerStyle.borderTopLeftRadius).toBe(0);
   });
 

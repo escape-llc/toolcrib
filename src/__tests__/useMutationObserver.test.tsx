@@ -91,7 +91,7 @@ describe('useMutationObserver', () => {
   });
 
   // Same shape as useAdaptiveSize's own identical regression test --
-  // Radix Presence-mounted content (a Popover Content, e.g.) can land
+  // Presence-mounted content (a Popover popup, e.g.) can land
   // one render tick after this hook's own mount effect already ran and
   // found the ref null.
   it('retries via requestAnimationFrame if the ref is not attached on the first effect run, then observes once it is', async () => {

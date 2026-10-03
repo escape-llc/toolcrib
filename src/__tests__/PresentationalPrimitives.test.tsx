@@ -19,7 +19,7 @@ describe('Progress Component', () => {
     expect(bar).toHaveAttribute('aria-valuemax', '80');
 
     // Clamped, not passed straight through — a value above max (or below
-    // 0) would otherwise push Radix's own indicator transform past 100%.
+    // 0) would otherwise push the indicator past 100%.
     rerender(<Progress value={999} max={80} aria-label="Upload progress" />);
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '80');
     expect(await axe(document.body)).toHaveNoViolations();
@@ -42,15 +42,15 @@ describe('Progress Component', () => {
 describe('Separator Component', () => {
   it('renders with the correct orientation', () => {
     // decorative={false} needed to get the semantic separator role at all
-    // — see the next test for the decorative (default) case, where Radix
-    // deliberately omits it.
+    // — see the next test for the decorative (default) case, where the role
+    // is deliberately omitted.
     render(<Separator orientation="vertical" decorative={false} />);
     expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
   });
 
   it('is not exposed to assistive tech when decorative (the default)', () => {
     render(<Separator />);
-    // Radix omits the separator role entirely for decorative instances —
+    // The separator role is omitted entirely for decorative instances —
     // there is nothing for assistive tech to announce.
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
@@ -58,7 +58,7 @@ describe('Separator Component', () => {
 
 describe('Avatar Component', () => {
   // Regression: fallbackDelayMs originally defaulted to 300 rather than
-  // undefined. Radix's AvatarPrimitive.Fallback only renders immediately
+  // undefined. The avatar fallback primitive only renders immediately
   // when its own delayMs prop is literally undefined (its internal
   // `canRender` state starts true only in that case) — passing any numeric
   // default, even one meant just to "avoid flicker," forces every avatar

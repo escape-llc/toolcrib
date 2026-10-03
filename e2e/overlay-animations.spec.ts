@@ -29,8 +29,8 @@ test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }
 // Regression for issue #373: "Modal fades in nicely, but closing has no
 // counter-transition -- it just slams shut." Root cause was that Content/
 // Overlay only ever carried a static, unconditional inline `animation`
-// string (ai-scale-in/ai-fade-in) -- already finished by the time Radix
-// flipped data-state to "closed", leaving nothing for Radix's own internal
+// string (ai-scale-in/ai-fade-in) -- already finished by the time the primitive
+// flipped data-state to "closed", leaving nothing for its own internal
 // Presence to detect and wait for before tearing the node down instantly.
 // Fixed by injectModalAnimations (Modal.tsx), a real [data-state]-keyed
 // stylesheet mirroring Tooltip's own injectTooltipAnimations mechanism.
@@ -87,7 +87,7 @@ test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animation
 // Regression for issue #408: identical bug shape to Modal's #373 (see
 // that test's own comment) -- AlertDialog.Overlay/Content also carried a
 // static, unconditional inline `animation` string with no exit
-// counterpart, so Radix's internal Presence found nothing running on
+// counterpart, so the internal Presence found nothing running on
 // close and tore the node down instantly. Fixed by
 // injectAlertDialogAnimations (AlertDialog.tsx), mirroring Modal's own
 // injectModalAnimations mechanism exactly.
@@ -130,7 +130,7 @@ test('expanding an Accordion item plays its ai-accordion-slide-down animation', 
   // faq-1 is open by default (defaultValue) — faq-2 starts closed, so
   // clicking it is a real closed-to-open transition, not just a fresh
   // mount already in the open state. A closed panel isn't mounted at all
-  // (Base UI, #702; Radix kept it mounted with data-state="closed").
+  // (Base UI, #702).
   const panel = page.getByTestId('accordion-content-faq-2');
   await expect(panel).not.toBeAttached();
 
@@ -214,7 +214,7 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
   // own exit animation. Un-hovering the Tooltip-wrapped button below used
   // to bubble a matching animationend up to the Drawer's own handler and
   // close it -- reported directly, reproduced exactly by this sequence.
-  // Fixed by migrating to Radix's Presence, which listens on the real DOM
+  // Fixed by Presence, which listens on the real DOM
   // node directly (event.target === node) rather than via bubbling.
   const regressionButton = page.getByRole('button', { name: 'Hover me (regression check)' });
   await regressionButton.hover();
@@ -254,8 +254,8 @@ test('a Popup plays real ai-pop-in/ai-pop-out entrance/exit animations and is cl
 
   const popup = page.locator('.ai-popup-content');
   await popup.waitFor({ state: 'visible', timeout: 2000 });
-  // Open-state marker: Radix's data-state="open", Base UI's bare data-open
-  // (#696). Either proves the entrance keyframe is keyed on the open state.
+  // Open-state marker: Base UI's bare data-open (#696). It proves the
+  // entrance keyframe is keyed on the open state.
   const openInfo = await popup.evaluate(el => ({
     animationName: getComputedStyle(el).animationName,
     open: el.getAttribute('data-state') === 'open' || el.hasAttribute('data-open'),
@@ -283,7 +283,7 @@ test('a Tooltip plays real entrance/exit animations and is cleanly removed after
   // animationend never resolved and the tooltip stayed mounted and fully
   // visible forever after hovering away — reported directly. The keyframes
   // are now keyed on Base UI's data-open/data-closed (#700, the shared
-  // useOverlayAnimations); Base UI, like Radix's Presence, keeps the node
+  // useOverlayAnimations); Base UI keeps the node
   // mounted until the exit animation finishes.
   await page.goto('/');
 

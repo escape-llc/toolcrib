@@ -37,8 +37,8 @@ const VIEWPORT_PADDING = 'var(--ai-padding-xl, 1rem)';
  */
 const ITEM_INSET = '1rem';
 
-// toolcrib's keyframes, keyed on Base UI's attributes instead of Radix's
-// data-state/data-swipe. Base UI keeps a closing toast mounted until its
+// toolcrib's keyframes, keyed on Base UI's attributes.
+// Base UI keeps a closing toast mounted until its
 // running animations finish.
 function injectToastAnimations(targetDocument?: Document, nonce?: string) {
   injectGlobalStyle(
@@ -89,8 +89,7 @@ export const ToastContainer: React.FC = () => {
   // The toolkit's stacking order, from Base UI's measured heights: read top to
   // bottom, toasts are always oldest first. So at a top anchor the oldest
   // toast sits at the edge and newer ones stack below it; at a bottom anchor
-  // the newest sits at the edge and older ones are pushed up, the same as
-  // the Radix version. Base UI's own --toast-offset-y always stacks
+  // the newest sits at the edge and older ones are pushed up. Base UI's own --toast-offset-y always stacks
   // newest-at-the-edge (Sonner style), so offsets are computed here.
   // A closing toast leaves the flow at once (the rest slide into place) and
   // keeps the offset it had when it started closing.
@@ -166,8 +165,7 @@ const isUrgent = (t: ToastItem) => t.priority === 'high' || t.priority === 'urge
  * mui/base-ui#5731 proposes the same shape upstream; if it lands, this can go.
  *
  * Each announcement is keyed by its text, so a promise toast whose message
- * changes (loading, then done) is announced again. Like Radix's toast
- * announcer, the text is inserted a moment after the toast appears (the
+ * changes (loading, then done) is announced again. The text is inserted a moment after the toast appears (the
  * insertion is what a live region reports) and removed once it has had time
  * to be read (removals aren't announced), so the page doesn't carry a second
  * copy of every toast's text.

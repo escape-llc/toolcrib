@@ -25,7 +25,7 @@ describe('Toolbar Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  // Regression: orientation="vertical" previously only affected Radix's
+  // Regression: orientation="vertical" previously only affected the
   // roving-tabindex arrow-key axis — the toolbar's own visual layout (and
   // every Left/Center/Right slot's) stayed a hardcoded horizontal row
   // regardless of the prop, a real mismatch with what the prop name promises

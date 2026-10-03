@@ -22,7 +22,7 @@ import { demoPages } from './nav';
 // Every page of the demo: Overview, the Catalog index and each of its
 // component/Systems pages (one live demo per page since issue #624), then
 // Kits -- see demoPages in e2e/nav.ts.
-// Radix closes basically everything (Modal, Popup, Drawer, AlertDialog,
+// Overlays close basically everything (Modal, Popup, Drawer, AlertDialog,
 // DropdownMenu, ContextMenu, Select) on Escape — one key between clicks
 // keeps each interaction independent instead of compounding overlay state
 // into the next one. Drawer in particular closes via its own JS timer

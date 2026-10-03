@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoTab } from './nav';
 
-// Covers Toast.tsx's injectToastAnimations() — Radix's Presence keeps the
+// Covers Toast.tsx's injectToastAnimations() — Presence keeps the
 // toast's DOM node mounted until a real `animationend` fires on it, which
 // jsdom never produces (see e2e/README.md). A jsdom test can only assert the
 // CSS rule text exists, not that the toast actually enters/exits correctly
@@ -49,8 +49,7 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
   const toast = page.locator('[data-testid="toast-item"]').first();
   await toast.waitFor({ state: 'visible', timeout: 2000 });
 
-  // Not closing: Radix marked an open toast data-state="open"; Base UI
-  // (#698) has no open marker, only data-ending-style while it closes.
+  // Not closing: Base UI (#698) has no open marker, only data-ending-style while it closes.
   const openInfo = await toast.evaluate(el => ({
     animationName: getComputedStyle(el).animationName,
     closing: el.getAttribute('data-state') === 'closed' || el.hasAttribute('data-ending-style'),
@@ -60,7 +59,7 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
 
   // Regression test: dismissToast used to remove the toast from
   // ToastContext's state array immediately on click, which unmounted this
-  // <ToastPrimitive.Root> synchronously — tearing down Radix's Presence
+  // <ToastPrimitive.Root> synchronously — tearing down Presence
   // before it ever got to play an exit animation (reported directly: toasts
   // stopped animating on dismiss/expiry). data-state="closed" is only true
   // for the ~120ms fade-out itself, too narrow a window for a polling

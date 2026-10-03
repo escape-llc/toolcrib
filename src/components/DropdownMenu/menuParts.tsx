@@ -3,7 +3,7 @@
 // What DropdownMenu, ContextMenu and DataTable's column menu share on Base UI
 // (#670, #700): the popup's look and the item's look. Base UI's ContextMenu
 // re-exports Menu's own Popup/Item/Separator, so one item renderer serves both
-// menus. Items carry data-highlighted like Radix's did, so the shared
+// menus. Items carry data-highlighted, so the shared
 // `.ai-menu-item[data-highlighted]` rule (interactionStyles.ts) still applies.
 import React, { type CSSProperties } from 'react';
 import { Menu } from '@base-ui/react/menu';

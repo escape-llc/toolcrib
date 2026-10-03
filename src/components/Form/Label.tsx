@@ -30,7 +30,7 @@ export const Label: React.FC<LabelProps> = ({ children, overrides, onMouseDown, 
     <label
       {...props}
       // A native <label>, not a library primitive (#670, #701: Base UI has no
-      // standalone label). This is the one behavior Radix's Label added: a
+      // standalone label). This is the one behavior a library label would add: a
       // double-click on the label text doesn't select it. A press on a
       // control nested inside the label is left alone.
       onMouseDown={e => {

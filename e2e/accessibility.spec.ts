@@ -228,7 +228,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Modal (nested)');
   await page.keyboard.press('Escape'); // closes the inner modal only
   // The inner dialog's own exit animation (--ai-transition-duration-normal,
-  // 0.2s) has to actually finish -- Radix's Presence keeps its focus scope
+  // 0.2s) has to actually finish -- the dialog's Presence keeps its focus scope
   // mounted until then, and an Escape pressed before that settles gets
   // swallowed rather than reaching the now-topmost outer dialog. Confirmed
   // directly: without this wait, the outer dialog was still open (and
@@ -267,14 +267,13 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.keyboard.press('Escape');
 
   // aria-compliance-review's own §1 finding (issue #262): every <Select>
-  // instance's Radix Select.Content dropdown was never scanned. Unlike
+  // instance's dropdown was never scanned. Unlike
   // Combobox (whose two demo instances genuinely differ -- async search
   // vs. static multi-select), Select.tsx's Content/Item markup has no
   // conditional branches driven by instance props, so one representative,
   // properly-labeled instance covers the real gap.
   //
-  // No aria-hidden-focus carve-out (#697). The Radix Select called
-  // hideOthers() on open, aria-hiding #root; the select-only combobox hides
+  // No aria-hidden-focus carve-out (#697). The select-only combobox hides
   // nothing, and Base UI's focus guards are excluded globally (see
   // BASE_UI_FOCUS_GUARD).
   await page.getByRole('combobox', { name: 'Role Level' }).click();
@@ -304,9 +303,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // Issue #570: the click above resolves as soon as the pointer event is
   // dispatched, not once the single-select switch has actually committed to
   // the DOM -- an assumption that held under normal local timing but isn't
-  // guaranteed under real CI scheduling. (The Radix accordion also marked
-  // the open item's trigger aria-disabled until the switch landed, which
-  // hung the second click below for 120s.) Waiting for the real signal
+  // guaranteed under real CI scheduling. Waiting for the real signal
   // (faq-1 actually reporting collapsed) before continuing turns a
   // possible hang into either a pass or a fast, readable failure -- same
   // "wait for a real signal" discipline as every other overlay wait here.
@@ -325,8 +322,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('Collapsible (expanded)');
   await page.getByText('Show advanced options').click(); // collapse again, leave state as found
 
-  // No aria-hidden-focus carve-out (#700). The Radix menus called
-  // hideOthers() on open, aria-hiding #root; Base UI's menus hide nothing,
+  // No aria-hidden-focus carve-out (#700). Base UI's menus hide nothing,
   // and its focus guards are excluded globally (see BASE_UI_FOCUS_GUARD).
   await gotoTab(page, 'Catalog', 'DropdownMenu');
   await page.getByRole('button', { name: 'User Actions Menu' }).click();
@@ -375,8 +371,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('HoverCard');
 
   // aria-compliance-review §4: HoverCard content is supplemental and not in
-  // the Tab order (use <Popup> when it must be keyboard-operable). The Radix
-  // version did this by forcing tabindex="-1" onto the content's focusables.
+  // the Tab order (use <Popup> when it must be keyboard-operable).
   // On Base UI's PreviewCard (#700) the card is portaled to the end of
   // <body>, so Tab from the trigger moves on through the page. This locks
   // that in: with the card open, Tab from its trigger never lands inside it.

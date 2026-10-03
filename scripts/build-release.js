@@ -27,7 +27,7 @@
  *    by build-tests-release.js as the optional test-suite artifact.
  *
  * package.json is AI-managed, not hand-curated — an AI adding a new
- * component can use a new Radix primitive and forget to declare it, or
+ * component can use a new third-party primitive and forget to declare it, or
  * add something to the wrong dependency bucket. Trusting "dependencies"
  * wholesale (the previous version of this script) works only as long as
  * nothing has drifted, which isn't a safe assumption for a file an AI
@@ -122,7 +122,7 @@ function loadRootPackageJson() {
 /**
  * Extract the external (non-relative) package name from an import/export
  * specifier, collapsing scoped-package subpaths to the package root
- * (e.g. "@radix-ui/react-dialog/foo" -> "@radix-ui/react-dialog",
+ * (e.g. "@base-ui/react/dialog" -> "@base-ui/react",
  * "react-dom/client" -> "react-dom").
  */
 function packageNameFromSpecifier(spec) {

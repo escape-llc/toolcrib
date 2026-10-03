@@ -63,7 +63,7 @@ describe('Toast Subsystem Event Generation', () => {
       })
     );
 
-    // Fast-forward past the 100ms duration timer — this triggers Radix's
+    // Fast-forward past the 100ms duration timer — this triggers
     // onOpenChange(false), which emits toast:expired synchronously but only
     // *schedules* a single 1000ms backstop before dismissToast() actually
     // runs, normally preempted by a real exit-animation animationend (see
@@ -265,7 +265,7 @@ describe('Toast Subsystem Event Generation', () => {
     const toastEl = screen.getByTestId('toast-item');
 
     // Firing animationEnd BEFORE any dismiss request keeps the toast node
-    // mounted (jsdom's Radix Presence removes it as soon as `open` actually
+    // mounted (jsdom's Presence removes it as soon as `open` actually
     // flips false, since jsdom never reports a real running CSS animation —
     // same reason the rest of this file relies on the setTimeout backstops
     // instead of real animation events). This only exercises the handler

@@ -2,7 +2,7 @@
 
 // Select (#670, #697): a WAI-ARIA select-only combobox built from the same
 // parts as Combobox -- the toolkit's own Listbox inside Base UI's Popover --
-// rather than on Base UI's (or Radix's) Select. One listbox and keyboard model
+// rather than on Base UI's Select. One listbox and keyboard model
 // for both pickers, all ours; Base UI supplies positioning, portal and
 // outside-press dismissal only.
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';

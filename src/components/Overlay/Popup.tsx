@@ -1,15 +1,13 @@
 'use client';
 
-// Popup on Base UI's Popover (#670, #696), a drop-in for the earlier Radix
-// version (same export, props, Popup.Trigger slot and anchor mode). Portal
+// Popup on Base UI's Popover (#670, #696), a drop-in for the earlier
+// implementation (same export, props, Popup.Trigger slot and anchor mode). Portal
 // container, stacked z-index, CSP nonce and enter/exit keyframes come from the
 // shared overlay layer (./baseui/overlayLayer).
 //
-// What Base UI removes: the Radix version wrapped the trigger in a <div> so
-// asChild had somewhere to put its props, then nulled that div's ARIA
-// attributes and hand-rolled focus return to the real button nested inside
-// (#421). Base UI's render prop puts the trigger semantics on the consumer's
-// own element, so focus return is the default and the wrapper is gone.
+// What Base UI gives us: its render prop puts the trigger semantics on the
+// consumer's own element, so there is no wrapper <div> whose ARIA attributes
+// need nulling, and focus return is the default (#421).
 import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { aiBus } from '../../eventBus/eventBus';
@@ -132,7 +130,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
   const [side, align] = placement.split('-') as [PopoverSide, 'start' | 'end'];
   const contentRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLElement>(null);
-  // Base UI's popup carries data-side like Radix's, so the collision-aware
+  // Base UI's popup carries data-side, so the collision-aware
   // corner squaring works unchanged.
   const actualSide = useActualPopoverSide(contentRef, side, isOpen);
   const squaring = computeCornerSquaring(actualSide, align, isOpen);
@@ -148,8 +146,8 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
           <BasePopover.Positioner side={side} align={align} sideOffset={squaring.sideOffset} anchor={anchor ? anchorRef : undefined} style={{ zIndex }}>
             {/* role="presentation": Popup is a generic non-modal container
                 (DatePicker's calendar, ThemeEditor's color picker, HoverCard,
-                Gallery), not an application dialog -- the same override the
-                Radix version applied to its hard-coded role="dialog". */}
+                Gallery), not an application dialog -- overriding the popup's
+                default role="dialog". */}
             <BasePopover.Popup
               ref={contentRef}
               role="presentation"

@@ -3,7 +3,7 @@ import { gotoTab } from './nav';
 
 // The Combobox's popover layer (#670). Written against the behavior a
 // Combobox needs from its popover, not against a library: run unchanged on
-// the Radix and Base UI versions.
+// any popover implementation.
 //   - Opening must not hide the rest of the page from assistive tech. Base
 //     UI's own Combobox does (mui/base-ui#5528); our Combobox uses only its
 //     Popover and should not.
@@ -80,7 +80,7 @@ test('clicking the input again while open keeps the listbox open', async ({ page
 // A press on the list's own background (its padding, or its scrollbar) is
 // not a pick and not an outside press: focus must stay in the input, or the
 // input's blur handler closes the list under the pointer. Gemini review on
-// #710; Select already guarded this, Combobox didn't (Radix version either).
+// #710; Select already guarded this, Combobox didn't.
 test('pressing the listbox background keeps it open and focus in the input', async ({ page }) => {
   const { input, listbox } = await openSkills(page);
   const box = (await listbox.boundingBox())!;
