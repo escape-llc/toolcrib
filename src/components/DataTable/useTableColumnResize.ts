@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { flushSync } from 'react-dom';
 import type { Column } from './DataTable';
 
 /**
@@ -244,6 +245,18 @@ export function useTableColumnResize({
       const finalPreview = latestDragPreviewRef.current;
       if (!finalPreview) return;
       latestDragPreviewRef.current = null;
+      // Render the final preview NOW, before ctx.getLockInWidths() reads
+      // DataTable's per-render snapshot of the auto columns' widths.
+      // pointermove is a continuous event, so React schedules its updates
+      // rather than rendering them synchronously: with pointerup arriving a
+      // few ms after the last move, that snapshot could still reflect an
+      // EARLIER move, and the neighbouring auto column got locked in at that
+      // stale intermediate width (90px, 228px...) instead of where the final
+      // drag position puts it (its 40px floor). Seen as a real fast drag
+      // losing most of its effect in WebKit (issue #709). Still in the drag
+      // state here, so this is the same render the next frame would have
+      // produced anyway.
+      flushSync(() => setDragPreview(finalPreview));
       setIsDragging(false);
       setDragPreview(null);
       dragContextRef.current = null;
