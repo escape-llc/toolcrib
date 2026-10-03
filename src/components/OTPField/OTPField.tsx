@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect, useId, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 // Base UI's stable OTP field (#670, #701). Paste distribution, auto-advance, backspace,
 // SMS autofill (autocomplete="one-time-code" on the first cell) and the
 // password-manager opt-outs are the edge cases a hand-rolled version gets
@@ -60,9 +61,10 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   mask = false,
   label,
   'aria-label': ariaLabel,
-  disabled = false,
+  disabled: disabledProp = false,
   size = 'md',
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();

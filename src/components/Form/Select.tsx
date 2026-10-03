@@ -6,6 +6,7 @@
 // for both pickers, all ours; Base UI supplies positioning, portal and
 // outside-press dismissal only.
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
@@ -90,11 +91,12 @@ export const Select: React.FC<SelectProps> = ({
   value: externalValue,
   defaultValue,
   onChange: externalOnChange,
-  disabled = false,
+  disabled: disabledProp = false,
   overrides,
   size = 'md',
   squareCorners,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const effectiveId = id ?? (fieldName || undefined);

@@ -23,6 +23,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { ToggleControlThemeSlice, type ToggleControlSliceState } from './ToggleControlSlice';
 import { Label } from './Label';
 import { useDeferredCollapseContent } from './useDeferredCollapseContent';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 export * from './RadioGroup';
 export * from './Select';
 export * from './Slider';
@@ -615,7 +616,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   // everything else keeps its existing DOM shape exactly (bare <input>, or
   // #428's positioned clearable wrapper).
   const grouped = hasLeading || hasTrailing || showRevealToggle;
-  const showClearButton = clearable && hasValue && !props.disabled && !props.readOnly;
+  const disabled = useFieldsetDisabled(props.disabled);
+  const showClearButton = clearable && hasValue && !disabled && !props.readOnly;
 
   // squareCorners was previously destructured but never actually applied
   // anywhere below — dead since the prop was added, confirmed by reading
@@ -680,6 +682,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   const inputElement = (
     <input
       {...props}
+      // After the spread, so the fieldset's disabled can't be overridden by
+      // (or lost to) the consumer's own prop.
+      disabled={disabled}
       ref={inputRef}
       id={id ?? (name || undefined)}
       name={name || undefined}
@@ -810,8 +815,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
         border: borderStyle,
         background: 'var(--ai-bg-surface, #ffffff)',
         boxSizing: 'border-box',
-        cursor: props.disabled ? 'not-allowed' : 'text',
-        opacity: props.disabled ? 0.6 : undefined,
+        cursor: disabled ? 'not-allowed' : 'text',
+        opacity: disabled ? 0.6 : undefined,
         ...inputVars,
       }}
     >
@@ -836,7 +841,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
           type="button"
           aria-label={strings.showPassword}
           aria-pressed={passwordRevealed}
-          disabled={props.disabled}
+          disabled={disabled}
           // Keyboard-reachable, unlike the clear button -- there's no other
           // keyboard path to reveal the value. mousedown's default is
           // suppressed so a mouse click keeps focus (and the caret) in the
@@ -854,7 +859,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
             border: 'none',
             borderRadius: 'var(--ai-radius-sm, 0.25rem)',
             color: 'var(--ai-text-secondary, #6b7280)',
-            cursor: props.disabled ? 'not-allowed' : 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
             fontSize: CONTROL_FONT_SIZE_VAR[size],
           }}
         >
@@ -888,13 +893,16 @@ export interface CheckboxProps {
    * See `<Button>`'s own identical prop for the general pattern.
    */
   squareCorners?: SquareCornerOption;
+  /** Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too. @default false */
+  disabled?: boolean;
 }
 
 /**
  * @manifest Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element
  * @manifestCategory Form Controls
  */
-export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }, ref) => {
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp }, ref) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -934,6 +942,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
         ref={ref}
         id={name || undefined}
         checked={checked}
+        disabled={disabled}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -954,7 +963,8 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.6 : 1,
           boxSizing: 'border-box',
           // No inline transition -- .ai-focus-ring's own shared rule
           // (interactionStyles.ts) already covers background-color and
@@ -994,13 +1004,16 @@ export interface SwitchProps {
    * See `<Button>`'s own identical prop for the general pattern.
    */
   squareCorners?: SquareCornerOption;
+  /** Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too. @default false */
+  disabled?: boolean;
 }
 
 /**
  * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element
  * @manifestCategory Form Controls
  */
-export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners }, ref) => {
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp }, ref) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1044,6 +1057,7 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
         ref={ref}
         id={name || undefined}
         checked={checked}
+        disabled={disabled}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -1065,7 +1079,8 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
           // (interactionStyles.ts) already covers background-color and is
           // !important, so this (like the `all: 'unset'` above) would be
           // silently discarded outright, not just redundant (issue #411).
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.6 : 1,
           display: 'inline-flex',
           alignItems: 'center',
           boxSizing: 'border-box',
@@ -1140,9 +1155,12 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
   const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
   const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
 
+  const disabled = useFieldsetDisabled(props.disabled);
+
   return (
     <textarea
       {...props}
+      disabled={disabled}
       ref={ref}
       id={id ?? (name || undefined)}
       name={name || undefined}

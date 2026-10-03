@@ -77,6 +77,7 @@ This rule flags a raw HTML element where a Toolcrib component does the same job,
 | `<textarea>` | `Textarea` |
 | `<dialog>` | `Modal`, `AlertDialog` or `Drawer` |
 | `<kbd>` | `Kbd` (`keys={[...]}` for a combination) |
+| `<fieldset>` | `Fieldset` (`legend` is required; `disabled` disables every field inside) |
 | `<meter>` | `Meter` (`low`/`high`/`optimum` for colour bands) |
 | `<a href>` | `Link` (external links too: it adds `rel="noopener noreferrer"` for `target="_blank"`) |
 

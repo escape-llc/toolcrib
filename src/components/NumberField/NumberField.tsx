@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import {
   NumberField as AriaNumberField,
   Group,
@@ -101,13 +102,14 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   step,
   formatOptions,
   locale = 'en-US',
-  isDisabled = false,
+  isDisabled: isDisabledProp = false,
   placeholder,
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
 }) => {
+  const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();

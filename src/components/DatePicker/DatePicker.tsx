@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { DatePicker as AriaDatePicker, DatePickerStateContext, Group, Label } from 'react-aria-components/DatePicker';
 import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
@@ -144,7 +145,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   onChange,
   minValue,
   maxValue,
-  isDisabled = false,
+  isDisabled: isDisabledProp = false,
   locale = 'en-US',
   overrides,
   size = 'md',
@@ -152,6 +153,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
 }) => {
+  const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -188,6 +190,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}
         className="ai-focus-ring"
+        // Dimmed like the other disabled controls; React Aria marks it
+        // disabled but draws nothing for it.
+        style={isDisabled ? { opacity: 0.6 } : undefined}
       >
         {label && (
           <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>

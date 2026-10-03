@@ -147,6 +147,11 @@
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member.\nSee `<Button>`'s own identical prop for the general pattern."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too."
         }
       },
       "category": "Form Controls",
@@ -434,6 +439,40 @@
       "antiPatternAvoid": "Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start",
       "antiPatternInstead": "Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick",
       "description": "Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components"
+    },
+    {
+      "name": "Fieldset",
+      "import": "import { Fieldset } from '#toolcrib'",
+      "props": {
+        "legend": {
+          "type": "ReactNode",
+          "required": true,
+          "description": "The group's visible label, e.g. \"Shipping address\". Required, not\noptional: a fieldset without a legend is a group nothing announces, which\nis the problem this component exists to fix."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Disable every field inside. Native inputs and buttons are disabled by the\nunderlying `<fieldset>`; every other toolcrib control reads it too.\nNested fieldsets inherit it."
+        },
+        "gap": {
+          "type": "'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'gap'",
+          "default": "'md'",
+          "description": "Gap between the fields."
+        },
+        "marginMode": {
+          "type": "'compact' | 'normal' | 'spacious'",
+          "description": "Override the gap using the theme margin token scale."
+        }
+      },
+      "childComponents": [
+        "FormField",
+        "Input",
+        "Select",
+        "Checkbox",
+        "RadioGroup"
+      ],
+      "category": "Form Controls",
+      "description": "Labelled group of form fields (a real fieldset and legend); a disabled Fieldset disables every field inside it"
     },
     {
       "name": "FileUpload",
@@ -1329,6 +1368,11 @@
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member.\nSee `<Button>`'s own identical prop for the general pattern."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too."
         }
       },
       "category": "Form Controls",

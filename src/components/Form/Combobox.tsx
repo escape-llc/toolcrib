@@ -19,6 +19,7 @@
    unrelated re-render happened to occur. Confirmed correct as-is, not
    deferred out of caution. */
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 // The popover layer is Base UI's Popover (#670, #697); the listbox,
 // keyboard model and ARIA wiring stay this component's own. Deliberately not
 // Base UI's Combobox (mui/base-ui#5528: its non-modal popup aria-hides outside
@@ -194,12 +195,13 @@ export const Combobox: React.FC<ComboboxProps> = ({
   defaultValue,
   onChange: externalOnChange,
   allowCustomValue = false,
-  disabled = false,
+  disabled: disabledProp = false,
   noResultsMessage = 'No results',
   overrides,
   size = 'md',
   squareCorners,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const effectiveId = id ?? (fieldName || undefined);

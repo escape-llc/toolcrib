@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect, useId, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
@@ -69,10 +70,11 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   label,
   'aria-label': ariaLabel,
   direction = 'vertical',
-  disabled = false,
+  disabled: disabledProp = false,
   size = 'md',
   overrides,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();

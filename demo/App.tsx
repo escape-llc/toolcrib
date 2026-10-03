@@ -53,6 +53,7 @@ import {
   Alert,
   Progress,
   Meter,
+  Fieldset,
   Separator,
   Avatar,
   Toggle,
@@ -867,6 +868,7 @@ export const App: React.FC = () => {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'email', 'status']);
   const [progressValue, setProgressValue] = useState(45);
   const [meterValue, setMeterValue] = useState(72);
+  const [fieldsetDisabled, setFieldsetDisabled] = useState(false);
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
@@ -2183,6 +2185,28 @@ export const App: React.FC = () => {
           ]}
         />
       </>
+    ),
+    Fieldset: (
+      <VStack gap="lg">
+        <Text>
+          A labelled group of fields on a real <code>&lt;fieldset&gt;</code> and legend, so "Shipping address" is announced as a group instead of being a <code>&lt;div&gt;</code> with a heading. <code>disabled</code> disables every field inside, whatever the control: flip the switch to see inputs, selects, checkboxes and the date field all go inert together.
+        </Text>
+        <Switch label="Disable the group" checked={fieldsetDisabled} onChange={setFieldsetDisabled} />
+        <Fieldset legend="Shipping address" disabled={fieldsetDisabled}>
+          <Input name="fieldset-street" aria-label="Street" placeholder="Street" />
+          <Input name="fieldset-city" aria-label="City" placeholder="City" />
+          <Select
+            name="fieldset-country"
+            aria-label="Country"
+            options={[
+              { label: 'United States', value: 'us' },
+              { label: 'United Kingdom', value: 'uk' },
+            ]}
+          />
+          <DatePicker name="fieldset-delivery" aria-label="Delivery date" />
+          <Checkbox name="fieldset-gift" label="This is a gift" />
+        </Fieldset>
+      </VStack>
     ),
     Meter: (
       <VStack gap="lg">

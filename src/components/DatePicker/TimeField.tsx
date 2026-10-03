@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import {
   TimeField as AriaTimeField,
   DateInput,
@@ -80,13 +81,14 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   onChange,
   granularity = 'minute',
   hourCycle,
-  isDisabled = false,
+  isDisabled: isDisabledProp = false,
   locale = 'en-US',
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
 }) => {
+  const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
