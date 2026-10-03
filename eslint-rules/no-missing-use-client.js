@@ -17,7 +17,7 @@
  * machinery, and a comment is never part of that tree at all — there is no
  * text-matching step for a comment to fool.
  *
- * Detects four independent reasons a file might need the directive:
+ * Detects five independent reasons a file might need the directive:
  * 1. A hook call — any `use[A-Z]...(...)`, built-in or custom, bare or as
  *    `X.useSomething(...)`. Matches by name only, the same general pattern
  *    that closed the original enumerated-hook-name undercount — a
@@ -56,6 +56,13 @@
  *    a different library sharing that name would false-positive, the same
  *    structural-not-semantic bar `no-unexplained-zindex.js`/
  *    `no-computed-prop-before-spread.js` already hold themselves to.
+ * 5. Rendering a context as JSX (`<SomeContext.Provider>`/`.Consumer>`)
+ *    — a file that only *imports* a context made elsewhere and renders its
+ *    Provider calls no hook and no `createContext`, so categories 1–2 miss
+ *    it. Found via `src/components/Layout/Grid.tsx` (issue #690). Matches
+ *    the `.Provider`/`.Consumer` member name only; React 19's bare
+ *    `<SomeContext value={...}>` form is indistinguishable from any other
+ *    component by syntax alone, so it stays a blind spot.
  *
  * Only flags a *missing* directive when one of the above is present —
  * never flags an already-present directive on a file that doesn't
@@ -103,6 +110,7 @@ const BROWSER_GLOBALS = [
   'navigator',
 ];
 const CLASS_COMPONENT_NAMES = new Set(['Component', 'PureComponent']);
+const CONTEXT_COMPONENT_NAMES = new Set(['Provider', 'Consumer']);
 
 function calleeName(callee) {
   if (callee.type === 'Identifier') return callee.name;
@@ -140,7 +148,7 @@ export const noMissingUseClient = {
     type: 'problem',
     docs: {
       description:
-        "A file that calls a React hook, calls createContext, references a browser-only global, or defines a class component needs 'use client' as its literal first line, or a Next.js App Router build fails outright.",
+        "A file that calls a React hook, calls createContext, renders a context Provider/Consumer, references a browser-only global, or defines a class component needs 'use client' as its literal first line, or a Next.js App Router build fails outright.",
     },
     schema: [],
   },
@@ -170,6 +178,17 @@ export const noMissingUseClient = {
             message: `This file calls createContext but is missing the 'use client' directive. ${MISSING_DIRECTIVE_HINT}`,
           });
         }
+      },
+
+      JSXOpeningElement(node) {
+        if (hasDirective) return;
+        const { name } = node;
+        if (name.type !== 'JSXMemberExpression' || !CONTEXT_COMPONENT_NAMES.has(name.property.name)) return;
+
+        context.report({
+          node,
+          message: `This file renders a context <...${name.property.name}> but is missing the 'use client' directive -- a Server Component can't render a context, and can't dot into a client module's export at all. ${MISSING_DIRECTIVE_HINT}`,
+        });
       },
 
       'ClassDeclaration, ClassExpression'(node) {

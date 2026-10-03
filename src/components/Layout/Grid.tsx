@@ -1,3 +1,4 @@
+'use client';
 import React, { type ReactNode } from 'react';
 import { resolveMargin, type MarginMode } from '../../theme/margin';
 import { resolvePadding, type PaddingMode } from '../../theme/padding';
