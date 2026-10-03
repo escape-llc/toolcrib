@@ -296,6 +296,14 @@
         "overrides": {
           "type": "Partial<SidebarSliceState>",
           "description": "Per-instance override for nav item spacing."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the nav landmark. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, the nav landmark has none at all."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
       "category": "Containers",

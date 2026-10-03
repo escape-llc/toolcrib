@@ -696,6 +696,11 @@
       "name": "Meter",
       "import": "import { Meter } from '#toolcrib'",
       "props": {
+        "aria-label": {
+          "type": "string",
+          "required": true,
+          "description": "Accessible name for the underlying `role=\"meter\"` element. Required, as\non `<Progress>`: a meter has no text content ARIA can derive a name from."
+        },
         "value": {
           "type": "number",
           "required": true,
@@ -795,6 +800,11 @@
         "id": {
           "type": "string",
           "description": "Unique identifier included in emitted `progress:changed` events."
+        },
+        "aria-label": {
+          "type": "string",
+          "required": true,
+          "description": "Accessible name for the underlying `role=\"progressbar\"` element.\nRequired, not optional: unlike a `<button>`, a progressbar has no\nvisible text content ARIA can derive a name from, and unlike\n`Slider`/`Input`, Progress has no `FormField`/`htmlFor` fallback\nlabeling path — there is no case where omitting this yields a real,\ncorrectly-named instance."
         },
         "value": {
           "type": "number",

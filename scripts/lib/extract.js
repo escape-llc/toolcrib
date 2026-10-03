@@ -708,8 +708,10 @@ function resolveNamedType(typeText) {
 function extractProps(interfaceDecl, sourceFile, defs = {}) {
   const props = {};
   for (const member of interfaceDecl.members) {
-    if (!ts.isPropertySignature(member) || !ts.isIdentifier(member.name)) continue;
-    if (member.name.text === 'children') continue;
+    if (!ts.isPropertySignature(member)) continue;
+    const propName = propertyKey(member.name);
+    if (propName === null) continue;
+    if (propName === 'children') continue;
 
     const doc = leadingJsDoc(member);
     const entry = {};
@@ -732,9 +734,20 @@ function extractProps(interfaceDecl, sourceFile, defs = {}) {
     if (defaultTag) entry.default = defaultTag;
     const description = doc ? jsDocCommentText(doc.comment).trim() : '';
     if (description) entry.description = description;
-    props[member.name.text] = entry;
+    props[propName] = entry;
   }
   return props;
+}
+
+/**
+ * A property's key as written: an identifier (`value`) or a quoted name
+ * (`'aria-label'`, `'data-x'`), which isn't an identifier and was dropped
+ * from the manifest altogether until #780 -- including Progress's required
+ * `'aria-label'`, the one prop its own docs say has no fallback. Computed
+ * (`[key]: ...`) and numeric keys aren't props anyone passes; `null`.
+ */
+function propertyKey(name) {
+  return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
 }
 
 // Standard React statics assigned the same way as a real slot
