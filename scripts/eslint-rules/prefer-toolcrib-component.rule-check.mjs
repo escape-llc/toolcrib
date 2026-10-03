@@ -51,6 +51,7 @@ ruleTester.run('prefer-toolcrib-component', preferToolcribComponent, {
     { code: '<dialog open>Hi</dialog>', errors: [suggests('Modal, AlertDialog or Drawer')] },
     { code: '<a href="/settings">Settings</a>', errors: [suggests('Link')] },
     { code: '<kbd>Esc</kbd>', errors: [suggests('Kbd')] },
+    { code: '<meter value={0.6} />', errors: [suggests('Meter')] },
     { code: '<a href="https://example.com" target="_blank">x</a>', errors: [suggests('Link')] },
     { code: '<a href={url}>x</a>', errors: [suggests('Link')] },
     // Opting in to the off-by-default table entry.

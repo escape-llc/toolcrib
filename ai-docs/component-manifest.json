@@ -2858,6 +2858,67 @@
       "description": "Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone"
     },
     {
+      "name": "Meter",
+      "import": "import { Meter } from '#toolcrib'",
+      "props": {
+        "value": {
+          "type": "number",
+          "required": true,
+          "description": "Current value, between `min` and `max`. Out-of-range values are clamped."
+        },
+        "min": {
+          "type": "number",
+          "default": "0",
+          "description": "Lowest value of the range."
+        },
+        "max": {
+          "type": "number",
+          "default": "100",
+          "description": "Highest value of the range."
+        },
+        "low": {
+          "type": "number",
+          "default": "min",
+          "description": "Upper edge of the \"low\" part of the range. With `high` and `optimum`,\nturns on band colouring."
+        },
+        "high": {
+          "type": "number",
+          "default": "max",
+          "description": "Lower edge of the \"high\" part of the range."
+        },
+        "optimum": {
+          "type": "number",
+          "default": "the middle of the range",
+          "description": "The ideal value, which says which end of the range is good. Put it in the\nlow part (disk usage) and a high reading shows the error colour; put it in the high\npart (battery, strength) and a low reading does. Band colouring is off\nuntil at least one of `low`, `high` or `optimum` is set."
+        },
+        "label": {
+          "type": "string",
+          "description": "Visible caption above the bar, also wired up as its label."
+        },
+        "showValue": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Show the formatted value beside the caption."
+        },
+        "format": {
+          "type": "Intl.NumberFormatOptions",
+          "default": "percent of the range",
+          "description": "Options for formatting the value, e.g. `{ style: 'percent' }`."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "default": "'md'",
+          "description": "Bar thickness."
+        },
+        "subtheme": {
+          "type": "'error' | 'success' | 'warning' | 'info'",
+          "description": "Apply a subtheme colour to the whole bar, which wins over band colouring.\nFalls back to the nearest `<StyleDomainProvider>`'s if omitted."
+        }
+      },
+      "category": "Data Display",
+      "description": "Gauge for a value within a known range (role=\"meter\"), with optional low/high/optimum colour bands"
+    },
+    {
       "name": "Modal",
       "import": "import { Modal } from '#toolcrib'",
       "slots": [
