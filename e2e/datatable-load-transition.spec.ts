@@ -135,8 +135,17 @@ test.describe('DataTable empty->populated load transition', () => {
           // animation-play-state CSS property the note above found
           // unreliable on WebKit. With the guard broken, React still strips
           // the style, which cancels the animation, so `after` still fails.
-          const running = row.getAnimations();
-          running.forEach(a => a.pause());
+          //
+          // Every row, not just this one (#775): justLeftEmptyState is one
+          // flag shared by all rows, and ANY row's real animationend
+          // clears it legitimately. Pausing only this row left the others
+          // free to finish during the two frames, which read as a guard
+          // failure on WebKit under load. A row whose animation starts
+          // after this point is paused as it starts.
+          const paused = new Set<Animation>();
+          const pauseAll = () => document.getAnimations().forEach(a => { a.pause(); paused.add(a); });
+          pauseAll();
+          document.addEventListener('animationstart', pauseAll);
           child.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'not-the-real-one' }));
           // React's own state update from the dispatched event is
           // processed asynchronously relative to this synchronous
@@ -145,7 +154,8 @@ test.describe('DataTable empty->populated load transition', () => {
           requestAnimationFrame(() =>
             requestAnimationFrame(() => {
               const after = row.style.animation;
-              running.forEach(a => a.play());
+              document.removeEventListener('animationstart', pauseAll);
+              paused.forEach(a => a.play());
               resolve({ before, after });
             })
           );
