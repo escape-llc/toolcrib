@@ -1210,7 +1210,7 @@ export const App: React.FC = () => {
   // the single Catalog page (demo/Catalog.tsx renders the catalog
   // card around each from the generated manifest). These are the same demo
   // blocks the old per-topic tabs rendered -- moved, not rewritten -- with
-  // the multi-component cards (Newer Primitives, Radix Primitives, the
+  // the multi-component cards (Newer Primitives, the
   // accessibility utilities, Date/Time/Rating) split apart so each
   // component owns its own entry. A component missing from this map shows
   // as an amber "no demo yet" outline on the shadow board rather than
@@ -1685,9 +1685,10 @@ export const App: React.FC = () => {
               through this Drawer's own (React-tree, portal-
               spanning) onAnimationEnd handler and close the
               drawer just from hovering then un-hovering this
-              button. Fixed by migrating Drawer to Radix's
-              Presence primitive, which listens on the real DOM
-              node directly instead of via bubbling. */}
+              button. Drawer now leaves exit timing to its Base UI
+              Dialog instead of an onAnimationEnd handler of its
+              own, so nothing a nested element bubbles can reach
+              it. */}
           <Tooltip content="Hover then un-hover — must not close the drawer">
             <Button variant="outline">Hover me (regression check)</Button>
           </Tooltip>
@@ -2327,7 +2328,7 @@ export const App: React.FC = () => {
           <VStack gap="sm">
             <Text size="xs" weight="semibold" tone="secondary">Async Server Search (`onSearch`)</Text>
             <Text size="sm" tone="secondary">
-              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the DataTable demo uses). No Radix primitive backs this interaction at all (Radix ships no Combobox); the listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
+              Type a name below — each keystroke is debounced 300ms, then resolved against a simulated 200ms server round-trip over Acme Analytics' own 250-person team directory (the same dataset the DataTable demo uses). The listbox, filtering, and keyboard navigation are hand-built on top of <code>Popover</code> purely for anchored positioning.
             </Text>
             <Combobox
               placeholder="Search users..."
@@ -2452,7 +2453,7 @@ export const App: React.FC = () => {
             <Input type="email" placeholder="john@example.com" />
           </FormField>
 
-          <FormField name="country" label="Country" helperText="Type to filter — no Radix primitive covers this, hand-built on Popover">
+          <FormField name="country" label="Country" helperText="Type to filter the list">
             <Combobox options={COUNTRY_OPTIONS} placeholder="Search countries..." />
           </FormField>
 
@@ -3776,7 +3777,7 @@ export const App: React.FC = () => {
                         card. Plain <Button> (not Toolbar.Button): UIGroup's
                         border-merging CSS targets its own direct children,
                         and each Tooltip passes its child straight through
-                        via Radix's asChild with no wrapper of its own, so
+                        via Base UI's render prop with no wrapper of its own, so
                         the Button stays UIGroup's direct child either way.
                         Icon-only (issue #595 follow-up) -- aria-label only,
                         deliberately NOT title: each button is already

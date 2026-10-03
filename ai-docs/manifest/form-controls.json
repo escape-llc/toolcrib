@@ -659,7 +659,7 @@
       },
       "constraints": "Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`",
       "category": "Form Controls",
-      "description": "Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone"
+      "description": "Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone"
     },
     {
       "name": "NumberField",
