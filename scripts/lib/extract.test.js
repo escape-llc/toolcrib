@@ -38,3 +38,34 @@ describe('findComponentDeclarations -- React.forwardRef prop extraction', () => 
     expect(button.props.subtheme).toBeDefined();
   });
 });
+
+describe('extractProps -- quoted property names (#780)', () => {
+  // `'aria-label': string` is a string-literal property name, not an
+  // identifier, and the extractor's `ts.isIdentifier(member.name)` filter
+  // dropped it: Progress and Meter's one required prop never reached the
+  // manifest, so an AI reading it never learned a name is required.
+  it.each(['Progress', 'Meter'])('%s lists its required quoted aria-label prop', name => {
+    const component = readCommittedManifest().components.find(c => c.name === name);
+
+    expect(component.props['aria-label']).toMatchObject({ type: 'string', required: true });
+    expect(component.props['aria-label'].description).toMatch(/\S/);
+  });
+
+  it('every component that declares a quoted prop in source has it in the manifest', () => {
+    const quoted = /^\s+'([a-z][\w-]*)'\??:/gm;
+    const manifest = readCommittedManifest();
+    const missing = [];
+    for (const component of manifest.components) {
+      const dir = path.resolve(process.cwd(), 'src', 'components', component.name);
+      const file = fs.existsSync(path.join(dir, `${component.name}.tsx`)) ? path.join(dir, `${component.name}.tsx`) : null;
+      if (!file) continue;
+      const source = fs.readFileSync(file, 'utf-8');
+      const props = source.slice(source.indexOf(`export interface ${component.name}Props`));
+      const end = props.indexOf('\n}\n');
+      for (const [, key] of (end > 0 ? props.slice(0, end) : props).matchAll(quoted)) {
+        if (!(key in component.props)) missing.push(`${component.name}.${key}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

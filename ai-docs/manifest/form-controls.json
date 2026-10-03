@@ -100,6 +100,14 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control — maps onto the same scale as `overrides.cellSize` and scales the month heading's font size."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the calendar grid. Required for a meaningful accessible name unless `aria-labelledby` is given instead — without either, React Aria's own `useCalendar` warns and the grid has none at all."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
       "category": "Form Controls",
@@ -176,6 +184,10 @@
         "label": {
           "type": "ReactNode",
           "description": "Visible group label. Inside a `<FormField label>` leave it off: the field's label names the group."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name when there is no visible label."
         },
         "direction": {
           "type": "'horizontal' | 'vertical'",
@@ -337,6 +349,14 @@
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the field, for a caller that already shows a\nvisible label some other way (e.g. `<FormField label=\"...\">`'s own\nrendered label, which the field's composite date-segment structure\ncan't associate via a plain `htmlFor` the way a single `<input id>`\ncan) and doesn't want `label` above rendering a second, visually\nduplicate one. Ignored if `label` is set — that already supplies an\naccessible name via React Aria's own `<Label>`. Required for a\nmeaningful accessible name unless `aria-labelledby` or `label` is\ngiven instead — without any of the three, React Aria's own\n`useDatePicker` warns and the field has none at all."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
@@ -396,6 +416,14 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the field, for a caller that already shows a\nvisible label some other way (e.g. `<FormField label=\"...\">`). Ignored\nif `label` is set. Required for a meaningful accessible name unless\n`aria-labelledby` or `label` is given instead."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
         },
         "squareCorners": {
           "type": "SquareCornerOption",
@@ -655,6 +683,14 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control — drives the option row's font-size."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the listbox. A listbox always needs one: a\ncontrolling field's `aria-controls` doesn't name it. When it's the popup\nof a field, give it the field's name (Combobox and Select pass their\n`aria-label`, or the FormField label via `aria-labelledby`). A\n`<div role=\"listbox\">` with neither this nor `aria-labelledby` has no\nname at all."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
       "constraints": "Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`",
@@ -719,6 +755,14 @@
           "default": "'md'",
           "description": "Control size, standardized with `<Button>`/`<Input>` so instances line up in a `<UIGroup>` row."
         },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name when no visible `label` is rendered. Ignored if `label` is set."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, referencing an existing visible label's id. Ignored if `label` is set."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s identical prop."
@@ -770,6 +814,10 @@
         "label": {
           "type": "ReactNode",
           "description": "Visible group label. Inside a `<FormField label>` leave it off: the field's label names the group."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the group when there is no visible label."
         },
         "disabled": {
           "type": "boolean",
@@ -940,6 +988,14 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the calendar grid. Required for a meaningful accessible name unless `aria-labelledby` is given instead."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
       "category": "Form Controls",
@@ -1027,6 +1083,11 @@
           "type": "string",
           "description": "Field name included in emitted `rating:changed` events. Not a visible or accessible label -- see `aria-label`."
         },
+        "aria-label": {
+          "type": "string",
+          "default": "'Rating'",
+          "description": "Accessible name for the control's radiogroup, for a screen-reader user\nwho otherwise has no visual context for what's being rated (e.g. no\nexternal heading/label already associated with it). `name` is never\nused for this -- it's an internal field identifier for emitted events,\nnot human-readable text."
+        },
         "value": {
           "type": "number",
           "description": "Controlled value."
@@ -1081,6 +1142,10 @@
           "type": "string",
           "default": "'Select option...'",
           "description": "Placeholder text when no value is selected."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the trigger. Only needed when this `Select` isn't\ninside a `<FormField label=\"...\">` — the `<label htmlFor>` that\nrenders provides the accessible name already in that case, the same\nway it does for `Input`/`Slider`/`Combobox`. Unlike those, `Select`\nhad no such escape hatch until this was added — a real gap for any\nstandalone (non-`FormField`) usage, the trigger's own selected-value\ntext notwithstanding (a combobox takes its name from a label, not from\nthe value it displays)."
         },
         "options": {
           "type": "SelectOptionData[]",
@@ -1358,6 +1423,14 @@
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the field, for a caller that already shows a\nvisible label some other way and doesn't want `label` above rendering\na second, visually duplicate one — same reasoning as `<DatePicker>`'s\nown identical prop. Ignored if `label` is set. Required for a\nmeaningful accessible name unless `aria-labelledby` or `label` is\ngiven instead — without any of the three, React Aria's own\n`useTimeField` warns and the field has none at all."
+        },
+        "aria-labelledby": {
+          "type": "string",
+          "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
@@ -1452,6 +1525,10 @@
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. when this ToggleGroup is a\n`<UIGroup>` member and an ambient value from context isn't correct\nfor some other reason. Takes precedence over the value `<UIGroup>`\nitself supplies automatically — see `<Button>`'s own identical prop\nfor the general pattern."
+        },
+        "aria-label": {
+          "type": "string",
+          "description": "Accessible name for the whole group (the root's `role=\"radiogroup\"`\nor `role=\"group\"`) — e.g. \"Row density\" for a set of density options. Distinct\nfrom each option's own accessible name (its `label`), the same way a\nnative `<fieldset><legend>` names the group without repeating into\nevery `<input>` inside it."
         }
       },
       "category": "Form Controls",
