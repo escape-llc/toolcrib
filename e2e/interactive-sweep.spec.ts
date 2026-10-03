@@ -40,8 +40,16 @@ import { demoPages } from './nav';
 // settle() silently burned its full 2s timeout. That went unnoticed while
 // they sat on separate tabs; issue #624's single Catalog page put
 // them in every iteration.
-const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], .ai-popup-content';
+//
+// Menus count too (#722): a Base UI menu is modal, so while it is open its
+// inert backdrop intercepts every click behind it. They weren't listed, so
+// settle() thought a still-open menu was closed.
+const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], [role="menu"], [data-base-ui-inert], .ai-popup-content';
 async function settle(page: Page) {
+  // Base UI mounts a popup a frame after the click that opens it. Escape sent
+  // before that finds nothing to close and is lost, leaving the menu to open
+  // right after and block every later click (#722). Let two frames pass first.
+  await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done())))).catch(() => {});
   await page.keyboard.press('Escape').catch(() => {});
   await expect(page.locator(OPEN_OVERLAY)).toHaveCount(0, { timeout: 2000 }).catch(() => {});
 }
@@ -146,7 +154,16 @@ test('no console errors while clicking through every interactive control on ever
       // actionability retry loop, so a genuinely-gone element costs
       // milliseconds instead of clickRobust()'s two full click timeouts.
       if ((await btn.count()) === 0) continue;
-      if (!(await clickRobust(btn))) continue; // detached/obscured by the time its turn came up — skip, not a failure
+      let clicked = await clickRobust(btn);
+      // A click that fails while an overlay is still open is that overlay's
+      // doing, not the control's: close it and try once more. Skipping on, with
+      // the overlay still up, made every remaining control on the page burn two
+      // full click timeouts (~4.3s each) before being skipped too (#722).
+      if (!clicked && (await page.locator(OPEN_OVERLAY).count()) > 0) {
+        await settle(page);
+        clicked = await clickRobust(btn);
+      }
+      if (!clicked) continue; // detached/obscured by the time its turn came up — skip, not a failure
       await settle(page);
       await stayOn(page, hash, go);
     }
