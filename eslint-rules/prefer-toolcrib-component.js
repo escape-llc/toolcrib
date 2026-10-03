@@ -40,6 +40,7 @@ export const DEFAULT_TOOLCRIB_ELEMENTS = {
   dialog: 'Modal, AlertDialog or Drawer',
   a: 'Link',
   kbd: 'Kbd',
+  meter: 'Meter',
   table: false,
 };
 

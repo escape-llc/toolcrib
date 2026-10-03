@@ -52,6 +52,7 @@ import {
   AlertDialog,
   Alert,
   Progress,
+  Meter,
   Separator,
   Avatar,
   Toggle,
@@ -865,6 +866,7 @@ export const App: React.FC = () => {
   const [listboxSelected, setListboxSelected] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'email', 'status']);
   const [progressValue, setProgressValue] = useState(45);
+  const [meterValue, setMeterValue] = useState(72);
   const [flakyTriggerKey, setFlakyTriggerKey] = useState(0);
   const [paginationPage, setPaginationPage] = useState(1);
   const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
@@ -2180,6 +2182,22 @@ export const App: React.FC = () => {
           ]}
         />
       </>
+    ),
+    Meter: (
+      <VStack gap="lg">
+        <Text>
+          A value within a known range, not a task getting done: it has no "complete", and a high reading can be good or bad. That is what separates it from <code>&lt;Progress&gt;</code>. <code>optimum</code> says which end is good, and <code>low</code>/<code>high</code> mark where the bands change.
+        </Text>
+        <VStack gap="md">
+          <Meter aria-label="Disk usage" label="Disk usage (high is bad)" showValue value={meterValue} low={60} high={85} optimum={20} />
+          <Meter aria-label="Password strength" label="Password strength (high is good)" showValue value={meterValue} low={30} high={70} optimum={100} />
+          <Meter aria-label="Quota used" label="No bands: primary colour" showValue value={meterValue} size="sm" />
+        </VStack>
+        <HStack gap="sm">
+          <Button size="sm" variant="outline" onClick={() => setMeterValue(v => Math.max(0, v - 10))}>-10</Button>
+          <Button size="sm" variant="outline" onClick={() => setMeterValue(v => Math.min(100, v + 10))}>+10</Button>
+        </HStack>
+      </VStack>
     ),
     Progress: (
       <VStack gap="sm">

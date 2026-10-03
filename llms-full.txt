@@ -479,6 +479,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Kbd>` | — | `keys`, `size`, `overrides`, `id`, `title` | Keyboard key or shortcut hint (`Esc`, `Ctrl` + `K`) as a themed key cap on a semantic `<kbd>` |
 | `<LineChart>` | — | `categories`, `series`, `width`, `height`, `title`, `variant`, `legendPosition`, `overrides` | Multi-series line chart with a shared hover crosshair; `variant="area"` renders a stacked, filled area chart |
 | `<Link>` | — | `variant`, `subtheme` | Themed hyperlink — colors itself from the theme's identity palette (hue-preserving, WCAG AA against the page background) for both unvisited and `:visited` state, and auto-applies `rel="noopener noreferrer"` when `target="_blank"` |
+| `<Meter>` | — | `value`, `min`, `max`, `low`, `high`, `optimum`, `label`, `showValue`, `format`, `size`, `subtheme` | Gauge for a value within a known range (role="meter"), with optional low/high/optimum colour bands |
 | `<PieChart>` | — | `data`, `width`, `height`, `innerRadius`, `title`, `legendPosition` | Part-to-whole pie or donut chart |
 | `<Progress>` | — | `id`, `value`, `max`, `size`, `subtheme`, `overrides` | Determinate progress bar |
 | `<ScaleLegend>` | — | `min`, `max`, `formatValue`, `width` | Gradient legend for a sequential (magnitude) color-encoded chart |
