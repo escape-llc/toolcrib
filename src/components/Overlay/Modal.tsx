@@ -1,7 +1,7 @@
 'use client';
 
-// Modal on Base UI's Dialog (#670, #696), a drop-in for the earlier Radix
-// version (same export, props and slots). Portal container, stacked z-index,
+// Modal on Base UI's Dialog (#670, #696), a drop-in for the earlier
+// implementation (same export, props and slots). Portal container, stacked z-index,
 // CSP nonce and enter/exit keyframes come from the shared overlay layer
 // (./baseui/overlayLayer). Base UI supplies the focus trap, scroll lock,
 // outside-press and Escape dismissal, and native nested-dialog handling.

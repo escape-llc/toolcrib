@@ -17,7 +17,7 @@ all, no matter how the test is written:
   behaves correctly for a keyboard user).
 - Real CSS animations — whether an `animationend` genuinely fires (jsdom
   never runs the CSS animation/paint pipeline, so a component relying on
-  Radix Presence waiting for one — see Toast, Tooltip — can look correct in
+  Presence waiting for one — see Toast, Tooltip — can look correct in
   jsdom while being permanently stuck open in a real browser).
 
 If a jsdom + Testing Library test in `src/__tests__/` *can* express the same

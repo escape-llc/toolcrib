@@ -8,9 +8,9 @@ import { SLICE_EDITOR_CONTROLS } from '../components/ThemeEditor/sliceEditorCont
 import { axe } from './testUtils/axe';
 import { actAndSettle, settleOverlay } from './testUtils/overlay';
 
-// ThemeEditor renders <Accordion>, which (via Radix) uses ResizeObserver —
+// ThemeEditor renders <Accordion>, which uses ResizeObserver —
 // not implemented in jsdom. Same polyfill pattern already used in
-// RadixPrimitives.test.tsx and eventBusTraffic.test.tsx for the same reason.
+// PrimitivesSubsystem.test.tsx and eventBusTraffic.test.tsx for the same reason.
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
     observe() {}
@@ -59,17 +59,17 @@ describe('ThemeEditor', () => {
   it('opening the Containers category then the Card section shows its current padding and header style values', async () => {
     renderEditor();
 
-    // Radix Accordion.Content isn't mounted while its item is closed, so
+    // Accordion content isn't mounted while its item is closed, so
     // the Containers category (not open by default) must be expanded
     // before its nested Card/Collapsible/App Shell items exist to click.
     fireEvent.click(screen.getByText(/Containers/));
     fireEvent.click(screen.getByText(/🃏 Card/));
 
-    // Select here is a custom Radix dropdown (SelectPrimitive), not a
+    // Select here is a custom dropdown, not a
     // native <select> — getByDisplayValue/fireEvent.change don't apply to
     // it. Checking the displayed label matches this suite's own existing
-    // convention for this component (see RadixPrimitives.test.tsx's
-    // "renders Select component with Radix UI options").
+    // convention for this component (see PrimitivesSubsystem.test.tsx's
+    // "renders Select component with its options").
     expect(screen.getByText('Normal (1.25rem 1.5rem)')).toBeInTheDocument();
     expect(screen.getByText('Bordered (Bottom Border)')).toBeInTheDocument();
     // Different structural branch from the default-open scan above: a

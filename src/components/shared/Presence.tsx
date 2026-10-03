@@ -5,8 +5,7 @@ import React, { useLayoutEffect, useRef, useState, type ReactElement, type Ref }
 /**
  * Keeps `children` mounted while `present` is false for as long as the
  * child element's own exit animation runs, then unmounts it (#703:
- * toolcrib's own, replacing `@radix-ui/react-presence`, the last Radix
- * import; the Base UI parts do this themselves). The exit animation is
+ * toolcrib's own; the Base UI parts do this themselves). The exit animation is
  * whatever the child's style applies once `present` flips false (e.g.
  * `animation: ai-fade-out ...`). With nothing running on the element --
  * reduced motion, no exit animation, jsdom -- it unmounts in the same

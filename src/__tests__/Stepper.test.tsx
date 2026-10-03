@@ -118,7 +118,7 @@ describe('Stepper', () => {
     expect(screen.getByRole('tab', { name: /Step B/ })).not.toHaveAttribute('aria-current');
   });
 
-  it('is built on real role="tab"/role="tabpanel" elements, inheriting TabStrip\'s keyboard operability from the same Radix Tabs primitive', () => {
+  it('is built on real role="tab"/role="tabpanel" elements, inheriting TabStrip\'s keyboard operability from the same Tabs primitive', () => {
     const steps: StepperStepData[] = [
       { id: 'a', label: 'Step A', content: <div>A</div> },
       { id: 'b', label: 'Step B', content: <div>B</div> },

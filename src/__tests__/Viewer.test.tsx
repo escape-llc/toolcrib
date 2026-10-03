@@ -57,10 +57,10 @@ describe('Viewer', () => {
     // Viewer inside it via the bus -- matching the realistic sequence (a
     // gallery thumbnail click opens the Viewer sometime after its host
     // Modal is already open), and avoiding the unrelated
-    // simultaneous-double-mount focus race that two Radix Dialogs opening
+    // simultaneous-double-mount focus race that two Dialogs opening
     // in the very same initial render can hit (both FocusScopes claiming
     // focus in the same commit). Uncontrolled (no isOpen/onOpenChange), so
-    // Radix's own Escape dismissal actually updates Viewer's internal
+    // the Dialog's own Escape dismissal actually updates Viewer's internal
     // state and removes it from the DOM, rather than needing a parent to
     // notice onOpenChange and re-render with a new isOpen prop.
     render(

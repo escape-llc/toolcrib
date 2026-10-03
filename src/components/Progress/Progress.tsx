@@ -80,8 +80,7 @@ export const Progress: React.FC<ProgressProps> = ({
         ...progressVars,
       }}
     >
-      {/* Base UI sizes the fill itself (width: N%, #702); the Radix version
-          slid a full-width bar with translateX. */}
+      {/* Base UI sizes the fill itself (width: N%, #702). */}
       <BaseProgress.Indicator
         style={{
           position: 'absolute',

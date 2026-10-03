@@ -45,7 +45,7 @@ export function useAdaptiveSize(
       if (!el) {
         // ref.current can still be null on this effect's very first run --
         // confirmed for real (not theoretical) building <Toast>'s own
-        // stacking positions: Radix's ToastPrimitive.Root renders through
+        // stacking positions: an overlay primitive's root renders through
         // an internal portal, and on the FIRST toast ever mounted, the
         // portal's own target container can still be getting set up in
         // the same commit, so this component's ref hasn't attached to the

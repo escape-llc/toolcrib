@@ -86,8 +86,8 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
   }
 
   // A file present in oldRelease but absent from newRelease was removed
-  // upstream — e.g. useAnimatedMount.ts when Drawer moved to Radix
-  // Presence in v0.10.0. Without this pass, a vendored copy of a file
+  // upstream — e.g. useAnimatedMount.ts when Drawer moved to a Presence
+  // primitive in v0.10.0. Without this pass, a vendored copy of a file
   // upstream no longer ships just sits there forever, unreferenced but
   // never cleaned up, since the loop above only ever visits paths that
   // still exist in the *new* release. classify(original, local, '')

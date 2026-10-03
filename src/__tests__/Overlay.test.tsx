@@ -29,10 +29,10 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.queryByText('Popup Content')).not.toBeInTheDocument();
   });
 
-  // Issue #421: the Radix version wrapped the trigger in a non-focusable
-  // <div> for `asChild`, so its close-autofocus landed on that div and focus
-  // fell through to <body>. Base UI renders the trigger as the consumer's
-  // own element (#696), so focus return is the default; this guards it.
+  // Issue #421: a non-focusable <div> wrapped around the trigger takes the
+  // close-autofocus, and focus falls through to <body>. Base UI renders the
+  // trigger as the consumer's own element (#696), so focus return is the
+  // default; this guards it.
   it('returns focus to the real trigger element after closing, not <body> (issue #421)', async () => {
     render(
       <Popup trigger={<Button>Open Popup</Button>}>
@@ -151,10 +151,10 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();
   });
 
-  // Regression guard: neither Radix's DialogContent nor Base UI's
-  // Dialog.Popup (@base-ui/react 1.8, checked in its source) sets
-  // aria-modal itself. Both hide the rest of the page instead, which gives
-  // real modal *behavior* but not the spec-declared attribute.
+  // Regression guard: Base UI's Dialog.Popup (@base-ui/react 1.8, checked in
+  // its source) doesn't set aria-modal itself. It hides the rest of the page
+  // instead, which gives real modal *behavior* but not the spec-declared
+  // attribute.
   // Nothing about the dialog looks or behaves broken without it, and
   // aria-modal isn't a *required* attribute for role="dialog" -- so neither
   // axe-core nor manual interaction testing would ever flag its absence.

@@ -205,8 +205,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       ariaLabel="Command palette"
       align="top"
     >
-      {/* react-aria's Autocomplete (#720, replacing cmdk and the Radix it
-          pulled in): typing stays in the input while arrow keys move a
+      {/* react-aria's Autocomplete (#720, replacing cmdk): typing stays in the input while arrow keys move a
           virtual focus through the menu, and Enter runs the highlighted
           item. The first result is highlighted after every change. */}
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, ...paletteVars }}>

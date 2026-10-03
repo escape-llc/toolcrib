@@ -81,7 +81,7 @@ function setRadiusCorner(style: React.CSSProperties, corner: Corner, value: 0 | 
 
 /** @barrelExport */
 export interface CornerSquaringResult {
-  /** Pass straight through to the Radix `*.Content`'s own `side`/`align` props — kept here so a caller's `side`/`align` state and its corner-squaring can't drift apart. */
+  /** Pass straight through to the popup's own `side`/`align` props — kept here so a caller's `side`/`align` state and its corner-squaring can't drift apart. */
   side: PopoverSide;
   align: PopoverAlign;
   /** A slight negative overlap (not just 0) reads as one continuous seam rather than two adjacent flat edges — the value every `sideOffset` in the toolkit that uses this hook shares. */
@@ -95,16 +95,16 @@ export interface CornerSquaringResult {
 }
 
 /**
- * Radix's Popper-based `*.Content` (Popover, DropdownMenu) auto-flips to
+ * A Popper-positioned popup (Popover, DropdownMenu) auto-flips to
  * the opposite side on collision by default (`avoidCollisions`, on unless
  * a caller explicitly disables it) — e.g. a `side="bottom"` popup near the
  * bottom of the viewport actually renders above its trigger instead.
- * Radix reflects whichever side it actually chose via a `data-side`
+ * The popup reflects whichever side it actually chose via a `data-side`
  * attribute on the Content element itself, but has no callback for when
  * that changes, so a `MutationObserver` on the attribute is the only way
  * to learn about a flip. Every caller of `computeCornerSquaring` needs the
  * *actual* side, not the merely-requested one — squaring the corner for
- * "bottom" while Radix silently flipped to "top" squares the wrong edge
+ * "bottom" while the popup silently flipped to "top" squares the wrong edge
  * entirely, reported directly via a real screenshot of exactly that.
  * Falls back to `requestedSide` before the content has mounted/measured
  * (or while closed), so a caller can use the return value unconditionally
@@ -122,7 +122,7 @@ export function useActualPopoverSide(
   // isOpen/requestedSide change while closed, avoiding an extra
   // render-then-effect-then-rerender cascade for what's really just a
   // "sync state to a prop" concern. The *open* case below still
-  // genuinely needs an effect (subscribing to Radix's own data-side
+  // genuinely needs an effect (subscribing to the popup's own data-side
   // attribute via MutationObserver, a real external system) -- its own
   // setActualSide calls all happen inside that subscription's callback
   // (readSide, invoked from a MutationObserver/rAF callback), not
@@ -140,7 +140,7 @@ export function useActualPopoverSide(
   // FUTURE attribute changes, not a value already present at attach
   // time, so this initial read is still needed alongside it. Same
   // bounded requestAnimationFrame retry as before (and the same one
-  // `useMutationObserver`'s own internal setup uses): Radix's Content is
+  // `useMutationObserver`'s own internal setup uses): the popup is
   // Presence-mounted, which can land one render tick after `isOpen`
   // flips true, so `contentRef.current` isn't guaranteed to be populated
   // yet on this effect's first run (confirmed directly: it was reliably
@@ -162,7 +162,7 @@ export function useActualPopoverSide(
         return;
       }
       // `data-side` isn't guaranteed to land on the ref'd node itself --
-      // Radix's actual Popper positioning wrapper carrying it can be a
+      // The actual Popper positioning wrapper carrying it can be a
       // different element than whichever one a caller's own `ref`
       // forwards to. Checking both self and descendant covers this
       // regardless of exactly which node in Content's own internal
@@ -209,12 +209,12 @@ export function useActualPopoverSide(
 /**
  * The one place "the look" — a popup that reads as directly attached to
  * its trigger rather than a floating chip — gets computed, for any
- * Radix Popper-based trigger+popup pair (`Popup`, `Combobox`, `DropdownMenu`
+ * Popper-based trigger+popup pair (`Popup`, `Combobox`, `DropdownMenu`
  * all call this). Pure function: feed it where the popup is anchored, get
  * back everything needed to wire both sides up. `isOpen` only gates the
  * *trigger's* squared corner (the trigger is always mounted, open or
  * closed, and should only look "attached" while actually attached) — the
- * popup content itself is conditionally mounted by Radix already, so its
+ * popup content itself is conditionally mounted already, so its
  * own corner style doesn't need the same gate.
  */
 export function computeCornerSquaring(

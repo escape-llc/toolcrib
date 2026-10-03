@@ -151,7 +151,7 @@ describe('Breadcrumb', () => {
       await actAndSettle(() => fireEvent.mouseDown(trigger));
       await waitFor(() => expect(screen.getByText('Category')).toBeInTheDocument());
       // No aria-hidden-focus carve-out (#700): Base UI doesn't aria-hide the
-      // page behind an open menu the way Radix's hideOthers() did.
+      // page behind an open menu.
       expect(await axe(document.body)).toHaveNoViolations();
     } finally {
       scrollWidthSpy.mockRestore();

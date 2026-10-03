@@ -75,7 +75,6 @@ describe('OTPField', () => {
     await waitFor(() => expect(cell(2)).toHaveFocus());
     // Empty cell (#701, Base UI): one Backspace per character wherever the
     // caret is -- it deletes the previous cell's character and moves there.
-    // The Radix version only moved focus.
     act(() => cell(3).focus());
     act(() => { fireEvent.keyDown(cell(3), { key: 'Backspace' }); });
     expect(onChange).toHaveBeenLastCalledWith('1');

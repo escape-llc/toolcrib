@@ -5,8 +5,7 @@ export interface VisuallyHiddenProps {
   children: ReactNode;
 }
 
-// The standard screen-reader-only box (#703: toolcrib's own, replacing
-// Radix's VisuallyHidden, which rendered exactly this). Clipped to nothing
+// The standard screen-reader-only box (#703: toolcrib's own). Clipped to nothing
 // and taken out of flow, but still in the accessibility tree -- unlike
 // display:none or visibility:hidden, which remove it from both.
 const VISUALLY_HIDDEN_STYLE: CSSProperties = {

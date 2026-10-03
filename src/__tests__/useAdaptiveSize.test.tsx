@@ -63,7 +63,7 @@ describe('useAdaptiveSize', () => {
   });
 
   // Regression found building <Toast>'s stacking positions: a ref rendered
-  // through a React portal (Radix's ToastPrimitive.Root, portaled into a
+  // through a React portal (a toast root, portaled into a
   // Viewport that's itself still being set up in the same commit) could
   // still be null on this hook's very first effect run. The original
   // implementation gave up permanently at that point -- nothing else would

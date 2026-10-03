@@ -8,7 +8,7 @@ import { axe } from './testUtils/axe';
 // Wraps its own `trigger` child in an intermediate <div>, the same shape
 // Modal/Popup/AlertDialog's own internal trigger wrapper takes (see their
 // own components for the real thing) -- a minimal stand-in so this suite
-// doesn't have to drag in a full Modal/Popup/AlertDialog + Radix portal
+// doesn't have to drag in a full Modal/Popup/AlertDialog + portal
 // just to prove the wrapper-div case specifically.
 function WrappedTrigger({ trigger }: { trigger: ReactElement }) {
   return <div style={{ display: 'inline-flex' }}>{trigger}</div>;

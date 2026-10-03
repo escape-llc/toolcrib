@@ -9,8 +9,8 @@ import { Combobox } from '../components/Form/Combobox';
 import { FileUpload } from '../components/Form/FileUpload';
 import { RadioGroup } from '../components/Form/RadioGroup';
 
-// Radix Checkbox/Switch render a hidden native input inside a real <form>,
-// which measures itself with ResizeObserver; jsdom has none.
+// Checkbox/Switch render a hidden native input inside a real <form>, and the
+// controls can measure themselves with ResizeObserver; jsdom has none.
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
     observe() {}

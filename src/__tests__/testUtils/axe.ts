@@ -56,7 +56,7 @@ declare module 'vitest' {
  * aria-required-children, invalid role/aria-* combinations, landmark
  * structure -- is pure DOM-shape analysis, fully checkable here.
  *
- * Always scan document.body, never RTL's own `container` -- Radix's
+ * Always scan document.body, never RTL's own `container` -- the
  * Portal primitive (used directly by overlay components and internally by
  * composite controls like Select/Combobox/DatePicker/Toast) renders
  * outside `container` entirely, so scanning `container` alone would
@@ -84,7 +84,7 @@ const configuredAxe = configureAxe({
 /**
  * Wraps the real axe scan in `act()` -- confirmed necessary via a real
  * failure, not precautionary: `await axe(...)` is itself an async gap, and
- * a Radix-heavy component (ContextMenu, e.g.) can have its own pending
+ * an overlay-heavy component (ContextMenu, e.g.) can have its own pending
  * internal effects (focus-scope setup, roving-tabindex, position
  * recalculation) flush during exactly that gap, outside React Testing
  * Library's own act() tracking -- a real "An update ... was not wrapped in

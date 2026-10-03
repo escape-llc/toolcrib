@@ -1735,8 +1735,8 @@ describe('DataTable Virtualized Component', () => {
 
     it('renders a labeled compact/normal/spacious radio group when densitySelector is true', () => {
       // Composes <ToggleGroup> (see DataTable.tsx's own comment right
-      // where it's rendered) rather than 3 hand-rolled Buttons -- Radix's
-      // own single-select ToggleGroup renders the real WAI-ARIA "Radio
+      // where it's rendered) rather than 3 hand-rolled Buttons -- a
+      // single-select ToggleGroup renders the real WAI-ARIA "Radio
       // Group" pattern (role="radiogroup" on the root, role="radio" +
       // aria-checked on each option), not role="button" +
       // aria-pressed. The group's own aria-label ("Row density") now
@@ -1792,7 +1792,7 @@ describe('DataTable Virtualized Component', () => {
 
     // Regression: composing <ToggleGroup> (a real role="radiogroup") for
     // density means clicking the ALREADY-selected option used to call
-    // Radix's own onItemDeactivate, setting density to '' -- an invalid
+    // the primitive's own onItemDeactivate, setting density to '' -- an invalid
     // TableDensity that made DENSITY_ROW_HEIGHT_PX[''] resolve to
     // `undefined`, itemHeight become `undefined`, and (with
     // defaultPageSize="auto") an eventual NaN pageSize crash the whole
@@ -3049,7 +3049,7 @@ describe('DataTable Virtualized Component', () => {
     // trigger column, col 1 = 'name'/second).
     const cellByRowCol = (container: HTMLElement, row: number, col: number): HTMLElement =>
       container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
-    // jsdom's Radix Presence unmounts a row's component synchronously the
+    // jsdom's Presence unmounts a row's component synchronously the
     // instant `present` flips false (jsdom reports no real running CSS
     // animation -- the identical, already-documented quirk Toast.test.tsx
     // relies on for its own Presence-based exit). EditCoGridRow's cleanup

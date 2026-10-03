@@ -1,7 +1,7 @@
 'use client';
 
 // HoverCard on Base UI's PreviewCard (#670, #700), a drop-in for the earlier
-// Radix version (same export, props and events). Portal container, stacked
+// implementation (same export, props and events). Portal container, stacked
 // z-index, CSP nonce, enter/exit keyframes and the arrow come from the shared
 // overlay layer (../Overlay/baseui/overlayLayer).
 import React, { type ReactNode, type ReactElement } from 'react';

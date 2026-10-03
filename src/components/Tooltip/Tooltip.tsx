@@ -1,7 +1,7 @@
 'use client';
 
-// Tooltip on Base UI's Tooltip (#670, #700), a drop-in for the earlier Radix
-// version (same export, props, events and forwardRef). Portal container,
+// Tooltip on Base UI's Tooltip (#670, #700), a drop-in for the earlier
+// implementation (same export, props, events and forwardRef). Portal container,
 // stacked z-index, CSP nonce, enter/exit keyframes and the arrow come from the
 // shared overlay layer (../Overlay/baseui/overlayLayer).
 import React, { useId, useState, type HTMLAttributes, type ReactNode, type ReactElement } from 'react';
@@ -86,16 +86,16 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   };
 
   // Base UI's Tooltip sets no role="tooltip" and no aria-describedby (its
-  // docs treat a tooltip as visual-only). The Radix version had both, so a
-  // screen reader announced the tooltip text as the trigger's description;
-  // this keeps that. The description only points at the popup while it's
+  // docs treat a tooltip as visual-only). This adds the description, so a
+  // screen reader announces the tooltip text as the trigger's description.
+  // The description only points at the popup while it's
   // mounted, and a consumer's own aria-describedby is kept alongside it.
   const describedBy = [consumerDescribedBy, isOpen ? popupId : undefined].filter(Boolean).join(' ') || undefined;
 
   return (
     <OverlayCSP>
-      {/* No Provider: each Tooltip keeps its own delay, like the Radix
-          version's per-instance Provider with skipDelayDuration={0}.
+      {/* No Provider: each Tooltip keeps its own delay, with no
+          skip-delay grouping between neighbours.
           disableHoverablePopup: the bubble is pointer-events: none anyway. */}
       <BaseTooltip.Root onOpenChange={handleOpenChange} disableHoverablePopup>
         {/* The child is the trigger (render), with no wrapper of its own, so a

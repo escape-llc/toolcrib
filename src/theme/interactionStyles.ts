@@ -11,7 +11,7 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  * Shared user-interaction treatment for every plain "button-like" element in
  * the toolkit — opted into via the `.ai-btn` className (`<Button>`,
  * TabStrip's filmstrip scroll arrows, TabStrip's legacy `.Tab`) and
- * `.ai-tab-trigger` (TabStrip's Radix `Tabs.Trigger`). Covers three
+ * `.ai-tab-trigger` (TabStrip's `Tabs.Trigger`). Covers three
  * interaction pseudo-classes systematically, not just `:hover`:
  *
  * - `:hover` — a live `color-mix()` background tint (see this file's
@@ -53,14 +53,15 @@ const STYLE_ID = 'toolcrib-interaction-styles';
  *   plain mouse click on the descendant, which would reintroduce exactly
  *   the "ring shows for a mouse user" problem `:focus-visible` exists
  *   everywhere else in this file to avoid.
- * - `.ai-menu-item[data-highlighted]` — for Radix menu-style items
- *   (DropdownMenu.Item, ContextMenu.Item, Select.Item). Radix's own
+ * - `.ai-menu-item[data-highlighted]` — for menu-style items
+ *   (DropdownMenu.Item, ContextMenu.Item, Select.Item). The primitives'
  *   `data-highlighted` attribute already unifies mouse-hover and keyboard
  *   navigation into one signal (correctly, regardless of whether a given
- *   Radix primitive happens to move real DOM focus per item or not) — using
+ *   primitive happens to move real DOM focus per item or not) — using
  *   it instead of separate `:hover`/`:focus-visible` rules means one rule
- *   covers both input modalities exactly the way Radix itself considers
- *   "this item is the current candidate", rather than approximating it.
+ *   covers both input modalities exactly the way the primitive itself
+ *   considers "this item is the current candidate", rather than
+ *   approximating it.
  *
  * `!important` is only used where a component's own inline `style` already
  * sets that exact property (documented per-rule below) — inline style

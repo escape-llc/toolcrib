@@ -12,8 +12,8 @@ import { axe } from './testUtils/axe';
 // match, which could ambiguously match other digits in the full label
 // (e.g. the year). Selection/disabled state are React Aria's own
 // `data-selected`/`aria-disabled` attributes (confirmed directly against
-// the rendered DOM), not Radix's `data-state` convention used elsewhere
-// in this toolkit -- exactly the distinction the hand-off doc's own CSS/
+// the rendered DOM), not a `data-state` convention
+// -- exactly the distinction the hand-off doc's own CSS/
 // animation note warns about.
 function getDayCell(container: HTMLElement, day: number): HTMLElement {
   const cells = Array.from(container.querySelectorAll('[role="button"].react-aria-CalendarCell'));

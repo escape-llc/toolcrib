@@ -119,7 +119,7 @@ export const Stepper: React.FC<StepperProps> = ({
       }}
       style={{ display: 'flex', flexDirection: 'column', width: '100%', ...stepperVars }}
     >
-      {/* activateOnFocus: arrow keys select the step they reach, as with Radix (#702). */}
+      {/* activateOnFocus: arrow keys select the step they reach (#702). */}
       <BaseTabs.List activateOnFocus style={{ display: 'flex', alignItems: 'center', marginBottom: '1.25rem' }}>
         {steps.map((step, index) => {
           const isCompleted = index < activeIndex && isStepSatisfied(step);

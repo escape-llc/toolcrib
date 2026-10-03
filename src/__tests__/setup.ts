@@ -19,7 +19,7 @@ import { beforeEach, afterEach, expect } from 'vitest';
 expect.extend(axeMatchers);
 
 // jsdom has no layout engine, so it never implements scrollIntoView.
-// Radix Select's Content calls it on mount (to scroll the selected item
+// The Select listbox calls it on mount (to scroll the selected item
 // into view) and throws without this — not a corner case, but the thing
 // that silently made every Select-based control's dropdown unopenable in
 // tests, which is why no test anywhere in this suite previously exercised

@@ -180,7 +180,7 @@ export const TabStrip: React.FC<TabStripProps> & {
       )}
 
       {/* Connected Tab List Scroll Container. activateOnFocus: arrow keys
-          select the tab they move to, as the Radix version did (Base UI's
+          select the tab they move to (Base UI's
           default waits for Enter/Space, #702). */}
       <BaseTabs.List
         ref={scrollContainerRef}

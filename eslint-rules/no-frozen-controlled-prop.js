@@ -7,7 +7,7 @@
  * `default<Name>` prop itself, with no `useState`/`useReducer` anywhere in
  * that chain. That shape looks correct (it "just uses the default when
  * nothing else is set") but is a live freeze bug: most controlled-component
- * implementations (React Aria, Radix, and React's own native `<input>`)
+ * implementations (React Aria, Base UI, and React's own native `<input>`)
  * decide controlled-vs-uncontrolled by whether the prop is non-`undefined`
  * on THIS render, checked fresh every render -- not by whether a parent
  * ever intends to update it. A bare prop reference is non-`undefined` on

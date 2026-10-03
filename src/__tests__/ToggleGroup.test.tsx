@@ -4,9 +4,9 @@ import { Toggle, ToggleGroup } from '../components/ToggleGroup/ToggleGroup';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
 
-// Radix's Toggle/ToggleGroup primitives use ResizeObserver internally —
+// The Toggle/ToggleGroup primitives can use ResizeObserver internally —
 // not implemented in jsdom. Same polyfill pattern already used in
-// RadixPrimitives.test.tsx / RadioGroup.test.tsx for the same reason.
+// PrimitivesSubsystem.test.tsx / RadioGroup.test.tsx for the same reason.
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   class ResizeObserverMock {
     observe() {}
@@ -62,7 +62,7 @@ describe('ToggleGroup Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  // Regression: type="single" renders role="radiogroup", but Radix's own
+  // Regression: type="single" renders role="radiogroup", but the primitive's own
   // underlying value model is still a plain toggle -- clicking the
   // currently-selected option calls its own onItemDeactivate, setting the
   // value to '' (fully deselected). Valid for type="multiple" (an

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useContext, useEffect, useId, useState } from 'react';
-// Base UI's stable OTP field (#670, #701), replacing Radix's
-// unstable_OneTimePasswordField. Paste distribution, auto-advance, backspace,
+// Base UI's stable OTP field (#670, #701). Paste distribution, auto-advance, backspace,
 // SMS autofill (autocomplete="one-time-code" on the first cell) and the
 // password-manager opt-outs are the edge cases a hand-rolled version gets
 // wrong, which is why this stays on a library primitive.
