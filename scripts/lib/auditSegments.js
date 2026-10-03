@@ -83,7 +83,7 @@ export const SEGMENTS = [
     title: 'Form Controls — Composite',
     kind: 'components',
     category: SPLIT_CATEGORIES.FORM_CONTROLS,
-    names: ['Form', 'FormError', 'FormField', 'Pagination', 'SubmitButton', 'ThemeEditor'],
+    names: ['Fieldset', 'Form', 'FormError', 'FormField', 'Pagination', 'SubmitButton', 'ThemeEditor'],
     // The shared slice.ts/useSliceOverrides.ts plumbing every form control
     // in segment 5 leans on -- reviewed once here, excluded from
     // 'theme-engine' below so the two segments don't overlap.

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Toggle as BaseToggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
 import { aiBus } from '../../eventBus/eventBus';
@@ -164,12 +165,13 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   defaultValue,
   onChange,
   options,
-  disabled = false,
+  disabled: disabledProp = false,
   overrides,
   size = 'md',
   squareCorners,
   'aria-label': ariaLabel,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const [internalValue, setInternalValue] = useState<string | string[]>(
     defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : ''
   );

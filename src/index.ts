@@ -88,6 +88,8 @@ export * from './components/DropdownMenu/DropdownMenu';
 export * from './components/DropdownMenu/DropdownMenuSlice';
 export * from './components/EmptyState/EmptyState';
 export * from './components/ErrorBoundary/AIErrorBoundary';
+export * from './components/Fieldset/Fieldset';
+export * from './components/Fieldset/FieldsetContext';
 export * from './components/Filmstrip/Filmstrip';
 export * from './components/Form/ButtonSlice';
 export * from './components/Form/CheckboxGroup';

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useContext, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
@@ -76,11 +77,12 @@ export const Slider: React.FC<SliderProps> = ({
   max = 100,
   step = 1,
   onChange,
-  disabled = false,
+  disabled: disabledProp = false,
   commitOnRelease = false,
   ariaLabel,
   overrides,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const effectiveId = id ?? (name || undefined);

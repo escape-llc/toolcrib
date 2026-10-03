@@ -11,6 +11,7 @@
    folded into `items` state deliberately -- these are Blob object URLs,
    not serializable data that should trigger their own re-render cycle. */
 import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { Button } from './FormComponents';
@@ -88,13 +89,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   multiple = true,
   maxSizeBytes,
   maxFiles,
-  disabled = false,
+  disabled: disabledProp = false,
   onUpload,
   onFilesChange,
   overrides,
   size = 'md',
   squareCorners,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();

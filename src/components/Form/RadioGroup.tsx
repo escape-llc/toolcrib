@@ -10,6 +10,7 @@
    not a real bug -- this renders and tests correctly today. Scoped to just
    this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext, useState } from 'react';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
 import { useOptionalFormContext } from './FormContext';
@@ -84,10 +85,11 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   options,
   direction = 'vertical',
   children,
-  disabled = false,
+  disabled: disabledProp = false,
   overrides,
   size = 'md',
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
