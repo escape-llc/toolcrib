@@ -192,7 +192,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         className="ai-focus-ring"
         // Dimmed like the other disabled controls; React Aria marks it
         // disabled but draws nothing for it.
-        style={isDisabled ? { opacity: 0.6 } : undefined}
+        style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
       >
         {label && (
           <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
