@@ -4,6 +4,7 @@ import demoSources from './demoSources.generated.json';
 import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, StyleDomainProvider, Text, VStack, VisuallyHidden } from '#toolcrib';
 import { Eye } from 'lucide-react';
 import { routeHref } from './hashRoute';
+import { STATE_EXAMPLES, STATE_NOTES } from './stateExamples';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
 const DEMO_SOURCES = demoSources as { components: Record<string, string>; systems: Record<string, string> };
@@ -474,6 +475,33 @@ function Blueprint({ source }: { source?: string }) {
   );
 }
 
+/**
+ * The taxonomy of states a control renders in (default, focused, disabled,
+ * invalid, read-only), one labelled cell each, so they can be compared by eye
+ * and a state that looks wrong or inconsistent stands out. Only the controls
+ * with entries in STATE_EXAMPLES get one.
+ */
+function States({ name }: { name: string }) {
+  const examples = STATE_EXAMPLES[name];
+  if (!examples) return null;
+  return (
+    <div data-catalog-states={name} style={DEMO_FRAME_STYLE}>
+      <VStack gap="sm">
+        <Text size="xs" weight="semibold" tone="secondary">States</Text>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(13rem, 1fr))', gap: '1rem' }}>
+          {examples.map(({ state, node }) => (
+            <VStack key={state} gap="xs">
+              <Text size="xs" weight="semibold">{state}</Text>
+              {node}
+              <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
+            </VStack>
+          ))}
+        </div>
+      </VStack>
+    </div>
+  );
+}
+
 function CatalogCard({ component, bin, demo }: { component: ManifestComponent; bin: string; demo: EntryDemo }) {
   const c = component;
   return (
@@ -508,6 +536,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 {demo}
               </div>
             )}
+            <States name={c.name} />
           </VStack>
         </Card.Content>
       </Card>
