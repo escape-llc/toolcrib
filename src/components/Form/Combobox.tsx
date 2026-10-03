@@ -101,8 +101,7 @@ export interface ComboboxChipColor {
  * Props for the `<Combobox>` filterable text input + listbox.
  *
  * Binds to Form context via `name`, same as `<Select>`. Unlike `<Select>`,
- * the trigger is a real text input the user types into to filter — there's
- * no Radix primitive for this interaction (Radix ships no Combobox), so the
+ * the trigger is a real text input the user types into to filter. The
  * listbox, keyboard navigation, and ARIA wiring here are hand-built on top
  * of `Popover` purely for anchored positioning/portal/dismiss.
  *

@@ -41,8 +41,7 @@ export interface ListboxOptionData {
  * `aria-activedescendant` — the same contract `Combobox` already relied on
  * internally before this was extracted, now available standalone for a
  * custom search-results dropdown, a mentions widget, or any other picker
- * that needs a keyboard-navigable option list with no matching Radix
- * primitive to build on (Radix ships no Combobox/Listbox primitive at all).
+ * that needs a keyboard-navigable option list.
  */
 export interface ListboxProps {
   /** DOM id for the listbox container. Each option's own id is derived from this (`${id}-option-${index}`) — predictable so a caller can compute the active option's id for `aria-activedescendant` without Listbox needing to expose it separately. */
@@ -87,7 +86,7 @@ export interface ListboxProps {
 }
 
 /**
- * @manifest Keyboard-navigable, controlled option list with no matching Radix primitive to build on — extracted from Combobox's own hand-built listbox, now usable standalone
+ * @manifest Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone
  * @manifestConstraints Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`
  * @manifestCategory Form Controls
  */
