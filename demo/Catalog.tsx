@@ -67,15 +67,16 @@ const isPageFrame = (d: EntryDemo): d is { pageFrame: ReactNode } =>
   typeof d === 'object' && d !== null && !React.isValidElement(d) && 'pageFrame' in d;
 const isLiveDemo = (d: EntryDemo) => d !== undefined && d !== null && !isSeeAlso(d) && !isPageFrame(d);
 
-/** The live demo's frame: a rule above sets it off from the description; DocsPanel's tint sets it off from what follows. */
+/** The live demo's frame: a rule above sets it off from the description; the tinted Spec Sheet card sets it off from what follows. */
 const DEMO_FRAME_STYLE: React.CSSProperties = {
   borderTop: '0.0625rem solid var(--ai-border)',
   padding: '0.75rem 0',
 };
 
 /**
- * The documentation under a live demo (pick ticket, spec sheet, blueprint...),
- * tinted so it can't be mistaken for more demo. A rule alone wasn't enough:
+ * The documentation under a fixture's demo (parts list, blueprint), tinted so
+ * it can't be mistaken for more demo. A tool's own page does the same with its
+ * Spec Sheet card. A rule alone wasn't enough:
  * the docs are themed components too, so they looked like part of the demo.
  * A style domain (not a per-Block subtheme), so everything inside that follows
  * the domain picks up the same hue. `info` matches the fixtures board, the
@@ -334,79 +335,75 @@ function md(text: string): ReactNode {
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
 /**
- * The spec sheet: the tool's slots and every prop, straight from the manifest
- * -- together, since both are the component's contract, and in the same
- * tabular form. Collapsed by default; the live demo is the headline. The
- * counts are badges on the trigger (inline spans: the trigger is a button, so
- * no block content).
+ * The tool's props, straight from the manifest, in a collapser of their own.
+ * Collapsed by default; the live demo is the headline. The count is a badge on
+ * the trigger (an inline span: the trigger is a button, so no block content).
  */
-function SpecSheet({ component: c }: { component: ManifestComponent }) {
+function PropsSheet({ component: c }: { component: ManifestComponent }) {
   const names = Object.keys(c.props ?? {});
-  const slots = c.slots ?? [];
-  if (names.length === 0 && slots.length === 0) return null;
+  if (names.length === 0) return null;
   return (
-    <Collapsible
-      trigger={
-        <>
-          Spec sheet{' '}
-          {slots.length > 0 && <Badge size="sm" variant="secondary">{plural(slots.length, 'slot')}</Badge>}{' '}
-          {names.length > 0 && <Badge size="sm">{plural(names.length, 'prop')}</Badge>}
-        </>
-      }
-    >
-      <VStack gap="md">
-        {slots.length > 0 && (
-          <SpecTable
-            caption="Slots"
-            columns={['Slot', 'Props', 'Description']}
-            rows={slots.map(s => {
-              const own = c.slotProps?.[s] ?? {};
-              const ownNames = Object.keys(own);
-              return {
-                key: s,
-                cells: [
-                  <code style={codeStyle}>{`${c.name}.${s}`}</code>,
-                  ownNames.length === 0 ? '' : ownNames.map((n, i) => (
-                    <React.Fragment key={n}>
-                      {i > 0 && ', '}
-                      <code style={codeStyle}>{n}</code>
-                      {own[n].required && <Text as="span" subtheme="error">*</Text>}
-                    </React.Fragment>
-                  )),
-                  c.slotDescriptions?.[s] ? md(c.slotDescriptions[s]) : '',
-                ],
-              };
-            })}
-          />
-        )}
-        {names.length > 0 && (
-          <SpecTable
-            caption="Props"
-            columns={['Prop', 'Type', 'Default', 'Description']}
-            rows={names.map(n => {
-              const p = c.props[n];
-              return {
-                key: n,
-                cells: [
-                  <>
-                    <code style={codeStyle}>{n}</code>
-                    {p.required && <Text as="span" subtheme="error"> *</Text>}
-                  </>,
-                  <code style={codeStyle}>{p.type}</code>,
-                  p.default ? <code style={codeStyle}>{p.default}</code> : '',
-                  p.description ? md(p.description) : '',
-                ],
-              };
-            })}
-          />
-        )}
-      </VStack>
+    <Collapsible trigger={<>Props <Badge size="sm">{plural(names.length, 'prop')}</Badge></>}>
+      <SpecTable
+        caption="Props"
+        columns={['Prop', 'Type', 'Default', 'Description']}
+        rows={names.map(n => {
+          const p = c.props[n];
+          return {
+            key: n,
+            cells: [
+              <>
+                <code style={codeStyle}>{n}</code>
+                {p.required && <Text as="span" subtheme="error"> *</Text>}
+              </>,
+              <code style={codeStyle}>{p.type}</code>,
+              p.default ? <code style={codeStyle}>{p.default}</code> : '',
+              p.description ? md(p.description) : '',
+            ],
+          };
+        })}
+      />
     </Collapsible>
   );
 }
 
 /**
- * One spec-sheet table. The first column is the name (no wrap), the last is
+ * The tool's slots (`Card.Header`...), in the same tabular form as the props
+ * and their own collapser: each row is the slot, its own props, and what it is.
+ */
+function SlotsSheet({ component: c }: { component: ManifestComponent }) {
+  const slots = c.slots ?? [];
+  if (slots.length === 0) return null;
+  return (
+    <Collapsible trigger={<>Slots <Badge size="sm" variant="secondary">{plural(slots.length, 'slot')}</Badge></>}>
+      <SpecTable
+        caption="Slots"
+        columns={['Slot', 'Props', 'Description']}
+        rows={slots.map(s => {
+          const own = c.slotProps?.[s] ?? {};
+          const ownNames = Object.keys(own);
+          return {
+            key: s,
+            cells: [
+              <code style={codeStyle}>{`${c.name}.${s}`}</code>,
+              ownNames.length === 0 ? '' : ownNames.map((n, i) => (
+                <React.Fragment key={n}>
+                  {i > 0 && ', '}
+                  <code style={codeStyle}>{n}</code>
+                  {own[n].required && <Text as="span" subtheme="error">*</Text>}
+                </React.Fragment>
+              )),
+              c.slotDescriptions?.[s] ? md(c.slotDescriptions[s]) : '',
+            ],
+          };
+        })}
+      />
+    </Collapsible>
+  );
+}
+
+/**
+ * One table of the Spec Sheet card (props or slots). The first column is the name (no wrap), the last is
  * the description (secondary tone). Wide type signatures can overflow at
  * narrow widths, and a scroll region needs keyboard access (axe:
  * scrollable-region-focusable) and a unique name (axe: landmark-unique).
@@ -452,13 +449,13 @@ function SpecTable({ caption, columns, rows }: { caption: string; columns: strin
 /**
  * The blueprint: the demo's own source, generated from demo/App.tsx (issue
  * #638) -- the exact JSX running above it, comments stripped (#678). Where the
- * spec sheet says what the tool is, the blueprint shows how it's built.
- * Collapsed by default, like the spec sheet.
+ * props and slots say what the tool is, the blueprint shows how it's built.
+ * Collapsed by default, like them.
  */
 function Blueprint({ source }: { source?: string }) {
   if (!source) return null;
   return (
-    <Collapsible trigger="Blueprint — how this demo is built">
+    <Collapsible trigger="Blueprint">
       <VStack gap="sm">
         <Text size="xs" tone="secondary">
           Straight from the demo app, so it can reference the demo's own state and handlers (<code style={codeStyle}>addToast</code>, sample data).
@@ -481,6 +478,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
   const c = component;
   return (
     <section id={entryAnchor(c.name)} aria-labelledby={`${entryAnchor(c.name)}-title`}>
+      <VStack gap="md">
       <Card>
         <Card.Header>
           <HStack gap="sm" wrap align="center">
@@ -492,11 +490,11 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
           <VStack gap="sm">
             <Text>{md(c.description)}</Text>
 
-            {/* The tool itself right under its one-line description, then
-                everything about it (#704): documentation first pushed a big
-                spec sheet or placard's worth of demo below the fold. The
-                documentation sits in a tinted DocsPanel, so the border between
-                the live demo and the docs about it reads at a glance. */}
+            {/* The tool itself right under its one-line description (#704):
+                documentation first pushed a big spec sheet or placard's
+                worth of demo below the fold. Everything else about it is
+                the Spec Sheet card below, tinted so it can't be mistaken
+                for more demo. */}
             {isSeeAlso(demo) ? (
               <Text size="sm" tone="secondary">
                 Shown in action with <Link href={entryHref(demo.seeAlso)}>{demo.seeAlso}</Link>.{demo.note ? <> {demo.note}</> : null}
@@ -510,8 +508,20 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 {demo}
               </div>
             )}
+          </VStack>
+        </Card.Content>
+      </Card>
 
-            <DocsPanel>
+      {/* A style domain (not a per-Block subtheme), so everything inside
+          follows it and picks up the same hue; `info` matches the fixtures
+          board, the page's other reference material. */}
+      <StyleDomainProvider subtheme="info">
+      <Card data-testid="spec-sheet">
+        <Card.Header>
+          <h4 style={{ margin: 0, fontSize: '1rem' }}>Spec Sheet</h4>
+        </Card.Header>
+        <Card.Content>
+          <VStack gap="sm">
               <div>
                 <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
                 {/* Wraps rather than scrolls: a horizontally-scrollable <code>
@@ -521,22 +531,24 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 <code style={{ ...codeStyle, display: 'block', padding: '0.375rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
               </div>
 
-              {(c.childComponents?.length || c.constraints) && (
-                <VStack gap="xs">
-                  {c.childComponents?.length ? (
-                    <Text size="sm" tone="secondary">
-                      Commonly used with:{' '}
-                      {c.childComponents.map((s, i) => (
-                        <React.Fragment key={s}>
-                          {i > 0 && ', '}
-                          {COMPONENTS.some(x => x.name === s) ? <Link href={entryHref(s)}>{s}</Link> : <code style={codeStyle}>{s}</code>}
-                        </React.Fragment>
-                      ))}
-                    </Text>
-                  ) : null}
-                  {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
-                </VStack>
-              )}
+              {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
+
+              {/* A placard like the safety one, in the opposite spirit
+                  (what pairs well, not what to avoid), so it takes the
+                  positive subtheme rather than warning's. */}
+              {c.childComponents?.length ? (
+                <Block subtheme="success" padding="sm" radius="sm">
+                  <Text size="sm">
+                    <strong>🔗 Commonly used with.</strong>{' '}
+                    {c.childComponents.map((s, i) => (
+                      <React.Fragment key={s}>
+                        {i > 0 && ', '}
+                        {COMPONENTS.some(x => x.name === s) ? <Link href={entryHref(s)}>{s}</Link> : <code style={codeStyle}>{s}</code>}
+                      </React.Fragment>
+                    ))}
+                  </Text>
+                </Block>
+              ) : null}
 
               {c.antiPatternAvoid && (
                 <Block subtheme="warning" padding="sm" radius="sm">
@@ -547,12 +559,14 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 </Block>
               )}
 
-              <SpecSheet component={c} />
+              <PropsSheet component={c} />
+              <SlotsSheet component={c} />
               {isLiveDemo(demo) && <Blueprint source={DEMO_SOURCES.components[c.name]} />}
-            </DocsPanel>
           </VStack>
         </Card.Content>
       </Card>
+      </StyleDomainProvider>
+      </VStack>
     </section>
   );
 }

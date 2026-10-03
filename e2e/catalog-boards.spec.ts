@@ -30,22 +30,40 @@ test('going back to the board marks the tool you just visited, in view', async (
   await expect(board.locator('[data-last-visited]')).toHaveCount(1);
 });
 
-test('the spec sheet carries the slots, with prop and slot counts as badges', async ({ page }) => {
+test('everything but the demo is in a Spec Sheet card, with Props and Slots as collapsers of their own', async ({ page }) => {
   await page.goto('/');
   await gotoTab(page, 'Catalog', 'Card');
-  const card = page.locator('#cat-Card');
-  const trigger = card.getByRole('button', { name: /^Spec sheet/ });
-  await expect(trigger).toContainText(/\d+ props?/);
-  await expect(trigger).toContainText(/\d+ slots?/);
-  // Slots moved into the spec sheet: not on the card until it's opened.
-  await expect(card.getByText('Card.Header')).toBeHidden();
-  await trigger.click();
+  const entry = page.locator('#cat-Card');
+
+  // The Spec Sheet is its own card, not part of the demo's: the import line,
+  // the collapsers and the blueprint all live in it, the live demo doesn't.
+  const sheet = entry.getByTestId('spec-sheet');
+  await expect(sheet.getByRole('heading', { name: 'Spec Sheet', level: 4 })).toBeVisible();
+  await expect(sheet.getByText("import { Card } from '#toolcrib'")).toBeVisible();
+  await expect(sheet.locator('[data-catalog-demo]')).toHaveCount(0);
+  await expect(entry.locator('[data-catalog-demo="Card"]')).toBeVisible();
+
+  // Props and Slots are separate collapsers, each with its own count badge.
+  const props = sheet.getByRole('button', { name: /^Props/ });
+  const slots = sheet.getByRole('button', { name: /^Slots/ });
+  await expect(props).toContainText(/\d+ props?/);
+  await expect(slots).toContainText(/\d+ slots?/);
+  await expect(sheet.getByRole('button', { name: /^Spec sheet/i })).toHaveCount(0);
+
+  // Collapsed until opened, and opening one leaves the other shut.
+  await expect(sheet.getByText('Card.Header')).toBeHidden();
+  await slots.click();
   // Slots are a table in the same form as the props: slot, its own props, description.
-  const slots = card.getByRole('region', { name: 'Spec sheet: slots' });
-  const header = slots.getByRole('row').filter({ hasText: 'Card.Header' });
+  const slotTable = sheet.getByRole('region', { name: 'Spec sheet: slots' });
+  const header = slotTable.getByRole('row').filter({ hasText: 'Card.Header' });
   await expect(header).toContainText('paddingMode');
   await expect(header).toContainText('Renders with bottom border');
-  await expect(card.getByRole('region', { name: 'Spec sheet: props' }).getByRole('columnheader', { name: 'Type' })).toBeVisible();
+  await expect(sheet.getByRole('region', { name: 'Spec sheet: props' })).toBeHidden();
+  await props.click();
+  await expect(sheet.getByRole('region', { name: 'Spec sheet: props' }).getByRole('columnheader', { name: 'Type' })).toBeVisible();
+
+  // The blueprint band just says Blueprint.
+  await expect(sheet.getByRole('button', { name: /^Blueprint/ })).toBeVisible();
 });
 
 test('fixtures are a board of their own, in a distinct hue, and mark the last one visited', async ({ page }) => {

@@ -3310,14 +3310,14 @@ export const App: React.FC = () => {
                       <Card.Header>🏷️ Reading a bin</Card.Header>
                       <Card.Content>
                         <VStack gap="sm">
-                          <Text>Every tool's page reads top to bottom: everything <em>about</em> the tool first, then the tool itself, live.</Text>
+                          <Text>Every tool's page has two cards: the tool itself, live, then its Spec Sheet with everything <em>about</em> it.</Text>
                           <ul style={{ paddingLeft: '1.25rem', margin: 0 }}>
                             <li><strong>Part number</strong>: drawer code and position (<code>FC-05</code>, <code>FX-02</code>), the same on the board and the page.</li>
+                            <li><strong>The tool itself</strong>: the first card, running for real.</li>
                             <li><strong>Pick ticket</strong>: the exact import line to take it off the shelf.</li>
-                            <li><strong>Safety placard</strong>: the mistake this tool exists to prevent, and what to do instead.</li>
-                            <li><strong>Spec sheet</strong>: the contract, meaning its slots and every prop with type, default and meaning, generated from the source.</li>
+                            <li><strong>Placards</strong>: what pairs well with the tool, and the mistake it exists to prevent with what to do instead.</li>
+                            <li><strong>Props</strong> and <strong>Slots</strong>: the contract, each with type, default and meaning, generated from the source.</li>
                             <li><strong>Blueprint</strong>: the demo's own code, straight from this app.</li>
-                            <li><strong>The tool itself</strong>: below the rule, running for real.</li>
                           </ul>
                         </VStack>
                       </Card.Content>
