@@ -385,6 +385,16 @@ export interface TabPanelProps extends StyleFreeAttributes<HTMLDivElement> {
   groupId: string;
   /** The tab id (matching one of that TabStrip's `items`) this panel renders for. */
   value: string;
+  /**
+   * Fill the parent's remaining height instead of sizing to the content. Turn
+   * it on when the panel is the growing region of a full-height layout (e.g.
+   * inside `<Content.Grow>`), so a `height: 100%` child such as a virtualized
+   * `<DataTable>` gets a definite height to resolve against. Off by default: in
+   * a content-sized flex column (`<VStack>`, a `<Card>` body) a filling panel
+   * has no free space and collapses to 0px.
+   * @default false
+   */
+  fill?: boolean;
   children: ReactNode;
 }
 
@@ -428,7 +438,7 @@ function injectTabPanelStyles(targetDocument?: Document, nonce?: string): void {
   );
 }
 
-export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ...props }) => {
+export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, fill = false, children, ...props }) => {
   const [isActive, setIsActive] = useState(false);
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
@@ -449,18 +459,20 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, children, ..
       className="ai-tabstrip-panel"
       style={{
         width: '100%',
-        // Participates in a surrounding flex domain (e.g. <Content.Grow>)
-        // and establishes its own for its children — without this, a
-        // height:'100%' descendant (e.g. <Card layout="auto">) resolves
-        // against a parent whose own height is content-based ('auto'),
-        // which CSS treats as no percentage basis at all, so the height
-        // never actually propagates down. flex/minHeight only take effect
-        // when the parent is itself a flex container; harmless no-ops
-        // otherwise. Found via a real browser run: a virtualized
-        // <DataTable> inside one of these panels measured 0px height and
-        // rendered no rows.
-        flex: '1 1 0px',
-        minHeight: 0,
+        // `fill` only: participates in a surrounding flex domain (e.g.
+        // <Content.Grow>) and establishes its own for its children —
+        // without this, a height:'100%' descendant (e.g.
+        // <Card layout="auto">) resolves against a parent whose own height
+        // is content-based ('auto'), which CSS treats as no percentage
+        // basis at all, so the height never actually propagates down. The
+        // zero basis makes the flexed height definite; minHeight: 0 stops
+        // a virtualized <DataTable>'s full content height from becoming the
+        // panel's minimum (found via a real browser run: it measured 0px
+        // and rendered no rows). NOT the default: in a content-sized flex
+        // column (VStack, a Card body) there's no free space to grow into,
+        // so a zero-basis item resolves to 0px and its content spills onto
+        // whatever follows (#643).
+        ...(fill ? { flex: '1 1 0px', minHeight: 0 } : {}),
         display: 'flex',
         flexDirection: 'column',
         animation: 'var(--ai-tab-panel-animation, ai-fade-in 0.22s ease)',

@@ -59,6 +59,34 @@ describe('TabStrip Component', () => {
     expect(screen.queryByText('Panel One Content')).not.toBeInTheDocument();
   });
 
+  // #643: a zero-basis, min-height:0 panel collapses to 0px in a content-sized
+  // flex column, so content-sized is the default and fill is opt-in. jsdom has
+  // no layout, so this pins the styles; e2e/tabstrip-panel-layout.spec.ts
+  // checks the real heights.
+  it('is content-sized by default and only fills its parent when asked (fill)', async () => {
+    render(
+      <div>
+        <TabStrip id="fill-demo" items={items} defaultActiveId="tab1" />
+        <TabStrip.Panel groupId="fill-demo" value="tab1" data-testid="plain">Plain</TabStrip.Panel>
+      </div>
+    );
+    const plain = await screen.findByTestId('plain');
+    expect(plain.style.flex).toBe('');
+    expect(plain.style.minHeight).toBe('');
+  });
+
+  it('fill makes the panel a zero-basis flex item that can shrink below its content', async () => {
+    render(
+      <div>
+        <TabStrip id="fill-demo-on" items={items} defaultActiveId="tab1" />
+        <TabStrip.Panel groupId="fill-demo-on" value="tab1" fill data-testid="filled">Filled</TabStrip.Panel>
+      </div>
+    );
+    const filled = await screen.findByTestId('filled');
+    expect(filled.style.flex).toBe('1 1 0px');
+    expect(filled.style.minHeight).toBe('0px');
+  });
+
   it('a panel for a groupId with no matching TabStrip mounted anywhere just stays hidden', () => {
     render(<TabStrip.Panel groupId="nobody-is-broadcasting-this-id" value="tab1">Orphan Panel</TabStrip.Panel>);
     expect(screen.queryByText('Orphan Panel')).not.toBeInTheDocument();
