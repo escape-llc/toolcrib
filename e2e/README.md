@@ -18,7 +18,10 @@ all, no matter how the test is written:
 - Real CSS animations — whether an `animationend` genuinely fires (jsdom
   never runs the CSS animation/paint pipeline, so a component relying on
   Presence waiting for one — see Toast, Tooltip — can look correct in
-  jsdom while being permanently stuck open in a real browser).
+  jsdom while being permanently stuck open in a real browser). Check a
+  handler's *logic* in jsdom instead (`webkitAnimationEnd`), and never race
+  the events themselves: WebKit delivers them late and batched under load.
+  See AGENTS.md, "CSS animation events".
 
 If a jsdom + Testing Library test in `src/__tests__/` *can* express the same
 assertion, it belongs there instead — this suite is deliberately small and
