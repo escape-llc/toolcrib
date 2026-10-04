@@ -2541,18 +2541,39 @@ describe('DataTable Virtualized Component', () => {
       expect(row.style.animation).toContain('var(--ai-transition-easing, ease)');
     });
 
-    // jsdom cannot reliably deliver a real `animationend` DOM event through
-    // to React's own onAnimationEnd synthetic handler (confirmed directly
-    // -- a handler wired the same way never fired under fireEvent.animationEnd
-    // here, matching Toast.test.tsx's own documented finding that "jsdom
-    // never reports a real running CSS animation," which is why that file
-    // relies on setTimeout backstops instead of real animation events for
-    // its own dismiss flow). So the reset-after-the-real-animation-
-    // completes half of this behavior is verified in a real browser
-    // instead (e2e/datatable-load-transition.spec.ts) -- what jsdom CAN
-    // reliably assert is the other half: the animation only ever applies
-    // on an actual empty->populated TRANSITION, never on an ordinary
-    // first render that already has data.
+    // The animation only ever applies on an actual empty->populated
+    // TRANSITION, never on an ordinary first render that already has data.
+    // The reset half. React in jsdom listens for the vendor-prefixed name
+    // (jsdom's style object has the webkit-prefixed animation properties but
+    // not the unprefixed ones), so a plain `animationend` is never seen --
+    // that is why fireEvent.animationEnd looked like it "never fired". This
+    // replaced a real-browser check that raced WebKit's late, batched
+    // animation events and was patched three times (#508, #698, #776).
+    const enterFromEmpty = () => {
+      const { rerender } = render(
+        <DataTable data={[]} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />
+      );
+      rerender(<DataTable data={testData} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />);
+      const row = screen.getByText('Item 1').closest('tr') as HTMLElement;
+      expect(row.style.animation).toContain('ai-fade-in');
+      return row;
+    };
+    const animationEnd = (el: Element) => act(() => { el.dispatchEvent(new Event('webkitAnimationEnd', { bubbles: true })); });
+
+    it("clears the entrance animation when the row's own animation ends", () => {
+      const row = enterFromEmpty();
+      animationEnd(row);
+      expect(row.style.animation).toBe('');
+    });
+
+    it("a bubbled animationend from a nested child does not cut the row's entrance animation short", () => {
+      const row = enterFromEmpty();
+      // A consumer's cell content can carry its own animation (a Spinner, a
+      // pulsing Badge); its animationend bubbles to the row.
+      animationEnd(row.querySelector('td span, td div, td button') ?? row.querySelector('td')!);
+      expect(row.style.animation).toContain('ai-fade-in');
+    });
+
     it('does not apply the entrance animation on an ordinary render that was never empty to begin with', () => {
       render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} emptyState={<span>Nothing here yet</span>} />);
       const row = screen.getByText('Item 1').closest('tr') as HTMLElement;
