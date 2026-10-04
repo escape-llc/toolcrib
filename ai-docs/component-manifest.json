@@ -4130,6 +4130,11 @@
             "type": "string",
             "required": true,
             "description": "The tab id (matching one of that TabStrip's `items`) this panel renders for."
+          },
+          "fill": {
+            "type": "boolean",
+            "default": "false",
+            "description": "Fill the parent's remaining height instead of sizing to the content. Turn\nit on when the panel is the growing region of a full-height layout (e.g.\ninside `<Content.Grow>`), so a `height: 100%` child such as a virtualized\n`<DataTable>` gets a definite height to resolve against. Off by default: in\na content-sized flex column (`<VStack>`, a `<Card>` body) a filling panel\nhas no free space and collapses to 0px."
           }
         }
       },

@@ -2278,21 +2278,15 @@ export const App: React.FC = () => {
           Arrow keys move between tabs. Each <code>TabStrip.Panel</code> is matched to its strip by <code>groupId</code>, so panels can live anywhere in the tree.
         </Text>
         <TabStrip id="catalog-tabstrip-demo" items={[{ id: 'details', label: 'Details' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]} />
-        {/* The panels sit in a plain Block, not directly in this VStack:
-            TabStrip.Panel is built to fill a full-height flex parent, and
-            as a direct child of a content-sized flex column it collapses to
-            0px and its content spills onto whatever follows (#643). */}
-        <Block>
-          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="details">
-            <Block background="container" padding="md" radius="md">Order #1042 — 3 items, shipped to Portland.</Block>
-          </TabStrip.Panel>
-          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="activity">
-            <Block background="container" padding="md" radius="md">Shipped yesterday · Paid Monday · Placed last week.</Block>
-          </TabStrip.Panel>
-          <TabStrip.Panel groupId="catalog-tabstrip-demo" value="settings">
-            <Block background="container" padding="md" radius="md">Email me when this order changes.</Block>
-          </TabStrip.Panel>
-        </Block>
+        <TabStrip.Panel groupId="catalog-tabstrip-demo" value="details">
+          <Block background="container" padding="md" radius="md">Order #1042 — 3 items, shipped to Portland.</Block>
+        </TabStrip.Panel>
+        <TabStrip.Panel groupId="catalog-tabstrip-demo" value="activity">
+          <Block background="container" padding="md" radius="md">Shipped yesterday · Paid Monday · Placed last week.</Block>
+        </TabStrip.Panel>
+        <TabStrip.Panel groupId="catalog-tabstrip-demo" value="settings">
+          <Block background="container" padding="md" radius="md">Email me when this order changes.</Block>
+        </TabStrip.Panel>
       </VStack>
     ),
     Tree: (
@@ -3288,7 +3282,7 @@ export const App: React.FC = () => {
               */}
               <Content.Grow data-testid="main-content-scroll">
                 {/* Tab 1: Overview & Architecture */}
-                <TabStrip.Panel groupId="main-demo" value="overview">
+                <TabStrip.Panel groupId="main-demo" value="overview" fill>
                   <VStack gap="lg">
                     <Card>
                       <Card.Header>🧰 Welcome to the crib</Card.Header>
@@ -3473,7 +3467,7 @@ export const App: React.FC = () => {
                 {/* Catalog (issue #624): the shadow board index, or one
                     component's / Systems area's page, picked by the route.
                     Replaces the ten per-topic component tabs. */}
-                <TabStrip.Panel groupId="main-demo" value="catalog">
+                <TabStrip.Panel groupId="main-demo" value="catalog" fill>
                   <Catalog
                     demos={componentDemos}
                     systems={systemAreas}
@@ -3485,7 +3479,7 @@ export const App: React.FC = () => {
 
                 {/* Kits: pre-assembled combinations for common jobs -- a
                     composed dashboard, then the layout wireframes. */}
-                <TabStrip.Panel groupId="main-demo" value="kits">
+                <TabStrip.Panel groupId="main-demo" value="kits" fill>
                   <VStack gap="lg">
                     <Card>
                       <Card.Header>Kits</Card.Header>
