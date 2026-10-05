@@ -934,6 +934,56 @@
       "description": "Indeterminate circular loading indicator, same subtheme colouring as `<Progress>`"
     },
     {
+      "name": "Stat",
+      "import": "import { Stat } from '#toolcrib'",
+      "props": {
+        "label": {
+          "type": "string",
+          "required": true,
+          "description": "What the metric is, e.g. \"Revenue\". Shown above the value."
+        },
+        "value": {
+          "type": "number | string",
+          "required": true,
+          "description": "The current value. A number is formatted with `format` and `locale`; a string is shown as given."
+        },
+        "format": {
+          "type": "Intl.NumberFormatOptions",
+          "default": "plain number",
+          "description": "Options for formatting a numeric `value`, e.g. `{ style: 'currency', currency: 'USD' }`."
+        },
+        "delta": {
+          "type": "number",
+          "description": "How the value changed, in the units of `deltaFormat`. Its sign is the\ndirection (positive up, negative down, zero unchanged). Omit it for a tile\nwith no comparison."
+        },
+        "deltaFormat": {
+          "type": "Intl.NumberFormatOptions",
+          "default": "percent with at most one decimal, so `0.124` shows as `+12.4%`",
+          "description": "Options for formatting `delta`."
+        },
+        "deltaLabel": {
+          "type": "string",
+          "description": "What the change is measured against, e.g. \"vs last week\". Shown beside the change and included in its spoken form."
+        },
+        "upIsGood": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Whether an increase is good news. Decides the colour of the change: green\nwhen it moved the good way, red when it moved the bad way. Set it to\n`false` for a metric like churn or latency."
+        },
+        "trend": {
+          "type": "number[]",
+          "description": "Values behind the metric, oldest first, drawn as a small trend line."
+        },
+        "locale": {
+          "type": "string",
+          "default": "'en-US'",
+          "description": "BCP 47 locale tag for number formatting. Fixed rather than read from the\nbrowser, for the same hydration-safety reason as `<NumberField>`."
+        }
+      },
+      "category": "Data Display",
+      "description": "KPI tile: one metric with its value, a change since the last period (read out in words, coloured by whether up is good) and an optional trend line"
+    },
+    {
       "name": "Stepper",
       "import": "import { Stepper } from '#toolcrib'",
       "props": {

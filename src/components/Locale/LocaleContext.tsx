@@ -113,6 +113,16 @@ export interface ToolcribLocaleStrings {
     /** Accessible name of one `<OTPField>` cell in alphanumeric mode; `position` is 1-based. */
     character: (position: number, total: number) => string;
   };
+  stat: {
+    /** Spoken form of `<Stat>`'s change when the value went up; `change` is the formatted size of the move, e.g. "12.4%". */
+    up: (change: string) => string;
+    /** Spoken form when the value went down. */
+    down: (change: string) => string;
+    /** Spoken form when the change is zero. */
+    unchanged: string;
+    /** Accessible name of `<Stat>`'s trend line; `label` is the stat's own label. */
+    trend: (label: string) => string;
+  };
 }
 
 /**
@@ -197,6 +207,12 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   otpField: {
     digit: (position, total) => `Digit ${position} of ${total}`,
     character: (position, total) => `Character ${position} of ${total}`,
+  },
+  stat: {
+    up: (change) => `Up ${change}`,
+    down: (change) => `Down ${change}`,
+    unchanged: 'No change',
+    trend: (label) => `${label} trend`,
   },
 };
 
