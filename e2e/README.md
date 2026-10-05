@@ -41,10 +41,10 @@ you already have running locally) — no manual server start needed.
 
 ## When a test fails on CI: read the trace first
 
-Each e2e job uploads its `playwright-report-<browser>` artifact (14 days)
-even when green. It carries the trace of every failed attempt, including the
+Each e2e shard (three per browser) uploads its
+`playwright-report-<browser>-<shard>` artifact (14 days) even when green. It carries the trace of every failed attempt, including the
 first one that the retry then hides, so a flake that never reproduces locally
-can still be inspected: `gh run download <run-id> -n playwright-report-webkit`,
+can still be inspected: `gh run download <run-id> -n playwright-report-webkit-1` (the shard that failed),
 then `npx playwright show-report <dir>`. Read it before guessing at a fix;
 the animation-event flake (#802) took four patches because nobody had the
 trace. A test that fails once and passes on retry shows as "flaky" in the job
