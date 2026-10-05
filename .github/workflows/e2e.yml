@@ -20,7 +20,8 @@ permissions:
   contents: read
 
 jobs:
-  e2e:
+  e2e-shard:
+    name: e2e shard (${{ matrix.browser }} ${{ matrix.leg }})
     runs-on: ubuntu-latest
     # One job per browser, on separate runners -- previously a single job
     # ran chromium AND webkit sequentially against the same shared CPU
@@ -36,14 +37,28 @@ jobs:
     # engine of the two, per this file's own note in playwright.config.ts
     # -- a dedicated budget instead of a shared one.
     #
-    # Reported check names become `e2e (chromium)`/`e2e (webkit)` (job
-    # name + matrix value) -- branch protection's required status checks
-    # were updated from the single prior `e2e` context to both of these;
-    # update it again if this matrix's `browser` values ever change.
+    # Each browser is also split into 5 legs, on 5 runners at once. One WebKit
+    # job took 9-15 minutes, and a retry of a flaky leg meant waiting that
+    # long again. The legs are NOT a plain `--shard=N/3`: Playwright shards by
+    # contiguous ranges of tests, balanced by count, not by time, and the
+    # interactive-sweep specs (16 tests, ~700s of test time on WebKit, against
+    # a few seconds for most tests) sit next to each other, so one plain shard
+    # got all of them and ran 8.6 minutes while its neighbours ran 3-4. So the
+    # sweeps get their own two legs (`--shard=N/2` of just those tests) and the
+    # rest is split in three. The sweeps are told apart by the `(shard N/8)`
+    # suffix their titles carry (e2e/interactive-sweep.spec.ts); a new
+    # long-running family of tests wants the same treatment.
+    #
+    # Branch protection requires `e2e (chromium)` and `e2e (webkit)`, so those
+    # names are kept by the `e2e` job below, which passes only when every
+    # shard of its own browser passed (EXPECTED_LEGS there must match this
+    # list). Changing the `browser` values means checking that job and branch
+    # protection.
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, webkit]
+        leg: [general-1, general-2, general-3, sweep-1, sweep-2]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -105,12 +120,58 @@ jobs:
 
       - name: Run e2e suite (${{ matrix.browser }})
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
-        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          LEG: ${{ matrix.leg }}
+          SWEEP_TITLE: '\(shard [0-9]+/8\)'
+        run: |
+          kind="${LEG%%-*}"
+          n="${LEG#*-}"
+          if [ "$kind" = "sweep" ]; then
+            npx playwright test --project=${{ matrix.browser }} --grep "$SWEEP_TITLE" --shard="$n/2"
+          else
+            npx playwright test --project=${{ matrix.browser }} --grep-invert "$SWEEP_TITLE" --shard="$n/3"
+          fi
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report-${{ matrix.browser }}-${{ matrix.leg }}
           path: playwright-report/
           retention-days: 14
+
+  # The check branch protection requires, one per browser: `e2e (chromium)` and
+  # `e2e (webkit)`. A matrix job can't be required by its own shard names
+  # without listing every shard, and a plain `needs` on the shard job would
+  # make a WebKit failure turn the Chromium check red too, since `needs`
+  # can't be filtered by matrix value. So this waits for all shards, then
+  # reads this run's own jobs and judges only its browser's.
+  e2e:
+    name: e2e (${{ matrix.browser }})
+    needs: e2e-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    strategy:
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - name: Require every ${{ matrix.browser }} shard to have passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          jobs=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?filter=latest" \
+            --jq ".jobs[] | select(.name | startswith(\"e2e shard ($BROWSER \")) | \"\(.conclusion)\t\(.name)\"")
+          echo "$jobs"
+          expected=5 # the legs in e2e-shard's matrix
+          found=$(echo "$jobs" | grep -c . || true)
+          if [ "$found" -ne "$expected" ]; then
+            echo "::error::expected $expected $BROWSER shards, found $found"
+            exit 1
+          fi
+          if echo "$jobs" | grep -v '^success'; then
+            echo "::error::a $BROWSER shard did not succeed"
+            exit 1
+          fi

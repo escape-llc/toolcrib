@@ -180,13 +180,18 @@ test(`no console errors while clicking through every interactive control on ever
 });
 }
 
-test("interacting with one card's own control never shifts a sibling card's position", async ({ page }) => {
+// Sharded like the sweep above, for the same reason and with the same dealing:
+// walking every page's cards in one test took ~170s on CI WebKit by itself, and
+// being a single test it set the floor for how short a CI shard could get.
+for (let shard = 0; shard < SWEEP_SHARDS; shard++) {
+test(`interacting with one card's own control never shifts a sibling card's position (shard ${shard + 1}/${SWEEP_SHARDS})`, async ({ page }) => {
   // Same reasoning as the sweep above's own timeout: this walks every card
   // on every page, taking a fresh boundingBox() per card per interaction.
   test.setTimeout(300_000);
   await page.goto('/');
 
-  for (const { label, go } of await demoPages(page)) {
+  const pages = await demoPages(page);
+  for (const { label, go } of pages.filter((_, i) => i % SWEEP_SHARDS === shard)) {
     await go();
     await page.waitForTimeout(300);
     await settle(page);
@@ -235,3 +240,4 @@ test("interacting with one card's own control never shifts a sibling card's posi
     }
   }
 });
+}
