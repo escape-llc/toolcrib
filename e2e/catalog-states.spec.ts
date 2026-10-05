@@ -29,6 +29,51 @@ test.describe('Catalog states taxonomy', () => {
     await expect(states.getByLabel('Default')).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
   });
 
+  // The focus ring belongs on the bordered field. It used to sit on these
+  // pickers' full-width root, so a focused one drew a ring around the whole
+  // cell instead of hugging the field.
+  for (const name of ['DatePicker', 'TimeField', 'DateRangePicker']) {
+    test(`${name}'s focus ring hugs the field, not the whole cell`, async ({ page }) => {
+      await page.goto('/');
+      await gotoTab(page, 'Catalog', name);
+      const cell = page.locator(`[data-catalog-states="${name}"] [data-demo-state="focused"]`);
+      await expect(cell).toBeVisible();
+      const ring = cell.locator('.ai-focus-ring').first();
+      await expect(ring).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
+      const cellBox = (await cell.boundingBox())!;
+      const ringBox = (await ring.boundingBox())!;
+      expect(ringBox.width, 'the ring is as wide as the whole cell').toBeLessThan(cellBox.width * 0.9);
+    });
+  }
+
+  // Real keyboard focus (not the forced demo ring) on each field.
+  for (const name of ['DatePicker', 'TimeField', 'DateRangePicker']) {
+    test(`a real keyboard focus draws the ${name} ring on the field too`, async ({ page }) => {
+      await page.goto('/');
+      await gotoTab(page, 'Catalog', name);
+      const defaultCell = page.locator(`[data-catalog-states="${name}"] div`, { has: page.getByText('default', { exact: true }) }).first();
+      await defaultCell.getByRole('spinbutton').first().focus();
+      await page.keyboard.press('ArrowRight');
+      const field = defaultCell.locator('.ai-focus-ring').first();
+      await expect(field).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
+      expect((await field.boundingBox())!.width).toBeLessThan((await defaultCell.boundingBox())!.width * 0.9);
+    });
+  }
+
+  // The calendars had no ring on their day cells at all.
+  for (const name of ['Calendar', 'RangeCalendar']) {
+    test(`a focused ${name} day cell draws the focus ring`, async ({ page }) => {
+      await page.goto('/');
+      await gotoTab(page, 'Catalog', name);
+      const cell = page.locator(`[data-catalog-states="${name}"] [role="button"].react-aria-CalendarCell`).first();
+      await cell.focus();
+      await page.keyboard.press('ArrowRight');
+      const focused = page.locator(`[data-catalog-states="${name}"] .react-aria-CalendarCell:focus`);
+      await expect(focused).toHaveCount(1);
+      await expect(focused).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
+    });
+  }
+
   test('Checkbox dims its label along with the box when disabled', async ({ page }) => {
     await page.goto('/');
     await gotoTab(page, 'Catalog', 'Checkbox');

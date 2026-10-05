@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, type ReactNode } from 'react';
 import { z } from 'zod';
+import { CalendarDate } from '@internationalized/date';
 import {
   Button,
+  Calendar,
   Checkbox,
   Combobox,
   DatePicker,
+  DateRangePicker,
+  RangeCalendar,
   Form,
   FormField,
   Input,
@@ -103,6 +107,22 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'default', node: <DatePicker aria-label="Default" /> },
     { state: 'focused', node: <Focused><DatePicker aria-label="Focused" /></Focused> },
     { state: 'disabled', node: <DatePicker aria-label="Disabled" isDisabled /> },
+  ],
+  DateRangePicker: [
+    { state: 'default', node: <DateRangePicker aria-label="Default" /> },
+    { state: 'focused', node: <Focused><DateRangePicker aria-label="Focused" /></Focused> },
+    { state: 'disabled', node: <DateRangePicker aria-label="Disabled" isDisabled /> },
+  ],
+  // The calendars have no single focusable surface to force a ring on (focus
+  // sits on one day cell and moves with the arrow keys), so no `focused` here;
+  // e2e/catalog-states.spec.ts checks it with real keyboard focus.
+  Calendar: [
+    { state: 'default', node: <Calendar aria-label="Default" defaultValue={new CalendarDate(2026, 3, 15)} /> },
+    { state: 'disabled', node: <Calendar aria-label="Disabled" defaultValue={new CalendarDate(2026, 3, 15)} isDisabled /> },
+  ],
+  RangeCalendar: [
+    { state: 'default', node: <RangeCalendar aria-label="Default" defaultValue={{ start: new CalendarDate(2026, 3, 10), end: new CalendarDate(2026, 3, 14) }} /> },
+    { state: 'disabled', node: <RangeCalendar aria-label="Disabled" defaultValue={{ start: new CalendarDate(2026, 3, 10), end: new CalendarDate(2026, 3, 14) }} isDisabled /> },
   ],
   TimeField: [
     { state: 'default', node: <TimeField aria-label="Default" /> },
