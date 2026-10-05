@@ -17,6 +17,7 @@ import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { type DatePickerSliceState } from './DatePickerSlice';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { fieldGroupStyle, DateSegments, CalendarPopupTrigger } from './calendarParts';
+import { focusRingClassName } from './focusRing';
 
 /** Props for the `<DateRangePicker>` start/end fields + range calendar popover. */
 export interface DateRangePickerProps {
@@ -79,7 +80,8 @@ const DateRangeFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceS
   return (
     <Popup
       anchor={
-        <Group style={fieldGroupStyle(size, cornerOverrides)}>
+        // The ring goes on the bordered field, not the picker's full-width root.
+        <Group className={focusRingClassName} style={fieldGroupStyle(size, cornerOverrides)}>
           <DateSegments size={size} slot="start" />
           <span aria-hidden="true" style={{ color: 'var(--ai-text-secondary, #6b7280)', fontSize: CONTROL_FONT_SIZE_VAR[size] }}>
             –
@@ -169,7 +171,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         shouldCloseOnSelect={false}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}
-        className="ai-focus-ring"
         // Dimmed like the other disabled controls; React Aria marks it
         // disabled but draws nothing for it.
         style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}

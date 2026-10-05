@@ -117,7 +117,8 @@ describe('TimeField', () => {
           <TimeField name="startTime" aria-label="Start time" />
         </UIGroup>
       );
-      const input = document.querySelector('.react-aria-DateInput') as HTMLElement;
+      // The bordered field is the element that carries the focus ring.
+      const input = document.querySelector('.ai-focus-ring') as HTMLElement;
       // Last/trailing member -- squares its own leading (left) side only.
       expect(input.style.borderTopLeftRadius).toBe('0px');
       expect(input.style.borderBottomLeftRadius).toBe('0px');
@@ -126,7 +127,7 @@ describe('TimeField', () => {
 
     it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
       render(<TimeField name="startTime" aria-label="Start time" squareCorners="all" />);
-      const input = document.querySelector('.react-aria-DateInput') as HTMLElement;
+      const input = document.querySelector('.ai-focus-ring') as HTMLElement;
       expect(input.style.borderTopLeftRadius).toBe('0px');
       expect(input.style.borderTopRightRadius).toBe('0px');
     });

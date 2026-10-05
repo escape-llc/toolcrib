@@ -14,6 +14,7 @@ import { DateInput, DateSegment } from 'react-aria-components/DatePicker';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { Popup } from '../Overlay/Popup';
+import { focusRingClassName } from './focusRing';
 
 // The field pieces shared by <DatePicker> and <DateRangePicker>: the
 // bordered group's style, a date's editable segments, and the button that
@@ -162,6 +163,9 @@ export const CalendarMonthGrid: React.FC<{ range?: boolean }> = ({ range = false
       {date => (
         <CalendarCell
           date={date}
+          // Keyboard focus moves between cells with the arrow keys, so each
+          // one needs the ring (the grid itself is never the focus target).
+          className={focusRingClassName}
           style={({ isSelected, isSelectionStart, isSelectionEnd, isToday, isDisabled: cellDisabled, isOutsideMonth, isUnavailable }) => {
             // In a range, only the endpoints are "filled"; the span between
             // them is tinted. A single-date calendar's selection is always

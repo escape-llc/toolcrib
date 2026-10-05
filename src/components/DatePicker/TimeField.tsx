@@ -9,6 +9,7 @@ import {
   Label,
 } from 'react-aria-components/TimeField';
 import { I18nProvider } from 'react-aria-components/I18nProvider';
+import { focusRingClassName } from './focusRing';
 import { Time } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
@@ -135,14 +136,15 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         isDisabled={isDisabled}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}
-        className="ai-focus-ring"
       >
         {label && (
           <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
             {label}
           </Label>
         )}
+        {/* The ring goes on the bordered field, not the picker's full-width root. */}
         <DateInput
+          className={focusRingClassName}
           style={{
             display: 'flex',
             padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
