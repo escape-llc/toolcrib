@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   e2e-shard:
-    name: e2e shard (${{ matrix.browser }} ${{ matrix.shard }}/3)
+    name: e2e shard (${{ matrix.browser }} ${{ matrix.leg }})
     runs-on: ubuntu-latest
     # One job per browser, on separate runners -- previously a single job
     # ran chromium AND webkit sequentially against the same shared CPU
@@ -37,22 +37,28 @@ jobs:
     # engine of the two, per this file's own note in playwright.config.ts
     # -- a dedicated budget instead of a shared one.
     #
-    # Each browser is also split into 3 shards (`--shard=N/3`, balanced by
-    # test since the suite is fullyParallel). One WebKit job took 9-15
-    # minutes, and a retry of a flaky leg meant waiting that long again.
-    # Three shards run on three runners at once: roughly a third of the test
-    # time per leg, plus a fixed install/build cost per shard.
+    # Each browser is also split into 5 legs, on 5 runners at once. One WebKit
+    # job took 9-15 minutes, and a retry of a flaky leg meant waiting that
+    # long again. The legs are NOT a plain `--shard=N/3`: Playwright shards by
+    # contiguous ranges of tests, balanced by count, not by time, and the
+    # interactive-sweep specs (16 tests, ~700s of test time on WebKit, against
+    # a few seconds for most tests) sit next to each other, so one plain shard
+    # got all of them and ran 8.6 minutes while its neighbours ran 3-4. So the
+    # sweeps get their own two legs (`--shard=N/2` of just those tests) and the
+    # rest is split in three. The sweeps are told apart by the `(shard N/8)`
+    # suffix their titles carry (e2e/interactive-sweep.spec.ts); a new
+    # long-running family of tests wants the same treatment.
     #
     # Branch protection requires `e2e (chromium)` and `e2e (webkit)`, so those
     # names are kept by the `e2e` job below, which passes only when every
-    # shard of its own browser passed. Changing the `browser` values or the
-    # shard count here means checking that job and, for a browser change,
-    # branch protection.
+    # shard of its own browser passed (EXPECTED_LEGS there must match this
+    # list). Changing the `browser` values means checking that job and branch
+    # protection.
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, webkit]
-        shard: [1, 2, 3]
+        leg: [general-1, general-2, general-3, sweep-1, sweep-2]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -114,13 +120,23 @@ jobs:
 
       - name: Run e2e suite (${{ matrix.browser }})
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
-        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/3
+        env:
+          LEG: ${{ matrix.leg }}
+          SWEEP_TITLE: '\(shard [0-9]+/8\)'
+        run: |
+          kind="${LEG%%-*}"
+          n="${LEG#*-}"
+          if [ "$kind" = "sweep" ]; then
+            npx playwright test --project=${{ matrix.browser }} --grep "$SWEEP_TITLE" --shard="$n/2"
+          else
+            npx playwright test --project=${{ matrix.browser }} --grep-invert "$SWEEP_TITLE" --shard="$n/3"
+          fi
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
+          name: playwright-report-${{ matrix.browser }}-${{ matrix.leg }}
           path: playwright-report/
           retention-days: 14
 
@@ -149,7 +165,7 @@ jobs:
           jobs=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?filter=latest" \
             --jq ".jobs[] | select(.name | startswith(\"e2e shard ($BROWSER \")) | \"\(.conclusion)\t\(.name)\"")
           echo "$jobs"
-          expected=3
+          expected=5 # the legs in e2e-shard's matrix
           found=$(echo "$jobs" | grep -c . || true)
           if [ "$found" -ne "$expected" ]; then
             echo "::error::expected $expected $BROWSER shards, found $found"
