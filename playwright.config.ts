@@ -20,7 +20,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  // CI also writes the HTML report, which e2e.yml uploads: it carries each
+  // failed attempt's trace (`trace` below), so a failure that doesn't
+  // reproduce locally can still be inspected afterwards. With only the list
+  // reporter the upload step found no playwright-report/ and kept nothing.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
