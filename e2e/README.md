@@ -39,6 +39,18 @@ npm run test:e2e:ui    # Playwright's interactive UI mode
 `playwright.config.ts` boots `npm run dev` automatically (and reuses one
 you already have running locally) — no manual server start needed.
 
+## Which PRs run the browser suite
+
+A PR that touches nothing the browsers can see (docs, the CLI, MCP, scripts,
+other workflows) skips the e2e legs: `e2e.yml`'s `changes` job reads the PR's
+file list and the `e2e (chromium)` / `e2e (webkit)` required checks pass
+without spending ten runners. What counts as browser-visible is the regex in
+that job (`src/`, `demo/`, `e2e/`, the component manifest, package and Vite
+config, and `e2e.yml` itself). If you add a new input the demo or specs read,
+add it there, or a PR changing only that file will skip the suite. A push to
+`main` and any PR whose file list can't be read run everything.
+`ci.yml` gates its heavier jobs the same way.
+
 ## When a test fails on CI: read the trace first
 
 Each e2e leg (five per browser: three general, two for the sweeps) uploads its

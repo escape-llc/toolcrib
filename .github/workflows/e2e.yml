@@ -19,9 +19,55 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels that PR's still-running or still-queued
+# run, so superseded pushes stop holding runners (the account's concurrent-job
+# cap is shared with every other repo on it, and one push of this workflow set
+# is ~25 jobs). Never cancels a push to main, which should always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Whether a PR touches anything the browser suite can see: the library, the
+  # demo, the specs, or what builds them. When it doesn't (docs, the CLI, MCP,
+  # scripts, other workflows), the shards report "skipped" and the `e2e (...)`
+  # jobs below pass, which is what the required checks need, and the ten
+  # runners are never asked for. A push to main, and any failure to read the
+  # PR's file list, run everything: this only ever skips, never guesses.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run: ${{ steps.paths.outputs.run }}
+    steps:
+      - name: Work out whether the browser suite is affected
+        id: paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if ! files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename') || [ -z "$files" ]; then
+            echo "could not read the file list; running everything"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$files"
+          # The demo imports ai-docs/component-manifest.json and nothing else from ai-docs/.
+          if echo "$files" | grep -Eq '^(src/|demo/|e2e/|ai-docs/component-manifest\.json$|package(-lock)?\.json$|playwright\.config\.ts$|vite\.config\.[a-z]+$|index\.html$|tsconfig[^/]*\.json$|\.github/workflows/e2e\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no browser-visible file changed; skipping the e2e legs"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
   e2e-shard:
     name: e2e shard (${{ matrix.browser }} ${{ matrix.leg }})
+    needs: changes
+    if: ${{ needs.changes.outputs.run == 'true' }}
     runs-on: ubuntu-latest
     # One job per browser, on separate runners -- previously a single job
     # ran chromium AND webkit sequentially against the same shared CPU
@@ -148,7 +194,7 @@ jobs:
   # reads this run's own jobs and judges only its browser's.
   e2e:
     name: e2e (${{ matrix.browser }})
-    needs: e2e-shard
+    needs: [changes, e2e-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -161,7 +207,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BROWSER: ${{ matrix.browser }}
+          RUN: ${{ needs.changes.outputs.run }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
         run: |
+          # A failed `changes` job leaves RUN empty; that must not read as "skip".
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "::error::the changes job did not succeed ($CHANGES_RESULT)"
+            exit 1
+          fi
+          if [ "$RUN" != "true" ]; then
+            echo "no browser-visible file changed; the shards were skipped"
+            exit 0
+          fi
           jobs=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?filter=latest" \
             --jq ".jobs[] | select(.name | startswith(\"e2e shard ($BROWSER \")) | \"\(.conclusion)\t\(.name)\"")
           echo "$jobs"
