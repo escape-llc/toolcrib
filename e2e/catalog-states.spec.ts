@@ -29,6 +29,20 @@ test.describe('Catalog states taxonomy', () => {
     await expect(states.getByLabel('Default')).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
   });
 
+  // Every control whose States section lists `invalid` really renders it: the
+  // example is a Form submitted on mount, so the control must be marked
+  // aria-invalid and its error shown. A control with no invalid state is left
+  // out of the section rather than shown looking fine.
+  for (const name of ['Input', 'Textarea', 'Select', 'Combobox', 'NumberField', 'OTPField']) {
+    test(`${name}'s invalid example is marked invalid and shows its error`, async ({ page }) => {
+      await page.goto('/');
+      await gotoTab(page, 'Catalog', name);
+      const states = page.locator(`[data-catalog-states="${name}"]`);
+      await expect(states.getByText('This field is required')).toBeVisible();
+      await expect(states.locator('[aria-invalid="true"]').first()).toBeAttached();
+    });
+  }
+
   // The focus ring belongs on the bordered field. It used to sit on these
   // pickers' full-width root, so a focused one drew a ring around the whole
   // cell instead of hugging the field.
