@@ -57,7 +57,7 @@ export const SEGMENTS = [
     title: 'Data Display — Lists & Status',
     kind: 'components',
     category: SPLIT_CATEGORIES.DATA_DISPLAY,
-    names: ['Accordion', 'Avatar', 'Badge', 'Breadcrumb', 'DataTable', 'EmptyState', 'Kbd', 'Link', 'Meter', 'Progress', 'Skeleton', 'Spinner', 'Stepper', 'TabStrip', 'Tree'],
+    names: ['Accordion', 'Avatar', 'Badge', 'Breadcrumb', 'DataTable', 'EmptyState', 'Kbd', 'Link', 'Meter', 'Progress', 'Skeleton', 'Spinner', 'Stat', 'Stepper', 'TabStrip', 'Tree'],
   },
   {
     id: 'overlays',

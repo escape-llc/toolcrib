@@ -240,6 +240,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Skeleton>` | — | `shape`, `width`, `height` | Shimmering loading placeholder in text/circle/rect shapes |
 | `<Sparkline>` | — | `values`, `width`, `height`, `title` | Minimal inline trend line for a stat tile |
 | `<Spinner>` | — | `size`, `subtheme` | Indeterminate circular loading indicator, same subtheme colouring as `<Progress>` |
+| `<Stat>` | — | `label`, `value`, `format`, `delta`, `deltaFormat`, `deltaLabel`, `upIsGood`, `trend`, `locale` | KPI tile: one metric with its value, a change since the last period (read out in words, coloured by whether up is good) and an optional trend line |
 | `<Stepper>` | — | `id`, `steps`, `activeIndex`, `defaultActiveIndex`, `onActiveIndexChange`, `overrides` | Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 | `<Tree>` | — | `id`, `items`, `expandedIds`, `defaultExpandedIds`, `onExpandedChange`, `selectedId`, `defaultSelectedId`, `onSelectChange`, `overrides` | Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation |

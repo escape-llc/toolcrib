@@ -103,6 +103,7 @@ import {
   LineChart,
   PieChart,
   Sparkline,
+  Stat,
   Heatmap,
   ScaleLegend,
   useAdaptiveSize,
@@ -2257,6 +2258,23 @@ export const App: React.FC = () => {
         <Sparkline values={[7200, 7400, 7350, 7800, 8050, 8200, 8420]} title="Active users trend, last 7 periods" />
       </HStack>
     ),
+    Stat: (
+      <VStack gap="md">
+        <Text size="sm" tone="secondary">
+          One metric: label, value, and how it moved. The change is read out in words ("Up 12.4% vs last week"), not just coloured, and <code>upIsGood</code> says which way is good news, so churn going down reads as green. Numbers format through <code>Intl</code> with the <code>locale</code>.
+        </Text>
+        <Grid columns={3} gap="md">
+          <Stat label="Revenue" value={2020000} format={{ style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 2 }} delta={0.124} deltaLabel="vs last week" trend={[1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02]} />
+          <Stat label="Churn" value={0.019} format={{ style: 'percent', maximumFractionDigits: 1 }} delta={-0.005} deltaFormat={{ style: 'percent', maximumFractionDigits: 1 }} upIsGood={false} deltaLabel="vs last month" trend={[2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9]} />
+          <Stat label="Plan" value="Pro" />
+        </Grid>
+        <Grid columns={3} gap="md">
+          <Stat label="Conversion rate" value={0.038} format={{ style: 'percent', maximumFractionDigits: 1 }} delta={-0.003} deltaFormat={{ style: 'percent', maximumFractionDigits: 1 }} deltaLabel="vs last week" />
+          <Stat label="Open tickets" value={128} delta={0} />
+          <Stat label="Gewicht (de-DE)" value={1234.5} locale="de-DE" format={{ style: 'unit', unit: 'kilogram' }} delta={12} deltaFormat={{ maximumFractionDigits: 0 }} />
+        </Grid>
+      </VStack>
+    ),
     Spinner: (
       <HStack gap="md" align="center">
         <Spinner size="sm" />
@@ -3562,25 +3580,11 @@ export const App: React.FC = () => {
                         </Toolbar>
 
                         <Grid columns={4} gap="md">
-                          {[
-                            { label: 'Revenue', value: '$2.02M', delta: '+12.4%', good: true, trend: [1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02] },
-                            { label: 'Active users', value: '8,420', delta: '+4.6%', good: true, trend: [7200, 7400, 7350, 7800, 8050, 8200, 8420] },
-                            { label: 'Conversion rate', value: '3.8%', delta: '-0.3%', good: false, trend: [4.3, 4.1, 4.2, 3.9, 4.0, 3.85, 3.8] },
-                            { label: 'Churn', value: '1.9%', delta: '-0.5%', good: true, trend: [2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9] },
-                          ].map(stat => (
-                            <Card key={stat.label}>
-                              <Card.Content>
-                                <VStack gap="md">
-                                  <Text size="sm" tone="secondary">{stat.label}</Text>
-                                  <div style={{ fontSize: '1.625rem', fontWeight: 'var(--ai-font-weight-semibold, 600)', margin: '0.25rem 0 0.5rem' }}>{stat.value}</div>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                    <Badge subtheme={stat.good ? 'success' : 'error'} size="sm">{stat.delta}</Badge>
-                                    <Sparkline values={stat.trend} title={`${stat.label} trend, last 7 periods`} />
-                                  </div>
-                                </VStack>
-                              </Card.Content>
-                            </Card>
-                          ))}
+                          <Stat label="Revenue" value={2020000} format={{ style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 2 }} delta={0.124} trend={[1.62, 1.7, 1.65, 1.78, 1.9, 1.85, 2.02]} />
+                          <Stat label="Active users" value={8420} delta={0.046} trend={[7200, 7400, 7350, 7800, 8050, 8200, 8420]} />
+                          <Stat label="Conversion rate" value={0.038} format={{ style: 'percent', maximumFractionDigits: 1 }} delta={-0.003} deltaFormat={{ style: 'percent', maximumFractionDigits: 1 }} trend={[4.3, 4.1, 4.2, 3.9, 4.0, 3.85, 3.8]} />
+                          <Stat label="Churn" value={0.019} format={{ style: 'percent', maximumFractionDigits: 1 }} delta={-0.005} deltaFormat={{ style: 'percent', maximumFractionDigits: 1 }} upIsGood={false} trend={[2.6, 2.4, 2.5, 2.2, 2.1, 2.0, 1.9]} />
+
                         </Grid>
 
                         <Grid columns={2} gap="md">

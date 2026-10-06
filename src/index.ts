@@ -152,6 +152,7 @@ export * from './components/Skeleton/Skeleton';
 export * from './components/Spinner/Spinner';
 export * from './components/Splitter/LayoutDomainContext';
 export * from './components/Splitter/Splitter';
+export * from './components/Stat/Stat';
 export * from './components/Stepper/Stepper';
 export * from './components/Stepper/StepperSlice';
 export * from './components/TabStrip/TabSlice';
