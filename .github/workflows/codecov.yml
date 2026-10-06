@@ -8,33 +8,19 @@ name: codecov
 # (see .github/workflows/scorecard.yml and .plans/toolcrib-gap-closure-plan.md
 # §6a) -- verified the Codecov PR check/comment still posts correctly after
 # this change (see the PR that removed this).
-# A new push to a pull request cancels that PR's still-running or still-queued
-# run, so superseded pushes stop holding runners (the account's concurrent-job
-# cap is shared with every other repo on it, and one push of this workflow set
-# is ~25 jobs). Never cancels a push to main, which should always finish.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+
+# Main only, not every PR push: coverage is a trend on main, not a gate, and a PR
+# push already runs the same unit suite in ci.yml's `test` job. Each PR run of this
+# was another ~3-minute job competing for runners.
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Skipped entirely (the whole job, not just its steps) for a
-    # Dependabot-authored PR -- unlike e2e.yml/screen-reader.yml, `run` is
-    # not a required status check (confirmed via the branch protection API:
-    # required contexts are test/cli-windows/e2e/CodeQL only), so there's no
-    # "job must still post a status" constraint forcing a step-skip instead
-    # of a job-skip here. A coverage delta from a routine dependency bump is
-    # not interesting enough to justify the job's own ~1-2 minute cost on
-    # every Dependabot PR; release.yml's own pre-tag checklist doesn't even
-    # depend on this workflow at all.
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

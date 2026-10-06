@@ -17,6 +17,9 @@ on:
 # default GITHUB_TOKEN would otherwise carry broader (e.g. write) scopes
 # than it ever uses. Matches release.yml/deploy-demo.yml, which already
 # scope theirs.
+permissions:
+  contents: read
+
 # A new push to a pull request cancels that PR's still-running or still-queued
 # run, so superseded pushes stop holding runners (the account's concurrent-job
 # cap is shared with every other repo on it, and one push of this workflow set
@@ -24,10 +27,49 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-permissions:
-  contents: read
 
 jobs:
+  # Which parts of the repo a PR touches, so the jobs that can't be affected by
+  # it report "skipped", which a required check accepts, instead of spending a
+  # runner. `test` always runs. A push to main, and any failure to read the
+  # PR's file list, run everything: this only ever skips, never guesses.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      heavy: ${{ steps.paths.outputs.heavy }}
+      mcp: ${{ steps.paths.outputs.mcp }}
+      docs: ${{ steps.paths.outputs.docs }}
+      workflows: ${{ steps.paths.outputs.workflows }}
+    steps:
+      - name: Work out what changed
+        id: paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          emit() { { echo "heavy=$1"; echo "mcp=$1"; echo "docs=$1"; echo "workflows=$1"; } >> "$GITHUB_OUTPUT"; }
+          if [ "$EVENT" != "pull_request" ]; then emit true; exit 0; fi
+          if ! files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename') || [ -z "$files" ]; then
+            echo "could not read the file list; running everything"
+            emit true
+            exit 0
+          fi
+          echo "$files"
+          touches() { echo "$files" | grep -Eq "$1"; }
+          flag() { if touches "$2" || touches '^\.github/workflows/ci\.yml$'; then echo "$1=true"; else echo "$1=false"; fi; }
+          {
+            # cli-windows, windows-integration and nextjs-fixture: everything that
+            # gets vendored or builds the demo, and the CLI itself.
+            flag heavy '^(src/|cli/|ai-docs/|eslint-rules/|scripts/|demo/|package(-lock)?\.json$|tsconfig[^/]*\.json$)'
+            flag mcp '^(mcp/|ai-docs/)'
+            flag docs '(\.md$|^llms(-full)?\.txt$)'
+            flag workflows '^\.github/workflows/'
+          } | tee -a "$GITHUB_OUTPUT"
   test:
     runs-on: ubuntu-latest
     # Overrides the workflow-level contents:read-only default (see above)
@@ -149,6 +191,8 @@ jobs:
   # apply against a real checked-out project, which is where the CRLF/BOM
   # bugs actually lived) -- see windows-integration below for that.
   cli-windows:
+    needs: changes
+    if: ${{ needs.changes.outputs.heavy == 'true' }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -187,6 +231,8 @@ jobs:
   # unconditional-on-every-PR precedent), so scoping it narrower would add
   # real complexity for no measurable savings.
   mcp:
+    needs: changes
+    if: ${{ needs.changes.outputs.mcp == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -219,13 +265,14 @@ jobs:
   # as its page content instead of a second, separately-maintained demo --
   # see cli/integration-test/nextjs-fixture/README.md for why.
   nextjs-fixture:
+    needs: changes
     runs-on: ubuntu-latest
     # Skipped entirely for a Dependabot-authored PR -- not a required status
     # check (required contexts are test/cli-windows/e2e/CodeQL only,
     # confirmed via the branch protection API), so there's no "job must
     # still post a status" constraint the way e2e/screen-reader have. Same
     # reasoning as codecov.yml's run job.
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
+    if: ${{ needs.changes.outputs.heavy == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -291,10 +338,11 @@ jobs:
   # discarded. See cli/src/lib/project.js's readTextIfExists and
   # cli/integration-test/run-windows-integration.mjs for the full account.
   windows-integration:
+    needs: changes
     runs-on: windows-latest
     # Same reasoning as nextjs-fixture above -- not a required status check,
     # skipped entirely (not just its steps) for a Dependabot-authored PR.
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
+    if: ${{ needs.changes.outputs.heavy == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -358,6 +406,8 @@ jobs:
   # checkout dependency beyond the workflow files themselves, no new
   # third-party Action to trust/pin.
   actionlint:
+    needs: changes
+    if: ${{ needs.changes.outputs.workflows == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -391,6 +441,8 @@ jobs:
   # carry. What this job exists to catch, a typo'd or rotted link, is a
   # 404, which still fails.
   link-check:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
