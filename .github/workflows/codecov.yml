@@ -8,6 +8,13 @@ name: codecov
 # (see .github/workflows/scorecard.yml and .plans/toolcrib-gap-closure-plan.md
 # §6a) -- verified the Codecov PR check/comment still posts correctly after
 # this change (see the PR that removed this).
+# A new push to a pull request cancels that PR's still-running or still-queued
+# run, so superseded pushes stop holding runners (the account's concurrent-job
+# cap is shared with every other repo on it, and one push of this workflow set
+# is ~25 jobs). Never cancels a push to main, which should always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 on:
