@@ -251,7 +251,6 @@ export const Tree: React.FC<TreeProps> = ({
                 cursor: node.item.disabled ? 'not-allowed' : 'pointer',
                 opacity: node.item.disabled ? 0.5 : 1,
                 background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : 'transparent',
-                outlineOffset: '-0.125rem',
                 color: 'var(--ai-text-primary, #111827)',
                 fontSize: '0.875rem',
               }}

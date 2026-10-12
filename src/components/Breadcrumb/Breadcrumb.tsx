@@ -4,6 +4,7 @@ import React, { type ReactNode, type ReactElement, useRef, useState, useEffect }
 import { Breadcrumbs as AriaBreadcrumbs, Breadcrumb as AriaBreadcrumb, Link as AriaLink } from 'react-aria-components/Breadcrumbs';
 import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { DropdownMenu } from '../DropdownMenu/DropdownMenu';
+import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { BreadcrumbThemeSlice, type BreadcrumbSliceState } from './BreadcrumbSlice';
 
@@ -119,7 +120,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
               // A crumb with only an href would otherwise be an inert menu item.
               onClick:
                 c.element.props.onClick ??
-                (c.element.props.href ? () => window.location.assign(c.element.props.href!) : undefined),
+                (c.element.props.href ? () => aiBus.navigate(c.element.props.href!) : undefined),
             }))}
           />
         ),
