@@ -80,7 +80,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({
   };
 
   const handleHover = (row: string, col: string, value: number, cx: number, cy: number) => {
-    showTooltip({ tooltipData: { row, col, value }, tooltipLeft: cx, tooltipTop: cy });
+    showTooltip({ tooltipData: { row, col, value }, tooltipLeft: MARGIN.left + cx, tooltipTop: MARGIN.top + cy });
   };
 
   if (rows.length === 0 || columns.length === 0) {

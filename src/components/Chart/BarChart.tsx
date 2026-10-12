@@ -149,7 +149,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                         handleHover(e, { category, seriesLabel: s.label, value, color }, bandX + centeredX + barWidth / 2, barY)
                       }
                       onPointerLeave={hideTooltip}
-                      onFocus={() => showTooltip({ tooltipData: { category, seriesLabel: s.label, value, color }, tooltipLeft: bandX + centeredX + barWidth / 2, tooltipTop: barY })}
+                      onFocus={() => showTooltip({ tooltipData: { category, seriesLabel: s.label, value, color }, tooltipLeft: MARGIN.left + bandX + centeredX + barWidth / 2, tooltipTop: MARGIN.top + barY })}
                       onBlur={hideTooltip}
                       tabIndex={0}
                     />

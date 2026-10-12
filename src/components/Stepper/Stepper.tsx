@@ -90,21 +90,20 @@ export const Stepper: React.FC<StepperProps> = ({
   }
 
   const previousIndexRef = useRef<number | undefined>(undefined);
+  // Emits on mount and on every change of the effective index, so a controlled
+  // parent moving `activeIndex` is broadcast the same as a click.
   useEffect(() => {
-    aiBus.emit('stepper:changed', { id, activeIndex, previousIndex: undefined });
+    if (previousIndexRef.current === activeIndex) return;
+    aiBus.emit('stepper:changed', { id, activeIndex, previousIndex: previousIndexRef.current });
     previousIndexRef.current = activeIndex;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeIndex]);
 
   const goToIndex = (index: number) => {
     const clamped = Math.max(0, Math.min(index, steps.length - 1));
     if (clamped > maxReachableIndex || steps[clamped]?.disabled) return;
     if (!isControlled) setInternalIndex(clamped);
     onActiveIndexChange?.(clamped);
-    if (clamped !== previousIndexRef.current) {
-      aiBus.emit('stepper:changed', { id, activeIndex: clamped, previousIndex: previousIndexRef.current });
-      previousIndexRef.current = clamped;
-    }
   };
 
   const activeStep = steps[activeIndex];

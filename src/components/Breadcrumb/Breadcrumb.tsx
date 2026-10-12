@@ -116,7 +116,10 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
             items={collapsed.map(c => ({
               value: c.key,
               label: c.element.props.children,
-              onClick: c.element.props.onClick,
+              // A crumb with only an href would otherwise be an inert menu item.
+              onClick:
+                c.element.props.onClick ??
+                (c.element.props.href ? () => window.location.assign(c.element.props.href!) : undefined),
             }))}
           />
         ),
@@ -126,7 +129,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
       key: crumb.key,
       isLast: crumb.isLast,
       content: crumb.isLast ? (
-        <span style={{ color: 'var(--ai-text-primary, #111827)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+        <span aria-current="page" style={{ color: 'var(--ai-text-primary, #111827)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           {crumb.element.props.children}
         </span>
       ) : !crumb.element.props.href && !crumb.element.props.onClick ? (

@@ -77,7 +77,9 @@ export const Carousel: React.FC<CarouselProps> = ({
     setCanScrollPrev(emblaApi.canScrollPrev());
     setCanScrollNext(emblaApi.canScrollNext());
     if (nextIndex !== previousIndexRef.current) {
-      onSlideChange?.(nextIndex);
+      // The initial selection is reported on the bus only: the callback is
+      // for changes, not for the mount.
+      if (previousIndexRef.current !== undefined) onSlideChange?.(nextIndex);
       aiBus.emit('carousel:changed', { id, activeIndex: nextIndex, previousIndex: previousIndexRef.current });
       previousIndexRef.current = nextIndex;
     }
