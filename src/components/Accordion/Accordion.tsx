@@ -37,11 +37,14 @@ function injectAccordionStyles(targetDocument?: Document, nonce?: string): void 
     }
     .ai-accordion-content {
       overflow: hidden;
+      /* Keyframe-driven: the theme-wide transition rule would give Base UI a second animation type to detect on this panel (it warns, and has to guess which one to wait on). */
+      transition: none;
     }
     .ai-accordion-content[data-open] {
       animation: var(--ai-accordion-animation, ai-accordion-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
-    .ai-accordion-content[data-ending-style] {
+    .ai-accordion-content[data-ending-style],
+    .ai-accordion-content[data-closed] {
       animation: var(--ai-accordion-close-animation, ai-accordion-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1));
     }
     .ai-accordion-trigger:hover {

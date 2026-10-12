@@ -38,6 +38,8 @@ function injectCollapsibleStyles(targetDocument?: Document, nonce?: string): voi
     }
     .ai-collapsible-content {
       overflow: hidden;
+      /* Keyframe-driven: the theme-wide transition rule would give Base UI a second animation type to detect on this panel (it warns, and has to guess which one to wait on). */
+      transition: none;
     }
     .ai-collapsible-content[data-open] {
       animation: ai-collapsible-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1);
