@@ -324,4 +324,16 @@ describe('FileUpload Component — Form binding', () => {
       expect(dropzone.style.borderTopRightRadius).toBe('0px');
     });
   });
+
+  describe('accessible name (#811)', () => {
+    it('names the dropzone from aria-label', () => {
+      render(<FileUpload aria-label="Attachments" />);
+      expect(screen.getByRole('button', { name: 'Attachments' })).toBeInTheDocument();
+    });
+
+    it('names the dropzone from aria-labelledby', () => {
+      render(<><span id="lbl">Resume</span><FileUpload aria-labelledby="lbl" /></>);
+      expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
+    });
+  });
 });

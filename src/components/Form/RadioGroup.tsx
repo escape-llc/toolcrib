@@ -59,6 +59,10 @@ export interface RadioGroupProps {
   overrides?: Partial<RadioGroupSliceState>;
   /** Control size — standardized with `<Button>` and every other sized control. Drives both the radio dot diameter (via the same scale as `overrides.dotSize`) and the option label's font size. @default 'md' */
   size?: ControlSize;
+  /** Accessible name for the group. Only needed outside a `<FormField label>`, whose label names it already. */
+  'aria-label'?: string;
+  /** Id of the element that names the group. Used instead of the inherited `<FormField>` label when set. */
+  'aria-labelledby'?: string;
 }
 
 interface RadioGroupContextValue {
@@ -88,6 +92,8 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   disabled: disabledProp = false,
   overrides,
   size = 'md',
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -171,6 +177,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         onValueChange={v => handleChange(String(v))}
         disabled={disabled}
         className="ai-focus-ring"
+        {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         style={{
           display: 'flex',
           flexDirection: direction === 'horizontal' ? 'row' : 'column',

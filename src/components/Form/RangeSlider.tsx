@@ -20,7 +20,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
  * payload, has to be narrowed by every consumer.
  */
 export interface RangeSliderProps {
-  /** Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Each thumb is named through `aria-labelledby` (see `ariaLabel`). */
+  /** Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Each thumb is named through `aria-labelledby` (see `aria-label`). */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
   name?: string;
@@ -48,7 +48,7 @@ export interface RangeSliderProps {
    * FormField's label) with its own suffix — "Price, Minimum" / "Price,
    * Maximum" — since two thumbs can't share one `<label htmlFor>`.
    */
-  ariaLabel?: string;
+  'aria-label'?: string;
   /** Per-thumb name suffixes. @default the locale's `rangeSlider.minimum` / `rangeSlider.maximum` */
   thumbLabels?: [string, string];
   /** Per-instance overrides for track height and thumb size. Shared with `<Slider>`. */
@@ -74,7 +74,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   onChange,
   disabled: disabledProp = false,
   commitOnRelease = false,
-  ariaLabel,
+  'aria-label': ariaLabel,
   thumbLabels,
   overrides,
 }) => {

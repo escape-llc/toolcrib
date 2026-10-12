@@ -125,7 +125,9 @@ export interface ComboboxProps {
    * htmlFor>` that renders provides the accessible name already in that
    * case, the same way it does for `Input`/`Select`/`Slider`.
    */
-  ariaLabel?: string;
+  'aria-label'?: string;
+  /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
+  'aria-labelledby'?: string;
   /**
    * Client-side option list, filtered locally by substring match against
    * `label`. Omit when using `onSearch` for server-driven results instead.
@@ -185,7 +187,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   id,
   name: propName,
   placeholder = 'Search...',
-  ariaLabel,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   options: staticOptions,
   onSearch,
   searchDebounceMs = 250,
@@ -783,7 +786,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // an open combobox points at it, and during the exit animation the field
             // has already dropped aria-controls (#736).
             aria-label={ariaLabel}
-            aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
+            aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? fieldCtx.labelId)}
             options={filteredOptions}
             activeIndex={activeIndex}
             selectedValues={selectedValues}

@@ -26,7 +26,7 @@ const options = [
 
 describe('Combobox Component — client-side filtering', () => {
   it('filters the listbox by substring as the user types', async () => {
-    render(<Combobox options={options} onChange={vi.fn()} ariaLabel="Role" />);
+    render(<Combobox options={options} onChange={vi.fn()} aria-label="Role" />);
     const input = screen.getByRole('combobox');
 
     fireEvent.change(input, { target: { value: 'ed' } });
@@ -39,7 +39,7 @@ describe('Combobox Component — client-side filtering', () => {
   });
 
   it('shows a no-results message when nothing matches', async () => {
-    render(<Combobox options={options} onChange={vi.fn()} noResultsMessage="Nothing found" ariaLabel="Role" />);
+    render(<Combobox options={options} onChange={vi.fn()} noResultsMessage="Nothing found" aria-label="Role" />);
     const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'zzz' } });
     expect(screen.getByText('Nothing found')).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('Combobox Component — client-side filtering', () => {
   });
 
   it('disables the input and never opens the listbox when disabled', async () => {
-    render(<Combobox options={options} onChange={vi.fn()} disabled ariaLabel="Role" />);
+    render(<Combobox options={options} onChange={vi.fn()} disabled aria-label="Role" />);
     const input = screen.getByRole('combobox') as HTMLInputElement;
     expect(input).toBeDisabled();
 
@@ -196,7 +196,7 @@ describe('Combobox Component — async search', () => {
 
   it('debounces onSearch, only opening/showing a loading state once the search actually fires, then replaces the listbox with results', async () => {
     const onSearch = vi.fn().mockResolvedValue([{ label: 'Async Result', value: 'r1' }]);
-    render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} ariaLabel="Role" />);
+    render(<Combobox onSearch={onSearch} searchDebounceMs={10} onChange={vi.fn()} aria-label="Role" />);
     const input = screen.getByRole('combobox');
 
     fireEvent.change(input, { target: { value: 'query' } });
@@ -242,7 +242,7 @@ describe('Combobox Component — async search', () => {
 describe('Combobox Component — multiple mode', () => {
   it('selects options as removable chips instead of filling the input text', async () => {
     const onChange = vi.fn();
-    render(<Combobox multiple options={options} onChange={onChange} ariaLabel="Skills" />);
+    render(<Combobox multiple options={options} onChange={onChange} aria-label="Skills" />);
     const input = screen.getByRole('combobox') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'ed' } });
@@ -434,7 +434,7 @@ describe('Combobox Component — Form binding', () => {
       render(
         <UIGroup>
           <button>Go</button>
-          <Combobox options={options} onChange={vi.fn()} ariaLabel="Role" />
+          <Combobox options={options} onChange={vi.fn()} aria-label="Role" />
         </UIGroup>
       );
       const wrapper = screen.getByRole('combobox').parentElement!;
@@ -445,7 +445,7 @@ describe('Combobox Component — Form binding', () => {
     });
 
     it('lets an explicit squareCorners prop win over the automatic UIGroup value', () => {
-      render(<Combobox options={options} onChange={vi.fn()} ariaLabel="Role" squareCorners="all" />);
+      render(<Combobox options={options} onChange={vi.fn()} aria-label="Role" squareCorners="all" />);
       const wrapper = screen.getByRole('combobox').parentElement!;
       expect(wrapper.style.borderTopLeftRadius).toBe('0px');
       expect(wrapper.style.borderTopRightRadius).toBe('0px');

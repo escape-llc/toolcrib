@@ -70,7 +70,7 @@ describe('typed Form seeds for untouched controls (#667)', () => {
   it('a multiple Combobox submits an empty array', async () => {
     const values = await submitUntouched(
       z.object({ tags: z.array(z.string()) }),
-      <Combobox name="tags" multiple ariaLabel="Tags" options={[{ value: 'a', label: 'A' }]} />
+      <Combobox name="tags" multiple aria-label="Tags" options={[{ value: 'a', label: 'A' }]} />
     );
     expect(values).toEqual({ tags: [] });
   });
@@ -83,7 +83,7 @@ describe('typed Form seeds for untouched controls (#667)', () => {
         <FormField name="notes" label="Notes"><Textarea defaultValue="n/a" /></FormField>
         <Select name="size" aria-label="Size" defaultValue="m" options={[{ value: 's', label: 'S' }, { value: 'm', label: 'M' }]} />
         <RadioGroup name="tone" defaultValue="calm" options={[{ value: 'calm', label: 'Calm' }, { value: 'loud', label: 'Loud' }]} />
-        <Combobox name="pick" ariaLabel="Pick" defaultValue="b" options={[{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }]} />
+        <Combobox name="pick" aria-label="Pick" defaultValue="b" options={[{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }]} />
       </>
     );
     expect(values).toEqual({ title: 'Draft', notes: 'n/a', size: 'm', tone: 'calm', pick: 'b' });

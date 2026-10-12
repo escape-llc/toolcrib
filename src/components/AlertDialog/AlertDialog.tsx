@@ -63,12 +63,12 @@ export interface AlertDialogProps {
   zIndex?: number;
   /**
    * Accessible name announced by screen readers when the dialog opens.
-   * Always visually hidden, matching `Modal`'s `ariaLabel` — set this
+   * Always visually hidden, matching `Modal`'s `aria-label` — set this
    * explicitly (typically matching your `AlertDialog.Header` text) for a
    * meaningful announcement.
    * @default 'Confirm Action'
    */
-  ariaLabel?: string;
+  'aria-label'?: string;
   /** Per-instance overrides for backdrop blur and overlay darkness. */
   overrides?: Partial<AlertDialogSliceState> & { subtheme?: SubthemeName };
 }
@@ -92,7 +92,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   onOpenChange,
   width = '25rem',
   zIndex: zIndexProp,
-  ariaLabel = 'Confirm Action',
+  'aria-label': ariaLabel = 'Confirm Action',
   overrides,
 }) => {
   const id = useStableId(propId, 'alertdialog');

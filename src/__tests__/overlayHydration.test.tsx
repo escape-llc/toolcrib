@@ -53,12 +53,12 @@ async function serverThenHydrate(make: (server: boolean) => React.ReactElement) 
 
 const cases: Array<[string, () => React.ReactElement]> = [
   ['Modal, closed', () => (
-    <Modal ariaLabel="SSR modal" trigger={<Button>Open modal</Button>}>
+    <Modal aria-label="SSR modal" trigger={<Button>Open modal</Button>}>
       <Modal.Body>Body</Modal.Body>
     </Modal>
   )],
   ['Modal, open on first render', () => (
-    <Modal ariaLabel="SSR modal" isOpen onOpenChange={() => {}} trigger={<Button>Open modal</Button>}>
+    <Modal aria-label="SSR modal" isOpen onOpenChange={() => {}} trigger={<Button>Open modal</Button>}>
       <Modal.Body>Body</Modal.Body>
     </Modal>
   )],

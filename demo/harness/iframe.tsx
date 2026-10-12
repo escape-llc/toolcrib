@@ -15,7 +15,7 @@ import { Button, Modal, Popup, Text, ThemeProvider, ToolcribProvider, VStack } f
 const Overlays: React.FC = () => (
   <VStack>
     <Button>Background button</Button>
-    <Modal ariaLabel="Iframe modal" trigger={<Button>Open modal</Button>}>
+    <Modal aria-label="Iframe modal" trigger={<Button>Open modal</Button>}>
       <Modal.Header>Iframe modal</Modal.Header>
       <Modal.Body>
         <VStack>
@@ -63,7 +63,7 @@ const Harness: React.FC = () => {
       <Button>Outer page button</Button>
       {/* Same-document control: tells an iframe-specific failure from a
           general one in the same engine. */}
-      <Modal ariaLabel="Outer modal" trigger={<Button>Open outer modal</Button>}>
+      <Modal aria-label="Outer modal" trigger={<Button>Open outer modal</Button>}>
         <Modal.Body>
           <VStack>
             <Button>First inside</Button>

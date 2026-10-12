@@ -72,7 +72,7 @@ export interface ModalProps {
    * your `Modal.Header` text) for a meaningful announcement.
    * @default 'Dialog'
    */
-  ariaLabel?: string;
+  'aria-label'?: string;
   /**
    * `'center'` (default) vertically centers the dialog, the standard
    * confirm/form-dialog placement. `'top'` anchors it near the top of the
@@ -107,7 +107,7 @@ export const Modal: React.FC<ModalProps> & {
   width = '31.25rem',
   height,
   zIndex: zIndexProp,
-  ariaLabel = 'Dialog',
+  'aria-label': ariaLabel = 'Dialog',
   align = 'center',
   overrides,
 }) => {

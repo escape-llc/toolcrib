@@ -1062,7 +1062,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               <span>{state.masterFontSize}px</span>
             </div>
             <Slider
-              ariaLabel="Master Font Size"
+              aria-label="Master Font Size"
               min={12}
               max={24}
               value={state.masterFontSize}
@@ -1076,7 +1076,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               <span>{state.baseLineHeight.toFixed(1)}</span>
             </div>
             <Slider
-              ariaLabel="Line Height"
+              aria-label="Line Height"
               min={1.2}
               max={2}
               step={0.1}

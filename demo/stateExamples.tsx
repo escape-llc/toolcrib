@@ -102,10 +102,10 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'invalid', node: <Invalid><Select aria-label="Invalid" options={COUNTRIES} /></Invalid> },
   ],
   Combobox: [
-    { state: 'default', node: <Combobox ariaLabel="Default" placeholder="Search..." options={COUNTRIES} /> },
-    { state: 'focused', node: <Focused><Combobox ariaLabel="Focused" placeholder="Search..." options={COUNTRIES} /></Focused> },
-    { state: 'disabled', node: <Combobox ariaLabel="Disabled" placeholder="Search..." options={COUNTRIES} disabled /> },
-    { state: 'invalid', node: <Invalid><Combobox ariaLabel="Invalid" placeholder="Search..." options={COUNTRIES} /></Invalid> },
+    { state: 'default', node: <Combobox aria-label="Default" placeholder="Search..." options={COUNTRIES} /> },
+    { state: 'focused', node: <Focused><Combobox aria-label="Focused" placeholder="Search..." options={COUNTRIES} /></Focused> },
+    { state: 'disabled', node: <Combobox aria-label="Disabled" placeholder="Search..." options={COUNTRIES} disabled /> },
+    { state: 'invalid', node: <Invalid><Combobox aria-label="Invalid" placeholder="Search..." options={COUNTRIES} /></Invalid> },
   ],
   NumberField: [
     { state: 'default', node: <NumberField label="Default" defaultValue={1} /> },
@@ -151,9 +151,9 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'disabled', node: <CheckboxGroup label="Disabled" options={COUNTRIES} disabled /> },
   ],
   RadioGroup: [
-    { state: 'default', node: <RadioGroup options={COUNTRIES} /> },
-    { state: 'focused', node: <Focused><RadioGroup options={COUNTRIES} /></Focused> },
-    { state: 'disabled', node: <RadioGroup options={COUNTRIES} disabled /> },
+    { state: 'default', node: <RadioGroup aria-label="Default" options={COUNTRIES} /> },
+    { state: 'focused', node: <Focused><RadioGroup aria-label="Focused" options={COUNTRIES} /></Focused> },
+    { state: 'disabled', node: <RadioGroup aria-label="Disabled" options={COUNTRIES} disabled /> },
   ],
   Switch: [
     { state: 'default', node: <Switch label="Default" /> },
@@ -161,14 +161,14 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'disabled', node: <Switch label="Disabled" disabled /> },
   ],
   Slider: [
-    { state: 'default', node: <Slider ariaLabel="Default" defaultValue={40} /> },
-    { state: 'focused', node: <Focused><Slider ariaLabel="Focused" defaultValue={40} /></Focused> },
-    { state: 'disabled', node: <Slider ariaLabel="Disabled" defaultValue={40} disabled /> },
+    { state: 'default', node: <Slider aria-label="Default" defaultValue={40} /> },
+    { state: 'focused', node: <Focused><Slider aria-label="Focused" defaultValue={40} /></Focused> },
+    { state: 'disabled', node: <Slider aria-label="Disabled" defaultValue={40} disabled /> },
   ],
   RangeSlider: [
-    { state: 'default', node: <RangeSlider ariaLabel="Default" defaultValue={[20, 60]} /> },
-    { state: 'focused', node: <Focused><RangeSlider ariaLabel="Focused" defaultValue={[20, 60]} /></Focused> },
-    { state: 'disabled', node: <RangeSlider ariaLabel="Disabled" defaultValue={[20, 60]} disabled /> },
+    { state: 'default', node: <RangeSlider aria-label="Default" defaultValue={[20, 60]} /> },
+    { state: 'focused', node: <Focused><RangeSlider aria-label="Focused" defaultValue={[20, 60]} /></Focused> },
+    { state: 'disabled', node: <RangeSlider aria-label="Disabled" defaultValue={[20, 60]} disabled /> },
   ],
   OTPField: [
     { state: 'default', node: <OTPField aria-label="Default" length={4} /> },
@@ -177,9 +177,9 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'invalid', node: <Invalid><OTPField aria-label="Invalid" length={4} /></Invalid> },
   ],
   FileUpload: [
-    { state: 'default', node: <FileUpload /> },
-    { state: 'focused', node: <Focused><FileUpload /></Focused> },
-    { state: 'disabled', node: <FileUpload disabled /> },
+    { state: 'default', node: <FileUpload aria-label="Default" /> },
+    { state: 'focused', node: <Focused><FileUpload aria-label="Focused" /></Focused> },
+    { state: 'disabled', node: <FileUpload aria-label="Disabled" disabled /> },
   ],
   Button: [
     { state: 'default', node: <Button>Default</Button> },

@@ -202,7 +202,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
       width="37.5rem"
-      ariaLabel="Command palette"
+      aria-label="Command palette"
       align="top"
     >
       {/* react-aria's Autocomplete (#720, replacing cmdk): typing stays in the input while arrow keys move a

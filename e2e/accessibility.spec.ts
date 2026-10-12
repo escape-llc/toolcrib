@@ -240,7 +240,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // so this flaked with the exact symptom the comment above already
   // predicted ("Open Command Palette" unreachable), just intermittently
   // rather than always. Waiting for the inner dialog to actually be gone
-  // -- its own already-distinct accessible name (`ariaLabel="Nested
+  // -- its own already-distinct accessible name (`aria-label="Nested
   // Confirmation"`, demo/App.tsx) needs no new DOM markers -- is a real
   // completion signal instead of a wall-clock guess, the same principle
   // this repo's own animationend-listener e2e tests already establish
@@ -354,7 +354,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // own placeholder never renders (defaultValue already has 2 chips
   // selected, and Combobox.tsx's placeholder={hasValue && multiple ?
   // undefined : placeholder} suppresses it whenever that's true) -- the
-  // demo's own ariaLabel="Skills" is the reliable locator instead.
+  // demo's own aria-label="Skills" is the reliable locator instead.
   await page.getByRole('combobox', { name: 'Skills' }).click();
   await scanNamed('Combobox (multi-select)');
   await page.keyboard.press('Escape');

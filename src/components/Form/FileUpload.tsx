@@ -71,6 +71,10 @@ export interface FileUploadProps {
   size?: ControlSize;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
+  /** Accessible name for the dropzone. Only needed outside a `<FormField label>`, whose label names it already. */
+  'aria-label'?: string;
+  /** Id of the element that names the dropzone. Used instead of the inherited `<FormField>` label when set. */
+  'aria-labelledby'?: string;
 }
 
 function formatBytes(bytes: number): string {
@@ -95,6 +99,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   overrides,
   size = 'md',
   squareCorners,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -257,6 +263,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
+        {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={e => {
           if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
