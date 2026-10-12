@@ -149,4 +149,18 @@ describe('RadioGroup Component', () => {
       expect(handleSubmit).not.toHaveBeenCalled();
     });
   });
+
+  describe('accessible name (#811)', () => {
+    const options = [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }];
+
+    it('names the radiogroup from aria-label', () => {
+      render(<RadioGroup aria-label="Pick one" options={options} />);
+      expect(screen.getByRole('radiogroup', { name: 'Pick one' })).toBeInTheDocument();
+    });
+
+    it('names the radiogroup from aria-labelledby', () => {
+      render(<><span id="lbl">Choice</span><RadioGroup aria-labelledby="lbl" options={options} /></>);
+      expect(screen.getByRole('radiogroup', { name: 'Choice' })).toBeInTheDocument();
+    });
+  });
 });

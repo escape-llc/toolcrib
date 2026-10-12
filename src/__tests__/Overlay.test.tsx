@@ -181,7 +181,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     fireEvent.keyDown(document, { key: 'Escape' });
 
     rerender(
-      <Modal trigger={<Button>Open Custom</Button>} ariaLabel="Delete confirmation">
+      <Modal trigger={<Button>Open Custom</Button>} aria-label="Delete confirmation">
         <Modal.Body>Content</Modal.Body>
       </Modal>
     );

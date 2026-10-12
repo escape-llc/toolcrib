@@ -1637,7 +1637,7 @@ export const App: React.FC = () => {
     AlertDialog: (
       <VStack gap="sm" align="start">
         <Text size="xs" weight="semibold" tone="secondary">Blocking Confirmation (`&lt;AlertDialog&gt;`)</Text>
-        <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} ariaLabel="Delete confirmation">
+        <AlertDialog trigger={<Button variant="danger" icon={<Trash2 size="1em" />}>Delete Record</Button>} aria-label="Delete confirmation">
           <AlertDialog.Header>Delete this record?</AlertDialog.Header>
           <AlertDialog.Body>This action cannot be undone. Unlike Modal, clicking outside this dialog will not dismiss it.</AlertDialog.Body>
           <AlertDialog.Footer>
@@ -1739,12 +1739,12 @@ export const App: React.FC = () => {
     Modal: (
       <VStack gap="md" align="start">
         <Text>Modal dialog with complete focus lock out (`aria-modal`) and background lockout.</Text>
-        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} ariaLabel="Confirm Account Action">
+        <Modal trigger={<Button variant="primary">Open Modal Dialog</Button>} aria-label="Confirm Account Action">
           <Modal.Header>Confirm Account Action</Modal.Header>
           <Modal.Body>
             Are you sure you want to perform this action? Keyboard navigation (Tab) is trapped safely inside this dialog.
             <div style={{ marginTop: '0.75rem' }}>
-              <Modal trigger={<Button variant="outline">Open Nested Modal</Button>} ariaLabel="Nested Confirmation">
+              <Modal trigger={<Button variant="outline">Open Nested Modal</Button>} aria-label="Nested Confirmation">
                 <Modal.Header>Nested Confirmation</Modal.Header>
                 <Modal.Body>
                   Both this dialog and its parent default to the same Z_INDEX.MODAL tier — real stacking here depends on portal/DOM order, not a distinct numeric value per nesting depth.
@@ -2386,7 +2386,7 @@ export const App: React.FC = () => {
             </Text>
             <Combobox
               placeholder="Search users..."
-              ariaLabel="Search users"
+              aria-label="Search users"
               searchDebounceMs={300}
               onSearch={async (query) => {
                 await new Promise(resolve => setTimeout(resolve, 200));
@@ -2411,7 +2411,7 @@ export const App: React.FC = () => {
             <Combobox
               multiple
               placeholder="Add skills..."
-              ariaLabel="Skills"
+              aria-label="Skills"
               defaultValue={['react', 'typescript', 'postgres']}
               chipColor={(value) => (['node', 'graphql', 'postgres', 'docker'].includes(value) ? { variant: 'secondary' } : undefined)}
               options={[
@@ -2725,7 +2725,7 @@ export const App: React.FC = () => {
     RangeSlider: (
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</Text>
-        <RangeSlider ariaLabel="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
+        <RangeSlider aria-label="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
       </VStack>
     ),
     CheckboxGroup: (
@@ -2835,7 +2835,7 @@ export const App: React.FC = () => {
     Slider: (
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Interactive Range Slider (`&lt;Slider&gt;`)</Text>
-        <Slider ariaLabel="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+        <Slider aria-label="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
       </VStack>
     ),
     ThemeEditor: (

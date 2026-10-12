@@ -286,7 +286,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             max={360}
             value={parameters.baseColor.h}
             onChange={val => setBaseColor({ ...parameters.baseColor, h: val })}
-            ariaLabel="Hue (H)"
+            aria-label="Hue (H)"
           />
         </div>
 
@@ -301,7 +301,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             max={100}
             value={parameters.baseColor.s}
             onChange={val => setBaseColor({ ...parameters.baseColor, s: val })}
-            ariaLabel="Saturation (S)"
+            aria-label="Saturation (S)"
           />
         </div>
 
@@ -316,7 +316,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             max={100}
             value={parameters.baseColor.v}
             onChange={val => setBaseColor({ ...parameters.baseColor, v: val })}
-            ariaLabel="Brightness (V)"
+            aria-label="Brightness (V)"
           />
         </div>
 
@@ -340,7 +340,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             step={0.05}
             value={parameters.darkenLightenFactor}
             onChange={val => setDarkenLightenFactor(val)}
-            ariaLabel="Darken / Lighten Factor"
+            aria-label="Darken / Lighten Factor"
           />
         </div>
 
@@ -363,7 +363,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
             step={0.05}
             value={parameters.saturationFactor}
             onChange={val => setSaturationFactor(val)}
-            ariaLabel="Saturation Factor"
+            aria-label="Saturation Factor"
           />
         </div>
       </div>
@@ -464,7 +464,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           max={90}
           value={parameters.hueSpread}
           onChange={val => setHueSpread(val)}
-          ariaLabel="Hue Spread Angle"
+          aria-label="Hue Spread Angle"
         />
       </div>
 

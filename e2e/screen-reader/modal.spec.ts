@@ -30,7 +30,7 @@ test('NVDA announces the Modal when it opens', async ({ page, screenReader }) =>
     await page.getByRole('dialog').waitFor();
   });
 
-  // demo/App.tsx's Modal instance sets ariaLabel="Confirm Account Action" --
+  // demo/App.tsx's Modal instance sets aria-label="Confirm Account Action" --
   // its designated accessible name, which a screen reader should speak when
   // focus moves into the dialog on open. Deliberately not asserting the
   // literal word "dialog" is present: that depends on NVDA's own role

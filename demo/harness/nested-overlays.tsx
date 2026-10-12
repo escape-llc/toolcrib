@@ -24,7 +24,7 @@ const Harness = () => {
   const [open, setOpen] = useState(false);
   return (
     <Modal
-      ariaLabel="Host modal"
+      aria-label="Host modal"
       isOpen={open}
       onOpenChange={next => {
         if (!next) window.modalCloseRequests++;

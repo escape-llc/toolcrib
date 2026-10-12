@@ -68,7 +68,7 @@ export const Viewer: React.FC<ViewerProps> = ({
       onOpenChange={open => handleOpenChange(open)}
       width="90vw"
       height="80vh"
-      ariaLabel="Media viewer"
+      aria-label="Media viewer"
     >
       <ViewerContent id={id} {...contentProps} onClose={() => handleOpenChange(false)} />
     </Modal>

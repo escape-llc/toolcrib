@@ -59,7 +59,9 @@ export interface SliderProps {
    * htmlFor>` that renders provides the accessible name already in that
    * case, the same way it does for `Input`/`Select`/`Combobox`.
    */
-  ariaLabel?: string;
+  'aria-label'?: string;
+  /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
+  'aria-labelledby'?: string;
   /** Per-instance overrides for track height and thumb size. */
   overrides?: Partial<SliderSliceState>;
 }
@@ -79,7 +81,8 @@ export const Slider: React.FC<SliderProps> = ({
   onChange,
   disabled: disabledProp = false,
   commitOnRelease = false,
-  ariaLabel,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -158,7 +161,7 @@ export const Slider: React.FC<SliderProps> = ({
           <BaseSlider.Thumb
             id={effectiveId}
             aria-label={ariaLabel}
-            aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
+            aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? fieldCtx.labelId)}
             className="ai-focus-ring"
             style={sliderThumbStyle(disabled)}
           />

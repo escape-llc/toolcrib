@@ -8,7 +8,7 @@ import { axe } from './testUtils/axe';
 describe('AlertDialog Component', () => {
   it('opens via trigger, renders slot content, and cannot be dismissed by clicking the overlay', async () => {
     render(
-      <AlertDialog trigger={<Button>Delete Record</Button>} ariaLabel="Delete confirmation">
+      <AlertDialog trigger={<Button>Delete Record</Button>} aria-label="Delete confirmation">
         <AlertDialog.Header>Delete Record</AlertDialog.Header>
         <AlertDialog.Body>This cannot be undone.</AlertDialog.Body>
         <AlertDialog.Footer>
@@ -51,7 +51,7 @@ describe('AlertDialog Component', () => {
   // matching Modal test for the full reasoning.
   it('declares aria-modal="true" explicitly, since the underlying primitive never sets it itself', () => {
     render(
-      <AlertDialog trigger={<Button>Delete Record</Button>} ariaLabel="Delete confirmation">
+      <AlertDialog trigger={<Button>Delete Record</Button>} aria-label="Delete confirmation">
         <AlertDialog.Body>This cannot be undone.</AlertDialog.Body>
       </AlertDialog>
     );

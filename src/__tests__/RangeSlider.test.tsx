@@ -11,14 +11,14 @@ const focus = (el: HTMLElement) => act(() => el.focus());
 
 describe('RangeSlider Component', () => {
   it('renders two thumbs at the given [lower, upper] value', () => {
-    render(<RangeSlider ariaLabel="Price" value={[20, 80]} onChange={vi.fn()} />);
+    render(<RangeSlider aria-label="Price" value={[20, 80]} onChange={vi.fn()} />);
     const [lower, upper] = screen.getAllByRole('slider');
     expect(lower).toHaveAttribute('aria-valuenow', '20');
     expect(upper).toHaveAttribute('aria-valuenow', '80');
   });
 
   it('defaults to the full [min, max] range when uncontrolled with no defaultValue', () => {
-    render(<RangeSlider ariaLabel="Price" min={10} max={90} />);
+    render(<RangeSlider aria-label="Price" min={10} max={90} />);
     const [lower, upper] = screen.getAllByRole('slider');
     expect(lower).toHaveAttribute('aria-valuenow', '10');
     expect(upper).toHaveAttribute('aria-valuenow', '90');
@@ -26,7 +26,7 @@ describe('RangeSlider Component', () => {
 
   it('moves each thumb independently via keyboard, reporting the full pair (uncontrolled)', () => {
     const onChange = vi.fn();
-    render(<RangeSlider ariaLabel="Price" defaultValue={[20, 80]} onChange={onChange} />);
+    render(<RangeSlider aria-label="Price" defaultValue={[20, 80]} onChange={onChange} />);
     const [lower, upper] = screen.getAllByRole('slider');
     focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
@@ -41,7 +41,7 @@ describe('RangeSlider Component', () => {
   it('emits rangeslider:changed with the field name and pair', () => {
     const handler = vi.fn();
     const unsub = aiBus.on('rangeslider:changed', handler);
-    render(<RangeSlider name="price" ariaLabel="Price" defaultValue={[20, 80]} />);
+    render(<RangeSlider name="price" aria-label="Price" defaultValue={[20, 80]} />);
     const [lower] = screen.getAllByRole('slider');
     focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
@@ -51,7 +51,7 @@ describe('RangeSlider Component', () => {
 
   it('respects minStepsBetweenThumbs', () => {
     const onChange = vi.fn();
-    render(<RangeSlider ariaLabel="Price" defaultValue={[48, 50]} minStepsBetweenThumbs={2} onChange={onChange} />);
+    render(<RangeSlider aria-label="Price" defaultValue={[48, 50]} minStepsBetweenThumbs={2} onChange={onChange} />);
     const [lower] = screen.getAllByRole('slider');
     focus(lower);
     fireEvent.keyDown(lower, { key: 'ArrowRight' });
@@ -60,14 +60,14 @@ describe('RangeSlider Component', () => {
   });
 
   it('does not loop when a controlled consumer passes a fresh array literal every render', () => {
-    const { rerender } = render(<RangeSlider ariaLabel="Price" value={[20, 80]} onChange={vi.fn()} />);
-    rerender(<RangeSlider ariaLabel="Price" value={[20, 80]} onChange={vi.fn()} />);
-    rerender(<RangeSlider ariaLabel="Price" value={[30, 80]} onChange={vi.fn()} />);
+    const { rerender } = render(<RangeSlider aria-label="Price" value={[20, 80]} onChange={vi.fn()} />);
+    rerender(<RangeSlider aria-label="Price" value={[20, 80]} onChange={vi.fn()} />);
+    rerender(<RangeSlider aria-label="Price" value={[30, 80]} onChange={vi.fn()} />);
     expect(screen.getAllByRole('slider')[0]).toHaveAttribute('aria-valuenow', '30');
   });
 
   it('names each thumb from ariaLabel + its own suffix', () => {
-    render(<RangeSlider ariaLabel="Price" defaultValue={[20, 80]} />);
+    render(<RangeSlider aria-label="Price" defaultValue={[20, 80]} />);
     expect(screen.getByRole('slider', { name: 'Price Minimum' })).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Price Maximum' })).toBeInTheDocument();
   });
@@ -85,14 +85,14 @@ describe('RangeSlider Component', () => {
   });
 
   it('accepts custom thumb labels', () => {
-    render(<RangeSlider ariaLabel="Hours" thumbLabels={['Opens', 'Closes']} defaultValue={[9, 17]} min={0} max={24} />);
+    render(<RangeSlider aria-label="Hours" thumbLabels={['Opens', 'Closes']} defaultValue={[9, 17]} min={0} max={24} />);
     expect(screen.getByRole('slider', { name: 'Hours Opens' })).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Hours Closes' })).toBeInTheDocument();
   });
 
   it('commitOnRelease defers onChange until the value is committed', () => {
     const onChange = vi.fn();
-    render(<RangeSlider ariaLabel="Price" defaultValue={[20, 80]} commitOnRelease onChange={onChange} />);
+    render(<RangeSlider aria-label="Price" defaultValue={[20, 80]} commitOnRelease onChange={onChange} />);
     const [lower] = screen.getAllByRole('slider');
     focus(lower);
     // A keyboard step is a discrete commit (onValueCommitted fires).
@@ -104,7 +104,7 @@ describe('RangeSlider Component', () => {
   it('has no axe violations standalone or inside a FormField', async () => {
     const { container } = render(
       <div>
-        <RangeSlider ariaLabel="Price" defaultValue={[20, 80]} />
+        <RangeSlider aria-label="Price" defaultValue={[20, 80]} />
         <FormField name="age" label="Age range">
           <RangeSlider defaultValue={[18, 65]} />
         </FormField>

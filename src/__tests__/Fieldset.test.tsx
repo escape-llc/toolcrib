@@ -29,7 +29,7 @@ const controls: Record<string, React.ReactElement> = {
   Checkbox: <Checkbox name="c" label="c" />,
   Switch: <Switch name="s" label="s" />,
   Select: <Select name="sel" aria-label="sel" options={options} />,
-  Combobox: <Combobox name="cb" ariaLabel="cb" options={options} />,
+  Combobox: <Combobox name="cb" aria-label="cb" options={options} />,
   RadioGroup: <RadioGroup name="r" options={options} />,
   CheckboxGroup: <CheckboxGroup name="cg" options={options} />,
   Slider: <Slider name="sl" aria-label="sl" />,

@@ -42,7 +42,7 @@ describe('Slider Component', () => {
     });
 
     it('applies an explicit ariaLabel for standalone use outside a FormField', async () => {
-      render(<Slider name="brightness" ariaLabel="Brightness" onChange={vi.fn()} />);
+      render(<Slider name="brightness" aria-label="Brightness" onChange={vi.fn()} />);
       expect(screen.getByRole('slider')).toHaveAttribute('aria-label', 'Brightness');
       // Scanned here, not the plain "renders a slider" test above -- that
       // one has no FormField and no ariaLabel, so it has no accessible name

@@ -27,7 +27,7 @@ describe('popup listboxes are named like their field', () => {
   });
 
   it('Combobox, from ariaLabel', async () => {
-    render(<Combobox options={options} ariaLabel="Skills" />);
+    render(<Combobox options={options} aria-label="Skills" />);
     fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => expect(screen.getByRole('listbox', { name: 'Skills' })).toBeInTheDocument());
   });
