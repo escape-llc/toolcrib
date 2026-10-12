@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { fetchRelease, fetchTestsRelease } from '../lib/release.js';
 import { resolveVersion } from '../lib/github.js';
 import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
-import { mergeImportsField } from '../lib/deps.js';
+import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
 import { fileExists, readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks, upsertManagedBlock } from '../lib/managedDocs.js';
 
@@ -305,13 +305,36 @@ export async function mergeCommand(options) {
 
   await cleanupAll();
 
-  // Installs from before the "imports" subpath entry existed won't have it —
-  // propose adding it here too, not just on a fresh `init`.
+  // package.json: the target release's peerDependencies the project doesn't
+  // have yet (a release can introduce new ones -- e.g. the Base UI switch
+  // added @base-ui/react), plus installs from before the "imports" subpath
+  // entry existed. One combined patch, same reason as init.js: two propose()
+  // calls for the same relPath would both diff against the original file.
   const pkgPath = path.join(projectRoot, 'package.json');
   const userPkg = readJsonIfExists(pkgPath);
+  let depConflicts = [];
+  let removedPeers = [];
   if (userPkg) {
-    const importsResult = mergeImportsField(userPkg, TOOLKIT_IMPORTS_ENTRY);
-    if (importsResult.changed) {
+    const depDecisions = resolveDependencyDecisions(userPkg, newRelease.config?.peerDependencies ?? {});
+    const pkgWithDeps = depDecisions.toAdd.length > 0
+      ? buildProposedPackageJson(userPkg, depDecisions.toAdd)
+      : userPkg;
+    // The vendored tests' own peers are dev tooling, so devDependencies, as in init.
+    const testsDepDecisions = newTestsRelease
+      ? resolveDependencyDecisions(pkgWithDeps, newTestsRelease.config?.peerDependencies ?? {})
+      : null;
+    const pkgWithAllDeps = testsDepDecisions?.toAdd.length > 0
+      ? buildProposedPackageJson(pkgWithDeps, testsDepDecisions.toAdd, 'devDependencies')
+      : pkgWithDeps;
+    depConflicts = [...depDecisions.conflicts, ...(testsDepDecisions?.conflicts ?? [])];
+    // Peers the old release needed and the new one doesn't: reported, never
+    // removed -- the project may use them itself.
+    const newPeers = newRelease.config?.peerDependencies ?? {};
+    removedPeers = Object.keys(oldRelease.config?.peerDependencies ?? {}).filter(
+      (name) => !(name in newPeers) && (userPkg.dependencies?.[name] || userPkg.devDependencies?.[name])
+    );
+    const importsResult = mergeImportsField(pkgWithAllDeps, TOOLKIT_IMPORTS_ENTRY);
+    if (depDecisions.toAdd.length > 0 || testsDepDecisions?.toAdd.length > 0 || importsResult.changed) {
       changes.propose(
         'package.json',
         readTextIfExists(pkgPath),
@@ -378,6 +401,21 @@ export async function mergeCommand(options) {
       `${conflicts.length} conflict(s) — both local and upstream changed:\n` +
         conflicts.map((c) => `  ${c.relPath}`).join('\n') +
         `\n\nSee the .upstream-diff patch for each — ask your AI assistant to reconcile them.`
+    );
+  }
+
+  if (depConflicts.length > 0) {
+    process.exitCode = 1;
+    p.log.warn(
+      `${depConflicts.length} dependency conflict(s) — not staged, needs your decision:\n` +
+        depConflicts
+          .map((d) => `  ${d.name}: you have ${d.userRange}, toolcrib needs ${d.requiredRange} (${d.reason})`)
+          .join('\n')
+    );
+  }
+  if (removedPeers.length > 0) {
+    p.log.info(
+      `No longer required by toolcrib (left in package.json; remove them if your own code doesn't use them): ${removedPeers.join(', ')}`
     );
   }
 

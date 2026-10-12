@@ -579,3 +579,70 @@ describe('mergeCommand — managed block (AGENTS.md) outcomes', () => {
     expect(fs.readFileSync(path.join(tmpDir, 'AGENTS.md'), 'utf-8')).toContain('plus my own note');
   });
 });
+
+describe('mergeCommand — peerDependencies (#835)', () => {
+  let tmpDir;
+  let originalCwd;
+
+  const releaseWithPeers = (version, peerDependencies) => ({
+    ...fakeRelease(version, { 'index.ts': 'export {};\n' }),
+    config: { peerDependencies },
+  });
+
+  const setup = (pkg) => {
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
+  };
+
+  const run = async (oldPeers, newPeers) => {
+    const oldRelease = releaseWithPeers('1.0.0', oldPeers);
+    const newRelease = releaseWithPeers('2.0.0', newPeers);
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+    await mergeCommand({ version: '2.0.0' });
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const pkgPatch = findPatchFor(patchDir, 'package.json');
+    return pkgPatch ? fs.readFileSync(path.join(patchDir, pkgPatch), 'utf-8') : undefined;
+  };
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-merge-peers-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'index.ts'), 'export {};\n');
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json'), JSON.stringify({ version: '1.0.0' }, null, 2) + '\n');
+    vi.resetAllMocks();
+    process.exitCode = undefined;
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    process.exitCode = undefined;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('stages a peer dependency the new release introduced, in the same single package.json patch as the imports entry', async () => {
+    setup({ name: 'x', dependencies: { react: '^19.0.0' } });
+    const patch = await run({ react: '^19.0.0' }, { react: '^19.0.0', '@base-ui/react': '^1.0.0' });
+    expect(patch).toContain('+    "@base-ui/react": "^1.0.0"');
+    expect(patch).toContain('#toolcrib');
+  });
+
+  it('proposes nothing for a peer the project already satisfies', async () => {
+    setup({ name: 'x', dependencies: { react: '^19.2.0' }, imports: { '#toolcrib': './toolcrib/index.ts' } });
+    const patch = await run({ react: '^19.0.0' }, { react: '^19.0.0' });
+    expect(patch).toBeUndefined();
+  });
+
+  it('reports a peer whose version range conflicts, without staging it, and sets a failing exit code', async () => {
+    setup({ name: 'x', dependencies: { react: '^17.0.0' }, imports: { '#toolcrib': './toolcrib/index.ts' } });
+    const patch = await run({ react: '^19.0.0' }, { react: '^19.0.0' });
+    expect(patch).toBeUndefined();
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('never removes a dependency the new release no longer lists', async () => {
+    setup({ name: 'x', dependencies: { 'radix-ui': '^1.0.0' }, imports: { '#toolcrib': './toolcrib/index.ts' } });
+    const patch = await run({ 'radix-ui': '^1.0.0' }, {});
+    expect(patch).toBeUndefined();
+  });
+});
