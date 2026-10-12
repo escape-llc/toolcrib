@@ -144,6 +144,19 @@ describe('Stepper', () => {
     expect(screen.getByText('Content B')).toBeVisible();
   });
 
+  it('emits stepper:changed when a controlled parent moves activeIndex', () => {
+    const steps: StepperStepData[] = [
+      { id: 'a', label: 'Step A', content: <div>Content A</div> },
+      { id: 'b', label: 'Step B', content: <div>Content B</div> },
+    ];
+    const changedFn = vi.fn();
+    const unsub = aiBus.on('stepper:changed', changedFn);
+    const { rerender } = render(<Stepper id="ctl" steps={steps} activeIndex={0} />);
+    rerender(<Stepper id="ctl" steps={steps} activeIndex={1} />);
+    expect(changedFn).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'ctl', activeIndex: 1, previousIndex: 0 }));
+    unsub();
+  });
+
   it('emits stepper:changed on navigation', () => {
     const changedFn = vi.fn();
     const unsub = aiBus.on('stepper:changed', changedFn);

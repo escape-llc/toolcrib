@@ -240,7 +240,7 @@ export const LineChart: React.FC<LineChartProps> = ({
         </Group>
       </svg>
       {series.length > 1 && (
-        <ChartLegend items={series.map((s, i) => ({ label: s.label, color: getSeriesColor(i) }))} markShape="line" />
+        <ChartLegend items={series.map((s, i) => ({ label: s.label, color: getSeriesColor(i) }))} markShape="line" direction={isSide ? 'column' : 'row'} />
       )}
       {tooltipOpen && hoveredIndex !== undefined && tooltipLeft !== undefined && (
         <ChartTooltip left={tooltipLeft} top={MARGIN.top} title={categories[hoveredIndex]} rows={rows} />

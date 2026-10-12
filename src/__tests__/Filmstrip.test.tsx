@@ -70,6 +70,14 @@ describe('Filmstrip', () => {
     expect(screen.getByLabelText('Photo 1')).toHaveAttribute('tabindex', '0');
   });
 
+  it('keeps the strip tabbable when the active item is disabled, and declares a horizontal listbox', () => {
+    const withDisabled = items.map(it => (it.id === 'p2' ? { ...it, disabled: true } : it));
+    render(<Filmstrip id="disabled-active" items={withDisabled} activeId="p2" onChange={vi.fn()} />);
+    expect(screen.getByLabelText('Photo 2')).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByLabelText('Photo 1')).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('listbox')).toHaveAttribute('aria-orientation', 'horizontal');
+  });
+
   it('ArrowRight/ArrowLeft move both the selection and real DOM focus to the adjacent item, skipping disabled ones', () => {
     const disabledItems = [
       { id: 'p1', content: <span>Photo 1</span>, label: 'Photo 1' },

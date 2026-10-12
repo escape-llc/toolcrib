@@ -87,7 +87,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
   // no Arrow key handling existed at all. Falls back to the first enabled
   // item if activeId doesn't match any current item (e.g. it was removed),
   // so the strip is never entirely untabbable.
-  const rovingTabIndexId = items.some(it => it.id === activeId) ? activeId : items.find(it => !it.disabled)?.id;
+  const rovingTabIndexId = items.some(it => it.id === activeId && !it.disabled) ? activeId : items.find(it => !it.disabled)?.id;
 
   const previousIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -150,6 +150,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
     >
       {canScrollLeft && (
         <button
+          type="button"
           onClick={() => scrollBy(-180)}
           aria-label="Scroll filmstrip left"
           className="ai-btn"
@@ -178,6 +179,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
       <div
         ref={scrollContainerRef}
         role="listbox"
+        aria-orientation="horizontal"
         aria-label="Filmstrip"
         style={{
           display: 'flex',
@@ -239,6 +241,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
 
       {canScrollRight && (
         <button
+          type="button"
           onClick={() => scrollBy(180)}
           aria-label="Scroll filmstrip right"
           className="ai-btn"

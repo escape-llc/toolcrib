@@ -232,6 +232,7 @@ export const Tree: React.FC<TreeProps> = ({
               aria-selected={isSelected}
               aria-disabled={node.item.disabled || undefined}
               tabIndex={isFocused ? 0 : -1}
+              className="ai-focus-ring"
               onKeyDown={e => handleKeyDown(e, index)}
               onClick={() => {
                 if (node.item.disabled) return;
@@ -250,8 +251,6 @@ export const Tree: React.FC<TreeProps> = ({
                 cursor: node.item.disabled ? 'not-allowed' : 'pointer',
                 opacity: node.item.disabled ? 0.5 : 1,
                 background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : 'transparent',
-                outline: isFocused ? '0.125rem solid var(--ai-color-primary, #3b82f6)' : 'none',
-                outlineOffset: '-0.125rem',
                 color: 'var(--ai-text-primary, #111827)',
                 fontSize: '0.875rem',
               }}

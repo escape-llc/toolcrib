@@ -455,6 +455,7 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, fill = false
   return (
     <div
       key={value}
+      role="tabpanel"
       {...props}
       className="ai-tabstrip-panel"
       style={{
