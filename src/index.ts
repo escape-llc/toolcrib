@@ -110,6 +110,7 @@ export * from './components/Form/SelectSlice';
 export * from './components/Form/Slider';
 export * from './components/Form/SliderSlice';
 export * from './components/Form/ToggleControlSlice';
+export * from './components/Form/useFieldInvalid';
 export * from './components/Gallery/Gallery';
 export * from './components/Gallery/GallerySlice';
 export * from './components/HoverCard/HoverCard';

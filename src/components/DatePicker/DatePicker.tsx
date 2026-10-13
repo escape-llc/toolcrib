@@ -7,6 +7,7 @@ import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
+import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { Popup } from '../Overlay/Popup';
@@ -68,6 +69,8 @@ export interface DatePickerProps {
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
   'aria-labelledby'?: string;
+  /** Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
 }
@@ -108,7 +111,7 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
       anchor={
         // The ring goes on the bordered field, not the picker's root, which
         // is a full-width block: on the root it drew around the whole cell.
-        <Group className={focusRingClassName} style={fieldGroupStyle(size, cornerOverrides)}>
+        <Group className={focusRingClassName} style={fieldGroupStyle(size, cornerOverrides, state.isInvalid)}>
           <DateSegments size={size} />
           <CalendarPopupTrigger />
         </Group>
@@ -154,12 +157,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  'aria-invalid': ariaInvalid,
   squareCorners,
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   useInjectInteractionStyles();
 
   const formValue: CalendarDate | null | undefined =
@@ -189,6 +194,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         minValue={minValue}
         maxValue={maxValue}
         isDisabled={isDisabled}
+        isInvalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         shouldCloseOnSelect={false}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}

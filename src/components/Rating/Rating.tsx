@@ -1,12 +1,14 @@
 'use client';
 
-import React, { type ReactNode } from 'react';
+import React, { type ReactNode, useContext } from 'react';
 import { RadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
 import { aiBus } from '../../eventBus/eventBus';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
+import { FieldContext } from '../Form/FieldContext';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
 /** Props for the `<Rating>` star control. */
@@ -22,6 +24,8 @@ export interface RatingProps {
    * @default 'Rating'
    */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Controlled value. */
   value?: number;
   /** Initial value (uncontrolled). @default 0 */
@@ -53,8 +57,9 @@ const DEFAULT_ICON = '★';
  * @manifestAntiPatternInstead Use `<Rating>` — built on a Base UI radio group, inherits real keyboard operability and `aria-checked` semantics instead of approximating them
  */
 export const Rating: React.FC<RatingProps> = ({
-  name,
+  name: propName,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   value: externalValue,
   defaultValue = 0,
   onChange,
@@ -64,6 +69,9 @@ export const Rating: React.FC<RatingProps> = ({
   overrides,
 }) => {
   const strings = useLocaleStrings().rating;
+  const fieldCtx = useContext(FieldContext);
+  const name = propName || fieldCtx.name || undefined;
+  const isError = useFieldInvalid(name, ariaInvalid);
   const [internalValue, setInternalValue] = React.useState(defaultValue);
   const isControlled = externalValue !== undefined;
   const value = isControlled ? externalValue : internalValue;
@@ -132,6 +140,8 @@ export const Rating: React.FC<RatingProps> = ({
       onValueChange={handleChange}
       className="ai-focus-ring"
       aria-label={ariaLabel ?? strings.label}
+      aria-invalid={isError || undefined}
+      aria-describedby={isError && name ? `${name}-error` : undefined}
       style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', outline: 'none', ...ratingVars }}
     >
       {Array.from({ length: max }, (_, i) => {
@@ -147,7 +157,7 @@ export const Rating: React.FC<RatingProps> = ({
               all: 'unset',
               ...iconStyle,
               cursor: 'pointer',
-              color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
+              color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)',
               // No inline transition -- .ai-focus-ring's own shared rule
               // (interactionStyles.ts) already covers color and is
               // !important, so this (like the `all: 'unset'` above) would

@@ -1,4 +1,5 @@
 import type React from 'react';
+import { INVALID_COLOR } from './useFieldInvalid';
 
 // Shared by Slider and RangeSlider so the two render identically -- a
 // single-thumb and a two-thumb slider side by side in the same form must
@@ -35,6 +36,11 @@ export const SLIDER_TRACK_STYLE: React.CSSProperties = {
   borderRadius: 'var(--ai-radius-lg, 0.625rem)',
   height: 'var(--ai-slider-track-height, 0.375rem)',
 };
+
+/** The track, with an error ring when the slider is invalid (the thumb's focus ring owns `outline`). */
+export function sliderTrackStyle(invalid: boolean): React.CSSProperties {
+  return invalid ? { ...SLIDER_TRACK_STYLE, boxShadow: `0 0 0 0.125rem ${INVALID_COLOR}` } : SLIDER_TRACK_STYLE;
+}
 
 export const SLIDER_RANGE_STYLE: React.CSSProperties = {
   position: 'absolute',

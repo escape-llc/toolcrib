@@ -15,6 +15,7 @@ import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { RadioGroupThemeSlice, type RadioGroupSliceState } from './RadioGroupSlice';
@@ -61,6 +62,8 @@ export interface RadioGroupProps {
   size?: ControlSize;
   /** Accessible name for the group. Only needed outside a `<FormField label>`, whose label names it already. */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Id of the element that names the group. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
 }
@@ -71,6 +74,7 @@ interface RadioGroupContextValue {
   onChange: (value: string) => void;
   disabled?: boolean;
   size: ControlSize;
+  invalid?: boolean;
 }
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
@@ -93,6 +97,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   overrides,
   size = 'md',
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -100,6 +105,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, { dotSize: size, ...overrides });
   useInjectInteractionStyles();
 
@@ -170,6 +176,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         onChange: handleChange,
         disabled,
         size,
+        invalid: isError,
       }}
     >
       <BaseRadioGroup
@@ -177,6 +184,8 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         onValueChange={v => handleChange(String(v))}
         disabled={disabled}
         className="ai-focus-ring"
+        aria-invalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         style={{
           display: 'flex',
@@ -232,7 +241,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
           width: 'var(--ai-radiogroup-dot-size, 1.125rem)',
           height: 'var(--ai-radiogroup-dot-size, 1.125rem)',
           borderRadius: '50%',
-          border: `0.125rem solid ${isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+          border: `0.125rem solid ${ctx.invalid ? INVALID_COLOR : isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: 'var(--ai-bg-surface, #ffffff)',
           display: 'flex',
           alignItems: 'center',

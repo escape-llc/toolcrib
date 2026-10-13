@@ -27,6 +27,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
+import { useFieldInvalid } from './useFieldInvalid';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
@@ -126,6 +127,8 @@ export interface ComboboxProps {
    * case, the same way it does for `Input`/`Select`/`Slider`.
    */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
   /**
@@ -188,6 +191,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   name: propName,
   placeholder = 'Search...',
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   options: staticOptions,
   onSearch,
@@ -210,7 +214,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const effectiveId = id ?? (fieldName || undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
-  const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);

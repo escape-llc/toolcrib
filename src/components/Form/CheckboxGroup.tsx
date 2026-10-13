@@ -4,6 +4,7 @@ import React, { type ReactNode, useContext, useEffect, useId, useState } from 'r
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { useOptionalFormContext } from './FormContext';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -44,6 +45,8 @@ export interface CheckboxGroupProps {
   label?: ReactNode;
   /** Accessible name when there is no visible label. */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Layout direction. @default 'vertical' */
   direction?: 'horizontal' | 'vertical';
   /** If true, every option is disabled. */
@@ -69,6 +72,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   maxSelected,
   label,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   direction = 'vertical',
   disabled: disabledProp = false,
   size = 'md',
@@ -118,14 +122,15 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
 
   // Group name: own visible label, else the enclosing FormField's label, else aria-label.
   const labelledBy = label ? ownLabelId : !ariaLabel ? fieldCtx.labelId : undefined;
-  const isError = isFormBound ? !!(formContext!.touched[fieldName] && formContext!.errors[fieldName]) : false;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
 
   return (
     <div
       role="group"
       aria-labelledby={labelledBy}
       aria-label={!label ? ariaLabel : undefined}
-      aria-describedby={isError ? `${fieldName}-error` : undefined}
+      aria-invalid={isError || undefined}
+      aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
       style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', ...toggleVars }}
     >
       {label && (
@@ -175,7 +180,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
                   width: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
                   height: 'var(--ai-togglecontrol-checkbox-size, 1.125rem)',
                   borderRadius: 'var(--ai-radius-sm, 0.25rem)',
-                  border: `0.0625rem solid ${isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+                  border: `0.0625rem solid ${isError ? INVALID_COLOR : isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
                   background: isChecked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
                   display: 'flex',
                   alignItems: 'center',

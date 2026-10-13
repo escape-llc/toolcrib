@@ -17,6 +17,7 @@ import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
 import { InputThemeSlice, type InputSliceState } from './InputSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -601,7 +602,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   const isUncontrolled = externalValue === undefined && !isFormBound;
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
   const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
-  const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
+  const isError = useFieldInvalid(name, props['aria-invalid']);
   // Not `!!value` -- a numeric controlled value of exactly 0 (a real,
   // valid input.type="number" value) is falsy but not empty; the clear
   // button must still show for it.
@@ -676,7 +677,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
     borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
     borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
   };
-  const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`;
+  const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`;
   const basePadding = resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)');
 
   const inputElement = (
@@ -901,16 +902,19 @@ export interface CheckboxProps {
   squareCorners?: SquareCornerOption;
   /** Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too. @default false */
   disabled?: boolean;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
 }
 
 /**
  * @manifest Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element
  * @manifestCategory Form Controls
  */
-export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp }, ref) => {
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
+  const isError = useFieldInvalid(name, ariaInvalid);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
@@ -949,6 +953,8 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
         id={name || undefined}
         checked={checked}
         disabled={disabled}
+        aria-invalid={isError || undefined}
+        aria-describedby={isError && name ? `${name}-error` : undefined}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -964,7 +970,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
           borderTopRightRadius: 'var(--ai-radius-sm, 0.25rem)',
           borderBottomLeftRadius: 'var(--ai-radius-sm, 0.25rem)',
           borderBottomRightRadius: 'var(--ai-radius-sm, 0.25rem)',
-          border: `0.0625rem solid ${checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+          border: `0.0625rem solid ${isError ? INVALID_COLOR : checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
           display: 'flex',
           alignItems: 'center',
@@ -1012,16 +1018,19 @@ export interface SwitchProps {
   squareCorners?: SquareCornerOption;
   /** Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too. @default false */
   disabled?: boolean;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
 }
 
 /**
  * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element
  * @manifestCategory Form Controls
  */
-export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp }, ref) => {
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
+  const isError = useFieldInvalid(name, ariaInvalid);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
@@ -1064,6 +1073,8 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
         id={name || undefined}
         checked={checked}
         disabled={disabled}
+        aria-invalid={isError || undefined}
+        aria-describedby={isError && name ? `${name}-error` : undefined}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -1081,6 +1092,9 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
           borderBottomRightRadius: 'var(--ai-radius-lg, 0.625rem)',
           background: checked ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)',
           position: 'relative',
+          // An error ring, not a border: the track has none, and the focus
+          // indicator owns `outline`.
+          boxShadow: isError ? `0 0 0 0.125rem ${INVALID_COLOR}` : undefined,
           // No inline transition -- .ai-focus-ring's own shared rule
           // (interactionStyles.ts) already covers background-color and is
           // !important, so this (like the `all: 'unset'` above) would be
@@ -1159,7 +1173,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
   const isFormBound = !!(name && formContext);
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
   const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
-  const isError = name && formContext ? formContext.touched[name] && !!formContext.errors[name] : false;
+  const isError = useFieldInvalid(name, props['aria-invalid']);
 
   const disabled = useFieldsetDisabled(props.disabled);
 
@@ -1188,7 +1202,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
         width: '100%',
         padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
-        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: CONTROL_FONT_SIZE_VAR[size],

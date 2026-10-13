@@ -13,6 +13,7 @@ import { focusRingClassName } from './focusRing';
 import { Time } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
@@ -64,6 +65,8 @@ export interface TimeFieldProps {
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set. */
   'aria-labelledby'?: string;
+  /** Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
 }
@@ -87,12 +90,14 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  'aria-invalid': ariaInvalid,
   squareCorners,
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
@@ -134,6 +139,8 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         granularity={granularity}
         hourCycle={hourCycle}
         isDisabled={isDisabled}
+        isInvalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}
       >
@@ -148,7 +155,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
           style={{
             display: 'flex',
             padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-            border: `0.0625rem solid var(--ai-border, #d1d5db)`,
+            border: `0.0625rem solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
             borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
             borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
