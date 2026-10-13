@@ -201,6 +201,13 @@ describe('shellSafeArgs (the cmd.exe fallback)', () => {
     expect(shellSafeArgs(['apply', 'C:/a&b c/x.patch'])).toEqual(['"apply"', '"C:/a&b c/x.patch"']);
   });
 
+  it('doubles a trailing backslash so it cannot escape the closing quote', () => {
+    expect(shellSafeArgs(['C:/a/b/'])[0]).toBe('"C:/a/b/"');
+    const one = '\\';
+    expect(shellSafeArgs([`C:${one}dir${one}`])[0]).toBe(`"C:${one}dir${one}${one}"`);
+    expect(shellSafeArgs([`C:${one}dir${one}${one}`])[0]).toBe(`"C:${one}dir${one}${one}${one}${one}"`);
+  });
+
   it('refuses an argument cmd.exe would still expand or break out of the quotes with', () => {
     expect(() => shellSafeArgs(['a"b'])).toThrow(/Refusing/);
     expect(() => shellSafeArgs(['%PATH%'])).toThrow(/Refusing/);

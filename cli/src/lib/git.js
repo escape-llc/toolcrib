@@ -28,7 +28,9 @@ export function shellSafeArgs(args) {
       throw new Error(`Refusing to pass an argument containing a quote, %, or newline through cmd.exe: ${a}`);
     }
   }
-  return args.map((a) => `"${a}"`);
+  // A run of backslashes right before the closing quote would escape it
+  // under Windows argument parsing, so a trailing run is doubled.
+  return args.map((a) => `"${a.replace(/(\\+)$/, '$1$1')}"`);
 }
 
 /** Quick, buffered checks — output isn't meant for the user, just a yes/no/value. */
