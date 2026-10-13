@@ -140,6 +140,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         hourCycle={hourCycle}
         isDisabled={isDisabled}
         isInvalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}
       >

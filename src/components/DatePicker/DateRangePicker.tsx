@@ -174,6 +174,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         maxValue={maxValue}
         isDisabled={isDisabled}
         isInvalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         shouldCloseOnSelect={false}
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={!label ? ariaLabelledBy : undefined}

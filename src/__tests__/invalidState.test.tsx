@@ -63,3 +63,26 @@ describe('invalid state on every Form control', () => {
     });
   }
 });
+
+describe('error message linkage', () => {
+  for (const [name, make] of Object.entries({ DatePicker: CONTROLS.DatePicker, DateRangePicker: CONTROLS.DateRangePicker, TimeField: CONTROLS.TimeField, CheckboxGroup: CONTROLS.CheckboxGroup })) {
+    it(`${name} points aria-describedby at its FormField's error once invalid, and never at a nameless id`, async () => {
+      const { container } = render(
+        <Form schema={failing} initialValues={{ field: name === 'DatePicker' ? null : '' }}>
+          <FormField name="field">{make()}</FormField>
+          <SubmitButton>Go</SubmitButton>
+        </Form>,
+      );
+      fireEvent.click(screen.getByText('Go'));
+      await waitFor(() => expect(container.querySelector('[aria-describedby~="field-error"]')).not.toBeNull());
+      await act(async () => {});
+    });
+
+    it(`${name} forced invalid with no name has no dangling aria-describedby`, async () => {
+      const el = make();
+      const { container } = render(cloneElement(el, { 'aria-invalid': true }));
+      await act(async () => {});
+      expect(container.querySelector('[aria-describedby="-error"]')).toBeNull();
+    });
+  }
+});

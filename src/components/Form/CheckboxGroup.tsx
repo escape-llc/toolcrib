@@ -130,7 +130,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
       aria-labelledby={labelledBy}
       aria-label={!label ? ariaLabel : undefined}
       aria-invalid={isError || undefined}
-      aria-describedby={isError ? `${fieldName}-error` : undefined}
+      aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
       style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', ...toggleVars }}
     >
       {label && (
