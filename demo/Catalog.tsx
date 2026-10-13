@@ -488,15 +488,25 @@ function States({ name }: { name: string }) {
     <div key={name} data-catalog-states={name} style={DEMO_FRAME_STYLE}>
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">States</Text>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(18rem, 1fr))', gap: '1rem' }}>
-          {examples.map(({ state, node }) => (
-            <VStack key={state} gap="xs">
-              <Text size="xs" weight="semibold">{state}</Text>
-              {node}
-              <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
-            </VStack>
-          ))}
-        </div>
+        {/* The cards are reference chrome, so they sit in the same `info` style
+            domain as the page's other reference material (DocsPanel). The
+            control inside each one resets the domain: a state example has to
+            show the control as an app would render it, not tinted by the frame. */}
+        <StyleDomainProvider subtheme="info">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
+            {examples.map(({ state, node }) => (
+              <Card key={state} data-catalog-state-card={state}>
+                <Card.Header paddingMode="compact"><Text size="sm" weight="semibold">{state}</Text></Card.Header>
+                <Card.Content paddingMode="compact">
+                  <StyleDomainProvider>{node}</StyleDomainProvider>
+                </Card.Content>
+                <Card.Footer paddingMode="compact">
+                  <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
+                </Card.Footer>
+              </Card>
+            ))}
+          </div>
+        </StyleDomainProvider>
       </VStack>
     </div>
   );

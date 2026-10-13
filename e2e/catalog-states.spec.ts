@@ -52,6 +52,9 @@ test.describe('Catalog states taxonomy', () => {
       await gotoTab(page, 'Catalog', name);
       const cell = page.locator(`[data-catalog-states="${name}"] [data-demo-state="focused"]`);
       await expect(cell).toBeVisible();
+      // Give the cell room well past the field's own width, so the check does
+      // not depend on how wide the viewport lets the state cards grow.
+      await cell.evaluate(el => { el.style.width = '30rem'; });
       const ring = cell.locator('.ai-focus-ring').first();
       await expect(ring).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
       const cellBox = (await cell.boundingBox())!;
