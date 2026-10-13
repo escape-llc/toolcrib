@@ -215,6 +215,19 @@ export const defaultParameters: ThemeParameters & { shadowMode: ShadowMode } = {
 // `ToolcribSliceStateMap` (see sliceStateMap.ts), for the same reason.
 export const PARAMETER_DRIVEN_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow']);
 
+// `rootVariablesCSS` is meant to be rendered straight into a `<style>` tag
+// (often via `dangerouslySetInnerHTML`), so a variable whose value could
+// close the tag or the rule would be markup/CSS injection. The client path
+// is immune (`style.setProperty` goes through the CSSOM); this is the one
+// place theme values are concatenated into text. Every value toolcrib
+// generates is a plain token (colors, lengths, font stacks, shadows), so a
+// declaration with `<`, `>`, `{`, `}` or `;` in its value, or a name that
+// isn't a `--custom-property`, can only come from a hostile or corrupted
+// input (a saved per-user theme, say) and is dropped.
+function isSafeRootDeclaration(key: string, value: unknown): boolean {
+  return /^--[\w-]+$/.test(key) && typeof value === 'string' && !/[<>{};]/.test(value);
+}
+
 /**
  * The SSR-safe counterpart to `<ThemeProvider>`'s own client-only CSS
  * injection — a pure, DOM-free function computing the exact same CSS
@@ -293,6 +306,7 @@ export function computeServerThemeCSS(
   // own @media rules the moment the client's effects run.
   const rootDeclarations = Object.entries(cssVariables)
     .filter(([key]) => !responsiveVariableKeys.has(key))
+    .filter(([key, value]) => isSafeRootDeclaration(key, value))
     .map(([key, value]) => `  ${key}: ${value};`)
     .join('\n');
 
