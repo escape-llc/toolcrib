@@ -138,7 +138,7 @@ async function scanEveryTab(page: Page): Promise<string[]> {
       .exclude(BASE_UI_FOCUS_GUARD)
       .analyze();
     for (const violation of results.violations) {
-      const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
+      const targets = violation.nodes.map(n => `${n.target.join(' ')} [${n.any.map(c => c.message).join('; ')}]`).join(', ');
       failures.push(`[${tab}] ${violation.id} (${violation.impact}): ${violation.help} -- ${targets}`);
     }
   }
@@ -205,7 +205,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   const scanNamed = async (label: string, extraDisabledRules: string[] = []) => {
     const results = await runAxe(page, extraDisabledRules);
     for (const violation of results.violations) {
-      const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
+      const targets = violation.nodes.map(n => `${n.target.join(' ')} [${n.any.map(c => c.message).join('; ')}]`).join(', ');
       failures.push(`[${label}] ${violation.id} (${violation.impact}): ${violation.help} -- ${targets}`);
     }
   };
@@ -456,7 +456,7 @@ test('more surfaces a closed-state scan never sees (#830): viewer, toast, DataTa
   const scanNamed = async (label: string) => {
     const results = await runAxe(page);
     for (const violation of results.violations) {
-      const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
+      const targets = violation.nodes.map(n => `${n.target.join(' ')} [${n.any.map(c => c.message).join('; ')}]`).join(', ');
       failures.push(`[${label}] ${violation.id} (${violation.impact}): ${violation.help} -- ${targets}`);
     }
   };
