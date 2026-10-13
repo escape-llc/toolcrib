@@ -36,6 +36,10 @@ name: Screen Reader
 on:
   push:
     tags: ['v*']
+  # Also runnable by hand (`gh workflow run screen-reader.yml --ref <branch>`): it
+  # only ever ran on a release tag, so a stale test (#843, the demo's tabs had
+  # moved) was found by a failed release run instead of by whoever broke it.
+  workflow_dispatch:
 
 # Least-privilege default -- see ci.yml's identical comment. This workflow
 # only checks out the repo and runs tests.

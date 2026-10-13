@@ -17,7 +17,7 @@ test.use({ screenReaderStartOptions: { capture: true } });
 test('NVDA announces the Modal when it opens', async ({ page, screenReader }) => {
   await page.goto('/');
   await page.waitForSelector('h1');
-  await gotoTab(page, 'Overlays & Actions');
+  await gotoTab(page, 'Catalog', 'Modal');
   await page.bringToFront();
 
   // capture() wraps an arbitrary Playwright-driven action and returns the
