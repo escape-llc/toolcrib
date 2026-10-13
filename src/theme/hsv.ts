@@ -396,3 +396,99 @@ export function ensureWCAGContrast(
   return normalizeHSV({ ...normFg, v });
 }
 
+
+/**
+ * The color a browser actually paints for `hsvToCSS(hsv)`: `hsvToCSS` rounds
+ * hue, HSL saturation and HSL lightness to whole numbers, so the rendered
+ * color can differ from `hsv` by up to half a percent in lightness. That is
+ * enough to turn a color `ensureWCAGContrast` placed at exactly 4.5:1 into a
+ * 4.42:1 one on screen (found by axe-core 4.14 reading real pixels).
+ */
+export function quantizeToCSS(hsv: HSVColor): HSVColor {
+  const norm = normalizeHSV(hsv);
+  const sHsv = norm.s / 100;
+  const vHsv = norm.v / 100;
+  const l = Math.round(vHsv * (1 - sHsv / 2) * 100) / 100;
+  const sHslRaw = l > 0 && l < 1 ? (vHsv - vHsv * (1 - sHsv / 2)) / Math.min(vHsv * (1 - sHsv / 2), 1 - vHsv * (1 - sHsv / 2)) : 0;
+  const sHsl = Math.round(sHslRaw * 100) / 100;
+  const v = l + sHsl * Math.min(l, 1 - l);
+  const s = v === 0 ? 0 : 2 * (1 - l / v);
+  return normalizeHSV({ h: Math.round(norm.h), s: s * 100, v: v * 100 });
+}
+
+/** WCAG relative luminance of the color as painted: CSS-rounded, then each channel rounded to 8 bits. */
+function getRenderedLuminance(hsv: HSVColor): number {
+  const [r, g, b] = hsvToRGB01(quantizeToCSS(hsv)).map((ch) => Math.round(ch * 255) / 255);
+  const linearize = (ch: number) => (ch <= 0.03928 ? ch / 12.92 : Math.pow((ch + 0.055) / 1.055, 2.4));
+  return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+}
+
+/** Contrast between two colors as they will actually render (see {@link quantizeToCSS}). */
+export function getRenderedContrastRatio(fg: HSVColor, bg: HSVColor): number {
+  const a = getRenderedLuminance(fg);
+  const b = getRenderedLuminance(bg);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/**
+ * {@link ensureWCAGContrast}, but the guarantee holds for the colors as
+ * rendered through `hsvToCSS`, not just in exact HSV, and for one OR SEVERAL
+ * backgrounds at once (a text color that sits on both a plain surface and a
+ * tinted one). Raises the internal target in small steps until the rounded
+ * colors clear `minRatio` against every background. One pass over all
+ * backgrounds, not one pass per background: rendered contrast is not
+ * monotonic (whole-percent rounding can lose a hair when a color moves
+ * further away), so satisfying them in sequence can undo the earlier one. As
+ * with `ensureWCAGContrast`, an unreachable ratio converges to the best
+ * achievable extreme.
+ */
+export function ensureRenderedWCAGContrast(
+  fg: HSVColor,
+  bg: HSVColor | HSVColor[],
+  minRatio: number = 4.5,
+  isDarkBg: boolean = false
+): HSVColor {
+  const bgs = Array.isArray(bg) ? bg : [bg];
+  const meetsAll = (candidate: HSVColor) => bgs.every((b) => getRenderedContrastRatio(candidate, b) >= minRatio);
+  // The exact-HSV solution for each background; the one furthest from the
+  // backgrounds' side (lightest on a dark theme, darkest on a light one)
+  // satisfies all of them.
+  const solve = (target: number): HSVColor => {
+    const solutions = bgs.map((b) => ensureWCAGContrast(fg, b, target, isDarkBg));
+    return solutions.reduce((best, cur) =>
+      (getHSVLuminance(cur) > getHSVLuminance(best)) === isDarkBg ? cur : best
+    );
+  };
+  let target = minRatio;
+  let candidate = solve(target);
+  for (let i = 0; i < 80 && !meetsAll(candidate); i++) {
+    target += 0.02;
+    candidate = solve(target);
+  }
+  return candidate;
+}
+
+/**
+ * `color-mix(in srgb, <a> <percentA>%, <b>)` for two HSV colors, returned as
+ * HSV. Used to predict the exact tinted backgrounds the components paint
+ * (e.g. a soft Badge: 12% of the identity color over the surface), so text
+ * contrast can be verified against that tint and not only against the plain
+ * surfaces. Mixes the gamma-encoded sRGB channels linearly, as CSS does.
+ */
+export function mixHSVInSRGB(a: HSVColor, b: HSVColor, percentA: number): HSVColor {
+  const t = Math.max(0, Math.min(100, percentA)) / 100;
+  const ca = hsvToRGB01(a);
+  const cb = hsvToRGB01(b);
+  const [r, g, bl] = [0, 1, 2].map((i) => ca[i] * t + cb[i] * (1 - t));
+  const max = Math.max(r, g, bl);
+  const min = Math.min(r, g, bl);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - bl) / d) % 6;
+    else if (max === g) h = (bl - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return normalizeHSV({ h, s: max === 0 ? 0 : (d / max) * 100, v: max * 100 });
+}

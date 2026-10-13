@@ -110,6 +110,21 @@ describe('Carousel', () => {
     expect(slideEl('Slide 1').inert).toBe(false);
   });
 
+  it('pairs every slide-picker tab with the slide (tabpanel) it controls, per the WAI-ARIA carousel pattern', async () => {
+    render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+    const tabs = screen.getAllByRole('tab');
+    tabs.forEach((tab, i) => {
+      const panelId = tab.getAttribute('aria-controls');
+      expect(panelId).toBeTruthy();
+      const panel = document.getElementById(panelId!)!;
+      expect(panel).toHaveAttribute('role', 'tabpanel');
+      expect(panel).toHaveAttribute('aria-roledescription', 'slide');
+      expect(panel).toHaveAttribute('aria-labelledby', tab.id);
+      expect(panel).toHaveTextContent(`Slide ${i + 1}`);
+    });
+  });
+
   it('pauses autoplay while the pointer is over the carousel, and resumes on leave', async () => {
     vi.useFakeTimers();
     try {

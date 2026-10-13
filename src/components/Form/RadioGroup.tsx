@@ -220,7 +220,6 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
         alignItems: 'flex-start',
         gap: '0.625rem',
         cursor: isDisabled ? 'not-allowed' : 'pointer',
-        opacity: isDisabled ? 0.6 : 1,
         userSelect: 'none',
       }}
     >
@@ -248,6 +247,9 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
           flexShrink: 0,
           boxSizing: 'border-box',
           cursor: isDisabled ? 'not-allowed' : 'pointer',
+          // Dimmed with the label below, not the whole <label>: the helper
+          // text keeps full strength so it keeps its contrast (WCAG 1.4.3).
+          opacity: isDisabled ? 0.6 : 1,
         }}
       >
         <Radio.Indicator
@@ -276,6 +278,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
             fontSize: CONTROL_FONT_SIZE_VAR[ctx.size],
             fontWeight: isChecked ? 'var(--ai-font-weight-semibold, 600)' : 'var(--ai-font-weight-normal, 400)',
             color: 'var(--ai-text-primary, #111827)',
+            opacity: isDisabled ? 0.6 : 1,
           }}
         >
           {label}

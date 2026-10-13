@@ -5,7 +5,8 @@ import {
   adjustSaturation,
   applyDarkenLighten,
   hsvToCSS,
-  ensureWCAGContrast,
+  ensureRenderedWCAGContrast,
+  mixHSVInSRGB,
   pickReadableTextColor,
 } from './hsv';
 
@@ -119,7 +120,7 @@ function generateMonochromaticSubTheme(
 
   // Monochromatic main shade
   const rawMain: HSVColor = normalizeHSV({ h: anchorHue, s: carriedS, v: carriedV });
-  const main = ensureWCAGContrast(rawMain, bgSurface, 3.0, isDarkMode);
+  const main = ensureRenderedWCAGContrast(rawMain, bgSurface, 3.0, isDarkMode);
   // Readable text/icon color for content filled directly on top of `main`
   // (e.g. a solid badge) — not run through ensureWCAGContrast, since that
   // preserves anchorHue while nudging V/S, which is the wrong tool for
@@ -130,12 +131,17 @@ function generateMonochromaticSubTheme(
   const rawText: HSVColor = isDarkMode
     ? normalizeHSV({ h: anchorHue, s: Math.max(10, carriedS * 0.3), v: 95 })
     : normalizeHSV({ h: anchorHue, s: Math.min(100, carriedS * 1.25), v: 25 });
-  const text = ensureWCAGContrast(rawText, bgSurface, 4.5, isDarkMode);
 
   // Background tint container shade
   const bg: HSVColor = isDarkMode
     ? normalizeHSV({ h: anchorHue, s: Math.min(40, carriedS * 0.4), v: 18 })
     : normalizeHSV({ h: anchorHue, s: Math.min(25, carriedS * 0.25), v: 96 });
+
+  // The text shade is checked against `bg` -- the surface it actually sits on
+  // in a subtheme, and the lower-contrast of the two (it is darker than
+  // bgSurface in light mode, lighter in dark mode) -- not just bgSurface, and
+  // against the colors as rendered (see ensureRenderedWCAGContrast).
+  const text = ensureRenderedWCAGContrast(rawText, bg, 4.5, isDarkMode);
 
   // Border shade
   const border: HSVColor = isDarkMode
@@ -255,7 +261,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     // light mode -- short of WCAG AA's 4.5:1 for normal text, even though it
     // passed comfortably against the other two surfaces. This was previously
     // the one palette role not routed through ensureWCAGContrast at all.
-    textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 10, v: 72 }), bgContainer, 4.5, isDarkMode);
+    textSecondary = ensureRenderedWCAGContrast(normalizeHSV({ h: base.h, s: 10, v: 72 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 25, v: 22 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(80, primary.s), v: Math.min(100, primary.v * 1.1) });
     scrollbarThumb = normalizeHSV({ h: base.h, s: 20, v: 35 });
@@ -265,7 +271,7 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
     bgContainer = normalizeHSV({ h: base.h, s: 8, v: 94 });
 
     textPrimary = normalizeHSV({ h: base.h, s: 20, v: 12 });
-    textSecondary = ensureWCAGContrast(normalizeHSV({ h: base.h, s: 15, v: 45 }), bgContainer, 4.5, isDarkMode);
+    textSecondary = ensureRenderedWCAGContrast(normalizeHSV({ h: base.h, s: 15, v: 45 }), bgContainer, 4.5, isDarkMode);
     border = normalizeHSV({ h: base.h, s: 12, v: 85 });
     focusRing = normalizeHSV({ h: primary.h, s: Math.max(60, primary.s), v: Math.max(50, primary.v) });
     scrollbarThumb = normalizeHSV({ h: base.h, s: 15, v: 70 });
@@ -274,8 +280,15 @@ export function generateHarmonyPalette(params: ThemeParameters): GeneratedPalett
   // See primaryReadable's own doc comment on GeneratedPalette -- computed
   // here (not alongside primaryText above) because it needs bgSurface,
   // which isn't resolved yet at that point.
-  const primaryReadable = ensureWCAGContrast(primary, bgSurface, 4.5, isDarkMode);
-  const secondaryReadable = ensureWCAGContrast(secondary, bgSurface, 4.5, isDarkMode);
+  // Checked against two backgrounds: the plain container surface, and the
+  // soft tint colorVariant.ts paints (12% of the identity color mixed into
+  // the surface), which in dark mode is lighter than the container and so
+  // the harder case. Solved against both in one pass (see
+  // ensureRenderedWCAGContrast on why not one after the other).
+  const readableOn = (color: HSVColor) =>
+    ensureRenderedWCAGContrast(color, [bgContainer, mixHSVInSRGB(color, bgSurface, 12)], 4.5, isDarkMode);
+  const primaryReadable = readableOn(primary);
+  const secondaryReadable = readableOn(secondary);
 
   // Monochromatic Subthemes carrying base SV axes with WCAG compliance
   const subThemes = {

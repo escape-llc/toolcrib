@@ -87,6 +87,31 @@ export interface ToolcribLocaleStrings {
   toast: {
     dismissToast: string;
   };
+  rating: {
+    /** Accessible name of the radio group when no `aria-label` is given. */
+    label: string;
+    /** Accessible name of one star's radio. */
+    starCount: (position: number) => string;
+    /** Accessible name of the read-only display: "3.5 out of 5 stars". */
+    outOf: (value: number, max: number) => string;
+  };
+  drawer: {
+    /** Header title when the `title` prop is omitted. */
+    defaultTitle: string;
+    closeDrawer: string;
+  };
+  commandPalette: {
+    /** Accessible name of the dialog and of its search field. */
+    label: string;
+    /** Accessible name of the scrollable results region. */
+    results: string;
+    /** Accessible name of the command list. */
+    commands: string;
+    /** Search field placeholder when the `placeholder` prop is omitted. */
+    placeholder: string;
+    /** Empty-state text when the `emptyMessage` prop is omitted. */
+    noResults: string;
+  };
   combobox: {
     clearSelection: string;
     removeItem: (label: string) => string;
@@ -195,6 +220,22 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   },
   toast: {
     dismissToast: 'Dismiss toast',
+  },
+  rating: {
+    label: 'Rating',
+    starCount: (position) => `${position} star${position === 1 ? '' : 's'}`,
+    outOf: (value, max) => `${value} out of ${max} stars`,
+  },
+  drawer: {
+    defaultTitle: 'Drawer Panel',
+    closeDrawer: 'Close',
+  },
+  commandPalette: {
+    label: 'Command palette',
+    results: 'Results',
+    commands: 'Commands',
+    placeholder: 'Type a command or search...',
+    noResults: 'No results found.',
   },
   combobox: {
     clearSelection: 'Clear selection',

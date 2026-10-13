@@ -203,6 +203,20 @@ describe('Toast Subsystem Event Generation', () => {
   // on the rendered node's own inline style, which is what a jsdom test can
   // actually observe (jsdom doesn't compute real inherited pointer-events
   // the way a browser's hit-testing does).
+  it('never hides the dismiss button from assistive tech while it stays focusable (#830: axe aria-hidden-focus)', async () => {
+    render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+    fireEvent.click(screen.getByText('Trigger Toast'));
+    const close = await screen.findByLabelText('Dismiss toast');
+    // Base UI sets aria-hidden="true" here while the stack is collapsed and
+    // unfocused, yet leaves the button tabbable.
+    expect(close.getAttribute('aria-hidden')).not.toBe('true');
+    expect(close.closest('[aria-hidden="true"]')).toBeNull();
+  });
+
   it('sets pointerEvents: auto directly on the toast root, not on a wrapper the portal bypasses', async () => {
     render(
       <ToastProvider>

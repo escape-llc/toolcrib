@@ -289,6 +289,14 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
             </BaseToast.Description>
           </div>
           <BaseToast.Close
+            // Base UI sets aria-hidden on this button while the toast stack is
+            // collapsed (not hovered, not focused), but leaves it in the Tab
+            // order: a focusable control hidden from assistive tech (axe
+            // aria-hidden-focus). It is a real control a keyboard or
+            // screen-reader user needs, so it is always exposed. An explicit
+            // "false", not undefined: undefined would erase Base UI's own value
+            // only by accident of merge order.
+            aria-hidden={false}
             aria-label={strings.dismissToast}
             onClick={() => actions.dismissToast(item.id, 'user')}
             className="ai-btn"
