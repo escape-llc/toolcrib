@@ -8,7 +8,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 // wrong, which is why this stays on a library primitive.
 import { OTPField as BaseOTPField } from '@base-ui/react/otp-field';
 import { useOptionalFormContext } from '../Form/FormContext';
-import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -148,7 +148,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
               fontVariantNumeric: 'tabular-nums',
               color: 'var(--ai-text-primary, #111827)',
               background: disabled ? 'var(--ai-bg-container, #f3f4f6)' : 'var(--ai-bg-surface, #ffffff)',
-              border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+              border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
               borderRadius: 'var(--ai-radius-md, 0.375rem)',
             }}
           />

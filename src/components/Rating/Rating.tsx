@@ -8,7 +8,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from '../Form/FieldContext';
-import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
 /** Props for the `<Rating>` star control. */
@@ -157,7 +157,7 @@ export const Rating: React.FC<RatingProps> = ({
               all: 'unset',
               ...iconStyle,
               cursor: 'pointer',
-              color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)',
+              color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)',
               // No inline transition -- .ai-focus-ring's own shared rule
               // (interactionStyles.ts) already covers color and is
               // !important, so this (like the `all: 'unset'` above) would

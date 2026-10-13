@@ -677,7 +677,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
     borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? currentRadius,
     borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? currentRadius,
   };
-  const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`;
+  const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`;
   const basePadding = resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)');
 
   const inputElement = (
@@ -1202,7 +1202,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
         width: '100%',
         padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
         borderRadius: resolveRadius(cornerRadiusMode, 'md'),
-        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+        border: `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
         background: 'var(--ai-bg-surface, #ffffff)',
         color: 'var(--ai-text-primary, #111827)',
         fontSize: CONTROL_FONT_SIZE_VAR[size],

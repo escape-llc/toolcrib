@@ -14,7 +14,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
-import { useFieldInvalid } from './useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { Button } from './FormComponents';
 import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
@@ -306,7 +306,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           // persistent selected/checked identity color, so it reuses the
           // same accent role Splitter's own drag-handle just adopted for
           // the identical reason.
-          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-accent, #8b5cf6)' : isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-accent, #8b5cf6)' : isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
           background: isDragOver ? 'color-mix(in srgb, var(--ai-color-accent, #8b5cf6) 8%, transparent)' : 'var(--ai-bg-container, #f9fafb)',
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',

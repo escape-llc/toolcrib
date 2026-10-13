@@ -13,7 +13,7 @@ import { focusRingClassName } from './focusRing';
 import { Time } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
-import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
@@ -154,7 +154,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
           style={{
             display: 'flex',
             padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-            border: `0.0625rem solid ${isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
+            border: `0.0625rem solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
             borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
             borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
