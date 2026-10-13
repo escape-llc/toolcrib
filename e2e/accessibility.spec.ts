@@ -507,7 +507,8 @@ test('more surfaces a closed-state scan never sees (#830): viewer, toast, DataTa
   await scanNamed('Theme Designer save-theme popup');
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(300);
+  // The drawer closes on its own JS timer; its dialog leaving the DOM is the signal.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   expect(failures, `WCAG AA violations (more surfaces):\n${failures.join('\n')}`).toEqual([]);
 });
