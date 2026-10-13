@@ -216,7 +216,12 @@ export const Carousel: React.FC<CarouselProps> = ({
                       'aria-roledescription': 'slide',
                       'aria-labelledby': tabId(slideIndex),
                     }
-                  : {})}
+                  : {
+                      // Not 1:1 with the tabs: still a slide, just not a tabpanel.
+                      role: 'group',
+                      'aria-roledescription': 'slide',
+                      'aria-label': strings.currentSlide(slideIndex + 1, slides.length),
+                    })}
                 style={{ flex: '0 0 100%', minWidth: 0 }}
               >
                 {slide.content}
