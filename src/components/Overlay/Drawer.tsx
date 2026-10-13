@@ -13,6 +13,7 @@ import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
 
 const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
@@ -82,6 +83,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   zIndex: zIndexProp,
 }) => {
   const id = useStableId(propId, 'drawer');
+  const strings = useLocaleStrings().drawer;
   const { container, zIndex } = useOverlayLayer('DRAWER', zIndexProp);
   useOverlayAnimations('toolcrib-drawer-animations', DRAWER_ANIMATIONS);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -175,10 +177,10 @@ export const Drawer: React.FC<DrawerProps> = ({
               <BaseDialog.Title
                 style={{ margin: 0, fontWeight: 'var(--ai-font-weight-bold, 700)', fontSize: '1.125rem', color: 'var(--ai-text-primary, #111827)' }}
               >
-                {title || 'Drawer Panel'}
+                {title || strings.defaultTitle}
               </BaseDialog.Title>
               <BaseDialog.Close
-                aria-label="Close"
+                aria-label={strings.closeDrawer}
                 className="ai-btn"
                 style={{
                   background: 'transparent',

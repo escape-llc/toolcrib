@@ -167,6 +167,11 @@ export const Carousel: React.FC<CarouselProps> = ({
     [emblaApi, loop, scrollSnaps.length]
   );
 
+  // Tabs and slides pair 1:1 only when Embla reports one snap point per slide.
+  const paired = scrollSnaps.length > 1 && scrollSnaps.length === slides.length;
+  const tabId = (index: number) => `${id}-tab-${index}`;
+  const panelId = (index: number) => `${id}-slide-${index}`;
+
   return (
     <div
       style={{ position: 'relative', width: '100%', ...vars }}
@@ -200,6 +205,23 @@ export const Carousel: React.FC<CarouselProps> = ({
                   if (el) (el as HTMLElement & { inert: boolean }).inert = offscreen;
                 }}
                 aria-hidden={offscreen ? true : undefined}
+                // The WAI-ARIA carousel pattern: with slide-picker tabs, each
+                // slide is the tabpanel its tab controls. Only when there is
+                // one tab per slide (a multi-slide-per-view layout has fewer
+                // snap points than slides, so the pairing would not be 1:1).
+                {...(paired
+                  ? {
+                      role: 'tabpanel',
+                      id: panelId(slideIndex),
+                      'aria-roledescription': 'slide',
+                      'aria-labelledby': tabId(slideIndex),
+                    }
+                  : {
+                      // Not 1:1 with the tabs: still a slide, just not a tabpanel.
+                      role: 'group',
+                      'aria-roledescription': 'slide',
+                      'aria-label': strings.currentSlide(slideIndex + 1, slides.length),
+                    })}
                 style={{ flex: '0 0 100%', minWidth: 0 }}
               >
                 {slide.content}
@@ -288,6 +310,8 @@ export const Carousel: React.FC<CarouselProps> = ({
               }}
               type="button"
               role="tab"
+              id={tabId(index)}
+              {...(paired ? { 'aria-controls': panelId(index) } : {})}
               tabIndex={index === selectedIndex ? 0 : -1}
               aria-selected={index === selectedIndex}
               aria-label={strings.goToSlide(index + 1)}

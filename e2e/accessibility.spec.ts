@@ -18,37 +18,18 @@ import { gotoTab, loadDemoTableData, demoPages } from './nav';
 // given toolcrib's palette is *generated* (harmonies.ts) with contrast
 // enforcement baked into the algorithm.
 //
-// COLOR_CONTRAST_DISABLED (below) is the one deliberate carve-out. This
-// version of axe-core (4.13.0, the latest published as of 2026-08-24)
-// intermittently misreads a themed element's computed `background-color` in
-// this Chromium build: for a CSS-custom-property-driven color, Chromium
-// sometimes serializes the computed value as `oklab(...)` or
-// `color(srgb ...)` instead of `rgb()`, and axe's contrast checker doesn't
-// parse that format, reporting a false failure regardless of the real
-// ratio. Confirmed, not assumed: `getComputedStyle(el).backgroundColor`
-// read directly (bypassing axe) on one of the flagged elements came back as
-// `oklab(0.970117 -0.00241848 -0.0138685)`; hand-computing the actual
-// contrast ratio via the WCAG relative-luminance formula against that same
-// background measured 5-6:1 for every element axe flagged in this category,
-// comfortably clearing the 4.5:1 AA floor. The underlying text-color bugs
-// this investigation actually found along the way (TabStrip's active-tab
-// label, Badge/Toast's "soft"-appearance text, a couple of demo-only spans
-// all using a raw, non-contrast-checked hue as text on a near-white
-// surface) were real and are fixed at the source -- see
-// harmonies.ts's `primaryReadable`/`secondaryReadable` fields and their
-// call sites in TabSlice.tsx/colorVariant.ts. What's disabled here is
-// specifically axe's own inability to verify contrast automatically in
-// this environment, not the underlying WCAG requirement -- re-enable this
-// rule (delete the `.disableRules` call below) the next time axe-core
-// publishes a version and confirm the false positives are actually gone
-// before trusting it again, rather than assuming a bump alone fixes it.
-
-// See this file's own header comment for the full investigation --
-// axe-core 4.13.0 can't reliably read a computed `background-color` that
-// Chromium serializes as `oklab(...)`/`color(srgb ...)` rather than
-// `rgb()`, which produces false color-contrast failures independent of the
-// real ratio (verified by hand against the WCAG formula).
-const COLOR_CONTRAST_DISABLED = ['color-contrast'];
+// color-contrast is ON. It used to be disabled rule-wide: axe-core 4.13 could not
+// parse the `oklab(...)`/`color(srgb ...)` computed values Chromium produces for
+// `color-mix()` and relative-color CSS, and reported false failures. axe-core
+// 4.14 reads them correctly (pinned via package.json "overrides" so
+// @axe-core/playwright cannot bring its own older copy), and turning the rule
+// back on immediately found real defects: the palette's text colors were
+// placed exactly on the 4.5:1 boundary in exact HSV, then rounded by
+// hsvToCSS and by the browser's 8-bit channels to 4.42:1 on screen, and
+// primaryReadable was only checked against the lightest surface. Both fixed
+// in hsv.ts/harmonies.ts (ensureRenderedWCAGContrast). Color-contrast
+// reads the current pixels, so every scan first waits for finite animations
+// to finish (settleAnimations below).
 
 // Base UI's focus guards (#670, #692): a trapped overlay renders sentinel
 // <span>s with aria-hidden="true" and tabindex="0", and redirects focus the
@@ -60,6 +41,34 @@ const COLOR_CONTRAST_DISABLED = ['color-contrast'];
 // this carve-out: it proves Tab never settles on a guard or any hidden
 // element, which axe's static reading can't observe.
 const BASE_UI_FOCUS_GUARD = '[data-base-ui-focus-guard]';
+
+/**
+ * Waits for every finite animation and transition on the page to finish
+ * (the real completion signal, not a sleep), after letting the browser start
+ * the ones a just-made change has queued (see the two-frame wait below). color-contrast reads the
+ * pixels' current colors, so an overlay still fading in (opacity ramping
+ * 0 to 1) or a color mid-transition measures as a contrast failure that
+ * isn't real. Infinite animations (spinners, shimmer) are skipped: they
+ * never finish.
+ */
+async function settleAnimations(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    // Two frames first: a transition (e.g. an overlay's fade-in from
+    // Base UI's starting style) only exists as an Animation object once the
+    // browser has run a style recalc after the state change. Asked
+    // immediately after a click, getAnimations() is still empty, "nothing to
+    // wait for" is the wrong answer, and the scan lands mid-fade. WebKit on
+    // a loaded CI runner showed it every time.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const finite = () =>
+      document
+        .getAnimations()
+        .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity && a.playState !== 'finished');
+    for (let i = 0; i < 5 && finite().length > 0; i++) {
+      await Promise.all(finite().map(a => a.finished.catch(() => undefined)));
+    }
+  });
+}
 
 /**
  * Scans every page of the demo (demoPages: Overview, the Catalog index
@@ -81,8 +90,9 @@ async function scanEveryTab(page: Page): Promise<string[]> {
     // table stopped loading its data on mount.
     if (tab === 'DataTable') await loadDemoTableData(page);
     // Lets the panel's own entrance transition finish first -- same
-    // reasoning as interactive-sweep.spec.ts's identical wait.
-    await page.waitForTimeout(300);
+    // reasoning as interactive-sweep.spec.ts's identical wait, but on the
+    // real completion signal instead of a fixed sleep.
+    await settleAnimations(page);
     // gotoTab's own click leaves the real mouse cursor sitting on top of
     // whatever it just clicked, putting that element in a genuine :hover
     // state for the scan that follows -- not a scenario worth testing
@@ -95,6 +105,7 @@ async function scanEveryTab(page: Page): Promise<string[]> {
     // 4.5:1 by hand. Moving the mouse off any element first avoids the
     // :hover rule entirely, and matches what a real page load looks like.
     await page.mouse.move(0, 0);
+    await settleAnimations(page);
 
     // .exclude('iframe') -- the Wireframe Gallery tab's tiles each render
     // via a real <iframe srcDoc="...">/portaled-live-iframe (demo/App.tsx's
@@ -123,7 +134,6 @@ async function scanEveryTab(page: Page): Promise<string[]> {
     // rather than assumed permanent.
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(COLOR_CONTRAST_DISABLED)
       .exclude('iframe')
       .exclude(BASE_UI_FOCUS_GUARD)
       .analyze();
@@ -160,9 +170,10 @@ test('every tab has zero automatable WCAG 2.1 AA violations in light mode', asyn
 });
 
 async function runAxe(page: Page, extraDisabledRules: string[] = []) {
+  await settleAnimations(page);
   return new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-    .disableRules([...COLOR_CONTRAST_DISABLED, ...extraDisabledRules])
+    .disableRules(extraDisabledRules)
     .exclude(BASE_UI_FOCUS_GUARD)
     .analyze();
 }
@@ -434,4 +445,78 @@ test('every tab has zero automatable WCAG 2.1 AA violations in dark mode', async
 
   const failures = await scanEveryTab(page);
   expect(failures, `WCAG AA violations (dark mode):\n${failures.join('\n')}`).toEqual([]);
+});
+
+test('more surfaces a closed-state scan never sees (#830): viewer, toast, DataTable popups and editing, Catalog collapsers, ThemeEditor popups, collapsed sidebar, other modes', async ({ page }) => {
+  // Same shape as the overlay test above: one surface open at a time,
+  // scanned, then closed, so a failure names the surface it came from.
+  test.setTimeout(180_000);
+  await page.goto('/');
+  const failures: string[] = [];
+  const scanNamed = async (label: string) => {
+    const results = await runAxe(page);
+    for (const violation of results.violations) {
+      const targets = violation.nodes.map(n => n.target.join(' ')).join(', ');
+      failures.push(`[${label}] ${violation.id} (${violation.impact}): ${violation.help} -- ${targets}`);
+    }
+  };
+
+  // Gallery -> Viewer: a fullscreen Modal with its own zoom/prev/next chrome.
+  await gotoTab(page, 'Catalog', 'Gallery');
+  await page.getByRole('button', { name: /^(?!.*(Show|Hide)).*/ }).filter({ has: page.locator('img, [role="img"]') }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Media viewer' })).toBeVisible();
+  await scanNamed('Gallery Viewer (open)');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Media viewer' })).not.toBeAttached();
+
+  // A visible toast: the group, the live regions and the dismiss control.
+  await gotoTab(page, 'Catalog', 'CardSimple');
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await expect(page.getByTestId('toast-item').getByText('Refreshed!')).toBeVisible();
+  await scanNamed('Toast (visible)');
+
+  // DataTable: the Columns menu, then a row in edit mode (the edit co-grid).
+  await gotoTab(page, 'Catalog', 'DataTable');
+  await loadDemoTableData(page);
+  await page.getByRole('button', { name: 'Columns' }).click();
+  await scanNamed('DataTable Columns menu');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Edit', exact: true }).first().click();
+  await scanNamed('DataTable edit co-grid (row in edit mode)');
+  await page.getByRole('button', { name: 'Cancel' }).first().click();
+
+  // Catalog spec-sheet collapsers, each closed on every swept page.
+  await gotoTab(page, 'Catalog', 'Card');
+  for (const name of [/^Props/, /^Slots/, /^Blueprint/]) {
+    const trigger = page.getByRole('button', { name }).first();
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await scanNamed(`Catalog collapser ${String(name)} (open)`);
+  }
+
+  // Sidebar in its icon-only collapsed state.
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
+  await scanNamed('Sidebar (collapsed)');
+  await page.getByRole('button', { name: 'Expand sidebar' }).click();
+
+  // Combobox multi-select after a chip has been removed (the chip row and
+  // its remove buttons change shape; only the default two chips were scanned).
+  await gotoTab(page, 'Catalog', 'Combobox');
+  await page.getByRole('button', { name: /^Remove /i }).first().click();
+  await scanNamed('Combobox multi-select (a chip removed)');
+
+  // The two popups inside the Theme Designer drawer.
+  await page.getByRole('button', { name: 'Open Theme Designer' }).click();
+  await page.getByRole('button', { name: 'Theme presets' }).click();
+  await scanNamed('Theme Designer preset popup');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save current theme' }).click();
+  await scanNamed('Theme Designer save-theme popup');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  // The drawer closes on its own JS timer; its dialog leaving the DOM is the signal.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  expect(failures, `WCAG AA violations (more surfaces):\n${failures.join('\n')}`).toEqual([]);
 });

@@ -110,6 +110,36 @@ describe('Carousel', () => {
     expect(slideEl('Slide 1').inert).toBe(false);
   });
 
+  it('pairs every slide-picker tab with the slide (tabpanel) it controls, per the WAI-ARIA carousel pattern', async () => {
+    render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+    const tabs = screen.getAllByRole('tab');
+    tabs.forEach((tab, i) => {
+      const panelId = tab.getAttribute('aria-controls');
+      expect(panelId).toBeTruthy();
+      const panel = document.getElementById(panelId!)!;
+      expect(panel).toHaveAttribute('role', 'tabpanel');
+      expect(panel).toHaveAttribute('aria-roledescription', 'slide');
+      expect(panel).toHaveAttribute('aria-labelledby', tab.id);
+      expect(panel).toHaveTextContent(`Slide ${i + 1}`);
+    });
+  });
+
+  it('keeps slide semantics (group + slide) when tabs and slides are not 1:1', async () => {
+    mocks.state.scrollSnaps = [0, 1]; // two snap points for three slides
+    try {
+      render(<Carousel slides={slides} />);
+      await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(2));
+      screen.getAllByRole('tab').forEach(tab => expect(tab).not.toHaveAttribute('aria-controls'));
+      const slide = screen.getByText('Slide 2').parentElement as HTMLElement;
+      expect(slide).toHaveAttribute('role', 'group');
+      expect(slide).toHaveAttribute('aria-roledescription', 'slide');
+      expect(slide).toHaveAttribute('aria-label', 'Slide 2 of 3');
+    } finally {
+      mocks.state.scrollSnaps = [0, 1, 2];
+    }
+  });
+
   it('pauses autoplay while the pointer is over the carousel, and resumes on leave', async () => {
     vi.useFakeTimers();
     try {

@@ -4,6 +4,7 @@ import React, { type ReactNode } from 'react';
 import { RadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
 import { aiBus } from '../../eventBus/eventBus';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
@@ -62,6 +63,7 @@ export const Rating: React.FC<RatingProps> = ({
   readOnly = false,
   overrides,
 }) => {
+  const strings = useLocaleStrings().rating;
   const [internalValue, setInternalValue] = React.useState(defaultValue);
   const isControlled = externalValue !== undefined;
   const value = isControlled ? externalValue : internalValue;
@@ -89,7 +91,7 @@ export const Rating: React.FC<RatingProps> = ({
     return (
       <div
         role="img"
-        aria-label={`${value} out of ${max} stars`}
+        aria-label={strings.outOf(value, max)}
         style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', ...ratingVars }}
       >
         {Array.from({ length: max }, (_, i) => {
@@ -129,7 +131,7 @@ export const Rating: React.FC<RatingProps> = ({
       value={String(value)}
       onValueChange={handleChange}
       className="ai-focus-ring"
-      aria-label={ariaLabel ?? 'Rating'}
+      aria-label={ariaLabel ?? strings.label}
       style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', outline: 'none', ...ratingVars }}
     >
       {Array.from({ length: max }, (_, i) => {
@@ -139,7 +141,7 @@ export const Rating: React.FC<RatingProps> = ({
           <Radio.Root
             key={position}
             value={String(position)}
-            aria-label={`${position} star${position === 1 ? '' : 's'}`}
+            aria-label={strings.starCount(position)}
             className="ai-focus-ring"
             style={{
               all: 'unset',

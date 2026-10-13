@@ -5,6 +5,7 @@ import { Autocomplete, Header, Input, Menu, MenuItem, MenuSection, TextField, us
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { type SubthemeName } from '../../theme/subtheme';
@@ -94,14 +95,17 @@ export interface CommandPaletteProps {
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   id: propId,
   items,
-  placeholder = 'Type a command or search...',
-  emptyMessage = 'No results found.',
+  placeholder: placeholderProp,
+  emptyMessage: emptyMessageProp,
   isOpen: externalIsOpen,
   onOpenChange,
   overrides,
   filter,
 }) => {
   const id = useStableId(propId, 'commandpalette');
+  const strings = useLocaleStrings().commandPalette;
+  const placeholder = placeholderProp ?? strings.placeholder;
+  const emptyMessage = emptyMessageProp ?? strings.noResults;
   const targetDocument = useTargetDocument();
   const { vars: paletteVars } = useSliceOverrides(CommandPaletteThemeSlice, overrides);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -202,7 +206,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
       width="37.5rem"
-      aria-label="Command palette"
+      aria-label={strings.label}
       align="top"
     >
       {/* react-aria's Autocomplete (#720, replacing cmdk): typing stays in the input while arrow keys move a
@@ -210,7 +214,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           item. The first result is highlighted after every change. */}
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, ...paletteVars }}>
         <Autocomplete inputValue={query} onInputChange={setQuery}>
-          <TextField aria-label="Command palette" style={{ padding: 'var(--ai-padding-lg, 0.875rem)', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)' }}>
+          <TextField aria-label={strings.label} style={{ padding: 'var(--ai-padding-lg, 0.875rem)', borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)' }}>
             <Input
               autoFocus
               placeholder={placeholder}
@@ -233,7 +237,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           <div
             tabIndex={0}
             role="group"
-            aria-label="Results"
+            aria-label={strings.results}
             className="ai-focus-ring"
             style={{
               maxHeight: 'var(--ai-commandpalette-max-list-height, 21.875rem)',
@@ -242,7 +246,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             }}
           >
           <Menu
-            aria-label="Commands"
+            aria-label={strings.commands}
             renderEmptyState={() => (
               <div style={{ padding: 'var(--ai-padding-lg, 1.25rem)', textAlign: 'center', color: 'var(--ai-text-secondary, #6b7280)', fontSize: '0.875rem' }}>
                 {emptyMessage}

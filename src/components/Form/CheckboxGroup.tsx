@@ -150,7 +150,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
           // <label> it would become part of the box's name instead.
           const helperId = opt.helperText ? `${ownLabelId}-help-${index}` : undefined;
           return (
-            <div key={opt.value} style={{ display: 'inline-flex', flexDirection: 'column', opacity: isDisabled ? 0.6 : 1 }}>
+            <div key={opt.value} style={{ display: 'inline-flex', flexDirection: 'column' }}>
             <label
               style={{
                 display: 'inline-flex',
@@ -158,6 +158,9 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
                 gap: '0.5rem',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 userSelect: 'none',
+                // Dims the control and its label only: the helper text below stays
+                // at full strength so it keeps its contrast (WCAG 1.4.3).
+                opacity: isDisabled ? 0.6 : 1,
               }}
             >
               <BaseCheckbox.Root
