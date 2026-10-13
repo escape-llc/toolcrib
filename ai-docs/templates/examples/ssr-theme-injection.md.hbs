@@ -75,6 +75,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
+`rootVariablesCSS` is text built for a `<style>` tag, so `computeServerThemeCSS` drops any variable whose value contains `<`, `>`, `{`, `}` or `;` (toolcrib's own values never do). That is a backstop, not a licence to feed it arbitrary strings: if `initialParameters`/`initialSliceStates` come from per-user data (a cookie, a database row, an imported theme file), validate that data first.
+
 The same `initialParameters` object has to reach both the server call and
 the client `<ThemeProvider initialParameters={...}>` inside `Providers`.
 If they diverge, nothing breaks or duplicates (the id-based dedup above

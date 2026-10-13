@@ -29,7 +29,68 @@ export function powerShellQuote(value) {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+/**
+ * Read every entry name out of a zip's central directory, in plain Node.
+ * Throws if the buffer isn't a readable zip. Zip64 archives (the 0xFFFF /
+ * 0xFFFFFFFF sentinels) are rejected rather than guessed at: a toolcrib
+ * release is a few hundred small files.
+ */
+export function listZipEntryNames(zipBuffer) {
+  const EOCD_SIG = 0x06054b50;
+  const CEN_SIG = 0x02014b50;
+  // The end-of-central-directory record is 22 bytes plus an optional comment
+  // of up to 65535 bytes, so it starts somewhere in the last ~64 KiB.
+  const searchFrom = Math.max(0, zipBuffer.length - 22 - 0xffff);
+  let eocd = -1;
+  for (let i = zipBuffer.length - 22; i >= searchFrom; i--) {
+    if (zipBuffer.readUInt32LE(i) === EOCD_SIG) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error('Not a readable zip archive (no end-of-central-directory record).');
+
+  const entryCount = zipBuffer.readUInt16LE(eocd + 10);
+  const centralOffset = zipBuffer.readUInt32LE(eocd + 16);
+  if (entryCount === 0xffff || centralOffset === 0xffffffff) {
+    throw new Error('Zip64 archives are not supported.');
+  }
+
+  const names = [];
+  let pos = centralOffset;
+  for (let n = 0; n < entryCount; n++) {
+    if (pos + 46 > zipBuffer.length || zipBuffer.readUInt32LE(pos) !== CEN_SIG) {
+      throw new Error('Corrupt zip central directory.');
+    }
+    const nameLen = zipBuffer.readUInt16LE(pos + 28);
+    const extraLen = zipBuffer.readUInt16LE(pos + 30);
+    const commentLen = zipBuffer.readUInt16LE(pos + 32);
+    names.push(zipBuffer.toString('utf8', pos + 46, pos + 46 + nameLen));
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+  return names;
+}
+
+/**
+ * Refuse an archive with an entry that would extract outside the target
+ * directory (zip-slip): an absolute path, a drive letter, or a `..` segment,
+ * with either separator (a backslash is a path separator to Windows'
+ * Expand-Archive but a filename character to unzip, so both are checked).
+ * Done before extraction rather than trusting the platform tool, because
+ * Windows PowerShell 5.1's Expand-Archive has historically been weaker here
+ * than modern unzip (#831).
+ */
+export function assertSafeZipEntries(zipBuffer) {
+  for (const name of listZipEntryNames(zipBuffer)) {
+    const segments = name.split(/[\\/]/);
+    if (name.startsWith('/') || name.startsWith('\\') || /^[A-Za-z]:/.test(name) || name.includes('\0') || segments.includes('..')) {
+      throw new Error(`Refusing to extract an archive with an unsafe entry path: ${name}`);
+    }
+  }
+}
+
 export async function extractZip(zipBuffer, targetDir) {
+  assertSafeZipEntries(zipBuffer);
   await fsp.mkdir(targetDir, { recursive: true });
 
   // A bare `Date.now()`-keyed filename collides under real concurrent use:

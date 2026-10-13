@@ -11,6 +11,7 @@ import {
   gitInit,
   gitApplyStreaming,
   ensureGitRepo,
+  shellSafeArgs,
 } from '../src/lib/git.js';
 import { readTextIfExists } from '../src/lib/project.js';
 
@@ -81,6 +82,18 @@ describe('git.js (real git subprocess)', () => {
       fs.writeFileSync(path.join(tmpDir, 'file.txt'), 'old content\n');
       const patch = createTwoFilesPatch('a/file.txt', 'b/file.txt', 'old content\n', 'new content\n', '(current)', '(proposed)');
       const patchPath = path.join(tmpDir, 'the.patch');
+      fs.writeFileSync(patchPath, patch);
+
+      const result = await gitApplyStreaming(patchPath, tmpDir);
+
+      expect(result).toEqual({ success: true });
+      expect(fs.readFileSync(path.join(tmpDir, 'file.txt'), 'utf-8')).toBe('new content\n');
+    });
+
+    it('applies a patch whose path contains shell metacharacters (#831: git used to run through cmd.exe on Windows)', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'file.txt'), 'old content\n');
+      const patch = createTwoFilesPatch('a/file.txt', 'b/file.txt', 'old content\n', 'new content\n', '(current)', '(proposed)');
+      const patchPath = path.join(tmpDir, 'a&b%PATH%.patch');
       fs.writeFileSync(patchPath, patch);
 
       const result = await gitApplyStreaming(patchPath, tmpDir);
@@ -180,5 +193,17 @@ describe('git.js (real git subprocess)', () => {
       expect(result).toBe(false);
       expect(fs.existsSync(path.join(tmpDir, '.git'))).toBe(false);
     });
+  });
+});
+
+describe('shellSafeArgs (the cmd.exe fallback)', () => {
+  it('double-quotes every argument so & and spaces are literal', () => {
+    expect(shellSafeArgs(['apply', 'C:/a&b c/x.patch'])).toEqual(['"apply"', '"C:/a&b c/x.patch"']);
+  });
+
+  it('refuses an argument cmd.exe would still expand or break out of the quotes with', () => {
+    expect(() => shellSafeArgs(['a"b'])).toThrow(/Refusing/);
+    expect(() => shellSafeArgs(['%PATH%'])).toThrow(/Refusing/);
+    expect(() => shellSafeArgs(['a\nb'])).toThrow(/Refusing/);
   });
 });

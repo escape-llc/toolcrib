@@ -16,7 +16,73 @@ vi.mock('node:child_process', () => ({
   execFile: (...args) => execFileMock(...args),
 }));
 
-import { powerShellQuote, listFilesRecursive, extractZip } from '../src/lib/zip.js';
+import { powerShellQuote, listFilesRecursive, extractZip, listZipEntryNames, assertSafeZipEntries } from '../src/lib/zip.js';
+
+/** A minimal, structurally valid zip whose entries are empty files with the given names. */
+function makeZip(names) {
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+  for (const name of names) {
+    const nameBuf = Buffer.from(name, 'utf8');
+    const local = Buffer.alloc(30 + nameBuf.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(nameBuf.length, 26);
+    nameBuf.copy(local, 30);
+    const central = Buffer.alloc(46 + nameBuf.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(nameBuf.length, 28);
+    central.writeUInt32LE(offset, 42);
+    nameBuf.copy(central, 46);
+    locals.push(local);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const centralDir = Buffer.concat(centrals);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(names.length, 8);
+  eocd.writeUInt16LE(names.length, 10);
+  eocd.writeUInt32LE(centralDir.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralDir, eocd]);
+}
+
+describe('zip entry safety (#831: zip-slip)', () => {
+  it('lists the entry names from the central directory', () => {
+    expect(listZipEntryNames(makeZip(['a.txt', 'dir/b.txt']))).toEqual(['a.txt', 'dir/b.txt']);
+  });
+
+  it('accepts ordinary nested relative entries', () => {
+    expect(() => assertSafeZipEntries(makeZip(['components/Card/Card.tsx', 'ai-docs/CORE.md']))).not.toThrow();
+  });
+
+  it.each([
+    ['../evil.txt'],
+    ['a/../../evil.txt'],
+    ['a\\..\\..\\evil.txt'],
+    ['/etc/passwd'],
+    ['\\Windows\\evil.dll'],
+    ['C:/evil.txt'],
+  ])('refuses an archive containing %s', (name) => {
+    expect(() => assertSafeZipEntries(makeZip(['ok.txt', name]))).toThrow(/unsafe entry path/);
+  });
+
+  it('refuses something that is not a zip', () => {
+    expect(() => assertSafeZipEntries(Buffer.from('not a zip at all, just bytes'))).toThrow(/Not a readable zip/);
+  });
+
+  it('extractZip rejects before invoking any extraction tool', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-zipslip-test-'));
+    execFileMock.mockClear();
+    await expect(extractZip(makeZip(['../evil.txt']), path.join(dir, 'out'))).rejects.toThrow(/unsafe entry path/);
+    expect(execFileMock).not.toHaveBeenCalled();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
 
 describe('powerShellQuote', () => {
   it('wraps a plain value in single quotes', () => {
@@ -109,7 +175,7 @@ describe('extractZip', () => {
     setPlatform('win32');
     const targetDir = path.join(tmpDir, 'out');
 
-    await extractZip(Buffer.from('fake zip bytes'), targetDir);
+    await extractZip(makeZip(['ok.txt']), targetDir);
 
     expect(execFileMock).toHaveBeenCalledTimes(1);
     const [file, args] = execFileMock.mock.calls[0];
@@ -126,7 +192,7 @@ describe('extractZip', () => {
     setPlatform('linux');
     const targetDir = path.join(tmpDir, 'out');
 
-    await extractZip(Buffer.from('fake zip bytes'), targetDir);
+    await extractZip(makeZip(['ok.txt']), targetDir);
 
     expect(execFileMock).toHaveBeenCalledTimes(1);
     const [file, args] = execFileMock.mock.calls[0];
@@ -138,7 +204,7 @@ describe('extractZip', () => {
     setPlatform('linux');
     const targetDir = path.join(tmpDir, 'nested', 'out');
 
-    await extractZip(Buffer.from('fake zip bytes'), targetDir);
+    await extractZip(makeZip(['ok.txt']), targetDir);
 
     expect(fs.existsSync(targetDir)).toBe(true);
   });
@@ -151,7 +217,7 @@ describe('extractZip', () => {
       callback(null, { stdout: '', stderr: '' });
     });
 
-    await extractZip(Buffer.from('fake zip bytes'), path.join(tmpDir, 'out'));
+    await extractZip(makeZip(['ok.txt']), path.join(tmpDir, 'out'));
 
     expect(capturedZipPath).toBeTruthy();
     expect(fs.existsSync(capturedZipPath)).toBe(false);
@@ -165,7 +231,7 @@ describe('extractZip', () => {
       callback(new Error('unzip: corrupt archive'));
     });
 
-    await expect(extractZip(Buffer.from('fake zip bytes'), path.join(tmpDir, 'out'))).rejects.toThrow('corrupt archive');
+    await expect(extractZip(makeZip(['ok.txt']), path.join(tmpDir, 'out'))).rejects.toThrow('corrupt archive');
 
     expect(fs.existsSync(capturedZipPath)).toBe(false);
   });
@@ -192,8 +258,8 @@ describe('extractZip', () => {
     });
 
     await Promise.all([
-      extractZip(Buffer.from('zip A content'), path.join(tmpDir, 'outA')),
-      extractZip(Buffer.from('zip B content'), path.join(tmpDir, 'outB')),
+      extractZip(makeZip(['a.txt']), path.join(tmpDir, 'outA')),
+      extractZip(makeZip(['b.txt']), path.join(tmpDir, 'outB')),
     ]);
 
     expect(capturedPaths).toHaveLength(2);
