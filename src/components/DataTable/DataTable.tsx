@@ -2357,7 +2357,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       checked={allOnPageSelected}
                       indeterminate={!allOnPageSelected && someOnPageSelected}
                       onCheckedChange={() => toggleSelectAllOnPage()}
-                      aria-label="Select all rows on this page"
+                      aria-label={strings.selectAllRows}
                       className="ai-focus-ring"
                       data-grid-row={0}
                       data-grid-col={0}
@@ -2464,7 +2464,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       <button
                         type="button"
                         onClick={e => handleSort(col.key, e.shiftKey)}
-                        title="Click to sort. Shift+click to add a secondary sort."
+                        title={strings.sortHint}
                         className="ai-focus-ring"
                         data-grid-row={0}
                         data-grid-col={gridCol}
@@ -2884,7 +2884,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               type="button"
                               role="radio"
                               aria-checked={isRowSelected}
-                              aria-label={`Select row ${actualIndex + 1}`}
+                              aria-label={strings.selectRow(actualIndex + 1)}
                               onClick={() => toggleRowSelected(selectionKey, actualIndex)}
                               className="ai-focus-ring"
                               data-grid-row={gridRow}
@@ -2915,7 +2915,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             <BaseCheckbox.Root
                               checked={isRowSelected}
                               onCheckedChange={() => toggleRowSelected(selectionKey, actualIndex)}
-                              aria-label={`Select row ${actualIndex + 1}`}
+                              aria-label={strings.selectRow(actualIndex + 1)}
                               className="ai-focus-ring"
                               data-grid-row={gridRow}
                               data-grid-col={0}
@@ -3185,6 +3185,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             Math.min(validCurrentPage * effectivePageSize, sortedData.length),
             sortedData.length
           )}
+          {/* Re-sorting reorders the rows and only flips aria-sort on a
+              header, which a screen reader doesn't announce by itself. */}
+          <VisuallyHidden>
+            {sortBy[0]
+              ? `. ${strings.sortedBy(columns.find(c => c.key === sortBy[0].key)?.title ?? sortBy[0].key, sortBy[0].direction)}`
+              : ''}
+          </VisuallyHidden>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center' }}>

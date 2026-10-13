@@ -111,11 +111,27 @@ export const Carousel: React.FC<CarouselProps> = ({
     };
   }, [emblaApi, onSelect]);
 
+  // Autoplay pauses while the pointer is over the carousel or focus is inside
+  // it (WCAG 2.2.2: moving content needs a way to stop), and never runs for a
+  // user who asked the OS for reduced motion.
+  const [autoplayPaused, setAutoplayPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
-    if (!emblaApi || !autoplay) return;
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(query.matches);
+    // Reads an external system's current value once, then subscribes.
+    update();
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+  const autoplayRunning = !!autoplay && !autoplayPaused && !reducedMotion;
+
+  useEffect(() => {
+    if (!emblaApi || !autoplay || !autoplayRunning) return;
     const interval = setInterval(() => emblaApi.scrollNext(), autoplay.delayMs);
     return () => clearInterval(interval);
-  }, [emblaApi, autoplay]);
+  }, [emblaApi, autoplay, autoplayRunning]);
 
   // Hand-rolled roving tabindex + arrow-key nav for the dot tablist: unlike
   // TabStrip/Stepper (real tab primitives), the dots drive Embla's own
@@ -152,26 +168,50 @@ export const Carousel: React.FC<CarouselProps> = ({
   );
 
   return (
-    <div style={{ position: 'relative', width: '100%', ...vars }}>
+    <div
+      style={{ position: 'relative', width: '100%', ...vars }}
+      onMouseEnter={() => setAutoplayPaused(true)}
+      onMouseLeave={() => setAutoplayPaused(false)}
+      onFocus={() => setAutoplayPaused(true)}
+      onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setAutoplayPaused(false);
+      }}
+    >
       {/* Autoplay/drag/dot-click all change the visible slide with no
           corresponding focus move -- this is the only announcement a
-          screen-reader user gets that anything changed at all. */}
-      <div aria-live="polite" aria-atomic="true">
+          screen-reader user gets that anything changed at all. While
+          autoplay is rotating on its own it is switched off (APG): a
+          polite announcement every few seconds would talk over the user. */}
+      <div aria-live={autoplayRunning ? 'off' : 'polite'} aria-atomic="true">
         <VisuallyHidden>{strings.currentSlide(selectedIndex + 1, slides.length)}</VisuallyHidden>
       </div>
       <div ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
         <div style={{ display: 'flex', gap: 'var(--ai-carousel-slide-gap, 1rem)' }}>
-          {slides.map(slide => (
-            <div key={slide.id} style={{ flex: '0 0 100%', minWidth: 0 }}>
-              {slide.content}
-            </div>
-          ))}
+          {slides.map((slide, slideIndex) => {
+            const offscreen = slideIndex !== selectedIndex;
+            return (
+              <div
+                key={slide.id}
+                // Off-screen slides stay mounted for Embla, but their
+                // links and buttons must not be Tab stops or announced.
+                // `inert` is set as a DOM property: the JSX attribute's
+                // type differs between React 18 and 19.
+                ref={el => {
+                  if (el) (el as HTMLElement & { inert: boolean }).inert = offscreen;
+                }}
+                aria-hidden={offscreen ? true : undefined}
+                style={{ flex: '0 0 100%', minWidth: 0 }}
+              >
+                {slide.content}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {canScrollPrev && (
-        <button
+      <button
           type="button"
+          disabled={!canScrollPrev}
           onClick={() => emblaApi?.scrollPrev()}
           aria-label={strings.previousSlide}
           className="ai-btn"
@@ -190,18 +230,18 @@ export const Carousel: React.FC<CarouselProps> = ({
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #d1d5db)',
             color: 'var(--ai-text-primary, #111827)',
-            cursor: 'pointer',
+            cursor: canScrollPrev ? 'pointer' : 'not-allowed',
+            opacity: canScrollPrev ? 1 : 0.4,
             boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.15))',
             ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           ◀
         </button>
-      )}
 
-      {canScrollNext && (
-        <button
+      <button
           type="button"
+          disabled={!canScrollNext}
           onClick={() => emblaApi?.scrollNext()}
           aria-label={strings.nextSlide}
           className="ai-btn"
@@ -220,14 +260,14 @@ export const Carousel: React.FC<CarouselProps> = ({
             background: 'var(--ai-bg-surface, #ffffff)',
             border: '0.0625rem solid var(--ai-border, #d1d5db)',
             color: 'var(--ai-text-primary, #111827)',
-            cursor: 'pointer',
+            cursor: canScrollNext ? 'pointer' : 'not-allowed',
+            opacity: canScrollNext ? 1 : 0.4,
             boxShadow: 'var(--ai-shadow-sm, 0 0.0625rem 0.25rem rgba(0,0,0,0.15))',
             ['--ai-btn-bg' as string]: 'var(--ai-bg-surface, #ffffff)',
           }}
         >
           ▶
         </button>
-      )}
 
       {scrollSnaps.length > 1 && (
         <div

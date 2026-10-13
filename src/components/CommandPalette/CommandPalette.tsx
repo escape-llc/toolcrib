@@ -232,6 +232,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               ScrollArea. */}
           <div
             tabIndex={0}
+            role="group"
+            aria-label="Results"
             className="ai-focus-ring"
             style={{
               maxHeight: 'var(--ai-commandpalette-max-list-height, 21.875rem)',

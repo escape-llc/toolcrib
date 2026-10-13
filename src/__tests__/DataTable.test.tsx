@@ -75,6 +75,18 @@ describe('DataTable Virtualized Component', () => {
     expect(screen.getByText('Name')).toBeInTheDocument();
   });
 
+  it('announces the new sort in the status live region, not only via aria-sort', () => {
+    render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
+    const status = () => screen.getByRole('status');
+    expect(status().textContent).not.toMatch(/Sorted by/);
+
+    fireEvent.click(screen.getByText('Name'));
+    expect(status().textContent).toMatch(/Sorted by Name, ascending/);
+
+    fireEvent.click(screen.getByText('Name'));
+    expect(status().textContent).toMatch(/Sorted by Name, descending/);
+  });
+
   it('applies a minHeight floor in auto height mode (default), so a collapsed flex ancestor still shows rows', () => {
     // Regression test: containerHeight="auto" (the default) fills its
     // parent via `flex: 1 1 0px` + `height: 100%`, which only resolves to

@@ -25,6 +25,14 @@ export interface ToolcribLocaleStrings {
   };
   dataTable: {
     showingEntries: (from: number, to: number, total: number) => string;
+    /** Tooltip on a sortable column header's button. */
+    sortHint: string;
+    /** Live announcement after a sort changes: the primary sort column and its direction. */
+    sortedBy: (columnTitle: string, direction: 'asc' | 'desc') => string;
+    /** Accessible name of the header checkbox that selects every row on the current page. */
+    selectAllRows: string;
+    /** Accessible name of one row's selection control; `rowNumber` is 1-based. */
+    selectRow: (rowNumber: number) => string;
     rowsPerPage: string;
     perPageOption: (size: number) => string;
     /** Label for the page-size dropdown's live-computed-page-size option (issue #419). */
@@ -141,6 +149,10 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
   },
   dataTable: {
     showingEntries: (from, to, total) => `Showing ${from} to ${to} of ${total} entries`,
+    sortHint: 'Click to sort. Shift+click to add a secondary sort.',
+    sortedBy: (columnTitle, direction) => `Sorted by ${columnTitle}, ${direction === 'asc' ? 'ascending' : 'descending'}`,
+    selectAllRows: 'Select all rows on this page',
+    selectRow: (rowNumber) => `Select row ${rowNumber}`,
     rowsPerPage: 'Rows per page',
     perPageOption: (size) => `${size} per page`,
     perPageAutoOption: 'Auto',
