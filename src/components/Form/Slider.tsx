@@ -7,8 +7,9 @@ import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, sliderControlStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
 
 /**
  * Props for the `<Slider>` range input control.
@@ -60,6 +61,8 @@ export interface SliderProps {
    * case, the same way it does for `Input`/`Select`/`Combobox`.
    */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
   /** Per-instance overrides for track height and thumb size. */
@@ -82,12 +85,14 @@ export const Slider: React.FC<SliderProps> = ({
   disabled: disabledProp = false,
   commitOnRelease = false,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
+  const isError = useFieldInvalid(name, ariaInvalid);
   const effectiveId = id ?? (name || undefined);
   // A local buffer, not just `value ?? defaultValue` read directly, is
   // what lets the thumb keep tracking the pointer smoothly during a drag
@@ -152,7 +157,7 @@ export const Slider: React.FC<SliderProps> = ({
       style={sliderRootStyle(disabled, sliderVars)}
     >
       <BaseSlider.Control style={sliderControlStyle(disabled)}>
-        <BaseSlider.Track style={SLIDER_TRACK_STYLE}>
+        <BaseSlider.Track style={sliderTrackStyle(isError)}>
           <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
           {/* The thumb wraps a real <input type="range">, which carries the
               name. Base UI generates that input's id, so a FormField's
@@ -162,6 +167,7 @@ export const Slider: React.FC<SliderProps> = ({
             id={effectiveId}
             aria-label={ariaLabel}
             aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? fieldCtx.labelId)}
+            aria-invalid={isError || undefined}
             className="ai-focus-ring"
             style={sliderThumbStyle(disabled)}
           />

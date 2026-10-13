@@ -7,8 +7,9 @@ import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, sliderControlStyle, SLIDER_TRACK_STYLE, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
@@ -49,6 +50,8 @@ export interface RangeSliderProps {
    * Maximum" — since two thumbs can't share one `<label htmlFor>`.
    */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Per-thumb name suffixes. @default the locale's `rangeSlider.minimum` / `rangeSlider.maximum` */
   thumbLabels?: [string, string];
   /** Per-instance overrides for track height and thumb size. Shared with `<Slider>`. */
@@ -75,12 +78,14 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   disabled: disabledProp = false,
   commitOnRelease = false,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   thumbLabels,
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
+  const isError = useFieldInvalid(name, ariaInvalid);
   const effectiveId = id ?? (name || undefined);
   const strings = useLocaleStrings().rangeSlider;
   const [lowerLabel, upperLabel] = thumbLabels ?? [strings.minimum, strings.maximum];
@@ -133,19 +138,21 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
         style={sliderRootStyle(disabled, sliderVars)}
       >
         <BaseSlider.Control style={sliderControlStyle(disabled)}>
-          <BaseSlider.Track style={SLIDER_TRACK_STYLE}>
+          <BaseSlider.Track style={sliderTrackStyle(isError)}>
             <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
             {/* index: required for a multi-thumb slider to render on the server. */}
             <BaseSlider.Thumb
               index={0}
               id={effectiveId}
               aria-labelledby={labelledBy(`${baseId}-lower`)}
+              aria-invalid={isError || undefined}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled)}
             />
             <BaseSlider.Thumb
               index={1}
               aria-labelledby={labelledBy(`${baseId}-upper`)}
+              aria-invalid={isError || undefined}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled)}
             />

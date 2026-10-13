@@ -12,6 +12,7 @@ import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, use
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid } from './useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -60,6 +61,8 @@ export interface SelectProps {
    * the value it displays).
    */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Array of selectable options. */
   options: SelectOptionData[];
   /** Controlled selected value. */
@@ -87,6 +90,7 @@ export const Select: React.FC<SelectProps> = ({
   name: propName,
   placeholder = 'Select option...',
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   options,
   value: externalValue,
   defaultValue,
@@ -102,7 +106,7 @@ export const Select: React.FC<SelectProps> = ({
   const effectiveId = id ?? (fieldName || undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
-  const isError = fieldName && formContext ? formContext.touched[fieldName] && !!formContext.errors[fieldName] : false;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   const { container, zIndex } = useOverlayLayer('DROPDOWN');

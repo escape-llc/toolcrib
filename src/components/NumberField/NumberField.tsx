@@ -12,6 +12,7 @@ import {
 import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { Minus, Plus } from 'lucide-react';
 import { useOptionalFormContext } from '../Form/FormContext';
+import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -63,6 +64,8 @@ export interface NumberFieldProps {
   size?: ControlSize;
   /** Accessible name when no visible `label` is rendered. Ignored if `label` is set. */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Same as `aria-label`, referencing an existing visible label's id. Ignored if `label` is set. */
   'aria-labelledby'?: string;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s identical prop. */
@@ -106,6 +109,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   placeholder,
   size = 'md',
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
 }) => {
@@ -133,7 +137,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   const isControlled = externalValue !== undefined || isFormBound;
   const formValue = isFormBound ? (formContext!.values[fieldName] as number | null | undefined) : undefined;
   const controlledValue = externalValue !== undefined ? externalValue : formValue;
-  const isError = isFormBound ? !!(formContext!.touched[fieldName] && formContext!.errors[fieldName]) : false;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
 
   const handleChange = (raw: number) => {
     // React Aria reports an emptied field as NaN; toolcrib's value is null.

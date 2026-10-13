@@ -152,6 +152,10 @@
           "type": "boolean",
           "default": "false",
           "description": "Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         }
       },
       "category": "Form Controls",
@@ -193,6 +197,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name when there is no visible label."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "direction": {
           "type": "'horizontal' | 'vertical'",
@@ -238,6 +246,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name announced by screen readers. Only needed when this\n`Combobox` isn't inside a `<FormField label=\"...\">` -- the `<label\nhtmlFor>` that renders provides the accessible name already in that\ncase, the same way it does for `Input`/`Select`/`Slider`."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "aria-labelledby": {
           "type": "string",
@@ -366,6 +378,10 @@
           "type": "string",
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
         },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
@@ -433,6 +449,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "squareCorners": {
           "type": "SquareCornerOption",
@@ -531,6 +551,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name for the dropzone. Only needed outside a `<FormField label>`, whose label names it already."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "aria-labelledby": {
           "type": "string",
@@ -810,6 +834,10 @@
           "type": "string",
           "description": "Accessible name when no visible `label` is rendered. Ignored if `label` is set."
         },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, referencing an existing visible label's id. Ignored if `label` is set."
@@ -869,6 +897,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name for the group when there is no visible label."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "disabled": {
           "type": "boolean",
@@ -993,6 +1025,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name for the group. Only needed outside a `<FormField label>`, whose label names it already."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "aria-labelledby": {
           "type": "string",
@@ -1121,6 +1157,10 @@
           "type": "string",
           "description": "Accessible name for the control as a whole. Only needed outside a\n`<FormField label=\"...\">`. Each thumb's name combines this (or the\nFormField's label) with its own suffix — \"Price, Minimum\" / \"Price,\nMaximum\" — since two thumbs can't share one `<label htmlFor>`."
         },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
         "thumbLabels": {
           "type": "[string, string]",
           "default": "the locale's `rangeSlider.minimum` / `rangeSlider.maximum`",
@@ -1146,6 +1186,10 @@
           "type": "string",
           "default": "'Rating'",
           "description": "Accessible name for the control's radiogroup, for a screen-reader user\nwho otherwise has no visual context for what's being rated (e.g. no\nexternal heading/label already associated with it). `name` is never\nused for this -- it's an internal field identifier for emitted events,\nnot human-readable text."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "value": {
           "type": "number",
@@ -1205,6 +1249,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name for the trigger. Only needed when this `Select` isn't\ninside a `<FormField label=\"...\">` — the `<label htmlFor>` that\nrenders provides the accessible name already in that case, the same\nway it does for `Input`/`Slider`/`Combobox`. Unlike those, `Select`\nhad no such escape hatch until this was added — a real gap for any\nstandalone (non-`FormField`) usage, the trigger's own selected-value\ntext notwithstanding (a combobox takes its name from a label, not from\nthe value it displays)."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "options": {
           "type": "SelectOptionData[]",
@@ -1297,6 +1345,10 @@
         "aria-label": {
           "type": "string",
           "description": "Accessible name announced by screen readers. Only needed when this\n`Slider` isn't inside a `<FormField label=\"...\">` — the `<label\nhtmlFor>` that renders provides the accessible name already in that\ncase, the same way it does for `Input`/`Select`/`Combobox`."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "aria-labelledby": {
           "type": "string",
@@ -1397,6 +1449,10 @@
           "type": "boolean",
           "default": "false",
           "description": "Ignore user interaction and dim the control. A disabled enclosing `<Fieldset>` disables it too."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         }
       },
       "category": "Form Controls",
@@ -1498,6 +1554,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. Ignored if `label` is set."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
         "squareCorners": {
           "type": "SquareCornerOption",

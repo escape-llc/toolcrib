@@ -14,6 +14,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
+import { useFieldInvalid } from './useFieldInvalid';
 import { Button } from './FormComponents';
 import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
@@ -73,6 +74,8 @@ export interface FileUploadProps {
   squareCorners?: SquareCornerOption;
   /** Accessible name for the dropzone. Only needed outside a `<FormField label>`, whose label names it already. */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** Id of the element that names the dropzone. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
 }
@@ -100,11 +103,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   size = 'md',
   squareCorners,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const fileUploadVars = getSparseVariables(FileUploadThemeSlice, { density: SIZE_TO_DENSITY[size], ...overrides });
@@ -263,6 +268,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
+        aria-invalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={e => {
@@ -299,7 +306,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           // persistent selected/checked identity color, so it reuses the
           // same accent role Splitter's own drag-handle just adopted for
           // the identical reason.
-          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-accent, #8b5cf6)' : 'var(--ai-border, #d1d5db)'}`,
+          border: `0.125rem dashed ${isDragOver ? 'var(--ai-color-accent, #8b5cf6)' : isError ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
           background: isDragOver ? 'color-mix(in srgb, var(--ai-color-accent, #8b5cf6) 8%, transparent)' : 'var(--ai-bg-container, #f9fafb)',
           boxSizing: 'border-box',
           cursor: disabled ? 'not-allowed' : 'pointer',

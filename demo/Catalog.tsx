@@ -485,10 +485,10 @@ function States({ name }: { name: string }) {
   const examples = STATE_EXAMPLES[name];
   if (!examples) return null;
   return (
-    <div data-catalog-states={name} style={DEMO_FRAME_STYLE}>
+    <div key={name} data-catalog-states={name} style={DEMO_FRAME_STYLE}>
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">States</Text>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(13rem, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(18rem, 1fr))', gap: '1rem' }}>
           {examples.map(({ state, node }) => (
             <VStack key={state} gap="xs">
               <Text size="xs" weight="semibold">{state}</Text>

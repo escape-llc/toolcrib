@@ -21,13 +21,13 @@ import { focusRingClassName } from './focusRing';
 // opens the calendar popup.
 
 /** The bordered field group around the segments and the calendar button. `cornerOverrides` squares corners (UIGroup, `squareCorners`). */
-export function fieldGroupStyle(size: ControlSize, cornerOverrides: React.CSSProperties): React.CSSProperties {
+export function fieldGroupStyle(size: ControlSize, cornerOverrides: React.CSSProperties, invalid = false): React.CSSProperties {
   return {
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
     padding: resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)'),
-    border: '0.0625rem solid var(--ai-border, #d1d5db)',
+    border: `0.0625rem solid ${invalid ? 'var(--ai-subtheme-error, #ef4444)' : 'var(--ai-border, #d1d5db)'}`,
     borderTopLeftRadius: 'var(--ai-radius-md, 0.375rem)',
     borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
     borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',

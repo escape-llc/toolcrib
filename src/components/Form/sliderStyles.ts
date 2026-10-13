@@ -36,6 +36,11 @@ export const SLIDER_TRACK_STYLE: React.CSSProperties = {
   height: 'var(--ai-slider-track-height, 0.375rem)',
 };
 
+/** The track, with an error ring when the slider is invalid (the thumb's focus ring owns `outline`). */
+export function sliderTrackStyle(invalid: boolean): React.CSSProperties {
+  return invalid ? { ...SLIDER_TRACK_STYLE, boxShadow: '0 0 0 0.125rem var(--ai-subtheme-error, #ef4444)' } : SLIDER_TRACK_STYLE;
+}
+
 export const SLIDER_RANGE_STYLE: React.CSSProperties = {
   position: 'absolute',
   background: 'var(--ai-color-primary, #3b82f6)',

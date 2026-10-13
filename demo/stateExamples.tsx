@@ -23,6 +23,7 @@ import {
   Switch,
   TimeField,
   Textarea,
+  Rating,
 } from '#toolcrib';
 
 /**
@@ -60,14 +61,14 @@ const Focused: React.FC<{ children: ReactNode }> = ({ children }) => <div data-d
  * schema always fails whatever the control's value type is (text, a boolean, a
  * number, a list), so one wrapper serves every control.
  */
-const Invalid: React.FC<{ children: ReactNode }> = ({ children }) => {
+const Invalid: React.FC<{ children: ReactNode; initial?: unknown }> = ({ children, initial = '' }) => {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.querySelector('form')?.requestSubmit();
   }, []);
   return (
     <div ref={ref}>
-      <Form schema={z.object({ field: z.custom(() => false, 'This field is required') })} initialValues={{ field: '' }}>
+      <Form schema={z.object({ field: z.custom(() => false, 'This field is required') })} initialValues={{ field: initial }}>
         <FormField name="field">{children}</FormField>
       </Form>
     </div>
@@ -117,11 +118,13 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'default', node: <DatePicker aria-label="Default" /> },
     { state: 'focused', node: <Focused><DatePicker aria-label="Focused" /></Focused> },
     { state: 'disabled', node: <DatePicker aria-label="Disabled" isDisabled /> },
+    { state: 'invalid', node: <Invalid initial={null}><DatePicker aria-label="Invalid" /></Invalid> },
   ],
   DateRangePicker: [
     { state: 'default', node: <DateRangePicker aria-label="Default" /> },
     { state: 'focused', node: <Focused><DateRangePicker aria-label="Focused" /></Focused> },
     { state: 'disabled', node: <DateRangePicker aria-label="Disabled" isDisabled /> },
+    { state: 'invalid', node: <Invalid><DateRangePicker aria-label="Invalid" /></Invalid> },
   ],
   // The calendars have no single focusable surface to force a ring on (focus
   // sits on one day cell and moves with the arrow keys), so no `focused` here;
@@ -139,36 +142,43 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'default', node: <TimeField aria-label="Default" /> },
     { state: 'focused', node: <Focused><TimeField aria-label="Focused" /></Focused> },
     { state: 'disabled', node: <TimeField aria-label="Disabled" isDisabled /> },
+    { state: 'invalid', node: <Invalid><TimeField aria-label="Invalid" /></Invalid> },
   ],
   Checkbox: [
     { state: 'default', node: <Checkbox label="Default" /> },
     { state: 'focused', node: <Focused><Checkbox label="Focused" /></Focused> },
     { state: 'disabled', node: <Checkbox label="Disabled" disabled /> },
+    { state: 'invalid', node: <Invalid><Checkbox label="Invalid" /></Invalid> },
   ],
   CheckboxGroup: [
     { state: 'default', node: <CheckboxGroup label="Default" options={COUNTRIES} /> },
     { state: 'focused', node: <Focused><CheckboxGroup label="Focused" options={COUNTRIES} /></Focused> },
     { state: 'disabled', node: <CheckboxGroup label="Disabled" options={COUNTRIES} disabled /> },
+    { state: 'invalid', node: <Invalid><CheckboxGroup label="Invalid" options={COUNTRIES} /></Invalid> },
   ],
   RadioGroup: [
     { state: 'default', node: <RadioGroup aria-label="Default" options={COUNTRIES} /> },
     { state: 'focused', node: <Focused><RadioGroup aria-label="Focused" options={COUNTRIES} /></Focused> },
     { state: 'disabled', node: <RadioGroup aria-label="Disabled" options={COUNTRIES} disabled /> },
+    { state: 'invalid', node: <Invalid><RadioGroup aria-label="Invalid" options={COUNTRIES} /></Invalid> },
   ],
   Switch: [
     { state: 'default', node: <Switch label="Default" /> },
     { state: 'focused', node: <Focused><Switch label="Focused" /></Focused> },
     { state: 'disabled', node: <Switch label="Disabled" disabled /> },
+    { state: 'invalid', node: <Invalid><Switch label="Invalid" /></Invalid> },
   ],
   Slider: [
     { state: 'default', node: <Slider aria-label="Default" defaultValue={40} /> },
     { state: 'focused', node: <Focused><Slider aria-label="Focused" defaultValue={40} /></Focused> },
     { state: 'disabled', node: <Slider aria-label="Disabled" defaultValue={40} disabled /> },
+    { state: 'invalid', node: <Invalid><Slider aria-label="Invalid" defaultValue={40} /></Invalid> },
   ],
   RangeSlider: [
     { state: 'default', node: <RangeSlider aria-label="Default" defaultValue={[20, 60]} /> },
     { state: 'focused', node: <Focused><RangeSlider aria-label="Focused" defaultValue={[20, 60]} /></Focused> },
     { state: 'disabled', node: <RangeSlider aria-label="Disabled" defaultValue={[20, 60]} disabled /> },
+    { state: 'invalid', node: <Invalid><RangeSlider aria-label="Invalid" defaultValue={[20, 60]} /></Invalid> },
   ],
   OTPField: [
     { state: 'default', node: <OTPField aria-label="Default" length={4} /> },
@@ -180,6 +190,12 @@ export const STATE_EXAMPLES: Record<string, StateExample[]> = {
     { state: 'default', node: <FileUpload aria-label="Default" /> },
     { state: 'focused', node: <Focused><FileUpload aria-label="Focused" /></Focused> },
     { state: 'disabled', node: <FileUpload aria-label="Disabled" disabled /> },
+    { state: 'invalid', node: <Invalid><FileUpload aria-label="Invalid" /></Invalid> },
+  ],
+  Rating: [
+    { state: 'default', node: <Rating aria-label="Default" defaultValue={2} /> },
+    { state: 'focused', node: <Focused><Rating aria-label="Focused" defaultValue={2} /></Focused> },
+    { state: 'invalid', node: <Invalid><Rating aria-label="Invalid" defaultValue={2} /></Invalid> },
   ],
   Button: [
     { state: 'default', node: <Button>Default</Button> },

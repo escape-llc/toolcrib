@@ -33,7 +33,7 @@ test.describe('Catalog states taxonomy', () => {
   // example is a Form submitted on mount, so the control must be marked
   // aria-invalid and its error shown. A control with no invalid state is left
   // out of the section rather than shown looking fine.
-  for (const name of ['Input', 'Textarea', 'Select', 'Combobox', 'NumberField', 'OTPField']) {
+  for (const name of ['Input', 'Textarea', 'Select', 'Combobox', 'NumberField', 'OTPField', 'Checkbox', 'Switch', 'CheckboxGroup', 'RadioGroup', 'Slider', 'RangeSlider', 'FileUpload', 'Rating', 'DatePicker', 'DateRangePicker', 'TimeField']) {
     test(`${name}'s invalid example is marked invalid and shows its error`, async ({ page }) => {
       await page.goto('/');
       await gotoTab(page, 'Catalog', name);

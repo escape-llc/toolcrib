@@ -8,6 +8,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 // wrong, which is why this stays on a library primitive.
 import { OTPField as BaseOTPField } from '@base-ui/react/otp-field';
 import { useOptionalFormContext } from '../Form/FormContext';
+import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -36,6 +37,8 @@ export interface OTPFieldProps {
   label?: ReactNode;
   /** Accessible name for the group when there is no visible label. */
   'aria-label'?: string;
+  /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
+  'aria-invalid'?: boolean;
   /** If true, the field is non-interactive. */
   disabled?: boolean;
   /** Control size, standardized with `<Input>` and every other sized control. @default 'md' */
@@ -61,6 +64,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   mask = false,
   label,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   disabled: disabledProp = false,
   size = 'md',
 }) => {
@@ -84,7 +88,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
   const formValue = isFormBound ? formContext!.values[fieldName] : undefined;
   const code = externalValue !== undefined ? externalValue : isFormBound ? (typeof formValue === 'string' ? formValue : '') : localValue;
-  const isError = isFormBound ? !!(formContext!.touched[fieldName] && formContext!.errors[fieldName]) : false;
+  const isError = useFieldInvalid(fieldName, ariaInvalid);
 
   const handleChange = (next: string) => {
     if (isFormBound) {
