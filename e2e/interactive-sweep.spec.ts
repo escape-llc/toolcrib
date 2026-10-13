@@ -206,6 +206,11 @@ test(`interacting with one card's own control never shifts a sibling card's posi
     const cardCount = await cards.count();
     if (cardCount < 2) continue; // nothing to compare a shift against
 
+    // Which cards sit inside which, taken before any click: a card nested in
+    // the target (the Spec Sheet's state cards) legitimately goes with it when
+    // the target's own collapser closes, so it is not a sibling.
+    const nested = await cards.evaluateAll(els => els.map(outer => els.map(inner => outer !== inner && outer.contains(inner))));
+
     for (let target = 0; target < cardCount; target++) {
       // A fresh box for every card right before this interaction — not the
       // page's very first snapshot — since an earlier iteration's
@@ -231,8 +236,19 @@ test(`interacting with one card's own control never shifts a sibling card's posi
         continue;
       }
 
+      // The target holds cards of its own (the Spec Sheet's States collapser,
+      // which closes them): the page is left changed and the indexes stop
+      // lining up with `before`. Nothing to compare; toggle it back and wait for
+      // the cards to return, so the next target sees the page as it was.
+      if (nested[target].some(Boolean)) {
+        await clickRobust(control);
+        await expect.poll(() => cards.count()).toBe(cardCount);
+        await settle(page);
+        continue;
+      }
+
       for (let i = 0; i < cardCount; i++) {
-        if (i === target) continue; // this card's own growth/shrink is expected
+        if (i === target || nested[target][i]) continue; // this card's own growth/shrink is expected, and so is its contents'
         const box = await cards.nth(i).boundingBox();
         expect(box?.x, `page "${label}", card ${i} x-position after interacting with card ${target}`).toBeCloseTo(before[i].x, 0);
         expect(box?.width, `page "${label}", card ${i} width after interacting with card ${target}`).toBeCloseTo(before[i].width, 0);
