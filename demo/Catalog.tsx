@@ -477,38 +477,32 @@ function Blueprint({ source }: { source?: string }) {
 
 /**
  * The taxonomy of states a control renders in (default, focused, disabled,
- * invalid, read-only), one labelled cell each, so they can be compared by eye
+ * invalid, read-only), one labelled card each, so they can be compared by eye
  * and a state that looks wrong or inconsistent stands out. Only the controls
- * with entries in STATE_EXAMPLES get one.
+ * with entries in STATE_EXAMPLES get one. A collapser of the Spec Sheet, open
+ * by default; it inherits that card's `info` style domain for its own chrome,
+ * and each example resets the domain: a state example has to show the control
+ * as an app would render it, not tinted by the frame.
  */
 function States({ name }: { name: string }) {
   const examples = STATE_EXAMPLES[name];
   if (!examples) return null;
   return (
-    <div key={name} data-catalog-states={name} style={DEMO_FRAME_STYLE}>
-      <VStack gap="sm">
-        <Text size="xs" weight="semibold" tone="secondary">States</Text>
-        {/* The cards are reference chrome, so they sit in the same `info` style
-            domain as the page's other reference material (DocsPanel). The
-            control inside each one resets the domain: a state example has to
-            show the control as an app would render it, not tinted by the frame. */}
-        <StyleDomainProvider subtheme="info">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
-            {examples.map(({ state, node }) => (
-              <Card key={state} data-catalog-state-card={state}>
-                <Card.Header paddingMode="compact"><Text size="sm" weight="semibold">{state}</Text></Card.Header>
-                <Card.Content paddingMode="compact">
-                  <StyleDomainProvider>{node}</StyleDomainProvider>
-                </Card.Content>
-                <Card.Footer paddingMode="compact">
-                  <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
-                </Card.Footer>
-              </Card>
-            ))}
-          </div>
-        </StyleDomainProvider>
-      </VStack>
-    </div>
+    <Collapsible key={name} defaultOpen trigger={<>States <Badge size="sm">{plural(examples.length, 'state')}</Badge></>}>
+      <div data-catalog-states={name} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
+        {examples.map(({ state, node }) => (
+          <Card key={state} data-catalog-state-card={state}>
+            <Card.Header paddingMode="compact"><Text size="sm" weight="semibold">{state}</Text></Card.Header>
+            <Card.Content paddingMode="compact">
+              <StyleDomainProvider>{node}</StyleDomainProvider>
+            </Card.Content>
+            <Card.Footer paddingMode="compact">
+              <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
+            </Card.Footer>
+          </Card>
+        ))}
+      </div>
+    </Collapsible>
   );
 }
 
@@ -546,7 +540,6 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 {demo}
               </div>
             )}
-            <States name={c.name} />
           </VStack>
         </Card.Content>
       </Card>
@@ -557,19 +550,12 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
       <StyleDomainProvider subtheme="info">
       <Card data-testid="spec-sheet">
         <Card.Header>
-          <h4 style={{ margin: 0, fontSize: '1rem' }}>Spec Sheet</h4>
+          <h4 style={{ margin: 0, fontSize: '1rem', flexShrink: 0 }}>Spec Sheet</h4>
+          {/* The import line (the pick ticket), right-aligned in the header (Card.Header is a space-between flex row). Wraps rather than scrolls: a horizontally-scrollable <code> is a scroll region with no keyboard access (axe: scrollable-region-focusable) -- Form's grouped import is long enough to trigger it. */}
+          <code style={{ ...codeStyle, marginLeft: '1rem', minWidth: 0, textAlign: 'right', padding: '0.25rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
         </Card.Header>
         <Card.Content>
           <VStack gap="sm">
-              <div>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ai-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pick ticket</div>
-                {/* Wraps rather than scrolls: a horizontally-scrollable <code>
-                    is a scroll region with no keyboard access (axe:
-                    scrollable-region-focusable) -- Form's grouped import is
-                    long enough to trigger it. */}
-                <code style={{ ...codeStyle, display: 'block', padding: '0.375rem 0.5rem', background: 'var(--ai-bg-container)', borderRadius: 'var(--ai-radius-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.import}</code>
-              </div>
-
               {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
 
               {/* A placard like the safety one, in the opposite spirit
@@ -598,6 +584,7 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
                 </Block>
               )}
 
+              <States name={c.name} />
               <PropsSheet component={c} />
               <SlotsSheet component={c} />
               {isLiveDemo(demo) && <Blueprint source={DEMO_SOURCES.components[c.name]} />}

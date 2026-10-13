@@ -3350,7 +3350,8 @@ export const App: React.FC = () => {
                           <ul style={{ paddingLeft: '1.25rem', margin: 0 }}>
                             <li><strong>Part number</strong>: drawer code and position (<code>FC-05</code>, <code>FX-02</code>), the same on the board and the page.</li>
                             <li><strong>The tool itself</strong>: the first card, running for real.</li>
-                            <li><strong>Pick ticket</strong>: the exact import line to take it off the shelf.</li>
+                            <li><strong>Pick ticket</strong>: the exact import line to take it off the shelf, on the right of the Spec Sheet header.</li>
+                            <li><strong>States</strong>: the tool in each state it can be in (default, focused, disabled, invalid), one card each.</li>
                             <li><strong>Placards</strong>: what pairs well with the tool, and the mistake it exists to prevent with what to do instead.</li>
                             <li><strong>Props</strong> and <strong>Slots</strong>: the contract, each with type, default and meaning, generated from the source.</li>
                             <li><strong>Blueprint</strong>: the demo's own code, straight from this app.</li>
