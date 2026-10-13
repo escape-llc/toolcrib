@@ -49,7 +49,7 @@ function injectAccordionStyles(targetDocument?: Document, nonce?: string): void 
     }
     .ai-accordion-trigger:hover {
       background: var(--ai-bg-surface, #ffffff) !important;
-      color: var(--ai-color-primary, #3b82f6) !important;
+      color: var(--ai-color-primary-readable, #1e3a8a) !important;
     }
     .ai-accordion-chevron {
       transition: transform var(--ai-transition-duration-normal, 0.22s) var(--ai-transition-easing, cubic-bezier(0.16, 1, 0.3, 1));
