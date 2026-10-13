@@ -188,4 +188,24 @@ describe('Tree', () => {
 
     expect(screen.getByRole('tree', { name: 'Boom' })).toBeInTheDocument();
   });
+
+  it('keeps exactly one Tab stop when the focused row is hidden by collapsing its parent (#830)', () => {
+    render(<Tree items={items} defaultExpandedIds={['fruits']} />);
+    fireEvent.click(screen.getByText('Apple')); // focus + select a child row
+    expect(screen.getByText('Apple').closest('[role="treeitem"]')).toHaveAttribute('tabindex', '0');
+
+    // Collapse the parent via its chevron (this does not touch focusedId).
+    const fruitsRow = screen.getByText('Fruits').closest('[role="treeitem"]') as HTMLElement;
+    fireEvent.click(fruitsRow.querySelector('span')!);
+    expect(screen.queryByText('Apple')).not.toBeInTheDocument();
+
+    const stops = screen.getAllByRole('treeitem').filter(el => el.getAttribute('tabindex') === '0');
+    expect(stops).toHaveLength(1);
+  });
+
+  it('hides the disclosure chevron glyph from the accessibility tree', () => {
+    render(<Tree items={items} />);
+    const fruitsRow = screen.getByText('Fruits').closest('[role="treeitem"]') as HTMLElement;
+    expect(fruitsRow.querySelector('span')).toHaveAttribute('aria-hidden', 'true');
+  });
 });

@@ -93,11 +93,48 @@ describe('Carousel', () => {
     expect(screen.getByLabelText('Go to slide 2')).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('shows only the arrow(s) embla reports as scrollable (prev hidden at the start)', async () => {
+  it('disables (rather than unmounts) an arrow embla reports as unscrollable, so a focused arrow never vanishes', async () => {
     render(<Carousel slides={slides} />);
     await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
-    expect(screen.queryByLabelText('Previous slide')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Next slide')).toBeInTheDocument();
+    expect(screen.getByLabelText('Previous slide')).toBeDisabled();
+    expect(screen.getByLabelText('Next slide')).toBeEnabled();
+  });
+
+  it('takes off-screen slides out of the Tab order and the accessibility tree', async () => {
+    render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+    const slideEl = (text: string) => screen.getByText(text).parentElement as HTMLElement & { inert: boolean };
+    expect(slideEl('Slide 1')).not.toHaveAttribute('aria-hidden');
+    expect(slideEl('Slide 2')).toHaveAttribute('aria-hidden', 'true');
+    expect(slideEl('Slide 2').inert).toBe(true);
+    expect(slideEl('Slide 1').inert).toBe(false);
+  });
+
+  it('pauses autoplay while the pointer is over the carousel, and resumes on leave', async () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<Carousel slides={slides} autoplay={{ delayMs: 1000 }} />);
+      await vi.waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+      const root = container.firstElementChild as HTMLElement;
+
+      fireEvent.mouseEnter(root);
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(mocks.scrollNext).not.toHaveBeenCalled();
+
+      fireEvent.mouseLeave(root);
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(mocks.scrollNext).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('announces slide changes politely, but not while autoplay is rotating by itself', async () => {
+    const { container, rerender } = render(<Carousel slides={slides} />);
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+    expect(container.querySelector('[aria-live]')).toHaveAttribute('aria-live', 'polite');
+    rerender(<Carousel slides={slides} autoplay={{ delayMs: 1000 }} />);
+    expect(container.querySelector('[aria-live]')).toHaveAttribute('aria-live', 'off');
   });
 
   it('clicking the next arrow calls embla\'s scrollNext', async () => {

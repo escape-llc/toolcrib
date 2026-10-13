@@ -209,13 +209,19 @@ export const Tree: React.FC<TreeProps> = ({
     }
   };
 
+  // The row holding the single Tab stop. focusedId can name a row that is no
+  // longer visible (its parent was collapsed by a chevron click or a
+  // controlled expandedIds change); with no match every treeitem would be
+  // tabIndex -1 and the whole tree would drop out of the Tab order.
+  const rovingId = flatVisible.some(n => n.item.id === focusedId) ? focusedId : flatVisible[0]?.item.id;
+
   return (
     <div role="tree" aria-label={strings.treeLabel} style={{ display: 'flex', flexDirection: 'column', ...vars }}>
       {flatVisible.map((node, index) => {
         const hasChildren = !!node.item.children?.length;
         const isExpanded = expandedSet.has(node.item.id);
         const isSelected = selected === node.item.id;
-        const isFocused = (focusedId ?? flatVisible[0]?.item.id) === node.item.id;
+        const isFocused = rovingId === node.item.id;
 
         return (
           <DeferredContent key={node.item.id} estimatedHeight={32}>
@@ -257,6 +263,7 @@ export const Tree: React.FC<TreeProps> = ({
             >
               {hasChildren ? (
                 <span
+                  aria-hidden="true"
                   onClick={e => {
                     e.stopPropagation();
                     toggleExpand(node.item.id, !isExpanded);

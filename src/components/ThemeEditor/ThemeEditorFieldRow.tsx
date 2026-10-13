@@ -37,7 +37,8 @@ export function FieldRow({
         <label htmlFor={id} style={{ fontWeight: 'var(--ai-font-weight-semibold, 600)', fontSize: '0.875rem' }}>{label}</label>
         {tooltip && (
           <Tooltip content={tooltip}>
-            <span style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
+            {/* Focusable so the tooltip (hover or keyboard focus) is reachable without a mouse. */}
+            <span tabIndex={0} role="img" aria-label="More information" className="ai-focus-ring" style={{ fontSize: '0.75rem', cursor: 'pointer' }}>ℹ️</span>
           </Tooltip>
         )}
       </div>

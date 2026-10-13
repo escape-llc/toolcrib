@@ -285,6 +285,21 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await scanNamed('DatePicker calendar popover (Meeting Date, standalone)');
   await page.keyboard.press('Escape');
 
+  // aria-compliance-review (v0.16.0 pre-release pass, #830): two overlays no
+  // scan ever had open. DateRangePicker's popover is a RangeCalendar, markup
+  // DatePicker's single-date popover doesn't exercise; Tooltip's popup was
+  // never hovered at all.
+  await gotoTab(page, 'Catalog', 'DateRangePicker');
+  await page.getByRole('button', { name: 'Open calendar' }).first().click();
+  await scanNamed('DateRangePicker calendar popover (Trip Dates)');
+  await page.keyboard.press('Escape');
+
+  await gotoTab(page, 'Catalog', 'Tooltip');
+  await page.getByRole('button', { name: 'Hover For Tooltip' }).hover();
+  await expect(page.getByRole('tooltip')).toBeVisible();
+  await scanNamed('Tooltip popup (hovered)');
+  await page.mouse.move(0, 0);
+
   await gotoTab(page, 'Catalog', 'UIGroup');
 
   await page.getByRole('button', { name: 'Options', exact: true }).click();
