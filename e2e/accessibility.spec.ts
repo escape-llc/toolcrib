@@ -44,7 +44,8 @@ const BASE_UI_FOCUS_GUARD = '[data-base-ui-focus-guard]';
 
 /**
  * Waits for every finite animation and transition on the page to finish
- * (the real completion signal, not a sleep). color-contrast reads the
+ * (the real completion signal, not a sleep), after letting the browser start
+ * the ones a just-made change has queued (see the two-frame wait below). color-contrast reads the
  * pixels' current colors, so an overlay still fading in (opacity ramping
  * 0 to 1) or a color mid-transition measures as a contrast failure that
  * isn't real. Infinite animations (spinners, shimmer) are skipped: they
@@ -52,6 +53,13 @@ const BASE_UI_FOCUS_GUARD = '[data-base-ui-focus-guard]';
  */
 async function settleAnimations(page: Page): Promise<void> {
   await page.evaluate(async () => {
+    // Two frames first: a transition (e.g. an overlay's fade-in from
+    // Base UI's starting style) only exists as an Animation object once the
+    // browser has run a style recalc after the state change. Asked
+    // immediately after a click, getAnimations() is still empty, "nothing to
+    // wait for" is the wrong answer, and the scan lands mid-fade. WebKit on
+    // a loaded CI runner showed it every time.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     const finite = () =>
       document
         .getAnimations()
