@@ -52,11 +52,61 @@ describe('ViewerContent', () => {
   it('navigates via ArrowLeft/ArrowRight keyboard shortcuts', () => {
     render(<ViewerContent items={items} defaultActiveIndex={0} />);
 
-    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    fireEvent.keyDown(screen.getByLabelText('Zoom in'), { key: 'ArrowRight' });
     expect(screen.getByAltText('Photo B')).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'ArrowLeft' });
+    fireEvent.keyDown(screen.getByLabelText('Zoom in'), { key: 'ArrowLeft' });
     expect(screen.getByAltText('Photo A')).toBeInTheDocument();
+  });
+
+  describe('regression: shortcuts are scoped to the viewer, not the whole document (#852)', () => {
+    // The listener used to sit on `document` and preventDefault() arrow/+/-/=
+    // everywhere, so an inline viewer ate those keys in every text field on
+    // the page.
+    it('ignores keys typed in an input outside the viewer', () => {
+      render(
+        <>
+          <input aria-label="Elsewhere" />
+          <ViewerContent items={items} defaultActiveIndex={0} />
+        </>,
+      );
+      const input = screen.getByLabelText('Elsewhere');
+
+      expect(fireEvent.keyDown(input, { key: 'ArrowRight' })).toBe(true); // not default-prevented
+      expect(fireEvent.keyDown(input, { key: '+' })).toBe(true);
+      expect(screen.getByAltText('Photo A')).toBeInTheDocument();
+      expect(screen.getByLabelText('Zoom in')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('leaves Ctrl/Cmd +/- (browser zoom) alone', () => {
+      render(<ViewerContent items={items} defaultActiveIndex={0} />);
+      const zoomButton = screen.getByLabelText('Zoom in');
+
+      expect(fireEvent.keyDown(zoomButton, { key: '+', ctrlKey: true })).toBe(true);
+      expect(fireEvent.keyDown(zoomButton, { key: '=', metaKey: true })).toBe(true);
+      expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.keyDown(zoomButton, { key: '+' });
+      expect(screen.getByLabelText('Zoom out')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('lets arrows pan while zoomed instead of navigating, and zooms out on - or _', () => {
+      render(<ViewerContent items={items} defaultActiveIndex={0} />);
+      const zoomButton = screen.getByLabelText('Zoom in');
+      fireEvent.keyDown(zoomButton, { key: '=' });
+
+      // jsdom has no scrollBy; the real panning is checked in e2e.
+      const scrollBy = vi.fn();
+      (zoomButton.parentElement as HTMLElement).scrollBy = scrollBy;
+      fireEvent.keyDown(zoomButton, { key: 'ArrowRight' });
+      expect(scrollBy).toHaveBeenCalledWith({ left: 40, top: 0 });
+      expect(screen.getByAltText('Photo A')).toBeInTheDocument();
+
+      fireEvent.keyDown(zoomButton, { key: '_' });
+      expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.keyDown(zoomButton, { key: 'ArrowRight' });
+      expect(screen.getByAltText('Photo B')).toBeInTheDocument();
+    });
   });
 
   it('supports controlled activeIndex', () => {

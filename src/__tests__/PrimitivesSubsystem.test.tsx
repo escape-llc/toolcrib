@@ -141,6 +141,23 @@ describe('Primitives Subsystem', () => {
     expect(trigger).toHaveAttribute('aria-describedby', `hint ${content.id}`);
   });
 
+  // #852: Base UI merges the child element's own props last, so an
+  // aria-describedby on the child (a form control pointing at its error
+  // text, say) replaced the tooltip's popup id instead of joining it.
+  it('keeps the child element\'s own aria-describedby alongside the tooltip\'s', async () => {
+    render(
+      <Tooltip content="Help text" delayDuration={0}>
+        <button aria-describedby="field-error">Hover target</button>
+      </Tooltip>
+    );
+    const trigger = screen.getByText('Hover target');
+    expect(trigger).toHaveAttribute('aria-describedby', 'field-error');
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseMove(trigger);
+    const content = await waitFor(() => screen.getByRole('tooltip'));
+    expect(trigger).toHaveAttribute('aria-describedby', `field-error ${content.id}`);
+  });
+
   it('renders Select component with its options', () => {
     const handleChange = vi.fn();
 
