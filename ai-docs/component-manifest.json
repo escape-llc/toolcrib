@@ -166,6 +166,8 @@
       "--ai-sidebar-item-gap",
       "--ai-slider-thumb-size",
       "--ai-slider-track-height",
+      "--ai-stepper-enter-backward",
+      "--ai-stepper-enter-forward",
       "--ai-stepper-font-size",
       "--ai-stepper-indicator-size",
       "--ai-subtheme-error",

@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { z } from 'zod';
 import { Stepper, type StepperStepData } from '../components/Stepper/Stepper';
+import { StepperThemeSlice, getStepperVariables, defaultStepperState } from '../components/Stepper/StepperSlice';
+import { getSparseVariables } from '../theme/slice';
 import { Form } from '../components/Form/FormContext';
 import { FormField, Input } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
@@ -174,5 +176,29 @@ describe('Stepper', () => {
     const steps: StepperStepData[] = [{ id: 'a', label: 'Step A', content: <div>A</div> }];
     render(<Stepper steps={steps} />);
     expect(screen.getByText('Back')).toBeDisabled();
+  });
+});
+
+// #740: the step transition comes from the slice as two animation
+// shorthands, one per direction. Which one plays (keyed on Base UI's
+// data-activation-direction) is checked in a real browser,
+// e2e/stepper-direction.spec.ts.
+describe('Stepper step transition (slice)', () => {
+  it('maps stepTransition to forward/backward animations, defaulting to slide', () => {
+    const slide = getStepperVariables();
+    expect(slide['--ai-stepper-enter-forward']).toMatch(/^ai-stepper-slide-from-right /);
+    expect(slide['--ai-stepper-enter-backward']).toMatch(/^ai-stepper-slide-from-left /);
+    const fade = getStepperVariables({ ...defaultStepperState, stepTransition: 'fade' });
+    expect(fade['--ai-stepper-enter-forward']).toMatch(/^ai-fade-in /);
+    expect(getSparseVariables(StepperThemeSlice, { stepTransition: 'none' })).toEqual({
+      '--ai-stepper-enter-forward': 'none',
+      '--ai-stepper-enter-backward': 'none',
+    });
+  });
+
+  it('marks its panels and injects the direction rules', () => {
+    const { container } = render(<Stepper steps={[{ id: 'a', label: 'A', content: 'Step A' }, { id: 'b', label: 'B', content: 'Step B' }]} />);
+    expect(container.querySelector('.ai-stepper-panel')).not.toBeNull();
+    expect(document.getElementById('toolcrib-stepper-styles')?.textContent).toContain('[data-activation-direction="right"]');
   });
 });
