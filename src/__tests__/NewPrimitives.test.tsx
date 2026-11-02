@@ -5,6 +5,8 @@ import { AccessibleIcon } from '../components/Layout/AccessibleIcon';
 import { Label } from '../components/Form/Label';
 import { Checkbox, Switch } from '../components/Form/FormComponents';
 import { ScrollArea } from '../components/ScrollArea/ScrollArea';
+import { ScrollAreaThemeSlice, getScrollAreaVariables, defaultScrollAreaState } from '../components/ScrollArea/ScrollAreaSlice';
+import { getSparseVariables } from '../theme/slice';
 import { axe } from './testUtils/axe';
 import { NonceContext } from '../theme/nonceContext';
 import { settleOverlay } from './testUtils/overlay';
@@ -108,6 +110,16 @@ describe('ScrollArea Component', () => {
     expect(ownStyle).not.toBeNull();
     expect(baseUiStyle!.getAttribute('nonce')).toBe('test-nonce-625');
     expect(ownStyle!.getAttribute('nonce')).toBe('test-nonce-625');
+  });
+
+  // #737: the edge fade's size comes from the slice; 'none' is 0px, which
+  // collapses the mask's stops to the edges. The mask itself is checked in
+  // a real browser (e2e/scrollarea-edge-fade.spec.ts).
+  it('maps edgeFade to the fade-size variable, defaulting to subtle', () => {
+    expect(getScrollAreaVariables()['--ai-scrollarea-fade-size']).toBe('1.5rem');
+    expect(getScrollAreaVariables({ ...defaultScrollAreaState, edgeFade: 'none' })['--ai-scrollarea-fade-size']).toBe('0px');
+    expect(getScrollAreaVariables({ ...defaultScrollAreaState, edgeFade: 'strong' })['--ai-scrollarea-fade-size']).toBe('3rem');
+    expect(getSparseVariables(ScrollAreaThemeSlice, { edgeFade: 'none' })).toEqual({ '--ai-scrollarea-fade-size': '0px' });
   });
 
   it('renders its children inside the scrollable viewport', async () => {
