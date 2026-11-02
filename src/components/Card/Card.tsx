@@ -142,6 +142,15 @@ export const Card: React.FC<CardProps> & {
   const { style: domainCornerStyle } = useCornerSquaring(isAuto);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const { vars, subtheme } = useSliceOverrides(CardThemeSlice, overrides);
+  // All four corner longhands on every render, never the borderRadius
+  // shorthand plus a sparse set of longhands: squareCorners toggling would
+  // add/remove keys under a fixed shorthand, which React warns about (#860,
+  // same fix as Button's).
+  const cornerOverrides: React.CSSProperties = {
+    ...domainCornerStyle,
+    ...resolveSquareCorners(squareCorners ?? uiGroupSquareCorners),
+  };
+  const radius = 'var(--ai-radius-lg, 0.75rem)';
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
 
   return (
@@ -160,7 +169,10 @@ export const Card: React.FC<CardProps> & {
       {...props}
       style={{
         background: 'var(--ai-bg-surface, #ffffff)',
-        borderRadius: 'var(--ai-radius-lg, 0.75rem)',
+        borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? radius,
+        borderTopRightRadius: cornerOverrides.borderTopRightRadius ?? radius,
+        borderBottomLeftRadius: cornerOverrides.borderBottomLeftRadius ?? radius,
+        borderBottomRightRadius: cornerOverrides.borderBottomRightRadius ?? radius,
         border: `0.0625rem solid ${subthemeColors ? subthemeColors.border : 'var(--ai-border, #e5e7eb)'}`,
         boxShadow: 'var(--ai-shadow-sm, 0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.05))',
         overflow: 'hidden',
@@ -173,9 +185,7 @@ export const Card: React.FC<CardProps> & {
           minHeight: 0,
           boxSizing: 'border-box',
         } : {}),
-        ...domainCornerStyle,
         ...vars,
-        ...resolveSquareCorners(squareCorners ?? uiGroupSquareCorners),
       }}
     >
       {children}

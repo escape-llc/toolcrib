@@ -67,16 +67,35 @@ describe('AppShell Component', () => {
     expect(row.style.flexDirection).toBe('row');
   });
 
-  it('reverses the row so Sidebar renders visually on the right in sidebar-right layout, without requiring the consumer to reorder their JSX', () => {
+  // #860: the row used row-reverse on the children as written, so writing
+  // Main before Sidebar put the sidebar on the wrong side. The Sidebar now
+  // places itself with flex `order`, whatever the JSX order.
+  it.each([
+    ['sidebar-left', 'Sidebar first', '-1'],
+    ['sidebar-left', 'Main first', '-1'],
+    ['sidebar-right', 'Sidebar first', '1'],
+    ['sidebar-right', 'Main first', '1'],
+  ] as const)('places Sidebar on the named side in %s layout with %s in the JSX', (layout, written, order) => {
     render(
-      <AppShell layout="sidebar-right">
+      <AppShell layout={layout}>
+        {written === 'Main first' && <AppShell.Main>Main</AppShell.Main>}
         <AppShell.Sidebar>Nav</AppShell.Sidebar>
-        <AppShell.Main>Main</AppShell.Main>
+        {written === 'Sidebar first' && <AppShell.Main>Main</AppShell.Main>}
       </AppShell>
     );
 
-    const row = screen.getByText('Nav').closest('aside')!.parentElement as HTMLElement;
-    expect(row.style.flexDirection).toBe('row-reverse');
+    const aside = screen.getByText('Nav').closest('aside') as HTMLElement;
+    expect((aside.parentElement as HTMLElement).style.flexDirection).toBe('row');
+    expect(aside.style.order).toBe(order);
+  });
+
+  it('leaves Sidebar in source order in the default (column) layout', () => {
+    render(
+      <AppShell>
+        <AppShell.Sidebar>Nav</AppShell.Sidebar>
+      </AppShell>
+    );
+    expect((screen.getByText('Nav').closest('aside') as HTMLElement).style.order).toBe('');
   });
 
   it('borders Sidebar on the side facing Main, correctly for either layout direction', () => {

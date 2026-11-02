@@ -127,9 +127,11 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
             transition: 'background var(--ai-transition-duration-fast, 160ms) var(--ai-transition-easing, ease)',
           }}
         >
+          {/* No `flex: 1` here: in this row scrollbar it grew the thumb along
+              the track, overriding Base UI's computed width (#860). The
+              default stretch already fills the track's height. */}
           <BaseScrollArea.Thumb
             style={{
-              flex: 1,
               background: 'var(--ai-border, #d1d5db)',
               borderRadius: 'var(--ai-radius-xl, 9999px)',
               position: 'relative',

@@ -48,19 +48,23 @@ export const CardSimple: React.FC<CardSimpleProps> = ({
   <Card {...cardProps}>
     {(title || subtitle) && (
       <Card.Header>
-        <span>{title}</span>
-        {subtitle && (
-          <span
-            style={{
-              fontWeight: 'var(--ai-font-weight-normal, 400)',
-              fontSize: '0.8125rem',
-              color: 'var(--ai-text-secondary, #6b7280)',
-              marginLeft: '0.75rem',
-            }}
-          >
-            {subtitle}
-          </span>
-        )}
+        {/* One wrapper, so Card.Header's space-between can't push the
+            subtitle to the far edge (#860). */}
+        <span style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', minWidth: 0 }}>
+          <span>{title}</span>
+          {subtitle && (
+            <span
+              style={{
+                fontWeight: 'var(--ai-font-weight-normal, 400)',
+                fontSize: '0.8125rem',
+                color: 'var(--ai-text-secondary, #6b7280)',
+                marginLeft: '0.75rem',
+              }}
+            >
+              {subtitle}
+            </span>
+          )}
+        </span>
       </Card.Header>
     )}
     <Card.Content layout={cardProps.layout}>
