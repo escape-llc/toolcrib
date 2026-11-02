@@ -89,6 +89,24 @@ describe('ViewerContent', () => {
       fireEvent.keyDown(zoomButton, { key: '+' });
       expect(screen.getByLabelText('Zoom out')).toHaveAttribute('aria-pressed', 'true');
     });
+
+    it('lets arrows pan while zoomed instead of navigating, and zooms out on - or _', () => {
+      render(<ViewerContent items={items} defaultActiveIndex={0} />);
+      const zoomButton = screen.getByLabelText('Zoom in');
+      fireEvent.keyDown(zoomButton, { key: '=' });
+
+      // jsdom has no scrollBy; the real panning is checked in e2e.
+      const scrollBy = vi.fn();
+      (zoomButton.parentElement as HTMLElement).scrollBy = scrollBy;
+      fireEvent.keyDown(zoomButton, { key: 'ArrowRight' });
+      expect(scrollBy).toHaveBeenCalledWith({ left: 40, top: 0 });
+      expect(screen.getByAltText('Photo A')).toBeInTheDocument();
+
+      fireEvent.keyDown(zoomButton, { key: '_' });
+      expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.keyDown(zoomButton, { key: 'ArrowRight' });
+      expect(screen.getByAltText('Photo B')).toBeInTheDocument();
+    });
   });
 
   it('supports controlled activeIndex', () => {

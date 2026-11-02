@@ -70,6 +70,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
   const strings = useLocaleStrings().viewer;
   const { vars } = useSliceOverrides(ViewerThemeSlice, overrides);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollLayerRef = useRef<HTMLDivElement>(null);
 
   const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
   const isControlled = controlledIndex !== undefined;
@@ -101,8 +102,21 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
   // swallow arrow/+/- keys typed anywhere else on the page (#852). Inside
   // <Viewer>'s Modal, initial focus lands on the close button, which is in
   // here. Modifier chords (Ctrl/Cmd +/-, the browser's own zoom) pass through.
+  // While zoomed, arrows pan the zoomed image instead (the prev/next buttons
+  // still navigate). Done here, not left to the browser: WebKit doesn't
+  // scroll an ancestor when the focused element is a button.
+  const PAN_STEP = 40;
+  const PAN: Record<string, [number, number]> = {
+    ArrowLeft: [-PAN_STEP, 0], ArrowRight: [PAN_STEP, 0], ArrowUp: [0, -PAN_STEP], ArrowDown: [0, PAN_STEP],
+  };
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (isZoomed && PAN[e.key]) {
+      e.preventDefault();
+      const [left, top] = PAN[e.key];
+      scrollLayerRef.current?.scrollBy({ left, top });
+      return;
+    }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
       goTo(activeIndex - 1);
@@ -112,7 +126,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
     } else if (e.key === '+' || e.key === '=') {
       e.preventDefault();
       setIsZoomed(true);
-    } else if (e.key === '-') {
+    } else if (e.key === '-' || e.key === '_') {
       e.preventDefault();
       setIsZoomed(false);
     }
@@ -220,6 +234,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
             button: before #852 its 100% max size held the image at the
             stage's height, so zoom did nothing visible. */}
         <div
+          ref={scrollLayerRef}
           style={{
             position: 'absolute',
             inset: 0,

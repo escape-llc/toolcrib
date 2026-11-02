@@ -57,4 +57,17 @@ test('regression: Viewer zoom shows the image at natural size, scrollable from i
       topLeftReachable: m.offsetLeft === 0 && m.offsetTop === 0,
     };
   }).toEqual({ atNaturalSize: true, overflowsStage: true, topLeftReachable: true });
+
+  // Zoomed, arrows pan (the browser scrolls the zoomed layer) rather than
+  // switching photos.
+  const scrollLeft = () => page.evaluate(() => {
+    const img = document.querySelector('[role="dialog"] img') as HTMLImageElement;
+    return img.parentElement!.parentElement!.scrollLeft;
+  });
+  // WebKit doesn't focus a button on click, so focus it the way a keyboard
+  // user would already have it.
+  await dialog.getByRole('button', { name: 'Zoom out' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(scrollLeft).toBeGreaterThan(0);
+  await expect(dialog.locator('img')).toHaveAttribute('alt', 'Demo photo 2');
 });
