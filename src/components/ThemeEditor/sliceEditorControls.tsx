@@ -55,7 +55,7 @@ import { type DrawerSliceState, type DrawerWidth, type DrawerHeaderMargin, type 
 import { type TabSliceState, type TabVariant, type TabSize, type TabPanelTransition } from '../TabStrip/TabSlice';
 import { type PopupSliceState, type PopupShadowDepth, type PopupBorderStyle } from '../Overlay/PopupSlice';
 import { type ButtonSliceState, type ButtonFontWeight, type ButtonIconGap } from '../Form/ButtonSlice';
-import { type StepperSliceState, type StepperSize } from '../Stepper/StepperSlice';
+import { type StepperSliceState, type StepperSize, type StepperTransition } from '../Stepper/StepperSlice';
 import { type ModalSliceState, type ModalBackdropBlur, type ModalOverlayDarkness, type ModalNestedRecede } from '../Overlay/ModalSlice';
 import { type ComboboxSliceState, type ComboboxPadding, type ComboboxItemDensity } from '../Form/ComboboxSlice';
 import { type ToastSliceState, type ToastShadowDepth, type ToastAccentStyle } from '../Toast/ToastSlice';
@@ -665,16 +665,28 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
         </div>
   ),
   stepper: (state: StepperSliceState, onChange: (next: StepperSliceState) => void) => (
-    <FieldRow
-          label="Stepper Indicator Size"
-          value={state.size}
-          onChange={val => onChange({ ...state, size: val as StepperSize })}
-          options={[
-            { label: 'Small', value: 'sm' },
-            { label: 'Medium', value: 'md' },
-            { label: 'Large', value: 'lg' },
-          ]}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <FieldRow
+            label="Stepper Indicator Size"
+            value={state.size}
+            onChange={val => onChange({ ...state, size: val as StepperSize })}
+            options={[
+              { label: 'Small', value: 'sm' },
+              { label: 'Medium', value: 'md' },
+              { label: 'Large', value: 'lg' },
+            ]}
+          />
+      <FieldRow
+            label="Step Transition"
+            value={state.stepTransition}
+            onChange={val => onChange({ ...state, stepTransition: val as StepperTransition })}
+            options={[
+              { label: 'Slide (direction of travel)', value: 'slide' },
+              { label: 'Fade', value: 'fade' },
+              { label: 'None', value: 'none' },
+            ]}
+          />
+    </div>
   ),
   modal: (state: ModalSliceState, onChange: (next: ModalSliceState) => void) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

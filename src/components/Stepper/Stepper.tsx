@@ -6,7 +6,26 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
+import { useNonce } from '../../theme/nonceContext';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { StepperThemeSlice, type StepperSliceState } from './StepperSlice';
+
+// #740: a step's content enters from the direction of travel. Base UI's
+// Tabs panel carries data-activation-direction (right = forward through a
+// horizontal list, left = back, none on first render), on the panel's
+// first render too, so a keyframe keyed on it plays as the new step mounts.
+// The animation shorthands come from the slice (slide/fade/none) and time
+// on --ai-transition-duration-normal, which is 0s under reduced motion.
+const PANEL_CLASS = 'ai-stepper-panel';
+// Without a slice value (no ThemeProvider), still time on the motion tokens.
+const FALLBACK_TIMING = 'var(--ai-transition-duration-normal, 0.22s) var(--ai-transition-easing, ease)';
+const STEPPER_CSS = `
+@keyframes ai-stepper-slide-from-right { from { opacity: 0; transform: translateX(1.5rem); } to { opacity: 1; transform: none; } }
+@keyframes ai-stepper-slide-from-left { from { opacity: 0; transform: translateX(-1.5rem); } to { opacity: 1; transform: none; } }
+.${PANEL_CLASS}[data-activation-direction="right"] { animation: var(--ai-stepper-enter-forward, ai-stepper-slide-from-right ${FALLBACK_TIMING}); }
+.${PANEL_CLASS}[data-activation-direction="left"] { animation: var(--ai-stepper-enter-backward, ai-stepper-slide-from-left ${FALLBACK_TIMING}); }
+`;
 
 /** Data shape for each step in a `<Stepper>`. */
 export interface StepperStepData {
@@ -59,6 +78,11 @@ export const Stepper: React.FC<StepperProps> = ({
 }) => {
   const id = useStableId(propId, 'stepper');
   const stepperVars = getSparseVariables(StepperThemeSlice, overrides ?? {});
+  const nonce = useNonce();
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectGlobalStyle('toolcrib-stepper-styles', STEPPER_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
 
   const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
   const isControlled = controlledIndex !== undefined;
@@ -187,7 +211,7 @@ export const Stepper: React.FC<StepperProps> = ({
       </BaseTabs.List>
 
       {steps.map(step => (
-        <BaseTabs.Panel key={step.id} value={step.id} style={{ flex: 1 }}>
+        <BaseTabs.Panel key={step.id} value={step.id} className={PANEL_CLASS} style={{ flex: 1 }}>
           {step.content}
         </BaseTabs.Panel>
       ))}
