@@ -18,11 +18,13 @@ import { StepperThemeSlice, type StepperSliceState } from './StepperSlice';
 // The animation shorthands come from the slice (slide/fade/none) and time
 // on --ai-transition-duration-normal, which is 0s under reduced motion.
 const PANEL_CLASS = 'ai-stepper-panel';
+// Without a slice value (no ThemeProvider), still time on the motion tokens.
+const FALLBACK_TIMING = 'var(--ai-transition-duration-normal, 0.22s) var(--ai-transition-easing, ease)';
 const STEPPER_CSS = `
 @keyframes ai-stepper-slide-from-right { from { opacity: 0; transform: translateX(1.5rem); } to { opacity: 1; transform: none; } }
 @keyframes ai-stepper-slide-from-left { from { opacity: 0; transform: translateX(-1.5rem); } to { opacity: 1; transform: none; } }
-.${PANEL_CLASS}[data-activation-direction="right"] { animation: var(--ai-stepper-enter-forward, ai-stepper-slide-from-right 0.22s ease); }
-.${PANEL_CLASS}[data-activation-direction="left"] { animation: var(--ai-stepper-enter-backward, ai-stepper-slide-from-left 0.22s ease); }
+.${PANEL_CLASS}[data-activation-direction="right"] { animation: var(--ai-stepper-enter-forward, ai-stepper-slide-from-right ${FALLBACK_TIMING}); }
+.${PANEL_CLASS}[data-activation-direction="left"] { animation: var(--ai-stepper-enter-backward, ai-stepper-slide-from-left ${FALLBACK_TIMING}); }
 `;
 
 /** Data shape for each step in a `<Stepper>`. */
