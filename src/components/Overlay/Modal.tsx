@@ -5,7 +5,7 @@
 // CSP nonce and enter/exit keyframes come from the shared overlay layer
 // (./baseui/overlayLayer). Base UI supplies the focus trap, scroll lock,
 // outside-press and Escape dismissal, and native nested-dialog handling.
-import React, { useState, type ReactNode, type ReactElement } from 'react';
+import React, { useEffect, useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
@@ -17,6 +17,21 @@ import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, type ModalSliceState } from './ModalSlice';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
+import { useNonce } from '../../theme/nonceContext';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+
+// #738: while another dialog is open on top of this one, it recedes.
+// Base UI marks the parent popup [data-nested-dialog-open] and sets
+// --nested-dialogs to the number of open children, so each level shrinks
+// it a step further. A transition (not a keyframe) so it eases back on
+// close; the duration token is 0s under reduced motion, so it snaps. The
+// individual `scale` property, not `transform`, so it composes with the
+// enter/exit keyframes and any transform the popup gets later.
+const NESTED_RECEDE_CSS = `
+.ai-modal-content { transition: scale var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, ease); }
+.ai-modal-content[data-nested-dialog-open] { scale: calc(1 - var(--ai-modal-nested-scale-step, 0.04) * var(--nested-dialogs, 1)); }
+`;
 
 /**
  * Props for the `<Modal>` dialog overlay.
@@ -118,6 +133,11 @@ export const Modal: React.FC<ModalProps> & {
     { className: 'ai-modal-content', enter: 'ai-scale-in', exit: 'ai-scale-out' },
   ]);
   const { vars: modalVars } = useSliceOverrides(ModalThemeSlice, overrides);
+  const nonce = useNonce();
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectGlobalStyle('toolcrib-modal-nested-recede', NESTED_RECEDE_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -186,6 +206,9 @@ export const Modal: React.FC<ModalProps> & {
                 zIndex: zIndex + 1,
                 outline: 'none',
                 contain: 'content',
+                // The popup reads --ai-modal-nested-scale-step, so an
+                // instance override has to reach it, not just the backdrop.
+                ...modalVars,
               }}
             >
               <BaseDialog.Title style={{ display: 'none' }}>{ariaLabel}</BaseDialog.Title>

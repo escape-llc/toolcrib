@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { actAndSettle } from './testUtils/overlay';
+import { actAndSettle, settleOverlay } from './testUtils/overlay';
 import { Popup } from '../components/Overlay/Popup';
 import { Drawer } from '../components/Overlay/Drawer';
 import { Modal } from '../components/Overlay/Modal';
+import { ModalThemeSlice, getModalVariables, defaultModalState } from '../components/Overlay/ModalSlice';
+import { getSparseVariables } from '../theme/slice';
 import { Button } from '../components/Form/FormComponents';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
@@ -440,5 +442,23 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(popupShownSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'test-popup' }));
 
     unsub();
+  });
+});
+
+// #738: how far a Modal recedes behind a nested dialog comes from the slice.
+// The recede itself (Base UI's --nested-dialogs driving a scale) is checked
+// in a real browser, e2e/modal-nested-recede.spec.ts.
+describe('Modal nested recede (slice)', () => {
+  it('maps nestedRecede to a per-level scale step, defaulting to subtle', () => {
+    expect(getModalVariables()['--ai-modal-nested-scale-step']).toBe('0.04');
+    expect(getModalVariables({ ...defaultModalState, nestedRecede: 'none' })['--ai-modal-nested-scale-step']).toBe('0');
+    expect(getModalVariables({ ...defaultModalState, nestedRecede: 'strong' })['--ai-modal-nested-scale-step']).toBe('0.08');
+    expect(getSparseVariables(ModalThemeSlice, { nestedRecede: 'none' })).toEqual({ '--ai-modal-nested-scale-step': '0' });
+  });
+
+  it('injects the recede rule when a Modal renders', async () => {
+    render(<Modal isOpen={true} aria-label="Recede test"><p>Body</p></Modal>);
+    await settleOverlay();
+    expect(document.getElementById('toolcrib-modal-nested-recede')?.textContent).toContain('[data-nested-dialog-open]');
   });
 });

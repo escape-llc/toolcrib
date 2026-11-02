@@ -132,6 +132,7 @@
       "--ai-master-font-size",
       "--ai-menu-item-highlight-amount",
       "--ai-modal-backdrop-blur",
+      "--ai-modal-nested-scale-step",
       "--ai-modal-overlay-bg",
       "--ai-padding-lg",
       "--ai-padding-md",
