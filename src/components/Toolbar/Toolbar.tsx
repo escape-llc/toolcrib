@@ -18,6 +18,7 @@ import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { ToolbarThemeSlice, type ToolbarSliceState } from './ToolbarSlice';
 import { Button, type ButtonProps } from '../Form/FormComponents';
+import { TooltipGroup } from '../Tooltip/Tooltip';
 
 /**
  * Not exported — purely internal plumbing so `Toolbar.Left`/`.Center`/
@@ -100,7 +101,11 @@ export const Toolbar: React.FC<ToolbarProps> & {
         ...toolbarVars,
       }}
     >
-      <ToolbarOrientationContext.Provider value={orientation}>{children}</ToolbarOrientationContext.Provider>
+      {/* Tooltips anywhere in the toolbar form one group (#739): sweeping
+          across icon buttons opens each tooltip instantly after the first. */}
+      <ToolbarOrientationContext.Provider value={orientation}>
+        <TooltipGroup>{children}</TooltipGroup>
+      </ToolbarOrientationContext.Provider>
     </BaseToolbar.Root>
   );
 };

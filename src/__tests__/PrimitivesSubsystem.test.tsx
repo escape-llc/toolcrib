@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Tooltip } from '../components/Tooltip/Tooltip';
+import { Tooltip, TooltipGroup } from '../components/Tooltip/Tooltip';
 import { Accordion } from '../components/Accordion/Accordion';
 import { DropdownMenu } from '../components/DropdownMenu/DropdownMenu';
 import { Select } from '../components/Form/Select';
@@ -156,6 +156,21 @@ describe('Primitives Subsystem', () => {
     fireEvent.mouseMove(trigger);
     const content = await waitFor(() => screen.getByRole('tooltip'));
     expect(trigger).toHaveAttribute('aria-describedby', `field-error ${content.id}`);
+  });
+
+  // #739: grouping itself (a neighbour opening instantly, [data-instant],
+  // no pop) is checked in a real browser, e2e/tooltip-group.spec.ts.
+  it('TooltipGroup renders its tooltips, and the instant rule is injected', async () => {
+    render(
+      <TooltipGroup>
+        <Tooltip content="First" delayDuration={0}><button>One</button></Tooltip>
+        <Tooltip content="Second" delayDuration={0}><button>Two</button></Tooltip>
+      </TooltipGroup>
+    );
+    fireEvent.mouseEnter(screen.getByText('One'));
+    fireEvent.mouseMove(screen.getByText('One'));
+    expect(await waitFor(() => screen.getByRole('tooltip'))).toHaveTextContent('First');
+    expect(document.getElementById('toolcrib-tooltip-instant')?.textContent).toContain('[data-instant]');
   });
 
   it('renders Select component with its options', () => {
