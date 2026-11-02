@@ -41,11 +41,14 @@ export const Toggle: React.FC<ToggleProps> = ({
   pressed: externalPressed,
   defaultPressed = false,
   onPressedChange,
-  disabled = false,
+  disabled: disabledProp = false,
   children,
   overrides,
   size = 'md',
 }) => {
+  // The native <fieldset> already blocks the button; this makes it look
+  // and report disabled too, like ToggleGroup (#880).
+  const disabled = useFieldsetDisabled(disabledProp);
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});

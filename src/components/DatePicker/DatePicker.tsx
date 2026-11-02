@@ -164,8 +164,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
   useInjectInteractionStyles();
+
+  // Seeded like NumberField (#880): without it an untouched picker showed
+  // its defaultValue but submitted nothing, and submit never marked it
+  // touched, so a required error never showed either.
+  React.useEffect(() => {
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [fieldName, registerField]);
 
   const formValue: CalendarDate | null | undefined =
     fieldName && formContext ? (formContext.values[fieldName] as CalendarDate | null | undefined) : undefined;
@@ -198,7 +207,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         shouldCloseOnSelect={false}
         aria-label={!label ? ariaLabel : undefined}
-        aria-labelledby={!label ? ariaLabelledBy : undefined}
+        // Inside a <FormField>: its label is htmlFor={name}, which the
+        // segmented input can't take, so name it by the label's id (#880).
+        aria-labelledby={!label ? ariaLabelledBy ?? (!ariaLabel ? fieldCtx.labelId : undefined) : undefined}
         // Dimmed like the other disabled controls; React Aria marks it
         // disabled but draws nothing for it.
         style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}

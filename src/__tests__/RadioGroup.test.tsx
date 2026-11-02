@@ -150,6 +150,21 @@ describe('RadioGroup Component', () => {
     });
   });
 
+  // #880: every other Form control marks itself touched on change, so its
+  // error shows as soon as the value is wrong; RadioGroup waited for submit.
+  it('shows a validation error as soon as an invalid option is picked, before any submit', async () => {
+    const schema = z.object({ role: z.string().refine(v => v !== 'b', 'B is not allowed') });
+    render(
+      <Form id="role-form-3" schema={schema} onSubmit={vi.fn()}>
+        <FormField name="role" label="Role">
+          <RadioGroup options={options} />
+        </FormField>
+      </Form>
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Option B' }));
+    await waitFor(() => expect(screen.getByText('B is not allowed')).toBeInTheDocument());
+  });
+
   describe('accessible name (#811)', () => {
     const options = [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }];
 

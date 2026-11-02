@@ -163,6 +163,9 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
     }
     if (fieldName && formContext) {
       formContext.setFieldValue(fieldName, val);
+      // Like every other Form control (#880): without it a selection's
+      // validation error stayed hidden until submit.
+      formContext.setFieldTouched(fieldName, true);
     }
   };
 

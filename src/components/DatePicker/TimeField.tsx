@@ -97,10 +97,17 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
+
+  // Seeded like NumberField (#880); see DatePicker.
+  React.useEffect(() => {
+    if (fieldName && registerField) registerField(fieldName, defaultValue ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [fieldName, registerField]);
 
   const formValue: Time | null | undefined =
     fieldName && formContext ? (formContext.values[fieldName] as Time | null | undefined) : undefined;
@@ -142,7 +149,8 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         isInvalid={isError || undefined}
         aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         aria-label={!label ? ariaLabel : undefined}
-        aria-labelledby={!label ? ariaLabelledBy : undefined}
+        // Inside a <FormField>, named by its label's id (#880); see DatePicker.
+        aria-labelledby={!label ? ariaLabelledBy ?? (!ariaLabel ? fieldCtx.labelId : undefined) : undefined}
       >
         {label && (
           <Label style={{ display: 'block', fontSize: CONTROL_FONT_SIZE_VAR[size], fontWeight: 'var(--ai-font-weight-semibold, 600)', marginBottom: '0.375rem', color: 'var(--ai-text-primary, #111827)' }}>
