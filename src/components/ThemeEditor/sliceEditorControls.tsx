@@ -56,7 +56,7 @@ import { type TabSliceState, type TabVariant, type TabSize, type TabPanelTransit
 import { type PopupSliceState, type PopupShadowDepth, type PopupBorderStyle } from '../Overlay/PopupSlice';
 import { type ButtonSliceState, type ButtonFontWeight, type ButtonIconGap } from '../Form/ButtonSlice';
 import { type StepperSliceState, type StepperSize } from '../Stepper/StepperSlice';
-import { type ModalSliceState, type ModalBackdropBlur, type ModalOverlayDarkness } from '../Overlay/ModalSlice';
+import { type ModalSliceState, type ModalBackdropBlur, type ModalOverlayDarkness, type ModalNestedRecede } from '../Overlay/ModalSlice';
 import { type ComboboxSliceState, type ComboboxPadding, type ComboboxItemDensity } from '../Form/ComboboxSlice';
 import { type ToastSliceState, type ToastShadowDepth, type ToastAccentStyle } from '../Toast/ToastSlice';
 import { type ToggleSliceState, type TogglePadding } from '../ToggleGroup/ToggleSlice';
@@ -696,6 +696,16 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               { label: 'Light (30% Black)', value: 'light' },
               { label: 'Normal (50% Black)', value: 'normal' },
               { label: 'Dark (70% Black)', value: 'dark' },
+            ]}
+          />
+          <FieldRow
+            label="Recede Behind a Nested Dialog"
+            value={state.nestedRecede}
+            onChange={val => onChange({ ...state, nestedRecede: val as ModalNestedRecede })}
+            options={[
+              { label: 'None', value: 'none' },
+              { label: 'Subtle (4% per level)', value: 'subtle' },
+              { label: 'Strong (8% per level)', value: 'strong' },
             ]}
           />
         </div>
