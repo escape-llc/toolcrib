@@ -4693,6 +4693,22 @@
       "description": "Hover/focus tooltip wrapping a child trigger element"
     },
     {
+      "name": "TooltipGroup",
+      "import": "import { TooltipGroup } from '#toolcrib'",
+      "props": {
+        "timeout": {
+          "type": "number",
+          "default": "400",
+          "description": "How long (ms) the group stays warm after its last tooltip closes; within\nthat window, the next tooltip in the group opens with no delay."
+        }
+      },
+      "childComponents": [
+        "Tooltip"
+      ],
+      "category": "Overlays",
+      "description": "Groups adjacent tooltips so that once one is open, its neighbours open instantly with no re-run delay or animation"
+    },
+    {
       "name": "Tree",
       "import": "import { Tree } from '#toolcrib'",
       "props": {

@@ -4,13 +4,48 @@
 // implementation (same export, props, events and forwardRef). Portal container,
 // stacked z-index, CSP nonce, enter/exit keyframes and the arrow come from the
 // shared overlay layer (../Overlay/baseui/overlayLayer).
-import React, { useId, useState, type HTMLAttributes, type ReactNode, type ReactElement } from 'react';
+import React, { useEffect, useId, useState, type HTMLAttributes, type ReactNode, type ReactElement } from 'react';
 import { type StyleFree } from '../../theme/safeProps';
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { useNonce } from '../../theme/nonceContext';
+import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
 import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+
+// #739: inside a <TooltipGroup>, a tooltip that opens (or closes) while the
+// group is warm carries [data-instant], and skips its pop animation, so
+// sweeping across a toolbar doesn't replay it on every button. The doubled
+// class outranks the [data-open]/[data-closed] animation rules whatever
+// order the two style tags land in.
+const INSTANT_CSS = `.ai-tooltip-content.ai-tooltip-content[data-instant] { animation: none; }`;
+
+/** Props for `<TooltipGroup>`. */
+export interface TooltipGroupProps {
+  children: ReactNode;
+  /**
+   * How long (ms) the group stays warm after its last tooltip closes; within
+   * that window, the next tooltip in the group opens with no delay.
+   * @default 400
+   */
+  timeout?: number;
+}
+
+/**
+ * Groups adjacent tooltips: the first one in the group opens after its own
+ * `delayDuration`, and once one has opened, its neighbours open instantly
+ * and without the pop animation. `<Toolbar>` already groups its children;
+ * use this for any other cluster of tooltip triggers. Outside a group, each
+ * Tooltip keeps its own delay.
+ * @manifest Groups adjacent tooltips so that once one is open, its neighbours open instantly with no re-run delay or animation
+ * @manifestCategory Overlays
+ * @manifestChildren Tooltip
+ */
+export const TooltipGroup: React.FC<TooltipGroupProps> = ({ children, timeout = 400 }) => (
+  <BaseTooltip.Provider timeout={timeout}>{children}</BaseTooltip.Provider>
+);
 
 /**
  * Props for the `<Tooltip>` hover/focus information overlay.
@@ -77,6 +112,11 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   useOverlayAnimations('toolcrib-tooltip-animations-baseui', [
     { className: 'ai-tooltip-content', ...ANCHORED_POP, timing: 'var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease)' },
   ]);
+  const nonce = useNonce();
+  const targetDocument = useTargetDocument();
+  useEffect(() => {
+    injectGlobalStyle('toolcrib-tooltip-instant', INSTANT_CSS, targetDocument, nonce);
+  }, [targetDocument, nonce]);
   const [isOpen, setIsOpen] = useState(false);
   const popupId = useId();
 
@@ -103,8 +143,9 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
 
   return (
     <OverlayCSP>
-      {/* No Provider: each Tooltip keeps its own delay, with no
-          skip-delay grouping between neighbours.
+      {/* No Provider of its own: grouping is opt-in through an enclosing
+          <TooltipGroup> (or <Toolbar>); outside one, each Tooltip keeps its
+          own delay. delayDuration still sets the first open in a group.
           disableHoverablePopup: the bubble is pointer-events: none anyway. */}
       <BaseTooltip.Root onOpenChange={handleOpenChange} disableHoverablePopup>
         {/* The child is the trigger (render), with no wrapper of its own, so a

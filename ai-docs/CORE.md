@@ -210,6 +210,7 @@ Full prop detail: `ai-docs/manifest/overlays.json`
 | `<Modal>` | `.Header`, `.Body`, `.Footer`, `.Actions`, `.CloseButton` | `id`, `trigger`, `isOpen`, `onOpenChange`, `width`, `height`, `zIndex`, `aria-label`, `align`, `overrides` | Dialog overlay with focus trap, backdrop, and slot composition |
 | `<Popup>` | `.Trigger` | `id`, `trigger`, `anchor`, `placement`, `isOpen`, `onOpenChange`, `zIndex`, `overrides` | Anchored popover with light dismiss and corner-squaring to trigger |
 | `<Tooltip>` | — | `id`, `content`, `side`, `align`, `delayDuration`, `overrides` | Hover/focus tooltip wrapping a child trigger element |
+| `<TooltipGroup>` | — | `timeout` | Groups adjacent tooltips so that once one is open, its neighbours open instantly with no re-run delay or animation |
 | `<Viewer>` | — | `isOpen`, `onOpenChange` | Fullscreen media lightbox — composes ViewerContent inside Modal |
 | `<ViewerContent>` | — | `id`, `items`, `activeIndex`, `defaultActiveIndex`, `onIndexChange`, `onClose`, `overrides` | Media viewer content — zoom/pan and prev/next navigation, no overlay chrome of its own; host it inside a `<Modal>` (see `<Viewer>`), `<Drawer>`, `<Popup>`, or directly inline, of your choosing |
 

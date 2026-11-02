@@ -34,6 +34,7 @@ import {
   UIGroup,
   Splitter,
   Tooltip,
+  TooltipGroup,
   Accordion,
   DropdownMenu,
   Select,
@@ -1800,6 +1801,20 @@ export const App: React.FC = () => {
         <Tooltip content="Accessible Tooltip with HSV Styling">
           <Button variant="secondary" icon={<Info size="1em" />}>Hover For Tooltip</Button>
         </Tooltip>
+      </VStack>
+    ),
+    TooltipGroup: (
+      <VStack gap="sm" align="start">
+        <Text size="xs" weight="semibold" tone="secondary">Grouped Tooltips (`&lt;TooltipGroup&gt;`): hover one, then sweep across</Text>
+        <TooltipGroup>
+          <HStack gap="sm">
+            {['Bold', 'Italic', 'Underline', 'Strikethrough'].map(label => (
+              <Tooltip key={label} content={`${label} (grouped)`}>
+                <Button variant="secondary">{label}</Button>
+              </Tooltip>
+            ))}
+          </HStack>
+        </TooltipGroup>
       </VStack>
     ),
     Viewer: { seeAlso: 'Gallery', note: <>Click any thumbnail there to open it.</> },
