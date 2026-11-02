@@ -152,6 +152,7 @@
       "--ai-radius-xl",
       "--ai-rating-gap",
       "--ai-rating-icon-size",
+      "--ai-scrollarea-fade-size",
       "--ai-scrollarea-thumb-size",
       "--ai-scrollbar-thumb",
       "--ai-scrollbar-track",

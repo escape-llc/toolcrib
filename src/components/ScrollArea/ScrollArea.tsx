@@ -31,6 +31,18 @@ export interface ScrollAreaProps {
 
 const SCROLLBAR_CLASS = 'ai-scrollarea-scrollbar';
 
+// Edge fade (#737). Base UI writes how far the viewport is from each edge
+// (--scroll-area-overflow-{x,y}-{start,end}) onto the viewport itself, so a
+// mask there fades an edge by min(fade size, distance left to scroll): no
+// fade where there's nothing more to see, growing in as you scroll away.
+// 'none' sets the fade size to 0px, which collapses the stops to the edges.
+const fadeGradient = (direction: 'bottom' | 'right', axis: 'x' | 'y') => {
+  const fade = (edge: 'start' | 'end') => `min(var(--ai-scrollarea-fade-size, 1.5rem), var(--scroll-area-overflow-${axis}-${edge}, 0px))`;
+  return `linear-gradient(to ${direction}, transparent, #000 ${fade('start')}, #000 calc(100% - ${fade('end')}), transparent)`;
+};
+const FADE_Y = fadeGradient('bottom', 'y');
+const FADE_X = fadeGradient('right', 'x');
+
 // The `type` prop, on Base UI's scrollbar attributes (#702). Base UI keeps a
 // scrollbar mounted whenever its axis overflows and marks it data-hovering
 // (pointer over the area) and data-scrolling; showing and hiding it is left
@@ -86,7 +98,16 @@ export const ScrollArea: React.FC<ScrollAreaProps> = ({
           reach and scroll it unless its content happens to contain another
           focusable element (axe: scrollable-region-focusable). Same fix as
           Content.Grow. */}
-      <BaseScrollArea.Viewport tabIndex={0} style={{ width: '100%', height: '100%' }}>
+      <BaseScrollArea.Viewport
+        tabIndex={0}
+        style={{
+          width: '100%',
+          height: '100%',
+          maskImage: [showVertical && FADE_Y, showHorizontal && FADE_X].filter(Boolean).join(', '),
+          // Both axes: a pixel shows only where both gradients allow it.
+          maskComposite: showVertical && showHorizontal ? 'intersect' : undefined,
+        }}
+      >
         {children}
       </BaseScrollArea.Viewport>
       {showVertical && (

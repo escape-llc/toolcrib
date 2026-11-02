@@ -43,7 +43,7 @@ import { type BreadcrumbSliceState, type BreadcrumbGap } from '../Breadcrumb/Bre
 import { type DropdownMenuSliceState, type DropdownMenuShadowDepth, type DropdownMenuItemDensity } from '../DropdownMenu/DropdownMenuSlice';
 import { type ContextMenuSliceState, type ContextMenuShadowDepth, type ContextMenuItemDensity } from '../ContextMenu/ContextMenuSlice';
 import { type HoverCardSliceState, type HoverCardShadowDepth, type HoverCardBorderStyle } from '../HoverCard/HoverCardSlice';
-import { type ScrollAreaSliceState, type ScrollbarWidth } from '../ScrollArea/ScrollAreaSlice';
+import { type ScrollAreaSliceState, type ScrollbarWidth, type ScrollAreaEdgeFade } from '../ScrollArea/ScrollAreaSlice';
 import { type RatingSliceState, type RatingIconSize, type RatingGap } from '../Rating/RatingSlice';
 import { type ProgressSliceState, type ProgressTrackRadius } from '../Progress/ProgressSlice';
 import { type SidebarSliceState, type SidebarItemGap } from '../Sidebar/SidebarSlice';
@@ -421,16 +421,28 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
         </div>
   ),
   scrollArea: (state: ScrollAreaSliceState, onChange: (next: ScrollAreaSliceState) => void) => (
-    <FieldRow
-          label="Scrollbar Width"
-          value={state.thumbWidth}
-          onChange={val => onChange({ ...state, thumbWidth: val as ScrollbarWidth })}
-          options={[
-            { label: 'Thin (0.375rem)', value: 'thin' },
-            { label: 'Normal (0.5rem)', value: 'normal' },
-            { label: 'Thick (0.75rem)', value: 'thick' },
-          ]}
-        />
+    <>
+      <FieldRow
+            label="Scrollbar Width"
+            value={state.thumbWidth}
+            onChange={val => onChange({ ...state, thumbWidth: val as ScrollbarWidth })}
+            options={[
+              { label: 'Thin (0.375rem)', value: 'thin' },
+              { label: 'Normal (0.5rem)', value: 'normal' },
+              { label: 'Thick (0.75rem)', value: 'thick' },
+            ]}
+          />
+      <FieldRow
+            label="Edge Fade"
+            value={state.edgeFade}
+            onChange={val => onChange({ ...state, edgeFade: val as ScrollAreaEdgeFade })}
+            options={[
+              { label: 'None', value: 'none' },
+              { label: 'Subtle (1.5rem)', value: 'subtle' },
+              { label: 'Strong (3rem)', value: 'strong' },
+            ]}
+          />
+    </>
   ),
   rating: (state: RatingSliceState, onChange: (next: RatingSliceState) => void) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
