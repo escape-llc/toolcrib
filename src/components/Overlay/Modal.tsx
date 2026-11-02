@@ -25,10 +25,12 @@ import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 // Base UI marks the parent popup [data-nested-dialog-open] and sets
 // --nested-dialogs to the number of open children, so each level shrinks
 // it a step further. A transition (not a keyframe) so it eases back on
-// close; the duration token is 0s under reduced motion, so it snaps.
+// close; the duration token is 0s under reduced motion, so it snaps. The
+// individual `scale` property, not `transform`, so it composes with the
+// enter/exit keyframes and any transform the popup gets later.
 const NESTED_RECEDE_CSS = `
-.ai-modal-content { transition: transform var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, ease); }
-.ai-modal-content[data-nested-dialog-open] { transform: scale(calc(1 - var(--ai-modal-nested-scale-step, 0.04) * var(--nested-dialogs, 1))); }
+.ai-modal-content { transition: scale var(--ai-transition-duration-normal, 220ms) var(--ai-transition-easing, ease); }
+.ai-modal-content[data-nested-dialog-open] { scale: calc(1 - var(--ai-modal-nested-scale-step, 0.04) * var(--nested-dialogs, 1)); }
 `;
 
 /**

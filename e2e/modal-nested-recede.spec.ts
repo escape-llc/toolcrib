@@ -5,10 +5,10 @@ import { gotoTab } from './nav';
 // (scales down a step per level, from Base UI's --nested-dialogs) and eases
 // back once the child closes.
 
-// The x-scale out of the computed transform: 'none' is 1, else matrix(a, ...).
+// The computed individual `scale` property: 'none' is 1.
 const scaleOf = (dialog: Locator) => dialog.evaluate((el) => {
-  const t = getComputedStyle(el).transform;
-  return t === 'none' ? 1 : Number(t.match(/^matrix\(([^,]+)/)?.[1] ?? NaN);
+  const s = getComputedStyle(el).scale;
+  return s === 'none' ? 1 : Number(s.split(' ')[0]);
 });
 
 test('a Modal recedes while a nested dialog is open, and restores after (#738)', async ({ page }) => {
