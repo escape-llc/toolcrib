@@ -1595,6 +1595,16 @@ export const App: React.FC = () => {
             ))}
           </VStack>
         </ScrollArea>
+        <Text size="xs" weight="semibold" tone="secondary">Horizontal (`orientation="horizontal"`)</Text>
+        <ScrollArea orientation="horizontal" type="always" maxHeight="3rem">
+          <HStack gap="sm">
+            {Array.from({ length: 30 }, (_, i) => (
+              <div key={i} style={{ flexShrink: 0, padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '0.0625rem solid var(--ai-border, #f3f4f6)', borderRadius: 'var(--ai-radius-sm, 0.25rem)' }}>
+                Item {i + 1}
+              </div>
+            ))}
+          </HStack>
+        </ScrollArea>
       </VStack>
     ),
     Sidebar: (

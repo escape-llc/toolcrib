@@ -17,12 +17,17 @@ import { AppShellThemeSlice, type AppShellSliceState } from './AppShellSlice';
 
 // AppShell.Sidebar draws a divider border on the side facing AppShell.Main
 // -- which physical side that is depends entirely on the parent
-// AppShell's own `layout` prop (row vs. row-reverse), not anything
-// Sidebar knows about itself. A small local context, the same shape as
-// this codebase's other "component needs contextual awareness of a
-// choice it doesn't own itself" cases (LayoutDomainContext,
-// StyleDomainContext), rather than threading a prop through.
-const SidebarPositionContext = createContext<'left' | 'right'>('left');
+// AppShell's own `layout` prop, not anything Sidebar knows about itself.
+// A small local context, the same shape as this codebase's other
+// "component needs contextual awareness of a choice it doesn't own
+// itself" cases (LayoutDomainContext, StyleDomainContext), rather than
+// threading a prop through. `inRow` is true only inside a sidebar layout,
+// where the Sidebar also places itself with flex `order`, so Sidebar and
+// Main can be written in either order (#860: row-reverse on the children
+// as written put the sidebar on the wrong side when Main came first).
+const SidebarPositionContext = createContext<{ side: 'left' | 'right'; inRow: boolean }>({ side: 'left', inRow: false });
+const SIDEBAR_LEFT = { side: 'left', inRow: true } as const;
+const SIDEBAR_RIGHT = { side: 'right', inRow: true } as const;
 
 // The reverse direction of the context above: AppShell.Sidebar's own
 // <aside> has always sized itself independently of whatever it contains
@@ -140,11 +145,11 @@ export const AppShell: React.FC<AppShellProps> & {
   return (
     <div {...props} style={rootStyle}>
       {headerChild}
-      <SidebarPositionContext.Provider value={layout === 'sidebar-left' ? 'left' : 'right'}>
+      <SidebarPositionContext.Provider value={layout === 'sidebar-left' ? SIDEBAR_LEFT : SIDEBAR_RIGHT}>
         <div
           style={{
             display: 'flex',
-            flexDirection: layout === 'sidebar-left' ? 'row' : 'row-reverse',
+            flexDirection: 'row',
             flex: '1 1 0px',
             minHeight: 0,
             overflow: 'hidden',
@@ -206,7 +211,7 @@ AppShell.Main = ({ children, paddingMode, ...props }) => {
 };
 
 AppShell.Sidebar = ({ children, paddingMode, ...props }) => {
-  const position = useContext(SidebarPositionContext);
+  const { side: position, inRow } = useContext(SidebarPositionContext);
   const [collapsed, setCollapsed] = React.useState(false);
   const contextValue = React.useMemo(() => ({ reportCollapsed: setCollapsed }), []);
 
@@ -215,6 +220,7 @@ AppShell.Sidebar = ({ children, paddingMode, ...props }) => {
       {...props}
       style={{
         flexShrink: 0,
+        order: inRow ? (position === 'left' ? -1 : 1) : undefined,
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : 'var(--ai-appshell-sidebar-width, 16rem)',
         // Same transition value as Sidebar's own inner rail (Sidebar.tsx)
         // -- both widths need to animate in lockstep, or the rail visibly
