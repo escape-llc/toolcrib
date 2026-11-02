@@ -97,32 +97,33 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
   const canGoPrev = activeIndex > 0;
   const canGoNext = activeIndex < items.length - 1;
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        goTo(activeIndex - 1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        goTo(activeIndex + 1);
-      } else if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        setIsZoomed(true);
-      } else if (e.key === '-') {
-        e.preventDefault();
-        setIsZoomed(false);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex, items.length]);
+  // Scoped to this subtree, not the document: an inline viewer must not
+  // swallow arrow/+/- keys typed anywhere else on the page (#852). Inside
+  // <Viewer>'s Modal, initial focus lands on the close button, which is in
+  // here. Modifier chords (Ctrl/Cmd +/-, the browser's own zoom) pass through.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      goTo(activeIndex - 1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      goTo(activeIndex + 1);
+    } else if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      setIsZoomed(true);
+    } else if (e.key === '-') {
+      e.preventDefault();
+      setIsZoomed(false);
+    }
+  };
 
   if (!activeItem) return null;
 
   return (
     <div
       ref={containerRef}
+      onKeyDown={handleKeyDown}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -175,11 +176,8 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
         style={{
           flex: 1,
           minHeight: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           position: 'relative',
-          overflow: isZoomed ? 'auto' : 'hidden',
+          overflow: 'hidden',
         }}
       >
         {canGoPrev && (
@@ -191,6 +189,11 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
             style={{
               position: 'absolute',
               left: '0.75rem',
+              // Vertically centred: fixed height + top/bottom 0 + auto margin
+              // (not a transform, which .ai-btn's :active press uses).
+              top: 0,
+              bottom: 0,
+              margin: 'auto 0',
               zIndex: 1,
               display: 'flex',
               alignItems: 'center',
@@ -210,31 +213,48 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={() => setIsZoomed(z => !z)}
-          aria-label={isZoomed ? strings.zoomOut : strings.zoomIn}
-          aria-pressed={isZoomed}
-          className="ai-btn"
+        {/* The scroll layer sits under the nav buttons, so they stay put
+            while a zoomed image scrolls. `margin: auto` centres the image
+            (justify/align `center` would push overflow past the top/left
+            edge, out of scroll reach), and zoomed, nothing clamps the
+            button: before #852 its 100% max size held the image at the
+            stage's height, so zoom did nothing visible. */}
+        <div
           style={{
-            all: 'unset',
-            cursor: isZoomed ? 'zoom-out' : 'zoom-in',
-            maxWidth: '100%',
-            maxHeight: '100%',
+            position: 'absolute',
+            inset: 0,
             display: 'flex',
+            overflow: isZoomed ? 'auto' : 'hidden',
           }}
         >
-          <img
-            src={activeItem.src}
-            alt={activeItem.alt ?? ''}
+          <button
+            type="button"
+            onClick={() => setIsZoomed(z => !z)}
+            aria-label={isZoomed ? strings.zoomOut : strings.zoomIn}
+            aria-pressed={isZoomed}
+            className="ai-btn"
             style={{
+              all: 'unset',
+              cursor: isZoomed ? 'zoom-out' : 'zoom-in',
+              margin: 'auto',
               maxWidth: isZoomed ? 'none' : '100%',
               maxHeight: isZoomed ? 'none' : '100%',
-              objectFit: 'contain',
-              userSelect: 'none',
+              flexShrink: 0,
+              display: 'flex',
             }}
-          />
-        </button>
+          >
+            <img
+              src={activeItem.src}
+              alt={activeItem.alt ?? ''}
+              style={{
+                maxWidth: isZoomed ? 'none' : '100%',
+                maxHeight: isZoomed ? 'none' : '100%',
+                objectFit: 'contain',
+                userSelect: 'none',
+              }}
+            />
+          </button>
+        </div>
 
         {canGoNext && (
           <button
@@ -245,6 +265,9 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
             style={{
               position: 'absolute',
               right: '0.75rem',
+              top: 0,
+              bottom: 0,
+              margin: 'auto 0',
               zIndex: 1,
               display: 'flex',
               alignItems: 'center',

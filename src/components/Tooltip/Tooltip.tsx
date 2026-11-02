@@ -89,8 +89,17 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   // docs treat a tooltip as visual-only). This adds the description, so a
   // screen reader announces the tooltip text as the trigger's description.
   // The description only points at the popup while it's
-  // mounted, and a consumer's own aria-describedby is kept alongside it.
-  const describedBy = [consumerDescribedBy, isOpen ? popupId : undefined].filter(Boolean).join(' ') || undefined;
+  // mounted, and a consumer's own aria-describedby is kept alongside it --
+  // including one on the child itself (a form control's error id): Base UI
+  // merges the child's props last, so left alone it would replace ours (#852).
+  const childDescribedBy = React.isValidElement<{ 'aria-describedby'?: string }>(children)
+    ? children.props['aria-describedby']
+    : undefined;
+  const describedBy = [consumerDescribedBy, childDescribedBy, isOpen ? popupId : undefined].filter(Boolean).join(' ') || undefined;
+  // The child's value wins the merge, so give it the joined list to win with.
+  const trigger = childDescribedBy
+    ? React.cloneElement(children as React.ReactElement<{ 'aria-describedby'?: string }>, { 'aria-describedby': describedBy })
+    : children;
 
   return (
     <OverlayCSP>
@@ -103,7 +112,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
             corner squaring both reach it. Base UI merges the forwarded
             props' handlers with its own, and closes the tooltip on click
             (closeOnClick, on by default). */}
-        <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={children} delay={delayDuration} closeDelay={0} />
+        <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={trigger}delay={delayDuration} closeDelay={0} />
         <BaseTooltip.Portal container={container}>
           <BaseTooltip.Positioner side={side} align={align} sideOffset={5} style={{ zIndex }}>
             <BaseTooltip.Popup
