@@ -112,7 +112,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
             corner squaring both reach it. Base UI merges the forwarded
             props' handlers with its own, and closes the tooltip on click
             (closeOnClick, on by default). */}
-        <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={trigger}delay={delayDuration} closeDelay={0} />
+        <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={trigger} delay={delayDuration} closeDelay={0} />
         <BaseTooltip.Portal container={container}>
           <BaseTooltip.Positioner side={side} align={align} sideOffset={5} style={{ zIndex }}>
             <BaseTooltip.Popup
