@@ -17,7 +17,7 @@ import { OTPField } from '../components/OTPField/OTPField';
 import { DatePicker } from '../components/DatePicker/DatePicker';
 import { TimeField } from '../components/DatePicker/TimeField';
 import { DateRangePicker } from '../components/DatePicker/DateRangePicker';
-import { ToggleGroup } from '../components/ToggleGroup/ToggleGroup';
+import { ToggleGroup, Toggle } from '../components/ToggleGroup/ToggleGroup';
 import { axe } from './testUtils/axe';
 
 const options = [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }];
@@ -41,6 +41,7 @@ const controls: Record<string, React.ReactElement> = {
   TimeField: <TimeField name="tf" aria-label="tf" />,
   DateRangePicker: <DateRangePicker name="dr" aria-label="dr" />,
   ToggleGroup: <ToggleGroup type="single" options={options} aria-label="tg" />,
+  Toggle: <Toggle name="tog">tog</Toggle>,
 };
 
 const INTERACTIVE =
@@ -79,6 +80,15 @@ describe('Fieldset', () => {
     it.each(Object.keys(controls))('leaves %s enabled when the fieldset is not disabled', name => {
       const { container } = render(<Fieldset legend="x">{controls[name]}</Fieldset>);
       expect(enabledOnes(container).length).toBeGreaterThan(0);
+    });
+
+    // #880: the native <fieldset> already made Toggle's button :disabled, so
+    // the sweep above passed without it; it still looked and reported enabled.
+    it('marks a Toggle disabled itself, not only through the native fieldset', () => {
+      render(<Fieldset legend="x" disabled><Toggle name="tog">tog</Toggle></Fieldset>);
+      const button = screen.getByRole('button', { name: 'tog' });
+      expect(button).toHaveAttribute('data-disabled');
+      expect(button.style.opacity).toBe('0.5');
     });
 
     it('reaches a control however deeply it is nested', () => {
