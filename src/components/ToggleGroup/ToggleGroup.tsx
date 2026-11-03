@@ -71,6 +71,7 @@ function useFormBinding<V>(propName: string | undefined, seed: V) {
  * @manifest Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const Toggle: React.FC<ToggleProps> = ({
   name,
@@ -202,6 +203,7 @@ export interface ToggleGroupProps {
  * @manifest Connected button set for single or multiple selection, data-driven
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   name,

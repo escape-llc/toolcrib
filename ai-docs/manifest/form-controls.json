@@ -124,6 +124,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases)",
       "antiPatternInstead": "Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee",
@@ -177,6 +180,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element"
@@ -246,6 +252,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "N separate `<Checkbox>`es plus hand-written code to fold them into one array field",
@@ -349,6 +358,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context"
     },
@@ -424,6 +436,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input",
@@ -502,6 +517,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start",
@@ -610,6 +628,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context"
@@ -745,6 +766,9 @@
         "invalid",
         "read-only"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle"
     },
@@ -847,6 +871,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone"
     },
@@ -931,6 +958,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "`<Input type=\"number\">` plus hand-rolled +/- buttons, clamping and `Intl.NumberFormat` display",
       "antiPatternInstead": "`<NumberField min={0} max={99} formatOptions={{ style: 'currency', currency: 'USD' }} />` — inside a `<Form>` it stores a real `number`",
@@ -1001,6 +1031,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "A row of hand-rolled single-character `<input>`s with manual focus moving, paste splitting and keyboard handling",
@@ -1131,6 +1164,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
     },
@@ -1197,6 +1233,9 @@
         "default",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "Build a date range from two separate `<Calendar>`s with hand-written \"end must be after start\" logic",
@@ -1282,6 +1321,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Two-thumb range control (lower/upper bound) built on Base UI Slider, styled identically to Slider"
     },
@@ -1346,6 +1388,9 @@
         "disabled",
         "invalid",
         "read-only"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "antiPatternAvoid": "Build a row of clickable star `<span>`s with manual hover/click state for a rating input",
@@ -1417,6 +1462,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox"
@@ -1493,6 +1541,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Range input control built on Base UI Slider"
@@ -1596,6 +1647,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "description": "Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element"
     },
@@ -1627,6 +1681,9 @@
         "disabled",
         "invalid",
         "read-only"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Multi-line text input bound to Form context, sized and themed like Input"
@@ -1718,6 +1775,9 @@
         "disabled",
         "invalid"
       ],
+      "guarantees": [
+        "form-contract"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation)",
       "antiPatternInstead": "Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free",
@@ -1763,6 +1823,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)"
@@ -1824,6 +1887,9 @@
         "focused",
         "disabled",
         "invalid"
+      ],
+      "guarantees": [
+        "form-contract"
       ],
       "category": "Form Controls",
       "description": "Connected button set for single or multiple selection, data-driven"

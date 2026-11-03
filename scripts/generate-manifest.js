@@ -74,6 +74,7 @@ import {
   getCollectedTypeDefs,
 } from './lib/extract.js';
 import { splitByCategory } from './lib/manifestSplit.js';
+import { GUARANTEES } from './lib/manifestContracts.js';
 
 const MANIFEST_PATH = path.join(ROOT, 'ai-docs', 'component-manifest.json');
 const MANIFEST_SPLIT_DIR = path.join(ROOT, 'ai-docs', 'manifest');
@@ -129,6 +130,8 @@ function generateManifest() {
       channels: generateEventChannels(),
       helperMethods: generateHelperMethods(),
     },
+    // What each component's `guarantees` entry means, and the checks behind it.
+    guarantees: GUARANTEES,
     components,
     manifestSplit: buildManifestSplitPointer(),
     ...(Object.keys(defs).length > 0 ? { $defs: defs } : {}),

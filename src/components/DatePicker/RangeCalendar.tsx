@@ -62,6 +62,7 @@ export interface RangeCalendarProps {
  * @manifest Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components
  * @manifestCategory Form Controls
  * @manifestStates default, disabled, invalid
+ * @manifestGuarantees form-contract
  * @manifestAntiPatternAvoid Build a date range from two separate `<Calendar>`s with hand-written "end must be after start" logic
  * @manifestAntiPatternInstead Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you
  */

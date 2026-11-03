@@ -66,6 +66,7 @@ const sameRange = (a: [number, number] | undefined, b: [number, number] | undefi
  * @manifest Two-thumb range control (lower/upper bound) built on Base UI Slider, styled identically to Slider
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const RangeSlider: React.FC<RangeSliderProps> = ({
   id,

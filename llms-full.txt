@@ -560,6 +560,29 @@ Use `useToastActions()` (`addToast`, `dismissToast`, `clearAll`, `setAnchor`) in
 <ThemeEditor trigger={<Button variant="ghost" icon="🎨">Theme</Button>} />
 ```
 
+### Verified Guarantees
+
+What you can rely on without reading the source. The first two are declared on each component (`guarantees` and `states` in `component-manifest.json`). They're enforced by tests that run on every push in the toolcrib repository, and those tests fail if a declaration and the check behind it ever disagree. The third is a sweep over every demo page.
+
+**Form contract** — 22 controls: `Calendar`, `Checkbox`, `CheckboxGroup`, `Combobox`, `DatePicker`, `DateRangePicker`, `FileUpload`, `Input`, `Listbox`, `NumberField`, `OTPField`, `RadioGroup`, `RangeCalendar`, `RangeSlider`, `Rating`, `Select`, `Slider`, `Switch`, `Textarea`, `TimeField`, `Toggle`, `ToggleGroup`. Inside `<Form>` → `<FormField name="...">`, each one binds with no glue code. For every one of them, CI checks that it:
+- registers its starting value
+- writes an interaction into the Form
+- marks itself touched on change, so its error shows before submit
+- is named by the FormField label
+- returns to its starting value on resetForm
+- shows its starting state again after resetForm
+- clears its error on resetForm
+- shows and submits a Form initialValue like the same value entered by hand
+- is disabled inside a disabled Fieldset
+- is aria-invalid and points at its error once it fails
+- is seen by a submit in the same tick it mounts
+
+Enforced by `src/__tests__/formControlContract.test.tsx` in the toolcrib repository.
+
+**Declared states** — 23 components list their visual states (`default`, `focused`, `disabled`, `invalid`, `read-only`) in the manifest's `states`. Each declared state is rendered and proven, and `invalid` must visibly paint the control in the error color, not just set `aria-invalid`.
+
+**Accessibility** — every Catalog page in the demo passes an automated axe scan in Chromium and WebKit on every push. Popup, Drawer, Modal and CommandPalette are also scanned while open.
+
 ---
 
 ## 6. `layout="auto"` — Fill & Corner-Squaring

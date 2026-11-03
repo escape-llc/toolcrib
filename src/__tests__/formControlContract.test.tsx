@@ -25,6 +25,7 @@ import { Fieldset } from '../components/Fieldset/Fieldset';
 import { Calendar } from '../components/DatePicker/Calendar';
 import { RangeCalendar } from '../components/DatePicker/RangeCalendar';
 import { declaredStates, stateExample, STATE_BASE, STATE_LABEL } from '../../demo/stateExamples';
+import { FORM_CONTRACT_CHECKS as CHECK } from '../../scripts/lib/manifestContracts.js';
 
 // The Form contract, checked on every value control at once. Each control
 // takes its name from the surrounding <FormField>, and must:
@@ -199,15 +200,25 @@ describe('Form control contract', () => {
     expect([...Object.keys(CONTROLS), ...Object.keys(EXEMPT)].filter(n => !formControls.includes(n))).toEqual([]);
   });
 
+  // The manifest's form-contract guarantee is exactly this list: everything
+  // checked here declares it, and nothing else does.
+  it('the form-contract guarantee is declared by exactly the controls checked here', () => {
+    const declared = (manifest as { components: { name: string; guarantees?: string[] }[] }).components
+      .filter(c => c.guarantees?.includes('form-contract'))
+      .map(c => c.name)
+      .sort();
+    expect(declared).toEqual(Object.keys(CONTROLS).sort());
+  });
+
   describe.each(Object.entries(CONTROLS))('%s', (_name, c) => {
-    it('registers its starting value', async () => {
+    it(CHECK[0], async () => {
       const { submitted } = renderInForm(c);
       const data = await submitted();
       expect(data).toHaveProperty('field');
       same(data.field, c.start);
     });
 
-    it('writes an interaction into the Form', async () => {
+    it(CHECK[1], async () => {
       const { submitted } = renderInForm(c);
       await c.interact();
       const data = await submitted();
@@ -215,13 +226,13 @@ describe('Form control contract', () => {
       expect(JSON.stringify(data.field)).not.toBe(JSON.stringify(c.start));
     });
 
-    it('marks itself touched on change, so its error shows before submit', async () => {
+    it(CHECK[2], async () => {
       renderInForm(c, { schema: failing });
       await c.interact();
       await waitFor(() => expect(screen.getByText('Nope')).toBeInTheDocument());
     });
 
-    it('is named by the FormField label', async () => {
+    it(CHECK[3], async () => {
       renderInForm(c);
       const label = screen.getByText('Field');
       const byId = label.getAttribute('for') ? document.getElementById(label.getAttribute('for')!) : null;
@@ -230,7 +241,7 @@ describe('Form control contract', () => {
       await act(async () => {});
     });
 
-    it('returns to its starting value on resetForm', async () => {
+    it(CHECK[4], async () => {
       const { submitted } = renderInForm(c);
       await c.interact();
       fireEvent.click(screen.getByText('Reset'));
@@ -239,7 +250,7 @@ describe('Form control contract', () => {
       same(data.field, c.start);
     });
 
-    it('shows its starting state again after resetForm', async () => {
+    it(CHECK[5], async () => {
       renderInForm(c);
       await act(async () => {});
       const before = shown();
@@ -249,7 +260,7 @@ describe('Form control contract', () => {
       expect(shown()).toBe(before);
     });
 
-    it('clears its error on resetForm', async () => {
+    it(CHECK[6], async () => {
       renderInForm(c, { schema: failing });
       await c.interact();
       await waitFor(() => expect(screen.getByText('Nope')).toBeInTheDocument());
@@ -261,7 +272,7 @@ describe('Form control contract', () => {
 
     // Tab order is left out: a jsdom click doesn't focus, so a clicked radio
     // keeps the old tab stop, which a real browser moves on the click.
-    it.skipIf(!!c.noSeed)('shows and submits a Form initialValue like the same value entered by hand', async () => {
+    it.skipIf(!!c.noSeed)(CHECK[7], async () => {
       const typed = renderInForm(c);
       await c.interact();
       const entered = (await typed.submitted()).field;
@@ -274,7 +285,7 @@ describe('Form control contract', () => {
       same((await seeded.submitted()).field, entered);
     });
 
-    it('is disabled inside a disabled Fieldset', async () => {
+    it(CHECK[8], async () => {
       renderInForm(c, { disabled: true });
       await act(async () => {});
       const controls = Array.from(screen.getByTestId('field-host').querySelectorAll<HTMLInputElement>(INTERACTIVE))
@@ -283,7 +294,7 @@ describe('Form control contract', () => {
       expect(controls.filter(el => !isDisabled(el)).map(el => el.outerHTML.slice(0, 80))).toEqual([]);
     });
 
-    it('is aria-invalid and points at its error once it fails', async () => {
+    it(CHECK[9], async () => {
       renderInForm(c, { schema: failing });
       const host = screen.getByTestId('field-host');
       expect(host.querySelector('[aria-invalid="true"]')).toBeNull();
@@ -305,7 +316,7 @@ describe('submit on mount', () => {
     useEffect(() => { handleSubmit(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
     return null;
   };
-  it.each(Object.entries(CONTROLS))('%s shows its error and submits its start', async (_name, c) => {
+  it.each(Object.entries(CONTROLS))(`%s ${CHECK[10]}`, async (_name, c) => {
     const onSubmit = vi.fn();
     const { unmount } = render(
       <Form schema={failing} onSubmit={onSubmit}>

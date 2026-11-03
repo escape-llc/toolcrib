@@ -198,8 +198,13 @@ export interface CardProps {
 - `@manifestChildren <Comma, Separated, Names>` — a curated "commonly used together" list, e.g. Form's child form controls. This is a judgment call about typical usage, not a property of the source, so it has to be authored, not inferred.
 - `@manifestStates <default, focused, disabled, invalid, read-only>` — the visual states a control supports. Nothing else in the repo lists them, and three things read this tag:
   - The Catalog's States card is generated from it, one card per declared state, each derived from a single base example in `demo/stateExamples.tsx`. Add the component to `STATE_BASE` there; never write per-state examples.
-  - Generation fails on an unknown state, a missing `default`, or a state none of the component's own props can switch on (`scripts/lib/manifestStates.js`).
+  - Generation fails on an unknown state, a missing `default`, or a state none of the component's own props can switch on (`scripts/lib/manifestContracts.js`).
   - `formControlContract.test.tsx` renders every declared state and proves it, including that `invalid` paints the control itself in the error color, not just `aria-invalid`. Every Form control has to declare `default`, `disabled` and `invalid`.
+- `@manifestGuarantees <form-contract>` — a behavior the component is held to, published wherever an agent or an evaluator looks, so it's stated as a guarantee, not a test count (#623):
+  - Its definition and check list live in one place, `scripts/lib/manifestContracts.js`, which writes them to the manifest's top-level `guarantees`.
+  - CORE.md's "Verified Guarantees" and llms.txt print it, the Catalog shows a "Verified on every push" line, and the MCP server's `get_component` returns it.
+  - Every declaration is checked against the test behind it. The contract test takes its titles from that same check list, and fails unless exactly the controls it checks declare `form-contract`. A new guarantee needs a test that does the same, both directions.
+  - Generation rejects an unknown guarantee, or `form-contract` on a component that doesn't declare the states it depends on.
 
 **Custom/grouped import lines** (Form's import bundles ten related exports in one statement, not just `Form` itself) aren't derived either — they're a `MANUAL_IMPORT_OVERRIDES` entry at the top of `scripts/generate-manifest.js`. Add an entry there if a new component needs the same treatment; every other component defaults to `import { X } from '#toolcrib'`.
 

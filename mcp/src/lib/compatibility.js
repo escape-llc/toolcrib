@@ -37,6 +37,18 @@ const LEGACY_FINGERPRINT = '739139651467f91e117b2564d3b00dd76dee49c17379f5575500
 const V0_14_0_FINGERPRINT = 'a35f7c3ab30b4b4a1fc9c6d6a7397a73e6ef6dc93664cf27805abd56da033e6d';
 
 /**
+ * The third, added 2026-11-03 (issue #623): CORE.md gained a
+ * "### Verified Guarantees" subsection under Component Reference. Verified
+ * against the real ai-docs/ (not assumed): diffing the heading set against
+ * v0.16.0's shows exactly that one heading added, none removed or renamed.
+ * loadCoreDoc lists and returns the new section, and loadManifestIndex's
+ * getComponent already carries the manifest's new per-component
+ * `guarantees`/`states` and top-level `guarantees` (none of which this
+ * fingerprint tracks). The same parser set handles it.
+ */
+const VERIFIED_GUARANTEES_FINGERPRINT = '433ffa93dd780968172df86a33c9809bdff3f61e4ec99878bee5558d032c70e1';
+
+/**
  * Maps a known schema fingerprint to the loader functions verified to
  * parse it correctly. Every real toolcrib release through v0.13.0 shares
  * `LEGACY_FINGERPRINT`; v0.14.0 introduced real, verified drift (see
@@ -56,6 +68,7 @@ const V0_14_0_FINGERPRINT = 'a35f7c3ab30b4b4a1fc9c6d6a7397a73e6ef6dc93664cf27805
 export const PARSER_MAP = new Map([
   [LEGACY_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
   [V0_14_0_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
+  [VERIFIED_GUARANTEES_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
 ]);
 
 /**

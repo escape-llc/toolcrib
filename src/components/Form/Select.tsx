@@ -85,6 +85,7 @@ export interface SelectProps {
  * @manifest Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const Select: React.FC<SelectProps> = ({
   id,
