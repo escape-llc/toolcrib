@@ -95,6 +95,7 @@ import {
   CATEGORY_SLUGS,
 } from './lib/extract.js';
 import { toToon } from './lib/toon.js';
+import { GUARANTEES } from './lib/manifestContracts.js';
 
 const TEMPLATE_PATH = path.join(ROOT, 'ai-docs', 'templates', 'CORE.md.hbs');
 const CORE_MD_PATH = path.join(ROOT, 'ai-docs', 'CORE.md');
@@ -272,8 +273,29 @@ function assembleComponentsByCategory() {
   }));
 }
 
+/**
+ * The verified guarantees, from the manifest's `guarantees`/`states` (declared
+ * with @manifestGuarantees/@manifestStates) and the check list in
+ * scripts/lib/manifestContracts.js, which formControlContract.test.tsx takes
+ * its test titles from. Shared by CORE.md and llms.txt.
+ */
+function assembleGuaranteeFacts() {
+  const components = generateComponents();
+  const formContract = components.filter((c) => c.guarantees?.includes('form-contract')).map((c) => c.name);
+  const withStates = components.filter((c) => c.states);
+  return {
+    formContractCount: formContract.length,
+    formContractList: formContract.map((n) => `\`${n}\``).join(', '),
+    formContractChecks: GUARANTEES['form-contract'].checks,
+    formContractCheckCount: GUARANTEES['form-contract'].checks.length,
+    formContractTest: GUARANTEES['form-contract'].enforcedBy,
+    statesComponentCount: withStates.length,
+  };
+}
+
 function assembleTemplateData() {
   return {
+    ...assembleGuaranteeFacts(),
     componentsByCategory: assembleComponentsByCategory(),
     zIndexRows: assembleZIndexRows(),
     themeSliceIdList: generateThemeSlices()
@@ -290,6 +312,7 @@ function assembleLlmsTxtData() {
     componentCount: generateComponents().length,
     categoryList: VALID_CATEGORIES.join(', '),
     eventChannelCount: generateEventChannels().length,
+    ...assembleGuaranteeFacts(),
   };
 }
 

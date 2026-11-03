@@ -4,6 +4,8 @@
 
 Toolcrib ships 89 production components across five categories (Layout Primitives, Containers, Overlays, Data Display, Form Controls), plus a 86-channel typed event bus for cross-tree communication instead of prop-drilling, an HSV-derived CSS-variable theme system with a four-layer override hierarchy, and a Zod-schema-driven form engine — documented for AI consumption via generated, source-derived docs that can't silently drift from what's actually in the code.
 
+Verified on every push, not just documented: all 22 form input controls meet the same 11-point Form contract (bind with no glue, register defaults, reset, label association, disabled/invalid states); every declared visual state is rendered and proven; and every demo page passes an automated accessibility scan. The contract and states are declared per component in the manifest and enforced by the tests behind them ([Verified Guarantees](./ai-docs/CORE.md)).
+
 ## Getting Started
 
 - [README](./README.md): project overview, features, philosophy, installation

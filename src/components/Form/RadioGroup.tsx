@@ -83,6 +83,7 @@ const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
  * @manifest Single-select radio control bound to Form context, data-driven or compositional
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const RadioGroup: React.FC<RadioGroupProps> & {
   Option: React.FC<{ value: string; label: ReactNode; disabled?: boolean; helperText?: ReactNode }>;

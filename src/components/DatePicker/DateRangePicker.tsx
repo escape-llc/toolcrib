@@ -123,6 +123,7 @@ const DateRangeFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceS
  * @manifest Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  * @manifestAntiPatternAvoid Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start
  * @manifestAntiPatternInstead Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick
  */

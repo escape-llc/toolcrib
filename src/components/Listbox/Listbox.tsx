@@ -108,6 +108,7 @@ export interface ListboxProps {
  * @manifestConstraints Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`
  * @manifestCategory Form Controls
  * @manifestStates default, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const Listbox: React.FC<ListboxProps> = ({
   id,

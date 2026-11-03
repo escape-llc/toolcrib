@@ -138,6 +138,9 @@ export function listFilesRecursive(dir, base = dir) {
 const REPO_INTERNAL_TOOLING_PATTERNS = [
   /\.\.\/\.\.\/scripts[\\/]/, // a relative import out of src/__tests__/ into scripts/
   /\bnode\s+scripts[\\/]/, // a `node scripts/x.js` (or `node scripts\x.js`) shell-out
+  // The demo isn't vendored either: formControlContract.test.tsx renders the
+  // Catalog's state examples from demo/stateExamples.tsx.
+  /\.\.\/\.\.\/demo[\\/]/,
 ];
 
 export function isVendorableTestFile(content) {

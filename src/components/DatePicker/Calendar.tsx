@@ -56,6 +56,7 @@ export interface CalendarProps {
  * @manifest Month grid for selecting a single date, built on React Aria Components
  * @manifestCategory Form Controls
  * @manifestStates default, disabled, invalid
+ * @manifestGuarantees form-contract
  * @manifestAntiPatternAvoid Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases)
  * @manifestAntiPatternInstead Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee
  */

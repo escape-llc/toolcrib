@@ -74,6 +74,7 @@ export interface SliderProps {
  * @manifest Range input control built on Base UI Slider
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const Slider: React.FC<SliderProps> = ({
   id,

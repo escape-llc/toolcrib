@@ -1,5 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { validateStates } from './manifestStates.js';
+import { validateStates, validateGuarantees } from './manifestContracts.js';
+
+describe('validateGuarantees (@manifestGuarantees)', () => {
+  it('accepts form-contract on a control declaring the states it depends on', () => {
+    expect(() => validateGuarantees([
+      { name: 'Slider', states: ['default', 'focused', 'disabled', 'invalid'], guarantees: ['form-contract'] },
+      { name: 'Card' },
+    ])).not.toThrow();
+  });
+
+  it('rejects an unknown guarantee', () => {
+    expect(() => validateGuarantees([{ name: 'X', guarantees: ['bulletproof'] }])).toThrow(/unknown guarantee 'bulletproof'/);
+  });
+
+  it('rejects form-contract without the states it depends on', () => {
+    expect(() => validateGuarantees([{ name: 'Toggle', states: ['default'], guarantees: ['form-contract'] }]))
+      .toThrow(/'Toggle' claims 'form-contract' but doesn't declare @manifestStates disabled, invalid/);
+  });
+});
 
 const ownProps = (names) => Object.fromEntries(names.map(n => [n, { type: 'boolean' }]));
 

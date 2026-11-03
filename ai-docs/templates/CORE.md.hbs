@@ -165,6 +165,21 @@ Use `useToastActions()` (`addToast`, `dismissToast`, `clearAll`, `setAnchor`) in
 <ThemeEditor trigger={<Button variant="ghost" icon="🎨">Theme</Button>} />
 ```
 
+### Verified Guarantees
+
+What you can rely on without reading the source. The first two are declared on each component (`guarantees` and `states` in `component-manifest.json`). They're enforced by tests that run on every push in the toolcrib repository, and those tests fail if a declaration and the check behind it ever disagree. The third is a sweep over every demo page.
+
+**Form contract** — {{formContractCount}} controls: {{formContractList}}. Inside `<Form>` → `<FormField name="...">`, each one binds with no glue code. For every one of them, CI checks that it:
+{{#each formContractChecks}}
+- {{this}}
+{{/each}}
+
+Enforced by `{{formContractTest}}` in the toolcrib repository.
+
+**Declared states** — {{statesComponentCount}} components list their visual states (`default`, `focused`, `disabled`, `invalid`, `read-only`) in the manifest's `states`. Each declared state is rendered and proven, and `invalid` must visibly paint the control in the error color, not just set `aria-invalid`.
+
+**Accessibility** — every Catalog page in the demo passes an automated axe scan in Chromium and WebKit on every push. Popup, Drawer, Modal and CommandPalette are also scanned while open.
+
 ---
 
 ## {{sectionNum "layout-auto"}}. `layout="auto"` — Fill & Corner-Squaring

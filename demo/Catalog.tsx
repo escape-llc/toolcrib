@@ -37,7 +37,12 @@ type ManifestComponent = {
   childComponents?: string[];
   antiPatternAvoid?: string;
   antiPatternInstead?: string;
+  states?: string[];
+  guarantees?: string[];
 };
+
+type GuaranteeDefinition = { summary: string; enforcedBy: string; checks: string[] };
+const GUARANTEES = (manifest as unknown as { guarantees: Record<string, GuaranteeDefinition> }).guarantees;
 
 const COMPONENTS = (manifest as unknown as { components: ManifestComponent[] }).components;
 
@@ -507,6 +512,34 @@ function States({ name }: { name: string }) {
   );
 }
 
+/**
+ * What this component is checked to do on every push (#623): its declared
+ * guarantees and states, straight from the manifest, the same data CORE.md's
+ * Verified Guarantees and llms.txt print. Each one is enforced by the test it
+ * names, which fails if the declaration and the check ever disagree, so the
+ * line can't claim more than CI proves. Nothing here for a component with
+ * neither.
+ */
+function Verified({ component: c }: { component: ManifestComponent }) {
+  if (!c.guarantees?.length && !c.states?.length) return null;
+  return (
+    <div data-testid="verified">
+      <Text size="sm"><strong>✅ Verified on every push.</strong></Text>
+      {c.guarantees?.map(g => (
+        <Collapsible key={g} trigger={<>{GUARANTEES[g].summary} <Badge size="sm">{plural(GUARANTEES[g].checks.length, 'check')}</Badge></>}>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            {GUARANTEES[g].checks.map(check => <li key={check}><Text size="sm">It {check}.</Text></li>)}
+          </ul>
+          <Text size="xs" tone="secondary">Enforced by <code style={codeStyle}>{GUARANTEES[g].enforcedBy}</code>.</Text>
+        </Collapsible>
+      ))}
+      {c.states?.length ? (
+        <Text size="sm" tone="secondary">States proven to render: {c.states.join(', ')}.</Text>
+      ) : null}
+    </div>
+  );
+}
+
 function CatalogCard({ component, bin, demo }: { component: ManifestComponent; bin: string; demo: EntryDemo }) {
   const c = component;
   return (
@@ -558,6 +591,8 @@ function CatalogCard({ component, bin, demo }: { component: ManifestComponent; b
         <Card.Content>
           <VStack gap="sm">
               {c.constraints ? <Text size="sm" tone="secondary">Constraint: {md(c.constraints)}</Text> : null}
+
+              <Verified component={c} />
 
               {/* A placard like the safety one, in the opposite spirit
                   (what pairs well, not what to avoid), so it takes the

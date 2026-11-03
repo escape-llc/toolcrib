@@ -186,6 +186,7 @@ export interface ComboboxProps {
  * @manifest Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context
  * @manifestCategory Form Controls
  * @manifestStates default, focused, disabled, invalid
+ * @manifestGuarantees form-contract
  */
 export const Combobox: React.FC<ComboboxProps> = ({
   id,

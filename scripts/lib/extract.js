@@ -7,7 +7,7 @@
  * itself.
  */
 import fs from 'node:fs';
-import { validateStates } from './manifestStates.js';
+import { validateStates, validateGuarantees } from './manifestContracts.js';
 import path from 'node:path';
 import ts from 'typescript';
 import { fileURLToPath } from 'node:url';
@@ -573,6 +573,7 @@ export function findComponentDeclarations(sourceFile) {
           description: manifestDesc,
           constraints: jsDocTag(doc, 'manifestConstraints'),
           states: jsDocTag(doc, 'manifestStates'),
+          guarantees: jsDocTag(doc, 'manifestGuarantees'),
           children: jsDocTag(doc, 'manifestChildren'),
           category: jsDocTag(doc, 'manifestCategory'),
           antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
@@ -593,6 +594,7 @@ export function findComponentDeclarations(sourceFile) {
         description: manifestDesc,
         constraints: jsDocTag(doc, 'manifestConstraints'),
         states: jsDocTag(doc, 'manifestStates'),
+        guarantees: jsDocTag(doc, 'manifestGuarantees'),
         children: jsDocTag(doc, 'manifestChildren'),
         category: jsDocTag(doc, 'manifestCategory'),
         antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
@@ -866,6 +868,7 @@ function generateComponentEntry(sourceFile, decl, defs) {
   }
   if (decl.constraints) entry.constraints = decl.constraints;
   if (decl.states) entry.states = decl.states.split(',').map((s) => s.trim());
+  if (decl.guarantees) entry.guarantees = decl.guarantees.split(',').map((s) => s.trim());
   if (decl.category) entry.category = decl.category;
   // Both or neither -- one tag without its pair is a JSDoc mistake, not a
   // valid partial anti-pattern row (see AGENTS.md/generate-docs.js's own
@@ -952,6 +955,7 @@ export function generateComponents() {
   components.sort((a, b) => a.name.localeCompare(b.name));
   validateCategories(components);
   validateStates(components);
+  validateGuarantees(components);
   validateNoForbiddenProps(components);
   _lastCollectedDefs = defs;
   return components;

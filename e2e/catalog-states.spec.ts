@@ -117,3 +117,28 @@ test.describe('Catalog states taxonomy', () => {
     await expect(label).toHaveCSS('opacity', '0.6');
   });
 });
+
+// The spec sheet's "Verified" line (#623) comes from the manifest's
+// guarantees/states: the check list for a Form control, nothing at all for a
+// component that declares neither.
+test.describe('Catalog verified guarantees', () => {
+  const FORM_CONTRACT = (manifest as unknown as { guarantees: Record<string, { checks: string[] }> }).guarantees['form-contract'];
+
+  test('a Form control lists every Form-contract check it is held to', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Catalog', 'Slider');
+    const verified = page.getByTestId('spec-sheet').getByTestId('verified');
+    await expect(verified).toContainText('Verified on every push');
+    await expect(verified).toContainText(`${FORM_CONTRACT.checks.length} checks`);
+    await expect(verified).toContainText('States proven to render: default, focused, disabled, invalid');
+    await verified.getByRole('button', { name: /Form-contract check|checks/ }).click();
+    for (const check of FORM_CONTRACT.checks) await expect(verified).toContainText(`It ${check}.`);
+  });
+
+  test('a component with no guarantees or states shows no Verified line', async ({ page }) => {
+    await page.goto('/');
+    await gotoTab(page, 'Catalog', 'Card');
+    await expect(page.getByTestId('spec-sheet')).toBeVisible();
+    await expect(page.getByTestId('spec-sheet').getByTestId('verified')).toHaveCount(0);
+  });
+});

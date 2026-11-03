@@ -169,6 +169,6 @@ describe('isVendorableTestFile', () => {
       .filter((relPath) => (relPath.endsWith('.ts') || relPath.endsWith('.tsx')))
       .filter((relPath) => !isVendorableTestFile(fs.readFileSync(path.join(testsDir, relPath), 'utf-8')));
 
-    expect(excluded.sort()).toEqual(['buildEngine.test.ts', 'docsInSync.test.ts', 'securityAdvisories.test.ts']);
+    expect(excluded.sort()).toEqual(['buildEngine.test.ts', 'docsInSync.test.ts', 'formControlContract.test.tsx', 'securityAdvisories.test.ts']);
   });
 });
