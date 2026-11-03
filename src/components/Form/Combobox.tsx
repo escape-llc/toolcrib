@@ -27,7 +27,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
-import { useFieldInvalid } from './useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
@@ -185,6 +185,7 @@ export interface ComboboxProps {
 /**
  * @manifest Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const Combobox: React.FC<ComboboxProps> = ({
   id,
@@ -540,7 +541,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
             borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
-            border: '0.0625rem solid var(--ai-border, #d1d5db)',
+            // The error color when invalid, like Input; it only said so before.
+            border: `0.0625rem solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
             background: 'var(--ai-bg-surface, #ffffff)',
             boxSizing: 'border-box',
             cursor: disabled ? 'not-allowed' : 'text',

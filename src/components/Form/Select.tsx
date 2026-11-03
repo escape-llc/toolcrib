@@ -12,7 +12,7 @@ import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, use
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
-import { useFieldInvalid } from './useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -84,6 +84,7 @@ export interface SelectProps {
 /**
  * @manifest Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const Select: React.FC<SelectProps> = ({
   id,
@@ -308,7 +309,8 @@ export const Select: React.FC<SelectProps> = ({
             borderTopRightRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomLeftRadius: 'var(--ai-radius-md, 0.375rem)',
             borderBottomRightRadius: 'var(--ai-radius-md, 0.375rem)',
-            border: '0.0625rem solid var(--ai-border, #d1d5db)',
+            // The error color when invalid, like Input; it only said so before.
+            border: `0.0625rem solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
             background: 'var(--ai-bg-surface, #ffffff)',
             color: selected ? 'var(--ai-text-primary, #111827)' : 'var(--ai-text-secondary, #6b7280)',
             fontSize: CONTROL_FONT_SIZE_VAR[size],

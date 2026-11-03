@@ -344,6 +344,7 @@ export interface ButtonProps extends StyleFree<ButtonHTMLAttributes<HTMLButtonEl
 /**
  * @manifest Styled button with five variants, three sizes, subtheme colouring, and icon slots
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled
  */
 // forwardRef, not a plain React.FC — Button is the element of Base UI
 // `render` compositions (Modal.CloseButton, AlertDialog.Cancel/Action), which
@@ -567,6 +568,7 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"
 /**
  * @manifest Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid, read-only
  */
 // forwardRef (#759), like every Form control: a consumer needs the element to
 // focus it, e.g. the first invalid field after a failed submit. React 18 is
@@ -909,6 +911,7 @@ export interface CheckboxProps {
 /**
  * @manifest Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -1025,6 +1028,7 @@ export interface SwitchProps {
 /**
  * @manifest Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -1151,6 +1155,7 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
 /**
  * @manifest Multi-line text input bound to Form context, sized and themed like Input
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid, read-only
  */
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);

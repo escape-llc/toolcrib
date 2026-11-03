@@ -3,7 +3,7 @@
 import React, { type ReactNode, useContext, useEffect, useState } from 'react';
 import { FieldContext } from '../Form/FieldContext';
 import { useOptionalFormContext, type FormContextType } from '../Form/FormContext';
-import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Toggle as BaseToggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
@@ -54,6 +54,7 @@ function useFormBinding<V>(propName: string | undefined, seed: V) {
   const isError = useFieldInvalid(fieldName || undefined);
   return {
     fieldName,
+    isError,
     /** Invalid-state attributes for the control, following the field's error. */
     invalidProps: isError ? { 'aria-invalid': true as const, 'aria-describedby': `${fieldName}-error` } : {},
     labelId: fieldCtx.labelId,
@@ -69,6 +70,7 @@ function useFormBinding<V>(propName: string | undefined, seed: V) {
 /**
  * @manifest Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const Toggle: React.FC<ToggleProps> = ({
   name,
@@ -112,7 +114,7 @@ export const Toggle: React.FC<ToggleProps> = ({
         gap: 'var(--ai-toggle-gap, 0.375rem)',
         padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
         borderRadius: 'var(--ai-radius-md, 0.375rem)',
-        border: `0.0625rem solid ${isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)'}`,
+        border: `0.0625rem solid ${isPressed ? 'var(--ai-color-primary, #3b82f6)' : binding.isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`,
         background: isPressed ? 'var(--ai-color-primary, #3b82f6)' : 'transparent',
         color: isPressed ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
         fontSize: CONTROL_FONT_SIZE_VAR[size],
@@ -199,6 +201,7 @@ export interface ToggleGroupProps {
 /**
  * @manifest Connected button set for single or multiple selection, data-driven
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   name,
@@ -298,7 +301,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
         const isLast = index === options.length - 1;
         const itemDisabled = disabled || opt.disabled;
 
-        const borderColor = selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-border, #d1d5db)';
+        const borderColor = selected ? 'var(--ai-color-primary, #3b82f6)' : binding.isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)';
 
         return (
           <BaseToggle

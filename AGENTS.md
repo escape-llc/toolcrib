@@ -128,6 +128,8 @@ Every field control (`<Input>`, `<Select>`, etc.) always stores a raw value in `
 - A disabled `<Fieldset>` disables it.
 - When it fails validation it's `aria-invalid` and points at its error.
 
+It also checks that a submit in the same tick the controls mount still sees every registered field. It renders each `@manifestStates` state the way the Catalog does and proves it, so the demo's States card can't show a state that isn't real (see "Documenting a component for the manifest").
+
 The file's first check fails if any manifest `Form Controls` component is in neither `CONTROLS` nor `EXEMPT`, so a new control can't skip the contract. Add it to `CONTROLS` with one interaction, and the contract tells you what's missing. Weekly audit #880 is why this exists: its findings were each a gap in one dimension on one control, and the earlier sweeps (`Fieldset.test.tsx`, `invalidState.test.tsx`) each kept their own hand list that had silently drifted. The first run against `main` failed in 9 of 20 controls. That included a Form-wide bug (`resetForm` dropped every registered default) and six controls that never wrote to the Form at all. An audit skill wouldn't help: this is mechanical, and a test runs on every push where a skill runs only when someone remembers it.
 
 ## Documenting a component for the manifest
@@ -164,6 +166,10 @@ export interface CardProps {
 **Two more tags for facts that aren't mechanically derivable:**
 - `@manifestConstraints <text>` — a structural requirement the type system can't express (e.g. Splitter's `@manifestConstraints Requires exactly 2 children`).
 - `@manifestChildren <Comma, Separated, Names>` — a curated "commonly used together" list, e.g. Form's child form controls. This is a judgment call about typical usage, not a property of the source, so it has to be authored, not inferred.
+- `@manifestStates <default, focused, disabled, invalid, read-only>` — the visual states a control supports. Nothing else in the repo lists them, and three things read this tag:
+  - The Catalog's States card is generated from it, one card per declared state, each derived from a single base example in `demo/stateExamples.tsx`. Add the component to `STATE_BASE` there; never write per-state examples.
+  - Generation fails on an unknown state, a missing `default`, or a state none of the component's own props can switch on (`scripts/lib/manifestStates.js`).
+  - `formControlContract.test.tsx` renders every declared state and proves it, including that `invalid` paints the control itself in the error color, not just `aria-invalid`. Every Form control has to declare `default`, `disabled` and `invalid`.
 
 **Custom/grouped import lines** (Form's import bundles ten related exports in one statement, not just `Form` itself) aren't derived either — they're a `MANUAL_IMPORT_OVERRIDES` entry at the top of `scripts/generate-manifest.js`. Add an entry there if a new component needs the same treatment; every other component defaults to `import { X } from '#toolcrib'`.
 

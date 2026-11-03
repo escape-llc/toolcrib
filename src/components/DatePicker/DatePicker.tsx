@@ -120,6 +120,9 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
       onOpenChange={open => state.setOpen(open)}
       zIndex={Z_INDEX.DROPDOWN}
     >
+      {/* The picker owns the field: no inherited name, so the popup
+          calendar never binds to the Form a second time. */}
+      <FieldContext.Provider value={{}}>
       <Calendar
         value={(state.dateValue as CalendarDate | null) ?? undefined}
         onChange={date => {
@@ -133,6 +136,7 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
         overrides={overrides}
         size={size}
       />
+      </FieldContext.Provider>
     </Popup>
   );
 };
@@ -140,6 +144,7 @@ const DatePickerFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSlice
 /**
  * @manifest Date field + calendar popover, hosted in `<Popup>` (not React Aria's own popover), built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input
  * @manifestAntiPatternInstead Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee
  */

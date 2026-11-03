@@ -89,6 +89,7 @@ function formatBytes(bytes: number): string {
 /**
  * @manifest Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  */
 export const FileUpload: React.FC<FileUploadProps> = ({
   name: propName,

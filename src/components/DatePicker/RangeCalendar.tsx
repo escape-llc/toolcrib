@@ -9,6 +9,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
 import { type ControlSize } from '../../theme/controlSize';
 import { CalendarNav, CalendarMonthGrid } from './calendarParts';
+import { useCalendarFormBinding } from './calendarFormBinding';
 
 /**
  * An inclusive span of days, as `@internationalized/date` `CalendarDate`s --
@@ -21,7 +22,7 @@ export interface CalendarDateRange {
 
 /** Props for the standalone `<RangeCalendar>` month grid. */
 export interface RangeCalendarProps {
-  /** Field name included in emitted `rangecalendar:changed` events. */
+  /** Field name, auto-inherited from parent `<FormField>` if omitted; inside a `<Form>` the selection is bound to it. Also included in emitted `rangecalendar:changed` events. */
   name?: string;
   /**
    * Controlled selected range, as `@internationalized/date` `CalendarDate`s
@@ -36,8 +37,10 @@ export interface RangeCalendarProps {
   minValue?: CalendarDate;
   /** Latest selectable date, inclusive. */
   maxValue?: CalendarDate;
-  /** If true, the whole calendar is non-interactive. */
+  /** If true, the whole calendar is non-interactive. Also set by an enclosing `<Fieldset disabled>`. */
   isDisabled?: boolean;
+  /** Marks the calendar invalid; inside a `<Form>` it follows the field's error. */
+  'aria-invalid'?: boolean;
   /**
    * BCP 47 locale tag controlling month/day names, week start day, and
    * date-grid layout. Fixed, not browser-auto-detected -- see `<TimeField>`'s
@@ -58,17 +61,19 @@ export interface RangeCalendarProps {
 /**
  * @manifest Month grid for selecting an inclusive range of dates (click the start, then the end), built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestStates default, disabled, invalid
  * @manifestAntiPatternAvoid Build a date range from two separate `<Calendar>`s with hand-written "end must be after start" logic
  * @manifestAntiPatternInstead Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you
  */
 export const RangeCalendar: React.FC<RangeCalendarProps> = ({
-  name,
+  name: propName,
   value: externalValue,
   defaultValue,
   onChange,
   minValue,
   maxValue,
-  isDisabled = false,
+  isDisabled: isDisabledProp = false,
+  'aria-invalid': ariaInvalid,
   locale = 'en-US',
   overrides,
   size = 'md',
@@ -76,24 +81,37 @@ export const RangeCalendar: React.FC<RangeCalendarProps> = ({
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
+  const binding = useCalendarFormBinding<CalendarDateRange>(propName, defaultValue ?? null, isDisabledProp, ariaInvalid);
+  const name = binding.fieldName || undefined;
+  // Controlled while bound to a Form, like the pickers; never because
+  // defaultValue alone was set.
+  const isControlled = externalValue !== undefined || binding.isFormBound;
+  const controlledValue = externalValue !== undefined ? externalValue : binding.formValue;
 
   const handleChange = (range: { start: CalendarDate; end: CalendarDate }) => {
-    onChange?.({ start: range.start, end: range.end });
+    const next = { start: range.start, end: range.end };
+    binding.write(next);
+    onChange?.(next);
     aiBus.emit('rangecalendar:changed', { name, value: { start: range.start.toString(), end: range.end.toString() } });
   };
 
   return (
     <I18nProvider locale={locale}>
       <AriaRangeCalendar
-        value={externalValue ?? undefined}
-        defaultValue={defaultValue ?? undefined}
+        key={binding.gridKey}
+        {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
+        // Opens on the default's month even while bound: the Form's value
+        // arrives a render later, after React Aria has picked today's month.
+        defaultFocusedValue={defaultValue?.start}
         onChange={value => handleChange(value as { start: CalendarDate; end: CalendarDate })}
         minValue={minValue}
         maxValue={maxValue}
-        isDisabled={isDisabled}
+        isDisabled={binding.isDisabled}
+        isInvalid={binding.isError || undefined}
         aria-label={ariaLabel}
-        aria-labelledby={ariaLabelledBy}
-        style={{ width: 'fit-content', ...vars } as React.CSSProperties}
+        aria-labelledby={ariaLabelledBy ?? (ariaLabel ? undefined : binding.labelId)}
+        aria-describedby={binding.describedBy}
+        style={{ width: 'fit-content', ...binding.invalidStyle, ...vars } as React.CSSProperties}
       >
         <CalendarNav size={size} />
         <CalendarMonthGrid range />

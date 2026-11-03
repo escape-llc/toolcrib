@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react';
+import { type ReactElement, useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { z } from 'zod';
@@ -22,6 +22,9 @@ import { TimeField } from '../components/DatePicker/TimeField';
 import { Listbox } from '../components/Listbox/Listbox';
 import { ToggleGroup, Toggle } from '../components/ToggleGroup/ToggleGroup';
 import { Fieldset } from '../components/Fieldset/Fieldset';
+import { Calendar } from '../components/DatePicker/Calendar';
+import { RangeCalendar } from '../components/DatePicker/RangeCalendar';
+import { declaredStates, stateExample, STATE_BASE, STATE_LABEL } from '../../demo/stateExamples';
 
 // The Form contract, checked on every value control at once. Each control
 // takes its name from the surrounding <FormField>, and must:
@@ -108,6 +111,16 @@ const CONTROLS: Record<string, Contract> = {
   Listbox: { el: () => <Listbox id="lb" options={OPTIONS} />, start: '', interact: () => { fireEvent.click(screen.getAllByRole('option')[1]); } },
   ToggleGroup: { el: () => <ToggleGroup type="single" options={OPTIONS} />, start: '', interact: () => { fireEvent.click(screen.getByRole('radio', { name: 'Two' })); } },
   Toggle: { el: () => <Toggle>t</Toggle>, start: false, interact: () => { fireEvent.click(screen.getByRole('button', { name: 'Field' })); } },
+  // A day cell is named by its full date.
+  Calendar: { el: () => <Calendar defaultValue={date} />, start: date, interact: () => { fireEvent.click(screen.getByRole('button', { name: /March 18, 2026/ })); } },
+  RangeCalendar: {
+    el: () => <RangeCalendar defaultValue={{ start: date, end: date.add({ days: 2 }) }} />,
+    start: { start: date, end: date.add({ days: 2 }) },
+    interact: () => {
+      fireEvent.click(screen.getByRole('button', { name: /March 20, 2026/ }));
+      fireEvent.click(screen.getByRole('button', { name: /March 22, 2026/ }));
+    },
+  },
 };
 
 /** Form Controls that hold no field value of their own, with why. */
@@ -119,8 +132,6 @@ const EXEMPT: Record<string, string> = {
   FormError: 'displays form-level errors',
   Label: 'names a control',
   Fieldset: 'groups controls; swept in Fieldset.test.tsx',
-  Calendar: 'the grid inside DatePicker, which is the bound control',
-  RangeCalendar: 'the grid inside DateRangePicker, which is the bound control',
   Pagination: 'navigation, not a submitted value',
   ThemeEditor: 'edits the theme, not a form',
 };
@@ -282,5 +293,91 @@ describe('Form control contract', () => {
       expect(host.querySelector('[aria-invalid="true"]')).not.toBeNull();
       expect(host.querySelector('[aria-describedby~="field-error"]')).not.toBeNull();
     });
+  });
+});
+
+// A submit in the same tick the controls mount (before their registration
+// has re-rendered the Form) still validates, submits and touches every one:
+// the demo's invalid examples submit exactly like this.
+describe('submit on mount', () => {
+  const SubmitOnMount = () => {
+    const { handleSubmit } = useFormContext();
+    useEffect(() => { handleSubmit(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return null;
+  };
+  it.each(Object.entries(CONTROLS))('%s shows its error and submits its start', async (_name, c) => {
+    const onSubmit = vi.fn();
+    const { unmount } = render(
+      <Form schema={failing} onSubmit={onSubmit}>
+        <FormField name="field" label="Field">{c.el()}</FormField>
+        <SubmitOnMount />
+      </Form>,
+    );
+    await waitFor(() => expect(screen.getByText('Nope')).toBeInTheDocument());
+    unmount();
+    const ok = vi.fn();
+    render(
+      <Form onSubmit={ok}>
+        <FormField name="field" label="Field">{c.el()}</FormField>
+        <SubmitOnMount />
+      </Form>,
+    );
+    await waitFor(() => expect(ok).toHaveBeenCalled());
+    same(ok.mock.calls[0][0].field, c.start);
+  });
+});
+
+// The Catalog's States card renders whatever a component declares with
+// @manifestStates, mechanically (demo/stateExamples.tsx). These render each
+// declared state through that same function and check it really is in it.
+describe('declared states', () => {
+  const withStates = (manifest as { components: { name: string; states?: string[] }[] }).components.filter(c => c.states);
+
+  it('every Form control declares default, disabled and invalid, and has a base example', () => {
+    const missing = Object.keys(CONTROLS).flatMap(n => {
+      const s = declaredStates(n);
+      return [...['default', 'disabled', 'invalid'].filter(x => !s.includes(x as never)).map(x => `${n}: ${x}`), ...(n in STATE_BASE ? [] : [`${n}: no base example`])];
+    });
+    expect(missing).toEqual([]);
+    expect(withStates.map(c => c.name).filter(n => !(n in STATE_BASE))).toEqual([]);
+  });
+
+  const cases = withStates.flatMap(c => declaredStates(c.name).map(state => [c.name, state] as const));
+  it.each(cases)('%s renders its %s state', async (name, state) => {
+    const { container } = render(<>{stateExample(name, state)}</>);
+    await act(async () => {});
+    const label = STATE_LABEL[state];
+    const controls = () => Array.from(container.querySelectorAll<HTMLInputElement>(INTERACTIVE)).filter(el => !el.hidden && el.type !== 'hidden');
+    switch (state) {
+      case 'default':
+        expect(container.textContent + container.innerHTML).toContain(label);
+        expect(container.querySelector('[aria-invalid="true"]')).toBeNull();
+        break;
+      case 'focused':
+        // The same elements demo/index.css draws the ring on.
+        expect(container.querySelector('[data-demo-state="focused"] .ai-focus-ring, [data-demo-state="focused"] .ai-btn')).not.toBeNull();
+        break;
+      case 'disabled':
+        expect(controls().length).toBeGreaterThan(0);
+        expect(controls().filter(el => !isDisabled(el)).map(el => el.outerHTML.slice(0, 80))).toEqual([]);
+        break;
+      case 'read-only':
+        expect(container.querySelector('[readonly], [aria-readonly="true"], [role="img"]')).not.toBeNull();
+        break;
+      case 'invalid': {
+        // The example submits itself with requestSubmit(), which jsdom lacks.
+        fireEvent.submit(container.querySelector('form')!);
+        await waitFor(() => expect(screen.getByText('This field is required')).toBeInTheDocument());
+        await act(async () => {});
+        expect(container.querySelector('[aria-invalid="true"]')).not.toBeNull();
+        // It must look invalid too, not only say so: some part of the control
+        // itself (not the error message below it) is painted in the error color.
+        const painted = Array.from(container.querySelectorAll<HTMLElement>('[style]'))
+          .filter(el => !el.closest('[data-testid^="form-field-error-region"]'))
+          .some(el => el.getAttribute('style')!.includes('--ai-subtheme-error'));
+        expect(painted).toBe(true);
+        break;
+      }
+    }
   });
 });

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { gotoTab } from './nav';
+import manifest from '../ai-docs/component-manifest.json' with { type: 'json' };
+
+const INVALID_STATE_CONTROLS = (manifest as { components: { name: string; states?: string[] }[] }).components
+  .filter(c => c.states?.includes('invalid'))
+  .map(c => c.name);
 
 // The Catalog's "States" taxonomy (demo/stateExamples.tsx): each control shows
 // its default / focused / disabled / invalid / read-only renderings side by
@@ -29,17 +34,31 @@ test.describe('Catalog states taxonomy', () => {
     await expect(states.getByLabel('Default')).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
   });
 
-  // Every control whose States section lists `invalid` really renders it: the
-  // example is a Form submitted on mount, so the control must be marked
-  // aria-invalid and its error shown. A control with no invalid state is left
-  // out of the section rather than shown looking fine.
-  for (const name of ['Input', 'Textarea', 'Select', 'Combobox', 'NumberField', 'OTPField', 'Checkbox', 'Switch', 'CheckboxGroup', 'RadioGroup', 'Slider', 'RangeSlider', 'FileUpload', 'Rating', 'DatePicker', 'DateRangePicker', 'TimeField']) {
-    test(`${name}'s invalid example is marked invalid and shows its error`, async ({ page }) => {
+  // Every control that declares `invalid` (@manifestStates, so the list comes
+  // from the manifest, not by hand) really renders it: marked aria-invalid,
+  // its error shown, and painted in the error color somewhere on the control
+  // itself, which its default card is not. The last part is what was missing:
+  // Select and Combobox said invalid but looked exactly like their default.
+  for (const name of INVALID_STATE_CONTROLS) {
+    test(`${name}'s invalid example is marked invalid, shows its error, and looks it`, async ({ page }) => {
       await page.goto('/');
       await gotoTab(page, 'Catalog', name);
       const states = page.locator(`[data-catalog-states="${name}"]`);
       await expect(states.getByText('This field is required')).toBeVisible();
       await expect(states.locator('[aria-invalid="true"]').first()).toBeAttached();
+      const paints = (card: string) => states.locator(`[data-catalog-state-card="${card}"]`).evaluate(root => {
+        const probe = document.createElement('span');
+        probe.style.color = 'var(--ai-subtheme-error, #ef4444)';
+        root.appendChild(probe);
+        const error = getComputedStyle(probe).color;
+        probe.remove();
+        const props = ['border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color', 'background-color', 'box-shadow', 'outline-color', 'color', 'fill', 'stroke'];
+        return Array.from(root.querySelectorAll<HTMLElement>('*'))
+          .filter(el => !el.closest('[data-testid^="form-field-error-region"]'))
+          .some(el => { const cs = getComputedStyle(el); return props.some(p => cs.getPropertyValue(p).includes(error)); });
+      });
+      await expect.poll(() => paints('invalid'), { message: 'the invalid card shows the error color' }).toBe(true);
+      expect(await paints('default'), 'the default card does not').toBe(false);
     });
   }
 

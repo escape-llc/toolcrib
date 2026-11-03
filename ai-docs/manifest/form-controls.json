@@ -52,6 +52,11 @@
           "description": "Per-instance overrides for label weight and icon spacing. Separate from\n`subtheme` above (Button already resolves that itself via\n`useResolvedSubtheme`, unrelated to this slice's own two fields)."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled"
+      ],
       "category": "Form Controls",
       "description": "Styled button with five variants, three sizes, subtheme colouring, and icon slots"
     },
@@ -61,7 +66,7 @@
       "props": {
         "name": {
           "type": "string",
-          "description": "Field name included in emitted `calendar:changed` events."
+          "description": "Field name, auto-inherited from parent `<FormField>` if omitted; inside a `<Form>` the selection is bound to it. Also included in emitted `calendar:changed` events."
         },
         "value": {
           "type": "CalendarDate | null",
@@ -85,7 +90,11 @@
         },
         "isDisabled": {
           "type": "boolean",
-          "description": "If true, the whole calendar is non-interactive."
+          "description": "If true, the whole calendar is non-interactive. Also set by an enclosing `<Fieldset disabled>`."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the calendar invalid; inside a `<Form>` it follows the field's error."
         },
         "locale": {
           "type": "string",
@@ -110,6 +119,11 @@
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
+      "states": [
+        "default",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll month-grid calendar math (day-of-week offsets, leap years, month-length edge cases)",
       "antiPatternInstead": "Use `<Calendar>` with `@internationalized/date` values — timezone/DST/locale correctness is exactly what that dependency exists to guarantee",
@@ -158,6 +172,12 @@
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Boolean checkbox bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable checkbox element"
     },
@@ -221,6 +241,12 @@
           "description": "Per-instance checkbox size override. Shared with `<Checkbox>`/`<Switch>`."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "N separate `<Checkbox>`es plus hand-written code to fold them into one array field",
       "antiPatternInstead": "`<CheckboxGroup options={[...]} maxSelected={3} />` inside a `<FormField>`; the Form value is the array of checked values",
@@ -317,6 +343,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Filterable text input with a listbox, supporting client-side or async search and single/multi selection, bound to Form context"
     },
@@ -387,6 +419,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll a date-field + calendar popover, or pass a raw JS `Date` into a custom date input",
       "antiPatternInstead": "Use `<DatePicker>` with an `@internationalized/date` `CalendarDate` value — timezone/DST/locale correctness is exactly what that dependency exists to guarantee",
@@ -459,6 +497,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start",
       "antiPatternInstead": "Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick",
@@ -561,6 +605,12 @@
           "description": "Id of the element that names the dropzone. Used instead of the inherited `<FormField>` label when set."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Drag-and-drop file picker with per-file progress and image thumbnails, bound to Form context"
     },
@@ -688,6 +738,13 @@
           "description": "For `type=\"password\"`: show an eye toggle that reveals the typed value.\nThe toggle keeps a fixed accessible name (locale `input.showPassword`)\nand reports its state via `aria-pressed`. Ignored for other types."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid",
+        "read-only"
+      ],
       "category": "Form Controls",
       "description": "Text input bound to Form context, with optional leading/trailing sections (icon or affix text inside the border), a clear button, and a password reveal toggle"
     },
@@ -785,6 +842,11 @@
         }
       },
       "constraints": "Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`",
+      "states": [
+        "default",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone"
     },
@@ -863,6 +925,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s identical prop."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "`<Input type=\"number\">` plus hand-rolled +/- buttons, clamping and `Intl.NumberFormat` display",
       "antiPatternInstead": "`<NumberField min={0} max={99} formatOptions={{ style: 'currency', currency: 'USD' }} />` — inside a `<Form>` it stores a real `number`",
@@ -928,6 +996,12 @@
           "description": "Control size, standardized with `<Input>` and every other sized control."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "A row of hand-rolled single-character `<input>`s with manual focus moving, paste splitting and keyboard handling",
       "antiPatternInstead": "`<OTPField length={6} onComplete={verify} />` inside a `<FormField>`; the Form value is the code as one string",
@@ -1051,6 +1125,12 @@
           "description": "Id of the element that names the group. Used instead of the inherited `<FormField>` label when set."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Single-select radio control bound to Form context, data-driven or compositional"
     },
@@ -1060,7 +1140,7 @@
       "props": {
         "name": {
           "type": "string",
-          "description": "Field name included in emitted `rangecalendar:changed` events."
+          "description": "Field name, auto-inherited from parent `<FormField>` if omitted; inside a `<Form>` the selection is bound to it. Also included in emitted `rangecalendar:changed` events."
         },
         "value": {
           "type": "CalendarDateRange | null",
@@ -1084,7 +1164,11 @@
         },
         "isDisabled": {
           "type": "boolean",
-          "description": "If true, the whole calendar is non-interactive."
+          "description": "If true, the whole calendar is non-interactive. Also set by an enclosing `<Fieldset disabled>`."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the calendar invalid; inside a `<Form>` it follows the field's error."
         },
         "locale": {
           "type": "string",
@@ -1109,6 +1193,11 @@
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
         }
       },
+      "states": [
+        "default",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Build a date range from two separate `<Calendar>`s with hand-written \"end must be after start\" logic",
       "antiPatternInstead": "Use `<RangeCalendar>` (or `<DateRangePicker>` for a field + popover) — one grid, start/end ordering and keyboard range selection handled for you",
@@ -1187,6 +1276,12 @@
           "description": "Per-instance overrides for track height and thumb size. Shared with `<Slider>`."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Two-thumb range control (lower/upper bound) built on Base UI Slider, styled identically to Slider"
     },
@@ -1245,6 +1340,13 @@
           "description": "Per-instance overrides for icon size and gap."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid",
+        "read-only"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Build a row of clickable star `<span>`s with manual hover/click state for a rating input",
       "antiPatternInstead": "Use `<Rating>` — built on a Base UI radio group, inherits real keyboard operability and `aria-checked` semantics instead of approximating them",
@@ -1310,6 +1412,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Dropdown select control bound to Form context: a select-only combobox over the toolkit's own Listbox"
     },
@@ -1380,6 +1488,12 @@
           "description": "Per-instance overrides for track height and thumb size."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Range input control built on Base UI Slider"
     },
@@ -1476,6 +1590,12 @@
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element"
     },
@@ -1501,6 +1621,13 @@
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid",
+        "read-only"
+      ],
       "category": "Form Controls",
       "description": "Multi-line text input bound to Form context, sized and themed like Input"
     },
@@ -1585,6 +1712,12 @@
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "antiPatternAvoid": "Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation)",
       "antiPatternInstead": "Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free",
@@ -1625,6 +1758,12 @@
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)"
     },
@@ -1680,6 +1819,12 @@
           "description": "Accessible name for the whole group (the root's `role=\"radiogroup\"`\nor `role=\"group\"`) — e.g. \"Row density\" for a set of density options. Distinct\nfrom each option's own accessible name (its `label`), the same way a\nnative `<fieldset><legend>` names the group without repeating into\nevery `<input>` inside it."
         }
       },
+      "states": [
+        "default",
+        "focused",
+        "disabled",
+        "invalid"
+      ],
       "category": "Form Controls",
       "description": "Connected button set for single or multiple selection, data-driven"
     }

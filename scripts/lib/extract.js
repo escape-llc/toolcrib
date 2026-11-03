@@ -7,6 +7,7 @@
  * itself.
  */
 import fs from 'node:fs';
+import { validateStates } from './manifestStates.js';
 import path from 'node:path';
 import ts from 'typescript';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,7 @@ export const MANUAL_IMPORT_OVERRIDES = {
 // (not free text) so a typo becomes a hard generation error instead of a
 // silently-uncategorized or newly-invented group.
 export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 'Data Display', 'Form Controls'];
+
 
 // Filename-safe slug per category — used by generate-manifest.js to name
 // the per-category manifest split files, and by generate-docs.js to link
@@ -570,6 +572,7 @@ export function findComponentDeclarations(sourceFile) {
           slotTypes: slotTypesFromType(decl.type),
           description: manifestDesc,
           constraints: jsDocTag(doc, 'manifestConstraints'),
+          states: jsDocTag(doc, 'manifestStates'),
           children: jsDocTag(doc, 'manifestChildren'),
           category: jsDocTag(doc, 'manifestCategory'),
           antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
@@ -589,6 +592,7 @@ export function findComponentDeclarations(sourceFile) {
         propsName,
         description: manifestDesc,
         constraints: jsDocTag(doc, 'manifestConstraints'),
+        states: jsDocTag(doc, 'manifestStates'),
         children: jsDocTag(doc, 'manifestChildren'),
         category: jsDocTag(doc, 'manifestCategory'),
         antiPatternAvoid: jsDocTag(doc, 'manifestAntiPatternAvoid'),
@@ -851,12 +855,17 @@ function generateComponentEntry(sourceFile, decl, defs) {
   if (decl.propsName) {
     const interfaceDecl = findInterface(sourceFile, decl.propsName);
     if (interfaceDecl) entry.props = extractProps(interfaceDecl, sourceFile, defs);
+    // Inherited props (HTML attributes through StyleFree<...>) aren't listed,
+    // so validateStates can't see them. Not enumerable: it stays out of the
+    // written manifest.
+    if (interfaceDecl?.heritageClauses?.length) Object.defineProperty(entry, 'inheritsHtmlAttributes', { value: true, enumerable: false });
   }
 
   if (decl.children) {
     entry.childComponents = decl.children.split(',').map((s) => s.trim());
   }
   if (decl.constraints) entry.constraints = decl.constraints;
+  if (decl.states) entry.states = decl.states.split(',').map((s) => s.trim());
   if (decl.category) entry.category = decl.category;
   // Both or neither -- one tag without its pair is a JSDoc mistake, not a
   // valid partial anti-pattern row (see AGENTS.md/generate-docs.js's own
@@ -912,6 +921,7 @@ export function validateCategories(components) {
   }
 }
 
+
 // Populated by generateComponents() as a side effect and read back by
 // generate-manifest.js immediately afterward (both run synchronously in
 // the same process/script invocation). Kept separate from
@@ -941,6 +951,7 @@ export function generateComponents() {
   }
   components.sort((a, b) => a.name.localeCompare(b.name));
   validateCategories(components);
+  validateStates(components);
   validateNoForbiddenProps(components);
   _lastCollectedDefs = defs;
   return components;
