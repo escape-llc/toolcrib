@@ -117,6 +117,19 @@ toolcrib is vendored into a consumer's project via reviewed patches (`toolcrib m
 
 Every field control (`<Input>`, `<Select>`, etc.) always stores a raw value in `values` regardless of schema — that's correct and unrelated; it's specifically the one-time hand-off at submission (and nowhere else) that has to route through the schema's parsed result. `parseValues()` (the internal helper `validateValues` was renamed to, since it now returns `{ errors, data }` instead of just errors) is the single place this is computed — any future change to `handleSubmit` that reads `values` directly instead of destructuring `data` from `parseValues(values)` is reintroducing this exact bug. `Form.test.tsx`'s `"regression: onSubmit receives the schema's parsed output, not raw field strings"` suite exists to catch that regression directly.
 
+## Every Form control meets one contract, checked in one test
+
+`src/__tests__/formControlContract.test.tsx` runs every value control through the same Form checks:
+- It takes its name from `<FormField>` and registers its starting value.
+- An interaction writes to the Form and marks the field touched.
+- It's named by the FormField label.
+- `resetForm` restores both its value and what it shows, and clears its error.
+- A Form `initialValue` shows exactly like the same value entered by hand.
+- A disabled `<Fieldset>` disables it.
+- When it fails validation it's `aria-invalid` and points at its error.
+
+The file's first check fails if any manifest `Form Controls` component is in neither `CONTROLS` nor `EXEMPT`, so a new control can't skip the contract. Add it to `CONTROLS` with one interaction, and the contract tells you what's missing. Weekly audit #880 is why this exists: its findings were each a gap in one dimension on one control, and the earlier sweeps (`Fieldset.test.tsx`, `invalidState.test.tsx`) each kept their own hand list that had silently drifted. The first run against `main` failed in 9 of 20 controls. That included a Form-wide bug (`resetForm` dropped every registered default) and six controls that never wrote to the Form at all. An audit skill wouldn't help: this is mechanical, and a test runs on every push where a skill runs only when someone remembers it.
+
 ## Documenting a component for the manifest
 
 `ai-docs/component-manifest.json` is **generated**, not hand-edited — `node scripts/generate-manifest.js --write` (or `npm run generate-manifest`) rebuilds it from JSDoc directly on component source via the TypeScript Compiler API. `npm run check-manifest` validates there's no drift, and CI runs it on every release; a component with missing/wrong tags either doesn't show up at all or fails the build, silently or loudly depending on which mistake you make below.

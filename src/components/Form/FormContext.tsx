@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useState, type ReactNode, type FormEvent } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode, type FormEvent } from 'react';
 import { ZodType } from 'zod';
 import { aiBus } from '../../eventBus/eventBus';
 
@@ -159,7 +159,12 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   // re-firing every field's mount-registration effect on every keystroke
   // anywhere in the form; depending on this stable function fixes that at
   // the source for every consumer at once.
+  // Each control's seed, kept so resetForm can restore it: resetting to
+  // initialValues alone dropped every control's own defaultValue, and the
+  // field then submitted nothing, the same symptom as an unregistered one.
+  const seedsRef = useRef<Record<string, unknown>>({});
   const registerField = useCallback((name: string, emptyValue: unknown = '') => {
+    seedsRef.current[name] = emptyValue;
     setValues(prev => (prev[name] === undefined ? { ...prev, [name]: emptyValue } : prev));
   }, []);
 
@@ -181,7 +186,7 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   };
 
   const resetForm = () => {
-    setValues(initialValues);
+    setValues({ ...seedsRef.current, ...initialValues });
     setErrors({});
     setTouched({});
     setIsSubmitting(false);

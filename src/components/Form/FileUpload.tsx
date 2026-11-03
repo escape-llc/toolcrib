@@ -167,14 +167,32 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       isMountRef.current = true;
     };
   }, []);
+  // The Form emptied the field from outside (resetForm): drop the list too,
+  // or it keeps showing files the Form no longer holds. Our own writes never
+  // trip this: an add writes a non-empty list, and removing the last file
+  // has already emptied `items`.
+  const formFiles = fieldName && formContext ? (formContext.values[fieldName] as File[] | undefined) : undefined;
+  const [prevFormFiles, setPrevFormFiles] = useState(formFiles);
+  if (formFiles !== prevFormFiles) {
+    setPrevFormFiles(formFiles);
+    if ((formFiles?.length ?? 0) === 0 && items.length > 0) setItems([]);
+  }
+
   useEffect(() => {
     if (isMountRef.current) {
       isMountRef.current = false;
       return;
     }
+    if (items.length === 0) {
+      previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      previewUrlsRef.current.clear();
+    }
     aiBus.emit('fileupload:changed', { name: fieldName, fileCount: items.length });
     if (onFilesChange) onFilesChange(items);
-    if (fieldName && formContext) {
+    // Already empty in the Form (a reset just cleared it): writing [] again
+    // would mark the field touched right after the reset untouched it.
+    const alreadyEmpty = items.length === 0 && (formFiles?.length ?? 0) === 0;
+    if (fieldName && formContext && !alreadyEmpty) {
       formContext.setFieldValue(fieldName, items.map(i => i.file));
       formContext.setFieldTouched(fieldName, true);
     }

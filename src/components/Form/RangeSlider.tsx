@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useContext, useId, useState } from 'react';
+import React, { useContext, useEffect, useId, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
+import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
@@ -68,7 +69,7 @@ const sameRange = (a: [number, number] | undefined, b: [number, number] | undefi
 export const RangeSlider: React.FC<RangeSliderProps> = ({
   id,
   name: propName,
-  value,
+  value: externalValue,
   min = 0,
   max = 100,
   defaultValue,
@@ -86,6 +87,17 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(name, ariaInvalid);
+  // Bound to its Form field like Slider (see there).
+  const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
+  const isFormBound = !!(name && formContext);
+  useEffect(() => {
+    if (name && registerField) registerField(name, defaultValue ?? [min, max]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [name, registerField]);
+  const formValue = isFormBound ? (formContext!.values[name] as [number, number] | undefined) : undefined;
+  // Before the seed commits, formValue is undefined and the local buffer renders.
+  const value = externalValue !== undefined ? externalValue : isFormBound ? formValue : undefined;
   const effectiveId = id ?? (name || undefined);
   const strings = useLocaleStrings().rangeSlider;
   const [lowerLabel, upperLabel] = thumbLabels ?? [strings.minimum, strings.maximum];
@@ -105,7 +117,14 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   const sliderVars = getSparseVariables(SliderThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
+  // Each thumb points at the FormField error it's invalid for (see Slider).
+  const describedBy = isError && name ? { 'aria-describedby': `${name}-error` } : {};
+
   const commitValue = (newVal: [number, number]) => {
+    if (isFormBound) {
+      formContext!.setFieldValue(name, newVal);
+      formContext!.setFieldTouched(name, true);
+    }
     if (onChange) onChange(newVal);
     aiBus.emit('rangeslider:changed', { name, value: newVal });
   };
@@ -146,6 +165,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               id={effectiveId}
               aria-labelledby={labelledBy(`${baseId}-lower`)}
               aria-invalid={isError || undefined}
+              {...describedBy}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled)}
             />
@@ -153,6 +173,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               index={1}
               aria-labelledby={labelledBy(`${baseId}-upper`)}
               aria-invalid={isError || undefined}
+              {...describedBy}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled)}
             />

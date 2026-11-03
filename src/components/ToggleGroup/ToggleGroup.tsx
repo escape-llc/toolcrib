@@ -1,6 +1,9 @@
 'use client';
 
-import React, { type ReactNode, useState } from 'react';
+import React, { type ReactNode, useContext, useEffect, useState } from 'react';
+import { FieldContext } from '../Form/FieldContext';
+import { useOptionalFormContext, type FormContextType } from '../Form/FormContext';
+import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Toggle as BaseToggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
@@ -33,6 +36,37 @@ export interface ToggleProps {
 }
 
 /**
+ * The Form binding Toggle and ToggleGroup share: the name inherited from
+ * `<FormField>`, the seed registered on mount, and the field's value used as
+ * the controlled value while inside a Form (#880's contract,
+ * src/__tests__/formControlContract.test.tsx).
+ */
+function useFormBinding<V>(propName: string | undefined, seed: V) {
+  const fieldCtx = useContext(FieldContext);
+  const fieldName = propName || fieldCtx.name || '';
+  const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
+  useEffect(() => {
+    if (fieldName && registerField) registerField(fieldName, seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [fieldName, registerField]);
+  const form: FormContextType | undefined = fieldName ? formContext ?? undefined : undefined;
+  const isError = useFieldInvalid(fieldName || undefined);
+  return {
+    fieldName,
+    /** Invalid-state attributes for the control, following the field's error. */
+    invalidProps: isError ? { 'aria-invalid': true as const, 'aria-describedby': `${fieldName}-error` } : {},
+    labelId: fieldCtx.labelId,
+    formValue: form ? (form.values[fieldName] as V | undefined) ?? seed : undefined,
+    write: (next: V) => {
+      if (!form) return;
+      form.setFieldValue(fieldName, next);
+      form.setFieldTouched(fieldName, true);
+    },
+  };
+}
+
+/**
  * @manifest Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set)
  * @manifestCategory Form Controls
  */
@@ -49,21 +83,26 @@ export const Toggle: React.FC<ToggleProps> = ({
   // The native <fieldset> already blocks the button; this makes it look
   // and report disabled too, like ToggleGroup (#880).
   const disabled = useFieldsetDisabled(disabledProp);
+  const binding = useFormBinding<boolean>(name, defaultPressed);
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
-  const isPressed = externalPressed !== undefined ? externalPressed : internalPressed;
+  const isPressed = externalPressed !== undefined ? externalPressed : binding.formValue ?? internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
   const handlePressedChange = (next: boolean) => {
     if (externalPressed === undefined) setInternalPressed(next);
+    binding.write(next);
     if (onPressedChange) onPressedChange(next);
-    aiBus.emit('toggle:changed', { name, pressed: next });
+    aiBus.emit('toggle:changed', { name: binding.fieldName || name, pressed: next });
   };
 
   return (
     <BaseToggle
       pressed={isPressed}
       onPressedChange={next => handlePressedChange(next)}
+      // Inside a <FormField>, its label (htmlFor={name}) names the toggle.
+      id={binding.fieldName || undefined}
+      {...binding.invalidProps}
       disabled={disabled}
       className="ai-btn"
       style={{
@@ -175,10 +214,10 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   'aria-label': ariaLabel,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
-  const [internalValue, setInternalValue] = useState<string | string[]>(
-    defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : ''
-  );
-  const currentValue = externalValue !== undefined ? externalValue : internalValue;
+  const seed = defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : '';
+  const binding = useFormBinding<string | string[]>(name, seed);
+  const [internalValue, setInternalValue] = useState<string | string[]>(seed);
+  const currentValue = externalValue !== undefined ? externalValue : binding.formValue ?? internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
   useInjectChoiceSeparatorStyles();
@@ -221,8 +260,9 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
     // consumer of this shape, not just DataTable's own.
     if (type === 'single' && next === '') return;
     if (externalValue === undefined) setInternalValue(next);
+    binding.write(next);
     if (onChange) onChange(next);
-    aiBus.emit('togglegroup:changed', { name, value: next });
+    aiBus.emit('togglegroup:changed', { name: binding.fieldName || name, value: next });
   };
 
   const isSelected = (optValue: string): boolean =>
@@ -247,6 +287,8 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
       // Base UI's own role="group" for a multiple group.
       {...(isSingle ? { role: 'radiogroup' } : {})}
       aria-label={ariaLabel}
+      aria-labelledby={ariaLabel ? undefined : binding.labelId}
+      {...binding.invalidProps}
       className="ai-choice-group"
       style={{ display: 'inline-flex', alignItems: 'stretch' }}
     >

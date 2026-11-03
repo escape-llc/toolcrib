@@ -1,6 +1,10 @@
 'use client';
 
-import React, { type ReactNode, useState } from 'react';
+import React, { type ReactNode, useContext, useEffect, useState } from 'react';
+import { FieldContext } from '../Form/FieldContext';
+import { useOptionalFormContext } from '../Form/FormContext';
+import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -50,10 +54,24 @@ export interface ListboxProps {
   options: ListboxOptionData[];
   /** Index of the currently keyboard-highlighted option, if any. */
   activeIndex?: number;
-  /** Values currently selected. */
+  /**
+   * Values currently selected (controlled). Omit it to let the Listbox own
+   * its selection: inside a `<Form>` the selection is bound to the field
+   * (`name`, or the surrounding `<FormField>`'s), submitting a string, or a
+   * string array when `multiSelectable`; outside one it is kept internally.
+   * Combobox and Select pass it, so their popup lists never bind.
+   */
   selectedValues?: string[];
+  /** Field name for the bound selection. Auto-inherited from parent `<FormField>` if omitted. Ignored when `selectedValues` is passed. */
+  name?: string;
+  /** Initial selection when `selectedValues` is omitted: a value, or values when `multiSelectable`. */
+  defaultValue?: string | string[];
+  /** If true, no option can be chosen. Also set by an enclosing `<Fieldset disabled>`. @default false */
+  disabled?: boolean;
+  /** Marks the bound selection invalid; inside a `<Form>` it follows the field's error. */
+  'aria-invalid'?: boolean;
   /** Called when an option is chosen (via `mousedown`, so a fast pointer-down-then-drag selects correctly, matching native listbox feel — and before an input's own `blur` would otherwise run). Never called for a `disabled` option. */
-  onSelect: (option: ListboxOptionData) => void;
+  onSelect?: (option: ListboxOptionData) => void;
   /** Shows `loadingMessage` instead of the option list. */
   loading?: boolean;
   /** Content shown while `loading` is true. @default 'Loading…' */
@@ -94,7 +112,11 @@ export const Listbox: React.FC<ListboxProps> = ({
   id,
   options,
   activeIndex,
-  selectedValues = [],
+  selectedValues: controlledSelected,
+  name: propName,
+  defaultValue,
+  disabled: disabledProp = false,
+  'aria-invalid': ariaInvalid,
   onSelect,
   loading = false,
   loadingMessage = 'Loading…',
@@ -106,6 +128,40 @@ export const Listbox: React.FC<ListboxProps> = ({
   'aria-labelledby': ariaLabelledBy,
 }) => {
   const strings = useLocaleStrings().listbox;
+
+  // Selected-item binding, only when the caller doesn't control selection.
+  const ownsSelection = controlledSelected === undefined;
+  const fieldCtx = useContext(FieldContext);
+  const fieldName = ownsSelection ? propName || fieldCtx.name || '' : '';
+  const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
+  const isFormBound = !!(fieldName && formContext);
+  const seed: string | string[] = defaultValue ?? (multiSelectable ? [] : '');
+  useEffect(() => {
+    if (fieldName && registerField) registerField(fieldName, seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [fieldName, registerField]);
+  const [internalSelected, setInternalSelected] = useState<string | string[]>(seed);
+  const owned = isFormBound ? ((formContext!.values[fieldName] as string | string[] | undefined) ?? seed) : internalSelected;
+  const selectedValues = controlledSelected ?? (Array.isArray(owned) ? owned : owned ? [owned] : []);
+  const choose = (opt: ListboxOptionData) => {
+    if (ownsSelection) {
+      const next = multiSelectable
+        ? selectedValues.includes(opt.value) ? selectedValues.filter(v => v !== opt.value) : [...selectedValues, opt.value]
+        : opt.value;
+      setInternalSelected(next);
+      if (isFormBound) {
+        formContext!.setFieldValue(fieldName, next);
+        formContext!.setFieldTouched(fieldName, true);
+      }
+    }
+    onSelect?.(opt);
+  };
+  const disabled = useFieldsetDisabled(disabledProp);
+  // Only the bound selection has a field error; a popup list (Combobox,
+  // Select) leaves invalid state to its field.
+  const isError = useFieldInvalid(fieldName || undefined, ariaInvalid);
+  const labelledBy = ariaLabelledBy ?? (!ariaLabel && ownsSelection ? fieldCtx.labelId : undefined);
 
   // Announces `loading` transitions via a visually-hidden aria-live region
   // -- the only non-visual signal a screen-reader user gets that an async
@@ -137,8 +193,11 @@ export const Listbox: React.FC<ListboxProps> = ({
         role="listbox"
         id={id}
         aria-label={ariaLabel}
-        aria-labelledby={ariaLabelledBy}
+        aria-labelledby={labelledBy}
         aria-multiselectable={multiSelectable || undefined}
+        aria-disabled={disabled || undefined}
+        aria-invalid={isError || undefined}
+        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
         style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
       >
         {/* role="option" + aria-disabled, not a plain div -- role="listbox"
@@ -171,6 +230,7 @@ export const Listbox: React.FC<ListboxProps> = ({
                 id={`${id}-option-${index}`}
                 role="option"
                 aria-selected={isSelected}
+                aria-disabled={disabled || opt.disabled || undefined}
                 data-highlighted={index === activeIndex ? '' : undefined}
                 className="ai-menu-item"
                 // Press only keeps focus where it is (the combobox input or
@@ -179,7 +239,7 @@ export const Listbox: React.FC<ListboxProps> = ({
                 // cancel by moving off it before releasing.
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
-                  if (!opt.disabled) onSelect(opt);
+                  if (!opt.disabled && !disabled) choose(opt);
                 }}
                 style={{
                   display: 'flex',
@@ -198,8 +258,8 @@ export const Listbox: React.FC<ListboxProps> = ({
                   // reappears instead of staying narrowed to the one label
                   // that now matches) has no visual trace of the pick at all.
                   background: isSelected ? 'var(--ai-subtheme-info-bg, rgba(59, 130, 246, 0.1))' : undefined,
-                  cursor: opt.disabled ? 'not-allowed' : 'pointer',
-                  opacity: opt.disabled ? 0.5 : 1,
+                  cursor: opt.disabled || disabled ? 'not-allowed' : 'pointer',
+                  opacity: opt.disabled || disabled ? 0.5 : 1,
                   userSelect: 'none',
                 }}
               >

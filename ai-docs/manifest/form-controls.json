@@ -723,11 +723,27 @@
         },
         "selectedValues": {
           "type": "string[]",
-          "description": "Values currently selected."
+          "description": "Values currently selected (controlled). Omit it to let the Listbox own\nits selection: inside a `<Form>` the selection is bound to the field\n(`name`, or the surrounding `<FormField>`'s), submitting a string, or a\nstring array when `multiSelectable`; outside one it is kept internally.\nCombobox and Select pass it, so their popup lists never bind."
+        },
+        "name": {
+          "type": "string",
+          "description": "Field name for the bound selection. Auto-inherited from parent `<FormField>` if omitted. Ignored when `selectedValues` is passed."
+        },
+        "defaultValue": {
+          "type": "string | string[]",
+          "description": "Initial selection when `selectedValues` is omitted: a value, or values when `multiSelectable`."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, no option can be chosen. Also set by an enclosing `<Fieldset disabled>`."
+        },
+        "aria-invalid": {
+          "type": "boolean",
+          "description": "Marks the bound selection invalid; inside a `<Form>` it follows the field's error."
         },
         "onSelect": {
           "type": "(option: ListboxOptionData) => void",
-          "required": true,
           "description": "Called when an option is chosen (via `mousedown`, so a fast pointer-down-then-drag selects correctly, matching native listbox feel — and before an input's own `blur` would otherwise run). Never called for a `disabled` option."
         },
         "loading": {
@@ -1218,6 +1234,11 @@
           "type": "boolean",
           "default": "false",
           "description": "Renders a non-interactive display instead of a collecting control —\nfor showing an existing (possibly fractional, e.g. an average) rating\nrather than gathering one. `value` may be fractional in this mode; the\nicon at a fractional position renders partially filled."
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": "false",
+          "description": "If true, the stars can't be changed. Also set by an enclosing `<Fieldset disabled>`."
         },
         "overrides": {
           "type": "Partial<RatingSliceState>",

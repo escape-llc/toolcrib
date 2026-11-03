@@ -8,6 +8,8 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from '../Form/FieldContext';
+import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
+import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
@@ -44,6 +46,8 @@ export interface RatingProps {
    * @default false
    */
   readOnly?: boolean;
+  /** If true, the stars can't be changed. Also set by an enclosing `<Fieldset disabled>`. @default false */
+  disabled?: boolean;
   /** Per-instance overrides for icon size and gap. */
   overrides?: Partial<RatingSliceState>;
 }
@@ -66,21 +70,37 @@ export const Rating: React.FC<RatingProps> = ({
   max = 5,
   icon,
   readOnly = false,
+  disabled: disabledProp = false,
   overrides,
 }) => {
+  const disabled = useFieldsetDisabled(disabledProp);
   const strings = useLocaleStrings().rating;
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || undefined;
   const isError = useFieldInvalid(name, ariaInvalid);
   const [internalValue, setInternalValue] = React.useState(defaultValue);
-  const isControlled = externalValue !== undefined;
-  const value = isControlled ? externalValue : internalValue;
+  // Bound to its Form field like every other Form control (a read-only
+  // display isn't an input, so it stays out of the Form).
+  const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
+  const isFormBound = !!(name && formContext && !readOnly);
+  React.useEffect(() => {
+    if (name && registerField && !readOnly) registerField(name, defaultValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [name, registerField]);
+  const formValue = isFormBound ? (formContext!.values[name!] as number | undefined) : undefined;
+  const isControlled = externalValue !== undefined || isFormBound;
+  const value = externalValue !== undefined ? externalValue : isFormBound ? formValue ?? internalValue : internalValue;
   const ratingVars = getSparseVariables(RatingThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
 
   const handleChange = (val: unknown) => {
     const numeric = Number(val);
     if (!isControlled) setInternalValue(numeric);
+    if (isFormBound) {
+      formContext!.setFieldValue(name!, numeric);
+      formContext!.setFieldTouched(name!, true);
+    }
     onChange?.(numeric);
     aiBus.emit('rating:changed', { name, value: numeric });
   };
@@ -138,8 +158,11 @@ export const Rating: React.FC<RatingProps> = ({
     <RadioGroup
       value={String(value)}
       onValueChange={handleChange}
+      disabled={disabled}
       className="ai-focus-ring"
-      aria-label={ariaLabel ?? strings.label}
+      // Named by the FormField label when there is one, as other controls are.
+      aria-label={ariaLabel ?? (fieldCtx.labelId ? undefined : strings.label)}
+      aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
       aria-invalid={isError || undefined}
       aria-describedby={isError && name ? `${name}-error` : undefined}
       style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', outline: 'none', ...ratingVars }}
@@ -156,7 +179,8 @@ export const Rating: React.FC<RatingProps> = ({
             style={{
               all: 'unset',
               ...iconStyle,
-              cursor: 'pointer',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled ? 0.5 : 1,
               color: isFilled ? 'var(--ai-color-primary, #3b82f6)' : isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)',
               // No inline transition -- .ai-focus-ring's own shared rule
               // (interactionStyles.ts) already covers color and is
