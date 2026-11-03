@@ -212,12 +212,17 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
 
     setIsSubmitting(true);
 
-    const { errors: validationErrors, data: parsedValues } = parseValues(values);
+    // Registered seeds under the current values: a submit in the same tick a
+    // control mounted (before its registration re-rendered the Form) would
+    // otherwise validate, submit and touch without that field, so its error
+    // never showed.
+    const current = { ...seedsRef.current, ...values };
+    const { errors: validationErrors, data: parsedValues } = parseValues(current);
     setErrors(validationErrors);
 
     // Mark all fields touched
     const allTouched: Record<string, boolean> = {};
-    Object.keys(values).forEach(k => {
+    Object.keys(current).forEach(k => {
       allTouched[k] = true;
     });
     setTouched(allTouched);

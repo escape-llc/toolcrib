@@ -97,6 +97,9 @@ const DateRangeFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceS
       onOpenChange={open => state.setOpen(open)}
       zIndex={Z_INDEX.DROPDOWN}
     >
+      {/* The picker owns the field: no inherited name, so the popup
+          calendar never binds to the Form a second time. */}
+      <FieldContext.Provider value={{}}>
       <RangeCalendar
         value={range?.start && range?.end ? { start: range.start as CalendarDate, end: range.end as CalendarDate } : undefined}
         // Only closes. Committing the range is already wired: React Aria's
@@ -111,6 +114,7 @@ const DateRangeFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceS
         overrides={overrides}
         size={size}
       />
+      </FieldContext.Provider>
     </Popup>
   );
 };
@@ -118,6 +122,7 @@ const DateRangeFieldAndCalendar: React.FC<{ overrides?: Partial<DatePickerSliceS
 /**
  * @manifest Start/end date fields + a range calendar popover, hosted in `<Popup>`, built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid Pair two `<DatePicker>`s for a date range and hand-validate that the end isn't before the start
  * @manifestAntiPatternInstead Use `<DateRangePicker>` — one Form-bound `{ start, end }` value, with the calendar enforcing start/end ordering as you pick
  */

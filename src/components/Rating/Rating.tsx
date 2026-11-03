@@ -57,6 +57,7 @@ const DEFAULT_ICON = '★';
 /**
  * @manifest Star rating control built on a Base UI radio group, or a read-only fractional-fill display
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid, read-only
  * @manifestAntiPatternAvoid Build a row of clickable star `<span>`s with manual hover/click state for a rating input
  * @manifestAntiPatternInstead Use `<Rating>` — built on a Base UI radio group, inherits real keyboard operability and `aria-checked` semantics instead of approximating them
  */

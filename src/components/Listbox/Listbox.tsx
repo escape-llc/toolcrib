@@ -3,7 +3,7 @@
 import React, { type ReactNode, useContext, useEffect, useState } from 'react';
 import { FieldContext } from '../Form/FieldContext';
 import { useOptionalFormContext } from '../Form/FormContext';
-import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
@@ -107,6 +107,7 @@ export interface ListboxProps {
  * @manifest Keyboard-navigable, controlled option list — extracted from Combobox's own hand-built listbox, now usable standalone
  * @manifestConstraints Purely presentational — owns no keyboard-navigation state; the caller drives `activeIndex` and reads back `${id}-option-${index}` for its own `aria-activedescendant`
  * @manifestCategory Form Controls
+ * @manifestStates default, disabled, invalid
  */
 export const Listbox: React.FC<ListboxProps> = ({
   id,
@@ -198,7 +199,14 @@ export const Listbox: React.FC<ListboxProps> = ({
         aria-disabled={disabled || undefined}
         aria-invalid={isError || undefined}
         aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
-        style={{ padding: 'var(--ai-padding-xs, 0.25rem)', maxHeight: '15rem', overflowY: 'auto' }}
+        style={{
+          padding: 'var(--ai-padding-xs, 0.25rem)',
+          maxHeight: '15rem',
+          overflowY: 'auto',
+          // A ring in the error color when the bound selection is invalid (no
+          // layout shift, unlike a border).
+          ...(isError ? { boxShadow: `inset 0 0 0 0.0625rem ${INVALID_COLOR}`, borderRadius: 'var(--ai-radius-md, 0.375rem)' } : {}),
+        }}
       >
         {/* role="option" + aria-disabled, not a plain div -- role="listbox"
             requires at least one role="option" child at all times (WAI-ARIA

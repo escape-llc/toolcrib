@@ -91,6 +91,7 @@ const STEPPER_STYLE: React.CSSProperties = {
 /**
  * @manifest Numeric input with −/+ steppers, min/max clamping, step snapping, arrow/PageUp/PageDown keys and locale-aware currency/percent/unit formatting, built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid `<Input type="number">` plus hand-rolled +/- buttons, clamping and `Intl.NumberFormat` display
  * @manifestAntiPatternInstead `<NumberField min={0} max={99} formatOptions={{ style: 'currency', currency: 'USD' }} />` — inside a `<Form>` it stores a real `number`
  */

@@ -60,6 +60,7 @@ export interface CheckboxGroupProps {
 /**
  * @manifest Group of checkboxes bound to one array-valued field (`string[]`), data-driven, with optional `maxSelected`
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid N separate `<Checkbox>`es plus hand-written code to fold them into one array field
  * @manifestAntiPatternInstead `<CheckboxGroup options={[...]} maxSelected={3} />` inside a `<FormField>`; the Form value is the array of checked values
  */

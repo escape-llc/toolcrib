@@ -50,6 +50,7 @@ const CELL_SIZE: Record<ControlSize, string> = { sm: '2rem', md: '2.5rem', lg: '
 /**
  * @manifest One-time code / PIN input: one cell per character with auto-advance, backspace-to-previous, paste distribution and SMS autofill (`autocomplete="one-time-code"`), bound to a Form as one string
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid A row of hand-rolled single-character `<input>`s with manual focus moving, paste splitting and keyboard handling
  * @manifestAntiPatternInstead `<OTPField length={6} onComplete={verify} />` inside a `<FormField>`; the Form value is the code as one string
  */

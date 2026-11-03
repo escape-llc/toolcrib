@@ -74,6 +74,7 @@ export interface TimeFieldProps {
 /**
  * @manifest Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components
  * @manifestCategory Form Controls
+ * @manifestStates default, focused, disabled, invalid
  * @manifestAntiPatternAvoid Hand-roll a segmented time input (separate hour/minute/second `<input>`s with manual tab-order and validation)
  * @manifestAntiPatternInstead Use `<TimeField>` with an `@internationalized/date` `Time` value — individually keyboard-editable segments come for free
  */

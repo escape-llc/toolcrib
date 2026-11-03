@@ -4,7 +4,7 @@ import demoSources from './demoSources.generated.json';
 import { Card, Badge, Block, Breadcrumb, Collapsible, HStack, Link, StyleDomainProvider, Text, VStack, VisuallyHidden } from '#toolcrib';
 import { Eye } from 'lucide-react';
 import { routeHref } from './hashRoute';
-import { STATE_EXAMPLES, STATE_NOTES } from './stateExamples';
+import { declaredStates, stateExample, STATE_NOTES } from './stateExamples';
 
 /** Each live demo's own source, generated from demo/App.tsx by scripts/generate-demo-sources.js. */
 const DEMO_SOURCES = demoSources as { components: Record<string, string>; systems: Record<string, string> };
@@ -479,22 +479,23 @@ function Blueprint({ source }: { source?: string }) {
  * The taxonomy of states a control renders in (default, focused, disabled,
  * invalid, read-only), one labelled card each, so they can be compared by eye
  * and a state that looks wrong or inconsistent stands out. Only the controls
- * with entries in STATE_EXAMPLES get one. A collapser of the Spec Sheet, open
+ * that declare `@manifestStates` get one, each state derived mechanically
+ * from one base example (see stateExamples.tsx). A collapser of the Spec Sheet, open
  * by default; it inherits that card's `info` style domain for its own chrome,
  * and each example resets the domain: a state example has to show the control
  * as an app would render it, not tinted by the frame.
  */
 function States({ name }: { name: string }) {
-  const examples = STATE_EXAMPLES[name];
-  if (!examples) return null;
+  const states = declaredStates(name);
+  if (states.length === 0) return null;
   return (
-    <Collapsible key={name} defaultOpen trigger={<>States <Badge size="sm">{plural(examples.length, 'state')}</Badge></>}>
+    <Collapsible key={name} defaultOpen trigger={<>States <Badge size="sm">{plural(states.length, 'state')}</Badge></>}>
       <div data-catalog-states={name} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
-        {examples.map(({ state, node }) => (
+        {states.map(state => (
           <Card key={state} data-catalog-state-card={state}>
             <Card.Header paddingMode="compact"><Text size="sm" weight="semibold">{state}</Text></Card.Header>
             <Card.Content paddingMode="compact">
-              <StyleDomainProvider>{node}</StyleDomainProvider>
+              <StyleDomainProvider>{stateExample(name, state)}</StyleDomainProvider>
             </Card.Content>
             <Card.Footer paddingMode="compact">
               <Text size="xs" tone="secondary">{STATE_NOTES[state]}</Text>
