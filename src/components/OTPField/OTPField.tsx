@@ -90,7 +90,19 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   const code = externalValue !== undefined ? externalValue : isFormBound ? (typeof formValue === 'string' ? formValue : '') : localValue;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
 
+  // Cleared from outside (resetForm, a controlled reset): Base UI keeps its
+  // active cell, so Tab would land mid-code. Remount the cells then; the
+  // user deleting every digit (lastEmitted '') keeps focus where it is.
+  const [lastEmitted, setLastEmitted] = useState(code);
+  const [prevCode, setPrevCode] = useState(code);
+  const [cellsKey, setCellsKey] = useState(0);
+  if (code !== prevCode) {
+    setPrevCode(code);
+    if (code === '' && lastEmitted !== '') setCellsKey(k => k + 1);
+  }
+
   const handleChange = (next: string) => {
+    setLastEmitted(next);
     if (isFormBound) {
       formContext!.setFieldValue(fieldName, next);
       formContext!.setFieldTouched(fieldName, true);
@@ -118,6 +130,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
           comes from this hidden span instead. */}
       <span id={`${ownLabelId}-cell-1`} hidden>{cellName(1, length)}</span>
       <BaseOTPField.Root
+        key={cellsKey}
         length={length}
         value={code}
         onValueChange={handleChange}

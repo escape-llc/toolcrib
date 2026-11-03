@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
+import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
@@ -76,7 +77,7 @@ export interface SliderProps {
 export const Slider: React.FC<SliderProps> = ({
   id,
   name: propName,
-  value,
+  value: externalValue,
   defaultValue = 50,
   min = 0,
   max = 100,
@@ -93,6 +94,20 @@ export const Slider: React.FC<SliderProps> = ({
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(name, ariaInvalid);
+  // Inside a Form the field's value is the controlled value, like every
+  // other Form control: registered on mount, written on change (#880's
+  // contract, src/__tests__/formControlContract.test.tsx).
+  const formContext = useOptionalFormContext();
+  const registerField = formContext?.registerField;
+  const isFormBound = !!(name && formContext);
+  useEffect(() => {
+    if (name && registerField) registerField(name, defaultValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a seed is read once, like any default
+  }, [name, registerField]);
+  const formValue = isFormBound ? (formContext!.values[name] as number | undefined) : undefined;
+  // Before the seed commits, formValue is undefined and the local buffer
+  // (seeded from defaultValue) renders instead.
+  const value = externalValue !== undefined ? externalValue : isFormBound ? formValue : undefined;
   const effectiveId = id ?? (name || undefined);
   // A local buffer, not just `value ?? defaultValue` read directly, is
   // what lets the thumb keep tracking the pointer smoothly during a drag
@@ -133,6 +148,10 @@ export const Slider: React.FC<SliderProps> = ({
   useInjectInteractionStyles();
 
   const commitValue = (newVal: number) => {
+    if (isFormBound) {
+      formContext!.setFieldValue(name, newVal);
+      formContext!.setFieldTouched(name, true);
+    }
     if (onChange) onChange(newVal);
     aiBus.emit('slider:changed', { name, value: newVal });
   };
@@ -168,6 +187,10 @@ export const Slider: React.FC<SliderProps> = ({
             aria-label={ariaLabel}
             aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? fieldCtx.labelId)}
             aria-invalid={isError || undefined}
+            // Points at the FormField error it's invalid for, like every other
+            // control; spread in only when set (an explicit undefined would
+            // override anything Base UI sets itself).
+            {...(isError && name ? { 'aria-describedby': `${name}-error` } : {})}
             className="ai-focus-ring"
             style={sliderThumbStyle(disabled)}
           />
