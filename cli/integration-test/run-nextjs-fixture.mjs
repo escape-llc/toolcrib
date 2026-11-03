@@ -109,11 +109,18 @@ try {
     path.join(tmpDir, 'app/hashRoute.ts'),
     `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/hashRoute.ts'), 'utf-8')}`
   );
-  // The Catalog's per-control States examples (demo/stateExamples.tsx),
-  // imported by Catalog.tsx. Its imports are '#toolcrib', react and zod.
+  // The Catalog's States examples (demo/stateExamples.tsx), imported by
+  // Catalog.tsx. It reads each component's declared states from the same
+  // manifest, so its import is rewritten the same way as Catalog's.
+  const statesSrc = fs.readFileSync(path.join(REPO_ROOT, 'demo/stateExamples.tsx'), 'utf-8');
+  if (!statesSrc.includes(MANIFEST_IMPORT)) {
+    throw new Error(
+      `demo/stateExamples.tsx no longer contains the expected manifest import (${MANIFEST_IMPORT}) -- update this script's replacement to match.`
+    );
+  }
   fs.writeFileSync(
     path.join(tmpDir, 'app/stateExamples.tsx'),
-    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/stateExamples.tsx'), 'utf-8')}`
+    `'use client';\n\n${statesSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
   );
   fs.copyFileSync(path.join(REPO_ROOT, 'demo/index.css'), path.join(tmpDir, 'app/demo.css'));
   fs.mkdirSync(path.join(tmpDir, 'public'), { recursive: true });
