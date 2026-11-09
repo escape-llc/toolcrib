@@ -49,6 +49,17 @@ const V0_14_0_FINGERPRINT = 'a35f7c3ab30b4b4a1fc9c6d6a7397a73e6ef6dc93664cf27805
 const VERIFIED_GUARANTEES_FINGERPRINT = '433ffa93dd780968172df86a33c9809bdff3f61e4ec99878bee5558d032c70e1';
 
 /**
+ * The fourth, added 2026-11-09 (issue #899): CORE.md gained a
+ * "### Extending toolcrib (new components and infrastructure)" subsection
+ * under Per-Instance Overrides. Verified against the real ai-docs/: the
+ * heading set differs from the previous fingerprint's by exactly that one
+ * added heading, none removed or renamed, and loadCoreDoc lists the new
+ * section and returns its content via getSection. The same parser set
+ * handles it.
+ */
+const EXTENDING_TOOLCRIB_FINGERPRINT = '1a785380ca9ea171a3da5fc205215b0daa17a0b4533620a39881556b3c8d137c';
+
+/**
  * Maps a known schema fingerprint to the loader functions verified to
  * parse it correctly. Every real toolcrib release through v0.13.0 shares
  * `LEGACY_FINGERPRINT`; v0.14.0 introduced real, verified drift (see
@@ -69,6 +80,7 @@ export const PARSER_MAP = new Map([
   [LEGACY_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
   [V0_14_0_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
   [VERIFIED_GUARANTEES_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
+  [EXTENDING_TOOLCRIB_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
 ]);
 
 /**

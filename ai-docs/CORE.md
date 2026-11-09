@@ -411,7 +411,7 @@ The full list (96 variables and counting) lives in `component-manifest.json`'s `
 The theme system is extensible via **slices**. Each slice provides:
 - A state interface
 - CSS variable generation from that state
-- An optional editor control for the Theme Editor
+- Its Theme Editor control, if it has one. Controls live in `components/ThemeEditor/sliceEditorControls.tsx`, keyed by the slice's `id`, not on the slice object
 
 Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`, `kbd`.
 
@@ -422,11 +422,9 @@ import { globalThemeSliceRegistry, ThemeSlice } from '#toolcrib';
 const MySlice: ThemeSlice<{ size: number }> = {
   id: 'my-slice',
   name: 'My Custom Slice',
+  category: 'Data Display',
   defaultState: { size: 16 },
   getCSSVariables: (state) => ({ '--my-size': `${state.size}rem` }),
-  renderEditorControl: (state, onChange) => (
-    <Slider value={state.size} min={8} max={32} onChange={v => onChange({ size: v })} />
-  ),
 };
 globalThemeSliceRegistry.register(MySlice);
 ```
@@ -466,6 +464,22 @@ import { StyleDomainProvider } from '#toolcrib';
 This is Context-based on purpose, not CSS-variable inheritance — `<Modal>`, `<Popup>`, and `<Drawer>` all render their content through a portal elsewhere in the DOM, and `<StyleDomainProvider>` still reaches them correctly because it follows the component tree, not DOM position.
 
 If neither `overrides` nor a style domain covers what you need on a specific component, that's a real, intentional boundary on that component — the toolkit trades some flexibility for keeping visual decisions theme-driven and AI-legible. Work down principle 7's ladder (§3) before leaving the theme: a themed primitive (`<Block>`, `<Text>`, `<VStack>`/`<HStack>`/`<Grid>`) or a theme-level change usually covers it. A raw `<div>`/`<span>` with `style` is the last resort, not a shortcut — and its `style` still reads the theme's CSS variables (§8) rather than hardcoding values, so it keeps following the Theme Editor, dark mode and subthemes like everything around it.
+
+### Extending toolcrib (new components and infrastructure)
+
+Your `./toolcrib/` copy is part of your app, and you can add to it. Follow these rules so your additions stay visible to `toolcrib merge` and `toolcrib export-patches`, can be kept across updates, and can be offered upstream.
+
+- A new reusable component goes in `./toolcrib/components/<Name>/`, not in your app's own source. Export it from `toolcrib/index.ts` so it imports through `#toolcrib` like the shipped components.
+- New infrastructure (a hook, observer, or theme utility) goes in `./toolcrib/observer/`, `./toolcrib/theme/`, or `./toolcrib/eventBus/` the same way. Tag one exported declaration in the file with `/** @barrelExport */`.
+- Inside `./toolcrib/`, import sibling toolkit files by relative path. Never import `#toolcrib` from toolkit code. That is a self-import through the barrel.
+- A new component's event channels go in the `AIEventMap` interface in `toolcrib/eventBus/eventBus.ts`, named `<name>:<event>`, where `<name>` is the component name in lowercase (for example `splitter:split_changed`). App-only events use a different prefix from any component.
+- A themable component gets a `ThemeSlice` file next to it, registered in `toolcrib/theme/registerThemeSlices.ts`. Its Theme Editor control goes in `toolcrib/components/ThemeEditor/sliceEditorControls.tsx`, keyed by the slice's `id`, not inline in the slice file.
+- Follow the same rules as the shipped components:
+  - Put `@manifest` and `@manifestCategory` JSDoc on the component declaration.
+  - Build props on `StyleFree<...>` or `StyleFreeAttributes<T>`. No `style` or `className`.
+  - Make `'use client'` the first line of any file that uses hooks, context, a class component, or browser APIs.
+  - Use `isDevBuild()` for dev-only branches. Never read `process.env` or `import.meta.env` directly.
+- To offer changes upstream, run `toolcrib export-patches`, fill in each SUMMARY.md's `intent:` lines, then run `toolcrib export-patches --post`.
 
 ---
 
