@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 
 export interface UseTableSelectionOptions<T> {
@@ -25,6 +25,14 @@ export interface UseTableSelectionOptions<T> {
   pageOffset: number;
   /** The records actually visible on the current page (post-sort, post-pagination-slice). */
   currentPageRecords: T[];
+  /**
+   * Lists every row key matching the current sort/filter (a data source's
+   * `getAllKeys`, issue #905). When given, the header "select all" selects
+   * (or, if the current page is already fully selected, deselects) all of
+   * them instead of just the current page's. Omit for the page-scoped
+   * behavior.
+   */
+  getAllKeys?: () => string[] | PromiseLike<string[]>;
 }
 
 export interface UseTableSelectionResult<T> {
@@ -82,6 +90,7 @@ export function useTableSelection<T>({
   rowKey,
   pageOffset,
   currentPageRecords,
+  getAllKeys,
 }: UseTableSelectionOptions<T>): UseTableSelectionResult<T> {
   // Wrapped in useCallback (not a plain closure) so it's referentially
   // stable across renders unless rowKey/pageOffset actually change -- lets
@@ -192,7 +201,28 @@ export function useTableSelection<T>({
     isMultiple && selectable && currentPageKeys.length > 0 && currentPageKeys.every(k => selectedKeySet.has(k));
   const someOnPageSelected = isMultiple && selectable && !allOnPageSelected && currentPageKeys.some(k => selectedKeySet.has(k));
 
+  // The latest selection, for a getAllKeys answer that arrives after the
+  // render this click happened in (the closure's `selectedKeySet` would be
+  // stale by then).
+  const latestSelectedRef = useRef(selectedKeySet);
+  useEffect(() => {
+    latestSelectedRef.current = selectedKeySet;
+  });
+
   const toggleSelectAllOnPage = () => {
+    if (getAllKeys) {
+      const deselecting = allOnPageSelected;
+      const apply = (keys: string[]) => {
+        const next = new Set(latestSelectedRef.current);
+        keys.forEach(k => (deselecting ? next.delete(k) : next.add(k)));
+        updateSelection(next);
+      };
+      const answer = getAllKeys();
+      if (Array.isArray(answer)) apply(answer);
+      // A failed lookup leaves the selection as it was.
+      else answer.then(apply, () => {});
+      return;
+    }
     const next = new Set(selectedKeySet);
     if (allOnPageSelected) currentPageKeys.forEach(k => next.delete(k));
     else currentPageKeys.forEach(k => next.add(k));

@@ -31,6 +31,14 @@ export interface ToolcribLocaleStrings {
     sortedBy: (columnTitle: string, direction: 'asc' | 'desc') => string;
     /** Accessible name of the header checkbox that selects every row on the current page. */
     selectAllRows: string;
+    /** Accessible name of the header checkbox when its data source can list every matching row's key, so it selects all of them rather than just the current page (issue #905). */
+    selectAllMatchingRows: string;
+    /** Footer status text while a `<DataTable>` data source's first request is still loading, before any total is known (issue #905). */
+    loadingRows: string;
+    /** Message in the error banner shown when a `<DataTable>` data source's request fails (issue #905). */
+    loadError: string;
+    /** Label of the error banner's button that re-requests the rows (issue #905). */
+    retryLoad: string;
     /** Accessible name of one row's selection control; `rowNumber` is 1-based. */
     selectRow: (rowNumber: number) => string;
     rowsPerPage: string;
@@ -177,6 +185,10 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     sortHint: 'Click to sort. Shift+click to add a secondary sort.',
     sortedBy: (columnTitle, direction) => `Sorted by ${columnTitle}, ${direction === 'asc' ? 'ascending' : 'descending'}`,
     selectAllRows: 'Select all rows on this page',
+    selectAllMatchingRows: 'Select all matching rows',
+    loadingRows: 'Loading…',
+    loadError: 'Could not load rows.',
+    retryLoad: 'Retry',
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
     rowsPerPage: 'Rows per page',
     perPageOption: (size) => `${size} per page`,

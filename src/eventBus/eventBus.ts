@@ -87,7 +87,7 @@ export interface AIEventMap {
   'stepper:changed': { id?: string; activeIndex: number; previousIndex?: number };
   /** `sortBy` is the whole multi-column sort in priority order (empty when unsorted) -- see issue #337; a real payload shape change from the previous single `key`/`direction` pair, not an addition alongside it. */
   'datatable:sorted': { id?: string; sortBy: { key: string; direction: 'asc' | 'desc' }[] };
-  /** Emitted whenever `<DataTable quickFilter>`'s search value changes -- `matchCount` is how many rows matched at that moment (post-filter, pre-sort/pagination). */
+  /** Emitted whenever `<DataTable quickFilter>`'s search value changes -- `matchCount` is how many rows matched at that moment (post-filter, pre-sort/pagination). For a data source the match count isn't known until the source answers, so it's the last known `totalCount`. */
   'datatable:filtered': { id?: string; value: string; matchCount: number };
   'datatable:paginated': { id?: string; page: number; pageSize: number };
   'datatable:selection_changed': { id?: string; selectedKeys: string[] };
@@ -101,6 +101,10 @@ export interface AIEventMap {
   'datatable:end_reached': { id?: string; loadedCount: number };
   /** Emitted whenever `<DataTable csvExport>`'s built-in export button downloads a CSV -- `rowCount` is the full filtered + sorted dataset's size (every exported row, across every page), not just the current page's. See issue #338. */
   'datatable:exported': { id?: string; rowCount: number };
+  /** Command: re-request the rows of the `<DataTable>` whose `id` matches -- how a mutation elsewhere invalidates a table backed by a data source (issue #905). A no-op re-render for an array `data`. */
+  'datatable:refresh': { id: string };
+  /** Emitted when a `<DataTable>` data source's request fails (a rejected Promise or a thrown error; an `AbortError` from a superseded request is not reported) -- the table shows an error banner with Retry. `message` is the error's message. See issue #905. */
+  'datatable:load_error': { id: string; message: string };
   /** Emitted whenever `<DataTable columnVisibility>`'s show/hide state changes, whether controlled or uncontrolled -- `hiddenColumns` is the FULL current set of hidden `Column.key`s, not just the one that changed. See issue #340. */
   'datatable:columns_changed': { id?: string; hiddenColumns: string[] };
   /** Emitted whenever `<DataTable editable>`'s editing key-set gains a key -- `key` is the row's resolved `rowKey` (stringified), `index` its position in the raw `data` array (editable requires a real `rowKey`, so there's no index-fallback ambiguity here the way `datatable:row_command` has). See issue #545. */

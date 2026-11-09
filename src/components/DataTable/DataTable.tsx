@@ -31,11 +31,15 @@ import { resolveSubtheme, type SubthemeName, type SubthemeColors } from '../../t
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
+import { useAIEvent } from '../../eventBus/useAIEvent';
 import { DataTableThemeSlice, type TableSliceState, type TableDensity, DENSITY_ROW_HEIGHT_PX, DENSITY_ROW_COMMAND_BUTTON_PX, DENSITY_HEADER_HEIGHT_PX, DENSITY_SELECTION_CELL_PADDING_V_PX, DENSITY_SELECTION_HEADER_PADDING_V_PX } from './DataTableSlice';
 import { columnsToCsv, downloadCsvFile } from './csvExport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { useTableSort } from './useTableSort';
 import { useTableQuickFilter } from './useTableQuickFilter';
+import { createArrayDataSource, type DataTableDataSource } from './dataSource';
+import { filterRows } from './tableQuery';
+import { useDataSourceRows } from './useDataSourceRows';
 import { useTableDensity } from './useTableDensity';
 import { useRowSetCrossFade } from './useRowSetCrossFade';
 import { useTableSelection } from './useTableSelection';
@@ -218,8 +222,21 @@ export interface DataTableProps<T = any> {
    * counterpart to target, so this exists purely for event attribution.
    */
   id?: string;
-  /** Array of data records to display. */
-  data: T[];
+  /**
+   * The records to display: either an array (sorted, filtered and paged
+   * client-side by the table, as always) or a data source
+   * (`DataTableDataSource`: `getRows({ start, count, sortBy, quickFilter,
+   * signal })` returning `{ rows, totalCount }`, sync or async) for rows
+   * that live on a server -- REST offset/limit, OData `$skip`/`$top`. With a
+   * data source the table does no sorting, filtering or slicing of its own:
+   * it sends the page/sort/filter state and shows what comes back, with
+   * the page count, footer and `aria-rowcount` taken from `totalCount`.
+   * `rowKey` is required for a data source. Define the source once (module
+   * scope or memoized): a new object identity means "refetch". Until data
+   * virtualization lands (#905 phase 2) a data source is always paged, as
+   * if `pagination` were true. See `ai-docs/examples/datatable-odata.md`.
+   */
+  data: T[] | DataTableDataSource<T>;
   /** Column definitions controlling header, cell rendering, and sorting. */
   columns: Column<T>[];
   /**
@@ -227,7 +244,9 @@ export interface DataTableProps<T = any> {
    * default). Set to false to virtualize across the *entire* sorted
    * dataset instead — no pagination footer, no page slicing — the
    * better fit once a dataset is too large to page through usefully.
-   * `defaultPageSize`/`pageSizeOptions` are ignored in this mode.
+   * `defaultPageSize`/`pageSizeOptions` are ignored in this mode. Applies
+   * to an array `data` only: a data source is paged regardless, until data
+   * virtualization lands (#905 phase 2).
    * @default true
    */
   pagination?: boolean;
@@ -309,7 +328,12 @@ export interface DataTableProps<T = any> {
    * @default 'auto'
    */
   containerHeight?: number | 'auto';
-  /** Custom row key extractor for React reconciliation. Defaults to array index. */
+  /**
+   * Custom row key extractor for React reconciliation and selection.
+   * Defaults to the row's position (array index). Required (a type error
+   * otherwise) when `data` is a data source, since a row's position then
+   * is a server offset that changes with sort, filter and page.
+   */
   rowKey?: (record: T, index: number) => string | number;
   /**
    * Styles a row. Return either:
@@ -581,7 +605,8 @@ export interface DataTableProps<T = any> {
    * Renders a built-in "Export CSV" button (in the same top toolbar row
    * `quickFilter`/`densitySelector` share) that downloads the *entire*
    * currently filtered + sorted dataset -- every matching row across every
-   * page, not just the current page -- as a CSV file, using each column's
+   * page, not just the current page -- as a CSV file. With a data source
+   * the button appears only if the source provides `exportRows`. Uses each column's
    * `title` as its header and the same resolved cell value
    * (`accessorFn(record)` if given, else `record[key]`) sorting already
    * uses. A column's custom `render` output is never used for the CSV,
@@ -753,6 +778,19 @@ function paginationNavButtonStyle(disabled: boolean): React.CSSProperties {
   };
 }
 
+// `data` is an array or a data source, and `rowKey` is required for a data
+// source (issue #905) -- a row's index is a server offset there, so the
+// index fallback can't identify it. A TypeScript overload pair expresses
+// that; the single `DataTableProps` interface below stays the one place
+// the props are declared and documented (the manifest reads it).
+type DataTableSourceProps<T> = Omit<DataTableProps<T>, 'data' | 'rowKey'> & {
+  data: DataTableDataSource<T>;
+  rowKey: (record: T, index: number) => string | number;
+};
+type DataTableArrayProps<T> = Omit<DataTableProps<T>, 'data'> & { data: T[] };
+
+export function DataTable<T extends Record<string, any> = Record<string, any>>(props: DataTableSourceProps<T>): React.JSX.Element;
+export function DataTable<T extends Record<string, any> = Record<string, any>>(props: DataTableArrayProps<T>): React.JSX.Element;
 /**
  * @manifest Virtualized, sortable, paginated data table with sticky headers and real WAI-ARIA grid keyboard navigation
  * @manifestCategory Data Display
@@ -928,24 +966,38 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     ...visibleColumns.filter(c => c.pinned === 'right'),
   ];
 
-  // Filtering happens BEFORE sorting -- useTableSort receives filteredData,
-  // not the raw data prop, so aria-rowcount/the pagination footer/the
-  // virtualization windowing math downstream all already reflect the
-  // filtered count without needing their own separate awareness that
-  // filtering happened at all.
-  const { quickFilterValue, filteredData, handleQuickFilterChange } = useTableQuickFilter({
-    data,
+  // One rendering path (issue #905): the table only ever asks a data source
+  // for a range of rows -- an array `data` is wrapped in the built-in array
+  // source (quick filter -> sort -> slice, synchronously), so it behaves
+  // exactly as it did when the table did that itself. `quickFilter`/
+  // `sortBy` below are just STATE; useDataSourceRows turns them into the
+  // query. A non-array source is always paged for now (phase 2 adds data
+  // virtualization), hence `paged`.
+  const isArrayData = Array.isArray(data);
+  const paged = pagination || !isArrayData;
+  const quickFilterFieldsKey = quickFilterFields?.join(',');
+  const arrayDataSource = useMemo<DataTableDataSource<T> | null>(
+    () => (Array.isArray(data) ? createArrayDataSource(data, { columns, quickFilterFields }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- quickFilterFieldsKey stands in for quickFilterFields, see useTableQuickFilter.
+    [data, columns, quickFilterFieldsKey]
+  );
+  const dataSource = (arrayDataSource ?? data) as DataTableDataSource<T>;
+  // The most recent totalCount a data source reported -- what
+  // `datatable:filtered` reports as matchCount for a source (its real count
+  // isn't known until it answers).
+  const [knownTotal, setKnownTotal] = useState<number | null>(null);
+
+  const { quickFilterValue, handleQuickFilterChange } = useTableQuickFilter({
     columns,
     quickFilterValue: controlledQuickFilterValue,
     defaultQuickFilterValue,
     onQuickFilterChange,
     tableId: id,
     quickFilterFields,
+    getMatchCount: value => (Array.isArray(data) ? filterRows(data, columns, quickFilterFields, value).length : knownTotal ?? 0),
   });
 
-  const { sortBy, sortedData, handleSort } = useTableSort({
-    data: filteredData,
-    columns,
+  const { sortBy, handleSort } = useTableSort({
     sortBy: controlledSortBy,
     defaultSortBy,
     onSortChange,
@@ -1070,12 +1122,18 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // Pagination — page-index math shared with <Pagination> via the
   // usePagination hook (src/components/shared/usePagination.ts), so there's
   // exactly one page-clamping/controlled-state implementation, not two that
-  // can drift. `paginatedData` below still short-circuits entirely when
-  // `pagination` is false, same as before this hook existed — step 3's
-  // virtualization then windows across the whole sorted array instead of
-  // one page at a time.
-  const { currentPage: validCurrentPage, totalPages, goToPage: paginationGoToPage } = usePagination({
-    totalItems: sortedData.length,
+  // can drift. When `paged` is false (array `data` with
+  // `pagination={false}`) the one query asks for every row, and step 3's
+  // virtualization windows across the whole sorted array instead of one
+  // page at a time.
+  //
+  // `totalItems` is the last totalCount the data source reported, fed back
+  // from below (`knownTotal`): the query needs the clamped page, the page
+  // clamp needs the total, and the total comes from the query. Until the
+  // first answer the page isn't clamped at all (an unknown total can't
+  // shrink it).
+  const { currentPage: validCurrentPage, totalPages: pagesFromTotal, goToPage: paginationGoToPage } = usePagination({
+    totalItems: knownTotal ?? Number.MAX_SAFE_INTEGER,
     pageSize: effectivePageSize,
     page: controlledPage,
     defaultPage,
@@ -1085,46 +1143,121 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     },
   });
 
-  const paginatedData = useMemo(() => {
-    if (!pagination) return sortedData;
-    const start = (validCurrentPage - 1) * effectivePageSize;
-    return sortedData.slice(start, start + effectivePageSize);
-  }, [sortedData, validCurrentPage, effectivePageSize, pagination]);
+  // Before the first answer there is no page count to show or navigate to.
+  const totalPages = knownTotal === null ? validCurrentPage : pagesFromTotal;
+  const queryStart = paged ? (validCurrentPage - 1) * effectivePageSize : 0;
+  const {
+    rows: loadedRows,
+    totalCount: loadedTotalCount,
+    rowsStart,
+    status: loadStatus,
+    retry: retryLoad,
+    isAsync: isAsyncSource,
+  } = useDataSourceRows<T>({
+    source: dataSource,
+    start: queryStart,
+    count: paged ? effectivePageSize : Number.POSITIVE_INFINITY,
+    sortBy,
+    quickFilter: quickFilterValue,
+    tableId: id,
+    // An async source debounces typing, so the return to page 1 happens
+    // when the filter actually becomes a request (a single request).
+    onFilterCommit: () => paginationGoToPage(1),
+  });
+  if (loadedTotalCount !== null && loadedTotalCount !== knownTotal) setKnownTotal(loadedTotalCount);
+
+  // What every consumer of "the rows" below uses: the loaded range, in the
+  // order the data source returned it. (`paginatedData` before issue #905.)
+  const paginatedData = loadedRows;
+  // The whole result set's size, not just what's loaded.
+  const totalCount = loadedTotalCount ?? 0;
+  const isLoading = loadStatus === 'loading';
+  // Rows from an earlier request stay on screen while the requested one
+  // loads or after it failed; they're dimmed so they don't pass for it.
+  // (Never for an array, which is always ready, or before any rows exist.)
+  const isStale = loadStatus !== 'ready' && paginatedData.length > 0;
+
+  // `datatable:refresh` (issue #905): a mutation elsewhere invalidates this
+  // table's rows. A no-op re-render for an array `data`.
+  useAIEvent('datatable:refresh', payload => {
+    if (payload.id === id) retryLoad();
+  });
 
   // A page number valid for the old, larger result set can easily be past
   // the end of a smaller filtered one -- reset to page 1 on every filter
   // change, the same explicit `paginationGoToPage(1)` call the page-size
   // dropdown's own onChange already makes for the identical reason, rather
   // than relying on usePagination's own clamping (which would land on
-  // whatever the new LAST valid page is, not necessarily page 1).
+  // whatever the new LAST valid page is, not necessarily page 1). For an
+  // async source this waits for the debounced commit instead (see
+  // `onFilterCommit` above), so typing on page 3 makes one request, not an
+  // immediate one for page 1 with the old filter and another after.
   const handleQuickFilterInputChange = (value: string) => {
     handleQuickFilterChange(value);
-    paginationGoToPage(1);
+    if (!isAsyncSource) paginationGoToPage(1);
   };
 
-  // CSV export (issue #338) -- exports `sortedData`, the FULL filtered +
-  // sorted dataset (post-quickFilter, post-sort, pre-pagination-slice), not
-  // just `paginatedData` (the current page). "Export everything I'm
-  // currently looking at, filtered and ordered the way I set it up" is the
-  // useful default every competitor's own free CSV export already matches;
-  // exporting only the current page would silently drop every other page's
-  // rows, which is not what a user reaching for "export" expects. Uses
-  // `visibleColumns` (issue #340), not the full `columns` -- a column the
-  // user has explicitly hidden shouldn't reappear in the exported file
-  // either, matching "export what I can currently see."
-  const handleCsvExport = () => {
-    downloadCsvFile(csvExportFileName, columnsToCsv(visibleColumns, sortedData));
-    aiBus.emit('datatable:exported', { id, rowCount: sortedData.length });
+  // A source's page/sort/filter are all server-side, so a new sort starts
+  // from the first page. (An array keeps the current page, as it always
+  // has: re-sorting just re-slices the same page.)
+  const handleSortClick = (key: string, shiftKey: boolean) => {
+    handleSort(key, shiftKey);
+    if (!isArrayData) paginationGoToPage(1);
   };
+
+  // CSV export (issue #338) -- exports the FULL filtered + sorted dataset
+  // (post-quickFilter, post-sort, pre-pagination-slice), not just the
+  // current page. "Export everything I'm currently looking at, filtered
+  // and ordered the way I set it up" is the useful default every
+  // competitor's own free CSV export already matches; exporting only the
+  // current page would silently drop every other page's rows, which is not
+  // what a user reaching for "export" expects. The rows come from the data
+  // source's `exportRows` (the array source has one), so there's no button
+  // when a source doesn't provide it. Uses `visibleColumns` (issue #340),
+  // not the full `columns` -- a column the user has explicitly hidden
+  // shouldn't reappear in the exported file either, matching "export what
+  // I can currently see."
+  const canExportCsv = typeof dataSource.exportRows === 'function';
+  const exportAbortRef = useRef<AbortController | null>(null);
+  const handleCsvExport = () => {
+    if (!dataSource.exportRows) return;
+    exportAbortRef.current?.abort();
+    const controller = new AbortController();
+    exportAbortRef.current = controller;
+    const finish = (exported: T[]) => {
+      downloadCsvFile(csvExportFileName, columnsToCsv(visibleColumns, exported));
+      aiBus.emit('datatable:exported', { id, rowCount: exported.length });
+    };
+    const answer = dataSource.exportRows({ sortBy, quickFilter: quickFilterValue, signal: controller.signal });
+    if (Array.isArray(answer)) finish(answer);
+    // A failed export has nothing to download; the table's own loading
+    // state is unaffected.
+    else answer.then(exported => { if (!controller.signal.aborted) finish(exported); }, () => {});
+  };
+  useEffect(() => () => exportAbortRef.current?.abort(), []);
 
   // Row selection. `pageOffset` is 0 when pagination is disabled
-  // (`paginatedData` is already the full sorted array in that case, so its
-  // own index is already dataset-absolute) and the current page's starting
-  // offset otherwise -- used only for the index-based selection-key
-  // fallback below, entirely separate from `rowKey`'s own existing
-  // page-relative index contract (`actualIndex` in the row-render loop),
-  // which this doesn't change.
-  const pageOffset = pagination ? (validCurrentPage - 1) * effectivePageSize : 0;
+  // (the loaded rows are already the full sorted array in that case, so
+  // their own index is already dataset-absolute) and the current page's
+  // starting offset otherwise -- used only for the index-based
+  // selection-key fallback below, entirely separate from `rowKey`'s own
+  // existing page-relative index contract (`actualIndex` in the row-render
+  // loop), which this doesn't change.
+  const pageOffset = queryStart;
+  // Header "select all" means every matching row only for a data source
+  // that can list their keys; an array `data` keeps selecting the current
+  // page, as it always has.
+  const allKeysSource = !isArrayData && typeof dataSource.getAllKeys === 'function' ? dataSource : null;
+  const selectAllAbortRef = useRef<AbortController | null>(null);
+  const getAllMatchingKeys = allKeysSource
+    ? () => {
+        selectAllAbortRef.current?.abort();
+        const controller = new AbortController();
+        selectAllAbortRef.current = controller;
+        return allKeysSource.getAllKeys!({ sortBy, quickFilter: quickFilterValue, signal: controller.signal });
+      }
+    : undefined;
+  useEffect(() => () => selectAllAbortRef.current?.abort(), []);
 
   const {
     selectedKeySet,
@@ -1144,6 +1277,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     rowKey,
     pageOffset,
     currentPageRecords: paginatedData,
+    getAllKeys: getAllMatchingKeys,
   });
 
   const {
@@ -1164,7 +1298,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     onEditingKeysChange,
     tableId: id,
     rowKey,
-    data,
+    // The raw array for an array `data`; for a data source only the
+    // loaded rows are known, so a row being edited that has since paged
+    // out of view drops out of the co-grid.
+    data: Array.isArray(data) ? data : paginatedData,
     currentPageRecords: paginatedData,
     maxEditingRows,
   });
@@ -1277,7 +1414,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // guessed timeout -- this codebase's own standing e2e discipline
   // ("wait for a real signal, never a fixed sleep," AGENTS.md) applies
   // exactly as much to a one-shot mount animation as to a test.
-  const isShowingEmptyState = sortedData.length === 0 && !!emptyState;
+  const isShowingEmptyState = loadedTotalCount === 0 && !!emptyState;
   const wasShowingEmptyStateRef = useRef(isShowingEmptyState);
   const [justLeftEmptyState, setJustLeftEmptyState] = useState(false);
   useLayoutEffect(() => {
@@ -1370,13 +1507,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     if (totalItems < lastObservedTotalItemsRef.current) firedEndReachedForRef.current = null;
     lastObservedTotalItemsRef.current = totalItems;
 
-    if (pagination || totalItems === 0) return;
+    if (paged || totalItems === 0) return;
     if (endIndex < totalItems - endReachedThreshold) return;
     if (firedEndReachedForRef.current === totalItems) return;
     firedEndReachedForRef.current = totalItems;
     onEndReached?.();
     aiBus.emit('datatable:end_reached', { id, loadedCount: totalItems });
-  }, [pagination, totalItems, endIndex, endReachedThreshold, onEndReached, id]);
+  }, [paged, totalItems, endIndex, endReachedThreshold, onEndReached, id]);
 
   // Grid coordinate layout: column 0 is the selection checkbox/radio column
   // when `selectable` and not `hideSelectionColumn`, otherwise column
@@ -2051,7 +2188,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     onChange={next => handleDensityChange(next as TableDensity)}
                   />
                 )}
-                {csvExport && (
+                {csvExport && canExportCsv && (
                   // title alongside aria-label, matching EditCoGrid's own
                   // established icon-only-button pattern (its Reset/Save/
                   // Cancel buttons) -- Gemini's review of #592 correctly
@@ -2244,7 +2381,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // the DOM, unlike rows, so aria-colindex per cell isn't needed
           // (the spec only calls for it when the DOM column set is a
           // subset of the full one).
-          aria-rowcount={1 + sortedData.length}
+          // -1 is ARIA's "total unknown" until a data source's first answer.
+          aria-rowcount={loadedTotalCount === null ? -1 : 1 + loadedTotalCount}
+          // The rows on screen are the previous request's while a new one loads.
+          aria-busy={isLoading ? true : undefined}
           aria-colcount={gridColumnCount}
           onKeyDown={e => {
             // Space toggles the focused row's own selection -- the
@@ -2357,7 +2497,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       checked={allOnPageSelected}
                       indeterminate={!allOnPageSelected && someOnPageSelected}
                       onCheckedChange={() => toggleSelectAllOnPage()}
-                      aria-label={strings.selectAllRows}
+                      aria-label={allKeysSource ? strings.selectAllMatchingRows : strings.selectAllRows}
                       className="ai-focus-ring"
                       data-grid-row={0}
                       data-grid-col={0}
@@ -2463,7 +2603,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       // before this was a <button> at all.
                       <button
                         type="button"
-                        onClick={e => handleSort(col.key, e.shiftKey)}
+                        onClick={e => handleSortClick(col.key, e.shiftKey)}
                         title={strings.sortHint}
                         className="ai-focus-ring"
                         data-grid-row={0}
@@ -2598,8 +2738,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </tr>
           </thead>
 
-          <tbody>
-            {sortedData.length === 0 && emptyState ? (
+          <tbody
+            data-stale={isStale ? 'true' : undefined}
+            style={{
+              opacity: isStale ? 'var(--ai-datatable-stale-opacity, 0.55)' : undefined,
+              transition: 'opacity var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
+            }}
+          >
+            {loadedTotalCount === 0 && emptyState ? (
               // Header and (if pagination is on) the footer's own "0 of 0"
               // text already render normally around this -- only the row
               // area itself needs a stand-in. A single colSpan-ed row (not
@@ -3143,6 +3289,37 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             )}
           </tbody>
         </table>
+        {/* Data source failure (issue #905). Inside the scroll region, after
+            the table and pinned to its bottom edge, rather than above the
+            body: a banner above would shrink the body's measured height,
+            which feeds the auto page size and would re-request the rows it
+            is reporting a failure for. The previous rows stay visible
+            above it. */}
+        {loadStatus === 'error' && (
+          <div
+            role="alert"
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              left: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              boxSizing: 'border-box',
+              width: '100%',
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              background: resolveSubtheme('error').background,
+              color: resolveSubtheme('error').color,
+              borderTop: `0.0625rem solid ${resolveSubtheme('error').border}`,
+            }}
+          >
+            <span style={{ flex: '1 1 auto' }}>{strings.loadError}</span>
+            <Button type="button" size="sm" variant="outline" onClick={retryLoad}>
+              {strings.retryLoad}
+            </Button>
+          </div>
+        )}
       </div>
 
       {editable && (
@@ -3164,7 +3341,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           since there's no page concept to show controls for; the table
           above is already virtualizing across the full dataset in that
           mode. */}
-      {pagination && (
+      {paged && (
       <div
         style={{
           display: 'flex',
@@ -3180,11 +3357,17 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         }}
       >
         <div role="status" aria-live="polite" aria-atomic="true" style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>
-          {strings.showingEntries(
-            totalItems > 0 ? (validCurrentPage - 1) * effectivePageSize + 1 : 0,
-            Math.min(validCurrentPage * effectivePageSize, sortedData.length),
-            sortedData.length
-          )}
+          {/* No total exists before a data source's first answer, so say
+              so instead of "0 of 0". */}
+          {loadedTotalCount === null && isLoading
+            ? strings.loadingRows
+            : strings.showingEntries(
+                // Describes the rows on screen (the query that produced
+                // them), not the requested page, which may still be loading.
+                totalItems > 0 ? rowsStart + 1 : 0,
+                rowsStart + totalItems,
+                totalCount
+              )}
           {/* Re-sorting reorders the rows and only flips aria-sort on a
               header, which a screen reader doesn't announce by itself. */}
           <VisuallyHidden>

@@ -78,6 +78,7 @@ export * from './components/ContextMenu/ContextMenuSlice';
 export * from './components/DataTable/DataTable';
 export * from './components/DataTable/DataTableSlice';
 export * from './components/DataTable/createPermissiveTableSchema';
+export * from './components/DataTable/dataSource';
 export * from './components/DatePicker/Calendar';
 export * from './components/DatePicker/DatePicker';
 export * from './components/DatePicker/DatePickerSlice';
