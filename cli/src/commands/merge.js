@@ -20,6 +20,9 @@ const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
  *
  * All three are read fresh, on demand, every time — nothing here trusts
  * a previously-cached hash (see design notes on why that was dropped).
+ *
+ * Returns one of five outcomes: 'unchanged', 'safe-update', 'keep-local',
+ * 'conflict', or 'converged' (both sides changed to identical content).
  */
 function classify(original, local, updated) {
   const localModified = normalize(local) !== normalize(original);
@@ -28,6 +31,9 @@ function classify(original, local, updated) {
   if (!localModified && !upstreamChanged) return 'unchanged';
   if (!localModified && upstreamChanged) return 'safe-update';
   if (localModified && !upstreamChanged) return 'keep-local';
+  // Both sides changed, but to the same content (e.g. upstream adopted the
+  // consumer's own fix): nothing to propose and nothing to resolve.
+  if (normalize(local) === normalize(updated)) return 'converged';
   return 'conflict';
 }
 
@@ -74,6 +80,11 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
       case 'unchanged':
       case 'safe-update':
         changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, updated, relPath);
+        updatedCount++;
+        break;
+      case 'converged':
+        // Local already matches the new release, so there's nothing to
+        // propose; it still counts as updated, not as a conflict.
         updatedCount++;
         break;
       case 'keep-local':
@@ -123,7 +134,10 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
         break;
       // 'unchanged'/'keep-local' can't occur here: original is always
       // non-empty (relPath came from oldRelease.allFiles()) and updated is
-      // always '', so upstreamChanged is unconditionally true.
+      // always '', so upstreamChanged is unconditionally true. 'converged'
+      // only happens for a locally-emptied file (local === updated === ''),
+      // which this switch deliberately has no case for: nothing is
+      // proposed, so the empty file is left on disk as-is.
     }
   }
 
@@ -190,8 +204,13 @@ async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, 
       switch (status) {
         case 'unchanged':
         case 'safe-update':
+        case 'converged':
+          // 'converged': the block's content already matches the new doc, but
+          // its version= attribute still names the old version. It must be
+          // advanced anyway, or the next merge treats the old version's doc as
+          // the "original" and misclassifies this block.
           proposedFileContent = upsertManagedBlock(proposedFileContent, block.docId, newRelease.version, updatedDocContent);
-          fileChanged = fileChanged || status === 'safe-update';
+          fileChanged = fileChanged || status !== 'unchanged';
           updatedCount++;
           break;
         case 'keep-local':
