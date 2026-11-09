@@ -231,6 +231,37 @@ toolcrib versions
 Useful for picking an exact `--version` for `init` or `merge` instead of
 always taking `latest`.
 
+### `toolcrib export-patches`
+
+Sends your changes to the vendored toolcrib source back upstream. It
+compares `./toolcrib/` against the release recorded in
+`toolcrib/.toolcrib-lock.json`, then writes one folder per contribution
+to `./toolcrib-upstream/`. Each folder holds `git apply`-able patches
+against toolcrib's own `src/` layout, plus a `SUMMARY.md`.
+
+```bash
+toolcrib export-patches                       # write folders to ./toolcrib-upstream/
+toolcrib export-patches --out ./upstream      # choose another folder
+toolcrib export-patches --post                # post each folder as a discussion (asks y/N)
+toolcrib export-patches --post --yes          # post without the prompt (needed outside a terminal)
+```
+
+- Only `components/`, `theme/`, `eventBus/`, and `observer/` changes are
+  exported. Changes to `ai-docs/`, `eslint-rules/`, and vendored tests are
+  listed as not exported. Edits to `index.ts` are expected and not
+  exported, since upstream regenerates it.
+- Changes to shared files are split by contribution. A change that matches
+  no contribution is app-specific and not exported. A change that matches
+  two is ambiguous and not exported.
+- Before posting, fill in each `SUMMARY.md`'s `intent:` lines
+  (`bug-fix`, `missing-feature`, or `customization`).
+- `--post` creates a discussion in the **Consumer Patches** category of the
+  toolcrib repository, using your own `gh` login. It asks y/N first and
+  never posts without that answer or `--yes`. A folder that was already
+  posted (it has a `posted.json`) is skipped.
+- The command never changes your project files. It only reads `./toolcrib/`
+  and writes the output folder.
+
 ## Reviewing and applying patches
 
 After `init` or `merge`, you'll have a `./toolcrib-patches/` folder full of

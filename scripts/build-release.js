@@ -40,6 +40,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { extractImports } from '../cli/src/lib/importScan.js';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SRC = path.join(ROOT, 'src');
@@ -131,17 +132,6 @@ function packageNameFromSpecifier(spec) {
   return spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
 }
 
-/** Scan a single file's text for import/export ... from '...' specifiers. */
-function extractImportsFromFile(content) {
-  const specifiers = [];
-  const re = /(?:import|export)\s+(?:[^'"]*?\sfrom\s+)?['"]([^'"]+)['"]/g;
-  let match;
-  while ((match = re.exec(content))) {
-    specifiers.push(match[1]);
-  }
-  return specifiers;
-}
-
 /**
  * Scan every vendored source file for external package imports.
  * This is the ground truth for what peerDependencies MUST contain —
@@ -153,7 +143,7 @@ function scanRequiredPackages(vendorFilePaths, srcRoot) {
   for (const relPath of vendorFilePaths) {
     if (!/\.(ts|tsx)$/.test(relPath)) continue;
     const content = fs.readFileSync(path.join(srcRoot, relPath), 'utf-8');
-    for (const spec of extractImportsFromFile(content)) {
+    for (const spec of extractImports(content)) {
       const pkgName = packageNameFromSpecifier(spec);
       if (pkgName && !IGNORE_PACKAGES.has(pkgName)) found.add(pkgName);
     }
