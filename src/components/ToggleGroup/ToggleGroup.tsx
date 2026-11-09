@@ -241,7 +241,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
     borderBottomRightRadius: squared.borderBottomRightRadius ?? GROUP_RADIUS,
   };
   const innerRadius = (corner: keyof typeof rootCorners) =>
-    rootCorners[corner] === GROUP_RADIUS ? OPTION_INNER_RADIUS : 0;
+    rootCorners[corner] === 0 ? 0 : OPTION_INNER_RADIUS;
 
   const handleValueChange = (groupValue: string[]) => {
     const next: string | string[] = type === 'multiple' ? groupValue : groupValue[0] ?? '';

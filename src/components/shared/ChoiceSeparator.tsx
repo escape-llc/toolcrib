@@ -27,7 +27,10 @@ export const ChoiceSeparator: React.FC<ChoiceSeparatorProps> = ({ hidden = false
       width: 'var(--ai-choice-separator-width, 0.0625rem)',
       height: '1.125rem',
       margin: `0 ${gap}`,
-      background: 'var(--ai-choice-separator, var(--ai-border, #d1d5db))',
+      // --ai-text-secondary, not --ai-border: at real size a --ai-border
+      // divider all but disappears against the surface, and the point of
+      // these dividers is that adjacent options read as separate.
+      background: 'var(--ai-choice-separator, var(--ai-text-secondary, #6b7280))',
       opacity: hidden ? 0 : 1,
     }}
   />
