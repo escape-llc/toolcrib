@@ -378,6 +378,33 @@ describe('mergeCommand — classify() outcomes for a normal file update', () => 
     expect(patchContent).not.toContain('removed upstream'); // distinct from the removed-upstream conflict note
     expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'utf-8')).toBe('export const widget = 1; // my own tweak\n');
   });
+
+  it('converged: proposes nothing and reports no conflict when local already matches the updated upstream file', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'export const widget = 2;\n');
+    const oldRelease = fakeRelease('1.0.0', { 'widget.ts': 'export const widget = 1;\n' });
+    const newRelease = fakeRelease('2.0.0', { 'widget.ts': 'export const widget = 2;\n' });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    expect(findPatchFor(patchDir, 'toolcrib/widget.ts')).toBeUndefined();
+    expect(findPatchFor(patchDir, 'toolcrib/widget.ts.upstream-diff')).toBeUndefined();
+    expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'utf-8')).toBe('export const widget = 2;\n');
+  });
+
+  it('converged: still treats a CRLF-only difference from the updated upstream file as converged, not a conflict', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'export const widget = 2;\r\n');
+    const oldRelease = fakeRelease('1.0.0', { 'widget.ts': 'export const widget = 1;\n' });
+    const newRelease = fakeRelease('2.0.0', { 'widget.ts': 'export const widget = 2;\n' });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    expect(findPatchFor(patchDir, 'toolcrib/widget.ts')).toBeUndefined();
+    expect(findPatchFor(patchDir, 'toolcrib/widget.ts.upstream-diff')).toBeUndefined();
+  });
 });
 
 describe('mergeCommand — files removed upstream', () => {
@@ -577,6 +604,28 @@ describe('mergeCommand — managed block (AGENTS.md) outcomes', () => {
     expect(patchContent).toContain('modified locally AND changed upstream');
     // The file on disk is untouched — the hand-edited block stays exactly as-is.
     expect(fs.readFileSync(path.join(tmpDir, 'AGENTS.md'), 'utf-8')).toContain('plus my own note');
+  });
+
+  it('converged: advances the block version without a conflict when the hand-edited block already matches the new upstream doc', async () => {
+    const original = '# Core\nOriginal rules.\n';
+    const updated = '# Core\nUpdated rules.\n';
+    fs.writeFileSync(
+      path.join(tmpDir, 'AGENTS.md'),
+      `# My Project\n\n${buildManagedBlock('core', '1.0.0', updated)}\n`
+    );
+    const oldRelease = fakeRelease('1.0.0', { 'index.ts': 'export {};\n', 'ai-docs/CORE.md': original });
+    const newRelease = fakeRelease('2.0.0', { 'index.ts': 'export {};\n', 'ai-docs/CORE.md': updated });
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    expect(findPatchFor(patchDir, 'AGENTS.md.managed-core.upstream-diff')).toBeUndefined();
+    const patch = findPatchFor(patchDir, 'AGENTS.md');
+    expect(patch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, patch), 'utf-8');
+    expect(patchContent).toContain('+<!-- toolcrib:managed:core:start version=2.0.0 -->');
+    expect(patchContent).toContain('-<!-- toolcrib:managed:core:start version=1.0.0 -->');
   });
 });
 
