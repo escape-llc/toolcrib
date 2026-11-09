@@ -128,13 +128,22 @@ jobs:
       # runner. `~/.cache/ms-playwright` is the real download target
       # `playwright install` writes to; caching it turns a ~30-90s+ fresh
       # binary download into a cache restore on every run after the first
-      # per (OS, browser, version) combination.
+      # per (OS image, browser, version) combination.
+      #
+      # `env.ImageOS` (e.g. ubuntu24, ubuntu26) is in the key, not just
+      # `runner.os` ("Linux"). Playwright downloads a WebKit build per
+      # distro release, linked against that release's system libraries.
+      # When ubuntu-latest moved from 24.04 to 26.04 (Nov 2026), a 26.04
+      # runner restored the cached 24.04 WebKit and every WebKit test failed
+      # to launch: "libicudata.so.74: cannot open shared object file".
+      # `--with-deps` below installs the HOST's libraries, which can't fix
+      # a binary built for a different release.
       - name: Cache Playwright browser binaries
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ env.ImageOS }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
 
       # Skipped only for a Dependabot-authored PR, never for a push to main
       # (the actor there is whoever performed the merge, not the original
