@@ -293,3 +293,43 @@ describe('analyzeExport — checklist rules', () => {
     expect(r.contributions[0].checklist.barrel_export.status).toBe('pass');
   });
 });
+
+describe('analyzeExport — style_free rule forms', () => {
+  const styleFree = (src) => run({}, { 'components/Foo/Foo.tsx': src }).contributions[0].checklist.style_free;
+  const header = `/**\n * @manifest A foo\n * @manifestCategory Containers\n */\n`;
+
+  it('fails a raw React prop type used as an extends, an intersection or an alias', () => {
+    expect(styleFree(`${header}interface P extends React.ComponentPropsWithoutRef<'div'> {}\nexport const Foo = () => null;\n`).status).toBe('fail');
+    expect(styleFree(`${header}type P = ComponentProps<'button'> & { x: number };\nexport const Foo = () => null;\n`).status).toBe('fail');
+  });
+
+  it('fails a declared className on the same line as its interface, with no trailing semicolon', () => {
+    expect(styleFree(`${header}interface P { label: string; className?: string }\nexport const Foo = () => null;\n`).status).toBe('fail');
+  });
+
+  it('passes when the only style mention is an object literal and the file uses StyleFreeAttributes', () => {
+    const c = styleFree(`${header}interface P extends StyleFreeAttributes<HTMLDivElement> {}\nconst s = { style: vars };\nexport const Foo = () => null;\n`);
+    expect(c.status).toBe('pass');
+  });
+});
+
+describe('analyzeExport — attribution of quoted and hyphenated keys', () => {
+  it('attributes a double-quoted channel and a quoted hyphenated registry key to their component', () => {
+    const release = {
+      'eventBus/eventBus.ts': `export interface AIEventMap {\n  'card:opened': {};\n}\n`,
+      'components/ThemeEditor/sliceEditorControls.tsx': `export const SLICE_EDITOR_CONTROLS = {\n  card: (state: any) => null,\n};\n`,
+    };
+    const local = {
+      'eventBus/eventBus.ts': `export interface AIEventMap {\n  'card:opened': {};\n  "widget:changed": { v: number };\n}\n`,
+      'components/ThemeEditor/sliceEditorControls.tsx': `export const SLICE_EDITOR_CONTROLS = {\n  card: (state: any) => null,\n  'my-widget': (state: any) => null,\n};\n`,
+      'components/Widget/Widget.tsx': `/**\n * @manifest A widget\n * @manifestCategory Containers\n */\nexport const Widget = () => null;\n`,
+      'components/Widget/WidgetSlice.ts': `import type { ThemeSlice } from '../../theme/slice';\nexport const WidgetThemeSlice: ThemeSlice<{}> = { id: "my-widget" };\n`,
+    };
+    const r = run(release, local);
+    const widget = byName(r, 'Widget');
+    expect(r.appSpecific).toEqual([]);
+    expect(r.ambiguous).toEqual([]);
+    expect(widget.files.find((f) => f.relPath === 'eventBus/eventBus.ts').hunks).toBe(1);
+    expect(widget.files.find((f) => f.relPath === 'components/ThemeEditor/sliceEditorControls.tsx').hunks).toBe(1);
+  });
+});

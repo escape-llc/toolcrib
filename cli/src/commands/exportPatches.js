@@ -273,7 +273,10 @@ export async function exportPatchesCommand(options = {}) {
       `\n  ${analysis.appSpecific.length} app-specific shared-file hunk(s)` +
       `\n  ${analysis.ambiguous.length} ambiguous shared-file hunk(s)`
   );
-  const outArg = options.out ? ` --out ${options.out}` : '';
+  // Commander always fills in --out's default, so compare resolved paths
+  // rather than checking whether the option was set.
+  const isDefaultOut = outDir === path.resolve(projectRoot, DEFAULT_OUT);
+  const outArg = isDefaultOut ? '' : ` --out ${options.out}`;
   p.outro(
     `Fill in each contribution's \`intent:\` lines in its SUMMARY.md, review, then run \`toolcrib export-patches --post${outArg}\`.`
   );

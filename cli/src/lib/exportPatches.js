@@ -32,6 +32,12 @@ const INFRA_DIRS = ['theme', 'eventBus', 'observer'];
 const CODE_FILE = /\.[cm]?[jt]sx?$/;
 const MANIFEST_BLOCK_RE = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export\s+(?:const|function)\s+(\w+)/g;
 const EXPORT_DECL_RE = /\bexport\s+(?:declare\s+)?(?:abstract\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
+/** Raw React prop types that carry style/className, as an extends, intersection or alias. */
+const RAW_PROP_TYPE_RE = /(?:extends|&|=)\s*(?:React\.)?(?:\w*HTMLAttributes|ComponentProps(?:WithoutRef|WithRef)?|HTMLProps)</;
+/** `style?:` / `className?:` only exists in type declarations, so it counts anywhere on a line. */
+const DECLARED_STYLE_OPTIONAL_RE = /\b(?:readonly\s+)?(?:style|className)\?\s*:/;
+/** A required style/className member with a type annotation (not an object literal value). */
+const DECLARED_STYLE_TYPED_RE = /\b(?:style|className)\s*:\s*(?:string|React\.CSSProperties|CSSProperties)\b/;
 const USE_CLIENT_TRIGGER_RE =
   /\buse[A-Z]\w*\s*\(|\bcreateContext\s*\(|\b(?:document|window)\.|extends\s+(?:React\.)?(?:Pure)?Component\b/;
 
@@ -85,12 +91,17 @@ function exportedNames(content) {
 function sliceIds(content) {
   const code = stripComments(content);
   if (!/:\s*ThemeSlice</.test(code)) return [];
-  return [...code.matchAll(/\bid:\s*'([^']+)'/g)].map((m) => m[1]);
+  return [...code.matchAll(/\bid:\s*(['"])([^'"]+)\1/g)].map((m) => m[2]);
 }
 
 function hunkHeaderText(h) {
   return `@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@\n${h.lines.join('\n')}`;
 }
+
+/** A quoted event channel key, e.g. `'gauge:changed'` or `"widget:changed"`. Groups: quote, full name, prefix. */
+const CHANNEL_KEY_RE = /(['"])(([a-z0-9]+):[A-Za-z0-9_:-]+)\1\s*[:?]/g;
+/** A hunk line's object key: a bare identifier or a quoted, possibly hyphenated, key. Groups: bare, quote, quoted. */
+const HUNK_KEY_RE = /^\s*(?:([a-z][a-z0-9]*)|(['"])([a-z][a-z0-9-]*)\2)\s*:/;
 
 /** Tokens a hunk's added AND removed lines expose for attribution. */
 function hunkTokens(hunk, sharedRelPath, localHas) {
@@ -98,8 +109,8 @@ function hunkTokens(hunk, sharedRelPath, localHas) {
   const text = changed.join('\n');
 
   const channels = [];
-  for (const m of text.matchAll(/'(([a-z0-9]+):[A-Za-z0-9_:-]+)'\s*[:?]/g)) {
-    channels.push({ full: m[1], prefix: m[2] });
+  for (const m of text.matchAll(CHANNEL_KEY_RE)) {
+    channels.push({ full: m[2], prefix: m[3] });
   }
 
   const specifiers = new Set(extractImports(text));
@@ -114,13 +125,13 @@ function hunkTokens(hunk, sharedRelPath, localHas) {
   const identifiers = new Set(text.match(/\b[A-Z][A-Za-z0-9_]{3,}\b/g) ?? []);
   const keys = new Set();
   for (const line of changed) {
-    const m = /^\s*([a-z][a-z0-9]*)\s*:/.exec(line);
-    if (m) keys.add(m[1]);
+    const m = HUNK_KEY_RE.exec(line);
+    if (m) keys.add(m[1] ?? m[3]);
   }
   const addedChannelPrefixes = [];
   for (const l of hunk.lines) {
     if (l[0] !== '+') continue;
-    for (const m of l.matchAll(/'(([a-z0-9]+):[A-Za-z0-9_:-]+)'\s*[:?]/g)) addedChannelPrefixes.push(m[2]);
+    for (const m of l.matchAll(CHANNEL_KEY_RE)) addedChannelPrefixes.push(m[3]);
   }
   return { channels, imports, identifiers, keys, addedChannelPrefixes };
 }
@@ -504,8 +515,10 @@ function buildChecklist(c, loc, changedTestFiles) {
     let sawStyleFree = false;
     for (const p of codeFiles) {
       const code = stripComments(loc.get(p));
-      if (/extends\s+(?:React\.)?\w*HTMLAttributes</.test(code)) styleBad.push(`${p}: extends raw HTMLAttributes`);
-      if (/^\s*(?:readonly\s+)?(?:style|className)\??\s*:[^\n]*;\s*$/m.test(code)) styleBad.push(`${p}: declares style/className`);
+      if (RAW_PROP_TYPE_RE.test(code)) styleBad.push(`${p}: uses a raw React prop type (brings style/className)`);
+      if (DECLARED_STYLE_OPTIONAL_RE.test(code) || DECLARED_STYLE_TYPED_RE.test(code)) {
+        styleBad.push(`${p}: declares style/className`);
+      }
       if (/StyleFree/.test(code)) sawStyleFree = true;
     }
     checks.style_free = styleBad.length ? result('fail', styleBad) : sawStyleFree ? result('pass') : result('n/a');
