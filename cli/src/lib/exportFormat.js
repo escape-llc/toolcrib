@@ -125,7 +125,9 @@ export function renderSummary({ contribution: c, baseVersion, cliVersion, notExp
     '|---|---|---|',
   ];
   for (const [key, { status, details }] of Object.entries(c.checklist)) {
-    const cell = details.map((d) => d.replace(/\|/g, '\\|')).join('; ');
+    // Escape backslashes before pipes, or a detail containing `\|` would
+    // become `\\|`: an escaped backslash followed by a live column break.
+    const cell = details.map((d) => d.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')).join('; ');
     lines.push(cell ? `| ${key} | ${status} | ${cell} |` : `| ${key} | ${status} | |`);
   }
   lines.push('', '### Patches', '');

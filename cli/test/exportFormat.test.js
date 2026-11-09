@@ -55,6 +55,22 @@ describe('yamlScalar', () => {
   });
 });
 
+describe('renderSummary checklist table escaping', () => {
+  it('escapes backslashes before pipes so a detail cannot open a new column', () => {
+    const c = contribution();
+    c.checklist = { use_client: { status: 'fail', details: ['a\\|b', 'c|d'] } };
+    const out = renderSummary({
+      contribution: c,
+      baseVersion: '0.16.0',
+      cliVersion: '0.9.0',
+      notExported: [],
+      regeneratedUpstream: [],
+      patches: [],
+    });
+    expect(out).toContain('| use_client | fail | a\\\\\\|b; c\\|d |');
+  });
+});
+
 describe('renderSummary', () => {
   const text = renderSummary({
     contribution: contribution(),
