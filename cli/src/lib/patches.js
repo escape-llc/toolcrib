@@ -37,6 +37,45 @@ export function normalize(content) {
   return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
+function buildPatchInfo(relPath, currentContent, proposedContent, label) {
+  relPath = relPath.replace(/\\/g, '/');
+  // label defaults to the *normalized* relPath — a default parameter
+  // expression (`label = relPath`) would capture the pre-normalization
+  // value instead, since defaults evaluate before the function body runs.
+  if (label === undefined) label = relPath;
+  if (normalize(currentContent) === normalize(proposedContent)) return null; // no-op
+
+  const isNewFile = currentContent === '';
+  // Symmetric with isNewFile above: a deletion is just a patch whose
+  // *target* is /dev/null instead of its *source* — git apply (confirmed
+  // directly against a real repo, not assumed) recognizes this from a
+  // plain unified diff exactly the same way it recognizes a new file from
+  // an empty source, no git-extended `diff --git`/`deleted file mode`
+  // headers required. The `!isNewFile` guard only rules out the
+  // '' -> '' case, already caught by the no-op check above; kept for
+  // clarity that a file can't be simultaneously new and deleted.
+  const isDeletedFile = proposedContent === '' && !isNewFile;
+  const patch = createTwoFilesPatch(
+    isNewFile ? '/dev/null' : `a/${relPath}`,
+    isDeletedFile ? '/dev/null' : `b/${relPath}`,
+    currentContent,
+    proposedContent,
+    isNewFile ? undefined : `${label} (current)`,
+    isDeletedFile ? undefined : isNewFile ? `${label} (new file)` : `${label} (proposed)`
+  );
+  return { patch, isNewFile, isDeletedFile };
+}
+
+/**
+ * Pure patch-text construction shared by PendingChanges.propose() and the
+ * export-patches command. Returns the git-apply-compatible unified diff
+ * string, or null when the two contents are equal after line-ending
+ * normalization. '' as current means a new file; '' as proposed, a deletion.
+ */
+export function buildPatch(relPath, currentContent, proposedContent, label) {
+  return buildPatchInfo(relPath, currentContent, proposedContent, label)?.patch ?? null;
+}
+
 /**
  * Collects proposed file changes as unified diff patches. Nothing is ever
  * written directly to a pre-existing or ambiguous target — every mutation
@@ -69,32 +108,9 @@ export class PendingChanges {
    */
   propose(relPath, currentContent, proposedContent, label) {
     relPath = relPath.replace(/\\/g, '/');
-    // label defaults to the *normalized* relPath — a default parameter
-    // expression (`label = relPath`) would capture the pre-normalization
-    // value instead, since defaults evaluate before the function body runs.
-    if (label === undefined) label = relPath;
-    if (normalize(currentContent) === normalize(proposedContent)) return; // no-op, nothing to propose
-
-    const isNewFile = currentContent === '';
-    // Symmetric with isNewFile above: a deletion is just a patch whose
-    // *target* is /dev/null instead of its *source* — git apply (confirmed
-    // directly against a real repo, not assumed) recognizes this from a
-    // plain unified diff exactly the same way it recognizes a new file from
-    // an empty source, no git-extended `diff --git`/`deleted file mode`
-    // headers required. The `!isNewFile` guard only rules out the
-    // '' -> '' case, already caught by the no-op check above; kept for
-    // clarity that a file can't be simultaneously new and deleted.
-    const isDeletedFile = proposedContent === '' && !isNewFile;
-    const patch = createTwoFilesPatch(
-      isNewFile ? '/dev/null' : `a/${relPath}`,
-      isDeletedFile ? '/dev/null' : `b/${relPath}`,
-      currentContent,
-      proposedContent,
-      isNewFile ? undefined : `${label} (current)`,
-      isDeletedFile ? undefined : isNewFile ? `${label} (new file)` : `${label} (proposed)`
-    );
-
-    this.entries.push({ relPath, patch, isNewFile, isDeletedFile });
+    const built = buildPatchInfo(relPath, currentContent, proposedContent, label);
+    if (!built) return; // no-op, nothing to propose
+    this.entries.push({ relPath, patch: built.patch, isNewFile: built.isNewFile, isDeletedFile: built.isDeletedFile });
   }
 
   isEmpty() {

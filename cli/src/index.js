@@ -6,6 +6,7 @@ import { mergeCommand } from './commands/merge.js';
 import { applyCommand } from './commands/apply.js';
 import { doctorCommand } from './commands/doctor.js';
 import { versionsCommand } from './commands/versions.js';
+import { exportPatchesCommand } from './commands/exportPatches.js';
 
 // Read at runtime instead of a JSON import assertion: `assert { type: 'json' }`
 // vs `with { type: 'json' }` differs across the Node 18-22 range this CLI's
@@ -87,6 +88,14 @@ program
   )
   .action(async (options) => {
     await doctorCommand(options).catch(fail);
+  });
+
+program
+  .command('export-patches')
+  .description('Export your changes to vendored toolkit source as patches for upstream (read-only)')
+  .option('--out <dir>', 'output directory', './toolcrib-upstream')
+  .action(async (options) => {
+    await exportPatchesCommand(options).catch(fail);
   });
 
 program
