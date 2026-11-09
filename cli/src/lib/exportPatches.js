@@ -30,7 +30,6 @@ export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 
 
 const INFRA_DIRS = ['theme', 'eventBus', 'observer'];
 const CODE_FILE = /\.[cm]?[jt]sx?$/;
-const TS_FILE = /\.tsx?$/;
 const MANIFEST_BLOCK_RE = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export\s+(?:const|function)\s+(\w+)/g;
 const EXPORT_DECL_RE = /\bexport\s+(?:declare\s+)?(?:abstract\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
 const USE_CLIENT_TRIGGER_RE =
@@ -443,7 +442,7 @@ const result = (status, details = []) => ({ status, details });
 
 function buildChecklist(c, loc, changedTestFiles) {
   const live = c.paths.filter((p) => loc.has(p));
-  const codeFiles = live.filter((p) => TS_FILE.test(p));
+  const codeFiles = live.filter((p) => CODE_FILE.test(p));
   const checks = {};
 
   const useClient = () => {
@@ -466,6 +465,22 @@ function buildChecklist(c, loc, changedTestFiles) {
   const processEnv = () => {
     const offenders = live.filter((p) => CODE_FILE.test(p) && /\bprocess\.env\b/.test(stripComments(loc.get(p))));
     return result(offenders.length ? 'fail' : 'pass', offenders.map((p) => `${p} (use isDevBuild())`));
+  };
+
+  // Channels this contribution adds must use one of its own prefixes,
+  // whether the component is new or an existing one gaining an event.
+  const eventPrefix = () => {
+    const badPrefix = [];
+    let sawChannel = false;
+    for (const entries of c.hunksByFile.values()) {
+      for (const { tokens } of entries) {
+        for (const prefix of tokens.addedChannelPrefixes) {
+          sawChannel = true;
+          if (!c.prefixes.has(prefix)) badPrefix.push(`channel prefix "${prefix}:" is not one of ${[...c.prefixes].join(', ')}`);
+        }
+      }
+    }
+    return !sawChannel ? result('n/a') : result(badPrefix.length ? 'fail' : 'pass', badPrefix);
   };
 
   if (c.type === 'new-component') {
@@ -499,17 +514,7 @@ function buildChecklist(c, loc, changedTestFiles) {
     checks.toolcrib_self_import = selfImport();
     checks.process_env = processEnv();
 
-    const badPrefix = [];
-    let sawChannel = false;
-    for (const entries of c.hunksByFile.values()) {
-      for (const { tokens } of entries) {
-        for (const prefix of tokens.addedChannelPrefixes) {
-          sawChannel = true;
-          if (!c.prefixes.has(prefix)) badPrefix.push(`channel prefix "${prefix}:" is not one of ${[...c.prefixes].join(', ')}`);
-        }
-      }
-    }
-    checks.event_prefix = !sawChannel ? result('n/a') : result(badPrefix.length ? 'fail' : 'pass', badPrefix);
+    checks.event_prefix = eventPrefix();
 
     if (c.sliceIds.length === 0) {
       checks.theme_slice = result('n/a');
@@ -550,6 +555,7 @@ function buildChecklist(c, loc, changedTestFiles) {
     checks.use_client = useClient();
     checks.toolcrib_self_import = selfImport();
     checks.process_env = processEnv();
+    checks.event_prefix = eventPrefix();
   }
   return checks;
 }

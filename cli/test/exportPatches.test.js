@@ -114,7 +114,7 @@ describe('analyzeExport — full fixture', () => {
   });
 
   it('runs only the short checklist for a change contribution', () => {
-    expect(Object.keys(byName(result, 'Card').checklist)).toEqual(['use_client', 'toolcrib_self_import', 'process_env']);
+    expect(Object.keys(byName(result, 'Card').checklist)).toEqual(['use_client', 'toolcrib_self_import', 'process_env', 'event_prefix']);
   });
 });
 
@@ -211,6 +211,29 @@ describe('analyzeExport — checklist rules', () => {
     const fail = newComponent(`import { useState } from 'react';\n${body}`);
     expect(fail.use_client).toEqual({ status: 'fail', details: ['components/Foo/Foo.tsx'] });
     expect(newComponent(`// c\n'use client';\nimport { useState } from 'react';\n${body}`).use_client.status).toBe('pass');
+  });
+
+  it('use_client and style_free also check .jsx/.js files, not only TypeScript', () => {
+    const c = run({}, {
+      'components/Foo/Foo.jsx': `import { useState } from 'react';\n${header}export const Foo = () => { useState(0); return null; };\n`,
+      'components/Foo/props.js': `export class FooProps extends React.HTMLAttributes<HTMLDivElement> {}\n`,
+    }).contributions[0].checklist;
+    expect(c.use_client).toEqual({ status: 'fail', details: ['components/Foo/Foo.jsx'] });
+    expect(c.style_free.status).toBe('fail');
+  });
+
+  it('event_prefix also runs on a change to an existing component that adds a channel', () => {
+    const release = {
+      'components/Card/Card.tsx': `export const Card = () => null;\n`,
+      'eventBus/eventBus.ts': `export interface AIEventMap {\n  'card:opened': {};\n}\n`,
+    };
+    const local = {
+      'components/Card/Card.tsx': `export const Card = () => { emit('wrong:closed'); return null; };\n`,
+      'eventBus/eventBus.ts': `export interface AIEventMap {\n  'card:opened': {};\n  'wrong:closed': {};\n}\n`,
+    };
+    const card = byName(run(release, local), 'Card');
+    expect(card.type).toBe('change');
+    expect(card.checklist.event_prefix.status).toBe('fail');
   });
 
   it('use_client ignores a hook mentioned only in a comment and a hook declaration', () => {
