@@ -1,11 +1,28 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import { fetchRelease } from '../lib/release.js';
 import { readLock } from '../lib/project.js';
 import { listFilesRecursive } from '../lib/zip.js';
 import { analyzeExport } from '../lib/exportPatches.js';
-import { contributionFolder, patchFileName, renderSummary, renderReadme } from '../lib/exportFormat.js';
+import {
+  contributionFolder,
+  patchFileName,
+  renderSummary,
+  renderReadme,
+  parseIntents,
+  INTENT_PLACEHOLDER,
+} from '../lib/exportFormat.js';
+import {
+  defaultRunGh,
+  ghLogin,
+  createDiscussion,
+  addDiscussionComment,
+  buildPostPlan,
+  CATEGORY_URL,
+  MAX_BODY,
+} from '../lib/discussions.js';
 
 const TOOLKIT_DIR = 'toolcrib';
 const DEFAULT_OUT = './toolcrib-upstream';
@@ -36,7 +53,135 @@ function checkOutDir(outDir) {
   return null;
 }
 
+/** Upstream path of a patch, from its `+++ b/` header (or `--- a/` for a deletion). */
+function upstreamPathOf(patchText) {
+  const plus = /^\+\+\+ b\/(.+)$/m.exec(patchText);
+  if (plus) return plus[1].trim();
+  const minus = /^--- a\/(.+)$/m.exec(patchText);
+  return minus ? minus[1].trim() : null;
+}
+
+async function postExport(options) {
+  const projectRoot = process.cwd();
+  const runGh = options.runGh ?? defaultRunGh;
+  const confirm = options.confirm ?? p.confirm;
+  const isTTY = options.isTTY ?? Boolean(process.stdin.isTTY);
+  p.intro('toolcrib export-patches --post');
+
+  const outDir = path.resolve(projectRoot, options.out ?? DEFAULT_OUT);
+  if (!fs.existsSync(path.join(outDir, MARKER))) {
+    p.log.error(`No export found at ${outDir}; run \`toolcrib export-patches\` first.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const folders = fs
+    .readdirSync(outDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort();
+  const plans = [];
+  for (const folder of folders) {
+    const dir = path.join(outDir, folder);
+    const postedFile = path.join(dir, 'posted.json');
+    if (fs.existsSync(postedFile)) {
+      let url = '';
+      try {
+        url = JSON.parse(fs.readFileSync(postedFile, 'utf8')).url ?? '';
+      } catch {
+        // unreadable record: still treat as posted
+      }
+      p.log.info(`${folder}: already posted${url ? ` (${url})` : ''}; skipping.`);
+      continue;
+    }
+    const summaryPath = path.join(dir, 'SUMMARY.md');
+    if (!fs.existsSync(summaryPath)) continue;
+    const summaryText = fs.readFileSync(summaryPath, 'utf8');
+    const patches = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith('.patch'))
+      .sort()
+      .map((fileName) => {
+        const text = fs.readFileSync(path.join(dir, fileName), 'utf8');
+        return { fileName, upstreamPath: upstreamPathOf(text) ?? fileName, text };
+      });
+    plans.push({ folder, dir, summaryText, plan: buildPostPlan({ summaryText, patches }) });
+  }
+
+  if (plans.length === 0) {
+    p.outro('Nothing to post.');
+    return;
+  }
+
+  const unspecified = plans.filter((x) => parseIntents(x.summaryText).includes(INTENT_PLACEHOLDER));
+  if (unspecified.length) {
+    p.log.warn(
+      `These contributions still have \`intent: ${INTENT_PLACEHOLDER}\` in SUMMARY.md: ${unspecified.map((x) => x.folder).join(', ')}`
+    );
+  }
+
+  const login = ghLogin(runGh);
+  if (!login) {
+    p.log.info(
+      `gh CLI not found or not logged in. To post by hand: open ${CATEGORY_URL}, start a new discussion, use the title below and paste SUMMARY.md as the body (and each patch as a comment if the body is over ${MAX_BODY.toLocaleString('en-US')} characters).\n` +
+        plans.map((x) => `  ${x.folder}: ${x.plan.title}`).join('\n')
+    );
+    p.outro('Not posted.');
+    return;
+  }
+
+  p.log.info(
+    plans
+      .map((x) => `${x.plan.title}\n  body ${x.plan.body.length} chars, ${x.plan.comments.length} comment(s)`)
+      .join('\n') + `\nPosting as @${login} to escape-llc/toolcrib → Consumer Patches`
+  );
+
+  if (!options.yes) {
+    if (!isTTY) {
+      p.log.info('Not an interactive terminal; re-run with --yes to post.');
+      p.outro('Not posted.');
+      return;
+    }
+    const answer = await confirm({ message: `Post ${plans.length} discussion(s)?`, initialValue: false });
+    if (p.isCancel(answer) || !answer) {
+      p.outro('Not posted.');
+      return;
+    }
+  }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-post-'));
+  try {
+    let n = 0;
+    for (const { folder, dir, plan } of plans) {
+      try {
+        const write = (text) => {
+          const file = path.join(tmp, `${++n}.md`);
+          fs.writeFileSync(file, text);
+          return file;
+        };
+        const { id, url } = createDiscussion(runGh, { title: plan.title, bodyFile: write(plan.body) });
+        const commentUrls = [];
+        for (const c of plan.comments) {
+          commentUrls.push(addDiscussionComment(runGh, { discussionId: id, bodyFile: write(c) }));
+        }
+        fs.writeFileSync(
+          path.join(dir, 'posted.json'),
+          JSON.stringify({ url, id, postedAt: new Date().toISOString(), comments: commentUrls }, null, 2) + '\n'
+        );
+        p.log.success(`${folder}: ${url}`);
+      } catch (err) {
+        p.log.error(`${folder}: ${err.message}`);
+        process.exitCode = 1;
+      }
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+  p.outro(process.exitCode === 1 ? 'Finished with errors.' : 'Posted.');
+}
+
 export async function exportPatchesCommand(options = {}) {
+  if (options.post) return postExport(options);
   const projectRoot = process.cwd();
   p.intro('toolcrib export-patches');
 
@@ -128,5 +273,8 @@ export async function exportPatchesCommand(options = {}) {
       `\n  ${analysis.appSpecific.length} app-specific shared-file hunk(s)` +
       `\n  ${analysis.ambiguous.length} ambiguous shared-file hunk(s)`
   );
-  p.outro("Fill in each contribution's `intent:` lines in its SUMMARY.md and review before posting.");
+  const outArg = options.out ? ` --out ${options.out}` : '';
+  p.outro(
+    `Fill in each contribution's \`intent:\` lines in its SUMMARY.md, review, then run \`toolcrib export-patches --post${outArg}\`.`
+  );
 }

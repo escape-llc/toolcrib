@@ -94,6 +94,8 @@ program
   .command('export-patches')
   .description('Export your changes to vendored toolkit source as patches for upstream (read-only)')
   .option('--out <dir>', 'output directory', './toolcrib-upstream')
+  .option('--post', 'post an existing export to the toolcrib Consumer Patches discussions')
+  .option('--yes', 'with --post: skip the confirmation prompt')
   .action(async (options) => {
     await exportPatchesCommand(options).catch(fail);
   });

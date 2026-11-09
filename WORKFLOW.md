@@ -48,6 +48,31 @@ The concrete fix: at the start of each issue's own work, write a literal checkli
 
 This doesn't replace the numbered sequence above (or `SESSION_SUMMARIES.md`'s own template for the last step) — it's a tracking aid layered on top, for the specific failure mode of a long session's own momentum carrying a step past without it, not a new source of truth about what the steps actually are.
 
+## Handling a Consumer Patches discussion
+
+`toolcrib export-patches --post` (documented in `cli/README.md`) posts one consumer contribution per discussion, in the **Consumer Patches** category. The category is open-ended, so anyone can post to it. Cached ids: repository `R_kgDOTwhGaA`, category `DIC_kwDOTwhGaM4DKwRA` (also in `cli/src/lib/discussions.js`).
+
+1. **Triage each `[consumer-patch]` discussion.** Read its metadata block and readiness checklist. Note the `base_version` and each file's `intent:` line.
+2. **Review the patches against the release they were made from.** Create a detached worktree of `v<base_version>` (`git worktree add --detach <dir> v<base_version>`), then `git apply` the folder's patches in order inside it. Remove the worktree when you're done (`git worktree remove <dir>`).
+3. **Rewrite the change against `main` instead of applying it.** Open an issue and follow the normal sequence above. The consumer is usually behind `main`, so the patch may not apply cleanly, and it may conflict with later changes even when it does.
+4. **Reply on the discussion with a resolution block.** Put the block first, then a short prose explanation. Use `verdict: accepted` (merged as proposed), `adapted` (merged in a different form), or `declined` (not merged; say why). Set `issue` to the issue number. Set `shipped_in` only once that release is out.
+
+````
+<details><summary>Resolution metadata</summary>
+
+```yaml
+kind: patch-resolution
+schema: 1
+verdict: accepted        # accepted | adapted | declined
+issue: 912
+shipped_in: 0.17.0       # once released
+```
+
+</details>
+````
+
+5. **Consider the need before declining a `customization`.** A recurring `customization` usually means a missing theme override, slot or prop. Ask whether a general addition covers it before you decline.
+
 ## Operational Log & Run-Time Guidance
 
 Lessons this sequence has actually hit, one entry each: what happened, the fix applied, and the rule to keep. A new lesson goes here in the same shape, folded into an existing entry when it shares that entry's root cause (see `AGENTS.md`'s "Generalizing lessons"). An entry is dated only when the date is known.
