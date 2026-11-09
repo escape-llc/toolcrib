@@ -83,6 +83,7 @@
       "--ai-control-font-size-lg",
       "--ai-control-font-size-md",
       "--ai-control-font-size-sm",
+      "--ai-datatable-stale-opacity",
       "--ai-datepicker-cell-size",
       "--ai-datepicker-popover-padding",
       "--ai-drawer-backdrop-blur",
@@ -767,6 +768,14 @@
       {
         "name": "datatable:exported",
         "payload": "{ id?: string; rowCount: number }"
+      },
+      {
+        "name": "datatable:refresh",
+        "payload": "{ id: string }"
+      },
+      {
+        "name": "datatable:load_error",
+        "payload": "{ id: string; message: string }"
       },
       {
         "name": "datatable:columns_changed",
@@ -1908,9 +1917,9 @@
           "description": "Identifier included in this instance's `datatable:sorted`/\n`datatable:paginated`/`datatable:row_clicked` event bus payloads, so a\nlistener watching multiple tables can tell them apart. Auto-generated\nif omitted (still included in payloads either way) — unlike\n`Modal`/`Popup`/`Accordion`'s `id`, there's no bus-driven open/close\ncounterpart to target, so this exists purely for event attribution."
         },
         "data": {
-          "type": "T[]",
+          "type": "T[] | DataTableDataSource<T>",
           "required": true,
-          "description": "Array of data records to display."
+          "description": "The records to display: either an array (sorted, filtered and paged\nclient-side by the table, as always) or a data source\n(`DataTableDataSource`: `getRows({ start, count, sortBy, quickFilter,\nsignal })` returning `{ rows, totalCount }`, sync or async) for rows\nthat live on a server -- REST offset/limit, OData `$skip`/`$top`. With a\ndata source the table does no sorting, filtering or slicing of its own:\nit sends the page/sort/filter state and shows what comes back, with\nthe page count, footer and `aria-rowcount` taken from `totalCount`.\n`rowKey` is required for a data source. Define the source once (module\nscope or memoized): a new object identity means \"refetch\". Until data\nvirtualization lands (#905 phase 2) a data source is always paged, as\nif `pagination` were true. See `ai-docs/examples/datatable-odata.md`."
         },
         "columns": {
           "type": "Column<T>[]",
@@ -1920,7 +1929,7 @@
         "pagination": {
           "type": "boolean",
           "default": "true",
-          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`defaultPageSize`/`pageSizeOptions` are ignored in this mode."
+          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`defaultPageSize`/`pageSizeOptions` are ignored in this mode. Applies\nto an array `data` only: a data source is paged regardless, until data\nvirtualization lands (#905 phase 2)."
         },
         "onEndReached": {
           "type": "() => void",
@@ -1953,7 +1962,7 @@
         },
         "rowKey": {
           "type": "(record: T, index: number) => string | number",
-          "description": "Custom row key extractor for React reconciliation. Defaults to array index."
+          "description": "Custom row key extractor for React reconciliation and selection.\nDefaults to the row's position (array index). Required (a type error\notherwise) when `data` is a data source, since a row's position then\nis a server offset that changes with sort, filter and page."
         },
         "rowSubtheme": {
           "type": "(record: T, index: number) => SubthemeName | Partial<SubthemeColors> | undefined",
@@ -2085,7 +2094,7 @@
         "csvExport": {
           "type": "boolean",
           "default": "false",
-          "description": "Renders a built-in \"Export CSV\" button (in the same top toolbar row\n`quickFilter`/`densitySelector` share) that downloads the *entire*\ncurrently filtered + sorted dataset -- every matching row across every\npage, not just the current page -- as a CSV file, using each column's\n`title` as its header and the same resolved cell value\n(`accessorFn(record)` if given, else `record[key]`) sorting already\nuses. A column's custom `render` output is never used for the CSV,\nsince it can return arbitrary JSX with no meaningful plain-text form to\nfall back on. Also emits `datatable:exported` on the event bus."
+          "description": "Renders a built-in \"Export CSV\" button (in the same top toolbar row\n`quickFilter`/`densitySelector` share) that downloads the *entire*\ncurrently filtered + sorted dataset -- every matching row across every\npage, not just the current page -- as a CSV file. With a data source\nthe button appears only if the source provides `exportRows`. Uses each column's\n`title` as its header and the same resolved cell value\n(`accessorFn(record)` if given, else `record[key]`) sorting already\nuses. A column's custom `render` output is never used for the CSV,\nsince it can return arbitrary JSX with no meaningful plain-text form to\nfall back on. Also emits `datatable:exported` on the event bus."
         },
         "csvExportFileName": {
           "type": "string",

@@ -494,6 +494,8 @@ const EXAMPLE_TEMPLATES = [
   { file: 'ssr-theme-injection.md.hbs', data: assembleSSRThemeExampleFacts },
   { file: 'locale-provider.md.hbs', data: assembleLocaleExampleFacts },
   { file: 'theme-parameters-from-brief.md.hbs', data: assembleThemeParametersExampleFacts },
+  // Hand-written and static -- no source-derived facts to interpolate.
+  { file: 'datatable-odata.md.hbs', data: () => ({}) },
 ];
 
 function renderTemplate(templatePath, data) {

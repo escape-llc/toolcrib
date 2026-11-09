@@ -1,0 +1,148 @@
+<!-- Generated from ai-docs/templates/examples/datatable-odata.md.hbs via `npm run generate-docs` -- do not hand-edit; edit the .hbs template and regenerate instead. -->
+
+# Worked Example: DataTable Backed by a Server (OData and REST)
+
+`<DataTable data>` takes an array or a **data source**. With an array the
+table sorts, filters and pages in memory. With a data source it does none of
+that itself: it sends the page, sort and quick-filter state to your
+`getRows` and shows what comes back, so the rows can live on a server. This
+walks through OData (`$skip`, `$top`, `$orderby`, `$filter`, `$count=true`),
+then the same shape for a plain offset/limit REST endpoint.
+
+## What the table asks, and what it expects back
+
+```ts
+interface DataTableQuery {
+  start: number;        // first row index (0-based) in the server's sorted/filtered order
+  count: number;        // rows requested (the page size)
+  sortBy: { key: string; direction: 'asc' | 'desc' }[];  // priority order
+  quickFilter: string;  // '' when none
+  signal: AbortSignal;  // aborted when the request is superseded or the table unmounts
+}
+// getRows(query) returns { rows: T[]; totalCount: number } -- or a Promise of it.
+```
+
+`totalCount` is the size of the whole filtered result, not the page. It drives
+the page count, the "Showing X to Y of Z" footer and `aria-rowcount`. `async`
+works as written: the table awaits it, a thrown error or rejected Promise
+becomes an error banner with a Retry button (and a `datatable:load_error`
+event), and an `AbortError` from a superseded request is never shown.
+
+## Step 1: a tested query builder
+
+Keep the URL building in a pure function so it can be unit tested without a
+server. This one is checked by `src/__tests__/odataExample.test.ts` against
+exactly the code below.
+
+<!-- tested: buildODataQuery -->
+```js
+function buildODataQuery({ start, count, sortBy, quickFilter }, { fields }) {
+  const parts = ['$skip=' + start, '$top=' + count, '$count=true'];
+  if (sortBy.length > 0) {
+    const orderby = sortBy.map(function (s) { return s.key + ' ' + s.direction; }).join(',');
+    parts.push('$orderby=' + encodeURIComponent(orderby));
+  }
+  const text = quickFilter.trim().toLowerCase();
+  if (text) {
+    // A single quote inside an OData string literal is written as two.
+    const escaped = text.replace(/'/g, "''");
+    const clauses = fields.map(function (f) { return 'contains(tolower(' + f + "),'" + escaped + "')"; });
+    parts.push('$filter=' + encodeURIComponent(clauses.join(' or ')));
+  }
+  return parts.join('&');
+}
+```
+
+An empty `sortBy` or a blank quick filter adds no `$orderby`/`$filter` at all.
+
+## Step 2: the data source
+
+```tsx
+import { DataTable, type Column, type DataTableDataSource } from '#toolcrib';
+
+interface Order {
+  id: number;
+  customer: string;
+  status: string;
+  total: number;
+}
+
+const columns: Column<Order>[] = [
+  { key: 'customer', title: 'Customer', sortable: true },
+  { key: 'status', title: 'Status', sortable: true },
+  { key: 'total', title: 'Total', sortable: true },
+];
+
+// Module scope (or useMemo): a new object identity passed as `data` means
+// "refetch", so an inline literal would request on every render.
+const orders: DataTableDataSource<Order> = {
+  async getRows({ start, count, sortBy, quickFilter, signal }) {
+    const query = buildODataQuery({ start, count, sortBy, quickFilter }, { fields: ['customer', 'status'] });
+    const res = await fetch('/odata/Orders?' + query, { signal });
+    if (!res.ok) throw new Error('Orders request failed: ' + res.status);
+    const body = await res.json();
+    return { rows: body.value, totalCount: body['@odata.count'] };
+  },
+};
+
+export function OrdersTable() {
+  return <DataTable data={orders} columns={columns} rowKey={o => o.id} quickFilter />;
+}
+```
+
+`rowKey` is required for a data source (a type error without it): a row's
+position is a server offset that changes with sort, filter and page, so it
+can't identify the row for selection or React keys.
+
+What the table does for you:
+
+- Page, sort and filter changes each make one new request and abort the
+  previous one. Typing in the quick filter is debounced (about 250ms) before
+  it becomes a request, and any change returns to page 1.
+- The rows already on screen stay visible while the next page loads, and the
+  grid is `aria-busy`.
+- Until data virtualization lands (issue #905, phase 2) a data source is
+  always paged, as if `pagination` were true.
+
+## The same shape for offset/limit REST
+
+```tsx
+interface Customer {
+  id: string;
+  name: string;
+}
+
+const customers: DataTableDataSource<Customer> = {
+  async getRows({ start, count, sortBy, quickFilter, signal }) {
+    const params = new URLSearchParams({ offset: String(start), limit: String(count), q: quickFilter });
+    if (sortBy.length > 0) {
+      params.set('sort', sortBy.map(s => (s.direction === 'desc' ? '-' : '') + s.key).join(','));
+    }
+    const res = await fetch('/api/customers?' + params, { signal });
+    if (!res.ok) throw new Error('Customers request failed: ' + res.status);
+    const body = await res.json();
+    return { rows: body.items, totalCount: body.total };
+  },
+};
+```
+
+## Optional capabilities
+
+A source opts into two more things by providing the methods; without them the
+table degrades rather than guessing:
+
+- `exportRows(query)` returns every row matching `sortBy`/`quickFilter`. Without
+  it the Export CSV button (`csvExport`) is not shown.
+- `getAllKeys(query)` returns every matching row's key (as strings). With it the
+  header "select all" selects all of them; without it, it selects only the rows
+  currently loaded, and its label says "on this page".
+
+## Refreshing after a mutation
+
+Emit `datatable:refresh` with the table's `id` to re-request the current page,
+for example after saving a record elsewhere in the app:
+
+```tsx
+aiBus.emit('datatable:refresh', { id: 'orders' });
+// <DataTable id="orders" data={orders} ... />
+```
