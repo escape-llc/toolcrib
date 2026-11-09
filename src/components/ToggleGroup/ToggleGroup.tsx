@@ -14,7 +14,7 @@ import { ToggleThemeSlice, type ToggleSliceState } from './ToggleSlice';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
-import { useInjectChoiceSeparatorStyles } from '../../theme/choiceSeparator';
+import { ChoiceSeparator } from '../shared/ChoiceSeparator';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
 export interface ToggleProps {
@@ -199,6 +199,11 @@ export interface ToggleGroupProps {
   'aria-label'?: string;
 }
 
+const GROUP_RADIUS = 'var(--ai-radius-md, 0.375rem)';
+const GROUP_BORDER_WIDTH = '0.0625rem';
+/** An option's fill sits inside the root's border, so its corner radius is the root's minus the border. */
+const OPTION_INNER_RADIUS = `calc(${GROUP_RADIUS} - ${GROUP_BORDER_WIDTH})`;
+
 /**
  * @manifest Connected button set for single or multiple selection, data-driven
  * @manifestCategory Form Controls
@@ -225,23 +230,18 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   const currentValue = externalValue !== undefined ? externalValue : binding.formValue ?? internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
   useInjectInteractionStyles();
-  useInjectChoiceSeparatorStyles();
-  // "components should integrate seamlessly inside ui group with outer
-  // border squaring" -- ToggleGroup is a COMPOUND control (its own
-  // per-option first/middle/last corner logic below, independent of any
-  // ancestor), so unlike Button/Input (which apply the group's own
-  // squareCorners value to their one single element directly), only the
-  // group's OUTERMOST edges -- this ToggleGroup's own first option's
-  // leading corners, and its own last option's trailing corners -- should
-  // ever be affected by an ANCESTOR <UIGroup>. Composed correctly below by
-  // spreading resolveSquareCorners(...) onto every option's own style
-  // AFTER its already-computed per-option radius: whichever corner the
-  // ancestor group says should be squared was ALREADY 0 for every option
-  // except the one genuine internal edge that needs to be forced flat, so
-  // the same single spread is a no-op everywhere except that one case,
-  // for every possible ancestor position (first/middle/last/standalone).
+  // The root draws the frame, so an ancestor <UIGroup> squares the root's
+  // corners; the first and last options follow whatever the root resolved to.
   const uiGroupSquareCorners = useUIGroupSquareCorners();
-  const outerCornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
+  const squared = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
+  const rootCorners = {
+    borderTopLeftRadius: squared.borderTopLeftRadius ?? GROUP_RADIUS,
+    borderTopRightRadius: squared.borderTopRightRadius ?? GROUP_RADIUS,
+    borderBottomLeftRadius: squared.borderBottomLeftRadius ?? GROUP_RADIUS,
+    borderBottomRightRadius: squared.borderBottomRightRadius ?? GROUP_RADIUS,
+  };
+  const innerRadius = (corner: keyof typeof rootCorners) =>
+    rootCorners[corner] === GROUP_RADIUS ? OPTION_INNER_RADIUS : 0;
 
   const handleValueChange = (groupValue: string[]) => {
     const next: string | string[] = type === 'multiple' ? groupValue : groupValue[0] ?? '';
@@ -281,8 +281,8 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
     // both modes. Single mode uses radio semantics
     // (#702): the root is a radiogroup and each option a radio with
     // aria-checked, so "one of N" is announced as such. Arrow keys move
-    // focus and Space/Enter selects. `ai-choice-group` is what
-    // the choice-separator rule (theme/choiceSeparator.ts) keys on.
+    // focus and Space/Enter selects. Dividers are aria-hidden spans between
+    // the options (#903), never inside one, so no option's fill paints under one.
     <BaseToggleGroup
       multiple={!isSingle}
       value={groupValue}
@@ -294,8 +294,15 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabel ? undefined : binding.labelId}
       {...binding.invalidProps}
-      className="ai-choice-group"
-      style={{ display: 'inline-flex', alignItems: 'stretch' }}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'stretch',
+        borderWidth: GROUP_BORDER_WIDTH,
+        borderStyle: 'solid',
+        borderColor: binding.isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)',
+        background: 'var(--ai-bg-surface, #ffffff)',
+        ...rootCorners,
+      }}
     >
       {options.map((opt, index) => {
         const selected = isSelected(opt.value);
@@ -303,129 +310,52 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
         const isLast = index === options.length - 1;
         const itemDisabled = disabled || opt.disabled;
 
-        const borderColor = selected ? 'var(--ai-color-primary, #3b82f6)' : binding.isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)';
-
         return (
-          <BaseToggle
-            key={opt.value}
-            value={opt.value}
-            disabled={itemDisabled}
-            role={isSingle ? 'radio' : undefined}
-            aria-checked={isSingle ? selected : undefined}
-            aria-pressed={isSingle ? undefined : selected}
-            className="ai-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 'var(--ai-toggle-gap, 0.375rem)',
-              padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
-              // Regression, reported directly: the ::before divider below
-              // used to sit on top of an identically-colored, full-height
-              // border that every item ALSO drew on every side (the
-              // previous version of this comment's own "plain shorthand"
-              // approach) -- since interior seams already had a continuous,
-              // full-height, border-colored line from the adjacent items'
-              // own collapsed borders, painting a same-color half-height
-              // accent on top of it was a visual no-op (confirmed: "had to
-              // zoom in 4 times to see it"). The real fix has to remove
-              // that competing line, not just add another one next to it --
-              // only a genuine OUTER edge (first item's left side, last
-              // item's right side, every item's top/bottom) draws a real
-              // border; an INTERIOR seam (the side touching a neighbor)
-              // is transparent, so the ::before accent is the ONLY mark
-              // there, with nothing behind it to blend into. All four
-              // sides use explicit longhands unconditionally (never a
-              // shorthand mixed with a sometimes-different longhand) --
-              // see AGENTS.md's own borderRadius-shorthand entry for why
-              // that combination is a real React warning, not a style nit.
-              borderTopWidth: '0.0625rem',
-              borderBottomWidth: '0.0625rem',
-              // Interior left side (the seam a non-first item's own choice-
-              // separator ::before renders on, theme/choiceSeparator.ts) is
-              // WIDTH 0, not just a transparent color -- reported directly,
-              // with screenshots, in two connected ways: the divider looked
-              // a different width at different seams, and "the background
-              // is not uniformly excluding the separator, especially on
-              // the left end." Root cause: `left: 0` on an
-              // absolutely-positioned pseudo-element resolves against its
-              // containing block's PADDING box, not its border box (CSS
-              // Positioned Layout spec) -- so as long as this item had ANY
-              // left border width (even color:transparent), the divider
-              // sat inset by that width from the item's own true visible
-              // edge, showing a sliver of this item's own background
-              // between the real seam and the divider. Removing the border
-              // WIDTH entirely on this side eliminates that inset at its
-              // source: `left: 0` now lands exactly on this item's true
-              // border-box edge. box-sizing: border-box (demo/index.css's
-              // own global reset) means this doesn't shrink the item --
-              // the border simply stops claiming space it was never
-              // rendering anyway.
-              //
-              // This alone still wasn't sufficient, though -- confirmed by
-              // screenshot, not assumed: a correctly-positioned divider
-              // could still be fully painted over by a SELECTED neighbor,
-              // because of the marginLeft/zIndex overlap a couple of
-              // properties down. That trick used to exist to collapse two
-              // adjacent items' own FULL-COLOR borders into a single
-              // visible 1px line -- real, necessary behavior when every
-              // side actually drew a border. It has no remaining purpose
-              // now that every interior side is either transparent or (as
-              // of this fix) zero-width, and it was actively harmful here:
-              // the -1px shift pulls each item's own left edge one pixel
-              // into its neighbor's territory, and whichever item has the
-              // higher z-index (selected: 1 vs. unselected: 0) paints that
-              // whole shared pixel -- including anything the LOWER
-              // z-index item tried to render there, divider included,
-              // regardless of how precisely it was positioned. Removed
-              // below (marginLeft: 0 unconditionally) so adjacent items
-              // sit exactly flush with no shared/contested pixel at all --
-              // the real fix, not a positioning patch on top of a
-              // still-broken overlap.
-              borderLeftWidth: isFirst ? '0.0625rem' : 0,
-              borderRightWidth: '0.0625rem',
-              borderTopStyle: 'solid',
-              borderBottomStyle: 'solid',
-              borderLeftStyle: 'solid',
-              borderRightStyle: 'solid',
-              borderTopColor: borderColor,
-              borderBottomColor: borderColor,
-              borderLeftColor: isFirst ? borderColor : 'transparent',
-              borderRightColor: isLast ? borderColor : 'transparent',
-              borderTopLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
-              borderBottomLeftRadius: isFirst ? 'var(--ai-radius-md, 0.375rem)' : 0,
-              borderTopRightRadius: isLast ? 'var(--ai-radius-md, 0.375rem)' : 0,
-              borderBottomRightRadius: isLast ? 'var(--ai-radius-md, 0.375rem)' : 0,
-              // No longer isFirst ? 0 : '-0.0625rem' -- see the borderLeftWidth
-              // comment above for why that overlap is actively wrong now,
-              // not just unnecessary.
-              marginLeft: 0,
-              background: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
-              color: selected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
-              fontSize: CONTROL_FONT_SIZE_VAR[size],
-              fontWeight: 'var(--ai-font-weight-semibold, 600)',
-              cursor: itemDisabled ? 'not-allowed' : 'pointer',
-              opacity: itemDisabled ? 0.5 : 1,
-              position: 'relative',
-              zIndex: selected ? 1 : 0,
-              // No inline transition -- .ai-btn's own shared rule
-              // (interactionStyles.ts) already covers background-color,
-              // color, and border-radius, and is !important, so this
-              // would be silently discarded outright, not just redundant
-              // (issue #411).
-              outline: 'none',
-              ['--ai-btn-bg' as string]: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
-              ...toggleGroupVars,
-              // Last -- wins over this option's own first/middle/last
-              // radius above when an ancestor <UIGroup> says this whole
-              // strip isn't the true outer edge at that position. See
-              // this component's own comment on uiGroupSquareCorners.
-              ...outerCornerOverrides,
-            }}
-          >
-            {opt.icon}
-            {opt.label}
-          </BaseToggle>
+          <React.Fragment key={opt.value}>
+            {!isFirst && <ChoiceSeparator />}
+            <BaseToggle
+              value={opt.value}
+              disabled={itemDisabled}
+              role={isSingle ? 'radio' : undefined}
+              aria-checked={isSingle ? selected : undefined}
+              aria-pressed={isSingle ? undefined : selected}
+              className="ai-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--ai-toggle-gap, 0.375rem)',
+                padding: resolveControlPadding(size, 'var(--ai-toggle-padding, 0.4375rem 0.75rem)'),
+                // No border: the frame is on the root. Only the outer corners
+                // of the first and last option round, to the root's inner
+                // radius, so a fill follows the root's curve. The focus ring
+                // is an outline outside the box, so overflow:hidden on the
+                // root would clip it; radii don't.
+                border: 0,
+                borderTopLeftRadius: isFirst ? innerRadius('borderTopLeftRadius') : 0,
+                borderBottomLeftRadius: isFirst ? innerRadius('borderBottomLeftRadius') : 0,
+                borderTopRightRadius: isLast ? innerRadius('borderTopRightRadius') : 0,
+                borderBottomRightRadius: isLast ? innerRadius('borderBottomRightRadius') : 0,
+                background: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                color: selected ? 'var(--ai-color-primary-text, #ffffff)' : 'var(--ai-text-primary, #111827)',
+                fontSize: CONTROL_FONT_SIZE_VAR[size],
+                fontWeight: 'var(--ai-font-weight-semibold, 600)',
+                cursor: itemDisabled ? 'not-allowed' : 'pointer',
+                opacity: itemDisabled ? 0.5 : 1,
+                // No inline transition -- .ai-btn's own shared rule
+                // (interactionStyles.ts) already covers background-color,
+                // color, and border-radius, and is !important, so this
+                // would be silently discarded outright, not just redundant
+                // (issue #411).
+                outline: 'none',
+                ['--ai-btn-bg' as string]: selected ? 'var(--ai-color-primary, #3b82f6)' : 'var(--ai-bg-surface, #ffffff)',
+                ...toggleGroupVars,
+              }}
+            >
+              {opt.icon}
+              {opt.label}
+            </BaseToggle>
+          </React.Fragment>
         );
       })}
     </BaseToggleGroup>

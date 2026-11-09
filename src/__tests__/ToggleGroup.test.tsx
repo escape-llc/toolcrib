@@ -1,8 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Toggle, ToggleGroup } from '../components/ToggleGroup/ToggleGroup';
+import { Form } from '../components/Form/FormContext';
+import { FormField } from '../components/Form/FormComponents';
+import { UIGroup } from '../components/UIGroup/UIGroup';
+import { z } from 'zod';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { actAndSettle } from './testUtils/overlay';
 
 // The Toggle/ToggleGroup primitives can use ResizeObserver internally —
 // not implemented in jsdom. Same polyfill pattern already used in
@@ -48,6 +53,8 @@ describe('ToggleGroup Component', () => {
     { value: 'center', label: 'Center' },
     { value: 'right', label: 'Right' },
   ];
+
+  const separators = () => Array.from(document.querySelectorAll<HTMLElement>('[data-ai-choice-separator]'));
 
   it('type="single": selecting one option deselects the previous one', async () => {
     const onChange = vi.fn();
@@ -96,79 +103,140 @@ describe('ToggleGroup Component', () => {
     expect(screen.getByRole('button', { name: 'Left' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  // Regression: an interior choice separator (the theme/choiceSeparator.ts
-  // ::before accent) used to sit on top of an identically-colored,
-  // full-height border every item ALSO drew on every side -- reported
-  // directly, after that fix shipped, as still barely visible ("had to
-  // zoom in 4 times"). The actual fix is that an interior seam (the side
-  // touching a neighbor) must draw NO real border at all -- only a
-  // genuine outer edge (first item's left, last item's right, every
-  // item's top/bottom) does -- so the accent is the only mark there. This
-  // is exactly the shape a screenshot review can't easily catch again
-  // (both "same color, full height" and "same color, half height,
-  // nothing competing" look identical in a DOM/style dump unless you
-  // specifically assert on transparency at the interior sides) -- so it's
-  // asserted directly here, not just eyeballed.
-  it('draws a real border only at the strip\'s true outer edges, transparent at interior seams', () => {
-    render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={vi.fn()} />);
+  // #903: dividers are real aria-hidden elements BETWEEN options, never a
+  // pseudo-element inside one, so an option's selected/hover fill can't paint
+  // under a divider.
+  describe('separators (#903)', () => {
+    it('renders N-1 aria-hidden separators, each between two options in DOM order', () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} aria-label="Align" />);
 
-    const left = screen.getByRole('radio', { name: 'Left' }); // first item
-    const center = screen.getByRole('radio', { name: 'Center' }); // middle item
-    const right = screen.getByRole('radio', { name: 'Right' }); // last item
+      const seps = separators();
+      expect(seps).toHaveLength(options.length - 1);
+      const radios = screen.getAllByRole('radio');
+      seps.forEach((sep, i) => {
+        expect(sep).toHaveAttribute('aria-hidden', 'true');
+        // radios[i] precedes the separator, radios[i + 1] follows it.
+        expect(radios[i].compareDocumentPosition(sep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(radios[i + 1].compareDocumentPosition(sep) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+        expect(sep.parentElement).toBe(radios[i].parentElement);
+      });
+    });
 
-    // True outer edges: colored.
-    expect(left.style.borderLeftColor).not.toBe('transparent');
-    expect(right.style.borderRightColor).not.toBe('transparent');
-    // Top/bottom are always a real outer edge, on every item.
-    for (const item of [left, center, right]) {
-      expect(item.style.borderTopColor).not.toBe('transparent');
-      expect(item.style.borderBottomColor).not.toBe('transparent');
-    }
+    it('never puts a separator inside an option, and the accessible options are exactly the options', () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} aria-label="Align" />);
 
-    // Interior seams: transparent, so the ::before accent is the only mark.
-    expect(left.style.borderRightColor).toBe('transparent');
-    expect(center.style.borderLeftColor).toBe('transparent');
-    expect(center.style.borderRightColor).toBe('transparent');
-    expect(right.style.borderLeftColor).toBe('transparent');
-  });
+      const radios = screen.getAllByRole('radio');
+      expect(radios.map(r => r.textContent)).toEqual(['Left', 'Center', 'Right']);
+      for (const radio of radios) {
+        expect(radio.querySelector('[data-ai-choice-separator]')).toBeNull();
+      }
+      expect(screen.getByRole('radiogroup', { name: 'Align' })).toBeInTheDocument();
+    });
 
-  // Regression: reported directly, with screenshots -- the choice
-  // separator looked a different width at different seams, and "the
-  // background is not uniformly excluding the separator, especially on
-  // the left end." Root cause was two compounding issues in this
-  // component's own per-item styles (not in choiceSeparator.ts's own
-  // ::before rule): an interior item's left border still had a real WIDTH
-  // (just a transparent color), which insets the ::before accent from the
-  // item's own true edge (`left: 0` on an absolutely-positioned
-  // pseudo-element resolves against the padding box, not the border box);
-  // and a now-obsolete marginLeft/zIndex overlap trick -- left over from
-  // when every side drew a real, full-color border that needed collapsing
-  // with its neighbor's -- let a higher-z-index (selected) neighbor paint
-  // clean over a lower-z-index item's own divider. Both are asserted
-  // directly here so a future change can't silently reintroduce either
-  // half of this regression.
-  it('an interior item has zero left border WIDTH (not just a transparent color) and no negative overlap margin', () => {
-    render(<ToggleGroup name="align" type="single" defaultValue="left" options={options} onChange={vi.fn()} />);
+    it('selecting an option does not hide or unmount any separator', () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} />);
+      const before = separators();
 
-    const left = screen.getByRole('radio', { name: 'Left' }); // first item
-    const center = screen.getByRole('radio', { name: 'Center' }); // middle item
-    const right = screen.getByRole('radio', { name: 'Right' }); // last item
+      fireEvent.click(screen.getByRole('radio', { name: 'Center' }));
 
-    // True outer edge (first item's own left side): a real border width.
-    expect(left.style.borderLeftWidth).toBe('0.0625rem');
+      const after = separators();
+      expect(after).toHaveLength(before.length);
+      after.forEach((sep, i) => {
+        expect(sep).toBe(before[i]);
+        expect(sep.style.opacity).toBe('1');
+      });
+    });
 
-    // Interior left sides: zero width, not merely transparent -- this is
-    // what makes `left: 0` on the ::before accent land exactly on the
-    // item's true edge instead of inset by a still-present (if invisible)
-    // border.
-    expect(center.style.borderLeftWidth).toBe('0px');
-    expect(right.style.borderLeftWidth).toBe('0px');
+    it('type="multiple": two adjacent selected options keep the separator between them visible', () => {
+      render(<ToggleGroup type="multiple" defaultValue={['left']} options={options} />);
+      const before = separators();
 
-    // No item overlaps its neighbor anymore -- the old collapse trick
-    // (isFirst ? 0 : '-0.0625rem') is gone; every item sits flush.
-    for (const item of [left, center, right]) {
-      expect(item.style.marginLeft).toBe('0px');
-    }
+      fireEvent.click(screen.getByRole('button', { name: 'Center' }));
+
+      expect(screen.getByRole('button', { name: 'Left' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Center' })).toHaveAttribute('aria-pressed', 'true');
+      const after = separators();
+      expect(after).toHaveLength(2);
+      after.forEach((sep, i) => {
+        expect(sep).toBe(before[i]);
+        expect(sep.style.opacity).toBe('1');
+      });
+    });
+
+    it('arrow keys move focus option to option and never land on a separator', async () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} aria-label="Align" />);
+      const [left, center, right] = screen.getAllByRole('radio');
+
+      await actAndSettle(() => { left.focus(); });
+      expect(document.activeElement).toBe(left);
+
+      await actAndSettle(() => { fireEvent.keyDown(left, { key: 'ArrowRight' }); });
+      expect(document.activeElement).toBe(center);
+      await actAndSettle(() => { fireEvent.keyDown(center, { key: 'ArrowRight' }); });
+      expect(document.activeElement).toBe(right);
+      await actAndSettle(() => { fireEvent.keyDown(right, { key: 'ArrowLeft' }); });
+      expect(document.activeElement).toBe(center);
+      await actAndSettle(() => { fireEvent.keyDown(center, { key: 'ArrowLeft' }); });
+      expect(document.activeElement).toBe(left);
+
+      for (const sep of separators()) expect(document.activeElement).not.toBe(sep);
+    });
+
+    it('draws the frame on the root and no border on any option', () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} aria-label="Align" />);
+
+      const root = screen.getByRole('radiogroup', { name: 'Align' });
+      expect(root.style.borderWidth).toBe('0.0625rem');
+      expect(root.style.borderTopLeftRadius).toBe('var(--ai-radius-md, 0.375rem)');
+      for (const radio of screen.getAllByRole('radio')) {
+        expect(radio.style.borderTopWidth).toBe('0px');
+        expect(radio.style.borderLeftWidth).toBe('0px');
+        expect(radio.style.marginLeft).toBe('');
+      }
+    });
+
+    it('rounds only the first option\'s left and the last option\'s right corners', () => {
+      render(<ToggleGroup type="single" defaultValue="left" options={options} />);
+      const [left, center, right] = screen.getAllByRole('radio');
+
+      expect(left.style.borderTopLeftRadius).not.toBe('0px');
+      expect(left.style.borderTopRightRadius).toBe('0px');
+      expect(center.style.borderTopLeftRadius).toBe('0px');
+      expect(center.style.borderTopRightRadius).toBe('0px');
+      expect(right.style.borderTopRightRadius).not.toBe('0px');
+      expect(right.style.borderTopLeftRadius).toBe('0px');
+    });
+
+    it('inside a <UIGroup> squaring its leading edge, the root and first option square their left corners', () => {
+      render(
+        <UIGroup>
+          <ToggleGroup type="single" defaultValue="left" options={options} aria-label="Align" />
+          <ToggleGroup type="single" defaultValue="left" options={options} aria-label="Second" />
+        </UIGroup>,
+      );
+
+      const second = screen.getByRole('radiogroup', { name: 'Second' });
+      expect(second.style.borderTopLeftRadius).toBe('0px');
+      expect(second.style.borderTopRightRadius).not.toBe('0px');
+      expect(second.querySelector<HTMLElement>('[role="radio"]')!.style.borderTopLeftRadius).toBe('0px');
+    });
+
+    it('paints the root in the error color when its field is invalid', async () => {
+      render(
+        <Form schema={z.object({ align: z.string().min(1, 'Required') })} onSubmit={() => {}}>
+          <FormField name="align" label="Align">
+            <ToggleGroup type="single" options={options} />
+          </FormField>
+          <button type="submit">Go</button>
+        </Form>,
+      );
+
+      const root = screen.getByRole('radiogroup');
+      expect(root.style.borderColor).not.toContain('--ai-subtheme-error');
+      await act(async () => { fireEvent.submit(root.closest('form')!); });
+      expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('radiogroup').getAttribute('style')).toContain('--ai-subtheme-error');
+    });
   });
 
   it('type="multiple": options toggle independently and emits togglegroup:changed', () => {
