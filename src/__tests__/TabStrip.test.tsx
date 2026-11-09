@@ -25,6 +25,17 @@ describe('TabStrip Component', () => {
     expect(handleChange).toHaveBeenCalledWith('tab2');
   });
 
+  it('renders a divider between tabs, hidden (opacity 0, still mounted) next to the active tab', () => {
+    render(<TabStrip id="divider-demo" items={items} activeId="tab1" onChange={vi.fn()} />);
+
+    const seps = Array.from(document.querySelectorAll<HTMLElement>('[data-ai-choice-separator]'));
+    expect(seps).toHaveLength(2);
+    seps.forEach(sep => expect(sep).toHaveAttribute('aria-hidden', 'true'));
+    // tab1 is active: the divider after it is hidden; the one between tab2/tab3 shows.
+    expect(seps[0].style.opacity).toBe('0');
+    expect(seps[1].style.opacity).toBe('1');
+  });
+
   it('manages its own active tab when uncontrolled (no activeId/onChange given)', async () => {
     render(<TabStrip id="uncontrolled-demo" items={items} defaultActiveId="tab2" />);
 

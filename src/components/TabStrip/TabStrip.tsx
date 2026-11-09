@@ -8,6 +8,7 @@ import { type StyleFreeAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
+import { ChoiceSeparator } from '../shared/ChoiceSeparator';
 import { TabThemeSlice, type TabSliceState } from './TabSlice';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
@@ -204,31 +205,14 @@ export const TabStrip: React.FC<TabStripProps> & {
         {items.map((item, index) => {
           const isActive = item.id === activeId;
           const prevIsActive = index > 0 && items[index - 1].id === activeId;
-          // Hidden (not omitted) next to an active tab's colored background,
-          // where a divider line would look redundant — via opacity, not
-          // conditional rendering, so it still occupies its layout space
-          // either way. Conditionally mounting/unmounting it here used to
-          // change the filmstrip's total content width on every click
-          // (whichever divider sat next to the newly/previously active tab
-          // popped in or out), shifting every tab after it left or right —
-          // the same class of activeId-driven width change as the
-          // fontWeight fix above, just smaller in magnitude.
+          // Hidden next to an active tab's colored background, via opacity
+          // and never unmounted: a mount/unmount here changed the
+          // filmstrip's width on every click and shifted the tabs after it.
           const hideDivider = index === 0 || isActive || prevIsActive;
 
           return (
             <React.Fragment key={item.id}>
-              {index > 0 && (
-                <div
-                  style={{
-                    width: '0.0625rem',
-                    height: '1.125rem',
-                    background: 'var(--ai-border, #d1d5db)',
-                    opacity: hideDivider ? 0 : 0.7,
-                    flexShrink: 0,
-                    margin: '0 0.125rem',
-                  }}
-                />
-              )}
+              {index > 0 && <ChoiceSeparator hidden={hideDivider} gap="0.125rem" />}
               <BaseTabs.Tab
                 value={item.id}
                 disabled={item.disabled}
