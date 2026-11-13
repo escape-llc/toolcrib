@@ -586,6 +586,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               <span>{state.insetTop}rem</span>
             </div>
             <Slider
+              aria-label="Drawer top inset"
               value={Math.round(state.insetTop * 4)}
               min={0}
               max={24}
