@@ -180,4 +180,5 @@ export * from './components/UIGroup/UIGroupSlice';
 export * from './components/Viewer/Viewer';
 export * from './components/Viewer/ViewerContent';
 export * from './components/Viewer/ViewerSlice';
+export * from './components/VuMeter/VuMeter';
 export * from './components/shared/useScrollOverflow';

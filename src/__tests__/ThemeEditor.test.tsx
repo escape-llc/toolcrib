@@ -1,6 +1,6 @@
 import { type ComponentProps } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
 import { ThemeProvider } from '../theme/themeContext';
 import { ThemeEditor } from '../components/ThemeEditor/ThemeEditor';
 import { globalThemeSliceRegistry } from '../theme/slice';
@@ -277,9 +277,11 @@ describe('ThemeEditor', () => {
   // SLICE_EDITOR_CONTROLS for which of those also have a real control UI.
   describe('regression coverage: every registered slice\'s FieldRow controls actually change its value on selection', () => {
     const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 'animation', 'typography']);
+    // Slices whose control is a Slider, not a FieldRow Select: covered by their own test below.
+    const SLIDER_ONLY_SLICE_IDS = new Set(['vumeter']);
     const slices = globalThemeSliceRegistry
       .getAll()
-      .filter(slice => !GLOBAL_ONLY_SLICE_IDS.has(slice.id) && SLICE_EDITOR_CONTROLS[slice.id]);
+      .filter(slice => !GLOBAL_ONLY_SLICE_IDS.has(slice.id) && !SLIDER_ONLY_SLICE_IDS.has(slice.id) && SLICE_EDITOR_CONTROLS[slice.id]);
 
     it.each(slices.map(slice => [slice.id, slice.name, slice.category] as const))(
       'slice "%s" (category: %s)',
@@ -315,6 +317,19 @@ describe('ThemeEditor', () => {
         }
       }
     );
+  });
+
+  it('the VU Meter thickness control is a slider named by its visible label, and changing it changes the readout', () => {
+    const slice = globalThemeSliceRegistry.getAll().find(x => x.id === 'vumeter')!;
+    renderEditor();
+    fireEvent.click(screen.getByText(slice.category, { exact: false }));
+    fireEvent.click(screen.getByText(slice.name));
+    const section = screen.getByTestId('accordion-content-vumeter');
+    const slider = within(section).getByRole('slider', { name: 'Meter Thickness' });
+    const before = slider.getAttribute('aria-valuenow');
+    act(() => { slider.focus(); });
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
   });
 
   describe('regression coverage: the Global category\'s hand-written sections (not registry-driven, so outside the loop above)', () => {

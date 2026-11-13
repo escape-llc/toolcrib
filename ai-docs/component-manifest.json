@@ -253,7 +253,8 @@
       "--ai-uigroup-overlap",
       "--ai-viewer-caption-bg",
       "--ai-viewer-caption-color",
-      "--ai-viewer-nav-button-size"
+      "--ai-viewer-nav-button-size",
+      "--ai-vumeter-thickness"
     ],
     "slices": [
       {
@@ -459,6 +460,10 @@
       {
         "id": "kbd",
         "name": "⌨️ Keyboard Key Appearance"
+      },
+      {
+        "id": "vumeter",
+        "name": "🎚️ VU Meter Thickness"
       }
     ]
   },
@@ -5177,6 +5182,97 @@
       },
       "category": "Layout Primitives",
       "description": "Vertical flex column layout primitive"
+    },
+    {
+      "name": "VuMeter",
+      "import": "import { VuMeter } from '#toolcrib'",
+      "props": {
+        "level": {
+          "type": "number",
+          "required": true,
+          "description": "Level from 0 to 1. Out-of-range values are clamped."
+        },
+        "holdPeak": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Hold the highest level as a peak marker. The marker falls back to the current level on the first `level` update after 3 s; it does not decay on a timer, so a meter whose `level` stops changing keeps its last peak."
+        },
+        "pressure": {
+          "type": "number",
+          "description": "Red band along the bottom, from 0 to 1: how far something is behind (a backlog). Omitted shows no band."
+        },
+        "mark": {
+          "type": "number",
+          "description": "A fixed tick on the scale, from 0 to 1 (a limit, or a reference share). Omitted shows none."
+        },
+        "led": {
+          "type": "boolean",
+          "description": "Latching alarm LED: lit when true, dim when false, absent when omitted."
+        },
+        "zone": {
+          "type": "'ok' | 'warn' | 'error'",
+          "default": "'ok'",
+          "description": "Colours the readout: `warn` and `error` use the warning and error subtheme text colours."
+        },
+        "value": {
+          "type": "string",
+          "description": "Readout beside the scale (for example \"1.2k pkt/s\"). Omitted shows none."
+        },
+        "size": {
+          "type": "'md' | 'sm'",
+          "default": "'md'",
+          "description": "`sm` is a compact cell for rows and strips."
+        },
+        "scale": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Show the scale. `false` leaves only the LED and readout."
+        },
+        "kind": {
+          "type": "'level' | 'share'",
+          "default": "'level'",
+          "description": "`level` fills green, amber, red by position on the scale. `share` shows a part of a whole in one neutral colour,\nsince a big share is no alarm; `mark` is then where the whole sits."
+        },
+        "live": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Smooth the fill and the peak marker (live data). Off for static values."
+        },
+        "fill": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Stretch the scale to the free width of the row instead of the fixed scale width."
+        },
+        "framed": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Draw the outline-button frame and padding. Turn it off inside a cell that already has its own frame."
+        },
+        "dimmed": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Fade the meter, for example for a muted source."
+        },
+        "label": {
+          "type": "string",
+          "required": true,
+          "description": "Accessible name for the `role=\"meter\"` element. Required, as on `<Meter>`: a meter has no text content ARIA can\nderive a name from."
+        },
+        "title": {
+          "type": "string",
+          "description": "Tooltip text, also the default `aria-valuetext`."
+        },
+        "valueText": {
+          "type": "string",
+          "description": "Spoken value for assistive technology. Falls back to `title`."
+        },
+        "overrides": {
+          "type": "Partial<VuMeterSliceState>",
+          "description": "Per-instance override of the meter's theme values (scale thickness)."
+        }
+      },
+      "category": "Data Display",
+      "description": "Live level meter: a scale with peak hold, backlog band, limit mark, alarm LED and readout, framed like a Button"
     }
   ],
   "manifestSplit": {
