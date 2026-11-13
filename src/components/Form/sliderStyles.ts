@@ -45,12 +45,15 @@ export function sliderTrackStyle(invalid: boolean, orientation: SliderOrientatio
     ? `repeating-linear-gradient(${vertical ? 'to top' : 'to right'}, ${tick} 0 0.0625rem, transparent 0.0625rem calc((100% - 0.0625rem) / ${detents}))`
     : undefined;
   return {
-    background: 'var(--ai-border, #d1d5db)',
+    // Longhands only, and backgroundImage always set: a `background` shorthand
+    // plus a sometimes-present `backgroundImage` makes React warn (and can
+    // leave a stale image) when detents toggle on a live slider.
+    backgroundColor: 'var(--ai-border, #d1d5db)',
+    backgroundImage: ticks ?? 'none',
     position: 'relative',
     flexGrow: 1,
     borderRadius: 'var(--ai-radius-lg, 0.625rem)',
     ...(vertical ? { width: 'var(--ai-slider-track-height, 0.375rem)' } : { height: 'var(--ai-slider-track-height, 0.375rem)' }),
-    ...(ticks ? { backgroundImage: ticks } : {}),
     ...(invalid ? { boxShadow: `0 0 0 0.125rem ${INVALID_COLOR}` } : {}),
   };
 }

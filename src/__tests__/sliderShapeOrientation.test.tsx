@@ -95,7 +95,20 @@ describe('Slider detent ticks', () => {
 
   it('draws none above 32 steps', () => {
     const { container } = render(<Slider name="v" aria-label="V" value={2} min={0} max={100} step={1} overrides={{ detents: true }} onChange={vi.fn()} />);
-    expect(trackBackground(container)).toBe('');
+    expect(trackBackground(container)).toBe('none');
+  });
+
+  it('toggling detents on a live slider swaps the image without React style warnings', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const props = { name: 'v', 'aria-label': 'V', value: 2, min: 0, max: 10, step: 1, onChange: vi.fn() } as const;
+    const { container, rerender } = render(<Slider {...props} overrides={{ detents: true }} />);
+    expect(trackBackground(container)).toContain('repeating-linear-gradient');
+    rerender(<Slider {...props} overrides={{ detents: false }} max={100} />);
+    expect(trackBackground(container)).toBe('none');
+    rerender(<Slider {...props} overrides={{ detents: true }} />);
+    expect(trackBackground(container)).toContain('repeating-linear-gradient');
+    expect(error.mock.calls.filter(c => String(c[0]).includes('style property'))).toEqual([]);
+    error.mockRestore();
   });
 
   it('exactly 32 steps still draws; 33 does not', () => {
@@ -103,7 +116,7 @@ describe('Slider detent ticks', () => {
     expect(trackBackground(a.container)).toContain('repeating-linear-gradient');
     a.unmount();
     const b = render(<Slider name="v" aria-label="V" value={2} min={0} max={33} step={1} overrides={{ detents: true }} onChange={vi.fn()} />);
-    expect(trackBackground(b.container)).toBe('');
+    expect(trackBackground(b.container)).toBe('none');
   });
 
   it('a vertical slider ticks upward, and RangeSlider shares the behaviour', () => {
