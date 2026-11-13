@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { createTwoFilesPatch } from 'diff';
+import { listFilesRecursive } from './zip.js';
 
 export const PATCH_DIR = './toolcrib-patches';
 
@@ -173,11 +174,9 @@ export class PendingChanges {
  */
 export function hasStagedWork(projectRoot) {
   const dir = path.join(projectRoot, PATCH_DIR);
-  try {
-    return fs.readdirSync(dir).length > 0;
-  } catch {
-    return false;
-  }
+  // Files, not directory entries: once every note is resolved and deleted,
+  // the empty `conflicts/` subfolders left behind are not staged work.
+  return fs.existsSync(dir) && listFilesRecursive(dir).length > 0;
 }
 
 export const STAGED_WORK_MESSAGE =

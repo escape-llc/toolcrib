@@ -30,6 +30,8 @@ export async function applyCommand() {
 
   if (patchFiles.length === 0) {
     const staged = listStaged(patchDir);
+    // Only empty folders left (every note resolved and deleted): clear them.
+    if (staged.length === 0) fs.rmSync(patchDir, { recursive: true, force: true });
     p.outro(
       staged.length > 0
         ? `No pending patches. ./toolcrib-patches/ still holds ${staged.length} note/upstream-copy file(s) from a merge; resolve them, then delete the folder.`

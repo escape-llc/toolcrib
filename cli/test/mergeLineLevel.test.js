@@ -298,6 +298,13 @@ describe.each(['git', 'js'])('mergeCommand — line-level three-way merge (%s en
     await run({ 'w.ts': 'x\n' }, { 'w.ts': 'y\n' });
     expect(patchFor('toolcrib/w.ts')).toContain('+y');
   });
+
+  it('proceeds when only empty subfolders remain (every conflict note resolved and deleted)', async () => {
+    fs.mkdirSync(path.join(patchDir(), 'conflicts', 'components', 'Card'), { recursive: true });
+    writeKit('w.ts', 'x\n');
+    await run({ 'w.ts': 'x\n' }, { 'w.ts': 'y\n' });
+    expect(patchFor('toolcrib/w.ts')).toContain('+y');
+  });
 });
 
 describe('apply + merge staging round trip', () => {
