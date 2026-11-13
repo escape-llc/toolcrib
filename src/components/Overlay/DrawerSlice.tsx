@@ -17,6 +17,8 @@ export interface DrawerSliceState {
   position: DrawerPosition;
   backdropBlur: DrawerBackdrop;
   headerMargin: DrawerHeaderMargin;
+  /** Distance in rem the left/right/top panels and the backdrop stay below the viewport top (an app's own title bar). */
+  insetTop: number;
 }
 
 export interface DrawerCSSVariables extends Record<string, string> {
@@ -26,6 +28,7 @@ export interface DrawerCSSVariables extends Record<string, string> {
   '--ai-drawer-backdrop-blur': string;
   '--ai-drawer-header-margin': string;
   '--ai-drawer-header-border-radius': string;
+  '--ai-drawer-inset-top': string;
 }
 
 export const defaultDrawerState: DrawerSliceState = {
@@ -33,6 +36,7 @@ export const defaultDrawerState: DrawerSliceState = {
   position: 'right',
   backdropBlur: 'subtle',
   headerMargin: 'none',
+  insetTop: 0,
 };
 
 const widthMap: Record<DrawerWidth, string> = {
@@ -62,6 +66,7 @@ const headerMarginMap: Record<DrawerHeaderMargin, string> = {
 
 export function getDrawerVariables(state: DrawerSliceState = defaultDrawerState): DrawerCSSVariables {
   const { width, backdropBlur, headerMargin } = state;
+  const insetTop = Number.isFinite(state.insetTop) && state.insetTop > 0 ? state.insetTop : 0;
 
   return {
     '--ai-drawer-width': widthMap[width] || widthMap.md,
@@ -70,6 +75,7 @@ export function getDrawerVariables(state: DrawerSliceState = defaultDrawerState)
     '--ai-drawer-backdrop-blur': blurMap[backdropBlur] || blurMap.subtle,
     '--ai-drawer-header-margin': headerMarginMap[headerMargin] || headerMarginMap.none,
     '--ai-drawer-header-border-radius': headerMargin === 'detached' ? 'var(--ai-radius-md, 0.375rem)' : '0',
+    '--ai-drawer-inset-top': `${insetTop}rem`,
   };
 }
 
@@ -79,4 +85,10 @@ export const DrawerThemeSlice: ThemeSlice<DrawerSliceState, DrawerCSSVariables> 
   category: 'Overlays',
   defaultState: defaultDrawerState,
   getCSSVariables: getDrawerVariables,
+  fieldVars: {
+    width: ['--ai-drawer-width'],
+    backdropBlur: ['--ai-drawer-backdrop-blur'],
+    headerMargin: ['--ai-drawer-header-margin', '--ai-drawer-header-border-radius'],
+    insetTop: ['--ai-drawer-inset-top'],
+  },
 };

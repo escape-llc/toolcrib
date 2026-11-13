@@ -91,6 +91,7 @@
       "--ai-drawer-easing",
       "--ai-drawer-header-border-radius",
       "--ai-drawer-header-margin",
+      "--ai-drawer-inset-top",
       "--ai-drawer-width",
       "--ai-dropdownmenu-item-padding",
       "--ai-dropdownmenu-shadow",

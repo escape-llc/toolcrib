@@ -200,6 +200,8 @@ AppShell.Main = ({ children, paddingMode, ...props }) => {
       style={{
         flex: '1 1 0px',
         width: '100%',
+        // border-box, so width: 100% plus the padding does not overflow the viewport.
+        boxSizing: 'border-box',
         minHeight: 0,
         overflow: 'hidden',
         padding: paddingMode ? resolvePadding(paddingMode, 'lg') : 'var(--ai-appshell-main-padding, 1rem)',

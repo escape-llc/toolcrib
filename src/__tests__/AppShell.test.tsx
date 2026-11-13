@@ -49,6 +49,17 @@ describe('AppShell Component', () => {
     expect(screen.getByText('Main').closest('main')).toBeInTheDocument();
   });
 
+  it('Main is border-box, so width: 100% plus its padding does not overflow the parent', () => {
+    render(
+      <AppShell>
+        <AppShell.Main>Main</AppShell.Main>
+      </AppShell>
+    );
+    const main = screen.getByText('Main').closest('main')!;
+    expect(main.style.width).toBe('100%');
+    expect(window.getComputedStyle(main).boxSizing).toBe('border-box');
+  });
+
   it('renders Sidebar as an <aside>, and keeps Header full-width above the Sidebar/Main row in sidebar-left layout', () => {
     render(
       <AppShell layout="sidebar-left">
