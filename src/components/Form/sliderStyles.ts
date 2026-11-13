@@ -3,8 +3,10 @@ import { INVALID_COLOR } from './useFieldInvalid';
 
 // Shared by Slider and RangeSlider so the two render identically -- a
 // single-thumb and a two-thumb slider side by side in the same form must
-// not drift apart in track height, fill color, or thumb shape. Deliberately
-// not tagged @barrelExport: internal styling, not public API.
+// not drift apart in track height, fill color, or thumb shape. The style
+// functions are internal, not public API, so this file is not tagged
+// @barrelExport. `SliderOrientation` is public (it's the type of the
+// `orientation` prop) and reaches `#toolcrib` through Slider.tsx's re-export.
 
 export type SliderOrientation = 'horizontal' | 'vertical';
 
@@ -34,15 +36,21 @@ export function sliderControlStyle(disabled: boolean, orientation: SliderOrienta
 
 /**
  * The track, with an error ring when the slider is invalid (the thumb's focus
- * ring owns `outline`). `detents` is the number of steps (max − min) / step:
- * with the slice's `detents` on and at most 32 steps, a tick is drawn at every
- * step (behind the fill), the way a stepped fader shows its positions.
+ * ring owns `outline`). `detents` is (max − min) / step, unrounded: with the
+ * slice's `detents` on and a whole number of steps up to 32, a tick is drawn
+ * at every step (behind the fill), the way a stepped fader shows its positions.
  */
 export function sliderTrackStyle(invalid: boolean, orientation: SliderOrientation = 'horizontal', detents?: number): React.CSSProperties {
   const vertical = orientation === 'vertical';
   const tick = 'var(--ai-slider-detents, transparent)';
-  const ticks = detents && detents >= 2 && detents <= 32
-    ? `repeating-linear-gradient(${vertical ? 'to top' : 'to right'}, ${tick} 0 0.0625rem, transparent 0.0625rem calc((100% - 0.0625rem) / ${detents}))`
+  // `detents` is the raw (max - min) / step. Only a whole number of steps gets
+  // ticks: a repeating gradient spaces them evenly, so a range that isn't a
+  // multiple of the step (0–10 by 3) would put ticks where the thumb can't
+  // stop. The tolerance absorbs float error (0.3 / 0.1 = 2.9999999999999996).
+  const steps = detents === undefined ? undefined : Math.round(detents);
+  const whole = steps !== undefined && Math.abs((detents as number) - steps) < 1e-9;
+  const ticks = whole && steps >= 2 && steps <= 32
+    ? `repeating-linear-gradient(${vertical ? 'to top' : 'to right'}, ${tick} 0 0.0625rem, transparent 0.0625rem calc((100% - 0.0625rem) / ${steps}))`
     : undefined;
   return {
     // Longhands only, and backgroundImage always set: a `background` shorthand

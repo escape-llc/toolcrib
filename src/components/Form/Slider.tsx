@@ -12,6 +12,10 @@ import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, sliderRangeStyle, sliderThumbStyle, type SliderOrientation } from './sliderStyles';
 
+// The `orientation` prop's type, public through this file's barrel export
+// (sliderStyles.ts itself stays internal).
+export type { SliderOrientation };
+
 /**
  * Props for the `<Slider>` range input control.
  *
@@ -186,7 +190,7 @@ export const Slider: React.FC<SliderProps> = ({
       style={sliderRootStyle(disabled, sliderVars, orientation)}
     >
       <BaseSlider.Control style={sliderControlStyle(disabled, orientation)}>
-        <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? Math.round((max - min) / step) : undefined)}>
+        <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? (max - min) / step : undefined)}>
           <BaseSlider.Indicator style={sliderRangeStyle(orientation)} />
           {/* The thumb wraps a real <input type="range">, which carries the
               name. Base UI generates that input's id, so a FormField's

@@ -167,7 +167,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
         style={sliderRootStyle(disabled, sliderVars, orientation)}
       >
         <BaseSlider.Control style={sliderControlStyle(disabled, orientation)}>
-          <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? Math.round((max - min) / step) : undefined)}>
+          <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? (max - min) / step : undefined)}>
             <BaseSlider.Indicator style={sliderRangeStyle(orientation)} />
             {/* index: required for a multi-thumb slider to render on the server. */}
             <BaseSlider.Thumb

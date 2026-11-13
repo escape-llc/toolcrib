@@ -119,6 +119,16 @@ describe('Slider detent ticks', () => {
     expect(trackBackground(b.container)).toBe('none');
   });
 
+  it('draws none when the range is not a whole number of steps, but tolerates float error', () => {
+    // 0–10 by 3 is 3.33 steps: evenly spaced ticks would sit where the thumb can't stop.
+    const a = render(<Slider name="v" aria-label="V" value={3} min={0} max={10} step={3} overrides={{ detents: true }} onChange={vi.fn()} />);
+    expect(trackBackground(a.container)).toBe('none');
+    a.unmount();
+    // 0–0.3 by 0.1 is 2.9999999999999996 in floating point: still 3 whole steps.
+    const b = render(<Slider name="v" aria-label="V" value={0.1} min={0} max={0.3} step={0.1} overrides={{ detents: true }} onChange={vi.fn()} />);
+    expect(trackBackground(b.container)).toContain('/ 3)');
+  });
+
   it('a vertical slider ticks upward, and RangeSlider shares the behaviour', () => {
     const v = render(<Slider name="v" aria-label="V" orientation="vertical" value={2} min={0} max={10} overrides={{ detents: true }} onChange={vi.fn()} />);
     expect(trackBackground(v.container)).toContain('to top');
