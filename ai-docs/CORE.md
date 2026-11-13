@@ -245,6 +245,7 @@ Full prop detail: `ai-docs/manifest/data-display.json`
 | `<Stepper>` | — | `id`, `steps`, `activeIndex`, `defaultActiveIndex`, `onActiveIndexChange`, `overrides` | Linear step wizard built on the same Base UI Tabs primitive as `<TabStrip>`, with per-step Form validation gating |
 | `<TabStrip>` | `.Tab`, `.Panel` | `id`, `items`, `activeId`, `defaultActiveId`, `onChange`, `overrides` | Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content |
 | `<Tree>` | — | `id`, `items`, `expandedIds`, `defaultExpandedIds`, `onExpandedChange`, `selectedId`, `defaultSelectedId`, `onSelectChange`, `overrides` | Data-driven tree view with expand/collapse, single selection, and full WAI-ARIA Treeview keyboard navigation |
+| `<VuMeter>` | — | `level`, `holdPeak`, `pressure`, `mark`, `led`, `zone`, `value`, `size`, `scale`, `kind`, `live`, `fill`, `framed`, `dimmed`, `label`, `title`, `valueText`, `overrides` | Live level meter: a scale with peak hold, backlog band, limit mark, alarm LED and readout, framed like a Button |
 
 ### Form Controls
 
@@ -413,7 +414,7 @@ The theme system is extensible via **slices**. Each slice provides:
 - CSS variable generation from that state
 - Its Theme Editor control, if it has one. Controls live in `components/ThemeEditor/sliceEditorControls.tsx`, keyed by the slice's `id`, not on the slice object
 
-Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`, `kbd`.
+Built-in slices: `padding`, `margin`, `radius`, `shadow`, `table`, `animation`, `tab`, `drawer`, `accordion`, `card`, `tooltip`, `button`, `input`, `togglecontrol`, `select`, `radiogroup`, `slider`, `modal`, `alertdialog`, `popup`, `toast`, `dropdownmenu`, `contextmenu`, `progress`, `separator`, `avatar`, `toggle`, `collapsible`, `uigroup`, `toolbar`, `appshell`, `typography`, `tree`, `rating`, `sidebar`, `stepper`, `datepicker`, `breadcrumb`, `carousel`, `combobox`, `commandpalette`, `fileUpload`, `gallery`, `hoverCard`, `label`, `scrollArea`, `viewer`, `chart`, `livingColor`, `text`, `kbd`, `vumeter`.
 
 Register custom slices:
 ```tsx

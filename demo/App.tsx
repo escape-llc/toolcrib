@@ -55,6 +55,7 @@ import {
   Alert,
   Progress,
   Meter,
+  VuMeter,
   Fieldset,
   Separator,
   Avatar,
@@ -2244,6 +2245,22 @@ export const App: React.FC = () => {
           <Meter aria-label="Disk usage" label="Disk usage (high is bad)" showValue value={meterValue} low={60} high={85} optimum={20} />
           <Meter aria-label="Password strength" label="Password strength (high is good)" showValue value={meterValue} low={30} high={70} optimum={100} />
           <Meter aria-label="Quota used" label="No bands: primary colour" showValue value={meterValue} size="sm" />
+        </VStack>
+        <HStack gap="sm">
+          <Button size="sm" variant="outline" onClick={() => setMeterValue(v => Math.max(0, v - 10))}>-10</Button>
+          <Button size="sm" variant="outline" onClick={() => setMeterValue(v => Math.min(100, v + 10))}>+10</Button>
+        </HStack>
+      </VStack>
+    ),
+    VuMeter: (
+      <VStack gap="lg">
+        <Text>
+          A live level meter for a moving value: a scale filled green, amber, red by position, with an optional peak hold, backlog band, limit mark, alarm LED and readout. Unlike <code>&lt;Meter&gt;</code>, it is built for fast-changing data. Peak hold falls back to the current level on the first update after 3 s; it does not decay on a timer.
+        </Text>
+        <VStack gap="md">
+          <VuMeter label="Input level" level={meterValue / 100} holdPeak live mark={0.8} value={`${meterValue}%`} />
+          <VuMeter label="Queue depth" level={meterValue / 100} pressure={0.4} led={meterValue > 85} zone={meterValue > 85 ? 'error' : 'ok'} value="1.2k pkt/s" />
+          <VuMeter label="Share of traffic" kind="share" size="sm" level={meterValue / 100} mark={0.5} />
         </VStack>
         <HStack gap="sm">
           <Button size="sm" variant="outline" onClick={() => setMeterValue(v => Math.max(0, v - 10))}>-10</Button>

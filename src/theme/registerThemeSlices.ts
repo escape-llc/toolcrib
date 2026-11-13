@@ -50,6 +50,7 @@ import { ChartThemeSlice } from '../components/Chart/ChartSlice';
 import { LivingColorThemeSlice } from './livingColor';
 import { TextThemeSlice } from '../components/Text/TextSlice';
 import { KbdThemeSlice } from '../components/Kbd/KbdSlice';
+import { VuMeterThemeSlice } from '../components/VuMeter/VuMeterSlice';
 
 // Extracted from themeContext.tsx (a 'use client' file) so a Server
 // Component can populate the same global registry without pulling in
@@ -112,3 +113,4 @@ globalThemeSliceRegistry.register(ChartThemeSlice);
 globalThemeSliceRegistry.register(LivingColorThemeSlice);
 globalThemeSliceRegistry.register(TextThemeSlice);
 globalThemeSliceRegistry.register(KbdThemeSlice);
+globalThemeSliceRegistry.register(VuMeterThemeSlice);

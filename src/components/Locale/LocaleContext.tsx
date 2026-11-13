@@ -164,6 +164,10 @@ export interface ToolcribLocaleStrings {
     /** Accessible name of `<Stat>`'s trend line; `label` is the stat's own label. */
     trend: (label: string) => string;
   };
+  vuMeter: {
+    /** `<VuMeter>`'s spoken value while its alarm LED is lit; `valueText` is the readout (or `''` when there is none). */
+    alarmOn: (valueText: string) => string;
+  };
 }
 
 /**
@@ -278,6 +282,9 @@ export const defaultLocaleStrings: ToolcribLocaleStrings = {
     down: (change) => `Down ${change}`,
     unchanged: 'No change',
     trend: (label) => `${label} trend`,
+  },
+  vuMeter: {
+    alarmOn: (valueText) => (valueText ? `${valueText}, alarm on` : 'Alarm on'),
   },
 };
 

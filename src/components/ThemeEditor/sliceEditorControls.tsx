@@ -25,7 +25,7 @@
  * `globalThemeSliceRegistry.getAll()`) needs only this one extra lookup,
  * with no other change to its own generic rendering logic.
  */
-import { type ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { FieldRow } from './ThemeEditorFieldRow';
 import { Slider } from '../Form/Slider';
 import { type AlertDialogSliceState, type AlertDialogBackdropBlur, type AlertDialogOverlayDarkness } from '../AlertDialog/AlertDialogSlice';
@@ -50,6 +50,7 @@ import { type SidebarSliceState, type SidebarItemGap } from '../Sidebar/SidebarS
 import { type SeparatorSliceState, type SeparatorThickness } from '../Separator/SeparatorSlice';
 import { type TextSliceState, type TextScale } from '../Text/TextSlice';
 import { type KbdSliceState, type KbdAppearance } from '../Kbd/KbdSlice';
+import { type VuMeterSliceState, VUMETER_THICKNESS_MIN, VUMETER_THICKNESS_MAX } from '../VuMeter/VuMeterSlice';
 import { type GallerySliceState, type GalleryThumbnailAspectRatio } from '../Gallery/GallerySlice';
 import { type DrawerSliceState, type DrawerWidth, type DrawerHeaderMargin, type DrawerBackdrop } from '../Overlay/DrawerSlice';
 import { type TabSliceState, type TabVariant, type TabSize, type TabPanelTransition } from '../TabStrip/TabSlice';
@@ -76,6 +77,27 @@ import { type AnimationSliceState, type AnimationPreset } from '../../theme/anim
 import { type LivingColorSliceState, type LivingColorEnabled } from '../../theme/livingColor';
 import { type TypographySliceState, type FontFamilyPreset } from '../../theme/typography';
 import { DENSITY_ROW_HEIGHT_PX } from '../DataTable/DataTableSlice';
+
+/** The VuMeter slice's control: a labelled slider, the label tied to the slider by id like FieldRow does for its select. */
+function VuMeterThicknessControl({ state, onChange }: { state: VuMeterSliceState; onChange: (next: VuMeterSliceState) => void }) {
+  const labelId = useId();
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+        <span id={labelId}>Meter Thickness</span>
+        <span>{state.thickness}x</span>
+      </div>
+      <Slider
+        aria-labelledby={labelId}
+        min={VUMETER_THICKNESS_MIN}
+        max={VUMETER_THICKNESS_MAX}
+        step={0.25}
+        value={state.thickness}
+        onChange={v => onChange({ ...state, thickness: v })}
+      />
+    </div>
+  );
+}
 
 export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next: any) => void) => ReactNode> = {
   alertdialog: (state: AlertDialogSliceState, onChange: (next: AlertDialogSliceState) => void) => (
@@ -515,6 +537,9 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
             { label: 'Large (112.5%)', value: 'large' },
           ]}
         />
+  ),
+  vumeter: (state: VuMeterSliceState, onChange: (next: VuMeterSliceState) => void) => (
+    <VuMeterThicknessControl state={state} onChange={onChange} />
   ),
   kbd: (state: KbdSliceState, onChange: (next: KbdSliceState) => void) => (
     <FieldRow
