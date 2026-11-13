@@ -66,7 +66,7 @@ import { type ToolbarSliceState, type ToolbarSlotGap } from '../Toolbar/ToolbarS
 import { type RadioGroupSliceState, type RadioGroupGap, type RadioGroupDotSize } from '../Form/RadioGroupSlice';
 import { type LabelSliceState, type LabelWeight, type LabelGap } from '../Form/LabelSlice';
 import { type SelectSliceState, type SelectPadding, type SelectItemDensity } from '../Form/SelectSlice';
-import { type SliderSliceState, type SliderTrackHeight, type SliderThumbSize } from '../Form/SliderSlice';
+import { type SliderSliceState, type SliderTrackHeight, type SliderThumbSize, type SliderThumbShape } from '../Form/SliderSlice';
 import { type ToggleControlSliceState, type ToggleControlSize } from '../Form/ToggleControlSlice';
 import { type ViewerSliceState, type ViewerNavButtonSize, type ViewerCaptionStyle } from '../Viewer/ViewerSlice';
 import { type UIGroupSliceState, type UIGroupOverlap } from '../UIGroup/UIGroupSlice';
@@ -934,6 +934,25 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               { label: 'Small', value: 'sm' },
               { label: 'Medium', value: 'md' },
               { label: 'Large', value: 'lg' },
+            ]}
+          />
+          <FieldRow
+            label="Slider Thumb Shape"
+            value={state.thumbShape}
+            onChange={val => onChange({ ...state, thumbShape: val as SliderThumbShape })}
+            options={[
+              { label: 'Round', value: 'round' },
+              { label: 'Cap (flat fader with centre line)', value: 'cap' },
+            ]}
+          />
+          <FieldRow
+            label="Slider Detents"
+            tooltip="Draws a tick at every step when the range has at most 32 steps"
+            value={state.detents ? 'on' : 'off'}
+            onChange={val => onChange({ ...state, detents: val === 'on' })}
+            options={[
+              { label: 'Off', value: 'off' },
+              { label: 'On', value: 'on' },
             ]}
           />
         </div>
