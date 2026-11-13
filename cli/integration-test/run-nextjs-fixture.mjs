@@ -1,5 +1,5 @@
 // Real Next.js App Router smoke build: copies nextjs-fixture/ to a temp
-// dir, layers in the repo's own demo/App.tsx as the fixture's page content
+// dir, layers in the repo's own demo/ source as the fixture's page content
 // (see nextjs-fixture/README.md for why -- same 'use client' whole-graph
 // coverage as a dedicated fixture, no second demo to maintain), runs the
 // real toolcrib CLI init/apply against a mock GitHub server, npm installs,
@@ -55,90 +55,122 @@ function run(cmd, args, cwd) {
   }
 }
 
+const DEMO_DIR = path.join(REPO_ROOT, 'demo');
+
+// Vite-only demo files that have no place in the Next.js app. Everything
+// else under demo/ (*.ts, *.tsx, *.json) is copied automatically, so a new
+// demo file doesn't need an edit here -- only a file that can't build under
+// Next.js does. Anything copied that imports one of these fails the
+// relative-import guard below, loudly.
+const EXCLUDED_DEMO_FILES = new Set([
+  'main.tsx', // Vite entry point (createRoot); Next's app/page.tsx replaces it.
+  'vite-env.d.ts', // Vite's ambient types (import.meta.env, asset imports).
+]);
+
+// demo/App.tsx is the page content; page.tsx imports it under this name.
+const RENAMED_DEMO_FILES = { 'App.tsx': 'DemoApp.tsx' };
+
+// The icon is served from public/ as a plain URL string instead of kept as a
+// relative asset import: Vite's default PNG import yields a string, but
+// Next.js's yields a StaticImageData object, which fails typechecking
+// against the demo's own <img src={toolcribIcon}> (a string prop) -- a real
+// Vite/Next.js static-asset difference, not an RSC one.
+const ICON_IMPORT = "import toolcribIcon from './toolcrib-256x256.png';";
+const ICON_REPLACEMENT = "const toolcribIcon = '/toolcrib-256x256.png';";
+// The demo reads the generated component manifest from ai-docs/, a relative
+// path that doesn't exist from app/; the manifest is copied next to the demo
+// files and the import repointed at the copy.
+const MANIFEST_IMPORT = "import manifest from '../ai-docs/component-manifest.json';";
+const MANIFEST_REPLACEMENT = "import manifest from './component-manifest.json';";
+
+// Files that must keep containing a rewritten import: a silent no-op rewrite
+// there would only surface as an obscure Next.js build error.
+const REQUIRED_REWRITES = {
+  'App.tsx': { find: ICON_IMPORT, label: 'icon' },
+  'Catalog.tsx': { find: MANIFEST_IMPORT, label: 'manifest' },
+  'stateExamples.tsx': { find: MANIFEST_IMPORT, label: 'manifest' },
+};
+
+// Static `import ... from './x'`, side-effect `import './x'` and
+// `export ... from './x'` with a relative specifier. Anchored to the start of
+// a line so code shown as text (the demo prints sample `export * from './App'`
+// lines inside JSX) isn't mistaken for a real import.
+const RELATIVE_IMPORT_RES = [
+  /^[ \t]*(?:import|export)\s[^'";]*?\bfrom\s*['"](\.{1,2}\/[^'"]*)['"]/gm,
+  /^[ \t]*import\s*['"](\.{1,2}\/[^'"]*)['"]/gm,
+];
+
+function assertRelativeImportsResolve(appDir, copiedFiles) {
+  for (const file of copiedFiles) {
+    if (!/\.tsx?$/.test(file)) continue;
+    const source = fs.readFileSync(path.join(appDir, file), 'utf-8');
+    for (const re of RELATIVE_IMPORT_RES) {
+      for (const match of source.matchAll(re)) {
+        const specifier = match[1];
+        const base = path.resolve(appDir, specifier);
+        const resolved = ['', '.ts', '.tsx', '.json'].some((ext) => {
+          try {
+            return fs.statSync(base + ext).isFile();
+          } catch {
+            return false;
+          }
+        });
+        if (!resolved) {
+          throw new Error(
+            `Copied demo file app/${file} imports '${specifier}', which does not exist in the fixture's app/ directory. ` +
+              `Add the file to demo/ (so it is copied automatically) or, if it is a Vite-only file, ` +
+              `stop importing it from a copied file -- see EXCLUDED_DEMO_FILES in this script.`
+          );
+        }
+      }
+    }
+  }
+}
+
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-nextjs-fixture-'));
 console.log(`Fixture working directory: ${tmpDir}`);
 
 try {
   fs.cpSync(FIXTURE_SRC, tmpDir, { recursive: true });
 
-  // Layer the real demo source in as this fixture's page content. The icon
-  // is served from public/ as a plain URL string instead of kept as a
-  // relative asset import: Vite's default PNG import yields a string, but
-  // Next.js's yields a StaticImageData object, which fails typechecking
-  // against demo/App.tsx's own <img src={toolcribIcon}> (a string prop) --
-  // a real Vite/Next.js static-asset difference, not an RSC one. Only the
-  // copy is rewritten; demo/App.tsx itself is untouched.
-  const ICON_IMPORT = "import toolcribIcon from './toolcrib-256x256.png';";
-  const demoAppSrc = fs
-    .readFileSync(path.join(REPO_ROOT, 'demo/App.tsx'), 'utf-8')
-    .replace(ICON_IMPORT, "const toolcribIcon = '/toolcrib-256x256.png';");
-  if (!demoAppSrc.includes("const toolcribIcon = '/toolcrib-256x256.png';")) {
-    throw new Error(
-      `demo/App.tsx no longer contains the expected icon import (${ICON_IMPORT}) -- update this script's replacement to match.`
-    );
+  // Layer the real demo source in as this fixture's page content. Only the
+  // copies are rewritten; demo/ itself is untouched.
+  const appDir = path.join(tmpDir, 'app');
+  const copiedFiles = [];
+  for (const name of fs.readdirSync(DEMO_DIR).sort()) {
+    if (EXCLUDED_DEMO_FILES.has(name)) continue;
+    if (!fs.statSync(path.join(DEMO_DIR, name)).isFile()) continue;
+    const isSource = /\.tsx?$/.test(name);
+    if (!isSource && !name.endsWith('.json')) continue;
+
+    let content = fs.readFileSync(path.join(DEMO_DIR, name), 'utf-8');
+    const required = REQUIRED_REWRITES[name];
+    if (required && !content.includes(required.find)) {
+      throw new Error(
+        `demo/${name} no longer contains the expected ${required.label} import (${required.find}) -- update this script's replacement to match.`
+      );
+    }
+    content = content.replaceAll(ICON_IMPORT, ICON_REPLACEMENT).replaceAll(MANIFEST_IMPORT, MANIFEST_REPLACEMENT);
+
+    // A demo file is not vendored source, but it uses hooks/browser APIs and
+    // needs the directive to be a Client Component here.
+    const outName = RENAMED_DEMO_FILES[name] ?? name;
+    fs.writeFileSync(path.join(appDir, outName), isSource ? `'use client';\n\n${content}` : content);
+    copiedFiles.push(outName);
   }
-  fs.writeFileSync(path.join(tmpDir, 'app/DemoApp.tsx'), `'use client';\n\n${demoAppSrc}`);
-  // demo/App.tsx imports './Catalog' (issue #624), which in turn reads
-  // the generated component manifest -- copy both alongside DemoApp.tsx,
-  // rewriting the manifest import to its copied location.
-  const MANIFEST_IMPORT = "import manifest from '../ai-docs/component-manifest.json';";
-  const catalogSrc = fs.readFileSync(path.join(REPO_ROOT, 'demo/Catalog.tsx'), 'utf-8');
-  if (!catalogSrc.includes(MANIFEST_IMPORT)) {
-    throw new Error(
-      `demo/Catalog.tsx no longer contains the expected manifest import (${MANIFEST_IMPORT}) -- update this script's replacement to match.`
-    );
-  }
-  fs.writeFileSync(
-    path.join(tmpDir, 'app/Catalog.tsx'),
-    `'use client';\n\n${catalogSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
-  );
-  fs.copyFileSync(path.join(REPO_ROOT, 'ai-docs/component-manifest.json'), path.join(tmpDir, 'app/component-manifest.json'));
-  // Each demo's generated source snippet (issue #638), imported by
-  // Catalog.tsx from its own directory -- same relative path in app/.
-  fs.copyFileSync(path.join(REPO_ROOT, 'demo/demoSources.generated.json'), path.join(tmpDir, 'app/demoSources.generated.json'));
-  // The live event log's provider/components (demo/EventLog.tsx) -- no
-  // rewriting needed, its only imports are '#toolcrib', react and lucide.
-  fs.writeFileSync(
-    path.join(tmpDir, 'app/EventLog.tsx'),
-    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/EventLog.tsx'), 'utf-8')}`
-  );
-  // The demo's hash router (demo/hashRoute.ts), imported by both App and
-  // Catalog. Its only import is react; the server snapshot it hands
-  // useSyncExternalStore keeps prerendering off `window`.
-  fs.writeFileSync(
-    path.join(tmpDir, 'app/hashRoute.ts'),
-    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/hashRoute.ts'), 'utf-8')}`
-  );
-  // The data virtualization demo's fake server (demo/serverRows.ts, issue
-  // #905), imported by App. Its only '#toolcrib' import is type-only, and
-  // it touches `window` behind a typeof guard or inside getRows.
-  fs.writeFileSync(
-    path.join(tmpDir, 'app/serverRows.ts'),
-    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/serverRows.ts'), 'utf-8')}`
-  );
-  // The Catalog's States examples (demo/stateExamples.tsx), imported by
-  // Catalog.tsx. It reads each component's declared states from the same
-  // manifest, so its import is rewritten the same way as Catalog's.
-  const statesSrc = fs.readFileSync(path.join(REPO_ROOT, 'demo/stateExamples.tsx'), 'utf-8');
-  if (!statesSrc.includes(MANIFEST_IMPORT)) {
-    throw new Error(
-      `demo/stateExamples.tsx no longer contains the expected manifest import (${MANIFEST_IMPORT}) -- update this script's replacement to match.`
-    );
-  }
-  fs.writeFileSync(
-    path.join(tmpDir, 'app/stateExamples.tsx'),
-    `'use client';\n\n${statesSrc.replace(MANIFEST_IMPORT, "import manifest from './component-manifest.json';")}`
-  );
-  fs.copyFileSync(path.join(REPO_ROOT, 'demo/index.css'), path.join(tmpDir, 'app/demo.css'));
+  fs.copyFileSync(path.join(REPO_ROOT, 'ai-docs/component-manifest.json'), path.join(appDir, 'component-manifest.json'));
+  fs.copyFileSync(path.join(DEMO_DIR, 'index.css'), path.join(appDir, 'demo.css'));
   fs.mkdirSync(path.join(tmpDir, 'public'), { recursive: true });
   fs.copyFileSync(
-    path.join(REPO_ROOT, 'demo/toolcrib-256x256.png'),
+    path.join(DEMO_DIR, 'toolcrib-256x256.png'),
     path.join(tmpDir, 'public/toolcrib-256x256.png')
   );
   fs.writeFileSync(
-    path.join(tmpDir, 'app/page.tsx'),
+    path.join(appDir, 'page.tsx'),
     "import DemoApp from './DemoApp';\n\nexport default function Page() {\n  return <DemoApp />;\n}\n"
   );
+
+  assertRelativeImportsResolve(appDir, copiedFiles);
 
   run('node', [CLI_ENTRY, 'init'], tmpDir);
   run('node', [CLI_ENTRY, 'apply'], tmpDir);
