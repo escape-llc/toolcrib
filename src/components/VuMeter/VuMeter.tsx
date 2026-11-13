@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { VuMeterThemeSlice, type VuMeterSliceState } from './VuMeterSlice';
+import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
  * Props for the `<VuMeter>` level meter.
@@ -50,9 +51,12 @@ export interface VuMeterProps {
    * derive a name from.
    */
   label: string;
-  /** Tooltip text, also the default `aria-valuetext`. */
+  /** Tooltip text. Also spoken as the value when there is no `valueText`. */
   title?: string;
-  /** Spoken value for assistive technology. Falls back to `title`. */
+  /**
+   * Spoken value for assistive technology. Falls back to `title`, then to the `value` readout. While the alarm `led`
+   * is lit, the alarm is announced with it (the LED itself is decorative).
+   */
   valueText?: string;
   /** Per-instance override of the meter's theme values (scale thickness). */
   overrides?: Partial<VuMeterSliceState>;
@@ -107,6 +111,11 @@ export const VuMeter: React.FC<VuMeterProps> = ({
   const scaleHeight = sm ? `min(calc(0.3rem * ${thickness}), 0.9rem)` : `calc(0.55rem * ${thickness})`;
   const zoneColor = zone === 'error' ? 'var(--ai-subtheme-error-text)' : zone === 'warn' ? 'var(--ai-subtheme-warning-text)' : undefined;
   const { vars } = useSliceOverrides(VuMeterThemeSlice, overrides);
+  const strings = useLocaleStrings();
+  // The readout carries the units ("1.2k pkt/s"), so it beats a bare percentage. The LED is aria-hidden, so a lit
+  // alarm has to be part of the spoken value or a screen-reader user never hears it.
+  const spokenValue = valueText ?? title ?? value;
+  const ariaValueText = led ? strings.vuMeter.alarmOn(spokenValue ?? '') : spokenValue;
 
   return (
     <span
@@ -120,7 +129,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
       aria-valuemin={0}
       aria-valuemax={1}
       aria-valuenow={+lv.toFixed(2)}
-      aria-valuetext={valueText ?? title}
+      aria-valuetext={ariaValueText}
       title={title}
       style={{
         display: fill ? 'flex' : 'inline-flex',

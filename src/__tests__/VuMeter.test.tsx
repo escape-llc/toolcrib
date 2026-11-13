@@ -22,6 +22,21 @@ describe('VuMeter', () => {
     expect(meter.getAttribute('aria-valuenow')).toBe('0');
   });
 
+  it('speaks the readout when it is the only text, and a lit alarm LED with the value', () => {
+    const { getByRole, rerender } = render(<VuMeter label="Rx" level={0.5} value="1.2k pkt/s" />);
+    const meter = getByRole('meter', { name: 'Rx' });
+    // The readout carries the units, so it beats a bare aria-valuenow.
+    expect(meter.getAttribute('aria-valuetext')).toBe('1.2k pkt/s');
+    // The LED is aria-hidden: a lit alarm must reach assistive technology through the value text.
+    rerender(<VuMeter label="Rx" level={0.5} value="1.2k pkt/s" led />);
+    expect(meter.getAttribute('aria-valuetext')).toBe('1.2k pkt/s, alarm on');
+    rerender(<VuMeter label="Rx" level={0.5} led />);
+    expect(meter.getAttribute('aria-valuetext')).toBe('Alarm on');
+    // A dim LED adds nothing, and an explicit valueText still wins over the readout.
+    rerender(<VuMeter label="Rx" level={0.5} value="1.2k pkt/s" valueText="half" led={false} />);
+    expect(meter.getAttribute('aria-valuetext')).toBe('half');
+  });
+
   it('clips the fill to the level and draws only the parts that were asked for', () => {
     const { container, rerender } = render(<VuMeter label="L" level={0.25} />);
     expect(part(container, 'fill')!.getAttribute('data-level')).toBe('25.0%');

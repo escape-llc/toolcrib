@@ -5260,11 +5260,11 @@
         },
         "title": {
           "type": "string",
-          "description": "Tooltip text, also the default `aria-valuetext`."
+          "description": "Tooltip text. Also spoken as the value when there is no `valueText`."
         },
         "valueText": {
           "type": "string",
-          "description": "Spoken value for assistive technology. Falls back to `title`."
+          "description": "Spoken value for assistive technology. Falls back to `title`, then to the `value` readout. While the alarm `led`\nis lit, the alarm is announced with it (the LED itself is decorative)."
         },
         "overrides": {
           "type": "Partial<VuMeterSliceState>",
