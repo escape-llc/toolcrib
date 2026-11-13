@@ -3,6 +3,8 @@ import { ThemeSliceRegistry, type ThemeSlice, getSparseVariables } from '../them
 import { ShadowThemeSlice, getShadowVariables, resolveShadow } from '../theme/shadow';
 import { MarginThemeSlice } from '../theme/margin';
 import { PaddingThemeSlice } from '../theme/padding';
+import { generateHarmonyPalette } from '../theme/harmonies';
+import { defaultParameters } from '../theme/serverThemeCSS';
 
 describe('Modular Theme Slice Engine', () => {
   it('registers theme slices and computes combined CSS variables', () => {
@@ -17,7 +19,7 @@ describe('Modular Theme Slice Engine', () => {
       margin: 'compact',
       padding: 'spacious',
       shadow: 'elevated',
-    });
+    }, { palette: generateHarmonyPalette(defaultParameters), isDarkMode: false });
 
     expect(vars['--ai-margin-sm']).toBe('0.375rem');
     expect(vars['--ai-padding-sm']).toBe('0.625rem 1rem');

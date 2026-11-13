@@ -60,6 +60,17 @@ const VERIFIED_GUARANTEES_FINGERPRINT = '433ffa93dd780968172df86a33c9809bdff3f61
 const EXTENDING_TOOLCRIB_FINGERPRINT = '1a785380ca9ea171a3da5fc205215b0daa17a0b4533620a39881556b3c8d137c';
 
 /**
+ * The fifth, added 2026-11-13 (issue #926): CORE.md gained an
+ * "### App-specific slices" subsection under Theme Slices. Verified against
+ * the real ai-docs/: the heading set differs from the previous fingerprint's
+ * by exactly that one added heading, none removed or renamed (its code
+ * examples contain no `#`-prefixed lines the line-based splitter could
+ * mistake for a heading), and loadCoreDoc returns the whole new section via
+ * getSection. The same parser set handles it.
+ */
+const APP_SPECIFIC_SLICES_FINGERPRINT = '49ad8f67c5da1f4cf996c17ac19bd7c9a15eb31098f4df36eeaef1205c59db0d';
+
+/**
  * Maps a known schema fingerprint to the loader functions verified to
  * parse it correctly. Every real toolcrib release through v0.13.0 shares
  * `LEGACY_FINGERPRINT`; v0.14.0 introduced real, verified drift (see
@@ -81,6 +92,7 @@ export const PARSER_MAP = new Map([
   [V0_14_0_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
   [VERIFIED_GUARANTEES_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
   [EXTENDING_TOOLCRIB_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
+  [APP_SPECIFIC_SLICES_FINGERPRINT, { loadManifestIndex, loadCoreDoc, loadExamples }],
 ]);
 
 /**

@@ -279,7 +279,7 @@ Full prop detail: `ai-docs/manifest/form-controls.json`
 | `<SubmitButton>` | — | `variant`, `size`, `paddingMode`, `cornerRadiusMode`, `leadingIcon`, `trailingIcon`, `icon`, `subtheme`, `squareCorners`, `overrides` | `<Button type="submit">` that stays disabled while the enclosing Form is submitting; takes every Button prop, `ref` included |
 | `<Switch>` | — | `name`, `label`, `checked`, `defaultChecked`, `onChange`, `overrides`, `squareCorners`, `disabled`, `aria-invalid` | Boolean on/off switch with a sliding track, bound to Form context; `onChange` receives the new `boolean`; `ref` reaches the focusable switch element |
 | `<Textarea>` | — | `name`, `cornerRadiusMode`, `overrides`, `size` | Multi-line text input bound to Form context, sized and themed like Input |
-| `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot` | Real-time HSV theme editor content — no overlay chrome of its own;
+| `<ThemeEditor>` | — | `themeManagement`, `themeManagementSlot`, `sliceControls` | Real-time HSV theme editor content — no overlay chrome of its own;
 host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing. |
 | `<TimeField>` | — | `name`, `label`, `value`, `defaultValue`, `onChange`, `granularity`, `hourCycle`, `isDisabled`, `locale`, `size`, `aria-label`, `aria-labelledby`, `aria-invalid`, `squareCorners` | Segmented time input (hour/minute/second, individually keyboard-editable) built on React Aria Components |
 | `<Toggle>` | — | `name`, `pressed`, `defaultPressed`, `onPressedChange`, `disabled`, `overrides`, `size` | Two-state pressed/unpressed button, standalone (see ToggleGroup for a connected set) |
@@ -429,6 +429,65 @@ const MySlice: ThemeSlice<{ size: number }> = {
 globalThemeSliceRegistry.register(MySlice);
 ```
 
+### App-specific slices
+
+A slice that belongs to your app, not to a component you plan to send upstream, lives entirely in your own code. Do not edit `toolcrib/theme/registerThemeSlices.ts` or `toolcrib/components/ThemeEditor/sliceEditorControls.tsx` for it; those two files are for components meant to go upstream (see "Extending toolcrib" below).
+
+Register it at module scope of your slice file, and import that file from your app entry before anything renders. `<ThemeProvider>` and `computeServerThemeCSS` read the registry when they compute, so a slice registered later misses the first `:root` pass.
+
+`getCSSVariables` receives a `ThemeSliceContext` (`{ palette, isDarkMode }`) as its second argument, the same live palette that produces `:root`, so a slice can derive contrast-safe colors in JS. `generateMonochromaticSubTheme` returns a `{ main, bg, border, text, onMain }` group from one hue (`main` at least 3:1 against `bgSurface`, `text` at least 4.5:1 against its own `bg`, `onMain` readable black or white). `ensureWCAGContrast` and the other helpers in `theme/hsv.ts` cover single-color cases. `ctx` is `undefined` only when a slice is evaluated with no theme at all (an override read outside `<ThemeProvider>`).
+
+```tsx
+// app/theme/PrioritySlice.ts
+import { globalThemeSliceRegistry, generateMonochromaticSubTheme, hsvToCSS, type ThemeSlice } from '#toolcrib';
+
+export const PrioritySlice: ThemeSlice<{ hue: number }> = {
+  id: 'priority',
+  name: 'Priority Badge',
+  category: 'Data Display',
+  defaultState: { hue: 20 },
+  fieldVars: { hue: ['--app-priority-bg', '--app-priority-text'] },
+  getCSSVariables: (state, ctx) => {
+    // No theme to derive from (outside <ThemeProvider>): fall back to the kit's own colors.
+    if (!ctx) return { '--app-priority-bg': 'var(--ai-color-primary)', '--app-priority-text': 'var(--ai-color-primary-text)' };
+    const group = generateMonochromaticSubTheme(state.hue, ctx.palette.base, ctx.palette.bgSurface, ctx.isDarkMode);
+    return {
+      '--app-priority-bg': hsvToCSS(group.main),
+      '--app-priority-text': hsvToCSS(group.onMain),
+    };
+  },
+};
+globalThemeSliceRegistry.register(PrioritySlice);
+```
+
+Read the variables, and a per-instance override, in your app component with `useSliceOverrides`. The override computes against the same palette as `:root`:
+
+```tsx
+import { useSliceOverrides } from '#toolcrib';
+
+function PriorityBadge({ overrides, children }: { overrides?: { hue?: number }; children: React.ReactNode }) {
+  const { vars } = useSliceOverrides(PrioritySlice, overrides);
+  // `vars` is empty without an override, so :root's values apply.
+  return (
+    <span style={{ ...vars, background: 'var(--app-priority-bg)', color: 'var(--app-priority-text)' }}>
+      {children}
+    </span>
+  );
+}
+```
+
+Give the slice a Theme Editor control by passing it to `<ThemeEditor sliceControls>`, keyed by the slice's `id`. The prop wins over a built-in control with the same id, and the slice appears in its `category` section:
+
+```tsx
+<ThemeEditor
+  sliceControls={{
+    priority: (state, onChange) => (
+      <Slider aria-label="Hue" min={0} max={360} value={state.hue} onChange={(hue) => onChange({ hue })} />
+    ),
+  }}
+/>
+```
+
 ---
 
 ## 10. Per-Instance Overrides & Style Domains
@@ -473,7 +532,7 @@ Your `./toolcrib/` copy is part of your app, and you can add to it. Follow these
 - New infrastructure (a hook, observer, or theme utility) goes in `./toolcrib/observer/`, `./toolcrib/theme/`, or `./toolcrib/eventBus/` the same way. Tag one exported declaration in the file with `/** @barrelExport */`.
 - Inside `./toolcrib/`, import sibling toolkit files by relative path. Never import `#toolcrib` from toolkit code. That is a self-import through the barrel.
 - A new component's event channels go in the `AIEventMap` interface in `toolcrib/eventBus/eventBus.ts`, named `<name>:<event>`, where `<name>` is the component name in lowercase (for example `splitter:split_changed`). App-only events use a different prefix from any component.
-- A themable component gets a `ThemeSlice` file next to it, registered in `toolcrib/theme/registerThemeSlices.ts`. Its Theme Editor control goes in `toolcrib/components/ThemeEditor/sliceEditorControls.tsx`, keyed by the slice's `id`, not inline in the slice file.
+- A themable component meant to go upstream gets a `ThemeSlice` file next to it, registered in `toolcrib/theme/registerThemeSlices.ts`. Its Theme Editor control goes in `toolcrib/components/ThemeEditor/sliceEditorControls.tsx`, keyed by the slice's `id`, not inline in the slice file. A slice that only your app uses stays in your app code (see "App-specific slices" in the Theme Slices section).
 - Follow the same rules as the shipped components:
   - Put `@manifest` and `@manifestCategory` JSDoc on the component declaration.
   - Build props on `StyleFree<...>` or `StyleFreeAttributes<T>`. No `style` or `className`.

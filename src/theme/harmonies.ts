@@ -39,6 +39,7 @@ export interface ThemeParameters {
   isDarkMode: boolean;
 }
 
+/** @barrelExport */
 export interface SubThemeColorGroup {
   main: HSVColor;
   bg: HSVColor;
@@ -107,8 +108,17 @@ export interface GeneratedPalette {
 /**
  * Generates a Monochromatic subtheme scheme anchored on a specific semantic hue,
  * carrying the SV (Saturation & Value) axes from the base theme and enforcing WCAG contrast ratios.
+ *
+ * Guarantees, measured on the colors as rendered (after the browser's
+ * rounding): `main` is at least 3:1 against `bgSurface`; `text` is at least
+ * 4.5:1 against the group's own `bg`; `onMain` is readable black or white for
+ * content painted directly on a solid `main` fill. `border` is decorative and
+ * carries no contrast guarantee. Use it from an app-specific `ThemeSlice` to
+ * derive a semantic color group from one hue, passing `palette.base`,
+ * `palette.bgSurface` and `isDarkMode` from the `ThemeSliceContext`.
+ * @barrelExport
  */
-function generateMonochromaticSubTheme(
+export function generateMonochromaticSubTheme(
   anchorHue: number,
   base: HSVColor,
   bgSurface: HSVColor,

@@ -1,3 +1,5 @@
+import type { GeneratedPalette } from './harmonies';
+
 /**
  * Groups a slice under one of the Theme Editor's category sections —
  * the same vocabulary the `manifestCategory` tag uses for the component
@@ -8,6 +10,23 @@
  * CORE.md's hand-maintained tables drifted before generation existed.
  */
 export type ThemeSliceCategory = 'Layout Primitives' | 'Containers' | 'Overlays' | 'Data Display' | 'Form Controls';
+
+/**
+ * The live theme facts a slice can derive its own CSS variables from, passed
+ * as `getCSSVariables`'s second argument by every caller that has them: the
+ * `<ThemeProvider>`'s `:root` computation, `computeServerThemeCSS`, and
+ * `useSliceOverrides` (so a per-instance override computes the same colors
+ * as `:root`). Built-in slices ignore it. It's absent only when a slice is
+ * evaluated with no theme at all (e.g. `getSparseVariables` called outside a
+ * `<ThemeProvider>`), so a slice that needs it should handle `undefined`.
+ * @barrelExport
+ */
+export interface ThemeSliceContext {
+  /** The generated harmony palette for the current theme parameters. */
+  palette: GeneratedPalette;
+  /** Whether the theme is currently in dark mode. */
+  isDarkMode: boolean;
+}
 
 /** @barrelExport */
 export interface ThemeSlice<
@@ -23,7 +42,7 @@ export interface ThemeSlice<
   /**
    * Computes CSS Custom Properties for this slice.
    */
-  getCSSVariables: (state: TState, globalContext?: any) => TVars;
+  getCSSVariables: (state: TState, globalContext?: ThemeSliceContext) => TVars;
 
   /**
    * Declares which output CSS variables each state field influences, e.g.
@@ -55,7 +74,7 @@ export class ThemeSliceRegistry {
     return Array.from(this.slices.values());
   }
 
-  computeAllVariables(states: Record<string, any>, globalContext?: any): Record<string, string> {
+  computeAllVariables(states: Record<string, any>, globalContext: ThemeSliceContext): Record<string, string> {
     let combinedVars: Record<string, string> = {};
     for (const [id, slice] of this.slices.entries()) {
       const state = states[id] !== undefined ? states[id] : slice.defaultState;
@@ -78,7 +97,7 @@ export const globalThemeSliceRegistry = new ThemeSliceRegistry();
 export function getSparseVariables<TState, TVars extends Record<string, string>>(
   slice: ThemeSlice<TState, TVars>,
   partial: Partial<TState>,
-  globalContext?: any
+  globalContext?: ThemeSliceContext
 ): Partial<TVars> {
   const merged = { ...slice.defaultState, ...partial } as TState;
   const full = slice.getCSSVariables(merged, globalContext);

@@ -28,6 +28,7 @@ import { injectSharedAnimationKeyframes } from './animationKeyframes';
 import { injectLivingColorStyles } from './livingColorStyles';
 import { TargetDocumentContext } from './targetDocumentContext';
 import { NonceContext } from './nonceContext';
+import { ThemeSliceContextContext } from './SliceContextContext';
 // defaultParameters/PARAMETER_DRIVEN_SLICE_IDS/the three TOOLCRIB_*_CSS
 // constants below are shared with computeServerThemeCSS (./serverThemeCSS)
 // so the two can never drift out of sync -- see that module's own header
@@ -244,7 +245,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       radius: resolvedCornerRadiusMode,
       shadow: parameters.shadowMode,
       ...sliceStates,
-    });
+    }, { palette, isDarkMode: parameters.isDarkMode });
     return { ...baseVars, ...sliceVars };
   }, [palette, parameters, sliceStates, resolvedPaddingMode, resolvedMarginMode, resolvedCornerRadiusMode]);
 
@@ -413,6 +414,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const toggleDarkMode = () => setParameters(p => ({ ...p, isDarkMode: !p.isDarkMode }));
   const setDarkMode = (isDarkMode: boolean) => setParameters(p => ({ ...p, isDarkMode }));
 
+  const sliceContextValue = useMemo(
+    () => ({ palette, isDarkMode: parameters.isDarkMode }),
+    [palette, parameters.isDarkMode]
+  );
+
   const value: ThemeContextType = {
     parameters,
     sliceStates,
@@ -435,7 +441,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   return (
     <ThemeContext.Provider value={value}>
       <TargetDocumentContext.Provider value={targetDocument}>
-        <NonceContext.Provider value={nonce}>{children}</NonceContext.Provider>
+        <NonceContext.Provider value={nonce}>
+          <ThemeSliceContextContext.Provider value={sliceContextValue}>{children}</ThemeSliceContextContext.Provider>
+        </NonceContext.Provider>
       </TargetDocumentContext.Provider>
     </ThemeContext.Provider>
   );
