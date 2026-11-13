@@ -580,6 +580,19 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               { label: 'None (Solid Backdrop)', value: 'none' },
             ]}
           />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+              <span>Top Inset (keeps an app title bar uncovered)</span>
+              <span>{state.insetTop}rem</span>
+            </div>
+            <Slider
+              value={Math.round(state.insetTop * 4)}
+              min={0}
+              max={24}
+              step={1}
+              onChange={val => onChange({ ...state, insetTop: val / 4 })}
+            />
+          </div>
         </div>
   ),
   tab: (state: TabSliceState, onChange: (next: TabSliceState) => void) => (

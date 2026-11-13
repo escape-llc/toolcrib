@@ -113,14 +113,14 @@ export const Drawer: React.FC<DrawerProps> = ({
     const r = 'var(--ai-radius-lg, 0.75rem)';
     switch (position) {
       case 'left':
-        return { top: 0, left: 0, bottom: 0, width: resolvedWidth, height: '100vh', borderTopRightRadius: r, borderBottomRightRadius: r };
+        return { top: 'var(--ai-drawer-inset-top, 0rem)', left: 0, bottom: 0, width: resolvedWidth, height: 'calc(100vh - var(--ai-drawer-inset-top, 0rem))', borderTopRightRadius: r, borderBottomRightRadius: r };
       case 'top':
-        return { top: 0, left: 0, right: 0, height: '20rem', width: '100vw', borderBottomLeftRadius: r, borderBottomRightRadius: r };
+        return { top: 'var(--ai-drawer-inset-top, 0rem)', left: 0, right: 0, height: '20rem', width: '100vw', borderBottomLeftRadius: r, borderBottomRightRadius: r };
       case 'bottom':
         return { bottom: 0, left: 0, right: 0, height: '20rem', width: '100vw', borderTopLeftRadius: r, borderTopRightRadius: r };
       case 'right':
       default:
-        return { top: 0, right: 0, bottom: 0, width: resolvedWidth, height: '100vh', borderTopLeftRadius: r, borderBottomLeftRadius: r };
+        return { top: 'var(--ai-drawer-inset-top, 0rem)', right: 0, bottom: 0, width: resolvedWidth, height: 'calc(100vh - var(--ai-drawer-inset-top, 0rem))', borderTopLeftRadius: r, borderBottomLeftRadius: r };
     }
   };
 
@@ -138,6 +138,8 @@ export const Drawer: React.FC<DrawerProps> = ({
             style={{
               position: 'fixed',
               inset: 0,
+              // An app with its own title bar (an Electron window) sets this so overlays leave it uncovered and usable.
+              top: 'var(--ai-drawer-inset-top, 0rem)',
               zIndex,
               background: 'rgba(0, 0, 0, 0.4)',
               backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',

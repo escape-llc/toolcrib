@@ -371,6 +371,38 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     });
   });
 
+  describe('inset top (an app title bar stays uncovered)', () => {
+    const INSET = 'var(--ai-drawer-inset-top, 0rem)';
+    it.each(['left', 'right', 'top'] as const)('position="%s" panel starts below the inset', (position) => {
+      render(
+        <Drawer title="Inset Drawer" position={position} isOpen={true}>
+          <div>Body</div>
+        </Drawer>
+      );
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.top).toBe(INSET);
+      if (position !== 'top') expect(dialog.style.height).toBe(`calc(100vh - ${INSET})`);
+    });
+
+    it('position="bottom" is unaffected', () => {
+      render(
+        <Drawer title="Bottom Drawer" position="bottom" isOpen={true}>
+          <div>Body</div>
+        </Drawer>
+      );
+      expect(screen.getByRole('dialog').style.top).toBe('');
+    });
+
+    it('the backdrop starts below the inset', () => {
+      render(
+        <Drawer title="Backdrop Inset" isOpen={true}>
+          <div>Body</div>
+        </Drawer>
+      );
+      expect(screen.getByTestId('drawer-backdrop').style.top).toBe(INSET);
+    });
+  });
+
   it('Drawer closes on Escape key (not just the close button) and calls onOpenChange with the new state', () => {
     const onOpenChange = vi.fn();
     render(
