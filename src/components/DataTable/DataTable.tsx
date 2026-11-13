@@ -40,6 +40,8 @@ import { useTableQuickFilter } from './useTableQuickFilter';
 import { createArrayDataSource, type DataTableDataSource } from './dataSource';
 import { filterRows } from './tableQuery';
 import { useDataSourceRows } from './useDataSourceRows';
+import { useDataSourceBlocks, useBlockWindow, DEFAULT_BLOCK_SIZE, DEFAULT_MAX_CACHED_BLOCKS } from './useDataSourceBlocks';
+import { Skeleton } from '../Skeleton/Skeleton';
 import { useTableDensity } from './useTableDensity';
 import { useRowSetCrossFade } from './useRowSetCrossFade';
 import { useTableSelection } from './useTableSelection';
@@ -232,9 +234,10 @@ export interface DataTableProps<T = any> {
    * it sends the page/sort/filter state and shows what comes back, with
    * the page count, footer and `aria-rowcount` taken from `totalCount`.
    * `rowKey` is required for a data source. Define the source once (module
-   * scope or memoized): a new object identity means "refetch". Until data
-   * virtualization lands (#905 phase 2) a data source is always paged, as
-   * if `pagination` were true. See `ai-docs/examples/datatable-odata.md`.
+   * scope or memoized): a new object identity means "refetch". With
+   * `pagination` (the default) the source is asked for one page at a time;
+   * with `pagination={false}` the table virtualizes the data itself: see
+   * `pagination`. See `ai-docs/examples/datatable-odata.md`.
    */
   data: T[] | DataTableDataSource<T>;
   /** Column definitions controlling header, cell rendering, and sorting. */
@@ -244,12 +247,32 @@ export interface DataTableProps<T = any> {
    * default). Set to false to virtualize across the *entire* sorted
    * dataset instead — no pagination footer, no page slicing — the
    * better fit once a dataset is too large to page through usefully.
-   * `defaultPageSize`/`pageSizeOptions` are ignored in this mode. Applies
-   * to an array `data` only: a data source is paged regardless, until data
-   * virtualization lands (#905 phase 2).
+   * `defaultPageSize`/`pageSizeOptions` are ignored in this mode.
+   *
+   * With a data source this is data virtualization: the scroll height is
+   * `totalCount` x the row height, so the scrollbar is true to the whole
+   * result set and you can drag to the middle. Rows are fetched in blocks
+   * (`blockSize`) covering the visible window, once scrolling settles, and
+   * kept in a bounded cache (`maxCachedBlocks`); rows not loaded yet show
+   * as placeholder rows at their real position, and a failed block shows an
+   * error row with a Retry button. `onEndReached` does not fire.
    * @default true
    */
   pagination?: boolean;
+  /**
+   * Rows requested per block when `data` is a data source and
+   * `pagination={false}` (data virtualization). Each request is
+   * `getRows({ start: block * blockSize, count: blockSize, ... })`.
+   * @default 100
+   */
+  blockSize?: number;
+  /**
+   * Blocks kept in memory when virtualizing a data source; the least
+   * recently used are released. Never fewer than the visible rows need, and
+   * a block holding a row being edited is never released.
+   * @default 10
+   */
+  maxCachedBlocks?: number;
   /**
    * Called once whenever the virtualization window's own trailing edge
    * comes within `endReachedThreshold` rows of the end of `data` -- the
@@ -267,7 +290,8 @@ export interface DataTableProps<T = any> {
    * table already has a complete, known page of data and Prev/Next
    * navigation, so "near the end of the current page" isn't a signal to
    * load more from a server the way it is in continuous-scroll mode.
-   * Also mirrored on the event bus as `datatable:end_reached`.
+   * Also mirrored on the event bus as `datatable:end_reached`. Never fires
+   * for a data source (it virtualizes the data itself, see `pagination`).
    */
   onEndReached?: () => void;
   /**
@@ -802,6 +826,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   data,
   columns,
   pagination = true,
+  blockSize = DEFAULT_BLOCK_SIZE,
+  maxCachedBlocks = DEFAULT_MAX_CACHED_BLOCKS,
   onEndReached,
   endReachedThreshold = 10,
   defaultPageSize: initialPageSize = 'auto',
@@ -971,10 +997,12 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // source (quick filter -> sort -> slice, synchronously), so it behaves
   // exactly as it did when the table did that itself. `quickFilter`/
   // `sortBy` below are just STATE; useDataSourceRows turns them into the
-  // query. A non-array source is always paged for now (phase 2 adds data
-  // virtualization), hence `paged`.
+  // query. A non-array source with `pagination={false}` is virtualized
+  // instead (issue #905 phase 2): fixed-size blocks of it are cached and
+  // requested as the visible window moves, see useDataSourceBlocks.
   const isArrayData = Array.isArray(data);
-  const paged = pagination || !isArrayData;
+  const paged = pagination;
+  const virtual = !pagination && !isArrayData;
   const quickFilterFieldsKey = quickFilterFields?.join(',');
   const arrayDataSource = useMemo<DataTableDataSource<T> | null>(
     () => (Array.isArray(data) ? createArrayDataSource(data, { columns, quickFilterFields }) : null),
@@ -1148,12 +1176,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   const queryStart = paged ? (validCurrentPage - 1) * effectivePageSize : 0;
   const {
     rows: loadedRows,
-    totalCount: loadedTotalCount,
+    totalCount: rowsTotalCount,
     rowsStart,
-    status: loadStatus,
-    retry: retryLoad,
+    status: rowsLoadStatus,
+    retry: retryRows,
     isAsync: isAsyncSource,
+    committedFilter,
   } = useDataSourceRows<T>({
+    disabled: virtual,
     source: dataSource,
     start: queryStart,
     count: paged ? effectivePageSize : Number.POSITIVE_INFINITY,
@@ -1164,11 +1194,39 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     // when the filter actually becomes a request (a single request).
     onFilterCommit: () => paginationGoToPage(1),
   });
+  // Data virtualization (issue #905 phase 2): the block cache stands in for
+  // the page. `refreshNonce` restarts it (and returns the scroll to the top)
+  // on `datatable:refresh`, a Retry, or a new source identity.
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [seenSource, setSeenSource] = useState(dataSource);
+  if (seenSource !== dataSource) {
+    setSeenSource(dataSource);
+    // An array's wrapper source changes identity with every new array; that
+    // must not return the scroll to the top (append-as-you-scroll).
+    if (!isArrayData) setRefreshNonce(n => n + 1);
+  }
+  const blocks = useDataSourceBlocks<T>({
+    source: dataSource,
+    enabled: virtual,
+    blockSize,
+    sortBy,
+    quickFilter: committedFilter,
+    refreshNonce,
+    tableId: id,
+  });
+  const loadedTotalCount = virtual ? blocks.totalCount : rowsTotalCount;
   if (loadedTotalCount !== null && loadedTotalCount !== knownTotal) setKnownTotal(loadedTotalCount);
+  const retryLoad = () => {
+    retryRows();
+    if (virtual) setRefreshNonce(n => n + 1);
+  };
+  // Block errors are shown per block, as an error row; only a page's failure is a banner.
+  const loadStatus = virtual ? 'ready' : rowsLoadStatus;
 
   // What every consumer of "the rows" below uses: the loaded range, in the
   // order the data source returned it. (`paginatedData` before issue #905.)
-  const paginatedData = loadedRows;
+  // Virtualized, that is every row currently cached, in index order.
+  const paginatedData = virtual ? blocks.loadedRows : loadedRows;
   // The whole result set's size, not just what's loaded.
   const totalCount = loadedTotalCount ?? 0;
   const isLoading = loadStatus === 'loading';
@@ -1352,9 +1410,10 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         .filter((e): e is { key: string; record: T; index: number } => e !== null)
     : [];
 
-  const totalItems = paginatedData.length;
+  // Virtualized, the scroll area spans the whole result set, loaded or not.
+  const totalItems = virtual ? totalCount : paginatedData.length;
 
-  const { startIndex, endIndex, isAutoHeight, onScroll } = useTableVirtualization({
+  const { startIndex, endIndex: windowEnd, windowSize, isAutoHeight, onScroll } = useTableVirtualization({
     bodyRef,
     itemHeight,
     containerHeight,
@@ -1369,10 +1428,38 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     // density change invalidates what the current scrollTop pixel offset
     // even means against the new row height, so the same reset-to-top
     // treatment applies.
-    resetKey: `${validCurrentPage}|${effectivePageSize}|${sortBy.map(d => `${d.key}:${d.direction}`).join(',')}|${quickFilterValue}|${itemHeight}`,
+    // `refreshNonce` does the same for a refresh/new source (data virtualization).
+    resetKey: `${validCurrentPage}|${effectivePageSize}|${sortBy.map(d => `${d.key}:${d.direction}`).join(',')}|${quickFilterValue}|${itemHeight}|${refreshNonce}`,
   });
+  // Until block 0 has reported the total there is nothing to cap the window
+  // at: the body shows a viewport of placeholder rows instead of nothing.
+  const endIndex = virtual && loadedTotalCount === null ? startIndex + windowSize : windowEnd;
 
-  const visibleRows = paginatedData.slice(startIndex, endIndex);
+  // Rows being edited stay cached, whichever block they are in.
+  const pinnedKeys = useMemo<ReadonlySet<string>>(() => new Set<string>(), []);
+  useBlockWindow(blocks, {
+    enabled: virtual,
+    visibleStart: startIndex,
+    visibleEnd: endIndex,
+    maxCachedBlocks,
+    pinnedKeys: virtual ? editingKeySet : pinnedKeys,
+    rowKey,
+  });
+  const isVirtualWindowLoading = virtual && blocks.isWindowLoading(startIndex, endIndex);
+
+  // Virtualized, a slot that isn't a loaded row holds `undefined` here; the
+  // row loop renders a placeholder or error row for it instead.
+  const visibleRows = virtual
+    ? Array.from({ length: Math.max(0, endIndex - startIndex) }, (_, k) => {
+        const slot = blocks.getRow(startIndex + k);
+        return (slot.kind === 'row' ? slot.row : undefined) as T;
+      })
+    : paginatedData.slice(startIndex, endIndex);
+  const getRecordAt = (index: number): T | undefined => {
+    if (!virtual) return paginatedData[index];
+    const slot = blocks.getRow(index);
+    return slot.kind === 'row' ? slot.row : undefined;
+  };
 
   // The OTHER direction of issue #371's own empty<->populated crossfade --
   // reported directly: clicking "Load Data" from the empty view "just
@@ -1507,13 +1594,14 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     if (totalItems < lastObservedTotalItemsRef.current) firedEndReachedForRef.current = null;
     lastObservedTotalItemsRef.current = totalItems;
 
-    if (paged || totalItems === 0) return;
+    // A virtualized data source loads on its own as the window moves.
+    if (paged || virtual || totalItems === 0) return;
     if (endIndex < totalItems - endReachedThreshold) return;
     if (firedEndReachedForRef.current === totalItems) return;
     firedEndReachedForRef.current = totalItems;
     onEndReached?.();
     aiBus.emit('datatable:end_reached', { id, loadedCount: totalItems });
-  }, [paged, totalItems, endIndex, endReachedThreshold, onEndReached, id]);
+  }, [paged, virtual, totalItems, endIndex, endReachedThreshold, onEndReached, id]);
 
   // Grid coordinate layout: column 0 is the selection checkbox/radio column
   // when `selectable` and not `hideSelectionColumn`, otherwise column
@@ -1555,12 +1643,78 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     tableRef,
     bodyRef,
     columnCount: gridColumnCount,
-    pageRowCount: paginatedData.length,
+    // Virtualized, every row of the result set is navigable, loaded or not.
+    pageRowCount: totalItems,
     itemHeight,
     startIndex,
     endIndex,
   });
   const isFocusedCell = (row: number, col: number) => focusedRow === row && focusedCol === col;
+
+  // Data virtualization (issue #905 phase 2): a row whose block isn't
+  // loaded. A placeholder keeps the row's height, its `aria-rowindex` and
+  // its grid cells (so keyboard focus can land on it and stay when the row
+  // arrives -- the same <tr> and <td>s are reused, see the row key), with a
+  // Skeleton in each cell (decorative, so hidden from assistive technology).
+  // A failed block shows its error and a Retry button once, on the first of
+  // its rows in the window; its other rows stay blank at the same height.
+  const renderVirtualPlaceholderRow = (actualIndex: number) => {
+    const slot = blocks.getRow(actualIndex);
+    const rowStyle: React.CSSProperties = {
+      height: `${itemHeight}px`,
+      borderBottom: '0.0625rem solid var(--ai-border, #f3f4f6)',
+      backgroundColor: actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
+    };
+    const key = `vrow-${actualIndex}`;
+    if (slot.kind === 'error') {
+      const showRetry = actualIndex === startIndex || Math.floor((actualIndex - 1) / blockSize) !== slot.blockIndex;
+      return (
+        <tr key={key} aria-rowindex={actualIndex + 2} data-block-error="true" style={rowStyle}>
+          <td colSpan={totalColSpan} style={{ padding: '0 1rem', color: resolveSubtheme('error').color }}>
+            {showRetry && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span role="alert">{strings.loadError}</span>
+                <Button type="button" size="sm" variant="outline" onClick={() => blocks.retryBlock(slot.blockIndex)}>
+                  {strings.retryLoad}
+                </Button>
+              </span>
+            )}
+          </td>
+        </tr>
+      );
+    }
+    const gridRow = actualIndex + 1;
+    const pinnedBackground = `linear-gradient(${rowStyle.backgroundColor}, ${rowStyle.backgroundColor}), var(--ai-bg-surface, #ffffff)`;
+    return (
+      <tr key={key} aria-rowindex={actualIndex + 2} data-placeholder="true" style={rowStyle}>
+        {selectable && !hideSelectionColumn && (
+          <td style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }} />
+        )}
+        {displayColumns.map((col, colIndex) => {
+          const gridCol = colOffset + colIndex;
+          return (
+            <td
+              key={col.key}
+              data-grid-row={gridRow}
+              data-grid-col={gridCol}
+              tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
+              className="ai-focus-ring"
+              aria-label={strings.loadingRows}
+              style={{
+                padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                overflow: 'hidden',
+                borderRight: 'var(--ai-table-border, none)',
+                ...getPinnedCellStyle(col, false, pinnedBackground),
+              }}
+            >
+              <Skeleton shape="text" width="70%" />
+            </td>
+          );
+        })}
+        {hasRowCommands && <td />}
+      </tr>
+    );
+  };
 
   // Cross-fades the row set when density OR pagination changes
   // (issues #499/#517) instead of snapping instantly -- see this
@@ -2384,7 +2538,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           // -1 is ARIA's "total unknown" until a data source's first answer.
           aria-rowcount={loadedTotalCount === null ? -1 : 1 + loadedTotalCount}
           // The rows on screen are the previous request's while a new one loads.
-          aria-busy={isLoading ? true : undefined}
+          aria-busy={isLoading || isVirtualWindowLoading ? true : undefined}
           aria-colcount={gridColumnCount}
           onKeyDown={e => {
             // Space toggles the focused row's own selection -- the
@@ -2405,7 +2559,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               (target.tagName === 'TD' || target.tagName === 'TH')
             ) {
               const rowIndex = focusedRow - 1; // grid row 0 is the header
-              const record = paginatedData[rowIndex];
+              const record = getRecordAt(rowIndex);
               if (record) {
                 e.preventDefault();
                 toggleRowSelected(getSelectionKey(record, rowIndex), rowIndex);
@@ -2802,7 +2956,11 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                 {/* Visible Rows */}
                 {visibleRows.map((record, relativeIndex) => {
                   const actualIndex = startIndex + relativeIndex;
-                  const key = rowKey ? rowKey(record, actualIndex) : actualIndex;
+                  if (virtual && (record === undefined || record === null)) return renderVirtualPlaceholderRow(actualIndex);
+                  // Virtualized rows are keyed by position, so a placeholder
+                  // and the row that replaces it share one <tr> (and its
+                  // cells), and focus on a cell survives the swap.
+                  const key = virtual ? `vrow-${actualIndex}` : rowKey ? rowKey(record, actualIndex) : actualIndex;
                   const subtheme = rowSubtheme?.(record, actualIndex);
                   const subthemeColors: Partial<SubthemeColors> | null =
                     typeof subtheme === 'string' ? resolveSubtheme(subtheme) : subtheme ?? null;
@@ -2837,8 +2995,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // `visibleRows`) so this merges correctly across a
                   // virtualization window boundary, not just between rows
                   // that happen to be rendered at the same time.
-                  const prevRecord = actualIndex > 0 ? paginatedData[actualIndex - 1] : undefined;
-                  const nextRecord = actualIndex < paginatedData.length - 1 ? paginatedData[actualIndex + 1] : undefined;
+                  const prevRecord = actualIndex > 0 ? getRecordAt(actualIndex - 1) : undefined;
+                  const nextRecord = actualIndex < totalItems - 1 ? getRecordAt(actualIndex + 1) : undefined;
                   const prevRowSelected =
                     isRowSelected && prevRecord !== undefined && selectedKeySet.has(getSelectionKey(prevRecord, actualIndex - 1));
                   const nextRowSelected =

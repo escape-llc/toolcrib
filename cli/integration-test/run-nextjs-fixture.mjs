@@ -109,6 +109,13 @@ try {
     path.join(tmpDir, 'app/hashRoute.ts'),
     `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/hashRoute.ts'), 'utf-8')}`
   );
+  // The data virtualization demo's fake server (demo/serverRows.ts, issue
+  // #905), imported by App. Its only '#toolcrib' import is type-only, and
+  // it touches `window` behind a typeof guard or inside getRows.
+  fs.writeFileSync(
+    path.join(tmpDir, 'app/serverRows.ts'),
+    `'use client';\n\n${fs.readFileSync(path.join(REPO_ROOT, 'demo/serverRows.ts'), 'utf-8')}`
+  );
   // The Catalog's States examples (demo/stateExamples.tsx), imported by
   // Catalog.tsx. It reads each component's declared states from the same
   // manifest, so its import is rewritten the same way as Catalog's.

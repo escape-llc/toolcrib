@@ -36,6 +36,8 @@ export interface UseTableVirtualizationOptions {
 export interface UseTableVirtualizationResult {
   startIndex: number;
   endIndex: number;
+  /** How many rows the window spans when the dataset is large enough to fill it (`endIndex` is capped at `totalItems`). */
+  windowSize: number;
   effectiveContainerHeight: number;
   isAutoHeight: boolean;
   onScroll: (e: UIEvent<HTMLDivElement>) => void;
@@ -135,5 +137,5 @@ export function useTableVirtualization({
 
   const isAutoHeight = containerHeight === 'auto';
 
-  return { startIndex, endIndex, effectiveContainerHeight, isAutoHeight, onScroll };
+  return { startIndex, endIndex, windowSize: visibleCount, effectiveContainerHeight, isAutoHeight, onScroll };
 }
