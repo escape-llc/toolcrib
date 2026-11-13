@@ -56,13 +56,14 @@ test.describe('data virtualization (issue #905, phase 2)', () => {
     await open(page);
     await clearRequests(page);
 
-    // A fling: several jumps in quick succession, then rest in the middle.
-    await grid(page).locator('..').evaluate(async el => {
-      const max = el.scrollHeight - el.clientHeight;
-      for (const fraction of [0.1, 0.9, 0.3, 0.7, 0.5]) {
-        el.scrollTop = max * fraction;
-        await new Promise(resolve => requestAnimationFrame(resolve));
-      }
+    // One jump straight to the middle. A multi-step fling here would race
+    // the 120ms settle delay against how fast the browser runs each step,
+    // which under CI load it loses (WebKit fetched a passed-over block).
+    // That settle-then-fetch logic is covered deterministically, with fake
+    // timers, in DataTable.virtualization.test.tsx; this checks the real
+    // scroll lands on the right rows and asks for nothing else.
+    await grid(page).locator('..').evaluate(el => {
+      el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
     });
 
     await expect.poll(async () => (await firstLoadedRow(page))?.rowindex ?? 0).toBeGreaterThan(48_000);
