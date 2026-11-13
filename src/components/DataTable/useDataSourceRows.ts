@@ -23,6 +23,8 @@ export interface UseDataSourceRowsOptions<T> {
   tableId: string;
   /** Called when a debounced quick-filter change commits into a request, so the caller can return to page 1 in the same batch. */
   onFilterCommit?: (value: string) => void;
+  /** Makes no request: the table is virtualizing the source instead (`useDataSourceBlocks`). The quick-filter debounce still runs. */
+  disabled?: boolean;
 }
 
 export interface UseDataSourceRowsResult<T> {
@@ -38,6 +40,8 @@ export interface UseDataSourceRowsResult<T> {
   retry: () => void;
   /** Whether rows arrive asynchronously (every source except the built-in array source). */
   isAsync: boolean;
+  /** The quick-filter text the query uses: `quickFilter` itself for the array source, the debounced text for any other. */
+  committedFilter: string;
 }
 
 interface Settled<T> {
@@ -85,6 +89,7 @@ export function useDataSourceRows<T>({
   quickFilter,
   tableId,
   onFilterCommit,
+  disabled = false,
 }: UseDataSourceRowsOptions<T>): UseDataSourceRowsResult<T> {
   const [nonce, setNonce] = useState(0);
   const retry = useCallback(() => setNonce(n => n + 1), []);
@@ -139,7 +144,7 @@ export function useDataSourceRows<T>({
   // owns its own AbortController, so a StrictMode mount/cleanup/mount aborts
   // the first request and issues the second.
   useEffect(() => {
-    if (isSync) return;
+    if (isSync || disabled) return;
     const controller = new AbortController();
     let live = true;
     let promise: Promise<DataTableResult<T>>;
@@ -171,20 +176,23 @@ export function useDataSourceRows<T>({
       live = false;
       controller.abort();
     };
-  }, [isSync, queryKey, source, start, count, stableSortBy, filterUsed, tableId]);
+  }, [isSync, disabled, queryKey, source, start, count, stableSortBy, filterUsed, tableId]);
 
   const syncError = syncOutcome && 'error' in syncOutcome ? syncOutcome.error : null;
   useEffect(() => {
     if (syncError) aiBus.emit('datatable:load_error', { id: tableId, message: syncError.message });
   }, [syncError, tableId]);
 
+  const committedFilter = filterUsed;
   if (syncOutcome) {
-    if ('error' in syncOutcome) return { rows: NO_ROWS, totalCount: null, rowsStart: start, status: 'error', error: syncOutcome.error, retry, isAsync: false };
-    return { rows: syncOutcome.result.rows, totalCount: syncOutcome.result.totalCount, rowsStart: start, status: 'ready', error: null, retry, isAsync: false };
+    if ('error' in syncOutcome) return { rows: NO_ROWS, totalCount: null, rowsStart: start, status: 'error', error: syncOutcome.error, retry, isAsync: false, committedFilter };
+    return { rows: syncOutcome.result.rows, totalCount: syncOutcome.result.totalCount, rowsStart: start, status: 'ready', error: null, retry, isAsync: false, committedFilter };
   }
+  // Virtualized: the block cache owns the rows, this hook only debounces.
+  if (disabled) return { rows: NO_ROWS, totalCount: null, rowsStart: start, status: 'ready', error: null, retry, isAsync: true, committedFilter };
   const rows = state.lastGood?.rows ?? NO_ROWS;
   const totalCount = state.lastGood?.totalCount ?? null;
   const rowsStart = state.lastGood?.start ?? start;
-  if (state.settled !== queryKey) return { rows, totalCount, rowsStart, status: 'loading', error: null, retry, isAsync: true };
-  return { rows, totalCount, rowsStart, status: state.error ? 'error' : 'ready', error: state.error, retry, isAsync: true };
+  if (state.settled !== queryKey) return { rows, totalCount, rowsStart, status: 'loading', error: null, retry, isAsync: true, committedFilter };
+  return { rows, totalCount, rowsStart, status: state.error ? 'error' : 'ready', error: state.error, retry, isAsync: true, committedFilter };
 }

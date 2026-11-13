@@ -223,7 +223,7 @@
         "data": {
           "type": "T[] | DataTableDataSource<T>",
           "required": true,
-          "description": "The records to display: either an array (sorted, filtered and paged\nclient-side by the table, as always) or a data source\n(`DataTableDataSource`: `getRows({ start, count, sortBy, quickFilter,\nsignal })` returning `{ rows, totalCount }`, sync or async) for rows\nthat live on a server -- REST offset/limit, OData `$skip`/`$top`. With a\ndata source the table does no sorting, filtering or slicing of its own:\nit sends the page/sort/filter state and shows what comes back, with\nthe page count, footer and `aria-rowcount` taken from `totalCount`.\n`rowKey` is required for a data source. Define the source once (module\nscope or memoized): a new object identity means \"refetch\". Until data\nvirtualization lands (#905 phase 2) a data source is always paged, as\nif `pagination` were true. See `ai-docs/examples/datatable-odata.md`."
+          "description": "The records to display: either an array (sorted, filtered and paged\nclient-side by the table, as always) or a data source\n(`DataTableDataSource`: `getRows({ start, count, sortBy, quickFilter,\nsignal })` returning `{ rows, totalCount }`, sync or async) for rows\nthat live on a server -- REST offset/limit, OData `$skip`/`$top`. With a\ndata source the table does no sorting, filtering or slicing of its own:\nit sends the page/sort/filter state and shows what comes back, with\nthe page count, footer and `aria-rowcount` taken from `totalCount`.\n`rowKey` is required for a data source. Define the source once (module\nscope or memoized): a new object identity means \"refetch\". With\n`pagination` (the default) the source is asked for one page at a time;\nwith `pagination={false}` the table virtualizes the data itself: see\n`pagination`. See `ai-docs/examples/datatable-odata.md`."
         },
         "columns": {
           "type": "Column<T>[]",
@@ -233,11 +233,21 @@
         "pagination": {
           "type": "boolean",
           "default": "true",
-          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`defaultPageSize`/`pageSizeOptions` are ignored in this mode. Applies\nto an array `data` only: a data source is paged regardless, until data\nvirtualization lands (#905 phase 2)."
+          "description": "Renders a page-at-a-time with Prev/Next controls when true (the\ndefault). Set to false to virtualize across the *entire* sorted\ndataset instead — no pagination footer, no page slicing — the\nbetter fit once a dataset is too large to page through usefully.\n`defaultPageSize`/`pageSizeOptions` are ignored in this mode.\n\nWith a data source this is data virtualization: the scroll height is\n`totalCount` x the row height, so the scrollbar is true to the whole\nresult set and you can drag to the middle. Rows are fetched in blocks\n(`blockSize`) covering the visible window, once scrolling settles, and\nkept in a bounded cache (`maxCachedBlocks`); rows not loaded yet show\nas placeholder rows at their real position, and a failed block shows an\nerror row with a Retry button. `onEndReached` does not fire."
+        },
+        "blockSize": {
+          "type": "number",
+          "default": "100",
+          "description": "Rows requested per block when `data` is a data source and\n`pagination={false}` (data virtualization). Each request is\n`getRows({ start: block * blockSize, count: blockSize, ... })`."
+        },
+        "maxCachedBlocks": {
+          "type": "number",
+          "default": "10",
+          "description": "Blocks kept in memory when virtualizing a data source; the least\nrecently used are released. Never fewer than the visible rows need, and\na block holding a row being edited is never released."
         },
         "onEndReached": {
           "type": "() => void",
-          "description": "Called once whenever the virtualization window's own trailing edge\ncomes within `endReachedThreshold` rows of the end of `data` -- the\nsignal a `pagination={false}` (continuous-scroll) consumer needs to\nlazy-load more rows from a server as the user scrolls near the end of\nwhat's currently loaded (issue #365). The actual continuous-scroll\nrendering/windowing needs no help from this -- `pagination={false}`\nalready virtualizes across the whole `data` array with no page\nboundaries; this is purely an early-warning callback layered on top.\n\nFires at most once per distinct `data.length` -- appending more rows\n(growing `data`) re-arms it for the next threshold crossing;\nscrolling back and forth within the same loaded set does not\nre-trigger it. Has no effect when `pagination` is true: a paginated\ntable already has a complete, known page of data and Prev/Next\nnavigation, so \"near the end of the current page\" isn't a signal to\nload more from a server the way it is in continuous-scroll mode.\nAlso mirrored on the event bus as `datatable:end_reached`."
+          "description": "Called once whenever the virtualization window's own trailing edge\ncomes within `endReachedThreshold` rows of the end of `data` -- the\nsignal a `pagination={false}` (continuous-scroll) consumer needs to\nlazy-load more rows from a server as the user scrolls near the end of\nwhat's currently loaded (issue #365). The actual continuous-scroll\nrendering/windowing needs no help from this -- `pagination={false}`\nalready virtualizes across the whole `data` array with no page\nboundaries; this is purely an early-warning callback layered on top.\n\nFires at most once per distinct `data.length` -- appending more rows\n(growing `data`) re-arms it for the next threshold crossing;\nscrolling back and forth within the same loaded set does not\nre-trigger it. Has no effect when `pagination` is true: a paginated\ntable already has a complete, known page of data and Prev/Next\nnavigation, so \"near the end of the current page\" isn't a signal to\nload more from a server the way it is in continuous-scroll mode.\nAlso mirrored on the event bus as `datatable:end_reached`. Never fires\nfor a data source (it virtualizes the data itself, see `pagination`)."
         },
         "endReachedThreshold": {
           "type": "number",

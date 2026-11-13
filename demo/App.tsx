@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { CalendarDate, Time, today, getLocalTimeZone } from '@internationalized/date';
 import toolcribIcon from './toolcrib-256x256.png';
 import { Catalog, CATALOG_COMPONENT_NAMES, entryHref, type EntryDemo, type SystemArea } from './Catalog';
+import { serverRowsSource, serverColumns } from './serverRows';
 import { useHashRoute, navigateHash, routeHref, type Route } from './hashRoute';
 import { EventLogProvider, EventLogExportButton, EventLogClearButton, EventLogList } from './EventLog';
 import {
@@ -3133,6 +3134,32 @@ export const App: React.FC = () => {
             <Button size="sm" variant="danger" onClick={() => setFlakyTriggerKey(k => k + 1)}>💥 Trigger Error</Button>
           </VStack>
         </VStack>
+      ),
+    },
+    {
+      id: 'data-virtualization',
+      title: 'Data virtualization',
+      summary: <>A <code>&lt;DataTable&gt;</code> whose <code>data</code> is an async data source and whose <code>pagination</code> is off scrolls across the whole result set without holding it: the scrollbar spans every row, blocks of rows are fetched once scrolling settles, a bounded cache releases the least recently used, and rows not loaded yet show as placeholders.</>,
+      parts: ['DataTable', 'DataTableDataSource'],
+      demo: (
+        <div data-testid="virtualized-demo" style={{ height: '28rem', display: 'flex', flexDirection: 'column' }}>
+          <Card layout="auto">
+            <Card.Header>
+              <span>100,000 rows behind a fake 150ms server — drag the scrollbar anywhere</span>
+            </Card.Header>
+            <Card.Content layout="auto" paddingMode="compact">
+              <DataTable
+                id="demo-virtualized-table"
+                data={serverRowsSource}
+                columns={serverColumns}
+                rowKey={row => row.id}
+                pagination={false}
+                containerHeight="auto"
+                quickFilter
+              />
+            </Card.Content>
+          </Card>
+        </div>
       ),
     },
     {

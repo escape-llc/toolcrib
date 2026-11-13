@@ -99,8 +99,14 @@ What the table does for you:
   it becomes a request, and any change returns to page 1.
 - The rows already on screen stay visible while the next page loads, and the
   grid is `aria-busy`.
-- Until data virtualization lands (issue #905, phase 2) a data source is
-  always paged, as if `pagination` were true.
+- With `pagination={false}` the table virtualizes the data instead of paging
+  it: the scrollbar spans all `totalCount` rows (you can drag to the middle),
+  blocks of `blockSize` rows (default 100) are requested once scrolling
+  settles, and at most `maxCachedBlocks` (default 10) are kept. Rows not
+  loaded yet show as placeholder rows at their real position, a failed block
+  shows an error row with Retry, and `onEndReached` does not fire. The same
+  `getRows` serves both modes: `start` is `block * blockSize` and `count` is
+  `blockSize`.
 
 ## The same shape for offset/limit REST
 
