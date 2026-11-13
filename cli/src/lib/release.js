@@ -46,6 +46,8 @@ export async function fetchRelease(version) {
     config,
     tempDir,
     readFile: (relPath) => stripBOM(fs.readFileSync(path.join(tempDir, relPath), 'utf-8')),
+    // Exact bytes, for binary detection and whole-file staging (readFile is lossy for non-UTF-8).
+    readBuffer: (relPath) => fs.readFileSync(path.join(tempDir, relPath)),
     allFiles: () => listFilesRecursive(tempDir).filter((f) => f !== 'toolcrib.config.json'),
     cleanup: () => fsp.rm(tempDir, { recursive: true, force: true }),
   };
@@ -99,6 +101,7 @@ export async function fetchTestsRelease(version) {
     config,
     tempDir,
     readFile: (relPath) => stripBOM(fs.readFileSync(path.join(tempDir, relPath), 'utf-8')),
+    readBuffer: (relPath) => fs.readFileSync(path.join(tempDir, relPath)),
     allFiles: () => listFilesRecursive(tempDir).filter((f) => f !== 'toolcrib-tests.config.json'),
     cleanup: () => fsp.rm(tempDir, { recursive: true, force: true }),
   };

@@ -138,12 +138,21 @@ toolcrib apply
 ```
 
 This is the command that actually creates/modifies files. It applies each
-patch in order, reports how many succeeded, and **deletes the
-`./toolcrib-patches/` folder afterward regardless of outcome** — a failed
-patch isn't kept around to retry; if something fails, re-run `init` or
-`merge` afterward to regenerate fresh patches against your project's
-current state, which is more likely to apply cleanly than retrying a stale
-one.
+patch in order and reports how many succeeded. Staged work is never thrown
+away:
+
+- A patch that applied is removed from `./toolcrib-patches/`.
+- **If any patch fails, nothing else is deleted.** The failed patches stay in
+  the folder and are listed, so you can fix the cause and re-run `apply`
+  (or delete the folder and run `merge` again).
+- Conflict notes and upstream copies from `merge` (under
+  `./toolcrib-patches/conflicts/`) are not patches, so `apply` never writes
+  them into `./toolcrib/`. They stay in the folder, and `apply` lists them,
+  until you delete the folder.
+- The folder itself is removed only when everything in it has been dealt with.
+
+`init` and `merge` refuse to start while `./toolcrib-patches/` exists and is
+not empty, and tell you to run `toolcrib apply` or delete the folder.
 
 If your project isn't already a git repository, `apply` will offer to run
 `git init` for you first (it uses `git apply` when possible, since that
@@ -203,16 +212,45 @@ toolcrib merge --version 2.1.0    # upgrade to a specific version
 
 Works like `init`, but smarter: for every vendored file, it compares three
 things — what you originally got, what's actually on disk now, and what
-the new version ships — and sorts each file into one of three outcomes:
+the new version ships — and sorts each file into one of these outcomes:
 
-- **Safe update** — you never touched the file; the new version's copy is
+- **Updated** — you never touched the file; the new version's copy is
   staged as a patch.
-- **Kept as-is** — you edited the file yourself and upstream didn't change
+- **Kept local** — you edited the file yourself and upstream didn't change
   it; left alone, no patch generated.
-- **Conflict** — you edited it *and* upstream changed it too. `merge` won't
-  guess which version wins. Instead it writes a `.upstream-diff` note
-  explaining what upstream changed, so you (or your AI assistant) can
-  reconcile it by hand.
+- **Merged** — you edited it *and* upstream changed it, but in different
+  places. `merge` does a line-level three-way merge (your copy, the version
+  you installed, the new version) and stages the merged file as an ordinary
+  patch. It uses `git merge-file` when git is installed and a built-in
+  merge otherwise. Line endings are normalized for the merge and your
+  file's own style (CRLF or LF, and a leading BOM) is kept in the result.
+- **Absorbed upstream** — the new release already contains your change (it
+  merges to exactly the new version's file, or your file already equals it).
+  Reported separately so you can see your patch landed upstream.
+- **Conflict** — the edits overlap. The file is staged *with conflict
+  markers* (`<<<<<<< local` / `=======` / `>>>>>>> vX.Y.Z`) as a normal
+  patch, and listed by path in the summary. A file you edited that upstream
+  removed, or one you deleted that upstream changed, can't be merged: your
+  file is left untouched and only a note is written.
+- **Binary conflict** — a file that isn't valid UTF-8 text (or contains a NUL
+  byte) is never line-merged. Your copy is untouched; the upstream copy is
+  staged whole, next to a note, in the staging folder.
+- **Project-added** — a file under `./toolcrib/` that neither the installed nor
+  the new release ships (your own component, say). Listed as kept and never
+  touched. (`__tests__/` is only considered when you installed the test suite.)
+- **Collision** — you added a file at a path the new release now ships. It is
+  three-way merged against an empty base: identical content is absorbed,
+  anything else is staged with conflict markers and reported as a collision.
+
+Conflict notes and binary upstream copies are written under
+`./toolcrib-patches/conflicts/` as plain files (`<path>.md`, `<path>.upstream`).
+They are never written into `./toolcrib/`, because `apply` only applies
+`.patch` files. When it finishes, `merge` prints a count for each outcome
+above, then the conflicting paths and where their notes are.
+
+Limitation: only files in conflict are checked for binary content. A binary
+file that only upstream changed still goes through the ordinary text-patch
+path, as before; the toolkit ships text source only.
 
 If you installed the test suite via `toolcrib init --with-tests`, `merge`
 keeps it in sync automatically — no separate flag needed here; it checks
@@ -302,10 +340,19 @@ notes of your own outside the fence, then run `merge` to restore it
 cleanly.
 
 **`merge` reports a conflict.**
-You changed a vendored file yourself, and the new version changed it too.
-Check the matching `.upstream-diff` file in `./toolcrib-patches/` for what
-upstream did, and reconcile manually — or hand it to your AI assistant with
-"reconcile my local changes to `<file>` with the upstream update."
+You changed a vendored file yourself, and the new version changed it in an
+overlapping place. For a text file, `apply` writes it with conflict markers:
+resolve each `<<<<<<< local` ... `>>>>>>> vX.Y.Z` block in place. The note at
+`./toolcrib-patches/conflicts/<file>.md` shows what upstream changed. For
+removed, deleted and binary files nothing is written to your file; read the
+note (and the staged `.upstream` copy for binary files). Or hand it to your AI
+assistant with "reconcile my local changes to `<file>` with the upstream
+update." Delete `./toolcrib-patches/` when you're done; `merge` and `init`
+won't run while it's there.
+
+**`merge` or `init` says `./toolcrib-patches/` already holds staged work.**
+They refuse to overwrite unapplied patches or conflict notes. Run `toolcrib
+apply`, or delete the folder if you're finished with it.
 
 **A bundler-specific note from `doctor`.**
 `doctor` detects Next.js, Create React App, Vite, webpack, and Parcel from

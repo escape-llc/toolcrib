@@ -139,7 +139,7 @@ describe('applyCommand', () => {
     expect(gitApplyStreaming).not.toHaveBeenCalled();
   });
 
-  it('counts successes and failures independently and still removes the patch dir when some fail', async () => {
+  it('keeps the staging folder when any patch fails: the failed patch survives, applied ones are removed', async () => {
     writePatch('0001-a.patch');
     writePatch('0002-b.patch');
     writePatch('0003-c.patch');
@@ -151,10 +151,41 @@ describe('applyCommand', () => {
     await applyCommand();
 
     expect(gitApplyStreaming).toHaveBeenCalledTimes(3);
-    // A failed patch isn't "saved for later" -- the whole staging dir is
-    // discarded regardless of individual outcomes (see apply.js's own
-    // comment on why: the next init/merge recomputes fresh anyway).
-    expect(fs.existsSync(path.join(tmpDir, 'toolcrib-patches'))).toBe(false);
+    const dir = path.join(tmpDir, 'toolcrib-patches');
+    expect(fs.existsSync(dir)).toBe(true);
+    // Applied patches are gone (re-running would only fail on them); the
+    // failed one is kept so nothing unapplied is ever lost.
+    expect(fs.readdirSync(dir)).toEqual(['0002-b.patch']);
+  });
+
+  it('leaves conflict notes and upstream copies in place after a fully successful apply, removing only the applied patches', async () => {
+    writePatch('0001-a.patch');
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib-patches', 'conflicts', 'sub'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib-patches', 'conflicts', 'sub', 'x.ts.md'), 'note');
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib-patches', 'conflicts', 'sub', 'x.ts.upstream'), 'copy');
+    gitApplyStreaming.mockResolvedValue({ success: true });
+
+    await applyCommand();
+
+    const dir = path.join(tmpDir, 'toolcrib-patches');
+    expect(fs.existsSync(path.join(dir, '0001-a.patch'))).toBe(false);
+    expect(fs.readFileSync(path.join(dir, 'conflicts', 'sub', 'x.ts.md'), 'utf-8')).toBe('note');
+    expect(fs.readFileSync(path.join(dir, 'conflicts', 'sub', 'x.ts.upstream'), 'utf-8')).toBe('copy');
+    // Notes are never fed to git/fallback as patches.
+    expect(gitApplyStreaming).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps everything, notes included, when a patch fails', async () => {
+    writePatch('0001-a.patch');
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib-patches', 'conflicts'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'toolcrib-patches', 'conflicts', 'x.ts.md'), 'note');
+    gitApplyStreaming.mockResolvedValue({ success: false, error: 'nope' });
+
+    await applyCommand();
+
+    const dir = path.join(tmpDir, 'toolcrib-patches');
+    expect(fs.existsSync(path.join(dir, '0001-a.patch'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'conflicts', 'x.ts.md'))).toBe(true);
   });
 
   it('only considers files ending in .patch, ignoring anything else staged alongside them', async () => {

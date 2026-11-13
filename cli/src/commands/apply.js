@@ -4,6 +4,12 @@ import * as p from '@clack/prompts';
 import { PATCH_DIR } from '../lib/patches.js';
 import { isGitInstalled, ensureGitRepo, gitApplyStreaming } from '../lib/git.js';
 import { applyPatchFallback } from '../lib/patchFallback.js';
+import { listFilesRecursive } from '../lib/zip.js';
+
+/** Every file left under the staging folder, forward-slash, relative to it. */
+function listStaged(dir) {
+  return listFilesRecursive(dir);
+}
 
 export async function applyCommand() {
   const projectRoot = process.cwd();
@@ -23,7 +29,12 @@ export async function applyCommand() {
     .map((f) => path.join(patchDir, f));
 
   if (patchFiles.length === 0) {
-    p.outro('No pending patches.');
+    const staged = listStaged(patchDir);
+    p.outro(
+      staged.length > 0
+        ? `No pending patches. ./toolcrib-patches/ still holds ${staged.length} note/upstream-copy file(s) from a merge; resolve them, then delete the folder.`
+        : 'No pending patches.'
+    );
     return;
   }
 
@@ -64,18 +75,30 @@ export async function applyCommand() {
     }
   }
 
-  // Delete the entire staging directory unconditionally, whether patches
-  // succeeded or failed — no stale state persists between runs. A failed
-  // patch isn't "saved for later"; the next init/merge recomputes the
-  // diff fresh against current reality, which is more likely to produce
-  // something applicable than retrying an identical stale patch.
-  fs.rmSync(patchDir, { recursive: true, force: true });
+  // Staging safety: nothing that hasn't been dealt with is ever deleted.
+  // Patches that applied are done, so they're removed (re-running apply
+  // would only fail on them). A failed patch stays, and so does everything
+  // else staged beside the patches (conflict notes, binary upstream copies):
+  // those are the user's work-in-progress, and `merge`/`init` refuse to run
+  // over a non-empty folder precisely so they can't be lost.
+  for (const patchFile of succeeded) fs.rmSync(patchFile, { force: true });
+  const remaining = listStaged(patchDir);
+  if (remaining.length === 0) fs.rmSync(patchDir, { recursive: true, force: true });
 
   p.log.success(`Applied ${succeeded.length} of ${patchFiles.length} patch(es).`);
   if (failed.length > 0) {
     p.log.warn(
-      `${failed.length} patch(es) failed and were discarded.\n` +
-        `Re-run 'toolcrib init' or 'toolcrib merge' to regenerate them against current state.`
+      `${failed.length} patch(es) failed and were kept in ./toolcrib-patches/ (nothing was deleted):\n` +
+        failed.map((f) => `  ${path.basename(f.patchFile)}${f.error ? ` — ${f.error.split('\n')[0]}` : ''}`).join('\n') +
+        `\nFix the cause and re-run 'toolcrib apply', or delete the folder and run 'toolcrib merge' again to regenerate them.`
+    );
+  }
+  const notes = remaining.filter((f) => !f.endsWith('.patch'));
+  if (notes.length > 0) {
+    p.log.info(
+      `${notes.length} staged file(s) were not applied (they are notes and upstream copies, never written into ./toolcrib/):\n` +
+        notes.map((f) => `  ./toolcrib-patches/${f}`).join('\n') +
+        `\nResolve what they describe, then delete ./toolcrib-patches/. 'toolcrib merge' will not run until it's gone.`
     );
   }
 

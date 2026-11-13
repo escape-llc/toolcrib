@@ -64,6 +64,53 @@ export async function gitInit(cwd) {
 }
 
 /**
+ * Runs `git merge-file -p ours base theirs` inside `dir` (three files already
+ * written there under those exact names) and returns the merged text plus the
+ * conflict count. git's exit status IS the conflict count (capped at 127);
+ * anything else (255 = error, e.g. a binary file) throws. No shell, per the
+ * policy at the top of this file; `merge.conflictStyle=merge` is forced so a
+ * user's global diff3/zdiff3 setting can't change the marker layout.
+ */
+export async function gitMergeFile(dir, labels) {
+  const args = [
+    '-c',
+    'merge.conflictStyle=merge',
+    'merge-file',
+    '-p',
+    '-L',
+    labels.ours,
+    '-L',
+    labels.base,
+    '-L',
+    labels.theirs,
+    'ours',
+    'base',
+    'theirs',
+  ];
+  const run = async (a, shell) => {
+    try {
+      const { stdout } = await execFileAsync('git', a, {
+        ...baseOpts(dir, shell),
+        encoding: 'utf8',
+        maxBuffer: 256 * 1024 * 1024,
+      });
+      return { conflicts: 0, merged: stdout };
+    } catch (err) {
+      if (typeof err.code === 'number' && err.code >= 1 && err.code <= 127) {
+        return { conflicts: err.code, merged: err.stdout };
+      }
+      throw err;
+    }
+  };
+  try {
+    return await run(args, false);
+  } catch (err) {
+    if (shouldRetryWithShell(err)) return run(shellSafeArgs(args), true);
+    throw err;
+  }
+}
+
+/**
  * Streaming apply — the user should see git's own output live, especially
  * on failure (git apply's "patch does not apply" messages point at the
  * exact failing hunk, which is genuinely useful diagnostic info worth
