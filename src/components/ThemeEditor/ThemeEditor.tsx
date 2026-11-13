@@ -73,6 +73,15 @@ export interface ThemeEditorProps {
    * uses.
    */
   themeManagementSlot?: ReactNode;
+  /**
+   * Editor controls for app-specific slices, keyed by the slice's own `id`:
+   * `(state, onChange) => ReactNode`, where `onChange` takes a partial state
+   * patch. A slice registered with `globalThemeSliceRegistry` appears in its
+   * `category` section when it has a control here or in the built-in set; this
+   * prop wins over a built-in control with the same id. Nothing global is
+   * mutated, so the control UI stays out of bundles that never render the editor.
+   */
+  sliceControls?: Record<string, (state: any, onChange: (next: any) => void) => ReactNode>;
 }
 
 // Slice ids handled entirely by hand-written JSX in the "Global" category
@@ -98,7 +107,9 @@ const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 
  * host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing.
  * @manifestCategory Form Controls
  */
-export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot }) => {
+export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot, sliceControls }) => {
+  // The prop wins over a built-in control for the same slice id.
+  const controls = useMemo(() => ({ ...SLICE_EDITOR_CONTROLS, ...sliceControls }), [sliceControls]);
   // The whole context object, not just its destructured fields below — the
   // save/load handlers need to hand it as a unit to captureThemeSnapshot/
   // applyThemeSnapshot (see themePersistence.ts), which take the full
@@ -154,14 +165,14 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       'Form Controls': [],
     };
     for (const slice of globalThemeSliceRegistry.getAll()) {
-      if (GLOBAL_ONLY_SLICE_IDS.has(slice.id) || !SLICE_EDITOR_CONTROLS[slice.id]) continue;
+      if (GLOBAL_ONLY_SLICE_IDS.has(slice.id) || !controls[slice.id]) continue;
       grouped[slice.category].push(slice);
     }
     for (const category of Object.keys(grouped) as ThemeSliceCategory[]) {
       grouped[category].sort((a, b) => a.name.localeCompare(b.name));
     }
     return grouped;
-  }, []);
+  }, [controls]);
 
   // Renders one category's nested Accordion from whatever slices declared
   // themselves into that category — `slice.id` is a plain `string` here
@@ -178,7 +189,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
       items={slicesByCategory[category].map(slice => ({
         value: slice.id,
         title: slice.name,
-        content: SLICE_EDITOR_CONTROLS[slice.id]!(
+        content: controls[slice.id]!(
           sliceStates[slice.id as keyof ToolcribSliceStateMap] ?? slice.defaultState,
           patch => setSliceState(slice.id as keyof ToolcribSliceStateMap, patch)
         ),

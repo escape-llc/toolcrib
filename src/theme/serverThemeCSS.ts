@@ -296,7 +296,7 @@ export function computeServerThemeCSS(
     radius: resolvedCornerRadiusMode,
     shadow: parameters.shadowMode,
     ...(sliceStates as ToolcribSliceStates),
-  });
+  }, { palette, isDarkMode: parameters.isDarkMode });
   const cssVariables = { ...baseVars, ...sliceVars };
 
   // Same exclusion as the provider's own injection effect: a variable

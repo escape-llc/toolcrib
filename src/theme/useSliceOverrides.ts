@@ -1,6 +1,7 @@
 'use client';
 
 import { type ThemeSlice, getSparseVariables } from './slice';
+import { useThemeSliceContext } from './SliceContextContext';
 import { useStyleDomain } from './StyleDomainContext';
 import { type SubthemeName } from './subtheme';
 
@@ -41,7 +42,8 @@ export function useSliceOverrides<TState, TVars extends Record<string, string>>(
   };
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const hasStateOverrides = Object.keys(stateOverrides).length > 0;
-  const vars = hasStateOverrides ? getSparseVariables(slice, stateOverrides as Partial<TState>) : {};
+  const sliceContext = useThemeSliceContext();
+  const vars = hasStateOverrides ? getSparseVariables(slice, stateOverrides as Partial<TState>, sliceContext) : {};
 
   return { vars, subtheme };
 }

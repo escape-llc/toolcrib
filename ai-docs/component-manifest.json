@@ -4648,6 +4648,10 @@
         "themeManagementSlot": {
           "type": "ReactNode",
           "description": "Replaces the entire built-in Save & Load Themes toolbar (presets,\nsave/load library, export/import) with your own UI, in the same\nheader position — for an app that wants different theme-selection/\npersistence UX than the bundled one (e.g. a picker styled to match a\nmarketing site, or backed by the app's own account system instead of\n`localStorage`). `themeManagement` is ignored while this is set: you\nown this area completely, all-or-nothing, rather than mixing built-in\nand custom pieces.\n\nNothing is threaded through as a render prop — every piece the\nbuilt-in toolbar itself is built from is already public API your own\nslot component can call directly: `presetThemes` (`theme/\npresetThemes.ts`) for the bundled swatches, `useTheme()` plus\n`captureThemeSnapshot`/`applyThemeSnapshot` (`theme/\nthemePersistence.ts`) to read/write the live theme, and `theme/\nthemeLibrary.ts`/`theme/themeFileTransfer.ts` for the same\nlocalStorage save/load and file export/import the default toolbar\nuses."
+        },
+        "sliceControls": {
+          "type": "Record<string, (state: any, onChange: (next: any) => void) => ReactNode>",
+          "description": "Editor controls for app-specific slices, keyed by the slice's own `id`:\n`(state, onChange) => ReactNode`, where `onChange` takes a partial state\npatch. A slice registered with `globalThemeSliceRegistry` appears in its\n`category` section when it has a control here or in the built-in set; this\nprop wins over a built-in control with the same id. Nothing global is\nmutated, so the control UI stays out of bundles that never render the editor."
         }
       },
       "category": "Form Controls",
