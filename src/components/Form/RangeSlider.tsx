@@ -10,7 +10,7 @@ import { FieldContext } from './FieldContext';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, sliderRangeStyle, sliderThumbStyle, type SliderOrientation } from './sliderStyles';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
@@ -55,7 +55,13 @@ export interface RangeSliderProps {
   'aria-invalid'?: boolean;
   /** Per-thumb name suffixes. @default the locale's `rangeSlider.minimum` / `rangeSlider.maximum` */
   thumbLabels?: [string, string];
-  /** Per-instance overrides for track height and thumb size. Shared with `<Slider>`. */
+  /**
+   * Direction of travel. A vertical slider fills the height of its container
+   * (give the parent a height) and is 1.25rem wide; arrow keys follow the
+   * orientation. @default 'horizontal'
+   */
+  orientation?: SliderOrientation;
+  /** Per-instance overrides for track height, thumb size and shape, and detent ticks. Shared with `<Slider>`. */
   overrides?: Partial<SliderSliceState>;
 }
 
@@ -83,6 +89,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   thumbLabels,
+  orientation = 'horizontal',
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -155,12 +162,13 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
         max={max}
         step={step}
         minStepsBetweenValues={minStepsBetweenThumbs}
+        orientation={orientation}
         disabled={disabled}
-        style={sliderRootStyle(disabled, sliderVars)}
+        style={sliderRootStyle(disabled, sliderVars, orientation)}
       >
-        <BaseSlider.Control style={sliderControlStyle(disabled)}>
-          <BaseSlider.Track style={sliderTrackStyle(isError)}>
-            <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
+        <BaseSlider.Control style={sliderControlStyle(disabled, orientation)}>
+          <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? Math.round((max - min) / step) : undefined)}>
+            <BaseSlider.Indicator style={sliderRangeStyle(orientation)} />
             {/* index: required for a multi-thumb slider to render on the server. */}
             <BaseSlider.Thumb
               index={0}
@@ -169,7 +177,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               aria-invalid={isError || undefined}
               {...describedBy}
               className="ai-focus-ring"
-              style={sliderThumbStyle(disabled)}
+              style={sliderThumbStyle(disabled, orientation)}
             />
             <BaseSlider.Thumb
               index={1}
@@ -177,7 +185,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               aria-invalid={isError || undefined}
               {...describedBy}
               className="ai-focus-ring"
-              style={sliderThumbStyle(disabled)}
+              style={sliderThumbStyle(disabled, orientation)}
             />
           </BaseSlider.Track>
         </BaseSlider.Control>

@@ -166,7 +166,13 @@
       "--ai-shadow-md",
       "--ai-shadow-sm",
       "--ai-sidebar-item-gap",
+      "--ai-slider-detents",
+      "--ai-slider-thumb-face",
+      "--ai-slider-thumb-face-vertical",
+      "--ai-slider-thumb-height",
+      "--ai-slider-thumb-radius",
       "--ai-slider-thumb-size",
+      "--ai-slider-thumb-width",
       "--ai-slider-track-height",
       "--ai-stepper-enter-backward",
       "--ai-stepper-enter-forward",
@@ -316,7 +322,7 @@
       },
       {
         "id": "slider",
-        "name": "🎚️ Slider Track & Thumb Size"
+        "name": "🎚️ Slider Track & Thumb"
       },
       {
         "id": "modal",
@@ -3799,9 +3805,14 @@
           "default": "the locale's `rangeSlider.minimum` / `rangeSlider.maximum`",
           "description": "Per-thumb name suffixes."
         },
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Direction of travel. A vertical slider fills the height of its container\n(give the parent a height) and is 1.25rem wide; arrow keys follow the\norientation."
+        },
         "overrides": {
           "type": "Partial<SliderSliceState>",
-          "description": "Per-instance overrides for track height and thumb size. Shared with `<Slider>`."
+          "description": "Per-instance overrides for track height, thumb size and shape, and detent ticks. Shared with `<Slider>`."
         }
       },
       "states": [
@@ -4169,9 +4180,14 @@
           "type": "string",
           "description": "Id of the element that names this control. Used instead of the inherited `<FormField>` label when set."
         },
+        "orientation": {
+          "type": "'horizontal' | 'vertical'",
+          "default": "'horizontal'",
+          "description": "Direction of travel. A vertical slider fills the height of its container\n(give the parent a height) and is 1.25rem wide; arrow keys follow the\norientation."
+        },
         "overrides": {
           "type": "Partial<SliderSliceState>",
-          "description": "Per-instance overrides for track height and thumb size."
+          "description": "Per-instance overrides for track height, thumb size and shape, and detent ticks."
         }
       },
       "states": [

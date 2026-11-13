@@ -10,7 +10,7 @@ import { FieldContext } from './FieldContext';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
-import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, SLIDER_RANGE_STYLE, sliderThumbStyle } from './sliderStyles';
+import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, sliderRangeStyle, sliderThumbStyle, type SliderOrientation } from './sliderStyles';
 
 /**
  * Props for the `<Slider>` range input control.
@@ -66,7 +66,13 @@ export interface SliderProps {
   'aria-invalid'?: boolean;
   /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
-  /** Per-instance overrides for track height and thumb size. */
+  /**
+   * Direction of travel. A vertical slider fills the height of its container
+   * (give the parent a height) and is 1.25rem wide; arrow keys follow the
+   * orientation. @default 'horizontal'
+   */
+  orientation?: SliderOrientation;
+  /** Per-instance overrides for track height, thumb size and shape, and detent ticks. */
   overrides?: Partial<SliderSliceState>;
 }
 
@@ -90,6 +96,7 @@ export const Slider: React.FC<SliderProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  orientation = 'horizontal',
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -174,12 +181,13 @@ export const Slider: React.FC<SliderProps> = ({
       min={min}
       max={max}
       step={step}
+      orientation={orientation}
       disabled={disabled}
-      style={sliderRootStyle(disabled, sliderVars)}
+      style={sliderRootStyle(disabled, sliderVars, orientation)}
     >
-      <BaseSlider.Control style={sliderControlStyle(disabled)}>
-        <BaseSlider.Track style={sliderTrackStyle(isError)}>
-          <BaseSlider.Indicator style={SLIDER_RANGE_STYLE} />
+      <BaseSlider.Control style={sliderControlStyle(disabled, orientation)}>
+        <BaseSlider.Track style={sliderTrackStyle(isError, orientation, step > 0 ? Math.round((max - min) / step) : undefined)}>
+          <BaseSlider.Indicator style={sliderRangeStyle(orientation)} />
           {/* The thumb wraps a real <input type="range">, which carries the
               name. Base UI generates that input's id, so a FormField's
               <label htmlFor> can't target it; the label names it through
@@ -194,7 +202,7 @@ export const Slider: React.FC<SliderProps> = ({
             // override anything Base UI sets itself).
             {...(isError && name ? { 'aria-describedby': `${name}-error` } : {})}
             className="ai-focus-ring"
-            style={sliderThumbStyle(disabled)}
+            style={sliderThumbStyle(disabled, orientation)}
           />
         </BaseSlider.Track>
       </BaseSlider.Control>
