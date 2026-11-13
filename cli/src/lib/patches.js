@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { createTwoFilesPatch } from 'diff';
+import { listFilesRecursive } from './zip.js';
 
 export const PATCH_DIR = './toolcrib-patches';
 
@@ -92,6 +93,7 @@ export function buildPatch(relPath, currentContent, proposedContent, label) {
 export class PendingChanges {
   constructor() {
     this.entries = [];
+    this.files = [];
   }
 
   /**
@@ -113,8 +115,18 @@ export class PendingChanges {
     this.entries.push({ relPath, patch: built.patch, isNewFile: built.isNewFile, isDeletedFile: built.isDeletedFile });
   }
 
+  /**
+   * Stage a plain file (a conflict note, a binary upstream copy) next to the
+   * patches. It is never a `.patch`, so `apply` never writes it into the
+   * project. `relPath` is relative to the staging folder, forward-slash.
+   */
+  addStagedFile(relPath, content) {
+    relPath = relPath.replace(/\\/g, '/');
+    this.files.push({ relPath, content });
+  }
+
   isEmpty() {
-    return this.entries.length === 0;
+    return this.entries.length === 0 && this.files.length === 0;
   }
 
   count() {
@@ -142,6 +154,31 @@ export class PendingChanges {
       written.push(filePath);
     });
 
+    const resolvedDir = path.resolve(dir);
+    for (const file of this.files) {
+      const target = path.resolve(dir, ...file.relPath.split('/'));
+      // Defense in depth, same spirit as patchFallback: a staged file never leaves the staging folder.
+      if (!target.startsWith(resolvedDir + path.sep)) continue;
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, file.content);
+    }
+
     return written;
   }
 }
+
+/**
+ * True when ./toolcrib-patches/ exists and holds anything at all. `merge` and
+ * `init` refuse to start over it: they clear the folder when they write, which
+ * would silently destroy unapplied patches and conflict notes.
+ */
+export function hasStagedWork(projectRoot) {
+  const dir = path.join(projectRoot, PATCH_DIR);
+  // Files, not directory entries: once every note is resolved and deleted,
+  // the empty `conflicts/` subfolders left behind are not staged work.
+  return fs.existsSync(dir) && listFilesRecursive(dir).length > 0;
+}
+
+export const STAGED_WORK_MESSAGE =
+  './toolcrib-patches/ already holds staged work (unapplied patches or conflict notes). ' +
+  'Run `toolcrib apply` to apply the patches, or delete the folder if you are done with it, then run this command again.';

@@ -1,8 +1,13 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import * as p from '@clack/prompts';
+import { createTwoFilesPatch } from 'diff';
 import { fetchRelease, fetchTestsRelease } from '../lib/release.js';
 import { resolveVersion } from '../lib/github.js';
-import { PendingChanges, normalize, joinPatchPath } from '../lib/patches.js';
+import { isGitInstalled } from '../lib/git.js';
+import { listFilesRecursive } from '../lib/zip.js';
+import { isBinaryBuffer, detectEol, toEol, mergeThreeWay } from '../lib/lineMerge.js';
+import { PendingChanges, normalize, joinPatchPath, hasStagedWork, STAGED_WORK_MESSAGE } from '../lib/patches.js';
 import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
 import { fileExists, readJsonIfExists, readLock, readTextIfExists, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks, upsertManagedBlock } from '../lib/managedDocs.js';
@@ -11,6 +16,12 @@ const TOOLKIT_DIR = './toolcrib';
 // See init.js for why this exists — installs predating this entry need it
 // added on `merge` too, not just on a fresh `init`.
 const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
+// Conflict notes and binary upstream copies are staged here, under the
+// staging folder (never under ./toolcrib/, and never as `.patch` files, so
+// `apply` cannot write them into the kit).
+const NOTES_DIR = 'conflicts';
+// Meta files inside ./toolcrib/ that the CLI itself owns; never "project-added".
+const KIT_META_FILES = new Set(['.toolcrib-lock.json', '.toolcrib-tests-config.json']);
 
 /**
  * Four-way classification per vendored file, comparing:
@@ -23,6 +34,8 @@ const TOOLKIT_IMPORTS_ENTRY = { '#toolcrib': './toolcrib/index.ts' };
  *
  * Returns one of five outcomes: 'unchanged', 'safe-update', 'keep-local',
  * 'conflict', or 'converged' (both sides changed to identical content).
+ * 'conflict' means both sides changed differently; the caller then tries a
+ * line-level three-way merge before reporting anything as a conflict.
  */
 function classify(original, local, updated) {
   const localModified = normalize(local) !== normalize(original);
@@ -37,6 +50,117 @@ function classify(original, local, updated) {
   return 'conflict';
 }
 
+/** Raw bytes of a release file; test fakes without readBuffer fall back to their text. */
+function readBytes(release, relPath) {
+  return release.readBuffer ? release.readBuffer(relPath) : Buffer.from(release.readFile(relPath), 'utf8');
+}
+
+function newResults() {
+  return {
+    updated: 0, // clean update patches proposed
+    merged: [], // both sides changed, line merge was clean
+    absorbed: [], // local change is already contained in the new release
+    kept: 0, // local edit, upstream untouched
+    deleted: 0, // removed upstream, proposed for deletion
+    projectAdded: [], // in ./toolcrib/ but in neither release
+    conflicts: [], // { relPath, displayPath, kind, collision, notePath }
+  };
+}
+
+const fenced = (text) => `~~~~diff\n${text.trimEnd()}\n~~~~\n`;
+
+/**
+ * Stage a conflict's note (and, for a binary file, the untouched upstream
+ * copy) in the staging folder and record it for the summary. `noteName` is
+ * the toolkit-relative path the note is filed under.
+ */
+function recordConflict(ctx, { relPath, noteName = relPath, displayPath, kind, collision = false, body, upstreamBytes }) {
+  const notePath = `${NOTES_DIR}/${noteName}.md`;
+  const copyPath = upstreamBytes ? `${NOTES_DIR}/${noteName}.upstream` : null;
+  const heading = collision ? `Add/add collision: ${displayPath}` : `Conflict: ${displayPath}`;
+  const copyLine = copyPath ? `\nThe untouched upstream copy (v${ctx.newVersion}) is staged beside this note as \`${path.posix.basename(copyPath)}\`.\n` : '';
+  ctx.changes.addStagedFile(notePath, `# ${heading}\n\n${body}\n${copyLine}`);
+  if (copyPath) ctx.changes.addStagedFile(copyPath, upstreamBytes);
+  ctx.results.conflicts.push({ relPath, displayPath, kind, collision, notePath: `./toolcrib-patches/${notePath}` });
+}
+
+function upstreamDiff(ctx, relPath, original, updated) {
+  return (
+    `## What upstream changed (v${ctx.oldVersion} to v${ctx.newVersion})\n\n` +
+    fenced(createTwoFilesPatch(`a/${relPath}`, `b/${relPath}`, normalize(original), normalize(updated)))
+  );
+}
+
+/**
+ * The file changed on both sides, differently: try a line-level three-way
+ * merge (original = base, local = ours, updated = theirs). A clean merge is
+ * proposed as an ordinary patch; overlapping edits are proposed with conflict
+ * markers and reported; anything that can't be line-merged (binary, deleted
+ * locally) gets a note in the staging folder and the local file is untouched.
+ */
+async function resolveBothChanged(ctx, { relPath, targetPath, hasOriginal, oldRelease, newRelease, original, updated, collision }) {
+  const patchPath = joinPatchPath(TOOLKIT_DIR, relPath);
+  const displayPath = patchPath;
+  const base = { relPath, displayPath, collision };
+
+  if (!fileExists(targetPath)) {
+    // In the old release, deleted from the project, changed upstream: nothing to merge into.
+    recordConflict(ctx, {
+      ...base,
+      kind: 'deleted-locally',
+      body:
+        `This file was deleted from the project, but upstream changed it in v${ctx.newVersion}.\n` +
+        `It was not recreated. Decide whether to restore it (take the upstream version below) or keep it deleted.\n\n` +
+        upstreamDiff(ctx, relPath, original, updated),
+    });
+    return;
+  }
+
+  const localBytes = fs.readFileSync(targetPath);
+  const originalBytes = hasOriginal ? readBytes(oldRelease, relPath) : Buffer.alloc(0);
+  const updatedBytes = readBytes(newRelease, relPath);
+
+  if (isBinaryBuffer(localBytes) || isBinaryBuffer(originalBytes) || isBinaryBuffer(updatedBytes)) {
+    recordConflict(ctx, {
+      ...base,
+      kind: 'binary',
+      body:
+        `This is a binary file (not valid UTF-8 text), so it was not line-merged. ` +
+        `Both your project and upstream changed it${collision ? '' : ` since v${ctx.oldVersion}`}.\n` +
+        `Your copy in ./toolcrib/ is untouched. Pick one, or reconcile them with a tool that understands the format.`,
+      upstreamBytes: updatedBytes,
+    });
+    return;
+  }
+
+  const localRaw = localBytes.toString('utf8'); // exact disk content (BOM and CRLF intact): what the patch must match
+  const hasBom = localRaw.charCodeAt(0) === 0xfeff;
+  const eol = detectEol(localRaw);
+  const ours = normalize(hasBom ? localRaw.slice(1) : localRaw);
+  const theirs = normalize(updated);
+  const result = await mergeThreeWay({ base: normalize(original), ours, theirs }, { engine: ctx.engine, newLabel: `v${ctx.newVersion}` });
+
+  const proposed = (hasBom ? '﻿' : '') + toEol(result.merged, eol);
+
+  if (result.conflicts === 0) {
+    if (result.merged === theirs) ctx.results.absorbed.push(displayPath);
+    else ctx.results.merged.push(displayPath);
+    ctx.changes.propose(patchPath, localRaw, proposed, relPath);
+    return;
+  }
+
+  ctx.changes.propose(patchPath, localRaw, proposed, `${relPath} (conflict markers)`);
+  recordConflict(ctx, {
+    ...base,
+    kind: 'markers',
+    body:
+      `${collision ? 'The project added this file and the new release now ships one at the same path. ' : 'Both your project and upstream changed this file. '}` +
+      `${result.conflicts} region(s) overlap. The patch for ${displayPath} writes the merged file with ` +
+      `\`<<<<<<< local\` / \`=======\` / \`>>>>>>> v${ctx.newVersion}\` markers; resolve each one in place and delete the markers.\n\n` +
+      (collision ? '' : upstreamDiff(ctx, relPath, original, updated)),
+  });
+}
+
 /**
  * The full four-way diff, applied per-file across one (oldRelease,
  * newRelease) pair — extracted so both the core toolkit files and (when
@@ -47,14 +171,11 @@ function classify(original, local, updated) {
  * scripts/build-tests-release.js), so no separate target-directory
  * parameter is needed here.
  *
- * Mutates `changes`/`conflicts` in place (matching this file's existing
- * call-site style below) and returns per-call counts for the caller to
- * fold into its own running totals.
+ * Records everything in `ctx` (`changes` for patches/notes, `results` for the
+ * summary).
  */
-function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflicts) {
-  let updatedCount = 0;
-  let keptCount = 0;
-  let deletedCount = 0;
+async function diffReleaseFiles(projectRoot, oldRelease, newRelease, ctx) {
+  const { changes, results } = ctx;
 
   // Found by review: allFiles() re-walks its temp directory recursively on
   // every call (listFilesRecursive is not cached), so calling
@@ -71,8 +192,12 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
     const targetPath = path.join(projectRoot, TOOLKIT_DIR, relPath);
     const local = readTextIfExists(targetPath);
     const updated = newRelease.readFile(relPath);
-    // A file that's new in this release won't exist in oldRelease — treat as empty original.
-    const original = oldFiles.has(relPath) ? oldRelease.readFile(relPath) : '';
+    const hasOriginal = oldFiles.has(relPath);
+    // A file that's new in this release won't exist in oldRelease — treat as
+    // an empty original. If the project already has a file at that path it is
+    // an add/add collision: the same three-way merge, with an empty base.
+    const original = hasOriginal ? oldRelease.readFile(relPath) : '';
+    const collision = !hasOriginal && fileExists(targetPath);
 
     const status = classify(original, local, updated);
 
@@ -80,18 +205,18 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
       case 'unchanged':
       case 'safe-update':
         changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, updated, relPath);
-        updatedCount++;
+        results.updated++;
         break;
       case 'converged':
         // Local already matches the new release, so there's nothing to
-        // propose; it still counts as updated, not as a conflict.
-        updatedCount++;
+        // propose: the change was absorbed upstream.
+        results.absorbed.push(joinPatchPath(TOOLKIT_DIR, relPath));
         break;
       case 'keep-local':
-        keptCount++;
+        results.kept++;
         break;
       case 'conflict':
-        conflicts.push({ relPath, patchPath: joinPatchPath(TOOLKIT_DIR, relPath), original, local, updated });
+        await resolveBothChanged(ctx, { relPath, targetPath, hasOriginal, oldRelease, newRelease, original, updated, collision });
         break;
     }
   }
@@ -106,7 +231,8 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
   // upstream" as updated content of '': local unmodified from original ->
   // safe to delete; local modified -> a real conflict (don't silently
   // discard someone's customization just because upstream dropped the
-  // file), same as any other conflicting edit.
+  // file), same as any other conflicting edit. No merge is possible here, so
+  // it's a note in the staging folder.
   for (const relPath of oldFiles) {
     if (newFiles.has(relPath)) continue;
 
@@ -120,16 +246,17 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
     switch (status) {
       case 'safe-update':
         changes.propose(joinPatchPath(TOOLKIT_DIR, relPath), local, '', relPath);
-        deletedCount++;
+        results.deleted++;
         break;
       case 'conflict':
-        conflicts.push({
+        recordConflict(ctx, {
           relPath,
-          patchPath: joinPatchPath(TOOLKIT_DIR, relPath),
-          original,
-          local,
-          updated: '',
-          removedUpstream: true,
+          displayPath: joinPatchPath(TOOLKIT_DIR, relPath),
+          kind: 'removed-upstream',
+          body:
+            `This file was modified locally, but removed upstream in v${ctx.newVersion}.\n` +
+            `Automatic deletion was skipped and your copy is untouched. Review it, or ask your AI assistant:\n` +
+            `"reconcile my local changes to ${relPath}, which was removed upstream"\n`,
         });
         break;
       // 'unchanged'/'keep-local' can't occur here: original is always
@@ -140,8 +267,24 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
       // proposed, so the empty file is left on disk as-is.
     }
   }
+}
 
-  return { updatedCount, keptCount, deletedCount };
+/**
+ * Files under ./toolcrib/ that neither the old nor the new release ships:
+ * the project's own additions. Reported, never touched. `known` is every
+ * release-relative path of every release involved; `testsInstalled` decides
+ * whether `__tests__/` is the kit's (and so already covered by `known`) or
+ * is simply not looked at.
+ */
+function findProjectAdded(projectRoot, known, testsInstalled) {
+  const toolkitRoot = path.join(projectRoot, TOOLKIT_DIR);
+  if (!fs.existsSync(toolkitRoot)) return [];
+  return listFilesRecursive(toolkitRoot)
+    .filter((relPath) => !KIT_META_FILES.has(relPath))
+    .filter((relPath) => testsInstalled || !relPath.startsWith('__tests__/'))
+    .filter((relPath) => !known.has(relPath))
+    .map((relPath) => joinPatchPath(TOOLKIT_DIR, relPath))
+    .sort();
 }
 
 /**
@@ -156,9 +299,8 @@ function diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflict
  * the block may be older or newer than the currently-installed toolkit
  * version if it was hand-edited or added out of band.
  */
-async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, conflicts) {
-  let updatedCount = 0;
-  let keptCount = 0;
+async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, ctx) {
+  const { changes, results } = ctx;
 
   for (const targetFile of KNOWN_TARGET_FILES) {
     const targetPath = path.join(projectRoot, targetFile);
@@ -211,23 +353,28 @@ async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, 
           // the "original" and misclassifies this block.
           proposedFileContent = upsertManagedBlock(proposedFileContent, block.docId, newRelease.version, updatedDocContent);
           fileChanged = fileChanged || status !== 'unchanged';
-          updatedCount++;
+          if (status === 'converged') results.absorbed.push(`${targetFile} (managed block "${block.docId}")`);
+          else results.updated++;
           break;
         case 'keep-local':
-          keptCount++;
+          results.kept++;
           break;
-        case 'conflict':
-          // Not a vendored file under TOOLKIT_DIR, so patchPath can't be
-          // derived from relPath the way vendored-file conflicts below can
-          // — it's set explicitly here instead.
-          conflicts.push({
-            relPath: `${targetFile} (managed block "${block.docId}")`,
-            patchPath: `${targetFile}.managed-${block.docId}`,
-            original: originalDocContent,
-            local: block.content,
-            updated: updatedDocContent,
+        case 'conflict': {
+          // Not a vendored file under TOOLKIT_DIR. The block isn't a whole
+          // file, so no line merge: a note with the upstream change.
+          const displayPath = `${targetFile} (managed block "${block.docId}")`;
+          recordConflict(ctx, {
+            relPath: displayPath,
+            noteName: `${targetFile}.managed-${block.docId}`,
+            displayPath,
+            kind: 'managed-block',
+            body:
+              `The managed block "${block.docId}" in ${targetFile} was edited locally AND changed upstream.\n` +
+              `It was left as-is. Reconcile it by hand or ask your AI assistant.\n\n` +
+              upstreamDiff(ctx, `${targetFile}.managed-${block.docId}`, originalDocContent, updatedDocContent),
           });
           break;
+        }
       }
     }
 
@@ -235,8 +382,6 @@ async function mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, 
       changes.propose(targetFile, currentFileContent, proposedFileContent, targetFile);
     }
   }
-
-  return { updatedCount, keptCount };
 }
 
 export async function mergeCommand(options) {
@@ -246,6 +391,12 @@ export async function mergeCommand(options) {
   const lock = readLock(projectRoot);
   if (!lock) {
     p.log.error('No toolcrib install found (missing .toolcrib-lock.json). Run `toolcrib init` first.');
+    process.exitCode = 1;
+    return;
+  }
+
+  if (hasStagedWork(projectRoot)) {
+    p.log.error(STAGED_WORK_MESSAGE);
     process.exitCode = 1;
     return;
   }
@@ -304,23 +455,25 @@ export async function mergeCommand(options) {
   }
 
   const changes = new PendingChanges();
-  const conflicts = [];
+  const results = newResults();
+  // `mergeEngine` is a test seam ('git' | 'js'), not a CLI flag.
+  const engine = options.mergeEngine ?? ((await isGitInstalled()) ? 'git' : 'js');
+  const ctx = { changes, results, engine, oldVersion: oldRelease.version, newVersion: newRelease.version };
 
-  const coreDiff = diffReleaseFiles(projectRoot, oldRelease, newRelease, changes, conflicts);
-  let updatedCount = coreDiff.updatedCount;
-  let keptCount = coreDiff.keptCount;
-  let deletedCount = coreDiff.deletedCount;
-
+  await diffReleaseFiles(projectRoot, oldRelease, newRelease, ctx);
   if (oldTestsRelease && newTestsRelease) {
-    const testsDiff = diffReleaseFiles(projectRoot, oldTestsRelease, newTestsRelease, changes, conflicts);
-    updatedCount += testsDiff.updatedCount;
-    keptCount += testsDiff.keptCount;
-    deletedCount += testsDiff.deletedCount;
+    await diffReleaseFiles(projectRoot, oldTestsRelease, newTestsRelease, ctx);
   }
 
-  const managedBlockCounts = await mergeManagedBlocks(projectRoot, oldRelease, newRelease, changes, conflicts);
-  updatedCount += managedBlockCounts.updatedCount;
-  keptCount += managedBlockCounts.keptCount;
+  await mergeManagedBlocks(projectRoot, oldRelease, newRelease, ctx);
+
+  const known = new Set([
+    ...oldRelease.allFiles(),
+    ...newRelease.allFiles(),
+    ...(oldTestsRelease?.allFiles() ?? []),
+    ...(newTestsRelease?.allFiles() ?? []),
+  ]);
+  results.projectAdded = findProjectAdded(projectRoot, known, Boolean(lock.testsVersion));
 
   await cleanupAll();
 
@@ -394,32 +547,37 @@ export async function mergeCommand(options) {
     );
   }
 
-  // Conflicts get their own patch showing the *upstream* diff (local vs.
-  // untouched), so the human/AI can see exactly what upstream changed
-  // without it silently overwriting local customizations.
-  for (const conflict of conflicts) {
-    changes.propose(
-      `${conflict.patchPath}.upstream-diff`,
-      '',
-      buildConflictNote(conflict),
-      `${conflict.relPath} (conflict)`
-    );
-  }
-
   if (!changes.isEmpty()) {
     await changes.writeAll(projectRoot);
   }
 
+  const conflicts = results.conflicts.filter((c) => !c.collision);
+  const collisions = results.conflicts.filter((c) => c.collision);
+
   p.log.success(
-    `${updatedCount} file(s) updated cleanly, ${keptCount} local edit(s) preserved untouched` +
-      (deletedCount > 0 ? `, ${deletedCount} file(s) removed upstream and proposed for deletion` : '') +
-      '.'
+    `${results.updated} updated, ${results.merged.length} merged, ${results.absorbed.length} absorbed upstream, ` +
+      `${results.kept} kept-local, ${results.projectAdded.length} project-added, ` +
+      `${conflicts.length} conflict(s), ${collisions.length} collision(s), ${results.deleted} removed.`
   );
+  const list = (title, items) => {
+    if (items.length > 0) p.log.info(`${title}:\n${items.map((x) => `  ${x}`).join('\n')}`);
+  };
+  list('Merged (both sides changed, no overlap)', results.merged);
+  list('Absorbed upstream (the new release already contains your change)', results.absorbed);
+  list('Project-added (kept, not part of toolcrib)', results.projectAdded);
+  const conflictLine = (c) => `  ${c.displayPath}  [${c.kind}] note: ${c.notePath}`;
   if (conflicts.length > 0) {
     p.log.warn(
       `${conflicts.length} conflict(s) — both local and upstream changed:\n` +
-        conflicts.map((c) => `  ${c.relPath}`).join('\n') +
-        `\n\nSee the .upstream-diff patch for each — ask your AI assistant to reconcile them.`
+        conflicts.map(conflictLine).join('\n') +
+        `\n\nFiles marked [markers] are staged with conflict markers to resolve after apply; for the others your file is untouched. ` +
+        `Notes live in ./toolcrib-patches/${NOTES_DIR}/ and are never applied into ./toolcrib/.`
+    );
+  }
+  if (collisions.length > 0) {
+    p.log.warn(
+      `${collisions.length} collision(s) — you added a file at a path the new release now ships:\n` +
+        collisions.map(conflictLine).join('\n')
     );
   }
 
@@ -439,19 +597,4 @@ export async function mergeCommand(options) {
   }
 
   p.outro(changes.isEmpty() ? 'No changes to apply.' : 'Review ./toolcrib-patches/, then run `toolcrib apply`.');
-}
-
-function buildConflictNote(conflict) {
-  if (conflict.removedUpstream) {
-    return (
-      `This file was modified locally, but removed upstream in the new version.\n` +
-      `Automatic deletion was skipped — review manually or ask your AI assistant:\n` +
-      `"reconcile my local changes to ${conflict.relPath}, which was removed upstream"\n`
-    );
-  }
-  return (
-    `This file was modified locally AND changed upstream.\n` +
-    `Automatic merge was skipped — review manually or ask your AI assistant:\n` +
-    `"reconcile my local changes to ${conflict.relPath} with the upstream update"\n`
-  );
 }

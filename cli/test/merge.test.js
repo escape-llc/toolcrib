@@ -360,7 +360,7 @@ describe('mergeCommand — classify() outcomes for a normal file update', () => 
     expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'utf-8')).toBe('export const widget = 1; // my own tweak\n');
   });
 
-  it('conflict: stages an upstream-diff note (not a silent overwrite) when both local and upstream changed the file', async () => {
+  it('conflict: overlapping edits stage the file with markers plus a note in the staging folder, never in the kit', async () => {
     fs.writeFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'export const widget = 1; // my own tweak\n');
     const oldRelease = fakeRelease('1.0.0', { 'widget.ts': 'export const widget = 1;\n' });
     const newRelease = fakeRelease('2.0.0', { 'widget.ts': 'export const widget = 2;\n' });
@@ -369,13 +369,15 @@ describe('mergeCommand — classify() outcomes for a normal file update', () => 
     await mergeCommand({ version: '2.0.0' });
 
     const patchDir = path.join(tmpDir, 'toolcrib-patches');
-    expect(findPatchFor(patchDir, 'toolcrib/widget.ts')).toBeUndefined();
-    const conflictPatch = findPatchFor(patchDir, 'toolcrib/widget.ts.upstream-diff');
-    expect(conflictPatch).toBeDefined();
-
-    const patchContent = fs.readFileSync(path.join(patchDir, conflictPatch), 'utf-8');
-    expect(patchContent).toContain('modified locally AND changed upstream');
-    expect(patchContent).not.toContain('removed upstream'); // distinct from the removed-upstream conflict note
+    const patch = findPatchFor(patchDir, 'toolcrib/widget.ts');
+    expect(patch).toBeDefined();
+    const patchContent = fs.readFileSync(path.join(patchDir, patch), 'utf-8');
+    expect(patchContent).toContain('<<<<<<< local');
+    expect(patchContent).toContain('>>>>>>> v2.0.0');
+    const note = fs.readFileSync(path.join(patchDir, 'conflicts', 'widget.ts.md'), 'utf-8');
+    expect(note).toContain('Both your project and upstream changed this file');
+    expect(findPatchFor(patchDir, 'toolcrib/widget.ts.upstream-diff')).toBeUndefined();
+    // merge itself never touches the working tree
     expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'widget.ts'), 'utf-8')).toBe('export const widget = 1; // my own tweak\n');
   });
 
@@ -472,10 +474,11 @@ describe('mergeCommand — files removed upstream', () => {
     // No deletion patch — the modified file is left untouched, and a
     // conflict note is staged instead (same shape as any other conflict).
     expect(findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts')).toBeUndefined();
-    const conflictPatch = findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts.upstream-diff');
-    expect(conflictPatch).toBeDefined();
+    expect(findPatchFor(patchDir, 'toolcrib/theme/useAnimatedMount.ts.upstream-diff')).toBeUndefined();
+    const notePath = path.join(patchDir, 'conflicts', 'theme', 'useAnimatedMount.ts.md');
+    expect(fs.existsSync(notePath)).toBe(true);
 
-    const patchContent = fs.readFileSync(path.join(patchDir, conflictPatch), 'utf-8');
+    const patchContent = fs.readFileSync(notePath, 'utf-8');
     expect(patchContent).toContain('removed upstream');
     expect(fs.readFileSync(path.join(tmpDir, 'toolcrib', 'theme', 'useAnimatedMount.ts'), 'utf-8')).toContain('my own tweak');
   });
@@ -598,10 +601,10 @@ describe('mergeCommand — managed block (AGENTS.md) outcomes', () => {
 
     const patchDir = path.join(tmpDir, 'toolcrib-patches');
     expect(findPatchFor(patchDir, 'AGENTS.md')).toBeUndefined();
-    const conflictPatch = findPatchFor(patchDir, 'AGENTS.md.managed-core.upstream-diff');
-    expect(conflictPatch).toBeDefined();
-    const patchContent = fs.readFileSync(path.join(patchDir, conflictPatch), 'utf-8');
-    expect(patchContent).toContain('modified locally AND changed upstream');
+    const notePath = path.join(patchDir, 'conflicts', 'AGENTS.md.managed-core.md');
+    expect(fs.existsSync(notePath)).toBe(true);
+    const patchContent = fs.readFileSync(notePath, 'utf-8');
+    expect(patchContent).toContain('edited locally AND changed upstream');
     // The file on disk is untouched — the hand-edited block stays exactly as-is.
     expect(fs.readFileSync(path.join(tmpDir, 'AGENTS.md'), 'utf-8')).toContain('plus my own note');
   });

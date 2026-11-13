@@ -2,7 +2,7 @@ import path from 'node:path';
 import * as p from '@clack/prompts';
 import { fetchRelease, fetchTestsRelease } from '../lib/release.js';
 import { resolveVersion } from '../lib/github.js';
-import { PendingChanges, joinPatchPath } from '../lib/patches.js';
+import { PendingChanges, joinPatchPath, hasStagedWork, STAGED_WORK_MESSAGE } from '../lib/patches.js';
 import { resolveDependencyDecisions, buildProposedPackageJson, mergeImportsField } from '../lib/deps.js';
 import { readJsonIfExists, readTextIfExists, fileExists, proposeGitignore, proposeLockUpdate } from '../lib/project.js';
 import { MANAGED_DOCS, DEFAULT_TARGET_FILE, KNOWN_TARGET_FILES, upsertManagedBlock } from '../lib/managedDocs.js';
@@ -38,6 +38,12 @@ export async function initCommand(options) {
   const projectRoot = process.cwd();
 
   p.intro('toolcrib init');
+
+  if (hasStagedWork(projectRoot)) {
+    p.log.error(STAGED_WORK_MESSAGE);
+    process.exitCode = 1;
+    return;
+  }
 
   const spinner = p.spinner();
   spinner.start(`Resolving version "${options.version}"`);

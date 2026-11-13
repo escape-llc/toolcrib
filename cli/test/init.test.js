@@ -388,3 +388,46 @@ function findPatchFor(patchDir, relPath) {
   const files = fs.readdirSync(patchDir);
   return files.find((f) => f.endsWith(`${safeName}.patch`));
 }
+
+describe('initCommand — staging safety', () => {
+  let tmpDir;
+  let originalCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolcrib-init-staged-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tmpDir);
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', dependencies: {} }, null, 2) + '\n');
+    vi.resetAllMocks();
+    process.exitCode = undefined;
+    resolveVersion.mockImplementation((v) => Promise.resolve(v === 'latest' ? '1.0.0' : v));
+    fetchRelease.mockImplementation((v) => Promise.resolve(fakeRelease(v === 'latest' ? '1.0.0' : v, baseFiles())));
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    process.exitCode = undefined;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('refuses to start over a non-empty ./toolcrib-patches/ and leaves it untouched', async () => {
+    const dir = path.join(tmpDir, 'toolcrib-patches');
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, '0001-keep.patch'), 'unapplied work');
+
+    await initCommand({ version: 'latest', situation: 'new' });
+
+    expect(process.exitCode).toBe(1);
+    expect(fetchRelease).not.toHaveBeenCalled();
+    expect(fs.readdirSync(dir)).toEqual(['0001-keep.patch']);
+  });
+
+  it('proceeds over an existing but empty ./toolcrib-patches/', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'toolcrib-patches'));
+
+    await initCommand({ version: 'latest', situation: 'new' });
+
+    expect(process.exitCode).toBeUndefined();
+    expect(fs.readdirSync(path.join(tmpDir, 'toolcrib-patches')).length).toBeGreaterThan(0);
+  });
+});
