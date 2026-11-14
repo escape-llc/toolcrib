@@ -3815,6 +3815,10 @@
           "default": "'horizontal'",
           "description": "Direction of travel. A vertical slider fills the height of its container\n(give the parent a height) and is 1.25rem wide; arrow keys follow the\norientation."
         },
+        "getAriaValueText": {
+          "type": "(value: number, index: number) => string",
+          "description": "Sets each thumb's spoken value (`aria-valuetext`) from its numeric value and\nindex (0 = lower, 1 = upper), e.g. to add a unit: `(v) => `$${v}``.\nWithout it each thumb announces the plain number."
+        },
         "overrides": {
           "type": "Partial<SliderSliceState>",
           "description": "Per-instance overrides for track height, thumb size and shape, and detent ticks. Shared with `<Slider>`."
@@ -4189,6 +4193,10 @@
           "type": "'horizontal' | 'vertical'",
           "default": "'horizontal'",
           "description": "Direction of travel. A vertical slider fills the height of its container\n(give the parent a height) and is 1.25rem wide; arrow keys follow the\norientation."
+        },
+        "getAriaValueText": {
+          "type": "(value: number) => string",
+          "description": "Sets the thumb's spoken value (`aria-valuetext`) from its numeric value, for\nwhen the number alone isn't what a screen reader should say, e.g. a unit:\n`(v) => `${v}ms``. Without it the thumb announces the plain number."
         },
         "overrides": {
           "type": "Partial<SliderSliceState>",

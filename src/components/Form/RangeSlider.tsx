@@ -61,6 +61,12 @@ export interface RangeSliderProps {
    * orientation. @default 'horizontal'
    */
   orientation?: SliderOrientation;
+  /**
+   * Sets each thumb's spoken value (`aria-valuetext`) from its numeric value and
+   * index (0 = lower, 1 = upper), e.g. to add a unit: `(v) => `$${v}``.
+   * Without it each thumb announces the plain number.
+   */
+  getAriaValueText?: (value: number, index: number) => string;
   /** Per-instance overrides for track height, thumb size and shape, and detent ticks. Shared with `<Slider>`. */
   overrides?: Partial<SliderSliceState>;
 }
@@ -90,6 +96,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   'aria-invalid': ariaInvalid,
   thumbLabels,
   orientation = 'horizontal',
+  getAriaValueText,
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -128,6 +135,10 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
 
   // Each thumb points at the FormField error it's invalid for (see Slider).
   const describedBy = isError && name ? { 'aria-describedby': `${name}-error` } : {};
+  // Spread only when set: an explicit undefined would override Base UI's own.
+  const valueText = getAriaValueText
+    ? { getAriaValueText: (_formatted: string, v: number, i: number) => getAriaValueText(v, i) }
+    : {};
 
   const commitValue = (newVal: [number, number]) => {
     if (isFormBound) {
@@ -176,6 +187,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               aria-labelledby={labelledBy(`${baseId}-lower`)}
               aria-invalid={isError || undefined}
               {...describedBy}
+              {...valueText}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled, orientation)}
             />
@@ -184,6 +196,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
               aria-labelledby={labelledBy(`${baseId}-upper`)}
               aria-invalid={isError || undefined}
               {...describedBy}
+              {...valueText}
               className="ai-focus-ring"
               style={sliderThumbStyle(disabled, orientation)}
             />

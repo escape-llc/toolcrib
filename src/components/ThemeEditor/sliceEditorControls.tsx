@@ -89,6 +89,7 @@ function VuMeterThicknessControl({ state, onChange }: { state: VuMeterSliceState
       </div>
       <Slider
         aria-labelledby={labelId}
+        getAriaValueText={v => `${v}x`}
         min={VUMETER_THICKNESS_MIN}
         max={VUMETER_THICKNESS_MAX}
         step={0.25}
@@ -612,6 +613,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
             </div>
             <Slider
               aria-label="Drawer top inset"
+              getAriaValueText={v => `${v / 4}rem`}
               value={Math.round(state.insetTop * 4)}
               min={0}
               max={24}
@@ -1098,6 +1100,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               <span>{state.speed}x</span>
             </div>
             <Slider
+              getAriaValueText={v => `${v / 100}x`}
               value={Math.round(state.speed * 100)}
               min={50}
               max={200}
@@ -1126,6 +1129,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
             </div>
             <Slider
               value={state.duration}
+              getAriaValueText={v => `${v}s`}
               min={2}
               max={20}
               step={1}
@@ -1157,6 +1161,7 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               aria-label="Master Font Size"
               min={12}
               max={24}
+              getAriaValueText={v => `${v}px`}
               value={state.masterFontSize}
               onChange={val => onChange({ ...state, masterFontSize: val })}
               commitOnRelease

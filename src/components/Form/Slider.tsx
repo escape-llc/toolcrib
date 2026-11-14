@@ -76,6 +76,12 @@ export interface SliderProps {
    * orientation. @default 'horizontal'
    */
   orientation?: SliderOrientation;
+  /**
+   * Sets the thumb's spoken value (`aria-valuetext`) from its numeric value, for
+   * when the number alone isn't what a screen reader should say, e.g. a unit:
+   * `(v) => `${v}ms``. Without it the thumb announces the plain number.
+   */
+  getAriaValueText?: (value: number) => string;
   /** Per-instance overrides for track height, thumb size and shape, and detent ticks. */
   overrides?: Partial<SliderSliceState>;
 }
@@ -101,6 +107,7 @@ export const Slider: React.FC<SliderProps> = ({
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   orientation = 'horizontal',
+  getAriaValueText,
   overrides,
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -205,6 +212,9 @@ export const Slider: React.FC<SliderProps> = ({
             // control; spread in only when set (an explicit undefined would
             // override anything Base UI sets itself).
             {...(isError && name ? { 'aria-describedby': `${name}-error` } : {})}
+            // Base UI's thumb prop is (formattedValue, value, index); only
+            // the numeric value is exposed. Spread only when set.
+            {...(getAriaValueText ? { getAriaValueText: (_formatted: string, v: number) => getAriaValueText(v) } : {})}
             className="ai-focus-ring"
             style={sliderThumbStyle(disabled, orientation)}
           />
