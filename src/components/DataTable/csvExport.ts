@@ -15,6 +15,20 @@ function escapeCsvField(raw: string): string {
 }
 
 /**
+ * Neutralizes spreadsheet formula injection (CWE-1236, #951): Excel,
+ * LibreOffice and Sheets evaluate a cell whose text starts with `=`, `+`,
+ * `-`, `@`, a tab or a carriage return as a formula, so row data like
+ * `=HYPERLINK(...)` would run when the user opens the export. A leading
+ * single quote makes it plain text (OWASP's CSV Injection guidance). Only
+ * text is touched: a real number (`-5`) is not a formula and stays a number.
+ */
+function csvCell(value: unknown): string {
+  const text = String(value ?? '');
+  const neutral = typeof value !== 'number' && typeof value !== 'bigint' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return escapeCsvField(neutral);
+}
+
+/**
  * Renders `data` as a CSV string using `columns`' own header titles and
  * resolved cell values (`accessorFn` if given, else `record[key]`) -- the
  * SAME value resolution `useTableSort`'s own `getValue` uses, not each
@@ -22,13 +36,10 @@ function escapeCsvField(raw: string): string {
  * meaningful plain-text fallback. `\r\n` line endings, per RFC 4180.
  */
 export function columnsToCsv<T extends Record<string, any>>(columns: Column<T>[], data: T[]): string {
-  const header = columns.map(c => escapeCsvField(c.title)).join(',');
+  const header = columns.map(c => csvCell(c.title)).join(',');
   const rows = data.map(record =>
     columns
-      .map(col => {
-        const value = col.accessorFn ? col.accessorFn(record) : record[col.key];
-        return escapeCsvField(String(value ?? ''));
-      })
+      .map(col => csvCell(col.accessorFn ? col.accessorFn(record) : record[col.key]))
       .join(',')
   );
   return [header, ...rows].join('\r\n');
