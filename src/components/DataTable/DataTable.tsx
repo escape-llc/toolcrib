@@ -1668,6 +1668,22 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     const key = `vrow-${actualIndex}`;
     const gridRow = actualIndex + 1;
     const pinnedBackground = `linear-gradient(${rowStyle.backgroundColor}, ${rowStyle.backgroundColor}), var(--ai-bg-surface, #ffffff)`;
+    // The selection and row-command columns are grid columns in a loaded row
+    // (0 and the last), so they need the same coordinates here: otherwise
+    // ArrowUp/Down from either column stalls at a loading or failed block.
+    const selectionCell = selectable && !hideSelectionColumn && (
+      <td
+        data-grid-row={gridRow}
+        data-grid-col={0}
+        tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
+        className="ai-focus-ring"
+        style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }}
+      />
+    );
+    const commandCol = colOffset + visibleColumns.length;
+    const commandCell = hasRowCommands && (
+      <td data-grid-row={gridRow} data-grid-col={commandCol} tabIndex={isFocusedCell(gridRow, commandCol) ? 0 : -1} className="ai-focus-ring" />
+    );
     if (slot.kind === 'error') {
       // A failed row keeps the placeholder's grid cells (one focusable cell
       // per column, same coordinates and roving tabIndex) so ArrowUp/Down
@@ -1678,9 +1694,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       const showRetry = actualIndex === startIndex || Math.floor((actualIndex - 1) / blockSize) !== slot.blockIndex;
       return (
         <tr key={key} aria-rowindex={actualIndex + 2} data-block-error="true" style={rowStyle}>
-          {selectable && !hideSelectionColumn && (
-            <td style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }} />
-          )}
+          {selectionCell}
           {displayColumns.map((col, colIndex) => {
             const gridCol = colOffset + colIndex;
             const isFirst = colIndex === 0;
@@ -1711,15 +1725,13 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               </td>
             );
           })}
-          {hasRowCommands && <td />}
+          {commandCell}
         </tr>
       );
     }
     return (
       <tr key={key} aria-rowindex={actualIndex + 2} data-placeholder="true" style={rowStyle}>
-        {selectable && !hideSelectionColumn && (
-          <td style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }} />
-        )}
+        {selectionCell}
         {displayColumns.map((col, colIndex) => {
           const gridCol = colOffset + colIndex;
           return (
@@ -1741,7 +1753,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             </td>
           );
         })}
-        {hasRowCommands && <td />}
+        {commandCell}
       </tr>
     );
   };

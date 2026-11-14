@@ -288,6 +288,39 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 
+  it('arrow keys keep moving in the selection and row-command columns into placeholder and failed rows', async () => {
+    const { source, calls } = fakeSource();
+    render(table(source, { selectable: true, rowCommands: [{ id: 'edit', label: 'Edit' }] }));
+    // Before the first block answers, every row is a placeholder; each carries
+    // the selection (0) and row-command (3) coordinates.
+    const pending = Array.from(placeholders()) as HTMLElement[];
+    expect(pending.length).toBeGreaterThan(0);
+    for (const row of pending) {
+      expect(row.querySelector('[data-grid-col="0"]')).not.toBeNull();
+      expect(row.querySelector('[data-grid-col="3"]')).not.toBeNull();
+    }
+    await answer(calls[0]);
+    await scrollTo(94 * ITEM_HEIGHT);
+    await settle();
+    await fail(calls.find(c => c.query.start === 100)!);
+
+    const at = (row: number, col: number) =>
+      screen.getByRole('grid').querySelector(`[data-grid-row="${row}"][data-grid-col="${col}"]`) as HTMLElement;
+    // Selection is column 0; data columns 1..2; row commands column 3.
+    for (const col of [0, 3]) {
+      const loaded = at(100, col);
+      expect(loaded).not.toBeNull();
+      act(() => {
+        loaded.focus();
+      });
+      fireEvent.keyDown(loaded, { key: 'ArrowDown' });
+      await act(async () => {});
+      const failed = at(101, col);
+      expect(failed.closest('tr')).toHaveAttribute('data-block-error', 'true');
+      expect(document.activeElement).toBe(failed);
+    }
+  });
+
   it('names only the first data cell of a placeholder row', async () => {
     const { source } = fakeSource();
     render(table(source));
