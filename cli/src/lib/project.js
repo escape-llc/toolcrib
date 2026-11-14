@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { FENCE_STYLES, upsertFence, extractFence } from './fences.js';
+import { assertValidVersion } from './version.js';
 
 // No leading "./" — git apply rejects paths with one as invalid, and
 // every other relPath used in PendingChanges (component files, package.json)
@@ -64,7 +65,12 @@ export function fileExists(filePath) {
  * drift, etc.) — see design notes.
  */
 export function readLock(projectRoot) {
-  return readJsonIfExists(path.join(projectRoot, LOCK_PATH));
+  const lock = readJsonIfExists(path.join(projectRoot, LOCK_PATH));
+  if (lock) {
+    assertValidVersion(lock.version, LOCK_PATH);
+    if (lock.testsVersion !== undefined) assertValidVersion(lock.testsVersion, `${LOCK_PATH} testsVersion`);
+  }
+  return lock;
 }
 
 /**
