@@ -321,6 +321,22 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     }
   });
 
+  it('pins the selection and row-command cells of placeholder rows when those columns are pinned', () => {
+    const { source } = fakeSource();
+    const pinnedColumns: Column<Item>[] = [
+      { key: 'id', title: 'ID', pinned: 'left' },
+      { key: 'name', title: 'Name', pinned: 'right' },
+    ];
+    render(table(source, { columns: pinnedColumns, selectable: true, rowCommands: [{ id: 'edit', label: 'Edit' }] }));
+    const row = placeholders()[0] as HTMLElement;
+    const selection = row.querySelector('[data-grid-col="0"]') as HTMLElement;
+    const commands = row.querySelector('[data-grid-col="3"]') as HTMLElement;
+    expect(selection.style.position).toBe('sticky');
+    expect(selection.style.left).toBe('0px');
+    expect(commands.style.position).toBe('sticky');
+    expect(commands.style.right).toBe('0px');
+  });
+
   it('names only the first data cell of a placeholder row', async () => {
     const { source } = fakeSource();
     render(table(source));

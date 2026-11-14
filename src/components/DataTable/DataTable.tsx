@@ -1677,12 +1677,26 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         data-grid-col={0}
         tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
         className="ai-focus-ring"
-        style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }}
+        style={{
+          padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem`,
+          // Pinned like a loaded row's selection cell, so the column doesn't
+          // scroll away on these rows while staying fixed on loaded ones.
+          ...(selectionColumnPinned ? { position: 'sticky', left: 0, zIndex: 1, background: pinnedBackground } : {}),
+        }}
       />
     );
     const commandCol = colOffset + visibleColumns.length;
     const commandCell = hasRowCommands && (
-      <td data-grid-row={gridRow} data-grid-col={commandCol} tabIndex={isFocusedCell(gridRow, commandCol) ? 0 : -1} className="ai-focus-ring" />
+      <td
+        data-grid-row={gridRow}
+        data-grid-col={commandCol}
+        tabIndex={isFocusedCell(gridRow, commandCol) ? 0 : -1}
+        className="ai-focus-ring"
+        style={{
+          padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+          ...(rowCommandsColumnPinned ? { position: 'sticky', right: 0, zIndex: 1, background: pinnedBackground } : {}),
+        }}
+      />
     );
     if (slot.kind === 'error') {
       // A failed row keeps the placeholder's grid cells (one focusable cell
