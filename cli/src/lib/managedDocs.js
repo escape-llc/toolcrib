@@ -6,6 +6,7 @@
  * ./toolcrib/ already are.
  */
 import { FENCE_STYLES, buildFence, extractFence, upsertFence } from './fences.js';
+import { assertValidVersion } from './version.js';
 
 // doc-id -> source filename under ai-docs/, in the order they should read
 // when more than one is present in the same target file.
@@ -45,6 +46,7 @@ export function listManagedBlocks(fileContent) {
   return Object.keys(MANAGED_DOCS)
     .map((docId) => {
       const block = extractManagedBlock(fileContent, docId);
+      if (block) assertValidVersion(block.version, `managed block "${docId}" version attribute`);
       return block ? { docId, ...block } : null;
     })
     .filter(Boolean);

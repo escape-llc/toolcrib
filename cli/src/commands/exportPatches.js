@@ -105,7 +105,13 @@ async function postExport(options) {
         const text = fs.readFileSync(path.join(dir, fileName), 'utf8');
         return { fileName, upstreamPath: upstreamPathOf(text) ?? fileName, text };
       });
-    plans.push({ folder, dir, summaryText, plan: buildPostPlan({ summaryText, patches }) });
+    plans.push({
+      folder,
+      dir,
+      summaryText,
+      files: patches.map((x) => x.upstreamPath),
+      plan: buildPostPlan({ summaryText, patches }),
+    });
   }
 
   if (plans.length === 0) {
@@ -132,9 +138,15 @@ async function postExport(options) {
 
   p.log.info(
     plans
-      .map((x) => `${x.plan.title}\n  body ${x.plan.body.length} chars, ${x.plan.comments.length} comment(s)`)
+      .map(
+        (x) =>
+          `${x.plan.title}\n  body ${x.plan.body.length} chars, ${x.plan.comments.length} comment(s)\n` +
+          `  files whose full contents will be posted:\n` +
+          x.files.map((f) => `    ${f}`).join('\n')
+      )
       .join('\n') + `\nPosting as @${login} to escape-llc/toolcrib → Consumer Patches`
   );
+  p.log.warn("These posts go to a public GitHub repository's Discussions; anyone can read them.");
 
   if (!options.yes) {
     if (!isTTY) {

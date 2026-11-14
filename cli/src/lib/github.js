@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { assertValidVersion } from './version.js';
 
 const REPO = 'escape-llc/toolcrib';
 const ASSET_NAME = 'toolcrib.zip';
@@ -91,7 +92,7 @@ export async function fetchLatestVersion() {
   if (!res.ok) throwGitHubApiError(res, 'the latest release');
 
   const release = await res.json();
-  return release.tag_name.replace(/^v/, '');
+  return assertValidVersion(String(release.tag_name).replace(/^v/, ''), 'GitHub API latest release tag');
 }
 
 /**
@@ -124,10 +125,10 @@ export async function fetchSecurityAdvisories() {
   return JSON.parse(await res.text());
 }
 
-function assetUrl(version, assetName) {
-  return version === 'latest'
-    ? `${RELEASES_BASE}/latest/download/${assetName}`
-    : `${RELEASES_BASE}/download/v${version}/${assetName}`;
+export function assetUrl(version, assetName) {
+  if (version === 'latest') return `${RELEASES_BASE}/latest/download/${assetName}`;
+  assertValidVersion(version, 'release download version');
+  return `${RELEASES_BASE}/download/v${version}/${assetName}`;
 }
 
 /**
@@ -137,7 +138,7 @@ function assetUrl(version, assetName) {
  * `init latest` after a new release appears is never a silent surprise.
  */
 export async function resolveVersion(version) {
-  if (version !== 'latest') return version;
+  if (version !== 'latest') return assertValidVersion(version, '--version argument');
   return fetchLatestVersion();
 }
 

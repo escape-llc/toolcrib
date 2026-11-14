@@ -104,6 +104,24 @@ describe('exportPatchesCommand --post', () => {
     expect(fs.readdirSync(os.tmpdir()).filter((f) => f.startsWith('toolcrib-post-') && !f.startsWith('toolcrib-post-test-'))).toEqual([]);
   });
 
+  it('lists each contribution\'s files and the public-repo notice before posting, even with --yes', async () => {
+    let printed = '';
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      printed += String(chunk);
+      return true;
+    });
+    try {
+      await exportPatchesCommand({ out, post: true, yes: true, runGh: makeGh().runGh });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(printed).toContain('files whose full contents will be posted');
+    expect(printed).toMatch(/public GitHub repository/);
+    const patchNames = fs.readdirSync(path.join(out, '01-Card')).filter((f) => f.endsWith('.patch'));
+    expect(patchNames.length).toBeGreaterThan(0);
+    expect(printed).toMatch(/src\/components\/Card/);
+  });
+
   it('skips already-posted folders on a rerun', async () => {
     await exportPatchesCommand({ out, post: true, yes: true, runGh: makeGh().runGh });
     const gh = makeGh();
