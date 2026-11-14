@@ -238,6 +238,118 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     off();
   });
 
+  it('arrow keys move through a failed block\'s rows, and Retry stays a tabbable button in the first row', async () => {
+    const { source, calls } = fakeSource();
+    render(table(source));
+    await answer(calls[0]);
+
+    // Window around rows 95..108: the loaded block 0 ends and block 1 begins.
+    await scrollTo(94 * ITEM_HEIGHT);
+    await settle();
+    const block1 = calls.find(c => c.query.start === 100)!;
+    expect(block1).toBeDefined();
+    await fail(block1);
+
+    const cell = (row: number, col = 0) =>
+      screen.getByRole('grid').querySelector(`td[data-grid-row="${row}"][data-grid-col="${col}"]`) as HTMLElement;
+
+    // Rows 1-based: the last loaded row is 100, the failed block starts at 101.
+    const loaded = cell(100);
+    expect(loaded).not.toBeNull();
+    act(() => {
+      loaded.focus();
+    });
+    expect(document.activeElement).toBe(loaded);
+
+    fireEvent.keyDown(loaded, { key: 'ArrowDown' });
+    await act(async () => {});
+    const first = cell(101);
+    expect(first.closest('tr')).toHaveAttribute('data-block-error', 'true');
+    expect(document.activeElement).toBe(first);
+    expect(first).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    await act(async () => {});
+    const second = cell(102);
+    expect(second.closest('tr')).toHaveAttribute('data-block-error', 'true');
+    expect(document.activeElement).toBe(second);
+    // Non-first rows name their first data cell with the load error.
+    expect(second).toHaveAttribute('aria-label', 'Could not load rows.');
+    expect(cell(102, 1)).not.toHaveAttribute('aria-label');
+
+    // The first failed row still carries the alert and a working Retry button.
+    expect(within(first).getByRole('alert')).toBeInTheDocument();
+    const retry = within(first).getByRole('button', { name: 'Retry' });
+    expect(retry).not.toHaveAttribute('tabindex', '-1');
+    fireEvent.click(retry);
+    const retried = calls[calls.length - 1];
+    expect(retried.query.start).toBe(100);
+    await answer(retried);
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  it('arrow keys keep moving in the selection and row-command columns into placeholder and failed rows', async () => {
+    const { source, calls } = fakeSource();
+    render(table(source, { selectable: true, rowCommands: [{ id: 'edit', label: 'Edit' }] }));
+    // Before the first block answers, every row is a placeholder; each carries
+    // the selection (0) and row-command (3) coordinates.
+    const pending = Array.from(placeholders()) as HTMLElement[];
+    expect(pending.length).toBeGreaterThan(0);
+    for (const row of pending) {
+      expect(row.querySelector('[data-grid-col="0"]')).not.toBeNull();
+      expect(row.querySelector('[data-grid-col="3"]')).not.toBeNull();
+    }
+    await answer(calls[0]);
+    await scrollTo(94 * ITEM_HEIGHT);
+    await settle();
+    await fail(calls.find(c => c.query.start === 100)!);
+
+    const at = (row: number, col: number) =>
+      screen.getByRole('grid').querySelector(`[data-grid-row="${row}"][data-grid-col="${col}"]`) as HTMLElement;
+    // Selection is column 0; data columns 1..2; row commands column 3.
+    for (const col of [0, 3]) {
+      const loaded = at(100, col);
+      expect(loaded).not.toBeNull();
+      act(() => {
+        loaded.focus();
+      });
+      fireEvent.keyDown(loaded, { key: 'ArrowDown' });
+      await act(async () => {});
+      const failed = at(101, col);
+      expect(failed.closest('tr')).toHaveAttribute('data-block-error', 'true');
+      expect(document.activeElement).toBe(failed);
+    }
+  });
+
+  it('pins the selection and row-command cells of placeholder rows when those columns are pinned', () => {
+    const { source } = fakeSource();
+    const pinnedColumns: Column<Item>[] = [
+      { key: 'id', title: 'ID', pinned: 'left' },
+      { key: 'name', title: 'Name', pinned: 'right' },
+    ];
+    render(table(source, { columns: pinnedColumns, selectable: true, rowCommands: [{ id: 'edit', label: 'Edit' }] }));
+    const row = placeholders()[0] as HTMLElement;
+    const selection = row.querySelector('[data-grid-col="0"]') as HTMLElement;
+    const commands = row.querySelector('[data-grid-col="3"]') as HTMLElement;
+    expect(selection.style.position).toBe('sticky');
+    expect(selection.style.left).toBe('0px');
+    expect(commands.style.position).toBe('sticky');
+    expect(commands.style.right).toBe('0px');
+  });
+
+  it('names only the first data cell of a placeholder row', async () => {
+    const { source } = fakeSource();
+    render(table(source));
+    const rows = Array.from(placeholders());
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll('td[data-grid-col]'));
+      expect(cells).toHaveLength(columns.length);
+      expect(cells[0]).toHaveAttribute('aria-label');
+      for (const c of cells.slice(1)) expect(c).not.toHaveAttribute('aria-label');
+    }
+  });
+
   it('a later block reporting a different totalCount updates the scroll area', async () => {
     const { source, calls } = fakeSource();
     render(table(source));
