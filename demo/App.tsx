@@ -1692,6 +1692,12 @@ export const App: React.FC = () => {
     Drawer: (
       <VStack gap="md" align="start">
         <Text>Side drawer sliding in from screen edge with backdrop and light dismiss.</Text>
+        <Alert subtheme="info" action={<Button size="sm" variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>Open the Theme Designer</Button>}>
+          <Alert.Title>Hosted under a custom title bar?</Alert.Title>
+          <Alert.Description>
+            In a frameless window, such as Electron with its own title bar, set the Drawer slice's Top Inset (<code>drawer.insetTop</code>, in rem) to the title bar's height. Drawers and their backdrop then open below it instead of underneath it.
+          </Alert.Description>
+        </Alert>
         <Drawer
           id="demo-drawer"
           title="Application Details Drawer"
@@ -2769,6 +2775,10 @@ export const App: React.FC = () => {
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Two-Thumb Range (`&lt;RangeSlider&gt;`) — ${priceRange[0]} to ${priceRange[1]}</Text>
         <RangeSlider aria-label="Price" min={0} max={1000} step={10} minStepsBetweenThumbs={5} value={priceRange} onChange={setPriceRange} />
+        <Text size="xs" weight="semibold" tone="secondary">Vertical with detents (`orientation="vertical"`, `overrides=&#123;&#123; detents: true &#125;&#125;`)</Text>
+        <div style={{ height: '10rem' }}>
+          <RangeSlider aria-label="Comfort band" orientation="vertical" min={0} max={12} step={1} defaultValue={[4, 9]} overrides={{ detents: true }} />
+        </div>
       </VStack>
     ),
     CheckboxGroup: (
@@ -2879,6 +2889,20 @@ export const App: React.FC = () => {
       <VStack gap="sm">
         <Text size="xs" weight="semibold" tone="secondary">Interactive Range Slider (`&lt;Slider&gt;`)</Text>
         <Slider aria-label="Interactive range slider" defaultValue={65} onChange={val => addToast({ type: 'info', message: `Slider value changed to ${val}%`, priority: 'low' })} />
+        <Text size="xs" weight="semibold" tone="secondary">Fader cap with detents (`overrides=&#123;&#123; thumbShape: 'cap', detents: true &#125;&#125;`)</Text>
+        <Slider aria-label="Stepped fader" min={0} max={10} step={1} defaultValue={4} overrides={{ thumbShape: 'cap', detents: true }} />
+        <Text size="xs" weight="semibold" tone="secondary">Vertical (`orientation="vertical"`): fills its container's height</Text>
+        <HStack gap="lg">
+          <div style={{ height: '10rem' }}>
+            <Slider aria-label="Channel 1 fader" orientation="vertical" defaultValue={70} overrides={{ thumbShape: 'cap' }} />
+          </div>
+          <div style={{ height: '10rem' }}>
+            <Slider aria-label="Channel 2 fader" orientation="vertical" min={0} max={8} step={1} defaultValue={3} overrides={{ thumbShape: 'cap', detents: true }} />
+          </div>
+          <div style={{ height: '10rem' }}>
+            <Slider aria-label="Channel 3 level" orientation="vertical" defaultValue={40} />
+          </div>
+        </HStack>
       </VStack>
     ),
     ThemeEditor: (
