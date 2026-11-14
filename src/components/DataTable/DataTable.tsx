@@ -1666,25 +1666,55 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       backgroundColor: actualIndex % 2 === 0 ? 'transparent' : 'var(--ai-table-stripe-bg, var(--ai-bg-container, #f9fafb))',
     };
     const key = `vrow-${actualIndex}`;
+    const gridRow = actualIndex + 1;
+    const pinnedBackground = `linear-gradient(${rowStyle.backgroundColor}, ${rowStyle.backgroundColor}), var(--ai-bg-surface, #ffffff)`;
     if (slot.kind === 'error') {
+      // A failed row keeps the placeholder's grid cells (one focusable cell
+      // per column, same coordinates and roving tabIndex) so ArrowUp/Down
+      // move through it. The error text and Retry sit in the first data
+      // cell of the block's first row; Retry stays a normal tabbable button
+      // inside that cell. The block's other rows name their first data cell
+      // with the load-error string instead.
       const showRetry = actualIndex === startIndex || Math.floor((actualIndex - 1) / blockSize) !== slot.blockIndex;
       return (
         <tr key={key} aria-rowindex={actualIndex + 2} data-block-error="true" style={rowStyle}>
-          <td colSpan={totalColSpan} style={{ padding: '0 1rem', color: resolveSubtheme('error').color }}>
-            {showRetry && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span role="alert">{strings.loadError}</span>
-                <Button type="button" size="sm" variant="outline" onClick={() => blocks.retryBlock(slot.blockIndex)}>
-                  {strings.retryLoad}
-                </Button>
-              </span>
-            )}
-          </td>
+          {selectable && !hideSelectionColumn && (
+            <td style={{ padding: `${DENSITY_SELECTION_CELL_PADDING_V_PX[effectiveDensity]}px 0.5rem` }} />
+          )}
+          {displayColumns.map((col, colIndex) => {
+            const gridCol = colOffset + colIndex;
+            const isFirst = colIndex === 0;
+            return (
+              <td
+                key={col.key}
+                data-grid-row={gridRow}
+                data-grid-col={gridCol}
+                tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
+                className="ai-focus-ring"
+                {...(isFirst && !showRetry ? { 'aria-label': strings.loadError } : {})}
+                style={{
+                  padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
+                  overflow: isFirst && showRetry ? 'visible' : 'hidden',
+                  borderRight: 'var(--ai-table-border, none)',
+                  color: resolveSubtheme('error').color,
+                  ...getPinnedCellStyle(col, false, pinnedBackground),
+                }}
+              >
+                {isFirst && showRetry && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', whiteSpace: 'nowrap' }}>
+                    <span role="alert">{strings.loadError}</span>
+                    <Button type="button" size="sm" variant="outline" onClick={() => blocks.retryBlock(slot.blockIndex)}>
+                      {strings.retryLoad}
+                    </Button>
+                  </span>
+                )}
+              </td>
+            );
+          })}
+          {hasRowCommands && <td />}
         </tr>
       );
     }
-    const gridRow = actualIndex + 1;
-    const pinnedBackground = `linear-gradient(${rowStyle.backgroundColor}, ${rowStyle.backgroundColor}), var(--ai-bg-surface, #ffffff)`;
     return (
       <tr key={key} aria-rowindex={actualIndex + 2} data-placeholder="true" style={rowStyle}>
         {selectable && !hideSelectionColumn && (
@@ -1699,7 +1729,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               data-grid-col={gridCol}
               tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
               className="ai-focus-ring"
-              aria-label={strings.loadingRows}
+              {...(colIndex === 0 ? { 'aria-label': strings.loadingRows } : {})}
               style={{
                 padding: 'var(--ai-table-cell-padding, var(--ai-padding-sm, 0.5rem 1rem))',
                 overflow: 'hidden',
