@@ -332,6 +332,21 @@ describe('ThemeEditor', () => {
     expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
   });
 
+  it('the Drawer top inset slider speaks rem, matching its visible readout, not the raw quarter-rem step count', () => {
+    const slice = globalThemeSliceRegistry.getAll().find(x => x.id === 'drawer')!;
+    renderEditor();
+    fireEvent.click(screen.getByText(slice.category, { exact: false }));
+    fireEvent.click(screen.getByText(slice.name));
+    const section = screen.getByTestId('accordion-content-drawer');
+    const slider = within(section).getByRole('slider', { name: 'Drawer top inset' });
+    const spoken = (el: HTMLElement) => `${Number(el.getAttribute('aria-valuenow')) / 4}rem`;
+    expect(slider.getAttribute('aria-valuetext')).toBe(spoken(slider));
+    act(() => { slider.focus(); });
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(slider.getAttribute('aria-valuetext')).toBe(spoken(slider));
+    expect(slider.getAttribute('aria-valuetext')).toMatch(/rem$/);
+  });
+
   describe('regression coverage: the Global category\'s hand-written sections (not registry-driven, so outside the loop above)', () => {
     it('Appearance & Base Color sliders (Hue, Saturation, Brightness, Darken/Lighten Factor, Saturation Factor) all update on arrow-key interaction', () => {
       renderEditor();

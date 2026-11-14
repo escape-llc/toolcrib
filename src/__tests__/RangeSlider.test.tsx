@@ -17,6 +17,21 @@ describe('RangeSlider Component', () => {
     expect(upper).toHaveAttribute('aria-valuenow', '80');
   });
 
+  it('getAriaValueText sets aria-valuetext on each thumb from its value and index', () => {
+    render(<RangeSlider aria-label="Price" value={[20, 80]} onChange={vi.fn()} getAriaValueText={(v, i) => `${i === 0 ? 'from' : 'to'} $${v}`} />);
+    const [lower, upper] = screen.getAllByRole('slider');
+    expect(lower).toHaveAttribute('aria-valuetext', 'from $20');
+    expect(upper).toHaveAttribute('aria-valuetext', 'to $80');
+  });
+
+  it('without getAriaValueText, Base UI\'s own default aria-valuetext is left as is', () => {
+    render(<RangeSlider aria-label="Price" value={[20, 80]} onChange={vi.fn()} />);
+    const [lower, upper] = screen.getAllByRole('slider');
+    // Base UI speaks a two-thumb range itself ("20 start range"); nothing custom is added.
+    expect(lower).toHaveAttribute('aria-valuetext', '20 start range');
+    expect(upper).toHaveAttribute('aria-valuetext', '80 end range');
+  });
+
   it('defaults to the full [min, max] range when uncontrolled with no defaultValue', () => {
     render(<RangeSlider aria-label="Price" min={10} max={90} />);
     const [lower, upper] = screen.getAllByRole('slider');

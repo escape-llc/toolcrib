@@ -10,6 +10,20 @@ describe('Slider Component', () => {
     expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '40');
   });
 
+  it('getAriaValueText sets aria-valuetext on the thumb from the numeric value, and follows it as it moves', () => {
+    render(<Slider name="inset" defaultValue={8} min={0} max={24} getAriaValueText={v => `${v / 4}rem`} />);
+    const thumb = screen.getByRole('slider');
+    expect(thumb).toHaveAttribute('aria-valuetext', '2rem');
+    act(() => thumb.focus());
+    fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+    expect(thumb).toHaveAttribute('aria-valuetext', '2.25rem');
+  });
+
+  it('without getAriaValueText, no custom aria-valuetext is added', () => {
+    render(<Slider name="volume" value={40} onChange={vi.fn()} />);
+    expect(screen.getByRole('slider')).not.toHaveAttribute('aria-valuetext');
+  });
+
   it('regression: an uncontrolled Slider (defaultValue only, default commitOnRelease) actually moves via keyboard instead of staying pinned at defaultValue', () => {
     const onChange = vi.fn();
     render(<Slider name="volume" defaultValue={50} onChange={onChange} />);
