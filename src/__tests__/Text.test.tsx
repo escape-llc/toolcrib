@@ -37,7 +37,7 @@ describe('Text', () => {
     expect(el.style.fontSize).toBe('var(--ai-text-size-sm, 0.8125rem)');
     expect(el.style.color).toBe('var(--ai-text-secondary, #6b7280)');
     expect(el.style.fontWeight).toBe('var(--ai-font-weight-semibold, 600)');
-    expect(el.style.fontFamily).toContain('var(--ai-text-font-mono');
+    expect(el.style.fontFamily).toContain('var(--ai-font-family-mono');
   });
 
   it('colors text with a subtheme, which wins over tone', () => {
@@ -63,7 +63,7 @@ describe('Text', () => {
     render(<Text data-testid="t" size="md" overrides={{ scale: 'large' }}>x</Text>);
     const el = screen.getByTestId('t');
     expect(el.style.getPropertyValue('--ai-text-size-md')).toBe(getTextVariables({ scale: 'large' })['--ai-text-size-md']);
-    expect(el.style.getPropertyValue('--ai-text-font-mono')).toBe('');
+    expect(el.style.getPropertyValue('--ai-font-family-mono')).toBe('');
   });
 
   it('scales the whole ramp together', () => {

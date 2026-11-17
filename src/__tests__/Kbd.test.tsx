@@ -9,7 +9,7 @@ describe('Kbd', () => {
     render(<Kbd>Esc</Kbd>);
     const key = screen.getByText('Esc');
     expect(key.tagName).toBe('KBD');
-    expect(key.style.fontFamily).toContain('var(--ai-text-font-mono');
+    expect(key.style.fontFamily).toContain('var(--ai-font-family-mono');
     expect(key.style.borderWidth).toBe('0.0625rem 0.0625rem var(--ai-kbd-border-bottom-width, 0.125rem)');
   });
 

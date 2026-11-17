@@ -1266,6 +1266,9 @@ export const App: React.FC = () => {
           <Block background="surface" padding="md" radius="md" border>Surface + border</Block>
           <Block padding="md" radius="md" subtheme="success">Subtheme (soft)</Block>
           <Block padding="md" radius="md" subtheme="warning" appearance="solid">Subtheme (solid)</Block>
+          <Block padding="md" radius="sm" subtheme="info" edge>Status edge: info</Block>
+          <Block padding="md" radius="sm" subtheme="success" edge>Status edge: success</Block>
+          <Block padding="md" radius="sm" subtheme="error" edge border>Status edge + border: error</Block>
         </HStack>
       </VStack>
     ),
@@ -2831,6 +2834,7 @@ export const App: React.FC = () => {
           Multi-line text with the same sizes and theme slice as <code>Input</code>, so the two line up in one form.
         </Text>
         <Textarea aria-label="Release notes" placeholder="What changed in this release?" rows={4} />
+        <Textarea aria-label="Payload (JSON)" font="mono" rows={3} defaultValue={'{ "id": 42, "status": "shipped" }'} />
         <Grid columns={2} gap="md">
           <Textarea aria-label="Small note" size="sm" placeholder={'size="sm"'} />
           <Textarea aria-label="Large note" size="lg" placeholder={'size="lg"'} />

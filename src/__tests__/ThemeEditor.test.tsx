@@ -420,7 +420,8 @@ describe('ThemeEditor', () => {
       renderEditor();
       fireEvent.click(screen.getByText(/Typography \(Font Family, Size & Line Height\)/));
 
-      const combo = screen.getByRole('combobox');
+      // Two selects live in this section (font family + monospace font).
+      const [combo, monoCombo] = screen.getAllByRole('combobox');
       fireEvent.click(combo);
       const listbox = screen.getByRole('listbox');
       const options = within(listbox).getAllByRole('option');
@@ -428,6 +429,13 @@ describe('ThemeEditor', () => {
       const targetLabel = target.textContent ?? '';
       fireEvent.click(target);
       expect(combo.textContent).toContain(targetLabel);
+
+      fireEvent.click(monoCombo);
+      const monoOptions = within(screen.getByRole('listbox')).getAllByRole('option');
+      const monoTarget = monoOptions.find(opt => opt.getAttribute('aria-selected') !== 'true')!;
+      const monoLabel = monoTarget.textContent ?? '';
+      fireEvent.click(monoTarget);
+      expect(monoCombo.textContent).toContain(monoLabel);
 
       // commitOnRelease Sliders fire onValueCommit (not onValueChange) — a
       // discrete keyboard step still counts as a full press+release, unlike

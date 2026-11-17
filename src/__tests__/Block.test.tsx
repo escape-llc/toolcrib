@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Block } from '../components/Layout/Block';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
@@ -17,7 +17,8 @@ describe('Block', () => {
     expect(block.style.background).toBe('transparent');
     expect(block.style.padding).toBe('');
     expect(block.style.borderRadius).toBe('');
-    expect(block.style.border).toBe('');
+    expect(block.style.borderTopWidth).toBe('');
+    expect(block.style.borderInlineStartWidth).toBe('');
   });
 
   const BACKGROUND_TOKENS = {
@@ -40,7 +41,11 @@ describe('Block', () => {
 
   it('only renders a border when border is true', () => {
     render(<Block data-testid="block" border>x</Block>);
-    expect(screen.getByTestId('block').style.border).toBe('0.0625rem solid var(--ai-border, #e5e7eb)');
+    const block = screen.getByTestId('block');
+    expect(block.style.borderTopWidth).toBe('0.0625rem');
+    expect(block.style.borderInlineStartWidth).toBe('0.0625rem');
+    expect(block.style.borderTopStyle).toBe('solid');
+    expect(block.style.borderTopColor).toBe('var(--ai-border, #e5e7eb)');
   });
 
   // Issue #647: Block used to be the one exception to "no toolcrib component
@@ -68,7 +73,9 @@ describe('Block', () => {
     const block = screen.getByTestId('block');
     expect(block.style.background).toBe('var(--ai-subtheme-success-bg)');
     expect(block.style.color).toBe('var(--ai-subtheme-success-text)');
-    expect(block.style.border).toBe('0.0625rem solid var(--ai-subtheme-success-border)');
+    expect(block.style.borderTopWidth).toBe('0.0625rem');
+    expect(block.style.borderTopColor).toBe('var(--ai-subtheme-success-border)');
+    expect(block.style.borderInlineStartColor).toBe('var(--ai-subtheme-success-border)');
   });
 
   it('does not color a border that was never requested, even with a subtheme resolved', () => {
@@ -77,7 +84,52 @@ describe('Block', () => {
         x
       </Block>
     );
-    expect(screen.getByTestId('block').style.border).toBe('');
+    const block = screen.getByTestId('block');
+    expect(block.style.borderTopWidth).toBe('');
+    expect(block.style.borderInlineStartWidth).toBe('');
+  });
+
+  describe('edge', () => {
+    it('with a subtheme draws a thick inline-start edge in the subtheme colour, other sides none', () => {
+      render(<Block data-testid="block" subtheme="warning" edge>x</Block>);
+      const block = screen.getByTestId('block');
+      expect(block.style.borderInlineStartWidth).toBe('0.25rem');
+      expect(block.style.borderInlineStartStyle).toBe('solid');
+      expect(block.style.borderInlineStartColor).toBe('var(--ai-subtheme-warning-border)');
+      expect(block.style.borderTopWidth).toBe('0px');
+      expect(block.style.borderInlineEndWidth).toBe('0px');
+    });
+
+    it('with border: the start side is the thick edge, the other sides stay hairline', () => {
+      render(<Block data-testid="block" subtheme="error" edge border>x</Block>);
+      const block = screen.getByTestId('block');
+      expect(block.style.borderInlineStartWidth).toBe('0.25rem');
+      expect(block.style.borderTopWidth).toBe('0.0625rem');
+      expect(block.style.borderBottomWidth).toBe('0.0625rem');
+      expect(block.style.borderInlineEndWidth).toBe('0.0625rem');
+      expect(block.style.borderTopColor).toBe('var(--ai-subtheme-error-border)');
+    });
+
+    it('without a resolved subtheme draws nothing', () => {
+      render(<Block data-testid="block" edge>x</Block>);
+      const block = screen.getByTestId('block');
+      expect(block.style.borderInlineStartWidth).toBe('');
+      expect(block.style.borderTopWidth).toBe('');
+    });
+
+    it('toggling edge and border across rerenders logs no React style warning', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const { rerender } = render(<Block data-testid="block" subtheme="info" border>x</Block>);
+        rerender(<Block data-testid="block" subtheme="info" border edge>x</Block>);
+        rerender(<Block data-testid="block" subtheme="info" edge>x</Block>);
+        rerender(<Block data-testid="block" subtheme="info">x</Block>);
+        rerender(<Block data-testid="block" subtheme="info" border>x</Block>);
+        expect(errorSpy).not.toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
   });
 
   it('falls back to the nearest StyleDomainProvider subtheme when no instance subtheme is set', () => {

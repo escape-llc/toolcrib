@@ -63,6 +63,11 @@
           "default": "false",
           "description": "Themed hairline border."
         },
+        "edge": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Status edge: a thick (0.25rem) inline-start border in the subtheme's border colour, for callouts. Ignored unless a subtheme resolves. Works with or without `border`; with it, the other sides stay hairline."
+        },
         "subtheme": {
           "type": "'error' | 'success' | 'warning' | 'info'",
           "description": "Apply a subtheme colour to background/border/text. Falls back to the nearest `<StyleDomainProvider>`'s if omitted. Wins over `background` when resolved; only colors the border if `border` is also set."

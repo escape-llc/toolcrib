@@ -757,6 +757,11 @@
           "type": "boolean",
           "default": "true",
           "description": "For `type=\"password\"`: show an eye toggle that reveals the typed value.\nThe toggle keeps a fixed accessible name (locale `input.showPassword`)\nand reports its state via `aria-pressed`. Ignored for other types."
+        },
+        "font": {
+          "type": "'sans' | 'mono'",
+          "default": "'sans'",
+          "description": "Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for identifiers, codes and similar; `'sans'` leaves the control's usual font."
         }
       },
       "states": [
@@ -1691,6 +1696,11 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "font": {
+          "type": "'sans' | 'mono'",
+          "default": "'sans'",
+          "description": "Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for JSON, code and similar; `'sans'` leaves the control's usual font."
         }
       },
       "states": [

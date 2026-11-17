@@ -75,7 +75,7 @@ import { type TreeSliceState, type TreeIndent, type TreeItemGap } from '../Tree/
 import { type TooltipSliceState, type TooltipTheme, type TooltipSize } from '../Tooltip/TooltipSlice';
 import { type AnimationSliceState, type AnimationPreset } from '../../theme/animation';
 import { type LivingColorSliceState, type LivingColorEnabled } from '../../theme/livingColor';
-import { type TypographySliceState, type FontFamilyPreset } from '../../theme/typography';
+import { type TypographySliceState, type FontFamilyPreset, type MonoFamilyPreset } from '../../theme/typography';
 import { DENSITY_ROW_HEIGHT_PX } from '../DataTable/DataTableSlice';
 
 /** The VuMeter slice's control: a labelled slider, the label tied to the slider by id like FieldRow does for its select. */
@@ -1150,6 +1150,18 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               { label: 'System (Inter / system-ui)', value: 'system' },
               { label: 'Serif (Georgia / Times)', value: 'serif' },
               { label: 'Monospace (SF Mono / Consolas)', value: 'monospace' },
+            ]}
+          />
+          <FieldRow
+            label="Monospace Font"
+            tooltip="Sets --ai-font-family-mono, read by <Text mono>, <Kbd>, <VuMeter> and font='mono' on <Input>/<Textarea>"
+            value={state.monoFamily ?? 'system'}
+            onChange={val => onChange({ ...state, monoFamily: val as MonoFamilyPreset })}
+            options={[
+              { label: 'System (ui-monospace / SF Mono)', value: 'system' },
+              { label: 'Cascadia Code', value: 'cascadia' },
+              { label: 'Fira Code', value: 'fira' },
+              { label: 'Courier New', value: 'courier' },
             ]}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

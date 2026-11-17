@@ -15,6 +15,7 @@ import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { ChoiceSeparator } from '../shared/ChoiceSeparator';
+import { type StyleFree } from '../../theme/safeProps';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
 export interface ToggleProps {
@@ -159,7 +160,8 @@ export interface ToggleGroupOption {
  * combination, like a set of independent toggles that happen to share a
  * connected visual border.
  */
-export interface ToggleGroupProps {
+export interface ToggleGroupProps
+  extends StyleFree<Omit<React.HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange' | 'children' | 'aria-label'>> {
   /** Included in the emitted `togglegroup:changed` event payload. */
   name?: string;
   /**
@@ -222,6 +224,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   size = 'md',
   squareCorners,
   'aria-label': ariaLabel,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const seed = defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : '';
@@ -287,6 +290,9 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
       multiple={!isSingle}
       value={groupValue}
       onValueChange={v => handleValueChange(v as string[])}
+      // Consumer pass-through (data-*, id, aria-describedby, ...) goes first
+      // so every computed value below wins over a same-named consumer prop.
+      {...rest}
       disabled={disabled}
       // Only set in single mode: an explicit `role={undefined}` would erase
       // Base UI's own role="group" for a multiple group.

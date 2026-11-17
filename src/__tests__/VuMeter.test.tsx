@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { VuMeter } from '../components/VuMeter/VuMeter';
+import { FONT_MONO_FALLBACK } from '../theme/typography';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
 import { getVuMeterVariables, VUMETER_THICKNESS_MAX, VUMETER_THICKNESS_MIN } from '../components/VuMeter/VuMeterSlice';
 
@@ -97,9 +98,9 @@ describe('VuMeter motion, font and slice plumbing', () => {
     }
   });
 
-  it('reads the readout font from the Text slice variable', () => {
+  it('reads the readout font from the Typography slice mono variable', () => {
     const { container } = render(<VuMeter label="L" level={0.5} value="1" />);
-    expect(part(container, 'num')!.style.fontFamily).toBe('var(--ai-text-font-mono, monospace)');
+    expect(part(container, 'num')!.style.fontFamily).toBe(`var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})`);
   });
 
   it('resolves its slice through useSliceOverrides, so a style domain does not break it', () => {

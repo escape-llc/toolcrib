@@ -4,7 +4,8 @@ import React, { type AriaAttributes, type ReactNode } from 'react';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { resolveColorVariant, type ColorVariant } from '../../theme/colorVariant';
-import { TextThemeSlice, TEXT_SIZE_FALLBACK, TEXT_MONO_FALLBACK, type TextSize, type TextSliceState } from './TextSlice';
+import { FONT_MONO_FALLBACK } from '../../theme/typography';
+import { TextThemeSlice, TEXT_SIZE_FALLBACK, type TextSize, type TextSliceState } from './TextSlice';
 
 /**
  * The elements `<Text>` can render. Deliberately closed: text-level
@@ -95,7 +96,7 @@ export const Text: React.FC<TextProps> = ({
         ...(size ? { fontSize: `var(--ai-text-size-${size}, ${TEXT_SIZE_FALLBACK[size]})` } : {}),
         ...(color ? { color } : {}),
         ...(weight ? { fontWeight: WEIGHT_VAR[weight] } : {}),
-        ...(mono ? { fontFamily: `var(--ai-text-font-mono, ${TEXT_MONO_FALLBACK})` } : {}),
+        ...(mono ? { fontFamily: `var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})` } : {}),
         ...vars,
       }}
     >
