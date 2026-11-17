@@ -2,7 +2,7 @@
 
 import React, { type AriaAttributes, type CSSProperties, type ReactNode } from 'react';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { TEXT_MONO_FALLBACK } from '../Text/TextSlice';
+import { FONT_MONO_FALLBACK } from '../../theme/typography';
 import { KbdThemeSlice, type KbdSliceState } from './KbdSlice';
 
 /** @barrelExport */
@@ -40,7 +40,7 @@ function keyCapStyle(size: KbdSize): CSSProperties {
     boxSizing: 'border-box',
     minWidth: '1.6em',
     padding: '0.0625rem 0.375rem',
-    fontFamily: `var(--ai-text-font-mono, ${TEXT_MONO_FALLBACK})`,
+    fontFamily: `var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})`,
     fontSize: FONT_SIZE[size],
     lineHeight: 1.4,
     textAlign: 'center',

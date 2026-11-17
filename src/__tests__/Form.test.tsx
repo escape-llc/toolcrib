@@ -1275,3 +1275,45 @@ describe('Form controls forward refs and share one boolean onChange (issue #759)
     expect(onSwitch).toHaveBeenCalledWith(true);
   });
 });
+
+describe('font prop on Input and Textarea (issue #969)', () => {
+  it('Input font="mono" sets the monospace token, in plain and grouped layouts', () => {
+    render(
+      <>
+        <Input aria-label="plain" font="mono" />
+        <Input aria-label="grouped" font="mono" leadingSection="$" />
+      </>
+    );
+    expect(screen.getByLabelText('plain').style.fontFamily).toContain('var(--ai-font-family-mono');
+    expect(screen.getByLabelText('grouped').style.fontFamily).toContain('var(--ai-font-family-mono');
+  });
+
+  it('Input font="sans" (default) emits no fontFamily', () => {
+    render(
+      <>
+        <Input aria-label="default" />
+        <Input aria-label="sans" font="sans" />
+      </>
+    );
+    expect(screen.getByLabelText('default').style.fontFamily).toBe('');
+    expect(screen.getByLabelText('sans').style.fontFamily).toBe('');
+  });
+
+  it('Textarea font="mono" sets the monospace token; default keeps inherit', () => {
+    render(
+      <>
+        <Textarea aria-label="mono" font="mono" />
+        <Textarea aria-label="default" />
+        <Textarea aria-label="sans" font="sans" />
+      </>
+    );
+    expect(screen.getByLabelText('mono').style.fontFamily).toContain('var(--ai-font-family-mono');
+    expect(screen.getByLabelText('default').style.fontFamily).toBe('inherit');
+    expect(screen.getByLabelText('sans').style.fontFamily).toBe('inherit');
+  });
+
+  it('does not leak the font prop onto the DOM element', () => {
+    render(<Input aria-label="x" font="mono" />);
+    expect(screen.getByLabelText('x')).not.toHaveAttribute('font');
+  });
+});

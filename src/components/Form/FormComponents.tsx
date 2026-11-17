@@ -13,6 +13,10 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { ICON_WRAPPER_STYLE } from '../../theme/iconWrapperStyle';
+import { FONT_MONO_FALLBACK } from '../../theme/typography';
+
+/** `font="mono"` on `<Input>`/`<Textarea>`: the theme's monospace token. */
+const MONO_FONT_FAMILY = `var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})`;
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
@@ -553,6 +557,8 @@ export interface InputProps extends StyleFree<Omit<InputHTMLAttributes<HTMLInput
    * @default true
    */
   revealable?: boolean;
+  /** Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for identifiers, codes and similar; `'sans'` leaves the control's usual font. @default 'sans' */
+  font?: 'sans' | 'mono';
 }
 
 /** Wraps a string/number section in muted affix text; passes any other node through. */
@@ -574,7 +580,7 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"
 // forwardRef (#759), like every Form control: a consumer needs the element to
 // focus it, e.g. the first invalid field after a failed submit. React 18 is
 // still in the peer range, so `ref` can't just be a prop.
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, ...props }, ref) => {
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, font = 'sans', ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -682,6 +688,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   };
   const borderStyle = `var(--ai-input-border-width, 0.0625rem) solid ${isError ? INVALID_COLOR : 'var(--ai-border, #d1d5db)'}`;
   const basePadding = resolveControlPadding(size, 'var(--ai-input-padding, 0.5rem 0.75rem)');
+  // 'sans' emits no fontFamily at all, so today's font is untouched.
+  const fontStyle: React.CSSProperties = font === 'mono' ? { fontFamily: MONO_FONT_FAMILY } : {};
 
   const inputElement = (
     <input
@@ -723,6 +731,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
         fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
+        ...fontStyle,
         ...inputVars,
       } : {
         width: '100%',
@@ -745,6 +754,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
         // (interactionStyles.ts) already covers border-color and
         // box-shadow and is !important, so this would be silently
         // discarded outright, not just redundant (issue #411).
+        ...fontStyle,
         ...inputVars,
       }}
     />
@@ -1153,6 +1163,8 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
   overrides?: Partial<InputSliceState> & { subtheme?: SubthemeName };
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /** Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for JSON, code and similar; `'sans'` leaves the control's usual font. @default 'sans' */
+  font?: 'sans' | 'mono';
 }
 
 /**
@@ -1161,7 +1173,7 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
  * @manifestStates default, focused, disabled, invalid, read-only
  * @manifestGuarantees form-contract
  */
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', ...props }, ref) => {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', font = 'sans', ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1217,7 +1229,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
         fontSize: CONTROL_FONT_SIZE_VAR[size],
         outline: 'none',
         boxSizing: 'border-box',
-        fontFamily: 'inherit',
+        fontFamily: font === 'mono' ? MONO_FONT_FAMILY : 'inherit',
         resize: 'vertical',
         ...textareaVars,
       }}

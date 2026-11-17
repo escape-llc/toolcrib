@@ -22,7 +22,6 @@ export interface TextCSSVariables extends Record<string, string> {
   '--ai-text-size-md': string;
   '--ai-text-size-lg': string;
   '--ai-text-size-xl': string;
-  '--ai-text-font-mono': string;
 }
 
 export const defaultTextState: TextSliceState = {
@@ -36,8 +35,6 @@ export const defaultTextState: TextSliceState = {
 const SIZE_REM: Record<TextSize, number> = { xs: 0.75, sm: 0.8125, md: 0.875, lg: 1, xl: 1.125 };
 const SCALE_FACTOR: Record<TextScale, number> = { compact: 0.9, normal: 1, large: 1.125 };
 
-const MONO_FAMILY = '"SF Mono", "Cascadia Code", "Fira Code", Consolas, "Courier New", monospace';
-
 export function getTextVariables(state: TextSliceState = defaultTextState): TextCSSVariables {
   const factor = SCALE_FACTOR[state.scale] ?? 1;
   const size = (s: TextSize) => `${+(SIZE_REM[s] * factor).toFixed(4)}rem`;
@@ -47,7 +44,6 @@ export function getTextVariables(state: TextSliceState = defaultTextState): Text
     '--ai-text-size-md': size('md'),
     '--ai-text-size-lg': size('lg'),
     '--ai-text-size-xl': size('xl'),
-    '--ai-text-font-mono': MONO_FAMILY,
   };
 }
 
@@ -59,8 +55,6 @@ export const TEXT_SIZE_FALLBACK: Record<TextSize, string> = {
   lg: `${SIZE_REM.lg}rem`,
   xl: `${SIZE_REM.xl}rem`,
 };
-
-export const TEXT_MONO_FALLBACK = MONO_FAMILY;
 
 export const TextThemeSlice: ThemeSlice<TextSliceState, TextCSSVariables> = {
   id: 'text',

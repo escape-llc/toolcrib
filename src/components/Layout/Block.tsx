@@ -45,11 +45,19 @@ export interface BlockProps extends StyleFreeAttributes<HTMLDivElement> {
   cornerRadiusMode?: CornerRadiusMode;
   /** Themed hairline border. @default false */
   border?: boolean;
+  /**
+   * Status edge: a thick (0.25rem) inline-start border in the subtheme's border colour, for callouts. Ignored unless a subtheme resolves. Works with or without `border`; with it, the other sides stay hairline.
+   * @default false
+   */
+  edge?: boolean;
   /** Apply a subtheme colour to background/border/text. Falls back to the nearest `<StyleDomainProvider>`'s if omitted. Wins over `background` when resolved; only colors the border if `border` is also set. */
   subtheme?: SubthemeName;
   /** Visual treatment for `subtheme`'s color. Ignored unless a subtheme resolves. @default 'soft' */
   appearance?: Appearance;
 }
+
+const BORDER_HAIRLINE = '0.0625rem';
+const BORDER_EDGE = '0.25rem';
 
 const BACKGROUND_VAR: Record<BlockBackground, string> = {
   surface: 'var(--ai-bg-surface, #ffffff)',
@@ -70,6 +78,7 @@ export const Block: React.FC<BlockProps> = ({
   radius = 'none',
   cornerRadiusMode,
   border = false,
+  edge = false,
   subtheme: instanceSubtheme,
   appearance = 'soft',
   children,
@@ -77,6 +86,30 @@ export const Block: React.FC<BlockProps> = ({
 }) => {
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveColorVariant({ subtheme, appearance }) : null;
+  // `edge` is ignored without a resolved subtheme, same rule as the subtheme
+  // colouring of `border`.
+  const edgeActive = edge && subthemeColors !== null;
+  const borderColor = subthemeColors?.border ?? 'var(--ai-border, #e5e7eb)';
+  // Longhands only, never the `border` shorthand: toggling `edge`/`border`
+  // across renders must not mix a shorthand with a sometimes-present
+  // longhand (React warns "Removing a style property during rerender").
+  const borderStyles: React.CSSProperties =
+    border || edgeActive
+      ? {
+          borderTopWidth: border ? BORDER_HAIRLINE : 0,
+          borderBottomWidth: border ? BORDER_HAIRLINE : 0,
+          borderInlineEndWidth: border ? BORDER_HAIRLINE : 0,
+          borderInlineStartWidth: edgeActive ? BORDER_EDGE : border ? BORDER_HAIRLINE : 0,
+          borderTopStyle: 'solid',
+          borderBottomStyle: 'solid',
+          borderInlineEndStyle: 'solid',
+          borderInlineStartStyle: 'solid',
+          borderTopColor: borderColor,
+          borderBottomColor: borderColor,
+          borderInlineEndColor: borderColor,
+          borderInlineStartColor: borderColor,
+        }
+      : {};
 
   return (
     <div
@@ -87,7 +120,7 @@ export const Block: React.FC<BlockProps> = ({
         color: subthemeColors?.color ?? 'var(--ai-text-primary, #111827)',
         ...(padding !== 'none' ? { padding: resolvePadding(paddingMode, padding) } : {}),
         ...(radius !== 'none' ? { borderRadius: resolveRadius(cornerRadiusMode, radius) } : {}),
-        ...(border ? { border: `0.0625rem solid ${subthemeColors?.border ?? 'var(--ai-border, #e5e7eb)'}` } : {}),
+        ...borderStyles,
       }}
     >
       {children}

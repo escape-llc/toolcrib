@@ -255,4 +255,39 @@ describe('ToggleGroup Component', () => {
 
     unsub();
   });
+
+  it('passes data-*, id and aria-describedby through to the group root', () => {
+    render(
+      <ToggleGroup
+        aria-label="Align"
+        options={options}
+        id="align-group"
+        data-testid="tg-root"
+        data-analytics="align"
+        aria-describedby="align-help"
+      />,
+    );
+    const root = screen.getByRole('radiogroup');
+    expect(root).toHaveAttribute('id', 'align-group');
+    expect(root).toHaveAttribute('data-testid', 'tg-root');
+    expect(root).toHaveAttribute('data-analytics', 'align');
+    expect(root).toHaveAttribute('aria-describedby', 'align-help');
+  });
+
+  it('regression: a consumer-passed role and aria-labelledby do not override the computed ones', () => {
+    render(
+      <>
+        <span id="outside">Outside</span>
+        <Form schema={z.object({ align: z.string() })} onSubmit={() => {}}>
+          <FormField name="align" label="Align">
+            <ToggleGroup type="single" options={options} role="toolbar" aria-labelledby="outside" />
+          </FormField>
+        </Form>
+      </>,
+    );
+    const root = screen.getByRole('radiogroup');
+    expect(root).toHaveAttribute('role', 'radiogroup');
+    expect(root.getAttribute('aria-labelledby')).not.toBe('outside');
+    expect(root.getAttribute('aria-labelledby')).toBeTruthy();
+  });
 });

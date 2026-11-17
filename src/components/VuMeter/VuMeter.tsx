@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { VuMeterThemeSlice, type VuMeterSliceState } from './VuMeterSlice';
+import { FONT_MONO_FALLBACK } from '../../theme/typography';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
@@ -241,7 +242,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
         <span
           data-vumeter-part="num"
           style={{
-            fontFamily: sm ? 'inherit' : 'var(--ai-text-font-mono, monospace)',
+            fontFamily: sm ? 'inherit' : `var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})`,
             fontSize: sm ? '0.6rem' : undefined,
             fontVariantNumeric: 'tabular-nums',
             minWidth: sm ? '3rem' : '4.5rem',

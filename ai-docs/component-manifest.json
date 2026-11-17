@@ -100,6 +100,7 @@
       "--ai-focus-ring-offset",
       "--ai-focus-ring-width",
       "--ai-font-family",
+      "--ai-font-family-mono",
       "--ai-font-weight-black",
       "--ai-font-weight-bold",
       "--ai-font-weight-medium",
@@ -213,7 +214,6 @@
       "--ai-table-header-padding",
       "--ai-table-row-height",
       "--ai-table-stripe-bg",
-      "--ai-text-font-mono",
       "--ai-text-primary",
       "--ai-text-secondary",
       "--ai-text-size-lg",
@@ -1263,6 +1263,11 @@
           "type": "boolean",
           "default": "false",
           "description": "Themed hairline border."
+        },
+        "edge": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Status edge: a thick (0.25rem) inline-start border in the subtheme's border colour, for callouts. Ignored unless a subtheme resolves. Works with or without `border`; with it, the other sides stay hairline."
         },
         "subtheme": {
           "type": "'error' | 'success' | 'warning' | 'info'",
@@ -2920,6 +2925,11 @@
           "type": "boolean",
           "default": "true",
           "description": "For `type=\"password\"`: show an eye toggle that reveals the typed value.\nThe toggle keeps a fixed accessible name (locale `input.showPassword`)\nand reports its state via `aria-pressed`. Ignored for other types."
+        },
+        "font": {
+          "type": "'sans' | 'mono'",
+          "default": "'sans'",
+          "description": "Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for identifiers, codes and similar; `'sans'` leaves the control's usual font."
         }
       },
       "states": [
@@ -4651,6 +4661,11 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "font": {
+          "type": "'sans' | 'mono'",
+          "default": "'sans'",
+          "description": "Typeface. `'mono'` uses the theme's monospace token (`--ai-font-family-mono`), for JSON, code and similar; `'sans'` leaves the control's usual font."
         }
       },
       "states": [
