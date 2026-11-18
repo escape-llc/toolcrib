@@ -49,5 +49,8 @@ describe('scripts/build-engine.js', () => {
     // pass here is itself the assertion.
     const output = run('node scripts/build-engine.js check docs');
     expect(output).toContain('docs: ok');
-  });
+    // A full docs generation (the whole TypeScript-Compiler-API extraction),
+    // not a lookup: it ran past vitest's 5s default under a loaded CI runner,
+    // on main and on Dependabot PRs alike (#975).
+  }, 60_000);
 });
