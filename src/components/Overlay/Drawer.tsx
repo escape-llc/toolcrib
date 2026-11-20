@@ -14,6 +14,7 @@ import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useLocaleStrings } from '../Locale/LocaleContext';
+import { VIEWPORT_EDGES, VIEWPORT_INSET } from '../../theme/viewport';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
 
 const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
@@ -111,16 +112,21 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   const getPositionStyles = (): React.CSSProperties => {
     const r = 'var(--ai-radius-lg, 0.75rem)';
+    // Every edge is offset by the viewport inset (an app's own title bar, a
+    // device safe area), so the panel never covers it; sizes derive from the
+    // insets rather than 100vh/100vw.
+    const maxWidth = `calc(100vw - ${VIEWPORT_INSET.left} - ${VIEWPORT_INSET.right})`;
+    const maxHeight = `calc(100vh - ${VIEWPORT_INSET.top} - ${VIEWPORT_INSET.bottom})`;
     switch (position) {
       case 'left':
-        return { top: 'var(--ai-drawer-inset-top, 0rem)', left: 0, bottom: 0, width: resolvedWidth, height: 'calc(100vh - var(--ai-drawer-inset-top, 0rem))', borderTopRightRadius: r, borderBottomRightRadius: r };
+        return { top: VIEWPORT_INSET.top, left: VIEWPORT_INSET.left, bottom: VIEWPORT_INSET.bottom, width: resolvedWidth, maxWidth, borderTopRightRadius: r, borderBottomRightRadius: r };
       case 'top':
-        return { top: 'var(--ai-drawer-inset-top, 0rem)', left: 0, right: 0, height: '20rem', width: '100vw', borderBottomLeftRadius: r, borderBottomRightRadius: r };
+        return { top: VIEWPORT_INSET.top, left: VIEWPORT_INSET.left, right: VIEWPORT_INSET.right, height: '20rem', maxHeight, borderBottomLeftRadius: r, borderBottomRightRadius: r };
       case 'bottom':
-        return { bottom: 0, left: 0, right: 0, height: '20rem', width: '100vw', borderTopLeftRadius: r, borderTopRightRadius: r };
+        return { bottom: VIEWPORT_INSET.bottom, left: VIEWPORT_INSET.left, right: VIEWPORT_INSET.right, height: '20rem', maxHeight, borderTopLeftRadius: r, borderTopRightRadius: r };
       case 'right':
       default:
-        return { top: 'var(--ai-drawer-inset-top, 0rem)', right: 0, bottom: 0, width: resolvedWidth, height: 'calc(100vh - var(--ai-drawer-inset-top, 0rem))', borderTopLeftRadius: r, borderBottomLeftRadius: r };
+        return { top: VIEWPORT_INSET.top, right: VIEWPORT_INSET.right, bottom: VIEWPORT_INSET.bottom, width: resolvedWidth, maxWidth, borderTopLeftRadius: r, borderBottomLeftRadius: r };
     }
   };
 
@@ -137,9 +143,8 @@ export const Drawer: React.FC<DrawerProps> = ({
             className="ai-drawer-backdrop"
             style={{
               position: 'fixed',
-              inset: 0,
-              // An app with its own title bar (an Electron window) sets this so overlays leave it uncovered and usable.
-              top: 'var(--ai-drawer-inset-top, 0rem)',
+              // Inside the viewport inset, so an app's own title bar stays uncovered and usable.
+              ...VIEWPORT_EDGES,
               zIndex,
               background: 'rgba(0, 0, 0, 0.4)',
               backdropFilter: 'blur(var(--ai-drawer-backdrop-blur, 0.125rem))',

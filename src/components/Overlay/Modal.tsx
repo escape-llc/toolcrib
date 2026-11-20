@@ -16,6 +16,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
 import { ModalThemeSlice, type ModalSliceState } from './ModalSlice';
+import { VIEWPORT_EDGES, VIEWPORT_INSET } from '../../theme/viewport';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
 import { useNonce } from '../../theme/nonceContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
@@ -167,7 +168,7 @@ export const Modal: React.FC<ModalProps> & {
             className="ai-modal-overlay"
             style={{
               position: 'fixed',
-              inset: 0,
+              ...VIEWPORT_EDGES,
               zIndex,
               background: 'var(--ai-modal-overlay-bg, rgba(0, 0, 0, 0.5))',
               backdropFilter: 'blur(var(--ai-modal-backdrop-blur, 0.1875rem))',
@@ -177,13 +178,13 @@ export const Modal: React.FC<ModalProps> & {
           <BaseDialog.Viewport
             style={{
               position: 'fixed',
-              inset: 0,
+              ...VIEWPORT_EDGES,
               zIndex,
               display: 'flex',
               alignItems: align === 'top' ? 'flex-start' : 'center',
               justifyContent: 'center',
               padding: 'var(--ai-padding-lg, 1.25rem)',
-              paddingTop: align === 'top' ? '10vh' : 'var(--ai-padding-lg, 1.25rem)',
+              paddingTop: align === 'top' ? `calc(10 * (100vh - ${VIEWPORT_INSET.top} - ${VIEWPORT_INSET.bottom}) / 100)` : 'var(--ai-padding-lg, 1.25rem)',
             }}
           >
             <BaseDialog.Popup
@@ -197,8 +198,8 @@ export const Modal: React.FC<ModalProps> & {
                 boxShadow: 'var(--ai-shadow-lg, 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3))',
                 width,
                 height,
-                maxWidth: '90vw',
-                maxHeight: '90vh',
+                maxWidth: `calc(90 * (100vw - ${VIEWPORT_INSET.left} - ${VIEWPORT_INSET.right}) / 100)`,
+                maxHeight: `calc(90 * (100vh - ${VIEWPORT_INSET.top} - ${VIEWPORT_INSET.bottom}) / 100)`,
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',

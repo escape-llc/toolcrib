@@ -371,35 +371,32 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     });
   });
 
-  describe('inset top (an app title bar stays uncovered)', () => {
-    const INSET = 'var(--ai-drawer-inset-top, 0rem)';
-    it.each(['left', 'right', 'top'] as const)('position="%s" panel starts below the inset', (position) => {
+  describe('viewport insets (an app title bar or safe area stays uncovered)', () => {
+    const inset = (side: string) => `var(--ai-viewport-inset-${side}, 0px)`;
+    it.each([
+      ['left', ['top', 'left', 'bottom'], ['right']],
+      ['right', ['top', 'right', 'bottom'], ['left']],
+      ['top', ['top', 'left', 'right'], ['bottom']],
+      ['bottom', ['bottom', 'left', 'right'], ['top']],
+    ] as const)('position="%s" panel is offset by the insets on its edges', (position, set, unset) => {
       render(
         <Drawer title="Inset Drawer" position={position} isOpen={true}>
           <div>Body</div>
         </Drawer>
       );
       const dialog = screen.getByRole('dialog');
-      expect(dialog.style.top).toBe(INSET);
-      if (position !== 'top') expect(dialog.style.height).toBe(`calc(100vh - ${INSET})`);
+      for (const side of set) expect(dialog.style[side]).toBe(inset(side));
+      for (const side of unset) expect(dialog.style[side]).toBe('');
     });
 
-    it('position="bottom" is unaffected', () => {
-      render(
-        <Drawer title="Bottom Drawer" position="bottom" isOpen={true}>
-          <div>Body</div>
-        </Drawer>
-      );
-      expect(screen.getByRole('dialog').style.top).toBe('');
-    });
-
-    it('the backdrop starts below the inset', () => {
+    it('the backdrop is inside all four insets', () => {
       render(
         <Drawer title="Backdrop Inset" isOpen={true}>
           <div>Body</div>
         </Drawer>
       );
-      expect(screen.getByTestId('drawer-backdrop').style.top).toBe(INSET);
+      const backdrop = screen.getByTestId('drawer-backdrop');
+      for (const side of ['top', 'right', 'bottom', 'left'] as const) expect(backdrop.style[side]).toBe(inset(side));
     });
   });
 

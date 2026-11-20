@@ -1698,7 +1698,7 @@ export const App: React.FC = () => {
         <Alert subtheme="info" action={<Button size="sm" variant="outline" onClick={() => aiBus.openDrawer('theme-editor-panel')}>Open the Theme Designer</Button>}>
           <Alert.Title>Hosted under a custom title bar?</Alert.Title>
           <Alert.Description>
-            In a frameless window, such as Electron with its own title bar, set the Drawer slice's Top Inset (<code>drawer.insetTop</code>, in rem) to the title bar's height. Drawers and their backdrop then open below it instead of underneath it.
+            In a frameless window, such as Electron with its own title bar, set the Viewport setting in the Theme Designer: Auto follows the title bar overlay and device safe areas, and its Top Inset sets a minimum for windows that report none (a fully custom frame can use Manual). Drawers, modals, toasts and anchored popups then stay below the title bar instead of underneath it. App code can read the result with <code>useViewportInsets()</code>.
           </Alert.Description>
         </Alert>
         <Drawer

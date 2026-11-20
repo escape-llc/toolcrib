@@ -91,7 +91,6 @@
       "--ai-drawer-easing",
       "--ai-drawer-header-border-radius",
       "--ai-drawer-header-margin",
-      "--ai-drawer-inset-top",
       "--ai-drawer-width",
       "--ai-dropdownmenu-item-padding",
       "--ai-dropdownmenu-shadow",
@@ -254,6 +253,10 @@
       "--ai-viewer-caption-bg",
       "--ai-viewer-caption-color",
       "--ai-viewer-nav-button-size",
+      "--ai-viewport-inset-bottom",
+      "--ai-viewport-inset-left",
+      "--ai-viewport-inset-right",
+      "--ai-viewport-inset-top",
       "--ai-vumeter-thickness"
     ],
     "slices": [
@@ -384,6 +387,10 @@
       {
         "id": "typography",
         "name": "🔤 Typography (Font Family, Size & Line Height)"
+      },
+      {
+        "id": "viewport",
+        "name": "🖥️ Viewport (Title Bar & Safe Areas)"
       },
       {
         "id": "tree",

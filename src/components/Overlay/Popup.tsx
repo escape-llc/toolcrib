@@ -21,7 +21,7 @@ import { type SubthemeName } from '../../theme/subtheme';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, renderAnchorWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { PopupThemeSlice, type PopupSliceState } from './PopupSlice';
-import { ANCHORED_POP, OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
+import { ANCHORED_POP, OverlayCSP, triggerRenderProps, useAnchoredBoundary, useOverlayAnimations, useOverlayLayer } from './baseui/overlayLayer';
 
 /** Determines which corner the popup content attaches to relative to the trigger. */
 export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -109,6 +109,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
   }
   const { vars: popupVars } = useSliceOverrides(PopupThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('DROPDOWN', zIndexProp);
+  const boundary = useAnchoredBoundary();
   useOverlayAnimations('toolcrib-popup-animations-baseui', [{ className: 'ai-popup-content', ...ANCHORED_POP }]);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -143,7 +144,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
       <BasePopover.Root open={isOpen} onOpenChange={open => handleOpenChange(open)}>
         {anchor ? renderedAnchor : renderedTrigger && <BasePopover.Trigger {...triggerRenderProps(renderedTrigger as ReactElement)} />}
         <BasePopover.Portal container={container}>
-          <BasePopover.Positioner side={side} align={align} sideOffset={squaring.sideOffset} anchor={anchor ? anchorRef : undefined} style={{ zIndex }}>
+          <BasePopover.Positioner {...boundary} side={side} align={align} sideOffset={squaring.sideOffset} anchor={anchor ? anchorRef : undefined} style={{ zIndex }}>
             {/* role="presentation": Popup is a generic non-modal container
                 (DatePicker's calendar, ThemeEditor's color picker, HoverCard,
                 Gallery), not an application dialog -- overriding the popup's

@@ -8,7 +8,7 @@
 import React, { type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
@@ -112,6 +112,7 @@ export const Select: React.FC<SelectProps> = ({
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
+  const boundary = useAnchoredBoundary();
   useOverlayAnimations('toolcrib-select-animations', [{ className: 'ai-select-popup', ...ANCHORED_POP }]);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
@@ -334,7 +335,7 @@ export const Select: React.FC<SelectProps> = ({
         </button>
 
         <BasePopover.Portal container={container}>
-          <BasePopover.Positioner anchor={triggerRef} side="bottom" align="start" sideOffset={4} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
+          <BasePopover.Positioner {...boundary} anchor={triggerRef} side="bottom" align="start" sideOffset={4} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             {/* selectVars again: the popup portals away from the trigger, and
                 CSS variables only inherit through the real DOM tree. */}
             <BasePopover.Popup

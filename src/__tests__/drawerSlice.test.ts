@@ -8,7 +8,6 @@ describe('DrawerThemeSlice Engine', () => {
       position: 'right',
       backdropBlur: 'subtle',
       headerMargin: 'none',
-      insetTop: 0,
     });
 
     expect(vars['--ai-drawer-width']).toBe('26rem');
@@ -23,7 +22,6 @@ describe('DrawerThemeSlice Engine', () => {
       position: 'left',
       backdropBlur: 'heavy',
       headerMargin: 'detached',
-      insetTop: 0,
     });
 
     expect(vars['--ai-drawer-width']).toBe('50vw');
@@ -32,20 +30,9 @@ describe('DrawerThemeSlice Engine', () => {
     expect(vars['--ai-drawer-header-border-radius']).toBe('var(--ai-radius-md, 0.375rem)');
   });
 
-  it('default state emits a 0rem inset top', () => {
-    expect(getDrawerVariables()['--ai-drawer-inset-top']).toBe('0rem');
-    expect(DrawerThemeSlice.defaultState.insetTop).toBe(0);
-  });
-
-  it('emits the configured inset top in rem, clamping invalid values to 0', () => {
-    const base = DrawerThemeSlice.defaultState;
-    expect(getDrawerVariables({ ...base, insetTop: 2.5 })['--ai-drawer-inset-top']).toBe('2.5rem');
-    expect(getDrawerVariables({ ...base, insetTop: -3 })['--ai-drawer-inset-top']).toBe('0rem');
-    expect(getDrawerVariables({ ...base, insetTop: NaN })['--ai-drawer-inset-top']).toBe('0rem');
-  });
-
-  it('declares fieldVars so a partial insetTop override emits only its own variable', () => {
-    expect(DrawerThemeSlice.fieldVars?.insetTop).toEqual(['--ai-drawer-inset-top']);
+  it('no longer owns an inset (the Viewport slice does)', () => {
+    expect(Object.keys(getDrawerVariables())).not.toContain('--ai-drawer-inset-top');
+    expect(DrawerThemeSlice.defaultState).not.toHaveProperty('insetTop');
   });
 
   it('exports correct ThemeSlice metadata', () => {

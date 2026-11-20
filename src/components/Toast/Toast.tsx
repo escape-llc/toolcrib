@@ -19,6 +19,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { useNonce } from '../../theme/nonceContext';
 import { resolveColorVariant } from '../../theme/colorVariant';
+import { VIEWPORT_INSET } from '../../theme/viewport';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { Spinner } from '../Spinner/Spinner';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
@@ -124,8 +125,17 @@ export const ToastContainer: React.FC = () => {
   if (openKey !== lastOpen.key) setLastOpen({ key: openKey, offsets: open });
   const offsetFor = (id: string, ending: boolean) => (ending ? frozen[id] ?? lastOpen.offsets.get(id) ?? 0 : open.get(id) ?? 0);
 
-  const vertical = anchor.startsWith('bottom') ? { bottom: 0 } : { top: 0 };
-  const horizontal = anchor.endsWith('left') ? { left: 0 } : anchor.endsWith('right') ? { right: 0 } : { left: '50%', transform: 'translateX(-50%)' };
+  // The viewport is offset by the viewport inset (an app's own title bar, a
+  // safe area) on the edge it's anchored to, and sized to the area inside the
+  // insets, so an anchored toast stays out of them.
+  const { top: insetTop, right: insetRight, bottom: insetBottom, left: insetLeft } = VIEWPORT_INSET;
+  const vertical = anchor.startsWith('bottom') ? { bottom: insetBottom } : { top: insetTop };
+  const horizontal = anchor.endsWith('left')
+    ? { left: insetLeft }
+    : anchor.endsWith('right')
+      ? { right: insetRight }
+      : { left: `calc(50% + (${insetLeft} - ${insetRight}) / 2)`, transform: 'translateX(-50%)' };
+  const size = { height: `calc(100vh - ${insetTop} - ${insetBottom})`, width: `calc(100% - ${insetLeft} - ${insetRight})` };
   const showing = oldestFirst.filter(t => t.transitionStatus !== 'ending').map(t => (t.data as ToastManagerData).item);
 
   return (
@@ -138,7 +148,7 @@ export const ToastContainer: React.FC = () => {
           // Announcements come from ToastAnnouncer, not the viewport.
           aria-live="off"
           className="ai-focus-ring"
-          style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, height: '100vh', width: '100%', padding: VIEWPORT_PADDING, boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...vertical, ...horizontal }}
+          style={{ position: 'fixed', zIndex: Z_INDEX.TOAST, padding: VIEWPORT_PADDING, boxSizing: 'border-box', pointerEvents: 'none', outline: 'none', ...size, ...vertical, ...horizontal }}
         >
           {oldestFirst.map(t => (
             <ToastView key={t.id} toast={t} anchor={anchor} stackOffset={offsetFor(t.id, t.transitionStatus === 'ending')} />
