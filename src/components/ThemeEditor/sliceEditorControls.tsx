@@ -76,6 +76,7 @@ import { type TooltipSliceState, type TooltipTheme, type TooltipSize } from '../
 import { type AnimationSliceState, type AnimationPreset } from '../../theme/animation';
 import { type LivingColorSliceState, type LivingColorEnabled } from '../../theme/livingColor';
 import { type TypographySliceState, type FontFamilyPreset, type MonoFamilyPreset } from '../../theme/typography';
+import { type ViewportSliceState, type ViewportMode } from '../../theme/viewport';
 import { DENSITY_ROW_HEIGHT_PX } from '../DataTable/DataTableSlice';
 
 /** The VuMeter slice's control: a labelled slider, the label tied to the slider by id like FieldRow does for its select. */
@@ -606,21 +607,41 @@ export const SLICE_EDITOR_CONTROLS: Record<string, (state: any, onChange: (next:
               { label: 'None (Solid Backdrop)', value: 'none' },
             ]}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
-              <span>Top Inset (keeps an app title bar uncovered)</span>
-              <span>{state.insetTop}rem</span>
-            </div>
-            <Slider
-              aria-label="Drawer top inset"
-              getAriaValueText={v => `${v / 4}rem`}
-              value={Math.round(state.insetTop * 4)}
-              min={0}
-              max={24}
-              step={1}
-              onChange={val => onChange({ ...state, insetTop: val / 4 })}
-            />
-          </div>
+        </div>
+  ),
+  viewport: (state: ViewportSliceState, onChange: (next: ViewportSliceState) => void) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <FieldRow
+            label="Viewport Insets"
+            tooltip="Keeps overlays and popups out of an app's own title bar or the device safe areas"
+            value={state.mode}
+            onChange={val => onChange({ ...state, mode: val as ViewportMode })}
+            options={[
+              { label: 'Auto (Title Bar Overlay & Safe Areas)', value: 'auto' },
+              { label: 'Manual (Set Each Edge)', value: 'manual' },
+              { label: 'None (Full Window)', value: 'none' },
+            ]}
+          />
+          {state.mode !== 'none' &&
+            (['top', 'right', 'bottom', 'left'] as const).map(edge => (
+              <div key={edge} style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+                  <span>
+                    {edge.charAt(0).toUpperCase() + edge.slice(1)} Inset{state.mode === 'auto' ? ' (minimum)' : ''}
+                  </span>
+                  <span>{state[edge]}rem</span>
+                </div>
+                <Slider
+                  aria-label={`Viewport ${edge} inset`}
+                  getAriaValueText={v => `${v / 4}rem`}
+                  value={Math.round(state[edge] * 4)}
+                  min={0}
+                  max={24}
+                  step={1}
+                  onChange={val => onChange({ ...state, [edge]: val / 4 })}
+                />
+              </div>
+            ))}
         </div>
   ),
   tab: (state: TabSliceState, onChange: (next: TabSliceState) => void) => (

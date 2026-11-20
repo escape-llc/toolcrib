@@ -13,7 +13,7 @@ import { useNonce } from '../../theme/nonceContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
-import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
 // #739: inside a <TooltipGroup>, a tooltip that opens (or closes) while the
 // group is warm carries [data-instant], and skips its pop animation, so
@@ -108,6 +108,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
 }, ref) => {
   const { vars } = useSliceOverrides(TooltipThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('TOOLTIP');
+  const boundary = useAnchoredBoundary();
   useOverlayArrowStyles();
   useOverlayAnimations('toolcrib-tooltip-animations-baseui', [
     { className: 'ai-tooltip-content', ...ANCHORED_POP, timing: 'var(--ai-transition-duration-fast, 120ms) var(--ai-transition-easing, ease)' },
@@ -155,7 +156,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
             (closeOnClick, on by default). */}
         <BaseTooltip.Trigger {...triggerProps} aria-describedby={describedBy} ref={ref as React.Ref<HTMLButtonElement>} render={trigger} delay={delayDuration} closeDelay={0} />
         <BaseTooltip.Portal container={container}>
-          <BaseTooltip.Positioner side={side} align={align} sideOffset={5} style={{ zIndex }}>
+          <BaseTooltip.Positioner {...boundary} side={side} align={align} sideOffset={5} style={{ zIndex }}>
             <BaseTooltip.Popup
               id={popupId}
               role="tooltip"

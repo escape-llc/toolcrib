@@ -16,6 +16,7 @@ export * from './theme/padding';
 export * from './theme/presetThemes';
 export * from './theme/radius';
 export * from './theme/responsive';
+export * from './theme/safeAreaBoundary';
 export * from './theme/safeProps';
 export * from './theme/serverThemeCSS';
 export * from './theme/shadow';
@@ -29,6 +30,7 @@ export * from './theme/themeLibrary';
 export * from './theme/themePersistence';
 export * from './theme/typography';
 export * from './theme/useSliceOverrides';
+export * from './theme/viewport';
 export * from './theme/zIndex';
 export * from './theme/zIndexStack';
 

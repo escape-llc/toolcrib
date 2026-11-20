@@ -10,7 +10,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice';
-import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
 const BORDER = 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e7eb))';
 
@@ -67,6 +67,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
 }) => {
   const { vars } = useSliceOverrides(HoverCardThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('TOOLTIP');
+  const boundary = useAnchoredBoundary();
   useOverlayArrowStyles();
   useOverlayAnimations('toolcrib-hovercard-animations-baseui', [{ className: 'ai-hovercard-content', ...ANCHORED_POP }]);
 
@@ -75,7 +76,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
       <PreviewCard.Root onOpenChange={open => aiBus.emit(open ? 'hovercard:shown' : 'hovercard:hidden', { id })}>
         <PreviewCard.Trigger render={children} delay={openDelay} closeDelay={closeDelay} />
         <PreviewCard.Portal container={container}>
-          <PreviewCard.Positioner side={side} align={align} sideOffset={8} style={{ zIndex }}>
+          <PreviewCard.Positioner {...boundary} side={side} align={align} sideOffset={8} style={{ zIndex }}>
             <PreviewCard.Popup
               className="ai-focus-ring ai-hovercard-content"
               style={{

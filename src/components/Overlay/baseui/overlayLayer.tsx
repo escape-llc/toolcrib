@@ -19,6 +19,7 @@ import { CSPProvider } from '@base-ui/react/csp-provider';
 import { useStackedZIndex } from '../../../theme/zIndexStack';
 import { type ZIndexScale } from '../../../theme/zIndex';
 import { useTargetDocument } from '../../../theme/targetDocumentContext';
+import { safeAreaPositionerProps, useSafeAreaBoundary } from '../../../theme/safeAreaBoundary';
 import { useNonce } from '../../../theme/nonceContext';
 import { injectGlobalStyle } from '../../../theme/injectGlobalStyle';
 import { useInjectInteractionStyles } from '../../../theme/interactionStyles';
@@ -40,6 +41,16 @@ export function useOverlayLayer(tier: ZIndexScale, zIndexOverride?: number): Ove
   const stacked = useStackedZIndex(tier);
   useInjectInteractionStyles();
   return { container: targetDocument?.body, zIndex: zIndexOverride ?? stacked };
+}
+
+/**
+ * Props to spread onto a Base UI `*.Positioner` so an anchored popup collides
+ * with the safe area (inside the viewport insets) instead of the whole window
+ * (#978). Empty until the shared safe-area element exists (first render), so
+ * Base UI's default boundary applies meanwhile.
+ */
+export function useAnchoredBoundary(): { collisionBoundary?: Element } {
+  return safeAreaPositionerProps(useSafeAreaBoundary());
 }
 
 /** Passes the app's CSP nonce to any `<style>` Base UI injects inside `children`. */

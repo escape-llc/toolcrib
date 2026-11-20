@@ -15,6 +15,7 @@ import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Button } from '../Form/FormComponents';
+import { VIEWPORT_EDGES, VIEWPORT_INSET } from '../../theme/viewport';
 import { OverlayCSP, triggerRenderProps, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { AlertDialogThemeSlice, type AlertDialogSliceState } from './AlertDialogSlice';
 
@@ -136,7 +137,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
             className="ai-alertdialog-overlay"
             style={{
               position: 'fixed',
-              inset: 0,
+              ...VIEWPORT_EDGES,
               zIndex,
               background: 'var(--ai-alertdialog-overlay-bg, rgba(0, 0, 0, 0.5))',
               backdropFilter: 'blur(var(--ai-alertdialog-backdrop-blur, 0.1875rem))',
@@ -146,7 +147,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
           <BaseAlertDialog.Viewport
             style={{
               position: 'fixed',
-              inset: 0,
+              ...VIEWPORT_EDGES,
               zIndex,
               display: 'flex',
               alignItems: 'center',
@@ -164,8 +165,8 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
                 border: '0.0625rem solid var(--ai-border, #e5e7eb)',
                 boxShadow: 'var(--ai-shadow-lg, 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.3))',
                 width,
-                maxWidth: '90vw',
-                maxHeight: '90vh',
+                maxWidth: `calc(90 * (100vw - ${VIEWPORT_INSET.left} - ${VIEWPORT_INSET.right}) / 100)`,
+                maxHeight: `calc(90 * (100vh - ${VIEWPORT_INSET.top} - ${VIEWPORT_INSET.bottom}) / 100)`,
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',

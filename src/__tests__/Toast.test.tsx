@@ -288,12 +288,15 @@ describe('Toast Subsystem Event Generation', () => {
     expect(screen.getByTestId('toast-item')).toBeInTheDocument();
   });
 
+  // Each edge it's anchored to sits at the viewport inset (0px outside a provider).
+  const V = (side: string) => `var(--ai-viewport-inset-${side}, 0px)`;
+  const CENTER = `calc(50% + (${V('left')} - ${V('right')}) / 2)`;
   describe.each([
-    ['top-left', 'top: 0px; left: 0px;'],
-    ['bottom-right', 'bottom: 0px; right: 0px;'],
-    ['bottom-left', 'bottom: 0px; left: 0px;'],
-    ['top-center', 'top: 0px; left: 50%;'],
-    ['bottom-center', 'bottom: 0px; left: 50%;'],
+    ['top-left', `top: ${V('top')}; left: ${V('left')};`],
+    ['bottom-right', `bottom: ${V('bottom')}; right: ${V('right')};`],
+    ['bottom-left', `bottom: ${V('bottom')}; left: ${V('left')};`],
+    ['top-center', `top: ${V('top')}; left: ${CENTER};`],
+    ['bottom-center', `bottom: ${V('bottom')}; left: ${CENTER};`],
   ] as [ToastAnchor, string][])('anchor "%s"', (anchor, expectedCss) => {
     it('positions the toast viewport at the correct screen corner/edge', () => {
       render(

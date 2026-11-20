@@ -332,13 +332,15 @@ describe('ThemeEditor', () => {
     expect(slider.getAttribute('aria-valuenow')).not.toBe(before);
   });
 
-  it('the Drawer top inset slider speaks rem, matching its visible readout, not the raw quarter-rem step count', () => {
-    const slice = globalThemeSliceRegistry.getAll().find(x => x.id === 'drawer')!;
+  it('the Viewport inset sliders show in auto (as a minimum) and manual, hide in none, and speak rem like their readout', () => {
+    const slice = globalThemeSliceRegistry.getAll().find(x => x.id === 'viewport')!;
     renderEditor();
     fireEvent.click(screen.getByText(slice.category, { exact: false }));
     fireEvent.click(screen.getByText(slice.name));
-    const section = screen.getByTestId('accordion-content-drawer');
-    const slider = within(section).getByRole('slider', { name: 'Drawer top inset' });
+    const section = screen.getByTestId('accordion-content-viewport');
+    expect(within(section).getAllByRole('slider')).toHaveLength(4);
+    expect(within(section).getByText(/Top Inset \(minimum\)/)).toBeInTheDocument();
+    const slider = within(section).getByRole('slider', { name: 'Viewport top inset' });
     const spoken = (el: HTMLElement) => `${Number(el.getAttribute('aria-valuenow')) / 4}rem`;
     expect(slider.getAttribute('aria-valuetext')).toBe(spoken(slider));
     act(() => { slider.focus(); });

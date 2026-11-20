@@ -25,7 +25,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 // Base UI's Combobox (mui/base-ui#5528: its non-modal popup aria-hides outside
 // content that stays tabbable).
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
+import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { FieldContext } from './FieldContext';
@@ -230,6 +230,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
+  const boundary = useAnchoredBoundary();
   useOverlayAnimations('toolcrib-combobox-animations', [{ className: 'ai-combobox-popup', ...ANCHORED_POP }]);
   useInjectInteractionStyles();
   const nonce = useNonce();
@@ -746,6 +747,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
       <BasePopover.Portal container={container}>
         <BasePopover.Positioner
+          {...boundary}
           anchor={anchorRef}
           side="bottom"
           align="start"
