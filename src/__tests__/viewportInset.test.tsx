@@ -75,7 +75,10 @@ describe('safe-area boundary element', () => {
     const el = safeAreaEls()[0] as HTMLElement;
     expect(a.result.current).toBe(el);
     expect(b.result.current).toBe(el);
-    expect(el.getAttribute('aria-hidden')).toBe('true');
+    // Not aria-hidden: a body-level aria-hidden sibling reads as a hide-others
+    // helper (combobox-popover.spec.ts); visibility: hidden keeps it out of the tree.
+    expect(el.hasAttribute('aria-hidden')).toBe(false);
+    expect(el.style.visibility).toBe('hidden');
     expect(el.style.position).toBe('fixed');
     expect(el.style.visibility).toBe('hidden');
     expect(el.style.pointerEvents).toBe('none');

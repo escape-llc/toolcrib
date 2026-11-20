@@ -28,7 +28,9 @@ function acquire(doc: Document): void {
     const el = doc.createElement('div');
     // CSSOM, not a <style> tag or style attribute text, so a strict CSP allows it.
     el.setAttribute(SAFE_AREA_ATTRIBUTE, '');
-    el.setAttribute('aria-hidden', 'true');
+    // No aria-hidden: it's empty and visibility: hidden, so it's already out
+    // of the accessibility tree, and a body-level aria-hidden sibling is what
+    // a hide-others check (combobox-popover.spec.ts) rightly flags.
     el.style.position = 'fixed';
     el.style.top = VIEWPORT_INSET.top;
     el.style.right = VIEWPORT_INSET.right;
