@@ -341,7 +341,7 @@ describe('Combobox Component — multiple mode', () => {
         <Combobox multiple defaultValue={['admin']} options={options} onChange={vi.fn()}
           chipColor={() => ({ subtheme: 'success', appearance: 'outline' })} />
       );
-      expect(chip('admin').style.background).toBe('transparent');
+      expect(chip('admin').style.backgroundColor).toBe('transparent');
       expect(chip('admin').style.color).toBe('var(--ai-subtheme-success-text)');
       expect(chip('admin').style.boxShadow).toContain('var(--ai-subtheme-success)');
       expect(chip('admin').style.border).toBe('');

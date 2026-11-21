@@ -14,7 +14,7 @@ describe('Block', () => {
   it('defaults to a transparent background with no padding/radius/border', () => {
     render(<Block data-testid="block">Plain</Block>);
     const block = screen.getByTestId('block');
-    expect(block.style.background).toBe('transparent');
+    expect(block.style.backgroundColor).toBe('transparent');
     expect(block.style.padding).toBe('');
     expect(block.style.borderRadius).toBe('');
     expect(block.style.borderTopWidth).toBe('');
