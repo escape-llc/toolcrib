@@ -61,7 +61,7 @@ describe('Badge', () => {
   it('appearance="outline" renders a hollow badge — transparent background, colored border, readable-on-surface text', () => {
     render(<Badge subtheme="info" appearance="outline">Draft</Badge>);
     const badge = screen.getByText('Draft');
-    expect(badge.style.background).toBe('transparent');
+    expect(badge.style.backgroundColor).toBe('transparent');
     expect(badge.style.border).toContain('var(--ai-subtheme-info)');
     expect(badge.style.color).toBe('var(--ai-subtheme-info-text)');
   });

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Collapsible } from '../components/Collapsible/Collapsible';
 import { aiBus } from '../eventBus/eventBus';
 import { axe } from './testUtils/axe';
+import { settleOverlay } from './testUtils/overlay';
 
 describe('Collapsible Component', () => {
   it('starts closed by default and toggles open/closed on trigger click', async () => {
@@ -20,6 +21,8 @@ describe('Collapsible Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Show more options'));
+    // Base UI unmounts a closed panel a frame later, not synchronously.
+    await settleOverlay();
     expect(screen.queryByText('Extra content')).not.toBeInTheDocument();
   });
 
@@ -32,7 +35,7 @@ describe('Collapsible Component', () => {
     expect(screen.getByText('Body')).toBeInTheDocument();
   });
 
-  it('emits collapsible:opened/closed and responds to aiBus dispatches', () => {
+  it('emits collapsible:opened/closed and responds to aiBus dispatches', async () => {
     const openedFn = vi.fn();
     const closedFn = vi.fn();
     const unsub1 = aiBus.on('collapsible:opened', openedFn);
@@ -51,6 +54,7 @@ describe('Collapsible Component', () => {
       aiBus.emit('collapsible:closed', { id: 'advanced-options' });
     });
     expect(closedFn).toHaveBeenCalledWith({ id: 'advanced-options' });
+    await settleOverlay();
     expect(screen.queryByText('Advanced content')).not.toBeInTheDocument();
 
     unsub1();

@@ -96,7 +96,7 @@ describe('RangeCalendar', () => {
     for (const between of [11, 12]) {
       expect(getDayCell(container, between).style.background).toContain('--ai-bg-container');
     }
-    expect(getDayCell(container, 14).style.background).toBe('transparent');
+    expect(getDayCell(container, 14).style.backgroundColor).toBe('transparent');
   });
 
   it('disables dates outside minValue/maxValue', () => {
