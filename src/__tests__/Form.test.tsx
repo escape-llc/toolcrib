@@ -108,6 +108,59 @@ describe('Form & Zod Validation Engine', () => {
     });
   });
 
+  describe('regression: a whole-form refine() error blocks submit and shows in the summary (#897)', () => {
+    // A schema-level refinement with no `path` reports `path: []`, which used
+    // to be dropped: the error map came back empty, so an invalid form
+    // submitted.
+    const passwordSchema = z
+      .object({ password: z.string(), confirm: z.string() })
+      .refine(v => v.password === v.confirm, { message: 'Passwords must match' });
+
+    const renderPasswordForm = (onSubmit: (v: unknown) => void) =>
+      render(
+        <Form id="pw-form" schema={passwordSchema} onSubmit={onSubmit}>
+          <FormField name="password" label="Password">
+            <Input placeholder="Password" />
+          </FormField>
+          <FormField name="confirm" label="Confirm">
+            <Input placeholder="Confirm" />
+          </FormField>
+          <FormError />
+          <SubmitButton>Submit</SubmitButton>
+        </Form>
+      );
+
+    it('does not call onSubmit, emits form:errored, and the summary shows the refine message', async () => {
+      const handleSubmit = vi.fn();
+      const erroredSpy = vi.fn();
+      const unsub = aiBus.on('form:errored', erroredSpy);
+      renderPasswordForm(handleSubmit);
+
+      fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'a' } });
+      fireEvent.change(screen.getByPlaceholderText('Confirm'), { target: { value: 'b' } });
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('form-error-summary-region')).toHaveAttribute('aria-hidden', 'false');
+      });
+      expect(screen.getByTestId('form-error-summary-region')).toHaveTextContent('Passwords must match');
+      expect(erroredSpy).toHaveBeenLastCalledWith({ formId: 'pw-form', errors: { '': 'Passwords must match' } });
+      expect(handleSubmit).not.toHaveBeenCalled();
+      unsub();
+    });
+
+    it('submits once the refinement passes', async () => {
+      const handleSubmit = vi.fn();
+      renderPasswordForm(handleSubmit);
+
+      fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'same' } });
+      fireEvent.change(screen.getByPlaceholderText('Confirm'), { target: { value: 'same' } });
+      fireEvent.click(screen.getByText('Submit'));
+
+      await waitFor(() => expect(handleSubmit).toHaveBeenCalledWith({ password: 'same', confirm: 'same' }));
+    });
+  });
+
   describe("regression: onSubmit receives the schema's parsed output, not raw field strings", () => {
     // Every field control (Input included) always stores a raw string in
     // Form's own `values` state — that's what a <Form> with no schema at

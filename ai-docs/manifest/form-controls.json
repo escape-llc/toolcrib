@@ -683,7 +683,7 @@
       "props": {
         "name": {
           "type": "string",
-          "description": "Field name to show the error for. Omit for a summary error banner."
+          "description": "Field name to show the error for. Omit for a summary error banner, which is also where a whole-form `.refine()` error (one with no `path`) appears."
         }
       },
       "category": "Form Controls",
