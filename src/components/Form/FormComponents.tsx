@@ -4,7 +4,7 @@ import React, { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttri
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { Switch as BaseSwitch } from '@base-ui/react/switch';
 import { Eye, EyeOff } from 'lucide-react';
-import { useOptionalFormContext } from './FormContext';
+import { useOptionalFormContext, FORM_ERROR_KEY } from './FormContext';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
 import { type StyleFree } from '../../theme/safeProps';
@@ -197,10 +197,11 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
  * Props for `<FormError>` — displays validation error messages.
  *
  * With `name`: shows the specific field error (only after touched).
- * Without `name`: shows a summary banner when any errors exist.
+ * Without `name`: shows a summary banner when any errors exist, carrying the
+ * message of a whole-form schema `.refine()` (no `path`) when there is one.
  */
 export interface FormErrorProps {
-  /** Field name to show the error for. Omit for a summary error banner. */
+  /** Field name to show the error for. Omit for a summary error banner, which is also where a whole-form `.refine()` error (one with no `path`) appears. */
   name?: string;
 }
 
@@ -265,6 +266,9 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
   }
 
   const hasErrors = Object.keys(errors).length > 0;
+  // A whole-form schema error (FORM_ERROR_KEY) has no field to show under,
+  // so the summary banner carries its own message instead of the generic one.
+  const formLevelError = errors[FORM_ERROR_KEY];
 
   return (
     <div
@@ -294,7 +298,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
     >
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
         <div style={{ color: 'var(--ai-subtheme-error, #ef4444)', fontSize: '0.875rem', padding: 'var(--ai-padding-md, 0.5rem 0.75rem)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--ai-radius-md, 0.375rem)' }}>
-          Please correct the errors in the form before submitting.
+          {formLevelError || 'Please correct the errors in the form before submitting.'}
         </div>
       </div>
     </div>

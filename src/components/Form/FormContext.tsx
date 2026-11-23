@@ -44,6 +44,14 @@ export interface FormContextType {
 const FormContext = createContext<FormContextType | undefined>(undefined);
 
 /**
+ * The `errors` key of a whole-form error: an issue from a schema-level
+ * `.refine()`/`.superRefine()` with no `path` (a cross-field check such as
+ * "passwords match"). No field name is empty, so it can't collide. The
+ * summary `<FormError>` (no `name`) shows its message.
+ */
+export const FORM_ERROR_KEY = '';
+
+/**
  * Props for the `<Form>` component — Zod 4 schema-driven validation engine.
  *
  * @example
@@ -115,8 +123,12 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
 
     const newErrors: Record<string, string> = {};
     result.error.issues.forEach(issue => {
+      // A whole-form `.refine()`/`.superRefine()` with no `path` reports
+      // `path: []`, which joins to FORM_ERROR_KEY (''). It is kept like any
+      // other error, so the form is invalid and the summary <FormError>
+      // shows it; dropping it let an invalid form submit (#897).
       const fieldPath = issue.path.join('.');
-      if (fieldPath && !newErrors[fieldPath]) {
+      if (!(fieldPath in newErrors)) {
         newErrors[fieldPath] = issue.message;
       }
     });
