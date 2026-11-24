@@ -42,13 +42,11 @@ export function useAdaptiveSize(
     let cancelled = false;
     let rafId: number | null = null;
     let attempts = 0;
-    // The specific element actually passed to observerManager.observe(),
-    // captured here rather than re-reading ref.current at cleanup time --
-    // if the ref's own .current somehow pointed to a DIFFERENT node by
-    // then, unobserving THAT one instead would leave the real observed
-    // element tracked forever and unobserve a node that was never
-    // observed in the first place.
-    let observedEl: HTMLElement | null = null;
+    // The remover for the registration observerManager.observe() made, kept
+    // here rather than re-reading ref.current at cleanup time: if the ref
+    // pointed at a different node by then, cleanup would leave the real
+    // observed element tracked forever.
+    let stopObserving: (() => void) | null = null;
     // A handful of frames is plenty for a portal target to finish
     // attaching (see this loop's own comment below) without risking a
     // real infinite retry loop for a ref that's genuinely never assigned.
@@ -92,8 +90,7 @@ export function useAdaptiveSize(
         contentHeight: el.scrollHeight,
       }));
 
-      observerManager.observe(el, config);
-      observedEl = el;
+      stopObserving = observerManager.observe(el, config);
     };
 
     trySetup();
@@ -101,7 +98,8 @@ export function useAdaptiveSize(
     return () => {
       cancelled = true;
       if (rafId !== null) cancelAnimationFrame(rafId);
-      if (observedEl) observerManager.unobserve(observedEl);
+      // Removes only this hook's registration; another hook on the same element keeps its own (#982).
+      stopObserving?.();
     };
     // Deliberately destructured, not the whole `config` object -- `config`
     // has a default parameter value (`= {}`), so a caller who omits it
