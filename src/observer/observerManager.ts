@@ -21,14 +21,58 @@ export interface ObservedElementConfig {
   mutationOptions?: MutationObserverInit;
 }
 
+/**
+ * The union of several `MutationObserverInit`s: everything any of them asks
+ * for. `MutationObserver.observe()` on an already-observed node REPLACES its
+ * options, so one element watched by two hooks has to be observed once with
+ * both hooks' needs; each `useMutationObserver` filters records back down to
+ * its own options.
+ */
+export function mergeMutationOptions(all: MutationObserverInit[]): MutationObserverInit | undefined {
+  if (all.length === 0) return undefined;
+  // attributeFilter / attributeOldValue imply attributes, and
+  // characterDataOldValue implies characterData (DOM spec).
+  const wantsAttributes = (o: MutationObserverInit) => o.attributes ?? (o.attributeFilter !== undefined || o.attributeOldValue !== undefined);
+  const attrUsers = all.filter(wantsAttributes);
+  const merged: MutationObserverInit = {};
+  if (all.some(o => o.childList)) merged.childList = true;
+  if (all.some(o => o.subtree)) merged.subtree = true;
+  if (all.some(o => o.characterData ?? o.characterDataOldValue !== undefined)) merged.characterData = true;
+  if (all.some(o => o.characterDataOldValue)) merged.characterDataOldValue = true;
+  if (attrUsers.length > 0) {
+    merged.attributes = true;
+    if (attrUsers.some(o => o.attributeOldValue)) merged.attributeOldValue = true;
+    // Unfiltered if any user wants every attribute.
+    if (attrUsers.every(o => o.attributeFilter)) {
+      merged.attributeFilter = [...new Set(attrUsers.flatMap(o => o.attributeFilter ?? []))];
+    }
+  }
+  return merged;
+}
+
 class GlobalObserverManager {
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
   private mutationObserver: MutationObserver | null = null;
   private resizeListener: (() => void) | null = null;
 
-  private trackedElements = new Map<HTMLElement, ObservedElementConfig>();
+  // One entry per observe() call, not per element (#982): two hooks on the
+  // same element used to share one config slot, so the second observe()
+  // overwrote the first's and either hook's unobserve() stopped both.
+  private trackedElements = new Map<HTMLElement, Set<ObservedElementConfig>>();
   private debounceTimers = new Map<HTMLElement, any>();
+  // The mutation options each element is currently observed with, to skip
+  // re-observing when they haven't changed.
+  private observedMutationOptions = new Map<HTMLElement, string>();
+
+  private registrations(element: HTMLElement): ObservedElementConfig[] {
+    return [...(this.trackedElements.get(element) ?? [])];
+  }
+
+  /** The first id among `regs`, for the event's own `id` field. */
+  private firstId(regs: ObservedElementConfig[]): string | undefined {
+    return regs.find(r => r.id !== undefined)?.id;
+  }
 
   constructor() {
     this.initObservers();
@@ -41,10 +85,11 @@ class GlobalObserverManager {
       this.resizeObserver = new ResizeObserver(entries => {
         entries.forEach(entry => {
           const target = entry.target as HTMLElement;
-          const config = this.trackedElements.get(target);
-          if (!config) return;
+          const regs = this.registrations(target);
+          if (regs.length === 0) return;
 
-          const debounceMs = config.debounceMs ?? 50;
+          // One event per element, at the shortest debounce any registration asked for.
+          const debounceMs = Math.min(...regs.map(r => r.debounceMs ?? 50));
 
           if (this.debounceTimers.has(target)) {
             clearTimeout(this.debounceTimers.get(target));
@@ -55,8 +100,10 @@ class GlobalObserverManager {
             const { width, height } = entry.contentRect;
             const contentHeight = target.scrollHeight;
 
+            const current = this.registrations(target);
+            if (current.length === 0) return;
             aiBus.emit('element:resized', {
-              id: config.id,
+              id: this.firstId(current),
               target,
               width,
               height,
@@ -73,11 +120,11 @@ class GlobalObserverManager {
       this.intersectionObserver = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           const target = entry.target as HTMLElement;
-          const config = this.trackedElements.get(target);
-          if (!config || !config.enableIntersection) return;
+          const regs = this.registrations(target).filter(r => r.enableIntersection);
+          if (regs.length === 0) return;
 
           aiBus.emit('element:intersected', {
-            id: config.id,
+            id: this.firstId(regs),
             target,
             isIntersecting: entry.isIntersecting,
             ratio: entry.intersectionRatio,
@@ -101,16 +148,18 @@ class GlobalObserverManager {
           // useAdaptiveSize): stopping there dropped the record, so an
           // ancestor's subtree observer never saw mutations beneath it (#981).
           let node: Node | null = mutation.target;
-          let config: ObservedElementConfig | undefined;
+          let regs: ObservedElementConfig[] = [];
           while (node) {
-            config = node instanceof HTMLElement ? this.trackedElements.get(node) : undefined;
-            if (config?.mutationOptions) break;
+            // A registration covers this record if it is on the target itself, or watches its subtree.
+            const isTarget = node === mutation.target;
+            regs = node instanceof HTMLElement ? this.registrations(node).filter(r => r.mutationOptions && (isTarget || r.mutationOptions.subtree)) : [];
+            if (regs.length > 0) break;
             node = node.parentNode;
           }
-          if (!node || !config) return;
+          if (!node) return;
 
           aiBus.emit('element:mutated', {
-            id: config.id,
+            id: this.firstId(regs),
             target: mutation.target,
             type: mutation.type,
             attributeName: mutation.attributeName,
@@ -146,30 +195,71 @@ class GlobalObserverManager {
     this.resizeListener = null;
   }
 
-  public observe(element: HTMLElement | null, config: ObservedElementConfig = {}) {
-    if (!element) return;
+  /**
+   * Adds one registration for `element` and returns a function that removes
+   * that registration only. Several callers (hooks) can observe the same
+   * element, each with its own config; the browser observers are driven by
+   * what all of them need together, and each element emits one event per
+   * change (with the first registration's `id`). A config change is a remove
+   * and a fresh `observe()`, which is what a hook's effect cleanup and re-run
+   * already do.
+   */
+  public observe(element: HTMLElement | null, config: ObservedElementConfig = {}): () => void {
+    if (!element) return () => {};
 
-    const alreadyTracked = this.trackedElements.has(element);
-    // Always store the latest config, even for an already-tracked element —
-    // previously a second observe() call on the same element (e.g. a hook's
-    // effect re-running with a changed config.id/enableIntersection while
-    // the DOM node stays mounted) silently kept the first call's config
-    // forever, so resize events kept reporting stale data.
-    this.trackedElements.set(element, config);
+    let regs = this.trackedElements.get(element);
+    const firstRegistration = !regs;
+    if (!regs) {
+      regs = new Set();
+      this.trackedElements.set(element, regs);
+    }
+    // A registration's identity is its own object: copy it, so a caller
+    // passing the same config object twice still gets two registrations.
+    const registration = { ...config };
+    regs.add(registration);
 
-    if (!alreadyTracked && this.resizeObserver) {
+    if (firstRegistration && this.resizeObserver) {
       this.resizeObserver.observe(element);
     }
+    this.syncIntersectionAndMutation(element);
 
-    if (config.enableIntersection && this.intersectionObserver) {
-      this.intersectionObserver.observe(element);
+    let removed = false;
+    return () => {
+      if (removed) return;
+      removed = true;
+      const current = this.trackedElements.get(element);
+      if (!current?.delete(registration)) return;
+      if (current.size === 0) {
+        this.unobserve(element);
+      } else {
+        this.syncIntersectionAndMutation(element);
+      }
+    };
+  }
+
+  /** Points the intersection and mutation observers at what `element`'s registrations currently need. */
+  private syncIntersectionAndMutation(element: HTMLElement) {
+    const regs = this.registrations(element);
+    if (this.intersectionObserver) {
+      // observe() on an already-observed target is a no-op, so this is safe to repeat.
+      if (regs.some(r => r.enableIntersection)) this.intersectionObserver.observe(element);
+      else this.intersectionObserver.unobserve(element);
     }
-
-    if (config.mutationOptions && this.mutationObserver) {
-      this.mutationObserver.observe(element, config.mutationOptions);
+    if (this.mutationObserver) {
+      const merged = mergeMutationOptions(regs.flatMap(r => (r.mutationOptions ? [r.mutationOptions] : [])));
+      const key = merged ? JSON.stringify(merged) : undefined;
+      // With no mutation registrations left the element stays observed (see
+      // unobserve's comment): the walk in the callback finds no registration
+      // that wants it and drops the record.
+      if (merged && key !== this.observedMutationOptions.get(element)) {
+        // Replaces this element's options with the merged set.
+        this.mutationObserver.observe(element, merged);
+        this.observedMutationOptions.set(element, key!);
+      }
     }
   }
 
+  /** Stops tracking `element` for every caller at once. Prefer the function `observe()` returns, which removes only its own registration. */
   public unobserve(element: HTMLElement | null) {
     if (!element) return;
 
@@ -180,6 +270,7 @@ class GlobalObserverManager {
 
     if (this.trackedElements.has(element)) {
       this.trackedElements.delete(element);
+      this.observedMutationOptions.delete(element);
 
       if (this.resizeObserver) {
         this.resizeObserver.unobserve(element);

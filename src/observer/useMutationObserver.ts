@@ -59,7 +59,7 @@ export function useMutationObserver(
     let cancelled = false;
     let rafId: number | null = null;
     let attempts = 0;
-    let observedEl: HTMLElement | null = null;
+    let stopObserving: (() => void) | null = null;
     const MAX_ATTACH_RETRY_FRAMES = 10;
 
     const trySetup = () => {
@@ -71,8 +71,7 @@ export function useMutationObserver(
         }
         return;
       }
-      observerManager.observe(el, { id: config.id, mutationOptions });
-      observedEl = el;
+      stopObserving = observerManager.observe(el, { id: config.id, mutationOptions });
     };
 
     trySetup();
@@ -80,7 +79,8 @@ export function useMutationObserver(
     return () => {
       cancelled = true;
       if (rafId !== null) cancelAnimationFrame(rafId);
-      if (observedEl) observerManager.unobserve(observedEl);
+      // Removes only this hook's registration; another hook on the same element keeps its own (#982).
+      stopObserving?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, config.id, enabled, JSON.stringify(mutationOptions)]);

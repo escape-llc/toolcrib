@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { observerManager } from '../observer/observerManager';
+import { observerManager, mergeMutationOptions } from '../observer/observerManager';
 import { aiBus } from '../eventBus/eventBus';
 
 describe('GlobalObserverManager & Adaptive Sizing Engine', () => {
@@ -11,6 +11,26 @@ describe('GlobalObserverManager & Adaptive Sizing Engine', () => {
     expect(() => observerManager.unobserve(div)).not.toThrow();
 
     document.body.removeChild(div);
+  });
+
+  it('mergeMutationOptions takes the union of what each caller asks for (#982)', () => {
+    expect(mergeMutationOptions([])).toBeUndefined();
+    expect(mergeMutationOptions([{ attributeFilter: ['a'] }, { attributeFilter: ['b', 'a'], subtree: true }])).toEqual({
+      attributes: true,
+      attributeFilter: ['a', 'b'],
+      subtree: true,
+    });
+    // One unfiltered attribute user means no filter at all.
+    expect(mergeMutationOptions([{ attributeFilter: ['a'] }, { attributes: true }, { childList: true }])).toEqual({
+      attributes: true,
+      childList: true,
+    });
+    expect(mergeMutationOptions([{ characterDataOldValue: true }, { attributeOldValue: true }])).toEqual({
+      characterData: true,
+      characterDataOldValue: true,
+      attributes: true,
+      attributeOldValue: true,
+    });
   });
 
   it('dispatches element:resized events on aiBus', async () => {
@@ -164,6 +184,46 @@ describe('GlobalObserverManager real callback wiring (mocked observers)', () => 
     vi.advanceTimersByTime(50);
 
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  // #982: one config slot per element meant a second observe() replaced the
+  // first's config, and either caller's removal stopped both.
+  it('keeps each observe() registration separate on a shared element', () => {
+    const el = document.createElement('div');
+    const resized = vi.fn();
+    const intersected = vi.fn();
+    freshAiBus.on('element:resized', resized);
+    freshAiBus.on('element:intersected', intersected);
+
+    const stopA = freshObserverManager.observe(el, { id: 'a', enableIntersection: true, debounceMs: 80 });
+    const stopB = freshObserverManager.observe(el, { id: 'b', debounceMs: 10 });
+
+    // One event per change, at the shortest debounce, tagged with the first id.
+    capturedResize!.callback([{ target: el, contentRect: { width: 5, height: 5 } }]);
+    vi.advanceTimersByTime(10);
+    expect(resized).toHaveBeenCalledTimes(1);
+    expect(resized).toHaveBeenCalledWith(expect.objectContaining({ id: 'a', width: 5 }));
+    // B's config didn't erase A's enableIntersection.
+    capturedIntersection!.callback([{ target: el, isIntersecting: true, intersectionRatio: 1 }]);
+    expect(intersected).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+
+    // Removing A leaves B tracked.
+    stopA();
+    intersected.mockClear();
+    resized.mockClear();
+    capturedIntersection!.callback([{ target: el, isIntersecting: false, intersectionRatio: 0 }]);
+    expect(intersected).not.toHaveBeenCalled();
+    capturedResize!.callback([{ target: el, contentRect: { width: 7, height: 7 } }]);
+    vi.advanceTimersByTime(10);
+    expect(resized).toHaveBeenCalledWith(expect.objectContaining({ id: 'b', width: 7 }));
+
+    // Removing B stops the element; a second call to a remover is a no-op.
+    stopB();
+    stopB();
+    resized.mockClear();
+    capturedResize!.callback([{ target: el, contentRect: { width: 9, height: 9 } }]);
+    vi.advanceTimersByTime(100);
+    expect(resized).not.toHaveBeenCalled();
   });
 
   it('emits viewport:resized on window resize, debounced', () => {

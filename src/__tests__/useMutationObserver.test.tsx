@@ -134,6 +134,82 @@ describe('useMutationObserver', () => {
     expect(onMutation).toHaveBeenCalledWith(expect.objectContaining({ target: leaf, attributeName: 'data-side' }));
   });
 
+  describe('two hooks on one element (#982)', () => {
+    const SIDE = { attributes: true, attributeFilter: ['data-side'] };
+
+    for (const sizeFirst of [true, false]) {
+      it(`mutation watching survives a size hook on the same element (${sizeFirst ? 'size' : 'mutation'} hook mounted first), and outlives its unmount`, async () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const ref = { current: el };
+        const onMutation = vi.fn();
+        const mountSize = () => renderHook(() => useAdaptiveSize(ref));
+        const mountMutation = () => renderHook(() => useMutationObserver(ref, SIDE, onMutation));
+        const size = sizeFirst ? mountSize() : undefined;
+        const mutation = mountMutation();
+        const sizeAfter = sizeFirst ? size! : mountSize();
+
+        act(() => el.setAttribute('data-side', 'top'));
+        await flushMicrotasks();
+        expect(onMutation).toHaveBeenCalledTimes(1);
+
+        sizeAfter.unmount();
+        act(() => el.setAttribute('data-side', 'bottom'));
+        await flushMicrotasks();
+        expect(onMutation).toHaveBeenCalledTimes(2);
+
+        mutation.unmount();
+        act(() => el.setAttribute('data-side', 'left'));
+        await flushMicrotasks();
+        expect(onMutation).toHaveBeenCalledTimes(2);
+      });
+    }
+
+    it('an ancestor subtree hook still sees a mutation on a descendant that has its own mutation hook', async () => {
+      const parentSpy = vi.fn();
+      const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'], subtree: true }, parentSpy);
+      const child = document.createElement('span');
+      el.appendChild(child);
+      const childRef = { current: child };
+      const childSpy = vi.fn();
+      renderHook(() => useMutationObserver(childRef, SIDE, childSpy));
+
+      act(() => child.setAttribute('data-side', 'top'));
+      await flushMicrotasks();
+
+      expect(childSpy).toHaveBeenCalledTimes(1);
+      expect(parentSpy).toHaveBeenCalledTimes(1);
+      expect(parentSpy).toHaveBeenCalledWith(expect.objectContaining({ target: child }));
+    });
+
+    it('two mutation hooks with different options on one element each get their own records', async () => {
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+      const ref = { current: el };
+      const sideSpy = vi.fn();
+      const listSpy = vi.fn();
+      const listOptions = { childList: true };
+      const side = renderHook(() => useMutationObserver(ref, SIDE, sideSpy));
+      renderHook(() => useMutationObserver(ref, listOptions, listSpy));
+
+      act(() => {
+        el.setAttribute('data-side', 'top');
+        el.appendChild(document.createElement('i'));
+      });
+      await flushMicrotasks();
+      expect(sideSpy).toHaveBeenCalledTimes(1);
+      expect(sideSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'attributes' }));
+      expect(listSpy).toHaveBeenCalledTimes(1);
+      expect(listSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'childList' }));
+
+      // Unmounting one leaves the other observing.
+      side.unmount();
+      act(() => el.appendChild(document.createElement('b')));
+      await flushMicrotasks();
+      expect(listSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('does not subscribe at all while enabled is false', async () => {
     const onMutation = vi.fn();
     const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'] }, onMutation, { enabled: false });
