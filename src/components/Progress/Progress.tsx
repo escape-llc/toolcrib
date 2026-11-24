@@ -5,6 +5,7 @@ import { Progress as BaseProgress } from '@base-ui/react/progress';
 import { aiBus } from '../../eventBus/eventBus';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
 import { ProgressThemeSlice, type ProgressSliceState } from './ProgressSlice';
 
@@ -15,7 +16,7 @@ import { ProgressThemeSlice, type ProgressSliceState } from './ProgressSlice';
  * it emits `progress:changed` whenever `value`/`max` change rather than in
  * response to any user interaction of its own.
  */
-export interface ProgressProps {
+export interface ProgressProps extends DataAttributes {
   /** Unique identifier included in emitted `progress:changed` events. */
   id?: string;
   /**
@@ -57,6 +58,7 @@ export const Progress: React.FC<ProgressProps> = ({
   size = 'md',
   subtheme: instanceSubtheme,
   overrides,
+  ...rest
 }) => {
   const subtheme = useResolvedSubtheme(instanceSubtheme);
   const subthemeColors = subtheme ? resolveSubtheme(subtheme) : undefined;
@@ -68,7 +70,7 @@ export const Progress: React.FC<ProgressProps> = ({
   }, [id, clampedValue, max]);
 
   return (
-    <BaseProgress.Root aria-label={ariaLabel} value={clampedValue} max={max} style={{ width: '100%' }}>
+    <BaseProgress.Root {...pickDataAttributes(rest)} aria-label={ariaLabel} value={clampedValue} max={max} style={{ width: '100%' }}>
       <BaseProgress.Track
       style={{
         position: 'relative',

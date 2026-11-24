@@ -8,6 +8,7 @@
 import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { AlertDialog as BaseAlertDialog } from '@base-ui/react/alert-dialog';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
@@ -35,7 +36,7 @@ import { AlertDialogThemeSlice, type AlertDialogSliceState } from './AlertDialog
  * AlertDialogs can be opened programmatically via `aiBus.openAlertDialog(id)`
  * without managing state.
  */
-export interface AlertDialogProps {
+export interface AlertDialogProps extends DataAttributes {
   /** Unique identifier used for event bus targeting (e.g. `aiBus.openAlertDialog('confirm-delete')`). Auto-generated if omitted. */
   id?: string;
   /**
@@ -74,17 +75,33 @@ export interface AlertDialogProps {
   overrides?: Partial<AlertDialogSliceState> & { subtheme?: SubthemeName };
 }
 
+/** Props for the `<AlertDialog.Header>`, `.Body`, `.Footer` and `.Actions` slots. */
+export interface AlertDialogSectionProps extends DataAttributes {
+  children: ReactNode;
+}
+
+/** Props for the `<AlertDialog.Cancel>` slot. */
+export interface AlertDialogCancelProps extends DataAttributes {
+  children?: ReactNode;
+}
+
+/** Props for the `<AlertDialog.Action>` slot. */
+export interface AlertDialogActionProps extends DataAttributes {
+  children?: ReactNode;
+  onClick?: () => void;
+}
+
 /**
  * @manifest Blocking confirmation dialog that cannot be light-dismissed — for destructive/irreversible actions
  * @manifestCategory Overlays
  */
 export const AlertDialog: React.FC<AlertDialogProps> & {
-  Header: React.FC<{ children: ReactNode }>;
-  Body: React.FC<{ children: ReactNode }>;
-  Footer: React.FC<{ children: ReactNode }>;
-  Actions: React.FC<{ children: ReactNode }>;
-  Cancel: React.FC<{ children?: ReactNode }>;
-  Action: React.FC<{ children?: ReactNode; onClick?: () => void }>;
+  Header: React.FC<AlertDialogSectionProps>;
+  Body: React.FC<AlertDialogSectionProps>;
+  Footer: React.FC<AlertDialogSectionProps>;
+  Actions: React.FC<AlertDialogSectionProps>;
+  Cancel: React.FC<AlertDialogCancelProps>;
+  Action: React.FC<AlertDialogActionProps>;
 } = ({
   id: propId,
   trigger,
@@ -95,6 +112,7 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   zIndex: zIndexProp,
   'aria-label': ariaLabel = 'Confirm Action',
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'alertdialog');
   const { container, zIndex } = useOverlayLayer('MODAL', zIndexProp);
@@ -156,8 +174,9 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
             }}
           >
             <BaseAlertDialog.Popup
+              {...pickDataAttributes(rest)}
               aria-modal="true"
-              data-testid="alertdialog-container"
+              data-ai-testid="alertdialog-container"
               className="ai-focus-ring ai-alertdialog-content"
               style={{
                 background: 'var(--ai-bg-surface, #ffffff)',
@@ -187,8 +206,9 @@ export const AlertDialog: React.FC<AlertDialogProps> & {
   );
 };
 
-AlertDialog.Header = ({ children }) => (
+AlertDialog.Header = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -201,8 +221,9 @@ AlertDialog.Header = ({ children }) => (
   </div>
 );
 
-AlertDialog.Body = ({ children }) => (
+AlertDialog.Body = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1.5rem)',
       overflowY: 'auto',
@@ -216,8 +237,9 @@ AlertDialog.Body = ({ children }) => (
   </div>
 );
 
-AlertDialog.Footer = ({ children }) => (
+AlertDialog.Footer = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -231,8 +253,9 @@ AlertDialog.Footer = ({ children }) => (
   </div>
 );
 
-AlertDialog.Actions = ({ children }) => (
+AlertDialog.Actions = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       display: 'flex',
       gap: '0.625rem',
@@ -244,16 +267,16 @@ AlertDialog.Actions = ({ children }) => (
   </div>
 );
 
-AlertDialog.Cancel = ({ children = 'Cancel' }) => (
-  <BaseAlertDialog.Close render={<Button variant="outline" />}>{children}</BaseAlertDialog.Close>
+AlertDialog.Cancel = ({ children = 'Cancel', ...rest }) => (
+  <BaseAlertDialog.Close render={<Button variant="outline" {...pickDataAttributes(rest)} />}>{children}</BaseAlertDialog.Close>
 );
 
 // Close merges its own click handler with the Button's, so the consumer's
 // onClick runs and the dialog closes. There's no separate "confirm" state:
 // AlertDialog only closes on an explicit choice (Cancel, Action, Escape),
 // never a timer or swipe.
-AlertDialog.Action = ({ children = 'Confirm', onClick }) => (
-  <BaseAlertDialog.Close render={<Button variant="danger" onClick={onClick} />}>{children}</BaseAlertDialog.Close>
+AlertDialog.Action = ({ children = 'Confirm', onClick, ...rest }) => (
+  <BaseAlertDialog.Close render={<Button variant="danger" {...pickDataAttributes(rest)} onClick={onClick} />}>{children}</BaseAlertDialog.Close>
 );
 
 AlertDialog.Header.displayName = 'AlertDialog.Header';

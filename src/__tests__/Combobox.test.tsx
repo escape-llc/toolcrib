@@ -314,7 +314,7 @@ describe('Combobox Component — multiple mode', () => {
   });
 
   describe('chipColor (issue #426)', () => {
-    const chip = (value: string) => document.querySelector(`[data-chip-value="${value}"]`) as HTMLElement;
+    const chip = (value: string) => document.querySelector(`[data-ai-chip-value="${value}"]`) as HTMLElement;
 
     it('keeps the default solid primary chip when chipColor is omitted or returns undefined', () => {
       render(

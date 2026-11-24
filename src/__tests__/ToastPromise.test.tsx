@@ -1,3 +1,4 @@
+import { queryAllAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { ToastProvider, useToastActions } from '../components/Toast/ToastContext';
@@ -22,7 +23,7 @@ const renderToasts = () =>
     </ToastProvider>
   );
 
-const toastItems = () => screen.queryAllByTestId('toast-item');
+const toastItems = () => queryAllAi('toast-item');
 
 afterEach(() => {
   vi.useRealTimers();
@@ -45,7 +46,7 @@ describe('aiBus.showToastPromise', () => {
     const loadingToast = toastItems()[0];
     expect(loadingToast).toHaveTextContent('Saving…');
     expect(loadingToast).toHaveAttribute('aria-busy', 'true');
-    expect(loadingToast).toHaveAttribute('data-loading');
+    expect(loadingToast).toHaveAttribute('data-ai-loading');
     expect(added.mock.calls[0][0]).toMatchObject({ message: 'Saving…', loading: true });
     unsubAdded();
 

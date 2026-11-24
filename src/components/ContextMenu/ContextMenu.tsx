@@ -7,6 +7,7 @@
 import React, { type ReactNode } from 'react';
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { type MenuItemData } from '../DropdownMenu/DropdownMenu';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -23,7 +24,7 @@ import { MENU_POPUP_CLASS, MenuItemList, menuPopupStyle } from '../DropdownMenu/
  * same `menu:opened`/`menu:closed`/`menu:item_selected` events, filterable
  * by `id` the same way.
  */
-export interface ContextMenuProps {
+export interface ContextMenuProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** The area that opens the menu on right-click or long press. Rendered inline, wrapping `children`. */
@@ -43,6 +44,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   children,
   items,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'contextmenu');
   const { vars: menuVars } = useSliceOverrides(ContextMenuThemeSlice, overrides);
@@ -57,6 +59,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         <BaseContextMenu.Portal container={container}>
           <BaseContextMenu.Positioner {...boundary} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             <BaseContextMenu.Popup
+              {...pickDataAttributes(rest)}
               className={`ai-focus-ring ${MENU_POPUP_CLASS}`}
               style={{
                 ...menuPopupStyle('--ai-contextmenu-shadow'),

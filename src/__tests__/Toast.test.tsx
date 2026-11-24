@@ -1,3 +1,4 @@
+import { getAi, getAllAi } from './testUtils/aiTestId';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
@@ -235,7 +236,7 @@ describe('Toast Subsystem Event Generation', () => {
     expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Trigger Toast'));
-    const toastEl = screen.getByTestId('toast-item');
+    const toastEl = getAi('toast-item');
     expect(toastEl.style.pointerEvents).toBe('auto');
     // Open/populated-state scan: a real toast with a message, an action
     // button, and the always-present dismiss button -- the portal's real
@@ -276,7 +277,7 @@ describe('Toast Subsystem Event Generation', () => {
     );
 
     fireEvent.click(screen.getByText('Trigger Toast'));
-    const toastEl = screen.getByTestId('toast-item');
+    const toastEl = getAi('toast-item');
 
     // Firing animationEnd BEFORE any dismiss request keeps the toast node
     // mounted (jsdom's Presence removes it as soon as `open` actually
@@ -285,7 +286,7 @@ describe('Toast Subsystem Event Generation', () => {
     // instead of real animation events). This only exercises the handler
     // being wired up and its animationName guard, not a real dismiss flow.
     fireEvent.animationEnd(toastEl, { animationName: 'not-a-toast-animation' });
-    expect(screen.getByTestId('toast-item')).toBeInTheDocument();
+    expect(getAi('toast-item')).toBeInTheDocument();
   });
 
   // Each edge it's anchored to sits at the viewport inset (0px outside a provider).
@@ -345,7 +346,7 @@ describe('Toast Subsystem Event Generation', () => {
         );
 
         fireEvent.click(screen.getByText('Trigger Toast'));
-        const toastEl = screen.getByTestId('toast-item');
+        const toastEl = getAi('toast-item');
         expect(toastEl.style.top).toBe(expectedEdges.top);
         expect(toastEl.style.bottom).toBe(expectedEdges.bottom);
         expect(toastEl.style.left).toBe(expectedEdges.left);
@@ -421,7 +422,7 @@ describe('Toast Subsystem Event Generation', () => {
     // DOM order reflects the underlying `toasts` array's own insertion
     // order directly (ToastContainer maps over it with no re-sort of its
     // own) -- exactly the order they were triggered in, not priority.
-    const messages = screen.getAllByTestId('toast-item').map(el => el.textContent);
+    const messages = getAllAi('toast-item').map(el => el.textContent);
     expect(messages[0]).toContain('Fired first');
     expect(messages[1]).toContain('Fired second');
     expect(messages[2]).toContain('Fired third');
@@ -439,7 +440,7 @@ describe('Toast Subsystem Event Generation', () => {
     });
 
     // The toast itself, not its screen-reader announcement copy.
-    expect(screen.getByTestId('toast-item')).toHaveTextContent('From the bus');
+    expect(getAi('toast-item')).toHaveTextContent('From the bus');
   });
 
   // Announcements come from the toolkit's own live regions (ToastAnnouncer),
@@ -461,8 +462,8 @@ describe('Toast Subsystem Event Generation', () => {
       renderContainer();
       show('medium', 'Saved');
       show('urgent', 'Connection lost');
-      const polite = screen.getByTestId('toast-announcer-polite');
-      const assertive = screen.getByTestId('toast-announcer-assertive');
+      const polite = getAi('toast-announcer-polite');
+      const assertive = getAi('toast-announcer-assertive');
       expect(polite).toHaveAttribute('aria-live', 'polite');
       expect(assertive).toHaveAttribute('role', 'alert');
       await waitFor(() => expect(polite).toHaveTextContent('Saved'));
@@ -476,7 +477,7 @@ describe('Toast Subsystem Event Generation', () => {
       act(() => {
         aiBus.emit('toast:shown', { id: 'job', type: 'info', message: 'Uploading…', priority: 'medium', loading: true });
       });
-      const polite = screen.getByTestId('toast-announcer-polite');
+      const polite = getAi('toast-announcer-polite');
       await waitFor(() => expect(polite).toHaveTextContent('Uploading…'));
       act(() => {
         aiBus.emit('toast:updated', { id: 'job', type: 'success', message: 'Uploaded', loading: false });
@@ -487,7 +488,7 @@ describe('Toast Subsystem Event Generation', () => {
     it('clears the announcement copy once read, leaving one copy of the text on the page', async () => {
       renderContainer();
       show('medium', 'Transient');
-      const polite = screen.getByTestId('toast-announcer-polite');
+      const polite = getAi('toast-announcer-polite');
       await waitFor(() => expect(polite).toHaveTextContent('Transient'));
       await waitFor(() => expect(polite).not.toHaveTextContent('Transient'), { timeout: 2000 });
       expect(screen.getAllByText('Transient')).toHaveLength(1);
@@ -495,15 +496,15 @@ describe('Toast Subsystem Event Generation', () => {
 
     it('the live regions exist before any toast, so the first one is announced', () => {
       renderContainer();
-      expect(screen.getByTestId('toast-announcer-polite')).toBeInTheDocument();
-      expect(screen.getByTestId('toast-announcer-assertive')).toBeInTheDocument();
+      expect(getAi('toast-announcer-polite')).toBeInTheDocument();
+      expect(getAi('toast-announcer-assertive')).toBeInTheDocument();
     });
 
     it('never hides a toast from assistive tech, whatever its priority', () => {
       renderContainer();
       show('high', 'High one');
       show('urgent', 'Urgent one');
-      for (const toast of screen.getAllByTestId('toast-item')) {
+      for (const toast of getAllAi('toast-item')) {
         expect(toast.closest('[aria-hidden="true"]')).toBeNull();
       }
     });
@@ -513,7 +514,7 @@ describe('Toast Subsystem Event Generation', () => {
       show('medium', 'Named by its message');
       expect(screen.queryByRole('dialog')).toBeNull();
       expect(screen.queryByRole('alertdialog')).toBeNull();
-      expect(screen.getByRole('group', { name: 'Named by its message' })).toBe(screen.getByTestId('toast-item'));
+      expect(screen.getByRole('group', { name: 'Named by its message' })).toBe(getAi('toast-item'));
     });
 
     // With a title, the explicit aria-label is dropped and the name comes
@@ -535,7 +536,7 @@ describe('Toast Subsystem Event Generation', () => {
           <ToastContainer />
         </ToastProvider>
       );
-      expect(screen.getByRole('group', { name: 'Upload finished' })).toBe(screen.getByTestId('toast-item'));
+      expect(screen.getByRole('group', { name: 'Upload finished' })).toBe(getAi('toast-item'));
     });
 
     it('the viewport does not announce as well (no double announcement)', () => {
@@ -635,7 +636,7 @@ describe('Toast Subsystem Event Generation', () => {
       fireEvent.click(screen.getByText('Add B'));
       fireEvent.click(screen.getByText('Add C'));
 
-      const toasts = screen.getAllByTestId('toast-item');
+      const toasts = getAllAi('toast-item');
       expect(toasts).toHaveLength(3);
       expect(toasts[0].style.getPropertyValue('--stack-offset')).toBe('0px');
       expect(toasts[1].style.getPropertyValue('--stack-offset')).toBe(`${ESTIMATED_HEIGHT_PX + GAP_PX}px`);
@@ -653,7 +654,7 @@ describe('Toast Subsystem Event Generation', () => {
       fireEvent.click(screen.getByText('Add B'));
       fireEvent.click(screen.getByText('Add C'));
 
-      const [toastA] = screen.getAllByTestId('toast-item');
+      const [toastA] = getAllAi('toast-item');
       expect(toastA.style.getPropertyValue('--stack-offset')).toBe('0px');
 
       // Dismiss A. Unlike a real browser -- where Presence keeps a closed
@@ -667,7 +668,7 @@ describe('Toast Subsystem Event Generation', () => {
       // only and covered by e2e/toast-stacking.spec.ts instead.
       fireEvent.click(screen.getAllByLabelText('Dismiss toast')[0]);
 
-      const [slidB, slidC] = screen.getAllByTestId('toast-item');
+      const [slidB, slidC] = getAllAi('toast-item');
       // B and C each move up by exactly one slot -- the arithmetic a real
       // browser would render as a smooth translateY transition.
       expect(slidB.style.getPropertyValue('--stack-offset')).toBe('0px');
@@ -694,7 +695,7 @@ describe('Toast Subsystem Event Generation', () => {
       fireEvent.click(screen.getByText('Add A'));
       fireEvent.click(screen.getByText('Add B'));
 
-      const [toastA, toastB] = screen.getAllByTestId('toast-item');
+      const [toastA, toastB] = getAllAi('toast-item');
       // B was added last -- it's the one closest to the bottom edge (offset 0).
       expect(toastB.style.getPropertyValue('--stack-offset')).toBe('0px');
       // Negative -- translateY always moves DOWN in screen space

@@ -9,6 +9,7 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { Popup } from '../Overlay/Popup';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -21,7 +22,7 @@ import { fieldGroupStyle, DateSegments, CalendarPopupTrigger } from './calendarP
 import { focusRingClassName } from './focusRing';
 
 /** Props for the `<DateRangePicker>` start/end fields + range calendar popover. */
-export interface DateRangePickerProps {
+export interface DateRangePickerProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. The Form value is a `{ start, end }` `CalendarDateRange`, or `null`. */
   name?: string;
   /** Label rendered above the field. */
@@ -143,6 +144,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
   squareCorners,
+  ...rest
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -180,6 +182,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return (
     <I18nProvider locale={locale}>
       <AriaDateRangePicker
+        {...pickDataAttributes(rest)}
         {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
         onChange={val => handleChange(val as { start: CalendarDate; end: CalendarDate } | null)}
         granularity="day"

@@ -6,7 +6,7 @@ import { FONT_MONO_FALLBACK } from '../theme/typography';
 import { StyleDomainProvider } from '../theme/StyleDomainContext';
 import { getVuMeterVariables, VUMETER_THICKNESS_MAX, VUMETER_THICKNESS_MIN } from '../components/VuMeter/VuMeterSlice';
 
-const part = (c: HTMLElement, name: string) => c.querySelector<HTMLElement>(`[data-vumeter-part="${name}"]`);
+const part = (c: HTMLElement, name: string) => c.querySelector<HTMLElement>(`[data-ai-vumeter-part="${name}"]`);
 
 describe('VuMeter', () => {
   it('is a named meter whose value is the clamped level', () => {
@@ -40,45 +40,45 @@ describe('VuMeter', () => {
 
   it('clips the fill to the level and draws only the parts that were asked for', () => {
     const { container, rerender } = render(<VuMeter label="L" level={0.25} />);
-    expect(part(container, 'fill')!.getAttribute('data-level')).toBe('25.0%');
+    expect(part(container, 'fill')!.getAttribute('data-ai-level')).toBe('25.0%');
     expect(part(container, 'fill')!.style.clipPath).toContain('75');
     for (const p of ['mark', 'peak', 'pressure', 'led', 'num']) expect(part(container, p)).toBeNull();
 
     rerender(<VuMeter label="L" level={0.25} mark={0.8} pressure={0.5} led value="1.2k/s" holdPeak />);
     expect(part(container, 'mark')!.style.left).toContain('80');
     expect(part(container, 'pressure')!.style.transform).toContain('scaleX(0.5');
-    expect(part(container, 'led')!.getAttribute('data-on')).toBe('true');
+    expect(part(container, 'led')!.getAttribute('data-ai-on')).toBe('true');
     expect(part(container, 'led')!.getAttribute('aria-hidden')).toBe('true');
     expect(part(container, 'num')!.textContent).toBe('1.2k/s');
     expect(part(container, 'peak')).not.toBeNull();
 
     rerender(<VuMeter label="L" level={0.25} led={false} scale={false} />);
     expect(part(container, 'scale')).toBeNull();
-    expect(part(container, 'led')!.getAttribute('data-on')).toBe('false');
+    expect(part(container, 'led')!.getAttribute('data-ai-on')).toBe('false');
   });
 
   it('holds the highest level as the peak while the level falls', () => {
     const { container, rerender } = render(<VuMeter label="L" level={0.9} holdPeak />);
     expect(part(container, 'peak')!.style.left).toContain('90');
     rerender(<VuMeter label="L" level={0.3} holdPeak />);
-    expect(part(container, 'fill')!.getAttribute('data-level')).toBe('30.0%');
+    expect(part(container, 'fill')!.getAttribute('data-ai-level')).toBe('30.0%');
     expect(part(container, 'peak')!.style.left).toContain('90');
   });
 
   it('exposes size, kind, zone and live as data attributes; frames itself unless told not to', () => {
     const { getByRole, rerender } = render(<VuMeter label="L" level={0.5} size="sm" kind="share" zone="error" live />);
     const meter = getByRole('meter');
-    expect(meter.dataset.size).toBe('sm');
-    expect(meter.dataset.kind).toBe('share');
-    expect(meter.dataset.zone).toBe('error');
-    expect(meter.dataset.live).toBe('true');
+    expect(meter.dataset.aiSize).toBe('sm');
+    expect(meter.dataset.aiKind).toBe('share');
+    expect(meter.dataset.aiZone).toBe('error');
+    expect(meter.dataset.aiLive).toBe('true');
     expect(meter.style.borderRadius).toBe('var(--ai-radius-md)');
     expect(meter.style.padding).not.toBe('0px');
     rerender(<VuMeter label="L" level={0.5} framed={false} fill dimmed />);
     expect(meter.style.padding).toBe('0px');
     expect(meter.style.display).toBe('flex');
     expect(meter.style.opacity).toBe('0.4');
-    expect(meter.dataset.live).toBeUndefined();
+    expect(meter.dataset.aiLive).toBeUndefined();
   });
 
   it('takes a per-instance thickness override', () => {

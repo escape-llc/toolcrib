@@ -15,13 +15,14 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 
 /** Props for the `<NumberField>` numeric input. */
-export interface NumberFieldProps {
+export interface NumberFieldProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Inside a `<Form>`, the stored value is a real `number` (or `null` when empty). */
   name?: string;
   /** Label rendered above the input. */
@@ -114,6 +115,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
+  ...rest
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -201,6 +203,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
             <Minus size="1em" aria-hidden="true" />
           </AriaButton>
           <AriaInput
+            {...pickDataAttributes(rest)}
             placeholder={placeholder}
             aria-describedby={isError ? `${fieldName}-error` : undefined}
             style={{

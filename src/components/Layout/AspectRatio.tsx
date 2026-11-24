@@ -1,7 +1,8 @@
 import React, { type ReactNode } from 'react';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /** Props for `<AspectRatio>`. */
-export interface AspectRatioProps {
+export interface AspectRatioProps extends DataAttributes {
   /** Width-to-height ratio, e.g. `16 / 9` or `1`. @default 1 */
   ratio?: number;
   /** Usually a single filling element — an image, video, or iframe embed. */
@@ -16,11 +17,11 @@ export interface AspectRatioProps {
  * @manifest Constrains content to a fixed width-to-height ratio
  * @manifestCategory Layout Primitives
  */
-export const AspectRatio: React.FC<AspectRatioProps> = ({ ratio = 1, children }) => (
+export const AspectRatio: React.FC<AspectRatioProps> = ({ ratio = 1, children, ...rest }) => (
   // toolcrib's own (#703): an
   // outer box whose height comes from padding-bottom (a percentage of its
   // width), and the content filling it absolutely.
-  <div style={{ position: 'relative', width: '100%', paddingBottom: `${100 / ratio}%` }}>
+  <div {...pickDataAttributes(rest)} style={{ position: 'relative', width: '100%', paddingBottom: `${100 / ratio}%` }}>
     <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
   </div>
 );

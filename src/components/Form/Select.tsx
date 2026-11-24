@@ -14,6 +14,7 @@ import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
@@ -43,7 +44,7 @@ export interface SelectOptionData {
  *
  * Binds to Form context via `name`. Emits `select:changed` on the event bus.
  */
-export interface SelectProps {
+export interface SelectProps extends DataAttributes {
   /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
@@ -101,6 +102,7 @@ export const Select: React.FC<SelectProps> = ({
   overrides,
   size = 'md',
   squareCorners,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -281,6 +283,7 @@ export const Select: React.FC<SelectProps> = ({
     <OverlayCSP>
       <BasePopover.Root open={isOpen} onOpenChange={handleOpenChange}>
         <button
+          {...pickDataAttributes(rest)}
           ref={triggerRef}
           type="button"
           id={effectiveId}

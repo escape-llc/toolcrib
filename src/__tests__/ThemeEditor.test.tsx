@@ -1,3 +1,4 @@
+import { getAi, queryAi } from './testUtils/aiTestId';
 import { type ComponentProps } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
@@ -256,7 +257,7 @@ describe('ThemeEditor', () => {
       // nor a hidden toolbar.
       renderEditor({ themeManagement: false, themeManagementSlot: null });
 
-      expect(screen.queryByTestId('theme-editor-toolbar')).not.toBeInTheDocument();
+      expect(queryAi('theme-editor-toolbar')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Theme presets' })).not.toBeInTheDocument();
     });
   });
@@ -290,7 +291,7 @@ describe('ThemeEditor', () => {
         fireEvent.click(screen.getByText(category, { exact: false }));
         fireEvent.click(screen.getByText(sliceName));
 
-        const section = screen.getByTestId(`accordion-content-${sliceId}`);
+        const section = getAi(`accordion-content-${sliceId}`);
         const comboCount = within(section).queryAllByRole('combobox').length;
         expect(comboCount).toBeGreaterThan(0); // every slice section has at least one FieldRow
 
@@ -324,7 +325,7 @@ describe('ThemeEditor', () => {
     renderEditor();
     fireEvent.click(screen.getByText(slice.category, { exact: false }));
     fireEvent.click(screen.getByText(slice.name));
-    const section = screen.getByTestId('accordion-content-vumeter');
+    const section = getAi('accordion-content-vumeter');
     const slider = within(section).getByRole('slider', { name: 'Meter Thickness' });
     const before = slider.getAttribute('aria-valuenow');
     act(() => { slider.focus(); });
@@ -337,7 +338,7 @@ describe('ThemeEditor', () => {
     renderEditor();
     fireEvent.click(screen.getByText(slice.category, { exact: false }));
     fireEvent.click(screen.getByText(slice.name));
-    const section = screen.getByTestId('accordion-content-viewport');
+    const section = getAi('accordion-content-viewport');
     expect(within(section).getAllByRole('slider')).toHaveLength(4);
     expect(within(section).getByText(/Top Inset \(minimum\)/)).toBeInTheDocument();
     const slider = within(section).getByRole('slider', { name: 'Viewport top inset' });
@@ -496,10 +497,10 @@ describe('ThemeEditor', () => {
       // Gemini-caught, real: a bare `getByText('Secondary')` would throw on
       // multiple matches the moment any other part of ThemeEditor ever
       // contains that same word (a dropdown option, a variant label).
-      const primarySwatch = screen.getByTestId('harmony-swatch-primary');
-      const secondarySwatch = screen.getByTestId('harmony-swatch-secondary');
-      const accentSwatch = screen.getByTestId('harmony-swatch-accent');
-      const quaternarySwatch = screen.getByTestId('harmony-swatch-quaternary');
+      const primarySwatch = getAi('harmony-swatch-primary');
+      const secondarySwatch = getAi('harmony-swatch-secondary');
+      const accentSwatch = getAi('harmony-swatch-accent');
+      const quaternarySwatch = getAi('harmony-swatch-quaternary');
       expect(within(primarySwatch).getByText('Primary')).toBeInTheDocument();
       expect(within(secondarySwatch).getByText('Secondary')).toBeInTheDocument();
       expect(within(accentSwatch).getByText('Accent')).toBeInTheDocument();

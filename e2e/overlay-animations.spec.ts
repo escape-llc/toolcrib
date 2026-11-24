@@ -19,7 +19,7 @@ test('opening a Modal plays its ai-scale-in entrance animation', async ({ page }
   await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
-  const modal = page.getByTestId('modal-container');
+  const modal = page.locator('[data-ai-testid="modal-container"]');
   await modal.waitFor({ state: 'visible', timeout: 2000 });
 
   const animationName = await modal.evaluate(el => getComputedStyle(el).animationName);
@@ -42,7 +42,7 @@ test('closing a Modal plays real ai-fade-out/ai-scale-out exit animations before
   await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
-  const modal = page.getByTestId('modal-container');
+  const modal = page.locator('[data-ai-testid="modal-container"]');
   await modal.waitFor({ state: 'visible', timeout: 2000 });
   const overlay = page.locator('.ai-modal-overlay');
 
@@ -78,7 +78,7 @@ test('opening an AlertDialog plays its ai-fade-in/ai-scale-in entrance animation
   // rather than depending on DOM order between them.
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
 
-  const dialog = page.getByTestId('alertdialog-container');
+  const dialog = page.locator('[data-ai-testid="alertdialog-container"]');
   await dialog.waitFor({ state: 'visible', timeout: 2000 });
   const animationName = await dialog.evaluate(el => getComputedStyle(el).animationName);
   expect(animationName).toBe('ai-scale-in');
@@ -96,7 +96,7 @@ test('closing an AlertDialog plays real ai-fade-out/ai-scale-out exit animations
   await gotoTab(page, 'Catalog', 'AlertDialog');
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
 
-  const dialog = page.getByTestId('alertdialog-container');
+  const dialog = page.locator('[data-ai-testid="alertdialog-container"]');
   await dialog.waitFor({ state: 'visible', timeout: 2000 });
   const overlay = page.locator('.ai-alertdialog-overlay');
 
@@ -131,7 +131,7 @@ test('expanding an Accordion item plays its ai-accordion-slide-down animation', 
   // clicking it is a real closed-to-open transition, not just a fresh
   // mount already in the open state. A closed panel isn't mounted at all
   // (Base UI, #702).
-  const panel = page.getByTestId('accordion-content-faq-2');
+  const panel = page.locator('[data-ai-testid="accordion-content-faq-2"]');
   await expect(panel).not.toBeAttached();
 
   await page.getByText('How does Event Bus integration work?').click();
@@ -202,7 +202,7 @@ test('opening a Drawer plays its entrance animations and closing plays real exit
   const panelAnimationName = await panel.evaluate(el => getComputedStyle(el).animationName);
   expect(panelAnimationName).toBe('ai-slide-in-right');
 
-  const backdrop = page.getByTestId('drawer-backdrop');
+  const backdrop = page.locator('[data-ai-testid="drawer-backdrop"]');
   const backdropAnimationName = await backdrop.evaluate(el => getComputedStyle(el).animationName);
   expect(backdropAnimationName).toBe('ai-fade-in');
 

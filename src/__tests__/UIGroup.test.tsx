@@ -15,7 +15,7 @@ function WrappedTrigger({ trigger }: { trigger: ReactElement }) {
 }
 
 // Corner-radius merging is applied via an injected global stylesheet
-// (`.toolcrib-group[data-orientation=...] > *` selectors), not inline
+// (`.toolcrib-group[data-ai-orientation=...] > *` selectors), not inline
 // style on each child — jsdom doesn't run a CSS engine, so
 // `element.style.borderRadius` can't observe stylesheet-applied values
 // here the way a real browser can. These tests check the structural
@@ -39,7 +39,7 @@ describe('UIGroup Component', () => {
 
     const group = screen.getByRole('group');
     expect(group.className).toBe('toolcrib-group');
-    expect(group.getAttribute('data-orientation')).toBe('horizontal');
+    expect(group.getAttribute('data-ai-orientation')).toBe('horizontal');
     expect(group.style.getPropertyValue('--toolcrib-group-radius')).toBe('0.375rem');
   });
 
@@ -51,7 +51,7 @@ describe('UIGroup Component', () => {
     );
 
     const group = screen.getByRole('group');
-    expect(group.getAttribute('data-orientation')).toBe('horizontal');
+    expect(group.getAttribute('data-ai-orientation')).toBe('horizontal');
     expect(group.style.getPropertyValue('--toolcrib-group-radius')).toBe('var(--ai-radius-md, 0.375rem)');
   });
 
@@ -65,7 +65,7 @@ describe('UIGroup Component', () => {
     );
 
     const group = screen.getByRole('group');
-    expect(group.getAttribute('data-orientation')).toBe('vertical');
+    expect(group.getAttribute('data-ai-orientation')).toBe('vertical');
     expect(screen.getByText('Menu Item 1')).toBeInTheDocument();
     expect(screen.getByText('Menu Item 2')).toBeInTheDocument();
     expect(screen.getByText('Menu Item 3')).toBeInTheDocument();

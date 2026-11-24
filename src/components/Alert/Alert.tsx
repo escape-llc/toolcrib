@@ -86,7 +86,7 @@ export const Alert: React.FC<AlertProps> & {
     <div
       {...props}
       role={liveRole === 'none' ? undefined : liveRole}
-      data-subtheme={subtheme}
+      data-ai-subtheme={subtheme}
       style={{
         display: 'flex',
         alignItems: 'flex-start',

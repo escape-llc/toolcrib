@@ -19,6 +19,7 @@ import { Button } from './FormComponents';
 import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { FileUploadThemeSlice, type FileUploadSliceState, type FileUploadDensity } from './FileUploadSlice';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
@@ -43,7 +44,7 @@ export interface FileUploadItem {
 }
 
 /** Props for the `<FileUpload>` drag-and-drop file picker. */
-export interface FileUploadProps {
+export interface FileUploadProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Native `accept` attribute, e.g. `'image/*'` or `'.pdf,.docx'`. */
@@ -107,6 +108,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -285,6 +287,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div style={{ width: '100%' }}>
       <div
+        {...pickDataAttributes(rest)}
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}

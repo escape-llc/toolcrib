@@ -4,6 +4,7 @@ import React from 'react';
 import { Meter as BaseMeter } from '@base-ui/react/meter';
 import { useResolvedSubtheme } from '../../theme/useSliceOverrides';
 import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /**
  * Props for the `<Meter>` gauge.
@@ -15,7 +16,7 @@ import { resolveSubtheme, type SubthemeName } from '../../theme/subtheme';
  * the bar colours itself by whether the value sits in the good, middling or
  * bad part of the range.
  */
-export interface MeterProps {
+export interface MeterProps extends DataAttributes {
   /**
    * Accessible name for the underlying `role="meter"` element. Required, as
    * on `<Progress>`: a meter has no text content ARIA can derive a name from.
@@ -106,6 +107,7 @@ export const Meter: React.FC<MeterProps> = ({
   format,
   size = 'md',
   subtheme: instanceSubtheme,
+  ...rest
 }) => {
   const resolvedSubtheme = useResolvedSubtheme(instanceSubtheme);
   const clampedValue = Math.min(Math.max(value, min), max);
@@ -120,12 +122,13 @@ export const Meter: React.FC<MeterProps> = ({
 
   return (
     <BaseMeter.Root
+      {...pickDataAttributes(rest)}
       aria-label={ariaLabel}
       value={clampedValue}
       min={min}
       max={max}
       format={format}
-      data-band={band}
+      data-ai-band={band}
       style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
     >
       {(label || showValue) && (

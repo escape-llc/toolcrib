@@ -16,7 +16,7 @@ import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
-import { isDevBuild } from '../../theme/safeProps';
+import { isDevBuild, type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { type SubthemeName } from '../../theme/subtheme';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, renderAnchorWithCornerSquaring, useActualPopoverSide, type PopoverSide } from '../../theme/connectedPopoverStyles';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
@@ -32,7 +32,7 @@ export type PopupPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-
  * Automatically handles trigger anchoring, light dismiss, and corner squaring
  * between trigger and popup panel. Supports event bus control.
  */
-export interface PopupProps {
+export interface PopupProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /**
@@ -85,11 +85,16 @@ export interface PopupProps {
   overrides?: Partial<PopupSliceState> & { subtheme?: SubthemeName };
 }
 
+/** Props for the `<Popup.Trigger>` slot. */
+export interface PopupTriggerProps extends DataAttributes {
+  children: ReactElement;
+}
+
 /**
  * @manifest Anchored popover with light dismiss and corner-squaring to trigger
  * @manifestCategory Overlays
  */
-export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: ReactElement }> } = ({
+export const Popup: React.FC<PopupProps> & { Trigger: React.FC<PopupTriggerProps> } = ({
   id: propId,
   trigger,
   anchor,
@@ -99,6 +104,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
   onOpenChange,
   zIndex: zIndexProp,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'popup');
   if (isDevBuild() && !anchor && !trigger) {
@@ -150,6 +156,7 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
                 Gallery), not an application dialog -- overriding the popup's
                 default role="dialog". */}
             <BasePopover.Popup
+              {...pickDataAttributes(rest)}
               ref={contentRef}
               role="presentation"
               className="ai-focus-ring ai-popup-content"
@@ -180,6 +187,6 @@ export const Popup: React.FC<PopupProps> & { Trigger: React.FC<{ children: React
  * children. Base UI's Trigger reads the Popover context wherever it sits, and
  * render puts its props on the consumer's element directly.
  */
-const PopupTrigger: React.FC<{ children: ReactElement }> = ({ children }) => <BasePopover.Trigger {...triggerRenderProps(children)} />;
+const PopupTrigger: React.FC<PopupTriggerProps> = ({ children, ...rest }) => <BasePopover.Trigger {...pickDataAttributes(rest)} {...triggerRenderProps(children)} />;
 PopupTrigger.displayName = 'Popup.Trigger';
 Popup.Trigger = PopupTrigger;

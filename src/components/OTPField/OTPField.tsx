@@ -11,12 +11,13 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /** Props for `<OTPField>`. */
-export interface OTPFieldProps {
+export interface OTPFieldProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Inside a `<Form>`, the stored value is one string. */
   name?: string;
   /** Number of cells. @default 6 */
@@ -69,6 +70,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   'aria-invalid': ariaInvalid,
   disabled: disabledProp = false,
   size = 'md',
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -132,6 +134,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
           comes from this hidden span instead. */}
       <span id={`${ownLabelId}-cell-1`} hidden>{cellName(1, length)}</span>
       <BaseOTPField.Root
+        {...pickDataAttributes(rest)}
         key={cellsKey}
         length={length}
         value={code}

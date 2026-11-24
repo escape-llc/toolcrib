@@ -7,6 +7,7 @@
 import React, { type ReactNode, type ReactElement } from 'react';
 import { PreviewCard } from '@base-ui/react/preview-card';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
 import { HoverCardThemeSlice, type HoverCardSliceState } from './HoverCardSlice';
@@ -15,7 +16,7 @@ import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useAnchoredBoundary, use
 const BORDER = 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e7eb))';
 
 /**
- * Props for the `<HoverCard>` hover-triggered preview card.
+ * Props for the `<HoverCard>` hover-triggered preview card. `data-*` attributes land on the card (the popup), not the trigger.
  *
  * Unlike `<Tooltip>`, `content` may hold rich, interactive markup (a link,
  * an avatar + bio, a button) — the card doesn't disappear on pointer-down
@@ -27,7 +28,7 @@ const BORDER = 'var(--ai-hovercard-border, 0.0625rem solid var(--ai-border, #e5e
  * moves on through the page rather than into the card. Use `<Popup>` when
  * the content's buttons or links need to be keyboard-reachable.
  */
-export interface HoverCardProps {
+export interface HoverCardProps extends DataAttributes {
   /** Unique identifier for event bus targeting. */
   id?: string;
   /** Rich content shown inside the card. */
@@ -64,6 +65,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
   openDelay = 700,
   closeDelay = 300,
   overrides,
+  ...rest
 }) => {
   const { vars } = useSliceOverrides(HoverCardThemeSlice, overrides);
   const { container, zIndex } = useOverlayLayer('TOOLTIP');
@@ -78,6 +80,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
         <PreviewCard.Portal container={container}>
           <PreviewCard.Positioner {...boundary} side={side} align={align} sideOffset={8} style={{ zIndex }}>
             <PreviewCard.Popup
+              {...pickDataAttributes(rest)}
               className="ai-focus-ring ai-hovercard-content"
               style={{
                 background: 'var(--ai-bg-surface, #ffffff)',

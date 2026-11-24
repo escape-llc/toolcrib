@@ -53,6 +53,7 @@ import { useTableColumnResize, getColumnMinWidth } from './useTableColumnResize'
 import { useTableColumnVisibility } from './useTableColumnVisibility';
 import { useTableColumnPinning } from './useTableColumnPinning';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /** Argument passed to a `Column.render` callback for one cell. */
 export interface CellContext<T = any> {
@@ -214,7 +215,7 @@ export interface RowCommand<T = any> {
  *
  * Supports client-side sorting and pagination out of the box.
  */
-export interface DataTableProps<T = any> {
+export interface DataTableProps<T = any> extends DataAttributes {
   /**
    * Identifier included in this instance's `datatable:sorted`/
    * `datatable:paginated`/`datatable:row_clicked` event bus payloads, so a
@@ -881,6 +882,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   onRowEditSave,
   onRowEditCancel,
   maxEditingRows = 50,
+  ...rest
 }: DataTableProps<T>) {
   // Real, hard requirement (issue #545), not a soft warning: the edit
   // co-grid resolves records via `rowKey` against the raw `data` array,
@@ -1674,8 +1676,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     // ArrowUp/Down from either column stalls at a loading or failed block.
     const selectionCell = selectable && !hideSelectionColumn && (
       <td
-        data-grid-row={gridRow}
-        data-grid-col={0}
+        data-ai-grid-row={gridRow}
+        data-ai-grid-col={0}
         tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
         className="ai-focus-ring"
         style={{
@@ -1689,8 +1691,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
     const commandCol = colOffset + visibleColumns.length;
     const commandCell = hasRowCommands && (
       <td
-        data-grid-row={gridRow}
-        data-grid-col={commandCol}
+        data-ai-grid-row={gridRow}
+        data-ai-grid-col={commandCol}
         tabIndex={isFocusedCell(gridRow, commandCol) ? 0 : -1}
         className="ai-focus-ring"
         style={{
@@ -1708,7 +1710,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       // with the load-error string instead.
       const showRetry = actualIndex === startIndex || Math.floor((actualIndex - 1) / blockSize) !== slot.blockIndex;
       return (
-        <tr key={key} aria-rowindex={actualIndex + 2} data-block-error="true" style={rowStyle}>
+        <tr key={key} aria-rowindex={actualIndex + 2} data-ai-block-error="true" style={rowStyle}>
           {selectionCell}
           {displayColumns.map((col, colIndex) => {
             const gridCol = colOffset + colIndex;
@@ -1716,8 +1718,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
             return (
               <td
                 key={col.key}
-                data-grid-row={gridRow}
-                data-grid-col={gridCol}
+                data-ai-grid-row={gridRow}
+                data-ai-grid-col={gridCol}
                 tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
                 className="ai-focus-ring"
                 {...(isFirst && !showRetry ? { 'aria-label': strings.loadError } : {})}
@@ -1745,15 +1747,15 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
       );
     }
     return (
-      <tr key={key} aria-rowindex={actualIndex + 2} data-placeholder="true" style={rowStyle}>
+      <tr key={key} aria-rowindex={actualIndex + 2} data-ai-placeholder="true" style={rowStyle}>
         {selectionCell}
         {displayColumns.map((col, colIndex) => {
           const gridCol = colOffset + colIndex;
           return (
             <td
               key={col.key}
-              data-grid-row={gridRow}
-              data-grid-col={gridCol}
+              data-ai-grid-row={gridRow}
+              data-ai-grid-col={gridCol}
               tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
               className="ai-focus-ring"
               {...(colIndex === 0 ? { 'aria-label': strings.loadingRows } : {})}
@@ -2076,7 +2078,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
   // rather than a persistent ref -- this renders inside two different <th>
   // shapes (sortable-button and plain), so there's no single stable ref to
   // reuse between them. Deliberately NOT part of the roving-tabindex/
-  // data-grid-* coordinate model (no data-grid-row/col, no isFocusedCell) --
+  // data-grid-* coordinate model (no data-ai-grid-row/col, no isFocusedCell) --
   // same documented scope limit as any other custom interactive content
   // inside a cell (see useTableKeyboardNav's own header comment): it's a
   // second focusable target inside the column's header cell, reachable via
@@ -2124,7 +2126,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         // very next synthetic mousemove could be dispatched before this
         // attach actually lands. This attribute gives a test something
         // concrete to poll for instead of guessing a delay.
-        data-resizing={isResizing(col.key) ? 'true' : undefined}
+        data-ai-resizing={isResizing(col.key) ? 'true' : undefined}
         tabIndex={0}
         className="ai-focus-ring"
         onMouseDown={onDown}
@@ -2579,6 +2581,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
         }}
       >
         <table
+          {...pickDataAttributes(rest)}
           ref={tableRef}
           role="grid"
           // Reflects the FULL dataset (not just the current virtualization
@@ -2690,7 +2693,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                   // just below) IT carries the grid-nav attributes directly
                   // instead of a nonexistent child widget.
                   {...(selectionMode === 'single'
-                    ? { 'data-grid-row': 0, 'data-grid-col': 0, tabIndex: isFocusedCell(0, 0) ? 0 : -1 }
+                    ? { 'data-ai-grid-row': 0, 'data-ai-grid-col': 0, tabIndex: isFocusedCell(0, 0) ? 0 : -1 }
                     : {})}
                   className={selectionMode === 'single' ? 'ai-focus-ring' : undefined}
                 >
@@ -2710,8 +2713,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       onCheckedChange={() => toggleSelectAllOnPage()}
                       aria-label={allKeysSource ? strings.selectAllMatchingRows : strings.selectAllRows}
                       className="ai-focus-ring"
-                      data-grid-row={0}
-                      data-grid-col={0}
+                      data-ai-grid-row={0}
+                      data-ai-grid-col={0}
                       tabIndex={isFocusedCell(0, 0) ? 0 : -1}
                       style={{
                         all: 'unset',
@@ -2757,7 +2760,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                     // only carries those attributes for a non-sortable
                     // column, where it's the cell target itself instead.
                     {...(!isSortable
-                      ? { 'data-grid-row': 0, 'data-grid-col': gridCol, tabIndex: isFocusedCell(0, gridCol) ? 0 : -1 }
+                      ? { 'data-ai-grid-row': 0, 'data-ai-grid-col': gridCol, tabIndex: isFocusedCell(0, gridCol) ? 0 : -1 }
                       : {})}
                     className={!isSortable ? 'ai-focus-ring' : undefined}
                     aria-sort={
@@ -2817,8 +2820,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                         onClick={e => handleSortClick(col.key, e.shiftKey)}
                         title={strings.sortHint}
                         className="ai-focus-ring"
-                        data-grid-row={0}
-                        data-grid-col={gridCol}
+                        data-ai-grid-row={0}
+                        data-ai-grid-col={gridCol}
                         tabIndex={isFocusedCell(0, gridCol) ? 0 : -1}
                         style={{
                           display: 'flex',
@@ -2932,8 +2935,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
               })}
               {hasRowCommands && (
                 <th
-                  data-grid-row={0}
-                  data-grid-col={colOffset + visibleColumns.length}
+                  data-ai-grid-row={0}
+                  data-ai-grid-col={colOffset + visibleColumns.length}
                   tabIndex={isFocusedCell(0, colOffset + visibleColumns.length) ? 0 : -1}
                   className="ai-focus-ring"
                   style={{
@@ -2950,7 +2953,7 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
           </thead>
 
           <tbody
-            data-stale={isStale ? 'true' : undefined}
+            data-ai-stale={isStale ? 'true' : undefined}
             style={{
               opacity: isStale ? 'var(--ai-datatable-stale-opacity, 0.55)' : undefined,
               transition: 'opacity var(--ai-transition-duration-fast, 0.15s) var(--ai-transition-easing, ease)',
@@ -3248,8 +3251,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               aria-label={strings.selectRow(actualIndex + 1)}
                               onClick={() => toggleRowSelected(selectionKey, actualIndex)}
                               className="ai-focus-ring"
-                              data-grid-row={gridRow}
-                              data-grid-col={0}
+                              data-ai-grid-row={gridRow}
+                              data-ai-grid-col={0}
                               tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
                               style={{
                                 all: 'unset',
@@ -3278,8 +3281,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                               onCheckedChange={() => toggleRowSelected(selectionKey, actualIndex)}
                               aria-label={strings.selectRow(actualIndex + 1)}
                               className="ai-focus-ring"
-                              data-grid-row={gridRow}
-                              data-grid-col={0}
+                              data-ai-grid-row={gridRow}
+                              data-ai-grid-col={0}
                               tabIndex={isFocusedCell(gridRow, 0) ? 0 : -1}
                               style={{
                                 all: 'unset',
@@ -3319,8 +3322,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                             // still reachable, just via native Tab order
                             // rather than being folded into the grid's
                             // single-composite-widget model.
-                            data-grid-row={gridRow}
-                            data-grid-col={gridCol}
+                            data-ai-grid-row={gridRow}
+                            data-ai-grid-col={gridCol}
                             tabIndex={isFocusedCell(gridRow, gridCol) ? 0 : -1}
                             className="ai-focus-ring"
                             style={{
@@ -3361,8 +3364,8 @@ export function DataTable<T extends Record<string, any> = Record<string, any>>({
                       })}
                       {hasRowCommands && (
                         <td
-                          data-grid-row={gridRow}
-                          data-grid-col={colOffset + visibleColumns.length}
+                          data-ai-grid-row={gridRow}
+                          data-ai-grid-col={colOffset + visibleColumns.length}
                           tabIndex={isFocusedCell(gridRow, colOffset + visibleColumns.length) ? 0 : -1}
                           className="ai-focus-ring"
                           onClick={e => e.stopPropagation()}

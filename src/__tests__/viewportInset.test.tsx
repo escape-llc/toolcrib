@@ -1,3 +1,4 @@
+import { getAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, renderHook } from '@testing-library/react';
 import { Modal } from '../components/Overlay/Modal';
@@ -25,7 +26,7 @@ describe('full-window overlays respect the viewport inset', () => {
     );
     const backdrop = baseElement.querySelector('.ai-modal-overlay') as HTMLElement;
     for (const side of SIDES) expect(backdrop.style[side]).toBe(inset(side));
-    const popup = screen.getByTestId('modal-container');
+    const popup = getAi('modal-container');
     const viewport = popup.parentElement as HTMLElement;
     for (const side of SIDES) expect(viewport.style[side]).toBe(inset(side));
     expect(popup.style.maxHeight).toContain('--ai-viewport-inset-top');
@@ -40,7 +41,7 @@ describe('full-window overlays respect the viewport inset', () => {
     );
     const backdrop = baseElement.querySelector('.ai-alertdialog-overlay') as HTMLElement;
     for (const side of SIDES) expect(backdrop.style[side]).toBe(inset(side));
-    const viewport = screen.getByTestId('alertdialog-container').parentElement as HTMLElement;
+    const viewport = getAi('alertdialog-container').parentElement as HTMLElement;
     for (const side of SIDES) expect(viewport.style[side]).toBe(inset(side));
   });
 

@@ -15,10 +15,10 @@ import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { ChoiceSeparator } from '../shared/ChoiceSeparator';
-import { type StyleFree } from '../../theme/safeProps';
+import { type StyleFree, type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /** Props for the standalone `<Toggle>` pressed/unpressed button. */
-export interface ToggleProps {
+export interface ToggleProps extends DataAttributes {
   /** Included in the emitted `toggle:changed` event payload. */
   name?: string;
   /** Controlled pressed state. */
@@ -83,6 +83,7 @@ export const Toggle: React.FC<ToggleProps> = ({
   children,
   overrides,
   size = 'md',
+  ...rest
 }) => {
   // The native <fieldset> already blocks the button; this makes it look
   // and report disabled too, like ToggleGroup (#880).
@@ -102,6 +103,7 @@ export const Toggle: React.FC<ToggleProps> = ({
 
   return (
     <BaseToggle
+      {...pickDataAttributes(rest)}
       pressed={isPressed}
       onPressedChange={next => handlePressedChange(next)}
       // Inside a <FormField>, its label (htmlFor={name}) names the toggle.

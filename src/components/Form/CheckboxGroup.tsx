@@ -10,6 +10,7 @@ import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { ToggleControlThemeSlice, type ToggleControlSliceState } from './ToggleControlSlice';
 
 /** Data shape for each option in a `<CheckboxGroup>`. */
@@ -28,7 +29,7 @@ export interface CheckboxOption {
  * Props for `<CheckboxGroup>`: a labelled group of checkboxes bound to one
  * array-valued field. Binds to Form context via `name`.
  */
-export interface CheckboxGroupProps {
+export interface CheckboxGroupProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Inside a `<Form>`, the stored value is a `string[]`. */
   name?: string;
   /** The checkboxes, in display order. */
@@ -79,6 +80,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   disabled: disabledProp = false,
   size = 'md',
   overrides,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -128,6 +130,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       role="group"
       aria-labelledby={labelledBy}
       aria-label={!label ? ariaLabel : undefined}

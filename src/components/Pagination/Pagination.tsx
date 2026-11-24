@@ -6,6 +6,7 @@ import { Button } from '../Form/FormComponents';
 import { useStableId } from '../shared/useStableId';
 import { usePagination } from '../shared/usePagination';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { type SquareCornerOption } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
@@ -35,7 +36,7 @@ function buildPageTokens(currentPage: number, totalPages: number): PageToken[] {
   return tokens;
 }
 
-export interface PaginationProps {
+export interface PaginationProps extends DataAttributes {
   /** Unique identifier for `pagination:changed` event bus payloads. Auto-generated if omitted. */
   id?: string;
   /** Total number of items being paged across (not the number of pages). */
@@ -71,6 +72,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   defaultPage,
   onPageChange,
   size = 'sm',
+  ...rest
 }) => {
   const id = useStableId(propId, 'pagination');
   const strings = useLocaleStrings().pagination;
@@ -125,7 +127,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <nav aria-label={strings.navLabel} onKeyDown={handleKeyDown}>
+    <nav {...pickDataAttributes(rest)} aria-label={strings.navLabel} onKeyDown={handleKeyDown}>
       <UIGroup>
         <Button
           variant="outline"

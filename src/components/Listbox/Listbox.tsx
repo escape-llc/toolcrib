@@ -7,6 +7,7 @@ import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 
 /**
@@ -47,7 +48,7 @@ export interface ListboxOptionData {
  * custom search-results dropdown, a mentions widget, or any other picker
  * that needs a keyboard-navigable option list.
  */
-export interface ListboxProps {
+export interface ListboxProps extends DataAttributes {
   /** DOM id for the listbox container. Each option's own id is derived from this (`${id}-option-${index}`) — predictable so a caller can compute the active option's id for `aria-activedescendant` without Listbox needing to expose it separately. */
   id: string;
   /** Options to render. */
@@ -128,6 +129,7 @@ export const Listbox: React.FC<ListboxProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  ...rest
 }) => {
   const strings = useLocaleStrings().listbox;
 
@@ -192,6 +194,7 @@ export const Listbox: React.FC<ListboxProps> = ({
         <VisuallyHidden>{announcement}</VisuallyHidden>
       </div>
       <div
+        {...pickDataAttributes(rest)}
         role="listbox"
         id={id}
         aria-label={ariaLabel}

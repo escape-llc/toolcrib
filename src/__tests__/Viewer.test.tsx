@@ -1,3 +1,4 @@
+import { getAllAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Viewer } from '../components/Viewer/Viewer';
@@ -68,17 +69,17 @@ describe('Viewer', () => {
         <Viewer id="nested-viewer" items={items} />
       </Modal>
     );
-    expect(screen.getAllByTestId('modal-container')).toHaveLength(1);
+    expect(getAllAi('modal-container')).toHaveLength(1);
 
     act(() => {
       aiBus.emit('viewer:shown', { id: 'nested-viewer' });
     });
-    expect(screen.getAllByTestId('modal-container')).toHaveLength(2);
+    expect(getAllAi('modal-container')).toHaveLength(2);
     expect(screen.getByAltText('Photo A')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(screen.getAllByTestId('modal-container')).toHaveLength(1);
+    expect(getAllAi('modal-container')).toHaveLength(1);
     expect(screen.queryByAltText('Photo A')).not.toBeInTheDocument();
   });
 

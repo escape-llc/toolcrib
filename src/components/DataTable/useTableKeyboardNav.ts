@@ -74,7 +74,7 @@ export interface UseTableKeyboardNavResult {
  * `column.render` cell is free to contain. Without this, Arrow/Home/End
  * would hijack native text-cursor movement/selection inside it. Focus
  * syncing (`handleFocus`) still resolves via the nearest ancestor carrying
- * `data-grid-row`/`data-grid-col`, so tabbing or clicking into such a
+ * `data-ai-grid-row`/`data-ai-grid-col`, so tabbing or clicking into such a
  * control still correctly updates the roving tabindex to its cell.
  */
 export function useTableKeyboardNav({
@@ -133,7 +133,7 @@ export function useTableKeyboardNav({
     const pending = pendingFocusRef.current;
     if (!pending) return;
     const el = tableRef.current?.querySelector<HTMLElement>(
-      `[data-grid-row="${pending.row}"][data-grid-col="${pending.col}"]`
+      `[data-ai-grid-row="${pending.row}"][data-ai-grid-col="${pending.col}"]`
     );
     if (el) {
       el.focus();
@@ -197,14 +197,14 @@ export function useTableKeyboardNav({
     // closest(), not a direct read off e.target -- a custom column.render
     // cell can contain its own focusable descendant (a link, an action
     // button) that a click or Tab can land on directly. That descendant
-    // doesn't carry data-grid-row/col itself (only the <td> wrapper does),
+    // doesn't carry data-ai-grid-row/col itself (only the <td> wrapper does),
     // so reading e.target alone would silently fail to resync here,
     // leaving a subsequent arrow-key press to jump from whatever cell last
     // held the roving tabindex instead of the one actually focused.
-    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-grid-row][data-grid-col]');
+    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-ai-grid-row][data-ai-grid-col]');
     if (!target) return;
-    const rowAttr = target.dataset.gridRow;
-    const colAttr = target.dataset.gridCol;
+    const rowAttr = target.dataset.aiGridRow;
+    const colAttr = target.dataset.aiGridCol;
     if (rowAttr === undefined || colAttr === undefined) return;
     const row = Number(rowAttr);
     const col = Number(colAttr);

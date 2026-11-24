@@ -15,13 +15,14 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { CONTROL_FONT_SIZE_VAR, resolveControlPadding, type ControlSize } from '../../theme/controlSize';
 import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 
 /** Props for the `<TimeField>` segmented time input. */
-export interface TimeFieldProps {
+export interface TimeFieldProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Label rendered above the input. */
@@ -94,6 +95,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
   squareCorners,
+  ...rest
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -143,6 +145,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   return (
     <I18nProvider locale={locale}>
       <AriaTimeField
+        {...pickDataAttributes(rest)}
         {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
         onChange={handleChange}
         granularity={granularity}

@@ -165,8 +165,8 @@ export const Card: React.FC<CardProps> & {
       // sizing (no ambient Splitter at all, or one reset by an
       // intervening Grid) still matched the CSS selector and got squared
       // corners meant for a completely different Splitter's own edge.
-      data-ai-layout-auto={isAuto && domainInfo ? 'true' : 'false'}
       {...props}
+      data-ai-layout-auto={isAuto && domainInfo ? 'true' : 'false'}
       style={{
         background: 'var(--ai-bg-surface, #ffffff)',
         borderTopLeftRadius: cornerOverrides.borderTopLeftRadius ?? radius,

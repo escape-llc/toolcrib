@@ -30,6 +30,7 @@ import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { computeCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
@@ -113,7 +114,7 @@ export interface ComboboxChipColor {
  * `defaultValue`/`onChange` all take a plain `string` when `multiple` is
  * false/omitted, and a `string[]` when it's true.
  */
-export interface ComboboxProps {
+export interface ComboboxProps extends DataAttributes {
   /** Element id. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted — needed for `<FormField>`'s `<label htmlFor>` to associate with this control. */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
@@ -209,6 +210,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   overrides,
   size = 'md',
   squareCorners,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -575,7 +577,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
               return (
               <span
                 key={v}
-                data-chip-value={v}
+                data-ai-chip-value={v}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -622,6 +624,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
               );
             })}
           <input
+            {...pickDataAttributes(rest)}
             ref={inputRef}
             id={effectiveId}
             aria-label={ariaLabel}

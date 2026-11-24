@@ -4,6 +4,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
@@ -21,7 +22,7 @@ export type { SliderOrientation };
  *
  * Emits `slider:changed` events on the event bus.
  */
-export interface SliderProps {
+export interface SliderProps extends DataAttributes {
   /** Element id for the thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Inside a `<FormField label>`, the thumb's accessible name comes from that label via `aria-labelledby`. */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
@@ -109,6 +110,7 @@ export const Slider: React.FC<SliderProps> = ({
   orientation = 'horizontal',
   getAriaValueText,
   overrides,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -178,6 +180,7 @@ export const Slider: React.FC<SliderProps> = ({
 
   return (
     <BaseSlider.Root
+      {...pickDataAttributes(rest)}
       value={currentVal}
       onValueChange={(val) => {
         // Always kept in sync, live, regardless of commitOnRelease -- it's

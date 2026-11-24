@@ -16,6 +16,33 @@ export type StyleFree<P> = Omit<P, 'style' | 'className'>;
 export type StyleFreeAttributes<T> = StyleFree<HTMLAttributes<T>>;
 
 /**
+ * Consumer `data-*` attributes (test ids, analytics tags, app-state markers).
+ * Every component passes them through to the element that carries its
+ * accessible role (or its outermost element when it has none). On a name
+ * collision the toolkit's own attribute wins. A JSX attribute with a hyphen
+ * is never type-checked against props, so this type documents the behavior;
+ * it doesn't change what compiles.
+ */
+/** @barrelExport */
+export type DataAttributes = { [key: `data-${string}`]: string | number | boolean | undefined };
+
+/**
+ * Picks the `data-*` entries out of a props object. Spread the result FIRST
+ * on the target element, before every computed attribute, so the toolkit's
+ * own values win on a collision.
+ */
+/** @barrelExport */
+export function pickDataAttributes(props: object): DataAttributes {
+  const out: DataAttributes = {};
+  for (const key of Object.keys(props)) {
+    if (key.startsWith('data-')) {
+      (out as Record<string, unknown>)[key] = (props as Record<string, unknown>)[key];
+    }
+  }
+  return out;
+}
+
+/**
  * Pure decision logic for `isDevBuild()` below, exported for testing. Kept
  * separate because some inputs it needs to handle — `import.meta.env.DEV`
  * genuinely absent, as opposed to explicitly `false` — can't be faithfully

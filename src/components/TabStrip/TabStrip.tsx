@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Tabs as BaseTabs } from '@base-ui/react/tabs';
 import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
-import { type StyleFreeAttributes } from '../../theme/safeProps';
+import { type StyleFreeAttributes, type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
@@ -38,7 +38,7 @@ export interface TabItem {
  * every change; it never reads panels back, so there's no prop-drilling of
  * "which tab is active" through a shared parent in either direction.
  */
-export interface TabStripProps {
+export interface TabStripProps extends DataAttributes {
   /**
    * Identifies this tab group for event bus coordination — every
    * `<TabStrip.Panel groupId={...}>` that should respond to this control
@@ -68,14 +68,23 @@ export interface TabStripProps {
   overrides?: Partial<TabSliceState>;
 }
 
+/** Props for the standalone `<TabStrip.Tab>` slot. */
+export interface TabStripTabProps extends DataAttributes {
+  id: string;
+  active?: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+}
+
 /**
  * @manifest Scrollable tab header with filmstrip overflow. Use TabStrip.Panel for content
  * @manifestCategory Data Display
  */
 export const TabStrip: React.FC<TabStripProps> & {
-  Tab: React.FC<{ id: string; active?: boolean; onClick?: () => void; children: ReactNode; disabled?: boolean }>;
+  Tab: React.FC<TabStripTabProps>;
   Panel: React.FC<TabPanelProps>;
-} = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides }) => {
+} = ({ id: groupId, items, activeId: controlledActiveId, defaultActiveId, onChange, overrides, ...rest }) => {
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
   useInjectInteractionStyles();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -130,6 +139,7 @@ export const TabStrip: React.FC<TabStripProps> & {
 
   return (
     <BaseTabs.Root
+      {...pickDataAttributes(rest)}
       value={activeId}
       onValueChange={v => handleChange(String(v))}
       style={{
@@ -331,8 +341,9 @@ export const TabStrip: React.FC<TabStripProps> & {
   );
 };
 
-TabStrip.Tab = ({ active, onClick, children, disabled }) => (
+TabStrip.Tab = ({ active, onClick, children, disabled, ...rest }) => (
   <button
+    {...pickDataAttributes(rest)}
     onClick={onClick}
     disabled={disabled}
     className="ai-btn"
@@ -439,8 +450,8 @@ export const TabPanel: React.FC<TabPanelProps> = ({ groupId, value, fill = false
   return (
     <div
       key={value}
-      role="tabpanel"
       {...props}
+      role="tabpanel"
       className="ai-tabstrip-panel"
       style={{
         width: '100%',

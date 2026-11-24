@@ -54,7 +54,7 @@ test.describe('Catalog states taxonomy', () => {
         probe.remove();
         const props = ['border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color', 'background-color', 'box-shadow', 'outline-color', 'color', 'fill', 'stroke'];
         return Array.from(root.querySelectorAll<HTMLElement>('*'))
-          .filter(el => !el.closest('[data-testid^="form-field-error-region"]'))
+          .filter(el => !el.closest('[data-ai-testid^="form-field-error-region"]'))
           .some(el => { const cs = getComputedStyle(el); return props.some(p => cs.getPropertyValue(p).includes(error)); });
       });
       await expect.poll(() => paints('invalid'), { message: 'the invalid card shows the error color' }).toBe(true);

@@ -10,6 +10,7 @@ import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { Sparkline } from '../Chart/Sparkline';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { type SubthemeName } from '../../theme/subtheme';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /**
  * Props for the `<Stat>` KPI tile.
@@ -18,7 +19,7 @@ import { type SubthemeName } from '../../theme/subtheme';
  * behind it. The change is read out in words ("Up 12.4%") as well as shown
  * with an arrow and a colour, so nothing depends on seeing either.
  */
-export interface StatProps {
+export interface StatProps extends DataAttributes {
   /** What the metric is, e.g. "Revenue". Shown above the value. */
   label: string;
   /** The current value. A number is formatted with `format` and `locale`; a string is shown as given. */
@@ -67,6 +68,7 @@ export const Stat: React.FC<StatProps> = ({
   upIsGood = true,
   trend,
   locale = 'en-US',
+  ...rest
 }) => {
   const strings = useLocaleStrings().stat;
 
@@ -91,7 +93,7 @@ export const Stat: React.FC<StatProps> = ({
   const Arrow = change?.direction === 'up' ? ArrowUp : change?.direction === 'down' ? ArrowDown : Minus;
 
   return (
-    <Card>
+    <Card {...pickDataAttributes(rest)}>
       <Card.Content>
         <VStack gap="md">
           <Text size="sm" tone="secondary">{label}</Text>

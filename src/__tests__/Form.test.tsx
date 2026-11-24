@@ -1,3 +1,4 @@
+import { getAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
@@ -141,9 +142,9 @@ describe('Form & Zod Validation Engine', () => {
       fireEvent.click(screen.getByText('Submit'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('form-error-summary-region')).toHaveAttribute('aria-hidden', 'false');
+        expect(getAi('form-error-summary-region')).toHaveAttribute('aria-hidden', 'false');
       });
-      expect(screen.getByTestId('form-error-summary-region')).toHaveTextContent('Passwords must match');
+      expect(getAi('form-error-summary-region')).toHaveTextContent('Passwords must match');
       expect(erroredSpy).toHaveBeenLastCalledWith({ formId: 'pw-form', errors: { '': 'Passwords must match' } });
       expect(handleSubmit).not.toHaveBeenCalled();
       unsub();
@@ -1042,7 +1043,7 @@ describe('Form & Zod Validation Engine', () => {
   });
 
   describe('Input sections and password reveal (issue #606)', () => {
-    const group = (container: HTMLElement) => container.querySelector('[data-input-group]') as HTMLElement | null;
+    const group = (container: HTMLElement) => container.querySelector('[data-ai-input-group]') as HTMLElement | null;
 
     it('keeps the bare <input> DOM shape when no section/password toggle is present', () => {
       const { container } = render(<Input value="x" onChange={vi.fn()} />);
@@ -1060,16 +1061,16 @@ describe('Form & Zod Validation Engine', () => {
       const input = screen.getByRole('textbox', { name: 'Price' });
       expect(input.className).not.toContain('ai-focus-ring');
       expect(input.style.borderStyle).toBe('none');
-      expect(g.querySelector('[data-input-section="leading"]')?.textContent).toBe('$');
-      expect(g.querySelector('[data-input-section="trailing"]')?.textContent).toBe('USD');
+      expect(g.querySelector('[data-ai-input-section="leading"]')?.textContent).toBe('$');
+      expect(g.querySelector('[data-ai-input-section="trailing"]')?.textContent).toBe('USD');
       // Section order in the DOM: leading, input, trailing.
-      expect(Array.from(g.children).map(c => c.getAttribute('data-input-section') ?? c.tagName)).toEqual(['leading', 'INPUT', 'trailing']);
+      expect(Array.from(g.children).map(c => c.getAttribute('data-ai-input-section') ?? c.tagName)).toEqual(['leading', 'INPUT', 'trailing']);
     });
 
     it('passes a node section through and focuses the input when a non-interactive section is pressed', () => {
       const { container } = render(<Input aria-label="Search" leadingSection={<svg data-testid="search-icon" />} value="" onChange={vi.fn()} />);
       expect(screen.getByTestId('search-icon')).toBeInTheDocument();
-      fireEvent.mouseDown(container.querySelector('[data-input-section="leading"]')!);
+      fireEvent.mouseDown(container.querySelector('[data-ai-input-section="leading"]')!);
       expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search' }));
     });
 
@@ -1087,7 +1088,7 @@ describe('Form & Zod Validation Engine', () => {
       const clear = screen.getByLabelText('Clear');
       expect(g.contains(clear)).toBe(true);
       expect(clear.style.position).toBe('');
-      expect(g.querySelector('[data-input-section="trailing"]')!.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(g.querySelector('[data-ai-input-section="trailing"]')!.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('password inputs get a reveal toggle that flips the type and reports aria-pressed, with a fixed name', () => {
@@ -1153,7 +1154,7 @@ describe('Form & Zod Validation Engine', () => {
       fireEvent.blur(input);
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => expect(input.getAttribute('aria-invalid')).toBe('true'));
-      expect(input.closest('[data-input-group]')!.getAttribute('style')).toContain('var(--ai-subtheme-error');
+      expect(input.closest('[data-ai-input-group]')!.getAttribute('style')).toContain('var(--ai-subtheme-error');
     });
 
     it('has no axe violations with sections and a password toggle', async () => {

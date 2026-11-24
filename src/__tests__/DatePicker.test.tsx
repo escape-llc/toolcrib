@@ -1,3 +1,4 @@
+import { getAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CalendarDate } from '@internationalized/date';
@@ -121,7 +122,7 @@ describe('DatePicker', () => {
         <DatePicker name="meetingDate" aria-label="Meeting date" defaultValue={new CalendarDate(2026, 3, 15)} />
       </Modal>
     );
-    expect(screen.getByTestId('modal-container')).toBeInTheDocument();
+    expect(getAi('modal-container')).toBeInTheDocument();
 
     await openCalendar();
     expect(document.querySelector('.react-aria-Calendar')).toBeInTheDocument();
@@ -134,7 +135,7 @@ describe('DatePicker', () => {
     // doesn't move focus into a popover nested in a Base UI dialog, so it
     // can't tell which overlay is topmost. e2e/nested-overlay-escape.spec.ts
     // checks that in a real browser.
-    expect(screen.getByTestId('modal-container')).toBeInTheDocument();
+    expect(getAi('modal-container')).toBeInTheDocument();
   });
 
   it('disables dates outside minValue/maxValue', async () => {

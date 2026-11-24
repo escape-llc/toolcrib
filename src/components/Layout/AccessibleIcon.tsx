@@ -1,8 +1,9 @@
 import React, { type ReactElement } from 'react';
 import { VisuallyHidden } from './VisuallyHidden';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
-/** Props for `<AccessibleIcon>`. */
-export interface AccessibleIconProps {
+/** Props for `<AccessibleIcon>`. `data-*` attributes land on the icon element. */
+export interface AccessibleIconProps extends DataAttributes {
   /** The single icon element (e.g. an inline SVG) to label. Marked `aria-hidden` internally. */
   children: ReactElement;
   /** Accessible name announced to screen readers, the way `alt` works for `<img>`. */
@@ -18,11 +19,11 @@ export interface AccessibleIconProps {
  * @manifest Adds a screen-reader-only accessible name to a decorative icon element
  * @manifestCategory Layout Primitives
  */
-export const AccessibleIcon: React.FC<AccessibleIconProps> = ({ children, label }) => (
+export const AccessibleIcon: React.FC<AccessibleIconProps> = ({ children, label, ...rest }) => (
   // toolcrib's own (#703): `focusable` is
   // for legacy IE/Edge SVGs that were otherwise Tab stops.
   <>
-    {React.cloneElement(children as ReactElement<Record<string, unknown>>, { 'aria-hidden': 'true', focusable: 'false' })}
+    {React.cloneElement(children as ReactElement<Record<string, unknown>>, { ...pickDataAttributes(rest), 'aria-hidden': 'true', focusable: 'false' })}
     <VisuallyHidden>{label}</VisuallyHidden>
   </>
 );

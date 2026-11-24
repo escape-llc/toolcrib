@@ -34,7 +34,7 @@ const clearRequests = (page: Page) =>
 /** The first row that has real data, as `{ rowindex, text }`. */
 const firstLoadedRow = (page: Page) =>
   grid(page).evaluate(el => {
-    const row = el.querySelector('tbody tr[aria-rowindex]:not([data-placeholder]):not([data-block-error])');
+    const row = el.querySelector('tbody tr[aria-rowindex]:not([data-ai-placeholder]):not([data-ai-block-error])');
     return row ? { rowindex: Number(row.getAttribute('aria-rowindex')), text: row.textContent ?? '' } : null;
   });
 
@@ -85,7 +85,7 @@ test.describe('data virtualization (issue #905, phase 2)', () => {
 
   test('Ctrl+End reaches the last row with its real data, focus still on that row', async ({ page }) => {
     await open(page);
-    await grid(page).locator('tr[aria-rowindex="2"] td[data-grid-col="1"]').focus();
+    await grid(page).locator('tr[aria-rowindex="2"] td[data-ai-grid-col="1"]').focus();
     await page.keyboard.press('Control+End');
 
     const last = grid(page).locator(`tr[aria-rowindex="${TOTAL + 1}"]`);
@@ -98,7 +98,7 @@ test.describe('data virtualization (issue #905, phase 2)', () => {
   test('changing the sort returns to the top and asks for block 0 with the new sort', async ({ page }) => {
     await open(page);
     // Somewhere deep first, so "back at the top" means something.
-    await grid(page).locator('tr[aria-rowindex="2"] td[data-grid-col="1"]').focus();
+    await grid(page).locator('tr[aria-rowindex="2"] td[data-ai-grid-col="1"]').focus();
     await page.keyboard.press('Control+End');
     await expect(grid(page).locator(`tr[aria-rowindex="${TOTAL + 1}"]`)).toContainText(`Customer ${TOTAL}`);
 

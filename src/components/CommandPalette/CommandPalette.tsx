@@ -3,6 +3,7 @@
 import React, { type ReactNode, useEffect, useState } from 'react';
 import { Autocomplete, Header, Input, Menu, MenuItem, MenuSection, TextField, useFilter } from 'react-aria-components';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -57,7 +58,7 @@ export type CommandPaletteFilter = (query: string, candidate: CommandPaletteMatc
  * `aiBus.openCommandPalette(id)`. Emits `commandpalette:shown`,
  * `commandpalette:hidden`, and `commandpalette:item_selected`.
  */
-export interface CommandPaletteProps {
+export interface CommandPaletteProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Array of items to render, filtered as the user types (see `filter`). */
@@ -101,6 +102,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onOpenChange,
   overrides,
   filter,
+  ...rest
 }) => {
   const id = useStableId(propId, 'commandpalette');
   const strings = useLocaleStrings().commandPalette;
@@ -202,6 +204,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   return (
     <Modal
+      {...pickDataAttributes(rest)}
       id={id}
       isOpen={isOpen}
       onOpenChange={handleOpenChange}

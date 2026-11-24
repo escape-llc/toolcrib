@@ -23,12 +23,12 @@ test('two nested Modals get strictly increasing z-index, not a tie', async ({ pa
   await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
-  const outerContent = page.getByTestId('modal-container').first();
+  const outerContent = page.locator('[data-ai-testid="modal-container"]').first();
   await outerContent.waitFor({ state: 'visible' });
 
   await page.getByRole('button', { name: 'Open Nested Modal' }).click();
 
-  const containers = page.getByTestId('modal-container');
+  const containers = page.locator('[data-ai-testid="modal-container"]');
   await expect(containers).toHaveCount(2);
 
   const [outerZ, innerZ] = await containers.evaluateAll((els) =>
@@ -50,7 +50,7 @@ test('two nested Modals get strictly increasing z-index, not a tie', async ({ pa
   const topElementIsInner = await page.evaluate(
     ({ x, y }) => {
       const el = document.elementFromPoint(x, y);
-      const inner = document.querySelectorAll('[data-testid="modal-container"]')[1];
+      const inner = document.querySelectorAll('[data-ai-testid="modal-container"]')[1];
       return inner.contains(el);
     },
     { x: innerBox.x + innerBox.width / 2, y: innerBox.y + innerBox.height / 2 }
@@ -93,13 +93,13 @@ test('a Toast fired from inside an open Modal stacks above it, per Z_INDEX.TOAST
   await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
 
-  const modal = page.getByTestId('modal-container');
+  const modal = page.locator('[data-ai-testid="modal-container"]');
   await modal.waitFor({ state: 'visible' });
 
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect(modal).toBeVisible(); // Confirm doesn't close the dialog -- both are genuinely open together.
 
-  const toast = page.getByTestId('toast-item').filter({ hasText: 'Action confirmed!' });
+  const toast = page.locator('[data-ai-testid="toast-item"]').filter({ hasText: 'Action confirmed!' });
   await toast.waitFor({ state: 'visible' });
 
   // Z_INDEX.TOAST is applied to the Viewport (the toast item's real,

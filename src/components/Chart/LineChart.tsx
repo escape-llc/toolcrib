@@ -9,6 +9,7 @@ import { AxisBottom, AxisLeft } from '@visx/axis';
 import { useTooltip } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { ChartThemeSlice, type ChartSliceState } from './ChartSlice';
 import { ChartLegend } from './ChartLegend';
 import { ChartTooltip, type ChartTooltipRow } from './ChartTooltip';
@@ -16,7 +17,7 @@ import { ChartEmptyState } from './ChartEmptyState';
 import { getSeriesColor } from './chartColors';
 import { type ChartSeries } from './ChartTypes';
 
-export interface LineChartProps {
+export interface LineChartProps extends DataAttributes {
   /** X-axis category labels, one per data position. */
   categories: string[];
   /** One or more series, each with one value per `categories` entry. A single series renders one line and no legend. */
@@ -54,6 +55,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   variant = 'line',
   legendPosition = 'bottom',
   overrides,
+  ...rest
 }) => {
   const isArea = variant === 'area';
   const isSide = legendPosition === 'side';
@@ -139,7 +141,7 @@ export const LineChart: React.FC<LineChartProps> = ({
 
   return (
     <div style={{ position: 'relative', display: isSide ? 'inline-flex' : 'block', alignItems: isSide ? 'center' : undefined, gap: isSide ? '1.25rem' : undefined, ...chartVars }}>
-      <svg width={width} height={height} role="graphics-document" aria-roledescription="line chart" aria-label={title}>
+      <svg {...pickDataAttributes(rest)} width={width} height={height} role="graphics-document" aria-roledescription="line chart" aria-label={title}>
         <title>{title}</title>
         <Group left={MARGIN.left} top={MARGIN.top}>
           <g aria-hidden="true" style={{ opacity: 'var(--ai-chart-grid-opacity, 1)' } as React.CSSProperties}>

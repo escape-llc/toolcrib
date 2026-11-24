@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode, type FormEvent } from 'react';
 import { ZodType } from 'zod';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /**
  * Context value exposed by `<Form>` to all descendant form controls.
@@ -63,7 +64,7 @@ export const FORM_ERROR_KEY = '';
  * </Form>
  * ```
  */
-export interface FormProps<T extends Record<string, any> = Record<string, any>> {
+export interface FormProps<T extends Record<string, any> = Record<string, any>> extends DataAttributes {
   /** Zod schema for validation. Omit for unvalidated forms. */
   schema?: ZodType<T>;
   /** Initial field values. Fields not listed default to empty string. */
@@ -94,6 +95,7 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
   onSubmit,
   children,
   id,
+  ...rest
 }: FormProps<T>) {
   const [values, setValues] = useState<Record<string, any>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -277,7 +279,7 @@ export function Form<T extends Record<string, any> = Record<string, any>>({
         resetForm,
       }}
     >
-      <form id={id} onSubmit={handleSubmit} noValidate>
+      <form {...pickDataAttributes(rest)} id={id} onSubmit={handleSubmit} noValidate>
         {children}
       </form>
     </FormContext.Provider>

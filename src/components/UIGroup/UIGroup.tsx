@@ -2,6 +2,7 @@
 
 import React, { Children, isValidElement, type ReactNode, useEffect } from 'react';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { useNonce } from '../../theme/nonceContext';
 import { type SquareCornerOption } from '../Card/Card';
@@ -19,7 +20,7 @@ import { UIGroupContext } from './UIGroupContext';
  * `overrides`, since that shared, singleton stylesheet has no per-instance
  * scoping to hang a sparse override off of.
  */
-export interface UIGroupProps {
+export interface UIGroupProps extends DataAttributes {
   children: ReactNode;
   /**
    * Group layout direction.
@@ -75,42 +76,42 @@ function injectUIGroupStyles(targetDocument?: Document, nonce?: string) {
       z-index: 2 !important;
     }
 
-    .toolcrib-group[data-orientation="horizontal"] > * {
+    .toolcrib-group[data-ai-orientation="horizontal"] > * {
       border-top-left-radius: 0 !important;
       border-bottom-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-right-radius: 0 !important;
     }
-    .toolcrib-group[data-orientation="horizontal"] > *:first-child {
+    .toolcrib-group[data-ai-orientation="horizontal"] > *:first-child {
       border-top-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
       border-bottom-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
-    .toolcrib-group[data-orientation="horizontal"] > *:last-child {
+    .toolcrib-group[data-ai-orientation="horizontal"] > *:last-child {
       border-top-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
       border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
-    .toolcrib-group[data-orientation="horizontal"] > *:not(:first-child) {
+    .toolcrib-group[data-ai-orientation="horizontal"] > *:not(:first-child) {
       margin-left: var(--ai-uigroup-overlap, -0.0625rem);
     }
 
-    .toolcrib-group[data-orientation="vertical"] {
+    .toolcrib-group[data-ai-orientation="vertical"] {
       flex-direction: column;
     }
-    .toolcrib-group[data-orientation="vertical"] > * {
+    .toolcrib-group[data-ai-orientation="vertical"] > * {
       border-top-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-left-radius: 0 !important;
       border-bottom-right-radius: 0 !important;
     }
-    .toolcrib-group[data-orientation="vertical"] > *:first-child {
+    .toolcrib-group[data-ai-orientation="vertical"] > *:first-child {
       border-top-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
       border-top-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
-    .toolcrib-group[data-orientation="vertical"] > *:last-child {
+    .toolcrib-group[data-ai-orientation="vertical"] > *:last-child {
       border-bottom-left-radius: var(--toolcrib-group-radius, 0.375rem) !important;
       border-bottom-right-radius: var(--toolcrib-group-radius, 0.375rem) !important;
     }
-    .toolcrib-group[data-orientation="vertical"] > *:not(:first-child) {
+    .toolcrib-group[data-ai-orientation="vertical"] > *:not(:first-child) {
       margin-top: var(--ai-uigroup-overlap, -0.0625rem);
     }
     `,
@@ -127,6 +128,7 @@ export const UIGroup: React.FC<UIGroupProps> = ({
   children,
   orientation = 'horizontal',
   borderRadius = 'var(--ai-radius-md, 0.375rem)',
+  ...rest
 }) => {
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
@@ -151,8 +153,9 @@ export const UIGroup: React.FC<UIGroupProps> = ({
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       className="toolcrib-group"
-      data-orientation={orientation}
+      data-ai-orientation={orientation}
       role="group"
       style={{
         display: 'inline-flex',

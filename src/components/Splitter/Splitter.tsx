@@ -14,6 +14,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, type ReactNode, type ReactElement, isValidElement, cloneElement } from 'react';
 import { Z_INDEX } from '../../theme/zIndex';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { LayoutDomainProvider, useCornerSquaring } from './LayoutDomainContext';
 import { useStableId } from '../shared/useStableId';
@@ -151,7 +152,7 @@ export type SplitterOrientation = 'horizontal' | 'vertical';
  * Requires exactly 2 children (typically `<Splitter.Panel>` components).
  * Automatically creates a layout domain for corner-squaring adjacent children.
  */
-export interface SplitterProps {
+export interface SplitterProps extends DataAttributes {
   /** Unique domain identifier for layout context, and the `id` a `splitter:split_changed` aiBus event must match to command this Splitter's split ratio externally. Auto-generated if omitted — pass an explicit value to target it predictably. */
   id?: string;
   /**
@@ -182,7 +183,7 @@ export interface SplitterProps {
  * children, which have no other way to receive it (see `Splitter.Panel`'s
  * implementation).
  */
-export interface SplitterPanelProps {
+export interface SplitterPanelProps extends DataAttributes {
   children: ReactNode;
   /**
    * Which corners to square off. `'auto'` defers to the layout domain.
@@ -206,6 +207,7 @@ export const Splitter: React.FC<SplitterProps> & {
   initialSplit = 70,
   minSize = 15,
   children,
+  ...rest
 }) => {
   const targetDocument = useTargetDocument();
   const nonce = useNonce();
@@ -433,6 +435,7 @@ export const Splitter: React.FC<SplitterProps> & {
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       ref={containerRef}
       style={{
         display: 'flex',
@@ -573,7 +576,7 @@ export const Splitter: React.FC<SplitterProps> & {
   );
 };
 
-Splitter.Panel = ({ children, squareCorners }) => {
+Splitter.Panel = ({ children, squareCorners, ...rest }) => {
   // Deriving "am I first or second, what orientation" straight from the
   // ambient layout domain (same mechanism Card/Content use) replaces a
   // previous relay where Splitter injected a computed style *into* Panel's
@@ -627,6 +630,7 @@ Splitter.Panel = ({ children, squareCorners }) => {
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       style={{
         width: '100%',
         height: '100%',

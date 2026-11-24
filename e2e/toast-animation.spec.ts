@@ -12,9 +12,9 @@ test('a promise toast updates in place when it settles, without replaying the en
   await gotoTab(page, 'Toast Subsystem');
 
   await page.getByRole('button', { name: 'Save (promise toast)', exact: true }).click();
-  const toast = page.locator('[data-testid="toast-item"]').first();
+  const toast = page.locator('[data-ai-testid="toast-item"]').first();
   await expect(toast).toContainText('Saving report…');
-  await expect(toast).toHaveAttribute('data-loading', '');
+  await expect(toast).toHaveAttribute('data-ai-loading', '');
 
   // Let the entrance animation finish, then mark this exact element and count
   // any later slide-in starts. A remount would drop the mark; a replayed
@@ -34,8 +34,8 @@ test('a promise toast updates in place when it settles, without replaying the en
 
   // The demo's promise resolves after 1.5s.
   await expect(toast).toContainText('Saved report.pdf', { timeout: 5000 });
-  await expect(toast).not.toHaveAttribute('data-loading');
-  await expect(page.locator('[data-testid="toast-item"]')).toHaveCount(1);
+  await expect(toast).not.toHaveAttribute('data-ai-loading');
+  await expect(page.locator('[data-ai-testid="toast-item"]')).toHaveCount(1);
   await expect(toast).toHaveAttribute('data-e2e-mark', 'original');
   await expect(toast).toHaveAttribute('data-slide-in-starts', '0');
 });
@@ -46,7 +46,7 @@ test('a fired toast plays its slide-in animation and is removed cleanly after di
 
   await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
 
-  const toast = page.locator('[data-testid="toast-item"]').first();
+  const toast = page.locator('[data-ai-testid="toast-item"]').first();
   await toast.waitFor({ state: 'visible', timeout: 2000 });
 
   // Not closing: Base UI (#698) has no open marker, only data-ending-style while it closes.
@@ -95,7 +95,7 @@ test('a toast that times out on its own (never clicked) also plays its exit anim
   await gotoTab(page, 'Toast Subsystem');
   await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
 
-  const toast = page.locator('[data-testid="toast-item"]').first();
+  const toast = page.locator('[data-ai-testid="toast-item"]').first();
   await toast.waitFor({ state: 'visible', timeout: 2000 });
 
   // Install the listener before the toast's own duration timer (default

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { VuMeterThemeSlice, type VuMeterSliceState } from './VuMeterSlice';
 import { FONT_MONO_FALLBACK } from '../../theme/typography';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -14,7 +15,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
  * from `<Meter>`, a plain gauge for a value in a known range with no peak hold, backlog band or LED. A `<VuMeter>`
  * frames itself like an outline `<Button>`, so it sits in a `<UIGroup>` beside buttons and fields.
  */
-export interface VuMeterProps {
+export interface VuMeterProps extends DataAttributes {
   /** Level from 0 to 1. Out-of-range values are clamped. */
   level: number;
   /** Hold the highest level as a peak marker. The marker falls back to the current level on the first `level` update after 3 s; it does not decay on a timer, so a meter whose `level` stops changing keeps its last peak. @default false */
@@ -94,6 +95,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
   title,
   valueText,
   overrides,
+  ...rest
 }) => {
   const lv = Math.max(0, Math.min(1, level));
   const peakRef = useRef({ level: 0, at: 0 });
@@ -120,11 +122,12 @@ export const VuMeter: React.FC<VuMeterProps> = ({
 
   return (
     <span
-      data-vumeter=""
-      data-zone={zone}
-      data-size={size}
-      data-kind={kind}
-      data-live={live || undefined}
+      {...pickDataAttributes(rest)}
+      data-ai-vumeter=""
+      data-ai-zone={zone}
+      data-ai-size={size}
+      data-ai-kind={kind}
+      data-ai-live={live || undefined}
       role="meter"
       aria-label={label}
       aria-valuemin={0}
@@ -153,7 +156,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
     >
       {scale && (
         <span
-          data-vumeter-part="scale"
+          data-ai-vumeter-part="scale"
           style={{
             position: 'relative',
             display: 'block',
@@ -167,8 +170,8 @@ export const VuMeter: React.FC<VuMeterProps> = ({
         >
           {/* The gradient spans the whole scale and is clipped to the level, so its colours sit at their scale positions at any width. */}
           <span
-            data-vumeter-part="fill"
-            data-level={pct(lv)}
+            data-ai-vumeter-part="fill"
+            data-ai-level={pct(lv)}
             style={{
               position: 'absolute',
               inset: 0,
@@ -179,7 +182,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
           />
           {mark !== undefined && (
             <span
-              data-vumeter-part="mark"
+              data-ai-vumeter-part="mark"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -192,7 +195,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
           )}
           {holdPeak && (
             <span
-              data-vumeter-part="peak"
+              data-ai-vumeter-part="peak"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -207,7 +210,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
           )}
           {pressure !== undefined && (
             <span
-              data-vumeter-part="pressure"
+              data-ai-vumeter-part="pressure"
               style={{
                 position: 'absolute',
                 left: 0,
@@ -225,8 +228,8 @@ export const VuMeter: React.FC<VuMeterProps> = ({
       )}
       {led !== undefined && (
         <span
-          data-vumeter-part="led"
-          data-on={led}
+          data-ai-vumeter-part="led"
+          data-ai-on={led}
           aria-hidden="true"
           style={{
             flex: 'none',
@@ -240,7 +243,7 @@ export const VuMeter: React.FC<VuMeterProps> = ({
       )}
       {value !== undefined && (
         <span
-          data-vumeter-part="num"
+          data-ai-vumeter-part="num"
           style={{
             fontFamily: sm ? 'inherit' : `var(--ai-font-family-mono, ${FONT_MONO_FALLBACK})`,
             fontSize: sm ? '0.6rem' : undefined,
