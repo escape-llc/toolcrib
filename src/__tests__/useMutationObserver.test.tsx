@@ -165,6 +165,23 @@ describe('useMutationObserver', () => {
       });
     }
 
+    it('an ancestor subtree hook still sees a mutation on a descendant that has its own mutation hook', async () => {
+      const parentSpy = vi.fn();
+      const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'], subtree: true }, parentSpy);
+      const child = document.createElement('span');
+      el.appendChild(child);
+      const childRef = { current: child };
+      const childSpy = vi.fn();
+      renderHook(() => useMutationObserver(childRef, SIDE, childSpy));
+
+      act(() => child.setAttribute('data-side', 'top'));
+      await flushMicrotasks();
+
+      expect(childSpy).toHaveBeenCalledTimes(1);
+      expect(parentSpy).toHaveBeenCalledTimes(1);
+      expect(parentSpy).toHaveBeenCalledWith(expect.objectContaining({ target: child }));
+    });
+
     it('two mutation hooks with different options on one element each get their own records', async () => {
       const el = document.createElement('div');
       document.body.appendChild(el);
