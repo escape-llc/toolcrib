@@ -233,7 +233,16 @@ class AIEventBus {
     if (STICKY_EVENTS.has(event)) {
       const stored = this.stickyValues[event];
       if (stored) {
-        stored.forEach(payload => callback(payload));
+        // Isolated like emit()'s dispatch: a throw here used to escape on()
+        // before it returned the unsubscribe function, leaving the callback
+        // subscribed with nothing able to remove it (#981).
+        stored.forEach(payload => {
+          try {
+            callback(payload);
+          } catch (err) {
+            console.error(`Error in AIEventBus subscriber for "${event}" (sticky replay):`, err);
+          }
+        });
       }
     }
 

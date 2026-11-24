@@ -89,12 +89,37 @@ export function useMutationObserver(
     if (!enabled) return;
     const el = ref.current;
     if (!el) return;
-    // `event.target` can be a DESCENDANT of `el` (see this hook's own
-    // `mutationOptions.subtree` and `element:mutated`'s own doc comment
-    // in eventBus.ts) -- `contains()` covers both "is el itself" and
-    // "is somewhere inside el" in one call.
-    if (el === event.target || el.contains(event.target as Node)) {
+    // `element:mutated` is one global channel, fed by every element any
+    // hook observes, so a record can reach this listener that this hook's
+    // own options would never have produced: a child observed by another
+    // component, or a different mutation type (#981). Accept it only if
+    // `mutationOptions` asks for it.
+    if (matchesMutationOptions(el, event, mutationOptions)) {
       onMutation(event);
     }
   });
+}
+
+/**
+ * Whether `MutationObserver.observe(el, options)` would itself have reported
+ * `event`: a descendant target only with `subtree`, and only the mutation
+ * types (and attribute names) the options enable.
+ */
+function matchesMutationOptions(el: HTMLElement, event: AIEventMap['element:mutated'], options: MutationObserverInit): boolean {
+  const target = event.target as Node;
+  if (target !== el && !(options.subtree && el.contains(target))) return false;
+  switch (event.type) {
+    case 'attributes': {
+      // Per the DOM spec, attributeFilter or attributeOldValue implies attributes: true.
+      const enabled = options.attributes ?? (options.attributeFilter !== undefined || options.attributeOldValue !== undefined);
+      if (!enabled) return false;
+      return !options.attributeFilter || (event.attributeName !== null && options.attributeFilter.includes(event.attributeName));
+    }
+    case 'characterData':
+      return options.characterData ?? options.characterDataOldValue !== undefined;
+    case 'childList':
+      return !!options.childList;
+    default:
+      return false;
+  }
 }

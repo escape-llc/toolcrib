@@ -96,14 +96,18 @@ class GlobalObserverManager {
           // entries above, which always report the literal observed
           // element. Walk up from the real mutation target to find which
           // tracked root element (and therefore which config/id) this
-          // mutation actually belongs to.
+          // mutation actually belongs to. The walk skips a tracked element
+          // with no mutationOptions (one tracked only for size, by
+          // useAdaptiveSize): stopping there dropped the record, so an
+          // ancestor's subtree observer never saw mutations beneath it (#981).
           let node: Node | null = mutation.target;
-          while (node && !(node instanceof HTMLElement && this.trackedElements.has(node))) {
+          let config: ObservedElementConfig | undefined;
+          while (node) {
+            config = node instanceof HTMLElement ? this.trackedElements.get(node) : undefined;
+            if (config?.mutationOptions) break;
             node = node.parentNode;
           }
-          if (!node) return;
-          const config = this.trackedElements.get(node as HTMLElement);
-          if (!config || !config.mutationOptions) return;
+          if (!node || !config) return;
 
           aiBus.emit('element:mutated', {
             id: config.id,
