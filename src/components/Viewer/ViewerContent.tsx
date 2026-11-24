@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { ViewerThemeSlice, type ViewerSliceState } from './ViewerSlice';
@@ -28,7 +29,7 @@ export interface ViewerItem {
  * identically whether embedded inline, inside `<Modal>` (see `<Viewer>`),
  * `<Drawer>`, `<Popup>`, or anything else.
  */
-export interface ViewerContentProps {
+export interface ViewerContentProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Array of media items to display. */
@@ -65,6 +66,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
   onIndexChange,
   onClose,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'viewer');
   const strings = useLocaleStrings().viewer;
@@ -136,6 +138,7 @@ export const ViewerContent: React.FC<ViewerContentProps> = ({
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       ref={containerRef}
       onKeyDown={handleKeyDown}
       style={{

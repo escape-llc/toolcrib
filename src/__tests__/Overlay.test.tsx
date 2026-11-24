@@ -1,3 +1,4 @@
+import { getAi, queryAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { actAndSettle, settleOverlay } from './testUtils/overlay';
@@ -137,7 +138,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Open Modal'));
-    const container = screen.getByTestId('modal-container');
+    const container = getAi('modal-container');
     expect(container).toBeInTheDocument();
     expect(container.style.borderRadius).toBe('var(--ai-radius-lg, 0.75rem)');
     expect(screen.getByText('Modal Title')).toBeInTheDocument();
@@ -150,7 +151,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(await axe(document.body, { rules: { 'aria-hidden-focus': { enabled: false } } })).toHaveNoViolations();
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByTestId('modal-container')).not.toBeInTheDocument();
+    expect(queryAi('modal-container')).not.toBeInTheDocument();
   });
 
   // Regression guard: Base UI's Dialog.Popup (@base-ui/react 1.8, checked in
@@ -198,7 +199,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       </Modal>
     );
     fireEvent.click(screen.getByText('Open Centered'));
-    const overlay = screen.getByTestId('modal-container').parentElement as HTMLElement;
+    const overlay = getAi('modal-container').parentElement as HTMLElement;
     expect(overlay.style.alignItems).toBe('center');
     fireEvent.keyDown(document, { key: 'Escape' });
 
@@ -208,7 +209,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
       </Modal>
     );
     fireEvent.click(screen.getByText('Open Top'));
-    const topOverlay = screen.getByTestId('modal-container').parentElement as HTMLElement;
+    const topOverlay = getAi('modal-container').parentElement as HTMLElement;
     expect(topOverlay.style.alignItems).toBe('flex-start');
   });
 
@@ -395,7 +396,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
           <div>Body</div>
         </Drawer>
       );
-      const backdrop = screen.getByTestId('drawer-backdrop');
+      const backdrop = getAi('drawer-backdrop');
       for (const side of ['top', 'right', 'bottom', 'left'] as const) expect(backdrop.style[side]).toBe(inset(side));
     });
   });
@@ -441,7 +442,7 @@ describe('Overlay Components (Popup, Drawer, Modal) Extensive Test Suite', () =>
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // A press on the backdrop closes it.
-    await actAndSettle(() => press(screen.getByTestId('drawer-backdrop')));
+    await actAndSettle(() => press(getAi('drawer-backdrop')));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 

@@ -1,3 +1,4 @@
+import { getAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { z } from 'zod';
@@ -136,7 +137,7 @@ describe('DateRangePicker', () => {
     // doesn't move focus into a popover nested in a Base UI dialog, so it
     // can't tell which overlay is topmost. e2e/nested-overlay-escape.spec.ts
     // checks that in a real browser.
-    expect(screen.getByTestId('modal-container')).toBeInTheDocument();
+    expect(getAi('modal-container')).toBeInTheDocument();
   });
 
   it('squares its field group corners as a leading UIGroup member', () => {

@@ -40,7 +40,7 @@ test('the error-region wrapper transitions grid-template-rows, swapping content 
   // (`usernameInput.locator('xpath=following-sibling::div[1]')`) --
   // fragile the moment FormField's own markup shape changes; the
   // data-testid is what that fragility was meant to be replaced with.
-  const errorWrapper = page.getByTestId('form-field-error-region-username');
+  const errorWrapper = page.locator('[data-ai-testid="form-field-error-region-username"]');
 
   await expect(page.getByText('Unique username handle')).toBeVisible();
   await expect.poll(() => errorWrapper.evaluate(el => el.style.gridTemplateRows)).toBe('1fr');
@@ -86,7 +86,7 @@ test('the summary FormError banner starts genuinely zero-height and grows once a
   // FormComponents.tsx's own `data-testid` hook, not an XPath ancestor
   // relationship -- only one summary banner exists per form, so a bare
   // shared id (unlike the per-field named variants) is unambiguous here.
-  const bannerWrapper = page.getByTestId('form-error-summary-region');
+  const bannerWrapper = page.locator('[data-ai-testid="form-error-summary-region"]');
 
   // Collapsed at mount -- confirms the always-rendered wrapper genuinely
   // starts at zero visible height, not just zero opacity (the banner text
@@ -144,7 +144,7 @@ test('the error region keeps the error text rendered through the full collapse, 
   // text itself -- the demo's own live event-bus debug panel separately
   // renders this exact string verbatim inside a raw JSON dump elsewhere
   // on the page, a known duplicate-text footgun.
-  const errorWrapper = page.getByTestId('form-field-error-region-email');
+  const errorWrapper = page.locator('[data-ai-testid="form-field-error-region-email"]');
 
   // Attached BEFORE the first interaction, as a running count rather than
   // a one-shot boolean -- BOTH the initial expand (error first appearing)

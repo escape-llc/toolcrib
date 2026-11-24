@@ -31,7 +31,7 @@ describe('Alert', () => {
 
     it('defaults to an info/status alert when no subtheme or variant is given', () => {
       render(<Alert>Message</Alert>);
-      expect(screen.getByRole('status')).toHaveAttribute('data-subtheme', 'info');
+      expect(screen.getByRole('status')).toHaveAttribute('data-ai-subtheme', 'info');
     });
 
     it('takes its subtheme from the nearest StyleDomainProvider', () => {
@@ -40,7 +40,7 @@ describe('Alert', () => {
           <Alert>Message</Alert>
         </StyleDomainProvider>
       );
-      expect(screen.getByRole('alert')).toHaveAttribute('data-subtheme', 'error');
+      expect(screen.getByRole('alert')).toHaveAttribute('data-ai-subtheme', 'error');
     });
 
     it('lets role be overridden, including "none" for a static callout', () => {

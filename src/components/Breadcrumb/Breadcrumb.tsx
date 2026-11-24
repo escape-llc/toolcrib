@@ -6,10 +6,11 @@ import { useAdaptiveSize } from '../../observer/useAdaptiveSize';
 import { DropdownMenu } from '../DropdownMenu/DropdownMenu';
 import { aiBus } from '../../eventBus/eventBus';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { BreadcrumbThemeSlice, type BreadcrumbSliceState } from './BreadcrumbSlice';
 
-/** Props for the `<Breadcrumb.Item>` slot. */
-export interface BreadcrumbItemProps {
+/** Props for the `<Breadcrumb.Item>` slot. `data-*` attributes land on the crumb's rendered element (the link, or the text for the current page). */
+export interface BreadcrumbItemProps extends DataAttributes {
   children: ReactNode;
   /** Href for this crumb's link. Omit for the current page (the last item is automatically non-interactive regardless), or for a grouping crumb with no page of its own: with neither href nor onClick, a middle crumb renders as plain text. */
   href?: string;
@@ -18,12 +19,12 @@ export interface BreadcrumbItemProps {
 }
 
 /** Props for the `<Breadcrumb.Separator>` slot -- rendered automatically between items; exported so a custom `separator` prop value can reuse the same visual treatment. */
-export interface BreadcrumbSeparatorProps {
+export interface BreadcrumbSeparatorProps extends DataAttributes {
   children?: ReactNode;
 }
 
-/** Props for the root `<Breadcrumb>` trail. */
-export interface BreadcrumbProps {
+/** Props for the root `<Breadcrumb>` trail. `data-*` attributes land on the trail's list element. */
+export interface BreadcrumbProps extends DataAttributes {
   /** `<Breadcrumb.Item>` elements, in order from root to current page. */
   children: ReactNode;
   /** Separator rendered between items. @default `<Breadcrumb.Separator />` (a "›" glyph) */
@@ -65,7 +66,7 @@ export function computeVisibleCrumbs(crumbs: CrumbInfo[], isOverflowing: boolean
 export const Breadcrumb: React.FC<BreadcrumbProps> & {
   Item: React.FC<BreadcrumbItemProps>;
   Separator: React.FC<BreadcrumbSeparatorProps>;
-} = ({ children, separator, overrides }) => {
+} = ({ children, separator, overrides, ...rest }) => {
   const vars = getSparseVariables(BreadcrumbThemeSlice, overrides ?? {});
   const containerRef = useRef<HTMLDivElement>(null);
   const { width } = useAdaptiveSize(containerRef, { id: 'breadcrumb' });
@@ -126,19 +127,21 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
         ),
       });
     }
+    const data = pickDataAttributes(crumb.element.props);
     slots.push({
       key: crumb.key,
       isLast: crumb.isLast,
       content: crumb.isLast ? (
-        <span aria-current="page" style={{ color: 'var(--ai-text-primary, #111827)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
+        <span {...data} aria-current="page" style={{ color: 'var(--ai-text-primary, #111827)', fontWeight: 'var(--ai-font-weight-semibold, 600)' }}>
           {crumb.element.props.children}
         </span>
       ) : !crumb.element.props.href && !crumb.element.props.onClick ? (
         // A grouping crumb with nowhere to go (a category, a section name):
         // plain text, not a link that does nothing when clicked.
-        <span style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>{crumb.element.props.children}</span>
+        <span {...data} style={{ color: 'var(--ai-text-secondary, #6b7280)' }}>{crumb.element.props.children}</span>
       ) : (
         <AriaLink
+          {...data}
           href={crumb.element.props.href}
           onPress={crumb.element.props.onClick}
           style={{ color: 'var(--ai-text-secondary, #6b7280)', textDecoration: 'none', cursor: 'pointer' }}
@@ -152,6 +155,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
   return (
     <div ref={containerRef} style={{ overflow: 'hidden', minWidth: 0 }}>
       <AriaBreadcrumbs
+        {...pickDataAttributes(rest)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -181,8 +185,8 @@ export const Breadcrumb: React.FC<BreadcrumbProps> & {
 
 Breadcrumb.Item = () => null; // marker only -- Breadcrumb reads props directly off the element, never actually renders this
 
-Breadcrumb.Separator = ({ children }) => (
-  <span aria-hidden="true" style={{ color: 'var(--ai-text-secondary, #9ca3af)', fontSize: '0.75rem' }}>
+Breadcrumb.Separator = ({ children, ...rest }) => (
+  <span {...pickDataAttributes(rest)} aria-hidden="true" style={{ color: 'var(--ai-text-secondary, #9ca3af)', fontSize: '0.75rem' }}>
     {children ?? '›'}
   </span>
 );

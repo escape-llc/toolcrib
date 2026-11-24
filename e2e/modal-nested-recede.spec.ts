@@ -17,7 +17,7 @@ test('a Modal recedes while a nested dialog is open, and restores after (#738)',
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
   await expect(page.getByRole('dialog', { name: 'Confirm Account Action' })).toBeVisible();
   // Not a role locator: once the child opens, the parent is aria-hidden.
-  const outer = page.getByTestId('modal-container').filter({ hasText: 'Open Nested Modal' });
+  const outer = page.locator('[data-ai-testid="modal-container"]').filter({ hasText: 'Open Nested Modal' });
   // The enter animation also scales; wait for it to finish first.
   await outer.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
   expect(await scaleOf(outer)).toBe(1);

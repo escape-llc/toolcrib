@@ -5,6 +5,7 @@ import { RangeCalendar as AriaRangeCalendar } from 'react-aria-components/RangeC
 import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { CalendarDate } from '@internationalized/date';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DatePickerThemeSlice, type DatePickerSliceState } from './DatePickerSlice';
 import { type ControlSize } from '../../theme/controlSize';
@@ -21,7 +22,7 @@ export interface CalendarDateRange {
 }
 
 /** Props for the standalone `<RangeCalendar>` month grid. */
-export interface RangeCalendarProps {
+export interface RangeCalendarProps extends DataAttributes {
   /** Field name, auto-inherited from parent `<FormField>` if omitted; inside a `<Form>` the selection is bound to it. Also included in emitted `rangecalendar:changed` events. */
   name?: string;
   /**
@@ -80,6 +81,7 @@ export const RangeCalendar: React.FC<RangeCalendarProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  ...rest
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
   const binding = useCalendarFormBinding<CalendarDateRange>(propName, defaultValue ?? null, isDisabledProp, ariaInvalid);
@@ -99,6 +101,7 @@ export const RangeCalendar: React.FC<RangeCalendarProps> = ({
   return (
     <I18nProvider locale={locale}>
       <AriaRangeCalendar
+        {...pickDataAttributes(rest)}
         key={binding.gridKey}
         {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
         // Opens on the default's month even while bound: the Form's value

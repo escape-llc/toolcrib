@@ -2,6 +2,7 @@
 
 import React, { type ReactNode, useMemo, useState, useRef } from 'react';
 import { useTheme } from '../../theme/themeContext';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { type HarmonyMode } from '../../theme/harmonies';
 import { hsvToCSS } from '../../theme/hsv';
 import { type PaddingMode } from '../../theme/padding';
@@ -39,7 +40,7 @@ export interface ThemeManagementOptions {
   import?: boolean;
 }
 
-export interface ThemeEditorProps {
+export interface ThemeEditorProps extends DataAttributes {
   /**
    * Controls which Save & Load Themes commands appear in the header
    * toolbar. Omit (or `true`) for everything enabled — the default. Pass
@@ -107,7 +108,7 @@ const GLOBAL_ONLY_SLICE_IDS = new Set(['padding', 'margin', 'radius', 'shadow', 
  * host it inside a `<Drawer>` (or `<Modal>`/`<Popup>`) of your choosing.
  * @manifestCategory Form Controls
  */
-export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot, sliceControls }) => {
+export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true, themeManagementSlot, sliceControls, ...rest }) => {
   // The prop wins over a built-in control for the same slice id.
   const controls = useMemo(() => ({ ...SLICE_EDITOR_CONTROLS, ...sliceControls }), [sliceControls]);
   // The whole context object, not just its destructured fields below — the
@@ -508,7 +509,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           ).map(({ role, label, main }) => (
             <div
               key={role}
-              data-testid={`harmony-swatch-${role}`}
+              data-ai-testid={`harmony-swatch-${role}`}
               style={{
                 padding: 'var(--ai-padding-md, 0.5rem)',
                 background: `var(--ai-color-${role})`,
@@ -745,7 +746,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
+    <div {...pickDataAttributes(rest)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'inherit' }}>
       {/* Save & Load Themes — lives in the header, above everything else,
           not buried at the bottom past 6 categories of scrolling. Either
           the built-in toolbar (its four command groups individually
@@ -755,7 +756,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({ themeManagement = true
           hands in instead — see that prop's own doc comment. */}
       {showThemeToolbar && (
         <div
-          data-testid="theme-editor-toolbar"
+          data-ai-testid="theme-editor-toolbar"
           style={{
             display: 'flex',
             flexDirection: 'column',

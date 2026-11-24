@@ -1,7 +1,8 @@
 import React, { type CSSProperties, type ReactNode } from 'react';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 /** Props for `<VisuallyHidden>`. */
-export interface VisuallyHiddenProps {
+export interface VisuallyHiddenProps extends DataAttributes {
   children: ReactNode;
 }
 
@@ -29,6 +30,6 @@ const VISUALLY_HIDDEN_STYLE: CSSProperties = {
  * @manifest Hides content visually while keeping it announced to screen readers
  * @manifestCategory Layout Primitives
  */
-export const VisuallyHidden: React.FC<VisuallyHiddenProps> = ({ children }) => (
-  <span style={VISUALLY_HIDDEN_STYLE}>{children}</span>
+export const VisuallyHidden: React.FC<VisuallyHiddenProps> = ({ children, ...rest }) => (
+  <span {...pickDataAttributes(rest)} style={VISUALLY_HIDDEN_STYLE}>{children}</span>
 );

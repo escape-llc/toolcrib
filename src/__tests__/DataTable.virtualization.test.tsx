@@ -74,7 +74,7 @@ const scrollTo = async (top: number) => {
   });
 };
 const rowIndices = () => Array.from(screen.getByRole('grid').querySelectorAll('tbody tr[aria-rowindex]')).map(r => Number(r.getAttribute('aria-rowindex')));
-const placeholders = () => screen.getByRole('grid').querySelectorAll('tbody tr[data-placeholder]');
+const placeholders = () => screen.getByRole('grid').querySelectorAll('tbody tr[data-ai-placeholder]');
 
 function table(source: DataTableDataSource<Item>, extra: Record<string, any> = {}) {
   return (
@@ -222,7 +222,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     await fail(calls[2], 'block 6 failed');
 
     expect(errors).toEqual(['block 6 failed']);
-    const errorRows = screen.getByRole('grid').querySelectorAll('tbody tr[data-block-error]');
+    const errorRows = screen.getByRole('grid').querySelectorAll('tbody tr[data-ai-block-error]');
     expect(errorRows.length).toBeGreaterThan(0);
     expect(errorRows[0]).toHaveAttribute('aria-rowindex', '625');
     // One Retry for the block, not one per row.
@@ -251,7 +251,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     await fail(block1);
 
     const cell = (row: number, col = 0) =>
-      screen.getByRole('grid').querySelector(`td[data-grid-row="${row}"][data-grid-col="${col}"]`) as HTMLElement;
+      screen.getByRole('grid').querySelector(`td[data-ai-grid-row="${row}"][data-ai-grid-col="${col}"]`) as HTMLElement;
 
     // Rows 1-based: the last loaded row is 100, the failed block starts at 101.
     const loaded = cell(100);
@@ -264,14 +264,14 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     fireEvent.keyDown(loaded, { key: 'ArrowDown' });
     await act(async () => {});
     const first = cell(101);
-    expect(first.closest('tr')).toHaveAttribute('data-block-error', 'true');
+    expect(first.closest('tr')).toHaveAttribute('data-ai-block-error', 'true');
     expect(document.activeElement).toBe(first);
     expect(first).toHaveAttribute('tabindex', '0');
 
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     await act(async () => {});
     const second = cell(102);
-    expect(second.closest('tr')).toHaveAttribute('data-block-error', 'true');
+    expect(second.closest('tr')).toHaveAttribute('data-ai-block-error', 'true');
     expect(document.activeElement).toBe(second);
     // Non-first rows name their first data cell with the load error.
     expect(second).toHaveAttribute('aria-label', 'Could not load rows.');
@@ -296,8 +296,8 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     const pending = Array.from(placeholders()) as HTMLElement[];
     expect(pending.length).toBeGreaterThan(0);
     for (const row of pending) {
-      expect(row.querySelector('[data-grid-col="0"]')).not.toBeNull();
-      expect(row.querySelector('[data-grid-col="3"]')).not.toBeNull();
+      expect(row.querySelector('[data-ai-grid-col="0"]')).not.toBeNull();
+      expect(row.querySelector('[data-ai-grid-col="3"]')).not.toBeNull();
     }
     await answer(calls[0]);
     await scrollTo(94 * ITEM_HEIGHT);
@@ -305,7 +305,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     await fail(calls.find(c => c.query.start === 100)!);
 
     const at = (row: number, col: number) =>
-      screen.getByRole('grid').querySelector(`[data-grid-row="${row}"][data-grid-col="${col}"]`) as HTMLElement;
+      screen.getByRole('grid').querySelector(`[data-ai-grid-row="${row}"][data-ai-grid-col="${col}"]`) as HTMLElement;
     // Selection is column 0; data columns 1..2; row commands column 3.
     for (const col of [0, 3]) {
       const loaded = at(100, col);
@@ -316,7 +316,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
       fireEvent.keyDown(loaded, { key: 'ArrowDown' });
       await act(async () => {});
       const failed = at(101, col);
-      expect(failed.closest('tr')).toHaveAttribute('data-block-error', 'true');
+      expect(failed.closest('tr')).toHaveAttribute('data-ai-block-error', 'true');
       expect(document.activeElement).toBe(failed);
     }
   });
@@ -329,8 +329,8 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     ];
     render(table(source, { columns: pinnedColumns, selectable: true, rowCommands: [{ id: 'edit', label: 'Edit' }] }));
     const row = placeholders()[0] as HTMLElement;
-    const selection = row.querySelector('[data-grid-col="0"]') as HTMLElement;
-    const commands = row.querySelector('[data-grid-col="3"]') as HTMLElement;
+    const selection = row.querySelector('[data-ai-grid-col="0"]') as HTMLElement;
+    const commands = row.querySelector('[data-ai-grid-col="3"]') as HTMLElement;
     expect(selection.style.position).toBe('sticky');
     expect(selection.style.left).toBe('0px');
     expect(commands.style.position).toBe('sticky');
@@ -343,7 +343,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     const rows = Array.from(placeholders());
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
-      const cells = Array.from(row.querySelectorAll('td[data-grid-col]'));
+      const cells = Array.from(row.querySelectorAll('td[data-ai-grid-col]'));
       expect(cells).toHaveLength(columns.length);
       expect(cells[0]).toHaveAttribute('aria-label');
       for (const c of cells.slice(1)) expect(c).not.toHaveAttribute('aria-label');
@@ -468,10 +468,10 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     await scrollTo((TOTAL - 1) * ITEM_HEIGHT);
 
     const focused = document.activeElement as HTMLElement;
-    expect(focused).toHaveAttribute('data-grid-row', String(TOTAL));
+    expect(focused).toHaveAttribute('data-ai-grid-row', String(TOTAL));
     const row = focused.closest('tr') as HTMLElement;
     expect(row).toHaveAttribute('aria-rowindex', String(TOTAL + 1));
-    expect(row).toHaveAttribute('data-placeholder', 'true');
+    expect(row).toHaveAttribute('data-ai-placeholder', 'true');
 
     await settle();
     const lastBlock = calls.filter(c => c.query.start === 900);
@@ -480,7 +480,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     // The same absolute row and cell, now with its data, still focused.
     expect(document.activeElement).toBe(focused);
     expect(within(row).getByText(`Item ${TOTAL}`)).toBeInTheDocument();
-    expect(row).not.toHaveAttribute('data-placeholder');
+    expect(row).not.toHaveAttribute('data-ai-placeholder');
   });
 
   it('does not fire onEndReached for a data source', async () => {
@@ -547,7 +547,7 @@ describe('DataTable data virtualization (issue #905, phase 2)', () => {
     await visit(25000); // blocks 5, 6
     await visit(12800); // blocks 2, 3 -> cache is 0, 2, 3, 5, 6: 500 rows with gaps
     // Item 321 sits at absolute index 320; the 321st cached row is item 521.
-    const cell = screen.getByRole('grid').querySelector('td[data-grid-row="321"]') as HTMLElement;
+    const cell = screen.getByRole('grid').querySelector('td[data-ai-grid-row="321"]') as HTMLElement;
     expect(cell).not.toBeNull();
     expect(within(cell.closest('tr') as HTMLElement).getByText('Item 321')).toBeInTheDocument();
     act(() => {

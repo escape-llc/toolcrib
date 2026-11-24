@@ -1,6 +1,7 @@
 import { SEQUENTIAL_GRADIENT_CSS } from './sequentialColor';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
-export interface ScaleLegendProps {
+export interface ScaleLegendProps extends DataAttributes {
   /** Value at the light end of the ramp. */
   min: number;
   /** Value at the dark end of the ramp. */
@@ -22,11 +23,12 @@ export interface ScaleLegendProps {
  * @manifest Gradient legend for a sequential (magnitude) color-encoded chart
  * @manifestCategory Data Display
  */
-export function ScaleLegend({ min, max, formatValue = (v: number) => String(v), width = 160 }: ScaleLegendProps) {
+export function ScaleLegend({ min, max, formatValue = (v: number) => String(v), width = 160, ...rest }: ScaleLegendProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
       <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary)' }}>{formatValue(min)}</span>
       <div
+        {...pickDataAttributes(rest)}
         role="img"
         aria-label={`Scale from ${formatValue(min)} to ${formatValue(max)}`}
         style={{ width, height: '0.625rem', borderRadius: '0.25rem', background: SEQUENTIAL_GRADIENT_CSS }}

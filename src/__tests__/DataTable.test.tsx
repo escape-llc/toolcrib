@@ -1275,7 +1275,7 @@ describe('DataTable Virtualized Component', () => {
         const { container } = render(
           <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable selectionMode="single" />
         );
-        const headerCell = container.querySelector('[data-grid-row="0"][data-grid-col="0"]') as HTMLElement;
+        const headerCell = container.querySelector('[data-ai-grid-row="0"][data-ai-grid-col="0"]') as HTMLElement;
         expect(headerCell.tagName).toBe('TH');
         expect(headerCell).toHaveAccessibleName('Row selection');
       });
@@ -1298,10 +1298,10 @@ describe('DataTable Virtualized Component', () => {
       const { container } = render(
         <DataTable data={testData} columns={testColumns} defaultPageSize={10} rowKey={r => r.id} selectable />
       );
-      const idHeader = container.querySelector('[data-grid-row="0"][data-grid-col="1"]') as HTMLElement;
+      const idHeader = container.querySelector('[data-ai-grid-row="0"][data-ai-grid-col="1"]') as HTMLElement;
       act(() => idHeader.focus());
       fireEvent.keyDown(idHeader, { key: 'ArrowDown' }); // move into row 1's ID cell
-      const idCell = container.querySelector('[data-grid-row="1"][data-grid-col="1"]') as HTMLElement;
+      const idCell = container.querySelector('[data-ai-grid-row="1"][data-ai-grid-col="1"]') as HTMLElement;
       expect(idCell).toHaveFocus();
       fireEvent.keyDown(idCell, { key: ' ' });
       expect(screen.getByLabelText('Select row 1')).toHaveAttribute('aria-checked', 'true');
@@ -1463,12 +1463,12 @@ describe('DataTable Virtualized Component', () => {
         expect(row2Button).toHaveAttribute('tabindex', '-1');
 
         // Navigate to row 1's own actions cell (col 2: id=0, name=1, actions=2).
-        const idHeader = container.querySelector('[data-grid-row="0"][data-grid-col="0"]') as HTMLElement;
+        const idHeader = container.querySelector('[data-ai-grid-row="0"][data-ai-grid-col="0"]') as HTMLElement;
         act(() => idHeader.focus());
         fireEvent.keyDown(idHeader, { key: 'End', ctrlKey: true }); // whole-grid End -> last row, last column
         expect(row1Button).not.toHaveFocus(); // Ctrl+End lands on the LAST row's actions cell, not row 1's
 
-        const lastRowButton = container.querySelector('[data-grid-row="10"][data-grid-col="2"]') as HTMLElement;
+        const lastRowButton = container.querySelector('[data-ai-grid-row="10"][data-ai-grid-col="2"]') as HTMLElement;
         expect(lastRowButton).toHaveFocus();
         expect(lastRowButton).toHaveAttribute('tabindex', '0');
         // Every OTHER row's own command button, including row 1's, stays non-tabbable.
@@ -2035,7 +2035,7 @@ describe('DataTable Virtualized Component', () => {
       // needs to actually flush before this test's own assumptions
       // about that state hold (AGENTS.md's own "act() warnings are not
       // noise" case 4 -- a raw DOM .focus()/.blur()/.click() call).
-      const cell = container.querySelector('[data-grid-row="2"][data-grid-col="0"]') as HTMLElement;
+      const cell = container.querySelector('[data-ai-grid-row="2"][data-ai-grid-col="0"]') as HTMLElement;
       act(() => {
         cell.focus();
       });
@@ -2050,7 +2050,7 @@ describe('DataTable Virtualized Component', () => {
 
       // Focus lands on the SAME grid coordinate in the NEW page's real
       // (non-cloned, non-inert) table.
-      const restoredCell = container.querySelector('table:not([inert]) [data-grid-row="2"][data-grid-col="0"]');
+      const restoredCell = container.querySelector('table:not([inert]) [data-ai-grid-row="2"][data-ai-grid-col="0"]');
       expect(document.activeElement).toBe(restoredCell);
     });
 
@@ -2071,7 +2071,7 @@ describe('DataTable Virtualized Component', () => {
     it('does not need to restore anything with the default index-based rowKey fallback -- the same row/col position survives automatically, matching density\'s own behavior', () => {
       const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
 
-      const cell = container.querySelector('[data-grid-row="2"][data-grid-col="0"]') as HTMLElement;
+      const cell = container.querySelector('[data-ai-grid-row="2"][data-ai-grid-col="0"]') as HTMLElement;
       act(() => {
         cell.focus();
       });
@@ -2472,17 +2472,17 @@ describe('DataTable Virtualized Component', () => {
       expect(actionsHeader).toHaveStyle({ position: 'sticky', right: '0px' });
     });
 
-    it('data-grid-col coordinates stay contiguous (0..N-1) after reordering for pinning', () => {
+    it('data-ai-grid-col coordinates stay contiguous (0..N-1) after reordering for pinning', () => {
       const cols: Column<TestItem>[] = [
         { key: 'id', title: 'ID', sortable: true },
         { key: 'name', title: 'Name', sortable: true, pinned: 'left' },
       ];
       render(<DataTable data={testData} columns={cols} defaultPageSize={10} rowKey={r => r.id} />);
-      // 'Name' rendered first (pinned) -> data-grid-col 0; 'ID' second -> 1.
+      // 'Name' rendered first (pinned) -> data-ai-grid-col 0; 'ID' second -> 1.
       const nameButton = screen.getByRole('button', { name: /^Name/ });
       const idButton = screen.getByRole('button', { name: /^ID/ });
-      expect(nameButton).toHaveAttribute('data-grid-col', '0');
-      expect(idButton).toHaveAttribute('data-grid-col', '1');
+      expect(nameButton).toHaveAttribute('data-ai-grid-col', '0');
+      expect(idButton).toHaveAttribute('data-ai-grid-col', '1');
     });
 
     it('body cells for a pinned column also get position: sticky', () => {
@@ -2607,12 +2607,12 @@ describe('DataTable Virtualized Component', () => {
   });
 
   describe('grid keyboard navigation (issue #316)', () => {
-    // Direct data-grid-row/col queries -- deterministic and matches this
+    // Direct data-ai-grid-row/col queries -- deterministic and matches this
     // feature's own real contract exactly, rather than relying on text
     // content that can collide (both the "id" column and pagination text
     // render plain numbers).
     const cell = (container: HTMLElement, row: number, col: number): HTMLElement =>
-      container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
+      container.querySelector<HTMLElement>(`[data-ai-grid-row="${row}"][data-ai-grid-col="${col}"]`)!;
 
     it('marks the table a real ARIA grid, with aria-rowcount/colcount reflecting the FULL dataset, not just this page', () => {
       const { container } = render(<DataTable data={testData} columns={testColumns} defaultPageSize={10} />);
@@ -2782,7 +2782,7 @@ describe('DataTable Virtualized Component', () => {
 
       // The actual focusable element here is the nested <button> the
       // custom render produced, not the <td> wrapper that carries
-      // data-grid-row/col -- handleFocus has to resolve up via closest()
+      // data-ai-grid-row/col -- handleFocus has to resolve up via closest()
       // to find it, since e.target itself won't carry those attributes.
       // Scoped to row 1's own cell specifically -- every row renders an
       // identical "Action" button, so a global screen query would be
@@ -2899,8 +2899,8 @@ describe('DataTable Virtualized Component', () => {
     it('the resize handle is not part of the roving-tabindex grid coordinate model', () => {
       const { container } = render(<DataTable data={testData} columns={resizableColumns} defaultPageSize={10} />);
       const handle = getHandle(container);
-      expect(handle).not.toHaveAttribute('data-grid-row');
-      expect(handle).not.toHaveAttribute('data-grid-col');
+      expect(handle).not.toHaveAttribute('data-ai-grid-row');
+      expect(handle).not.toHaveAttribute('data-ai-grid-col');
     });
 
     // fireEvent.pointerDown/Move/Up, not mouseDown/Move/Up -- jsdom's
@@ -3089,12 +3089,12 @@ describe('DataTable Virtualized Component', () => {
     ];
     const coGrid = (container: HTMLElement) => container.querySelector('[aria-label="Rows being edited"]');
     const nameInput = (container: HTMLElement) => within(coGrid(container) as HTMLElement).getByRole('textbox');
-    // Same data-grid-row/col convention as the "grid keyboard navigation"
+    // Same data-ai-grid-row/col convention as the "grid keyboard navigation"
     // describe block above (row 0 = header, rows 1..N = page-relative body;
     // these test columns have no selection checkbox, so col 0 = 'id'/first
     // trigger column, col 1 = 'name'/second).
     const cellByRowCol = (container: HTMLElement, row: number, col: number): HTMLElement =>
-      container.querySelector<HTMLElement>(`[data-grid-row="${row}"][data-grid-col="${col}"]`)!;
+      container.querySelector<HTMLElement>(`[data-ai-grid-row="${row}"][data-ai-grid-col="${col}"]`)!;
     // jsdom's Presence unmounts a row's component synchronously the
     // instant `present` flips false (jsdom reports no real running CSS
     // animation -- the identical, already-documented quirk Toast.test.tsx

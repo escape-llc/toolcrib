@@ -1,10 +1,11 @@
 import React, { type ReactNode } from 'react';
 import { Avatar as BaseAvatar } from '@base-ui/react/avatar';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { AvatarThemeSlice, type AvatarSliceState } from './AvatarSlice';
 
 /** Props for the `<Avatar>` user/entity image with fallback. */
-export interface AvatarProps {
+export interface AvatarProps extends DataAttributes {
   /** Image URL. Falls back to `fallback` if omitted, loading, or failing to load. */
   src?: string;
   /** Accessible alt text for the image. */
@@ -50,10 +51,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   fallbackDelayMs,
   overrides,
+  ...rest
 }) => {
   const avatarVars = getSparseVariables(AvatarThemeSlice, overrides ?? {});
   return (
   <BaseAvatar.Root
+    {...pickDataAttributes(rest)}
     style={{
       display: 'inline-flex',
       alignItems: 'center',

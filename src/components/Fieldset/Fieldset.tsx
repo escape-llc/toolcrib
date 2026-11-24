@@ -3,10 +3,11 @@
 import React, { type ReactNode } from 'react';
 import { Fieldset as BaseFieldset } from '@base-ui/react/fieldset';
 import { resolveMargin, type MarginMode } from '../../theme/margin';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { FieldsetContext, useFieldsetDisabled } from './FieldsetContext';
 
 /** Props for the `<Fieldset>` labelled group of form fields. */
-export interface FieldsetProps {
+export interface FieldsetProps extends DataAttributes {
   /**
    * The group's visible label, e.g. "Shipping address". Required, not
    * optional: a fieldset without a legend is a group nothing announces, which
@@ -37,7 +38,7 @@ export interface FieldsetProps {
  * @manifestCategory Form Controls
  * @manifestChildren FormField, Input, Select, Checkbox, RadioGroup
  */
-export const Fieldset: React.FC<FieldsetProps> = ({ legend, children, disabled, gap = 'md', marginMode }) => {
+export const Fieldset: React.FC<FieldsetProps> = ({ legend, children, disabled, gap = 'md', marginMode, ...rest }) => {
   // Nested fieldsets inherit: a disabled outer group can't be re-enabled by an
   // inner one, the same as native fieldsets.
   const isDisabled = useFieldsetDisabled(disabled);
@@ -45,6 +46,7 @@ export const Fieldset: React.FC<FieldsetProps> = ({ legend, children, disabled, 
   return (
     <FieldsetContext.Provider value={{ disabled: isDisabled }}>
       <BaseFieldset.Root
+        {...pickDataAttributes(rest)}
         disabled={isDisabled}
         // The native fieldset's own border, padding and min-width:min-content
         // are all things this group doesn't want.

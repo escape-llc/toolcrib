@@ -9,8 +9,9 @@ import { ChartTooltip } from './ChartTooltip';
 import { ChartEmptyState } from './ChartEmptyState';
 import { ScaleLegend } from './ScaleLegend';
 import { sequentialColor } from './sequentialColor';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
-export interface HeatmapProps {
+export interface HeatmapProps extends DataAttributes {
   /** Column labels, x-axis. */
   columns: string[];
   /** Row labels, y-axis. */
@@ -55,6 +56,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({
   height = 280,
   title = 'Heatmap',
   formatValue = (v: number) => String(v),
+  ...rest
 }) => {
   const { tooltipData, tooltipLeft, tooltipTop, tooltipOpen, showTooltip, hideTooltip } = useTooltip<HoverDatum>();
 
@@ -89,7 +91,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({
 
   return (
     <div style={{ position: 'relative', width }}>
-      <svg width={width} height={height} role="graphics-document" aria-roledescription="heatmap" aria-label={title}>
+      <svg {...pickDataAttributes(rest)} width={width} height={height} role="graphics-document" aria-roledescription="heatmap" aria-label={title}>
         <title>{title}</title>
         <Group left={MARGIN.left} top={MARGIN.top}>
           {rows.map((row, ri) =>

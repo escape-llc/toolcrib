@@ -16,8 +16,8 @@ async function activeElementGridCoords(page: import('@playwright/test').Page): P
   return page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
     return {
-      row: el?.getAttribute('data-grid-row') ?? null,
-      col: el?.getAttribute('data-grid-col') ?? null,
+      row: el?.getAttribute('data-ai-grid-row') ?? null,
+      col: el?.getAttribute('data-ai-grid-col') ?? null,
       tag: el?.tagName ?? '',
     };
   });
@@ -57,7 +57,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // col 0 is the selection checkbox; col 1 is "User Name" (pinned left,
     // so it's the first data column regardless of its declared position
     // in demo/App.tsx's own columns array).
-    const nameHeader = page.locator('[data-grid-row="0"][data-grid-col="1"]').first();
+    const nameHeader = page.locator('[data-ai-grid-row="0"][data-ai-grid-col="1"]').first();
     await nameHeader.focus();
     await expect(nameHeader).toHaveAttribute('tabindex', '0');
 
@@ -76,7 +76,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // Roving tabindex: exactly one grid cell/widget should carry
     // tabindex="0" at a time.
     const mainGrid = page.getByRole('grid').first();
-    const tabbableCount = await mainGrid.locator('[data-grid-row]:not([tabindex="-1"])').count();
+    const tabbableCount = await mainGrid.locator('[data-ai-grid-row]:not([tabindex="-1"])').count();
     expect(tabbableCount).toBe(1);
   });
 
@@ -89,7 +89,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
 
     // col 2 is "ID" -- an arbitrary starting column, not either extreme,
     // to meaningfully exercise Home/End actually reaching the true ends.
-    const idHeader = page.locator('[data-grid-row="0"][data-grid-col="2"]').first();
+    const idHeader = page.locator('[data-ai-grid-row="0"][data-ai-grid-col="2"]').first();
     await idHeader.focus();
 
     await page.keyboard.press('Home');
@@ -107,10 +107,10 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // the resulting scroll's own native `scroll` event -> onScroll ->
     // re-render cycle actually completes, not synchronously when the key
     // is pressed.
-    await expect(page.locator('[data-grid-row="15"][data-grid-col="7"]').first()).toBeFocused();
+    await expect(page.locator('[data-ai-grid-row="15"][data-ai-grid-col="7"]').first()).toBeFocused();
 
     await page.keyboard.press('Control+Home');
-    await expect(page.locator('[data-grid-row="0"][data-grid-col="0"]').first()).toBeFocused();
+    await expect(page.locator('[data-ai-grid-row="0"][data-ai-grid-col="0"]').first()).toBeFocused();
   });
 
   test('navigating far past the visible window (virtualization) scrolls the target row into view and focuses it -- a real browser exercising the scroll path jsdom cannot', async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // first, since every test below needs actual rows to navigate/click.
     await loadDemoTableData(page);
 
-    const nameHeader = page.locator('[data-grid-row="0"][data-grid-col="1"]').first();
+    const nameHeader = page.locator('[data-ai-grid-row="0"][data-ai-grid-col="1"]').first();
     await nameHeader.focus();
 
     // defaultPageSize=15 means Ctrl+End targets page-relative row 15 -- likely
@@ -134,7 +134,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // which is measurably slower on WebKit than Chromium (confirmed: a
     // one-shot check here passed reliably on Chromium but failed on
     // WebKit in real CI, landing on the pre-scroll header cell instead).
-    const target = page.locator('[data-grid-row="15"][data-grid-col="7"]').first();
+    const target = page.locator('[data-ai-grid-row="15"][data-ai-grid-col="7"]').first();
     await expect(target).toBeFocused();
     expect(await target.evaluate(el => el.tagName)).toBe('TD');
   });
@@ -149,10 +149,10 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     // The initially-tabbable cell is (0, 0) -- the select-all checkbox,
     // since this table is `selectable` and column 0 is always the grid's
     // first cell when it is.
-    const selectAllCheckbox = page.locator('[data-grid-row="0"][data-grid-col="0"]').first();
+    const selectAllCheckbox = page.locator('[data-ai-grid-row="0"][data-ai-grid-col="0"]').first();
     await expect(selectAllCheckbox).toHaveAttribute('tabindex', '0');
 
-    const emailCell = page.locator('[data-grid-row="3"][data-grid-col="3"]').first();
+    const emailCell = page.locator('[data-ai-grid-row="3"][data-ai-grid-col="3"]').first();
     await emailCell.click();
     await expect(emailCell).toHaveAttribute('tabindex', '0');
     await expect(selectAllCheckbox).toHaveAttribute('tabindex', '-1');
@@ -208,7 +208,7 @@ test.describe('DataTable grid keyboard navigation (issue #316)', () => {
     }
     expect(reachedCheckbox).toBe(true);
 
-    const checkbox = page.locator('[data-grid-row="0"][data-grid-col="0"]').first();
+    const checkbox = page.locator('[data-ai-grid-row="0"][data-ai-grid-col="0"]').first();
     await expect(checkbox).toBeFocused();
     await expect(checkbox).toHaveAttribute('role', 'checkbox');
     await expect(checkbox).toHaveAccessibleName('Select all rows on this page');

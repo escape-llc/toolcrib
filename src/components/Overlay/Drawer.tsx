@@ -9,6 +9,7 @@
 import React, { useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
@@ -32,7 +33,7 @@ const DRAWER_ANIMATIONS = [
  * Opens from an edge of the viewport with a backdrop. Supports event bus control
  * via `aiBus.openDrawer(id)` / `aiBus.closeDrawer(id)`.
  */
-export interface DrawerProps {
+export interface DrawerProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /**
@@ -82,6 +83,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   title,
   width: propWidth,
   zIndex: zIndexProp,
+  ...rest
 }) => {
   const id = useStableId(propId, 'drawer');
   const strings = useLocaleStrings().drawer;
@@ -138,8 +140,8 @@ export const Drawer: React.FC<DrawerProps> = ({
         {trigger && <BaseDialog.Trigger {...triggerRenderProps(trigger)} />}
         <BaseDialog.Portal container={container}>
           <BaseDialog.Backdrop
-            // Test point (AGENTS.md: a data-testid over a guessed selector).
-            data-testid="drawer-backdrop"
+            // Test point (AGENTS.md: a data-ai-testid over a guessed selector).
+            data-ai-testid="drawer-backdrop"
             className="ai-drawer-backdrop"
             style={{
               position: 'fixed',
@@ -151,6 +153,7 @@ export const Drawer: React.FC<DrawerProps> = ({
             }}
           />
           <BaseDialog.Popup
+            {...pickDataAttributes(rest)}
             aria-modal="true"
             className={`ai-drawer-panel-${position}`}
             style={{

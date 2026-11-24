@@ -3,6 +3,7 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { Collapsible as BaseCollapsible } from '@base-ui/react/collapsible';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { useStableId } from '../shared/useStableId';
@@ -60,7 +61,7 @@ function injectCollapsibleStyles(targetDocument?: Document, nonce?: string): voi
  * this is for a single standalone disclosure (e.g. "Show more options"),
  * controllable via `aiBus` the same way `<Modal>`/`<Drawer>` are.
  */
-export interface CollapsibleProps {
+export interface CollapsibleProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Clickable header content that toggles the panel. */
@@ -92,6 +93,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
   onOpenChange,
   disabled = false,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'collapsible');
   const collapsibleVars = getSparseVariables(CollapsibleThemeSlice, overrides ?? {});
@@ -127,6 +129,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 
   return (
     <BaseCollapsible.Root
+      {...pickDataAttributes(rest)}
       open={isOpen}
       onOpenChange={open => handleOpenChange(open)}
       disabled={disabled}

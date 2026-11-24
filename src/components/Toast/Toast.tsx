@@ -222,10 +222,10 @@ const ToastAnnouncer: React.FC<{ toasts: ToastItem[] }> = ({ toasts }) => {
     live.filter(a => a.urgent === urgent).map(a => <span key={a.key}>{a.text} </span>);
   return (
     <>
-      <div role="status" aria-live="polite" aria-atomic="false" data-testid="toast-announcer-polite">
+      <div role="status" aria-live="polite" aria-atomic="false" data-ai-testid="toast-announcer-polite">
         <VisuallyHidden>{entries(false)}</VisuallyHidden>
       </div>
-      <div role="alert" aria-atomic="false" data-testid="toast-announcer-assertive">
+      <div role="alert" aria-atomic="false" data-ai-testid="toast-announcer-assertive">
         <VisuallyHidden>{entries(true)}</VisuallyHidden>
       </div>
     </>
@@ -244,7 +244,7 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
     <BaseToast.Root
       toast={t}
       swipeDirection="right"
-      data-testid="toast-item"
+      data-ai-testid="toast-item"
       // Base UI makes each toast a non-modal role=dialog. A toast isn't one:
       // screen readers would list every toast among the page's dialogs, and
       // anything finding "the open dialog" by role (a consumer's
@@ -258,7 +258,7 @@ const ToastView: React.FC<{ toast: BaseToastObject; anchor: ToastAnchor; stackOf
       // A group needs a name; most toolcrib toasts have no title, so the
       // message names it.
       aria-label={item.title ? undefined : item.message}
-      data-loading={item.loading ? '' : undefined}
+      data-ai-loading={item.loading ? '' : undefined}
       aria-busy={item.loading || undefined}
       className="ai-toast-root ai-focus-ring"
       style={{

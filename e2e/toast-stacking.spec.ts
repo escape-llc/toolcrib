@@ -30,7 +30,7 @@ test('multiple toasts stack at distinct Y positions, and dismissing one moves th
   await fireInfo.click();
   await fireInfo.click();
 
-  const toasts = page.locator('[data-testid="toast-item"]');
+  const toasts = page.locator('[data-ai-testid="toast-item"]');
   await expect(toasts).toHaveCount(3);
   // Let ResizeObserver report each toast's REAL height and the resulting
   // layout settle before measuring.
@@ -84,7 +84,7 @@ test('a bottom-anchored stack stacks upward -- each earlier toast sits ABOVE the
   await fireInfo.click();
   await fireInfo.click();
 
-  const toasts = page.locator('[data-testid="toast-item"]');
+  const toasts = page.locator('[data-ai-testid="toast-item"]');
   await expect(toasts).toHaveCount(3);
   await page.waitForTimeout(400);
 
@@ -144,7 +144,7 @@ test('a stacked toast\'s transform transition includes BOTH outline-color and tr
   await fireInfo.click();
   await page.waitForTimeout(400);
 
-  const toastEl = page.locator('[data-testid="toast-item"]').nth(1);
+  const toastEl = page.locator('[data-ai-testid="toast-item"]').nth(1);
   const { transitionProperty, transitionDuration } = await toastEl.evaluate(el => {
     const cs = getComputedStyle(el);
     return { transitionProperty: cs.transitionProperty, transitionDuration: cs.transitionDuration };
@@ -205,7 +205,7 @@ test('a bottom-right-anchored toast renders near the bottom-right of the viewpor
   await page.getByRole('option', { name: 'Bottom Right' }).click();
 
   await page.getByRole('button', { name: 'Fire Info Toast', exact: true }).click();
-  const toast = page.locator('[data-testid="toast-item"]').first();
+  const toast = page.locator('[data-ai-testid="toast-item"]').first();
   await expect(toast).toBeVisible();
   await page.waitForTimeout(400);
 
@@ -236,7 +236,7 @@ test('toasts stack in FIFO order regardless of priority -- a medium-priority toa
   await page.getByRole('button', { name: 'Fire Urgent Error Toast', exact: true }).click();
   await page.waitForTimeout(300);
 
-  const messages = await page.locator('[data-testid="toast-item"]').allTextContents();
+  const messages = await page.locator('[data-ai-testid="toast-item"]').allTextContents();
   expect(messages).toHaveLength(2);
   expect(messages[0]).toContain('Informational message');
   expect(messages[1]).toContain('Critical System Failure');

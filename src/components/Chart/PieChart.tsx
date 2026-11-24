@@ -8,13 +8,14 @@ import { ChartLegend } from './ChartLegend';
 import { ChartTooltip } from './ChartTooltip';
 import { ChartEmptyState } from './ChartEmptyState';
 import { getSeriesColor } from './chartColors';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
 export interface PieChartDatum {
   label: string;
   value: number;
 }
 
-export interface PieChartProps {
+export interface PieChartProps extends DataAttributes {
   /** Slices to render. More than 8 are folded: the largest 7 keep their own slice, the rest merge into "Other" — a chart never generates a 9th categorical hue (see `chartColors.ts`). */
   data: PieChartDatum[];
   /** SVG width and height in pixels — pie charts render square, so only the smaller of the two is used. @default 320 */
@@ -62,6 +63,7 @@ export const PieChart: React.FC<PieChartProps> = ({
   innerRadius = 0,
   title = 'Pie chart',
   legendPosition = 'bottom',
+  ...rest
 }) => {
   const { tooltipData, tooltipLeft, tooltipTop, tooltipOpen, showTooltip, hideTooltip } = useTooltip<HoverDatum>();
 
@@ -90,7 +92,7 @@ export const PieChart: React.FC<PieChartProps> = ({
 
   return (
     <div style={{ position: 'relative', display: isSide ? 'inline-flex' : 'block', alignItems: isSide ? 'center' : undefined, gap: isSide ? '1.25rem' : undefined }}>
-      <svg width={width} height={height} role="graphics-document" aria-roledescription="pie chart" aria-label={title}>
+      <svg {...pickDataAttributes(rest)} width={width} height={height} role="graphics-document" aria-roledescription="pie chart" aria-label={title}>
         <title>{title}</title>
         <Group top={height / 2} left={width / 2}>
           <Pie

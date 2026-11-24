@@ -1,3 +1,4 @@
+import { getAi } from './testUtils/aiTestId';
 import { type ReactElement, useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
@@ -267,7 +268,7 @@ describe('Form control contract', () => {
       act(() => { fireEvent.click(screen.getByText('Reset')); });
       await act(async () => {});
       // The text stays for the collapse animation; the region is what closes.
-      expect(screen.getByTestId('form-field-error-region-field')).toHaveAttribute('aria-hidden', 'true');
+      expect(getAi('form-field-error-region-field')).toHaveAttribute('aria-hidden', 'true');
     });
 
     // Tab order is left out: a jsdom click doesn't focus, so a clicked radio
@@ -384,7 +385,7 @@ describe('declared states', () => {
         // It must look invalid too, not only say so: some part of the control
         // itself (not the error message below it) is painted in the error color.
         const painted = Array.from(container.querySelectorAll<HTMLElement>('[style]'))
-          .filter(el => !el.closest('[data-testid^="form-field-error-region"]'))
+          .filter(el => !el.closest('[data-ai-testid^="form-field-error-region"]'))
           .some(el => el.getAttribute('style')!.includes('--ai-subtheme-error'));
         expect(painted).toBe(true);
         break;

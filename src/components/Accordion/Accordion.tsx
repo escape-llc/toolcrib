@@ -3,6 +3,7 @@
 import React, { type ReactNode, useEffect, useRef } from 'react';
 import { Accordion as BaseAccordion } from '@base-ui/react/accordion';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { AccordionThemeSlice, type AccordionSliceState } from './AccordionSlice';
 import { useStableId } from '../shared/useStableId';
@@ -83,7 +84,7 @@ export interface AccordionItemData {
  * Data-driven: pass an `items` array and the component renders all panels.
  * Emits `accordion:opened` / `accordion:closed` events on the event bus.
  */
-export interface AccordionProps {
+export interface AccordionProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Array of items to render as accordion panels. */
@@ -110,6 +111,7 @@ export const Accordion: React.FC<AccordionProps> = ({
   type = 'single',
   defaultValue,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'accordion');
   const { vars } = useSliceOverrides(AccordionThemeSlice, overrides);
@@ -128,6 +130,7 @@ export const Accordion: React.FC<AccordionProps> = ({
 
   return (
     <BaseAccordion.Root
+      {...pickDataAttributes(rest)}
       multiple={type === 'multiple'}
       defaultValue={defaultValue ? [defaultValue] : undefined}
       onValueChange={(val) => {
@@ -193,7 +196,7 @@ export const Accordion: React.FC<AccordionProps> = ({
 
           <BaseAccordion.Panel
             className="ai-accordion-content"
-            data-testid={`accordion-content-${item.value}`}
+            data-ai-testid={`accordion-content-${item.value}`}
             style={{
               // No padding/border/font styling here — this is the element
               // whose `height` the injected keyframes above actually

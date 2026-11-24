@@ -110,7 +110,7 @@ test.describe('DataTable density cross-fade (issue #499)', () => {
 
     // A real data cell a couple of rows in, not the header -- col 1 is
     // the first real data column (col 0 is the selection checkbox).
-    const cell = dataTable(page).locator('[data-grid-row="2"][data-grid-col="1"]').first();
+    const cell = dataTable(page).locator('[data-ai-grid-row="2"][data-ai-grid-col="1"]').first();
     await cell.evaluate(el => { (el as any).__identityMarker = true; });
 
     await dataTable(page).getByRole('radio', { name: 'Compact' }).click();

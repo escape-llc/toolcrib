@@ -4,6 +4,7 @@ import React, { useContext, useEffect, useId, useState } from 'react';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
@@ -21,7 +22,7 @@ import { useLocaleStrings } from '../Locale/LocaleContext';
  * overload, so neither component's value type, nor `slider:changed`'s
  * payload, has to be narrowed by every consumer.
  */
-export interface RangeSliderProps {
+export interface RangeSliderProps extends DataAttributes {
   /** Element id, applied to the lower thumb. Auto-derived from `name` (or the inherited `<FormField>` name) if omitted. Each thumb is named through `aria-labelledby` (see `aria-label`). */
   id?: string;
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. Used in event bus payloads. */
@@ -98,6 +99,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   orientation = 'horizontal',
   getAriaValueText,
   overrides,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -162,6 +164,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
       <span id={`${baseId}-lower`} hidden>{lowerLabel}</span>
       <span id={`${baseId}-upper`} hidden>{upperLabel}</span>
       <BaseSlider.Root
+        {...pickDataAttributes(rest)}
         value={currentVal}
         onValueChange={(vals) => {
           const next: [number, number] = [vals[0], vals[1]];

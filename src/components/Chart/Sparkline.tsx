@@ -4,8 +4,9 @@ import React, { useMemo } from 'react';
 import { scaleLinear } from '@visx/scale';
 import { LinePath } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 
-export interface SparklineProps {
+export interface SparklineProps extends DataAttributes {
   /** Sequential values forming the trend line, oldest first. */
   values: number[];
   /** SVG width in pixels. @default 80 */
@@ -27,7 +28,7 @@ export interface SparklineProps {
  * @manifest Minimal inline trend line for a stat tile
  * @manifestCategory Data Display
  */
-export const Sparkline: React.FC<SparklineProps> = ({ values, width = 80, height = 24, title = 'Trend sparkline' }) => {
+export const Sparkline: React.FC<SparklineProps> = ({ values, width = 80, height = 24, title = 'Trend sparkline', ...rest }) => {
   const padding = 2;
   const xScale = useMemo(
     () => scaleLinear<number>({ domain: [0, Math.max(values.length - 1, 1)], range: [padding, width - padding] }),
@@ -45,7 +46,7 @@ export const Sparkline: React.FC<SparklineProps> = ({ values, width = 80, height
   const lastY = lastValue !== undefined ? yScale(lastValue) : 0;
 
   return (
-    <svg width={width} height={height} role="img" aria-label={title}>
+    <svg {...pickDataAttributes(rest)} width={width} height={height} role="img" aria-label={title}>
       <title>{title}</title>
       <LinePath
         data={values}

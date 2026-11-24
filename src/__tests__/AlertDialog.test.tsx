@@ -1,3 +1,4 @@
+import { getAi, queryAi } from './testUtils/aiTestId';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { AlertDialog } from '../components/AlertDialog/AlertDialog';
@@ -25,7 +26,7 @@ describe('AlertDialog Component', () => {
     expect(await axe(document.body)).toHaveNoViolations();
 
     fireEvent.click(screen.getByText('Delete Record'));
-    const container = screen.getByTestId('alertdialog-container');
+    const container = getAi('alertdialog-container');
     expect(container).toBeInTheDocument();
     expect(screen.getByRole('alertdialog', { name: 'Delete confirmation' })).toBeInTheDocument();
     // Open-state scan: full dialog content (header/body/footer/actions) now
@@ -43,7 +44,7 @@ describe('AlertDialog Component', () => {
     fireEvent.pointerUp(document.body);
     fireEvent.mouseUp(document.body);
     fireEvent.click(document.body);
-    expect(screen.getByTestId('alertdialog-container')).toBeInTheDocument();
+    expect(getAi('alertdialog-container')).toBeInTheDocument();
   });
 
   // Regression guard: Base UI's AlertDialog reuses Dialog.Popup, which
@@ -67,10 +68,10 @@ describe('AlertDialog Component', () => {
     );
 
     fireEvent.click(screen.getByText('Open'));
-    expect(screen.getByTestId('alertdialog-container')).toBeInTheDocument();
+    expect(getAi('alertdialog-container')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByTestId('alertdialog-container')).not.toBeInTheDocument();
+    expect(queryAi('alertdialog-container')).not.toBeInTheDocument();
   });
 
   it('closes and runs the confirm handler when Action is clicked, and closes without it on Cancel', () => {
@@ -89,7 +90,7 @@ describe('AlertDialog Component', () => {
     fireEvent.click(screen.getByText('Open'));
     fireEvent.click(screen.getByText('Confirm'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('alertdialog-container')).not.toBeInTheDocument();
+    expect(queryAi('alertdialog-container')).not.toBeInTheDocument();
   });
 
   it('emits alertdialog:shown/alertdialog:hidden and responds to aiBus.openAlertDialog/closeAlertDialog', () => {
@@ -108,13 +109,13 @@ describe('AlertDialog Component', () => {
       aiBus.openAlertDialog('confirm-delete');
     });
     expect(shownFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'confirm-delete' }));
-    expect(screen.getByTestId('alertdialog-container')).toBeInTheDocument();
+    expect(getAi('alertdialog-container')).toBeInTheDocument();
 
     act(() => {
       aiBus.closeAlertDialog('confirm-delete');
     });
     expect(hiddenFn).toHaveBeenCalledWith(expect.objectContaining({ id: 'confirm-delete' }));
-    expect(screen.queryByTestId('alertdialog-container')).not.toBeInTheDocument();
+    expect(queryAi('alertdialog-container')).not.toBeInTheDocument();
 
     unsub1();
     unsub2();

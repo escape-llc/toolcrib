@@ -13,13 +13,13 @@ import { gotoTab } from './nav';
 // demo/App.tsx's "User Name" and "Email Address" columns are the two
 // marked `resizable: true` for this table -- located via the <th> that
 // CONTAINS each column's own sort button (scoped with `has:`) rather than
-// by accessible name/data-grid-row/col directly, since a sortable
+// by accessible name/data-ai-grid-row/col directly, since a sortable
 // column's own <th> carries neither (see useTableKeyboardNav's "cell
 // contains one widget" comment -- the sort <button> is the real grid-nav
 // target, not the <th> itself), and the resize handle is deliberately NOT
 // part of that roving-tabindex coordinate model either (see
 // useTableColumnResize's own header comment), so it carries no
-// data-grid-row/col of its own to query by.
+// data-ai-grid-row/col of its own to query by.
 //
 // These tests only ever touch the header row (sortable buttons, resize
 // handles), which renders from `columns` regardless of whether any data
@@ -102,11 +102,11 @@ test.describe('DataTable column resize (issue #318)', () => {
 
     await page.mouse.down();
     // Real signal, not a guessed delay -- see DataTable.tsx's own comment
-    // on `data-resizing` for why this specific wait exists: a real,
+    // on `data-ai-resizing` for why this specific wait exists: a real,
     // reproducible flake under heavy parallel WebKit load where the
     // subsequent mousemove could be dispatched before startResize's
     // window-level pointermove listener had actually attached.
-    await expect(handle).toHaveAttribute('data-resizing', 'true');
+    await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
     await page.mouse.move(handleBox!.x + 80, handleBox!.y + handleBox!.height / 2, { steps: 5 });
     await page.mouse.up();
 
@@ -171,7 +171,7 @@ test.describe('DataTable column resize (issue #318)', () => {
       // jumped by a large amount on mousedown alone, before the cursor
       // had moved at all.
       await page.mouse.down();
-      await expect(handle).toHaveAttribute('data-resizing', 'true');
+      await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
       await expect.poll(async () => (await emailHeader.boundingBox())?.width ?? 0).toBe(before);
 
       await page.mouse.move(handleBox.x + 60, handleBox.y + handleBox.height / 2, { steps: 5 });
@@ -194,7 +194,7 @@ test.describe('DataTable column resize (issue #318)', () => {
       await handle.hover();
       const handleBox = (await handle.boundingBox())!;
       await page.mouse.down();
-      await expect(handle).toHaveAttribute('data-resizing', 'true');
+      await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
       // A real, deliberate amount no OTHER auto column exists to absorb
       // -- nothing else in this table can shrink to compensate (every
       // sibling is fixed), so the table itself must grow to accommodate
@@ -224,7 +224,7 @@ test.describe('DataTable column resize (issue #318)', () => {
       await handle.hover();
       const handleBox = (await handle.boundingBox())!;
       await page.mouse.down();
-      await expect(handle).toHaveAttribute('data-resizing', 'true');
+      await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
       // Deliberately far beyond what the table could ever accommodate --
       // the one auto column (Email) must pin at its own real minWidth
       // floor (40px, DEFAULT_MIN_COLUMN_WIDTH) rather than being
@@ -256,7 +256,7 @@ test.describe('DataTable column resize (issue #318)', () => {
       await handle.hover();
       const handleBox = (await handle.boundingBox())!;
       await page.mouse.down();
-      await expect(handle).toHaveAttribute('data-resizing', 'true');
+      await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
       // A modest amount, well clear of Email's own floor -- this test is
       // about persistence, not the floor itself (see the previous test
       // for that).
@@ -309,7 +309,7 @@ test.describe('DataTable column resize (issue #318)', () => {
     await handle.hover();
     const handleBox = (await handle.boundingBox())!;
     await page.mouse.down();
-    await expect(handle).toHaveAttribute('data-resizing', 'true');
+    await expect(handle).toHaveAttribute('data-ai-resizing', 'true');
     // Deliberately far left of the handle's own start -- shrinks Email
     // Address down to its real 40px minWidth floor.
     await page.mouse.move(handleBox.x - 400, handleBox.y + handleBox.height / 2, { steps: 5 });

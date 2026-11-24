@@ -12,6 +12,7 @@
 import React, { useRef, useState, type ReactNode, type ReactElement } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { computeCornerSquaring, renderTriggerWithCornerSquaring, useActualPopoverSide } from '../../theme/connectedPopoverStyles';
@@ -43,7 +44,7 @@ export interface MenuItemData {
  * Data-driven: pass an `items` array and the menu renders all items.
  * Emits `menu:opened`, `menu:closed`, and `menu:item_selected` events.
  */
-export interface DropdownMenuProps {
+export interface DropdownMenuProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /**
@@ -78,6 +79,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   side = 'bottom',
   align = 'start',
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'menu');
   const { vars: menuVars } = useSliceOverrides(DropdownMenuThemeSlice, overrides);
@@ -105,6 +107,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         <Menu.Portal container={container}>
           <Menu.Positioner {...boundary} side={side} align={align} sideOffset={squaring.sideOffset} collisionAvoidance={DROPDOWN_COLLISION} style={{ zIndex }}>
             <Menu.Popup
+              {...pickDataAttributes(rest)}
               ref={contentRef}
               className={`ai-focus-ring ${MENU_POPUP_CLASS}`}
               style={{

@@ -37,7 +37,7 @@ describe('Meter', () => {
   describe('bands (the HTML <meter> rule)', () => {
     const band = (props: { value: number; low?: number; high?: number; optimum?: number }) => {
       const { unmount } = render(<Meter aria-label="m" {...props} />);
-      const result = screen.getByRole('meter').getAttribute('data-band');
+      const result = screen.getByRole('meter').getAttribute('data-ai-band');
       unmount();
       return result;
     };

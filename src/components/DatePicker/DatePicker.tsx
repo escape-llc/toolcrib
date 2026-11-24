@@ -9,6 +9,7 @@ import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { useFieldInvalid } from '../Form/useFieldInvalid';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { Popup } from '../Overlay/Popup';
 import { Z_INDEX } from '../../theme/zIndex';
@@ -21,7 +22,7 @@ import { fieldGroupStyle, DateSegments, CalendarPopupTrigger } from './calendarP
 import { focusRingClassName } from './focusRing';
 
 /** Props for the `<DatePicker>` field + calendar popover. */
-export interface DatePickerProps {
+export interface DatePickerProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Label rendered above the field. */
@@ -165,6 +166,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
   squareCorners,
+  ...rest
 }) => {
   const isDisabled = useFieldsetDisabled(isDisabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -203,6 +205,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <I18nProvider locale={locale}>
       <AriaDatePicker
+        {...pickDataAttributes(rest)}
         {...(isControlled ? { value: controlledValue ?? null } : { defaultValue: defaultValue ?? undefined })}
         onChange={handleChange}
         granularity="day"

@@ -224,7 +224,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.keyboard.press('Escape');
   // Drawer closes on its own 250ms JS timer; its backdrop blocks the page
   // until then.
-  await expect(page.getByTestId('drawer-backdrop')).not.toBeAttached();
+  await expect(page.locator('[data-ai-testid="drawer-backdrop"]')).not.toBeAttached();
 
   await gotoTab(page, 'Catalog', 'Modal');
   await page.getByRole('button', { name: 'Open Modal Dialog' }).click();
@@ -258,7 +258,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   // (see toast-animation.spec.ts).
   await expect(page.getByRole('dialog', { name: 'Nested Confirmation' })).not.toBeAttached();
   await page.keyboard.press('Escape'); // closes the outer modal
-  await expect(page.getByTestId('modal-container')).toHaveCount(0);
+  await expect(page.locator('[data-ai-testid="modal-container"]')).toHaveCount(0);
 
   await gotoTab(page, 'Catalog', 'CommandPalette');
   await page.getByRole('button', { name: 'Open Command Palette' }).click();
@@ -341,7 +341,7 @@ test('overlay content unreachable by the tab sweep has zero automatable WCAG 2.1
   await page.getByText('Blocking Confirmation').locator('..').getByRole('button', { name: /Delete Record/ }).click();
   await scanNamed('AlertDialog');
   await page.keyboard.press('Escape');
-  await expect(page.getByTestId('alertdialog-container')).toHaveCount(0);
+  await expect(page.locator('[data-ai-testid="alertdialog-container"]')).toHaveCount(0);
 
   await gotoTab(page, 'Catalog', 'Collapsible');
   await page.getByText('Show advanced options').click();
@@ -472,7 +472,7 @@ test('more surfaces a closed-state scan never sees (#830): viewer, toast, DataTa
   // A visible toast: the group, the live regions and the dismiss control.
   await gotoTab(page, 'Catalog', 'CardSimple');
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
-  await expect(page.getByTestId('toast-item').getByText('Refreshed!')).toBeVisible();
+  await expect(page.locator('[data-ai-testid="toast-item"]').getByText('Refreshed!')).toBeVisible();
   await scanNamed('Toast (visible)');
 
   // DataTable: the Columns menu, then a row in edit mode (the edit co-grid).

@@ -3,6 +3,7 @@
 import React, { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -24,7 +25,7 @@ export interface CarouselSlideItem {
  * Wraps `embla-carousel-react`'s `useEmblaCarousel` hook — Embla owns the
  * drag/swipe/loop physics, this component owns the slide markup and theming.
  */
-export interface CarouselProps {
+export interface CarouselProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Array of slides to render. */
@@ -56,6 +57,7 @@ export const Carousel: React.FC<CarouselProps> = ({
   autoplay,
   onSlideChange,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'carousel');
   const strings = useLocaleStrings().carousel;
@@ -174,6 +176,7 @@ export const Carousel: React.FC<CarouselProps> = ({
 
   return (
     <div
+      {...pickDataAttributes(rest)}
       style={{ position: 'relative', width: '100%', ...vars }}
       onMouseEnter={() => setAutoplayPaused(true)}
       onMouseLeave={() => setAutoplayPaused(false)}

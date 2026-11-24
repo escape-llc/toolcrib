@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { useScrollOverflow } from '../shared/useScrollOverflow';
@@ -28,7 +29,7 @@ export interface FilmstripItem {
  * instead of tab labels — the same controlled/uncontrolled `activeId`/
  * `defaultActiveId`/`onChange` convention, no compositional panel side.
  */
-export interface FilmstripProps {
+export interface FilmstripProps extends DataAttributes {
   /** Unique identifier for event bus targeting. Auto-generated if omitted. */
   id?: string;
   /** Array of thumbnail definitions to render. */
@@ -68,6 +69,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
   onChange,
   thumbnailSize = '4rem',
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'filmstrip');
   const { vars } = useSliceOverrides(TabThemeSlice, overrides);
@@ -177,6 +179,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
       )}
 
       <div
+        {...pickDataAttributes(rest)}
         ref={scrollContainerRef}
         role="listbox"
         aria-orientation="horizontal"

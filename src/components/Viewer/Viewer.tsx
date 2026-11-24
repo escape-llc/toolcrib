@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
 import { useStableId } from '../shared/useStableId';
+import { pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { Modal } from '../Overlay/Modal';
@@ -38,6 +39,9 @@ export const Viewer: React.FC<ViewerProps> = ({
   ...contentProps
 }) => {
   const id = useStableId(propId, 'viewer');
+  // `data-*` land on the dialog (the Modal), not on the content inside it.
+  const dataProps = pickDataAttributes(contentProps);
+  const innerProps = Object.fromEntries(Object.entries(contentProps).filter(([key]) => !key.startsWith('data-'))) as typeof contentProps;
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
@@ -63,6 +67,7 @@ export const Viewer: React.FC<ViewerProps> = ({
 
   return (
     <Modal
+      {...dataProps}
       id={id}
       isOpen={isOpen}
       onOpenChange={open => handleOpenChange(open)}
@@ -70,7 +75,7 @@ export const Viewer: React.FC<ViewerProps> = ({
       height="80vh"
       aria-label="Media viewer"
     >
-      <ViewerContent id={id} {...contentProps} onClose={() => handleOpenChange(false)} />
+      <ViewerContent id={id} {...innerProps} onClose={() => handleOpenChange(false)} />
     </Modal>
   );
 };

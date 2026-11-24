@@ -7,7 +7,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useOptionalFormContext, FORM_ERROR_KEY } from './FormContext';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { type StyleFree } from '../../theme/safeProps';
+import { type StyleFree, type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useResolvedSubtheme, useSliceOverrides } from '../../theme/useSliceOverrides';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -41,7 +41,7 @@ export * from './FileUpload';
  *
  * Provides `FieldContext` so child controls automatically inherit the `name` prop.
  */
-export interface FormFieldProps {
+export interface FormFieldProps extends DataAttributes {
   /** Field name that binds to the form schema and context. */
   name: string;
   /** Label rendered above the control. */
@@ -56,7 +56,7 @@ export interface FormFieldProps {
  * @manifest Wraps one form control with its label, helper text and validation error, and binds the control to the Form field `name` via context
  * @manifestCategory Form Controls
  */
-export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children }) => {
+export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, children, ...rest }) => {
   const formContext = useOptionalFormContext();
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
   const errorId = `${name}-error`;
@@ -90,7 +90,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
 
   return (
     <FieldContext.Provider value={fieldContextValue}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
+      <div {...pickDataAttributes(rest)} style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%', marginBottom: 'var(--ai-margin-gap, 0.875rem)' }}>
         {label && (
           <Label id={labelId} htmlFor={name} overrides={{ weight: 'semibold' }}>
             {label}
@@ -132,7 +132,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
         */}
         <div
           // Test-only DOM hook (AGENTS.md's own established pattern --
-          // ThemeEditor's/Modal's data-testid precedent) so e2e specs can
+          // ThemeEditor's/Modal's data-ai-testid precedent) so e2e specs can
           // locate this wrapper directly instead of an XPath sibling
           // relationship (`following-sibling::div[1]`) that silently
           // breaks the moment this component's own markup shape changes.
@@ -141,7 +141,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
           // rendering this same wrapper shape, so a bare shared id would
           // be ambiguous the instant more than one is on screen. Costs
           // nothing at runtime and carries no consumer-facing meaning.
-          data-testid={`form-field-error-region-${name}`}
+          data-ai-testid={`form-field-error-region-${name}`}
           // aria-hidden when collapsed -- caught in review (Gemini, PR
           // #506): `overflow: hidden` + `grid-template-rows: 0fr` clips
           // content to zero *visible* area, but isn't guaranteed to read
@@ -200,7 +200,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
  * Without `name`: shows a summary banner when any errors exist, carrying the
  * message of a whole-form schema `.refine()` (no `path`) when there is one.
  */
-export interface FormErrorProps {
+export interface FormErrorProps extends DataAttributes {
   /** Field name to show the error for. Omit for a summary error banner, which is also where a whole-form `.refine()` error (one with no `path`) appears. */
   name?: string;
 }
@@ -209,7 +209,7 @@ export interface FormErrorProps {
  * @manifest Validation error display: one field's error (after it is touched) with `name`, or a summary banner of all errors without it
  * @manifestCategory Form Controls
  */
-export const FormError: React.FC<FormErrorProps> = ({ name }) => {
+export const FormError: React.FC<FormErrorProps> = ({ name, ...rest }) => {
   const formContext = useOptionalFormContext();
   // Computed unconditionally, before the `!formContext` early return
   // below -- useDeferredCollapseContent is a hook, and hooks can't be
@@ -243,7 +243,8 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
         // Test-only DOM hook -- see FormField's own identical comment on
         // `form-field-error-region` above (same per-field suffix reasoning:
         // more than one named FormError can be on screen at once).
-        data-testid={`form-error-named-region-${name}`}
+        {...pickDataAttributes(rest)}
+        data-ai-testid={`form-error-named-region-${name}`}
         // See FormField's own aria-hidden/visibility comments for the full
         // reasoning (both found in review, Gemini, PR #506).
         aria-hidden={!namedError}
@@ -274,7 +275,8 @@ export const FormError: React.FC<FormErrorProps> = ({ name }) => {
     <div
       // Test-only DOM hook -- see FormField's own identical comment on
       // `form-field-error-region` above.
-      data-testid="form-error-summary-region"
+      {...pickDataAttributes(rest)}
+      data-ai-testid="form-error-summary-region"
       // Load-bearing here, not just defense-in-depth (unlike the other two
       // wrappers above): this banner's own text is a *static* string,
       // always in the DOM regardless of hasErrors -- without this, a
@@ -830,7 +832,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   return (
     <div
       className="ai-focus-ring"
-      data-input-group=""
+      data-ai-input-group=""
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -845,14 +847,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
       }}
     >
       {hasLeading && (
-        <span data-input-section="leading" onMouseDown={focusInputFromSection} style={{ ...sectionStyle, paddingLeft: '0.625rem' }}>
+        <span data-ai-input-section="leading" onMouseDown={focusInputFromSection} style={{ ...sectionStyle, paddingLeft: '0.625rem' }}>
           {renderInputSection(leadingSection)}
         </span>
       )}
       {inputElement}
       {hasTrailing && (
         <span
-          data-input-section="trailing"
+          data-ai-input-section="trailing"
           onMouseDown={focusInputFromSection}
           style={{ ...sectionStyle, paddingRight: showClearButton || showRevealToggle ? '0.375rem' : '0.625rem' }}
         >
@@ -899,7 +901,7 @@ Input.displayName = 'Input';
 // Select is imported and exported from ./Select
 
 /** Props for `<Checkbox>` — boolean toggle bound to Form context via `name`. */
-export interface CheckboxProps {
+export interface CheckboxProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Label text rendered beside the checkbox. */
@@ -929,7 +931,7 @@ export interface CheckboxProps {
  * @manifestStates default, focused, disabled, invalid
  * @manifestGuarantees form-contract
  */
-export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, ...rest }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
@@ -968,6 +970,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
   return (
     <Label>
       <BaseCheckbox.Root
+        {...pickDataAttributes(rest)}
         ref={ref}
         id={name || undefined}
         checked={checked}
@@ -1017,7 +1020,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
 Checkbox.displayName = 'Checkbox';
 
 /** Props for `<Switch>` — boolean toggle with a sliding track, bound to Form context via `name`. */
-export interface SwitchProps {
+export interface SwitchProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Label text rendered beside the switch. */
@@ -1047,7 +1050,7 @@ export interface SwitchProps {
  * @manifestStates default, focused, disabled, invalid
  * @manifestGuarantees form-contract
  */
-export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid }, ref) => {
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, ...rest }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
@@ -1090,6 +1093,7 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
     // before both were consolidated onto the shared <Label> component.
     <Label overrides={{ gap: 'spacious' }}>
       <BaseSwitch.Root
+        {...pickDataAttributes(rest)}
         ref={ref}
         id={name || undefined}
         checked={checked}

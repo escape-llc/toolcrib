@@ -112,21 +112,21 @@ describe('DataTable with a data source (issue #905)', () => {
       const { source, calls } = fakeSource();
       render(<DataTable data={source} columns={columns} rowKey={rowKey} defaultPageSize={10} />);
       // First load: no rows yet, so nothing to dim.
-      expect(tbody()).not.toHaveAttribute('data-stale');
+      expect(tbody()).not.toHaveAttribute('data-ai-stale');
       await answer(calls[0], itemsFrom(1, 10), 50);
-      expect(tbody()).not.toHaveAttribute('data-stale');
+      expect(tbody()).not.toHaveAttribute('data-ai-stale');
 
       nextPage();
       // Requested page 2, still showing page 1's rows.
       expect(screen.getByText('2 / 5')).toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Showing 1 to 10 of 50 entries');
-      expect(tbody()).toHaveAttribute('data-stale', 'true');
+      expect(tbody()).toHaveAttribute('data-ai-stale', 'true');
       expect(tbody().style.opacity).toContain('--ai-datatable-stale-opacity');
       expect(screen.getByRole('grid')).toHaveAttribute('aria-busy', 'true');
 
       await answer(calls[1], itemsFrom(11, 10), 50);
       expect(screen.getByRole('status')).toHaveTextContent('Showing 11 to 20 of 50 entries');
-      expect(tbody()).not.toHaveAttribute('data-stale');
+      expect(tbody()).not.toHaveAttribute('data-ai-stale');
       expect(tbody().style.opacity).toBe('');
     });
 
@@ -143,7 +143,7 @@ describe('DataTable with a data source (issue #905)', () => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
       expect(screen.getByText('3 / 5')).toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Showing 11 to 20 of 50 entries');
-      expect(tbody()).toHaveAttribute('data-stale', 'true');
+      expect(tbody()).toHaveAttribute('data-ai-stale', 'true');
       expect(screen.getByRole('grid')).not.toHaveAttribute('aria-busy');
     });
 
@@ -166,13 +166,13 @@ describe('DataTable with a data source (issue #905)', () => {
       await answer(calls[3], itemsFrom(11, 10), 50);
       expect(screen.getByText('2 / 5')).toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Showing 11 to 20 of 50 entries');
-      expect(tbody()).not.toHaveAttribute('data-stale');
+      expect(tbody()).not.toHaveAttribute('data-ai-stale');
     });
 
     it('an array source is never dimmed', () => {
       render(<DataTable data={itemsFrom(1, 25)} columns={columns} defaultPageSize={10} />);
       nextPage();
-      expect(tbody()).not.toHaveAttribute('data-stale');
+      expect(tbody()).not.toHaveAttribute('data-ai-stale');
       expect(tbody().style.opacity).toBe('');
       expect(screen.getByRole('status')).toHaveTextContent('Showing 11 to 20 of 25 entries');
     });

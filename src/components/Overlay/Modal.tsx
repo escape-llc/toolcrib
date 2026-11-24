@@ -8,6 +8,7 @@
 import React, { useEffect, useState, type ReactNode, type ReactElement } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useOwnEmit } from '../../eventBus/useOwnEmit';
 import { AIErrorBoundary } from '../ErrorBoundary/AIErrorBoundary';
@@ -41,7 +42,7 @@ const NESTED_RECEDE_CSS = `
  *
  * Modals can be opened programmatically via `aiBus.openModal(id)` without managing state.
  */
-export interface ModalProps {
+export interface ModalProps extends DataAttributes {
   /** Unique identifier used for event bus targeting (e.g. `aiBus.openModal('my-modal')`). Auto-generated if omitted. */
   id?: string;
   /**
@@ -104,16 +105,26 @@ export interface ModalProps {
   overrides?: Partial<ModalSliceState> & { subtheme?: SubthemeName };
 }
 
+/** Props for the `<Modal.Header>`, `.Body`, `.Footer` and `.Actions` slots. */
+export interface ModalSectionProps extends DataAttributes {
+  children: ReactNode;
+}
+
+/** Props for the `<Modal.CloseButton>` slot. */
+export interface ModalCloseButtonProps extends DataAttributes {
+  children?: ReactNode;
+}
+
 /**
  * @manifest Dialog overlay with focus trap, backdrop, and slot composition
  * @manifestCategory Overlays
  */
 export const Modal: React.FC<ModalProps> & {
-  Header: React.FC<{ children: ReactNode }>;
-  Body: React.FC<{ children: ReactNode }>;
-  Footer: React.FC<{ children: ReactNode }>;
-  Actions: React.FC<{ children: ReactNode }>;
-  CloseButton: React.FC<{ children?: ReactNode }>;
+  Header: React.FC<ModalSectionProps>;
+  Body: React.FC<ModalSectionProps>;
+  Footer: React.FC<ModalSectionProps>;
+  Actions: React.FC<ModalSectionProps>;
+  CloseButton: React.FC<ModalCloseButtonProps>;
 } = ({
   id: propId,
   trigger,
@@ -126,6 +137,7 @@ export const Modal: React.FC<ModalProps> & {
   'aria-label': ariaLabel = 'Dialog',
   align = 'center',
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'modal');
   const { container, zIndex } = useOverlayLayer('MODAL', zIndexProp);
@@ -188,8 +200,9 @@ export const Modal: React.FC<ModalProps> & {
             }}
           >
             <BaseDialog.Popup
+              {...pickDataAttributes(rest)}
               aria-modal="true"
-              data-testid="modal-container"
+              data-ai-testid="modal-container"
               className="ai-focus-ring ai-modal-content"
               style={{
                 background: 'var(--ai-bg-surface, #ffffff)',
@@ -222,8 +235,9 @@ export const Modal: React.FC<ModalProps> & {
   );
 };
 
-Modal.Header = ({ children }) => (
+Modal.Header = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderBottom: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -236,8 +250,9 @@ Modal.Header = ({ children }) => (
   </div>
 );
 
-Modal.Body = ({ children }) => (
+Modal.Body = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1.5rem)',
       overflowY: 'auto',
@@ -251,8 +266,9 @@ Modal.Body = ({ children }) => (
   </div>
 );
 
-Modal.Footer = ({ children }) => (
+Modal.Footer = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       padding: 'var(--ai-padding-xl, 1rem 1.5rem)',
       borderTop: '0.0625rem solid var(--ai-border, #e5e7eb)',
@@ -266,8 +282,9 @@ Modal.Footer = ({ children }) => (
   </div>
 );
 
-Modal.Actions = ({ children }) => (
+Modal.Actions = ({ children, ...rest }) => (
   <div
+    {...pickDataAttributes(rest)}
     style={{
       display: 'flex',
       gap: '0.625rem',
@@ -279,8 +296,8 @@ Modal.Actions = ({ children }) => (
   </div>
 );
 
-Modal.CloseButton = ({ children = 'Close' }) => (
-  <BaseDialog.Close render={<Button variant="outline" />}>{children}</BaseDialog.Close>
+Modal.CloseButton = ({ children = 'Close', ...rest }) => (
+  <BaseDialog.Close render={<Button variant="outline" {...pickDataAttributes(rest)} />}>{children}</BaseDialog.Close>
 );
 
 Modal.Header.displayName = 'Modal.Header';

@@ -44,7 +44,7 @@ import { demoPages } from './nav';
 // Menus count too (#722): a Base UI menu is modal, so while it is open its
 // inert backdrop intercepts every click behind it. They weren't listed, so
 // settle() thought a still-open menu was closed.
-const OPEN_OVERLAY = '[data-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], [role="menu"], [data-base-ui-inert], .ai-popup-content';
+const OPEN_OVERLAY = '[data-ai-testid="drawer-backdrop"], [role="dialog"], [role="alertdialog"], [role="menu"], [data-base-ui-inert], .ai-popup-content';
 async function settle(page: Page) {
   // Base UI mounts a popup a frame after the click that opens it. Escape sent
   // before that finds nothing to close and is lost, leaving the menu to open

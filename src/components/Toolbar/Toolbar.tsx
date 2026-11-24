@@ -14,7 +14,7 @@ import { Toolbar as BaseToolbar } from '@base-ui/react/toolbar';
 import { type PaddingMode, resolvePadding } from '../../theme/padding';
 import { type MarginMode } from '../../theme/margin';
 import { type CornerRadiusMode, resolveRadius } from '../../theme/radius';
-import { type StyleFreeAttributes } from '../../theme/safeProps';
+import { type StyleFreeAttributes, type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { getSparseVariables } from '../../theme/slice';
 import { ToolbarThemeSlice, type ToolbarSliceState } from './ToolbarSlice';
 import { Button, type ButtonProps } from '../Form/FormComponents';
@@ -65,6 +65,9 @@ export interface ToolbarSlotProps extends StyleFreeAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
+/** Props for the `<Toolbar.Separator>` slot. */
+export interface ToolbarSeparatorProps extends DataAttributes {}
+
 /**
  * @manifest Horizontal action bar with left/center/right slot areas
  * @manifestCategory Layout Primitives
@@ -75,7 +78,7 @@ export const Toolbar: React.FC<ToolbarProps> & {
   Center: React.FC<ToolbarSlotProps>;
   Right: React.FC<ToolbarSlotProps>;
   Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
-  Separator: React.FC<{}>;
+  Separator: React.FC<ToolbarSeparatorProps>;
 } = ({ children, paddingMode, marginMode, cornerRadiusMode, orientation = 'horizontal', overrides, ...props }) => {
   const toolbarVars = getSparseVariables(ToolbarThemeSlice, overrides ?? {});
   return (
@@ -202,11 +205,12 @@ Toolbar.Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ children, .
  * skip-on-navigate behavior), but that's a structural reason, not a reason
  * for the thickness *value* to diverge from the rest of the toolkit.
  */
-Toolbar.Separator = () => {
+Toolbar.Separator = props => {
   const orientation = useContext(ToolbarOrientationContext);
   const thickness = 'var(--ai-separator-thickness, 0.0625rem)';
   return (
     <BaseToolbar.Separator
+      {...pickDataAttributes(props)}
       style={
         orientation === 'vertical'
           ? { height: thickness, width: '100%', background: 'var(--ai-border, #e5e7eb)', margin: '0.125rem 0', flexShrink: 0 }

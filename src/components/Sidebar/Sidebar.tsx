@@ -3,6 +3,7 @@
 import React, { type ReactNode, useState } from 'react';
 import { NavigationMenu as BaseNavigationMenu } from '@base-ui/react/navigation-menu';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { SidebarThemeSlice, type SidebarSliceState } from './SidebarSlice';
 import { useReportSidebarCollapsed } from '../AppShell/AppShell';
 
@@ -21,7 +22,7 @@ export interface SidebarItemData {
 }
 
 /** Props for the `<Sidebar>` nav list, typically placed inside `<AppShell.Sidebar>`. */
-export interface SidebarProps {
+export interface SidebarProps extends DataAttributes {
   /** Nav items to render. */
   items: SidebarItemData[];
   /** Currently active item id — renders with `aria-current="page"`. */
@@ -65,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   overrides,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  ...rest
 }) => {
   // Same controlled/uncontrolled split as every other stateful component in
   // this toolkit -- but collapsed state is local UI state that manages
@@ -88,6 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <BaseNavigationMenu.Root
+      {...pickDataAttributes(rest)}
       orientation="vertical"
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}

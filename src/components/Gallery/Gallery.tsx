@@ -2,6 +2,7 @@
 
 import React, { type ReactNode, useState } from 'react';
 import { useStableId } from '../shared/useStableId';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { type SubthemeName } from '../../theme/subtheme';
 import { Grid } from '../Layout/Grid';
@@ -31,7 +32,7 @@ export interface GalleryItem {
  * doesn't pay full render/paint cost for off-screen ones, opening a
  * `<Viewer>` on click by default.
  */
-export interface GalleryProps {
+export interface GalleryProps extends DataAttributes {
   /** Unique identifier for event bus targeting (forwarded to the internal `<Viewer>`). Auto-generated if omitted. */
   id?: string;
   /** Array of items to render. */
@@ -65,6 +66,7 @@ export const Gallery: React.FC<GalleryProps> = ({
   columns = 'auto-fit',
   onItemClick,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'gallery');
   const { vars } = useSliceOverrides(GalleryThemeSlice, overrides);
@@ -81,7 +83,7 @@ export const Gallery: React.FC<GalleryProps> = ({
   const viewerItems = items.map(item => ({ id: item.id, src: item.fullSrc, alt: item.alt, caption: item.caption }));
 
   return (
-    <div style={{ width: '100%', ...vars }}>
+    <div {...pickDataAttributes(rest)} style={{ width: '100%', ...vars }}>
       <Grid columns={columns}>
         {items.map((item, index) => (
           <DeferredContent key={item.id} estimatedHeight={200}>

@@ -6,6 +6,7 @@ import { aiBus } from '../../eventBus/eventBus';
 import { useAIEvent } from '../../eventBus/useAIEvent';
 import { useStableId } from '../shared/useStableId';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useNonce } from '../../theme/nonceContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
@@ -46,7 +47,7 @@ export interface StepperStepData {
   disabled?: boolean;
 }
 
-export interface StepperProps {
+export interface StepperProps extends DataAttributes {
   /** Unique identifier for `stepper:changed` event bus payloads. Auto-generated if omitted. */
   id?: string;
   /** Steps to render, in order. */
@@ -75,6 +76,7 @@ export const Stepper: React.FC<StepperProps> = ({
   defaultActiveIndex = 0,
   onActiveIndexChange,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'stepper');
   const stepperVars = getSparseVariables(StepperThemeSlice, overrides ?? {});
@@ -135,6 +137,7 @@ export const Stepper: React.FC<StepperProps> = ({
 
   return (
     <BaseTabs.Root
+      {...pickDataAttributes(rest)}
       value={activeStep?.id}
       onValueChange={val => {
         const index = steps.findIndex(s => s.id === val);

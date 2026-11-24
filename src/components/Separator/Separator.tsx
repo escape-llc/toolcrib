@@ -1,9 +1,10 @@
 import React from 'react';
 import { getSparseVariables } from '../../theme/slice';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { SeparatorThemeSlice, type SeparatorSliceState } from './SeparatorSlice';
 
 /** Props for the `<Separator>` visual divider. */
-export interface SeparatorProps {
+export interface SeparatorProps extends DataAttributes {
   /**
    * Layout axis. `'horizontal'` divides stacked content; `'vertical'`
    * divides side-by-side content (needs a sizing/flex ancestor to be
@@ -28,6 +29,7 @@ export const Separator: React.FC<SeparatorProps> = ({
   orientation = 'horizontal',
   decorative = true,
   overrides,
+  ...rest
 }) => {
   const separatorVars = getSparseVariables(SeparatorThemeSlice, overrides ?? {});
   const thickness = 'var(--ai-separator-thickness, 0.0625rem)';
@@ -39,6 +41,7 @@ export const Separator: React.FC<SeparatorProps> = ({
   // role's implicit horizontal.
   return (
     <div
+      {...pickDataAttributes(rest)}
       role={decorative ? 'none' : 'separator'}
       aria-orientation={!decorative && orientation === 'vertical' ? 'vertical' : undefined}
       style={

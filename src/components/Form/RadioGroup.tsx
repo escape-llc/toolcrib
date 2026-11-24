@@ -10,6 +10,7 @@
    not a real bug -- this renders and tests correctly today. Scoped to just
    this one rule for this file; every other react-hooks rule still applies. */
 import React, { type ReactNode, createContext, useContext, useState } from 'react';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
@@ -39,7 +40,7 @@ export interface RadioOption {
  * Supports both data-driven (`options` array) and composition (`children`) patterns.
  * Binds to Form context via `name`.
  */
-export interface RadioGroupProps {
+export interface RadioGroupProps extends DataAttributes {
   /** Field name. Auto-inherited from parent `<FormField>` if omitted. */
   name?: string;
   /** Controlled selected value. */
@@ -79,6 +80,14 @@ interface RadioGroupContextValue {
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
 
+/** Props for the `<RadioGroup.Option>` slot. */
+export interface RadioGroupOptionProps extends DataAttributes {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+  helperText?: ReactNode;
+}
+
 /**
  * @manifest Single-select radio control bound to Form context, data-driven or compositional
  * @manifestCategory Form Controls
@@ -86,7 +95,7 @@ const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
  * @manifestGuarantees form-contract
  */
 export const RadioGroup: React.FC<RadioGroupProps> & {
-  Option: React.FC<{ value: string; label: ReactNode; disabled?: boolean; helperText?: ReactNode }>;
+  Option: React.FC<RadioGroupOptionProps>;
 } = ({
   name: propName,
   value: externalValue,
@@ -101,6 +110,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
@@ -185,6 +195,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
       }}
     >
       <BaseRadioGroup
+        {...pickDataAttributes(rest)}
         value={stringVal}
         onValueChange={v => handleChange(String(v))}
         disabled={disabled}
@@ -218,7 +229,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   );
 };
 
-RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => {
+RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText, ...rest }) => {
   const ctx = useContext(RadioGroupContext);
   if (!ctx) {
     throw new Error('RadioGroup.Option must be used within a RadioGroup component');
@@ -238,6 +249,7 @@ RadioGroup.Option = ({ value, label, disabled: optionDisabled, helperText }) => 
       }}
     >
       <Radio.Root
+        {...pickDataAttributes(rest)}
         value={value}
         disabled={isDisabled}
         className="ai-focus-ring"

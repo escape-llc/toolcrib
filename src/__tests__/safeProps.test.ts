@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { JSXElementConstructor } from 'react';
-import { resolveIsDev } from '../theme/safeProps';
+import { resolveIsDev, pickDataAttributes } from '../theme/safeProps';
 import type * as Toolcrib from '../index';
 
 // No toolcrib component takes `style`/`className` (CORE.md principle 7), and
@@ -37,6 +37,17 @@ describe('style/className contract', () => {
     const scansBarrel: 'Card' | 'Link' | 'Block' | 'Text' | 'DataTable' extends ComponentNames ? true : false = true;
     const scansSlots: 'Card.Header' | 'AppShell.Main' | 'Alert.Title' extends AllSlotNames ? true : false = true;
     expect([noOffenders, catchesStyle, catchesClassName, passesClean, scansBarrel, scansSlots]).toEqual([true, true, true, false, true, true]);
+  });
+});
+
+describe('pickDataAttributes', () => {
+  it('returns only the data-* keys', () => {
+    expect(pickDataAttributes({ 'data-a': '1', 'data-testid': 'x', 'data-n': 2, id: 'i', onClick: () => {}, 'aria-label': 'l', data: 'no' }))
+      .toEqual({ 'data-a': '1', 'data-testid': 'x', 'data-n': 2 });
+  });
+
+  it('returns an empty object when there are none', () => {
+    expect(pickDataAttributes({ id: 'i' })).toEqual({});
   });
 });
 

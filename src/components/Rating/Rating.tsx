@@ -4,6 +4,7 @@ import React, { type ReactNode, useContext } from 'react';
 import { RadioGroup } from '@base-ui/react/radio-group';
 import { Radio } from '@base-ui/react/radio';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useLocaleStrings } from '../Locale/LocaleContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -14,7 +15,7 @@ import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
 /** Props for the `<Rating>` star control. */
-export interface RatingProps {
+export interface RatingProps extends DataAttributes {
   /** Field name included in emitted `rating:changed` events. Not a visible or accessible label -- see `aria-label`. */
   name?: string;
   /**
@@ -74,6 +75,7 @@ export const Rating: React.FC<RatingProps> = ({
   readOnly = false,
   disabled: disabledProp = false,
   overrides,
+  ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const strings = useLocaleStrings().rating;
@@ -120,6 +122,7 @@ export const Rating: React.FC<RatingProps> = ({
   if (readOnly) {
     return (
       <div
+        {...pickDataAttributes(rest)}
         role="img"
         aria-label={strings.outOf(value, max)}
         style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', ...ratingVars }}
@@ -158,6 +161,7 @@ export const Rating: React.FC<RatingProps> = ({
 
   return (
     <RadioGroup
+      {...pickDataAttributes(rest)}
       value={String(value)}
       onValueChange={handleChange}
       disabled={disabled}

@@ -2,6 +2,7 @@
 
 import React, { type ReactNode, useState, useRef, useMemo, type KeyboardEvent } from 'react';
 import { aiBus } from '../../eventBus/eventBus';
+import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useStableId } from '../shared/useStableId';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { DeferredContent } from '../Layout/DeferredContent';
@@ -49,7 +50,7 @@ function nodeText(label: ReactNode): string {
   return '';
 }
 
-export interface TreeProps {
+export interface TreeProps extends DataAttributes {
   /** Unique identifier for `tree:expanded`/`tree:collapsed` event bus payloads. Auto-generated if omitted. */
   id?: string;
   /** Root-level nodes. */
@@ -87,6 +88,7 @@ export const Tree: React.FC<TreeProps> = ({
   defaultSelectedId,
   onSelectChange,
   overrides,
+  ...rest
 }) => {
   const id = useStableId(propId, 'tree');
   const { vars } = useSliceOverrides(TreeThemeSlice, overrides);
@@ -216,7 +218,7 @@ export const Tree: React.FC<TreeProps> = ({
   const rovingId = flatVisible.some(n => n.item.id === focusedId) ? focusedId : flatVisible[0]?.item.id;
 
   return (
-    <div role="tree" aria-label={strings.treeLabel} style={{ display: 'flex', flexDirection: 'column', ...vars }}>
+    <div {...pickDataAttributes(rest)} role="tree" aria-label={strings.treeLabel} style={{ display: 'flex', flexDirection: 'column', ...vars }}>
       {flatVisible.map((node, index) => {
         const hasChildren = !!node.item.children?.length;
         const isExpanded = expandedSet.has(node.item.id);

@@ -1309,6 +1309,9 @@
           }
         }
       },
+      "slotDescriptions": {
+        "Item": "`data-*` attributes land on the crumb's rendered element (the link, or the text for the current page)."
+      },
       "props": {
         "separator": {
           "type": "ReactNode",
