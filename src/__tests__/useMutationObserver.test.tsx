@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useMutationObserver } from '../observer/useMutationObserver';
+import { useAdaptiveSize } from '../observer/useAdaptiveSize';
 
 const flushMicrotasks = () => act(() => new Promise(resolve => queueMicrotask(() => resolve(undefined))));
 
@@ -71,6 +72,66 @@ describe('useMutationObserver', () => {
     await flushMicrotasks();
 
     expect(onMutation).not.toHaveBeenCalled();
+  });
+
+  // #981: element:mutated is one global channel, so records produced for
+  // one hook's element reach every other hook's listener too.
+  it('without subtree, ignores a descendant mutation another hook observed', async () => {
+    const parentSpy = vi.fn();
+    const { el } = renderWithRealElement({ attributes: true }, parentSpy);
+    const child = document.createElement('span');
+    el.appendChild(child);
+    const childSpy = vi.fn();
+    const childRef = { current: child };
+    const childOptions = { attributes: true };
+    renderHook(() => useMutationObserver(childRef, childOptions, childSpy));
+
+    act(() => {
+      child.setAttribute('data-x', '1');
+    });
+    await flushMicrotasks();
+
+    expect(childSpy).toHaveBeenCalledWith(expect.objectContaining({ target: child }));
+    expect(parentSpy).not.toHaveBeenCalled();
+  });
+
+  it('ignores a mutation type or attribute its options do not ask for', async () => {
+    const parentSpy = vi.fn();
+    const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'], subtree: true }, parentSpy);
+    const child = document.createElement('span');
+    el.appendChild(child);
+    const childSpy = vi.fn();
+    const childRef = { current: child };
+    const childOptions = { childList: true, attributes: true };
+    renderHook(() => useMutationObserver(childRef, childOptions, childSpy));
+
+    act(() => {
+      child.appendChild(document.createElement('i'));
+      child.setAttribute('data-other', '1');
+    });
+    await flushMicrotasks();
+
+    expect(childSpy).toHaveBeenCalledTimes(2);
+    expect(parentSpy).not.toHaveBeenCalled();
+  });
+
+  it('an ancestor subtree observer still sees mutations beneath an element tracked only for size', async () => {
+    const onMutation = vi.fn();
+    const { el } = renderWithRealElement({ attributes: true, attributeFilter: ['data-side'], subtree: true }, onMutation);
+    const sized = document.createElement('div');
+    const leaf = document.createElement('span');
+    sized.appendChild(leaf);
+    el.appendChild(sized);
+    // Tracked by the shared manager with no mutationOptions, as useAdaptiveSize does.
+    const sizedRef = { current: sized };
+    renderHook(() => useAdaptiveSize(sizedRef));
+
+    act(() => {
+      leaf.setAttribute('data-side', 'top');
+    });
+    await flushMicrotasks();
+
+    expect(onMutation).toHaveBeenCalledWith(expect.objectContaining({ target: leaf, attributeName: 'data-side' }));
   });
 
   it('does not subscribe at all while enabled is false', async () => {

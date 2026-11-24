@@ -166,6 +166,29 @@ describe('Strongly-Typed EventBus', () => {
       expect(callback).toHaveBeenCalledWith({ id: 'sticky-test-group', activeId: 'tab-1' });
     });
 
+    // #981: replay ran unguarded, so a throw escaped on() before it returned
+    // the unsubscribe function and left the callback subscribed for good.
+    it('a subscriber that throws during sticky replay is isolated and can still unsubscribe', () => {
+      aiBus.emit('tab:changed', { id: 'sticky-throw', activeId: 't1' });
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const callback = vi.fn(() => {
+        throw new Error('boom');
+      });
+
+      let unsubscribe: (() => void) | undefined;
+      expect(() => {
+        unsubscribe = aiBus.on('tab:changed', callback);
+      }).not.toThrow();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+
+      unsubscribe!();
+      callback.mockClear();
+      aiBus.emit('tab:changed', { id: 'sticky-throw', activeId: 't2' });
+      expect(callback).not.toHaveBeenCalled();
+      aiBus.clearSticky('tab:changed', 'sticky-throw');
+    });
+
     it('clearSticky(event, id) evicts one id without affecting others (regression: unbounded sticky map)', () => {
       aiBus.emit('tab:changed', { id: 'sticky-clear-a', activeId: 'a1' });
       aiBus.emit('tab:changed', { id: 'sticky-clear-b', activeId: 'b1' });

@@ -79,9 +79,8 @@ describe('useAdaptiveSize', () => {
 
     const el = document.createElement('div');
     document.body.appendChild(el);
-    el.getBoundingClientRect = () => ({
-      top: 0, left: 0, right: 100, bottom: 50, width: 100, height: 50, x: 0, y: 0, toJSON: () => {},
-    });
+    Object.defineProperty(el, 'clientWidth', { value: 100 });
+    Object.defineProperty(el, 'clientHeight', { value: 50 });
     // Simulates the ref attaching one tick after this hook's own mount
     // effect already ran and found it null -- exactly the portal-timing
     // gap this fix closes.
@@ -93,5 +92,26 @@ describe('useAdaptiveSize', () => {
 
     expect(result.current.width).toBe(100);
     expect(result.current.height).toBe(50);
+  });
+
+  // #981: the first measurement used getBoundingClientRect() (border box)
+  // while every element:resized carries ResizeObserver's contentRect
+  // (content box), so a padded element's size jumped on the first event.
+  it('measures the content box on mount, the same box element:resized reports', () => {
+    const el = document.createElement('div');
+    el.style.padding = '10px 20px';
+    el.style.border = '3px solid black';
+    document.body.appendChild(el);
+    // clientWidth/Height include padding but not border (no layout in jsdom).
+    Object.defineProperty(el, 'clientWidth', { value: 240 });
+    Object.defineProperty(el, 'clientHeight', { value: 120 });
+    el.getBoundingClientRect = () => ({ top: 0, left: 0, right: 246, bottom: 126, width: 246, height: 126, x: 0, y: 0, toJSON: () => {} });
+
+    const ref = { current: el };
+    const { result } = renderHook(() => useAdaptiveSize(ref));
+
+    expect(result.current.width).toBe(200);
+    expect(result.current.height).toBe(100);
+    el.remove();
   });
 });

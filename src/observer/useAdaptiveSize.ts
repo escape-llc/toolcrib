@@ -12,6 +12,21 @@ export interface AdaptiveSizeResult {
   isIntersecting: boolean;
 }
 
+/** `el`'s content-box size, matching ResizeObserver's `contentRect`. */
+function contentBoxSize(el: HTMLElement): { width: number; height: number } {
+  const style = (el.ownerDocument.defaultView ?? window).getComputedStyle(el);
+  const px = (v: string) => parseFloat(v) || 0;
+  return {
+    width: Math.max(0, el.clientWidth - px(style.paddingLeft) - px(style.paddingRight)),
+    height: Math.max(0, el.clientHeight - px(style.paddingTop) - px(style.paddingBottom)),
+  };
+}
+
+/**
+ * Tracks `ref`'s content-box size (the box ResizeObserver's `contentRect`
+ * reports: no padding, border or scrollbar), its `scrollHeight`, and whether
+ * it is intersecting the viewport.
+ */
 export function useAdaptiveSize(
   ref: RefObject<HTMLElement | null>,
   config: ObservedElementConfig = {}
@@ -63,12 +78,17 @@ export function useAdaptiveSize(
         return;
       }
 
-      // Initial measurement
-      const rect = el.getBoundingClientRect();
+      // Initial measurement, in the same box every later element:resized
+      // reports (ResizeObserver's contentRect: the content box, without
+      // padding, border or scrollbar, and untransformed).
+      // getBoundingClientRect() measured the border box, so a padded or
+      // bordered element's size jumped once the first resize event
+      // arrived, with no layout change (#981).
+      const { width, height } = contentBoxSize(el);
       setSize(prev => ({
         ...prev,
-        width: rect.width,
-        height: rect.height,
+        width,
+        height,
         contentHeight: el.scrollHeight,
       }));
 
