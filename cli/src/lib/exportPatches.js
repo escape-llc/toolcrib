@@ -265,6 +265,23 @@ export function analyzeExport({ releaseFiles, localFiles }) {
   const isInfraCandidate = (p) => changed.has(p) && INFRA_DIRS.includes(topSegment(p)) && !unitOf.has(p);
   const reachedBy = new Map(); // candidate relPath -> Set(unit key)
   const reachedPerUnit = new Map();
+  const dependencyPerUnit = new Map();
+  const relHas = (p) => rel.has(p);
+  const resolvedImports = (content, relPath, exists) => {
+    const out = new Set();
+    if (content === undefined || !CODE_FILE.test(relPath)) return out;
+    for (const spec of extractImports(content)) {
+      const resolved = resolveRelativeImport(relPath, spec, exists);
+      if (resolved) out.add(resolved);
+    }
+    return out;
+  };
+  // Resolved import targets the local version has that the release version lacks.
+  // An added file counts all its imports; a deleted file contributes none.
+  const newImportTargets = (relPath) => {
+    const before = resolvedImports(rel.get(relPath), relPath, relHas);
+    return [...resolvedImports(loc.get(relPath), relPath, localHas)].filter((t) => !before.has(t));
+  };
   for (const [key, unit] of units) {
     const seen = new Set(unit.paths);
     const stack = [...unit.paths];
@@ -286,6 +303,22 @@ export function analyzeExport({ releaseFiles, localFiles }) {
       }
     }
     reachedPerUnit.set(key, reached);
+    // Dependency, as opposed to reachability: only what the unit's own change newly imports.
+    const dependencySeen = new Set(unit.paths);
+    const dependencyStack = [];
+    for (const f of unit.paths) dependencyStack.push(...newImportTargets(f));
+    const dependsOnFiles = new Set();
+    while (dependencyStack.length) {
+      const d = dependencyStack.pop();
+      if (dependencySeen.has(d)) continue;
+      dependencySeen.add(d);
+      if (SHARED_FILES.includes(d)) continue;
+      const owner = unitOf.get(d);
+      if (owner !== undefined && owner !== key) continue; // another unit's own files
+      if (isInfraCandidate(d)) dependsOnFiles.add(d);
+      for (const n of deps(d)) dependencyStack.push(n);
+    }
+    dependencyPerUnit.set(key, dependsOnFiles);
     unit.missingDependencies = [...missing].sort();
     for (const d of reached) {
       if (!reachedBy.has(d)) reachedBy.set(d, new Set());
@@ -335,7 +368,7 @@ export function analyzeExport({ releaseFiles, localFiles }) {
   infra.sort((a, b) => a.name.localeCompare(b.name));
   for (const [key, unit] of units) {
     const names = new Set();
-    for (const d of reachedPerUnit.get(key)) {
+    for (const d of dependencyPerUnit.get(key)) {
       if (infraOfFile.has(d)) names.add(infraOfFile.get(d).name);
     }
     unit.dependsOn = [...names].sort();

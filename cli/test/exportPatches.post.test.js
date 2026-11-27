@@ -122,6 +122,30 @@ describe('exportPatchesCommand --post', () => {
     expect(printed).toMatch(/src\/components\/Card/);
   });
 
+  it('warns, without failing, about README folders that were removed and folders the README omits', async () => {
+    fs.rmSync(path.join(out, '02-Gauge'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(out, '09-extra'));
+    let printed = '';
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      printed += String(chunk);
+      return true;
+    });
+    const gh = makeGh();
+    try {
+      await exportPatchesCommand({ out, post: true, yes: true, runGh: gh.runGh });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(printed).toMatch(/lists contribution\(s\) whose folder is missing[^\n]*02-Gauge/);
+    expect(printed).toMatch(/not listed in README\.md[^\n]*09-extra/);
+    expect(gh.calls.filter((c) => c.kind === 'create')).toHaveLength(2);
+    expect(process.exitCode).toBe(0);
+  });
+
+  it('says in the README that --post sends only the folders still present', () => {
+    expect(fs.readFileSync(path.join(out, 'README.md'), 'utf8')).toMatch(/only the folders still present/);
+  });
+
   it('skips already-posted folders on a rerun', async () => {
     await exportPatchesCommand({ out, post: true, yes: true, runGh: makeGh().runGh });
     const gh = makeGh();
