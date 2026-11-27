@@ -56,7 +56,7 @@ function importedNames(source, specifier) {
     }
     const outside = clause.replace(/\{[^}]*\}/, '');
     if (/\*/.test(outside)) names.add('*');
-    const def = outside.replace(/\*\s*as\s+\w+/, '').replace(/,/g, ' ').trim();
+    const def = outside.replace(/\*(\s*as\s+\w+)?/, '').replace(/,/g, ' ').trim();
     if (def) names.add('default');
   }
   if (new RegExp(`\\bimport\\s*(?:\\(\\s*)?${q}`).test(code)) names.add('side-effect');

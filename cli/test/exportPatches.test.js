@@ -213,6 +213,17 @@ describe('analyzeExport — import following', () => {
     expect(byName(r, 'B').dependsOn).toEqual([]);
   });
 
+  it('treats `export *` as a namespace re-export, not a default import', () => {
+    const release = base();
+    release['components/B/B.tsx'] = `export * from '../../theme/leaf';\n`;
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `export * from '../../theme/leaf';\nimport leafDefault from '../../theme/leaf';\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 2;\nexport default leaf;\n';
+    const r = run(release, local);
+    expect(byName(r, 'B').dependsOn).toEqual(['leaf']);
+  });
+
   it('records dependsOn for a newly added component file that imports changed infrastructure', () => {
     const local = base();
     local['components/C/C.tsx'] = `import { leaf } from '../../theme/leaf';\nexport const C = leaf;\n`;
