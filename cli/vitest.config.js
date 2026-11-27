@@ -8,6 +8,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/**/*.test.js'],
+    // Warms ICU's first Date locale call outside any test timeout; see the file (#1003).
+    setupFiles: ['test/setup.js'],
     coverage: {
       provider: 'v8',
       // `all: true` (with a matching `include`) reports every src/ file in
