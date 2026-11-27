@@ -232,7 +232,7 @@ git tag cli-vX.Y.Z && git push origin cli-vX.Y.Z   # on the merge commit; this p
 - the tagged commit isn't on `main`, so only content CI already verified gets published;
 - `npm test` fails.
 
-It then runs `npm publish --provenance` with npm trusted publishing (OIDC): there's no npm token, and npm shows a signed provenance statement on the version's page. The package's trusted publisher on npmjs.com names this repo, `publish.yml` and the `npm-publish` environment; a publish from anywhere else is rejected. Check the workflow run went green before announcing the release. A failed run leaves the tag pointing at an unpublished version: fix the cause in a PR, then delete and re-push the tag on the new merge commit (`git push origin :refs/tags/cli-vX.Y.Z`), since the version was never published.
+It then runs `npm publish --provenance` with npm trusted publishing (OIDC): there's no npm token, and npm shows a signed provenance statement on the version's page. The package's trusted publisher on npmjs.com names this repo, `publish.yml` and the `npm-publish` environment; a publish from anywhere else is rejected. Check the workflow run went green before announcing the release. A failed run leaves the tag pointing at an unpublished version: fix the cause in a PR, then delete the tag locally and on the remote (`git tag -d cli-vX.Y.Z && git push origin :refs/tags/cli-vX.Y.Z`) and tag the new merge commit, since the version was never published.
 
 The ordering rule from before still holds, just enforced by the workflow now: nothing is published before the version-bump commit is on `main` and CI has verified it (found 2026-09-10, when an earlier checklist published ahead of CI).
 
