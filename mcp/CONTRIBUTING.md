@@ -61,17 +61,21 @@ git push -u origin <branch>   # main is a protected branch -- direct push is rej
 # (the standard issue/branch/PR/CI-green/merge sequence from root WORKFLOW.md --
 # not a special case for a release commit)
 git checkout main && git pull --ff-only
-npm publish              # LAST step -- only once the version-bump commit that's
-                          # about to be published is actually on main, verified
-                          # there by this repo's own CI, not before
-git tag mcp-vX.Y.Z && git push origin mcp-vX.Y.Z   # tag *after* publish succeeds, so a failed/declined publish never leaves a tag pointing at content that was never actually shipped
+git tag mcp-vX.Y.Z && git push origin mcp-vX.Y.Z   # on the merge commit; this push publishes
 ```
 
-**`npm publish` is the last step, not the middle one — corrected 2026-09-10, found live during a real release pass.** The previous version of this checklist ran `npm publish` immediately after the two dry-runs, ahead of the commit/push -- reasonable back when a direct push to `main` was possible (publish for real, then just record it in git). It stopped being reasonable the moment `main` became a protected branch requiring a PR and full CI before merge: that ordering let a real, public, irreversible `npm publish` happen *before* this repo's own CI had verified anything about the commit being published at all, exactly backwards from what a release gate is for. The fix is the order above: bump, test locally, dry-run, commit, open a PR, wait for CI to go green, merge -- and only then run the real `npm publish`, against a working tree that's been pulled from the now-current `main`, so what actually gets published is provably the exact content CI already verified, not a local checkout that happened to look right.
+**Pushing the tag publishes; nobody runs `npm publish` by hand (#957).** `.github/workflows/publish.yml` runs on a pushed `mcp-v*` tag. It fails before publishing if:
+- the tag's version doesn't match `mcp/package.json`;
+- the tagged commit isn't on `main`, so only content CI already verified gets published;
+- `npm test` fails.
+
+It then runs `npm publish --provenance` with npm trusted publishing (OIDC): there's no npm token, and npm shows a signed provenance statement on the version's page. The package's trusted publisher on npmjs.com names this repo, `publish.yml` and the `npm-publish` environment; a publish from anywhere else is rejected. Check the workflow run went green before announcing the release. A failed run leaves the tag pointing at an unpublished version: fix the cause in a PR, then delete and re-push the tag on the new merge commit (`git push origin :refs/tags/mcp-vX.Y.Z`), since the version was never published.
+
+The ordering rule from before still holds, just enforced by the workflow now: nothing is published before the version-bump commit is on `main` and CI has verified it (found 2026-09-10, when an earlier checklist published ahead of CI).
 
 **Always pass `--no-git-tag-version` on the `npm version` step itself** — that command's own default behavior creates and pushes a bare `vX.Y.Z` tag, and git tags in this repo are a single, shared, repo-wide namespace, not scoped per npm package: the root `toolcrib` package has already claimed every `v0.1.0`–`v0.13.0` (see root `AGENTS.md`'s "Cutting a release"), so a bare `npm version`-created tag would collide with (or worse, silently shadow) a real root release tag.
 
-**Tag `mcp-vX.Y.Z` explicitly instead, added 2026-09-08** — a real git-level record of exactly which commit a given `toolcrib-mcp` publish was built from, the same "the tag *is* the shipped content" guarantee `release.yml` already gives the root package, just via a prefixed tag instead of a shared bare one. Verified directly, not assumed: `release.yml`'s own trigger (`on.push.tags: ['v*']`) only matches tags starting with the literal character `v` — `mcp-v0.3.0` starts with `m`, so creating and pushing it cannot trigger that workflow. Push only the one specific tag (`git push origin mcp-vX.Y.Z`), never a blanket `git push --tags` — this repo's tag namespace has other packages' tags in it too (`cli-vX.Y.Z`, see `cli/CONTRIBUTING.md`; plain `vX.Y.Z` for the root package), and a blanket push has no way to push just this package's own.
+**Tag `mcp-vX.Y.Z` explicitly instead, added 2026-09-08** — a git-level record of exactly which commit a given `toolcrib-mcp` publish was built from, and since #957 the trigger for that publish. `release.yml`'s trigger (`on.push.tags: ['v*']`) only matches tags starting with the literal character `v`, so `mcp-v0.3.0` can't trigger it; `publish.yml` matches only `cli-v*`/`mcp-v*`. Push only the one specific tag (`git push origin mcp-vX.Y.Z`), never a blanket `git push --tags` — this repo's tag namespace has other packages' tags in it too (`cli-vX.Y.Z`, see `cli/CONTRIBUTING.md`; plain `vX.Y.Z` for the root package), and a blanket push has no way to push just this package's own.
 
 ### What the `files` field is for
 
