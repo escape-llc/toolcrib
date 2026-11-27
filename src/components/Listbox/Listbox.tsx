@@ -4,6 +4,7 @@ import React, { type ReactNode, useContext, useEffect, useState } from 'react';
 import { FieldContext } from '../Form/FieldContext';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { CONTROL_FONT_SIZE_VAR, type ControlSize } from '../../theme/controlSize';
 import { VisuallyHidden } from '../Layout/VisuallyHidden';
@@ -71,6 +72,8 @@ export interface ListboxProps extends DataAttributes {
   disabled?: boolean;
   /** Marks the bound selection invalid; inside a `<Form>` it follows the field's error. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Called when an option is chosen (via `mousedown`, so a fast pointer-down-then-drag selects correctly, matching native listbox feel — and before an input's own `blur` would otherwise run). Never called for a `disabled` option. */
   onSelect?: (option: ListboxOptionData) => void;
   /** Shows `loadingMessage` instead of the option list. */
@@ -120,6 +123,7 @@ export const Listbox: React.FC<ListboxProps> = ({
   defaultValue,
   disabled: disabledProp = false,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   onSelect,
   loading = false,
   loadingMessage = 'Loading…',
@@ -165,6 +169,7 @@ export const Listbox: React.FC<ListboxProps> = ({
   // Only the bound selection has a field error; a popup list (Combobox,
   // Select) leaves invalid state to its field.
   const isError = useFieldInvalid(fieldName || undefined, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const labelledBy = ariaLabelledBy ?? (!ariaLabel && ownsSelection ? fieldCtx.labelId : undefined);
 
   // Announces `loading` transitions via a visually-hidden aria-live region
@@ -202,7 +207,7 @@ export const Listbox: React.FC<ListboxProps> = ({
         aria-multiselectable={multiSelectable || undefined}
         aria-disabled={disabled || undefined}
         aria-invalid={isError || undefined}
-        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         style={{
           padding: 'var(--ai-padding-xs, 0.25rem)',
           maxHeight: '15rem',

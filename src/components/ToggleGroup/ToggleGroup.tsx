@@ -4,6 +4,7 @@ import React, { type ReactNode, useContext, useEffect, useState } from 'react';
 import { FieldContext } from '../Form/FieldContext';
 import { useOptionalFormContext, type FormContextType } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Toggle as BaseToggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
@@ -34,6 +35,8 @@ export interface ToggleProps extends DataAttributes {
   overrides?: Partial<ToggleSliceState>;
   /** Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row. @default 'md' */
   size?: ControlSize;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 /**
@@ -42,7 +45,7 @@ export interface ToggleProps extends DataAttributes {
  * the controlled value while inside a Form (#880's contract,
  * src/__tests__/formControlContract.test.tsx).
  */
-function useFormBinding<V>(propName: string | undefined, seed: V) {
+function useFormBinding<V>(propName: string | undefined, seed: V, consumerDescribedBy: string | undefined) {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -53,11 +56,19 @@ function useFormBinding<V>(propName: string | undefined, seed: V) {
   }, [fieldName, registerField]);
   const form: FormContextType | undefined = fieldName ? formContext ?? undefined : undefined;
   const isError = useFieldInvalid(fieldName || undefined);
+  const describedBy = useFieldDescribedBy(consumerDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   return {
     fieldName,
     isError,
-    /** Invalid-state attributes for the control, following the field's error. */
-    invalidProps: isError ? { 'aria-invalid': true as const, 'aria-describedby': `${fieldName}-error` } : {},
+    /**
+     * Invalid-state and description attributes for the control. Each is spread
+     * in only when it has a value: an explicit `undefined` would erase one a
+     * consumer (or the primitive) set.
+     */
+    invalidProps: {
+      ...(isError ? { 'aria-invalid': true as const } : {}),
+      ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+    },
     labelId: fieldCtx.labelId,
     formValue: form ? (form.values[fieldName] as V | undefined) ?? seed : undefined,
     write: (next: V) => {
@@ -83,12 +94,13 @@ export const Toggle: React.FC<ToggleProps> = ({
   children,
   overrides,
   size = 'md',
+  'aria-describedby': ariaDescribedBy,
   ...rest
 }) => {
   // The native <fieldset> already blocks the button; this makes it look
   // and report disabled too, like ToggleGroup (#880).
   const disabled = useFieldsetDisabled(disabledProp);
-  const binding = useFormBinding<boolean>(name, defaultPressed);
+  const binding = useFormBinding<boolean>(name, defaultPressed, ariaDescribedBy);
   const [internalPressed, setInternalPressed] = useState(defaultPressed);
   const isPressed = externalPressed !== undefined ? externalPressed : binding.formValue ?? internalPressed;
   const toggleVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});
@@ -230,7 +242,7 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const seed = defaultValue !== undefined ? defaultValue : type === 'multiple' ? [] : '';
-  const binding = useFormBinding<string | string[]>(name, seed);
+  const binding = useFormBinding<string | string[]>(name, seed, rest['aria-describedby']);
   const [internalValue, setInternalValue] = useState<string | string[]>(seed);
   const currentValue = externalValue !== undefined ? externalValue : binding.formValue ?? internalValue;
   const toggleGroupVars = getSparseVariables(ToggleThemeSlice, overrides ?? {});

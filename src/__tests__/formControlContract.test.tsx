@@ -1,5 +1,5 @@
 import { getAi } from './testUtils/aiTestId';
-import { type ReactElement, useEffect } from 'react';
+import { type ReactElement, cloneElement, useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { z } from 'zod';
@@ -147,9 +147,10 @@ const Reset = () => {
 
 const failing = z.object({ field: z.custom(() => false, 'Nope') });
 
-function renderInForm(c: Contract, { schema, initialValues, disabled }: { schema?: z.ZodTypeAny; initialValues?: Record<string, unknown>; disabled?: boolean } = {}) {
+function renderInForm(c: Contract, { schema, initialValues, disabled, describedBy, helperText }: { schema?: z.ZodTypeAny; initialValues?: Record<string, unknown>; disabled?: boolean; describedBy?: string; helperText?: string } = {}) {
   const onSubmit = vi.fn();
-  const field = <FormField name="field" label="Field">{c.el()}</FormField>;
+  const control = describedBy ? cloneElement(c.el() as ReactElement<{ 'aria-describedby'?: string }>, { 'aria-describedby': describedBy }) : c.el();
+  const field = <FormField name="field" label="Field" helperText={helperText}>{control}</FormField>;
   const { unmount } = render(
     <Form id="contract" schema={schema as never} initialValues={initialValues} onSubmit={onSubmit}>
       <div data-testid="field-host">
@@ -304,6 +305,37 @@ describe('Form control contract', () => {
       await act(async () => {});
       expect(host.querySelector('[aria-invalid="true"]')).not.toBeNull();
       expect(host.querySelector('[aria-describedby~="field-error"]')).not.toBeNull();
+    });
+
+    // A description the consumer supplies is merged with what the Form adds,
+    // never replaced by it (#995).
+    it(CHECK[11], async () => {
+      renderInForm(c, { describedBy: 'consumer-desc' });
+      await act(async () => {});
+      const host = screen.getByTestId('field-host');
+      expect(host.querySelector('[aria-describedby~="consumer-desc"]')).not.toBeNull();
+    });
+
+    it(CHECK[12], async () => {
+      renderInForm(c, { schema: failing, describedBy: 'consumer-desc' });
+      const host = screen.getByTestId('field-host');
+      fireEvent.click(screen.getByText('Go'));
+      await waitFor(() => expect(screen.getByText('Nope')).toBeInTheDocument());
+      await act(async () => {});
+      const described = host.querySelector('[aria-describedby~="consumer-desc"]');
+      expect(described).not.toBeNull();
+      const ids = described!.getAttribute('aria-describedby')!.split(/\s+/);
+      expect(ids).toContain('field-error');
+      expect(ids.indexOf('consumer-desc')).toBeLessThan(ids.indexOf('field-error'));
+    });
+
+    it(CHECK[13], async () => {
+      renderInForm(c, { helperText: 'Some help' });
+      await act(async () => {});
+      const host = screen.getByTestId('field-host');
+      const described = host.querySelector('[aria-describedby~="field-helper"]');
+      expect(described).not.toBeNull();
+      expect(document.getElementById('field-helper')).toHaveTextContent('Some help');
     });
   });
 });

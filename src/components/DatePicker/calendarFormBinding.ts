@@ -4,6 +4,7 @@ import { useContext, useEffect, useState } from 'react';
 import { FieldContext } from '../Form/FieldContext';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 
 /**
@@ -16,7 +17,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
  * DatePicker and DateRangePicker clear the inherited field around the
  * calendar in their popup, so it never binds a second time.
  */
-export function useCalendarFormBinding<V>(propName: string | undefined, seed: V | null, isDisabledProp: boolean, ariaInvalid?: boolean) {
+export function useCalendarFormBinding<V>(propName: string | undefined, seed: V | null, isDisabledProp: boolean, ariaInvalid?: boolean, consumerDescribedBy?: string) {
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -27,6 +28,7 @@ export function useCalendarFormBinding<V>(propName: string | undefined, seed: V 
   }, [fieldName, registerField]);
   const isFormBound = !!(fieldName && formContext);
   const isError = useFieldInvalid(fieldName || undefined, ariaInvalid);
+  const describedBy = useFieldDescribedBy(consumerDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const raw = isFormBound ? (formContext!.values[fieldName] as V | null | undefined) : undefined;
 
   // Changed from outside (resetForm, initialValues): React Aria keeps its
@@ -56,6 +58,6 @@ export function useCalendarFormBinding<V>(propName: string | undefined, seed: V 
     },
     /** A ring in the error color around the grid: no layout shift, unlike a border. */
     invalidStyle: isError ? { boxShadow: `0 0 0 0.0625rem ${INVALID_COLOR}`, borderRadius: 'var(--ai-radius-md, 0.375rem)' } : {},
-    describedBy: isError && fieldName ? `${fieldName}-error` : undefined,
+    describedBy,
   };
 }

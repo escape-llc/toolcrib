@@ -28,6 +28,7 @@ import { Popover as BasePopover } from '@base-ui/react/popover';
 import { ANCHORED_POP, DROPDOWN_COLLISION, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { FieldContext } from './FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
@@ -181,6 +182,8 @@ export interface ComboboxProps extends DataAttributes {
   size?: ControlSize;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 /**
@@ -196,6 +199,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   options: staticOptions,
   onSearch,
   searchDebounceMs = 250,
@@ -219,6 +223,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const comboboxVars = getSparseVariables(ComboboxThemeSlice, overrides ?? {});
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
@@ -651,7 +656,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             // aria-activedescendant would point at only exist while open.
             aria-activedescendant={open && !disabled ? activeOptionId : undefined}
             aria-invalid={isError || undefined}
-            aria-describedby={isError ? `${fieldName}-error` : undefined}
+            aria-describedby={describedBy}
             autoComplete="off"
             disabled={disabled}
             placeholder={hasValue && multiple ? undefined : placeholder}

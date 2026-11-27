@@ -17,6 +17,7 @@ import { Radio } from '@base-ui/react/radio';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { RadioGroupThemeSlice, type RadioGroupSliceState } from './RadioGroupSlice';
@@ -67,6 +68,8 @@ export interface RadioGroupProps extends DataAttributes {
   'aria-invalid'?: boolean;
   /** Id of the element that names the group. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 interface RadioGroupContextValue {
@@ -110,6 +113,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
@@ -118,6 +122,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const radioGroupVars = getSparseVariables(RadioGroupThemeSlice, { dotSize: size, ...overrides });
   useInjectInteractionStyles();
 
@@ -201,7 +206,7 @@ export const RadioGroup: React.FC<RadioGroupProps> & {
         disabled={disabled}
         className="ai-focus-ring"
         aria-invalid={isError || undefined}
-        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         style={{
           display: 'flex',

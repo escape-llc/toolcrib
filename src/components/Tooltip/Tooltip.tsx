@@ -12,6 +12,7 @@ import { useSliceOverrides } from '../../theme/useSliceOverrides';
 import { useNonce } from '../../theme/nonceContext';
 import { useTargetDocument } from '../../theme/targetDocumentContext';
 import { injectGlobalStyle } from '../../theme/injectGlobalStyle';
+import { mergeDescribedBy } from '../shared/mergeDescribedBy';
 import { TooltipThemeSlice, type TooltipSliceState } from './TooltipSlice';
 import { ANCHORED_POP, OVERLAY_ARROW_CLASS, OverlayCSP, useAnchoredBoundary, useOverlayAnimations, useOverlayArrowStyles, useOverlayLayer } from '../Overlay/baseui/overlayLayer';
 
@@ -136,7 +137,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(({
   const childDescribedBy = React.isValidElement<{ 'aria-describedby'?: string }>(children)
     ? children.props['aria-describedby']
     : undefined;
-  const describedBy = [consumerDescribedBy, childDescribedBy, isOpen ? popupId : undefined].filter(Boolean).join(' ') || undefined;
+  const describedBy = mergeDescribedBy(consumerDescribedBy, childDescribedBy, isOpen ? popupId : undefined);
   // The child's value wins the merge, so give it the joined list to win with.
   const trigger = childDescribedBy
     ? React.cloneElement(children as React.ReactElement<{ 'aria-describedby'?: string }>, { 'aria-describedby': describedBy })

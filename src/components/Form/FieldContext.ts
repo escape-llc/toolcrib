@@ -29,6 +29,12 @@ export interface FieldContextValue {
    * label without referencing an id that doesn't exist.
    */
   labelId?: string;
+  /**
+   * The id of the `<FormField>`'s helper text, present only while the helper
+   * is what's showing (there is a `helperText` and no error). Controls fold it
+   * into their `aria-describedby` so the helper is announced.
+   */
+  helperId?: string;
 }
 
 export const FieldContext = createContext<FieldContextValue>({});

@@ -916,7 +916,10 @@
         "shows and submits a Form initialValue like the same value entered by hand",
         "is disabled inside a disabled Fieldset",
         "is aria-invalid and points at its error once it fails",
-        "is seen by a submit in the same tick it mounts"
+        "is seen by a submit in the same tick it mounts",
+        "keeps a consumer aria-describedby while valid",
+        "lists a consumer aria-describedby before its error once it fails",
+        "points aria-describedby at the FormField helper text"
       ],
       "requiresStates": [
         "default",
@@ -1440,6 +1443,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -1616,6 +1623,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -1670,6 +1681,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "direction": {
           "type": "'horizontal' | 'vertical'",
@@ -1831,6 +1846,10 @@
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -2265,6 +2284,10 @@
           "type": "boolean",
           "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
@@ -2345,6 +2368,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "squareCorners": {
           "type": "SquareCornerOption",
@@ -2571,6 +2598,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Id of the element that names the dropzone. Used instead of the inherited `<FormField>` label when set."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -3098,6 +3129,10 @@
           "type": "boolean",
           "description": "Marks the bound selection invalid; inside a `<Form>` it follows the field's error."
         },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
+        },
         "onSelect": {
           "type": "(option: ListboxOptionData) => void",
           "description": "Called when an option is chosen (via `mousedown`, so a fast pointer-down-then-drag selects correctly, matching native listbox feel — and before an input's own `blur` would otherwise run). Never called for a `disabled` option."
@@ -3343,6 +3378,10 @@
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
+        },
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, referencing an existing visible label's id. Ignored if `label` is set."
@@ -3415,6 +3454,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "disabled": {
           "type": "boolean",
@@ -3676,6 +3719,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Id of the element that names the group. Used instead of the inherited `<FormField>` label when set."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -3747,6 +3794,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -3825,6 +3876,10 @@
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message. Applied to both thumbs."
+        },
         "thumbLabels": {
           "type": "[string, string]",
           "default": "the locale's `rangeSlider.minimum` / `rangeSlider.maximum`",
@@ -3872,6 +3927,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "value": {
           "type": "number",
@@ -4004,6 +4063,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "options": {
           "type": "SelectOptionData[]",
@@ -4208,6 +4271,10 @@
         "aria-labelledby": {
           "type": "string",
           "description": "Id of the element that names this control. Used instead of the inherited `<FormField>` label when set."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         },
         "orientation": {
           "type": "'horizontal' | 'vertical'",
@@ -4505,6 +4572,10 @@
         "aria-invalid": {
           "type": "boolean",
           "description": "Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [
@@ -4771,6 +4842,10 @@
           "type": "boolean",
           "description": "Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`."
         },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
+        },
         "squareCorners": {
           "type": "SquareCornerOption",
           "description": "Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern."
@@ -4823,6 +4898,10 @@
           "type": "'sm' | 'md' | 'lg'",
           "default": "'md'",
           "description": "Control size, standardized with `<Button>` and every other sized control so instances line up in a `<UIGroup>` row."
+        },
+        "aria-describedby": {
+          "type": "string",
+          "description": "Ids of elements that describe the control; merged with the field's helper text and error message."
         }
       },
       "states": [

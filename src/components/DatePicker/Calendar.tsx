@@ -51,6 +51,8 @@ export interface CalendarProps extends DataAttributes {
   'aria-label'?: string;
   /** Same as `aria-label`, but referencing an existing visible label element's id instead of a literal string. */
   'aria-labelledby'?: string;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 /**
@@ -75,10 +77,11 @@ export const Calendar: React.FC<CalendarProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   ...rest
 }) => {
   const { vars } = useSliceOverrides(DatePickerThemeSlice, { cellSize: size, ...overrides });
-  const binding = useCalendarFormBinding<CalendarDate>(propName, defaultValue ?? null, isDisabledProp, ariaInvalid);
+  const binding = useCalendarFormBinding<CalendarDate>(propName, defaultValue ?? null, isDisabledProp, ariaInvalid, ariaDescribedBy);
   const name = binding.fieldName || undefined;
   // Controlled while bound to a Form, like the pickers; never because
   // defaultValue alone was set.

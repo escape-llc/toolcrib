@@ -8,6 +8,7 @@ import { CalendarDate } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { useFieldInvalid } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -72,6 +73,8 @@ export interface DatePickerProps extends DataAttributes {
   'aria-labelledby'?: string;
   /** Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
 }
@@ -165,6 +168,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   squareCorners,
   ...rest
 }) => {
@@ -174,6 +178,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   useInjectInteractionStyles();
 
   // Seeded like NumberField (#880): without it an untouched picker showed
@@ -213,7 +218,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         maxValue={maxValue}
         isDisabled={isDisabled}
         isInvalid={isError || undefined}
-        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         shouldCloseOnSelect={false}
         aria-label={!label ? ariaLabel : undefined}
         // Inside a <FormField>: its label is htmlFor={name}, which the

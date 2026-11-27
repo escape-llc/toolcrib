@@ -14,6 +14,7 @@ import { Time } from '@internationalized/date';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { FieldContext } from '../Form/FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -68,6 +69,8 @@ export interface TimeFieldProps extends DataAttributes {
   'aria-labelledby'?: string;
   /** Marks the field invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s own identical prop for the general pattern. */
   squareCorners?: SquareCornerOption;
 }
@@ -94,6 +97,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   squareCorners,
   ...rest
 }) => {
@@ -103,6 +107,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const uiGroupSquareCorners = useUIGroupSquareCorners();
   const cornerOverrides = resolveSquareCorners(squareCorners ?? uiGroupSquareCorners);
   useInjectInteractionStyles();
@@ -152,7 +157,7 @@ export const TimeField: React.FC<TimeFieldProps> = ({
         hourCycle={hourCycle}
         isDisabled={isDisabled}
         isInvalid={isError || undefined}
-        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         aria-label={!label ? ariaLabel : undefined}
         // Inside a <FormField>, named by its label's id (#880); see DatePicker.
         aria-labelledby={!label ? ariaLabelledBy ?? (!ariaLabel ? fieldCtx.labelId : undefined) : undefined}

@@ -10,6 +10,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, sliderRangeStyle, sliderThumbStyle, type SliderOrientation } from './sliderStyles';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -54,6 +55,8 @@ export interface RangeSliderProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. Applied to both thumbs. */
+  'aria-describedby'?: string;
   /** Per-thumb name suffixes. @default the locale's `rangeSlider.minimum` / `rangeSlider.maximum` */
   thumbLabels?: [string, string];
   /**
@@ -95,6 +98,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   commitOnRelease = false,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   thumbLabels,
   orientation = 'horizontal',
   getAriaValueText,
@@ -136,7 +140,8 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
   useInjectInteractionStyles();
 
   // Each thumb points at the FormField error it's invalid for (see Slider).
-  const describedBy = isError && name ? { 'aria-describedby': `${name}-error` } : {};
+  const mergedDescribedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
+  const describedBy = mergedDescribedBy ? { 'aria-describedby': mergedDescribedBy } : {};
   // Spread only when set: an explicit undefined would override Base UI's own.
   const valueText = getAriaValueText
     ? { getAriaValueText: (_formatted: string, v: number, i: number) => getAriaValueText(v, i) }

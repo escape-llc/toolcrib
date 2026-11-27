@@ -22,6 +22,7 @@ import { type SquareCornerOption, resolveSquareCorners } from '../Card/Card';
 import { useUIGroupSquareCorners } from '../UIGroup/UIGroupContext';
 import { FieldContext } from './FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { ButtonThemeSlice, type ButtonSliceState } from './ButtonSlice';
 import { InputThemeSlice, type InputSliceState } from './InputSlice';
 import { useLocaleStrings } from '../Locale/LocaleContext';
@@ -61,7 +62,8 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
   const error = formContext && formContext.touched[name] ? formContext.errors[name] : undefined;
   const errorId = `${name}-error`;
   const labelId = label ? `${name}-label` : undefined;
-  const fieldContextValue = { name, labelId };
+  const helperId = !error && helperText ? `${name}-helper` : undefined;
+  const fieldContextValue = { name, labelId, helperId };
 
   // Issue #507: built fresh each render (correct styling/kind for
   // whichever of error/helperText currently applies), then handed to
@@ -73,7 +75,7 @@ export const FormField: React.FC<FormFieldProps> = ({ name, label, helperText, c
       {error}
     </span>
   ) : helperText ? (
-    <span style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem', display: 'block' }}>
+    <span id={`${name}-helper`} style={{ fontSize: '0.75rem', color: 'var(--ai-text-secondary, #6b7280)', marginTop: '0.125rem', display: 'block' }}>
       {helperText}
     </span>
   ) : undefined;
@@ -586,7 +588,7 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"
 // forwardRef (#759), like every Form control: a consumer needs the element to
 // focus it, e.g. the first invalid field after a failed submit. React 18 is
 // still in the peer range, so `ref` can't just be a prop.
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, font = 'sans', ...props }, ref) => {
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name: propName, type = 'text', cornerRadiusMode, onBlur, onChange, value: externalValue, defaultValue, overrides, squareCorners, size = 'md', clearable = false, onClear, leadingSection, trailingSection, revealable = true, font = 'sans', 'aria-describedby': ariaDescribedBy, ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -618,6 +620,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
   const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
   const isError = useFieldInvalid(name, props['aria-invalid']);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
   // Not `!!value` -- a numeric controlled value of exactly 0 (a real,
   // valid input.type="number" value) is falsy but not empty; the clear
   // button must still show for it.
@@ -709,7 +712,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ id, name:
       type={effectiveType}
       value={value}
       aria-invalid={isError || undefined}
-      aria-describedby={isError ? `${name}-error` : undefined}
+      aria-describedby={describedBy}
       // In the grouped layout the wrapper owns the border and focus ring
       // (`.ai-focus-ring` matches `:has(:focus-visible)`, so it lights up
       // for the input inside it) -- a second ring on the borderless input
@@ -923,6 +926,8 @@ export interface CheckboxProps extends DataAttributes {
   disabled?: boolean;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 /**
@@ -931,11 +936,12 @@ export interface CheckboxProps extends DataAttributes {
  * @manifestStates default, focused, disabled, invalid
  * @manifestGuarantees form-contract
  */
-export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, ...rest }, ref) => {
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedBy, ...rest }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(name, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const checkboxVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
@@ -976,7 +982,7 @@ export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(({ name: pr
         checked={checked}
         disabled={disabled}
         aria-invalid={isError || undefined}
-        aria-describedby={isError && name ? `${name}-error` : undefined}
+        aria-describedby={describedBy}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -1042,6 +1048,8 @@ export interface SwitchProps extends DataAttributes {
   disabled?: boolean;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 /**
@@ -1050,11 +1058,12 @@ export interface SwitchProps extends DataAttributes {
  * @manifestStates default, focused, disabled, invalid
  * @manifestGuarantees form-contract
  */
-export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, ...rest }, ref) => {
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propName, label, checked: externalChecked, defaultChecked = false, onChange, overrides, squareCorners, disabled: disabledProp, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedBy, ...rest }, ref) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(name, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const switchVars = getSparseVariables(ToggleControlThemeSlice, overrides ?? {});
@@ -1099,7 +1108,7 @@ export const Switch = React.forwardRef<HTMLElement, SwitchProps>(({ name: propNa
         checked={checked}
         disabled={disabled}
         aria-invalid={isError || undefined}
-        aria-describedby={isError && name ? `${name}-error` : undefined}
+        aria-describedby={describedBy}
         onCheckedChange={handleCheckedChange}
         className="ai-focus-ring"
         style={{
@@ -1181,7 +1190,7 @@ export interface TextareaProps extends StyleFree<Omit<TextareaHTMLAttributes<HTM
  * @manifestStates default, focused, disabled, invalid, read-only
  * @manifestGuarantees form-contract
  */
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', font = 'sans', ...props }, ref) => {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ id, name: propName, rows = 3, cornerRadiusMode, onChange, onBlur, value: externalValue, defaultValue, overrides, size = 'md', font = 'sans', 'aria-describedby': ariaDescribedBy, ...props }, ref) => {
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const formContext = useOptionalFormContext();
@@ -1203,6 +1212,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
   const value = externalValue !== undefined ? externalValue : (isFormBound ? formContext!.values[name] ?? '' : localValue);
   const isError = useFieldInvalid(name, props['aria-invalid']);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
 
   const disabled = useFieldsetDisabled(props.disabled);
 
@@ -1216,7 +1226,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
       rows={rows}
       value={value}
       aria-invalid={isError || undefined}
-      aria-describedby={isError ? `${name}-error` : undefined}
+      aria-describedby={describedBy}
       className="ai-focus-ring"
       onChange={e => {
         if (name && formContext) formContext.setFieldValue(name, e.target.value);
