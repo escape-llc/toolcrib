@@ -1,0 +1,104 @@
+name: Publish npm package
+
+# Publishes the `toolcrib` CLI (cli/) or `toolcrib-mcp` (mcp/) to npm when
+# its prefixed tag is pushed (#957): `cli-vX.Y.Z` or `mcp-vX.Y.Z`. The root
+# toolkit's bare `vX.Y.Z` tags go to release.yml instead and never match
+# here, since both patterns below start with a package prefix.
+#
+# Authenticates with npm trusted publishing (OIDC), not a stored token:
+# npm exchanges this job's GitHub OIDC token for a short-lived publish
+# credential, and only for the repo/workflow/environment configured as the
+# package's trusted publisher on npmjs.com. There is no NPM_TOKEN secret to
+# leak. The same OIDC token signs the provenance statement npm attaches to
+# the published version.
+on:
+  push:
+    tags:
+      - 'cli-v*'
+      - 'mcp-v*'
+
+# Deny by default; the one job grants back only what it needs.
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Named in each package's trusted-publisher configuration on npmjs.com,
+    # so a publish can only come from a job that declares it.
+    environment: npm-publish
+    permissions:
+      contents: read   # checkout
+      id-token: write  # OIDC token for trusted publishing and provenance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0  # the main-ancestry check below needs history
+          persist-credentials: false
+
+      # Trusted publishing needs npm 11.5.1 or later; Node 24 bundles it.
+      # No `registry-url`: setup-node would then write an .npmrc expecting a
+      # NODE_AUTH_TOKEN, and a token-style config can keep npm from using
+      # OIDC. The default registry is already registry.npmjs.org.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+
+      # The tag name only ever reaches the shell through an env var, never
+      # an inline expression (script-injection hygiene, see the
+      # actions-injection-review skill).
+      - name: Resolve package from tag
+        id: pkg
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          case "$TAG" in
+            cli-v*) dir=cli; version="${TAG#cli-v}" ;;
+            mcp-v*) dir=mcp; version="${TAG#mcp-v}" ;;
+            *) echo "::error::Unrecognized tag $TAG"; exit 1 ;;
+          esac
+          {
+            echo "dir=$dir"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check the tag matches package.json's version
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          actual="$(node -p "require('./package.json').version")"
+          if [ "$actual" != "$VERSION" ]; then
+            echo "::error::Tag says $VERSION but package.json says $actual. Bump the version in a PR first, then tag that merge."
+            exit 1
+          fi
+
+      # Only content CI has already verified on main gets published: a tag
+      # pushed on an unmerged branch commit fails here.
+      - name: Check the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit is not on main. Tag the merge commit of the version-bump PR."
+            exit 1
+          fi
+
+      - name: Check npm supports trusted publishing
+        run: |
+          v="$(npm --version)"
+          if [ "$(printf '%s\n' 11.5.1 "$v" | sort -V | head -n1)" != "11.5.1" ]; then
+            echo "::error::npm $v is older than 11.5.1, which trusted publishing needs."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ steps.pkg.outputs.dir }}
+
+      - name: Run test suite
+        run: npm test
+        working-directory: ${{ steps.pkg.outputs.dir }}
+
+      - name: Publish with provenance
+        run: npm publish --provenance --access public
+        working-directory: ${{ steps.pkg.outputs.dir }}
