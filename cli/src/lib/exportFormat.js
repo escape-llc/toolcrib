@@ -177,6 +177,8 @@ export function renderReadme({ baseVersion, entries, notExported, regeneratedUps
     '',
     "Fill in each contribution's `intent:` lines in its SUMMARY.md before posting.",
     '',
+    'This README describes the export as generated. If you delete a contribution folder you do not want to send, this file is not updated; `--post` sends only the folders still present.',
+    '',
     '## Contributions',
     '',
   ];

@@ -30,6 +30,38 @@ export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 
 
 const INFRA_DIRS = ['theme', 'eventBus', 'observer'];
 const CODE_FILE = /\.[cm]?[jt]sx?$/;
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * The binding names imported from `specifier` across every import/export
+ * statement naming it: default, named (by their exported name), `*`, and
+ * `side-effect` for a bare `import 'x'` or a dynamic import. Whitespace and
+ * order don't matter, so reformatting an import line changes nothing.
+ */
+function importedNames(source, specifier) {
+  const code = stripComments(source);
+  const q = `['"]${escapeRegExp(specifier)}['"]`;
+  const names = new Set();
+  const re = new RegExp(`\\b(?:import|export)\\s+(?:type\\s+)?([^'";]*?)\\s*from\\s*${q}`, 'g');
+  let m;
+  while ((m = re.exec(code))) {
+    const clause = m[1];
+    const braces = /\{([^}]*)\}/.exec(clause);
+    if (braces) {
+      for (const part of braces[1].split(',')) {
+        const name = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim();
+        if (name) names.add(name);
+      }
+    }
+    const outside = clause.replace(/\{[^}]*\}/, '');
+    if (/\*/.test(outside)) names.add('*');
+    const def = outside.replace(/\*(\s*as\s+\w+)?/, '').replace(/,/g, ' ').trim();
+    if (def) names.add('default');
+  }
+  if (new RegExp(`\\bimport\\s*(?:\\(\\s*)?${q}`).test(code)) names.add('side-effect');
+  return names;
+}
 const MANIFEST_BLOCK_RE = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export\s+(?:const|function)\s+(\w+)/g;
 const EXPORT_DECL_RE = /\bexport\s+(?:declare\s+)?(?:abstract\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
 /** Raw React prop types that carry style/className, as an extends, intersection or alias. */
@@ -265,6 +297,31 @@ export function analyzeExport({ releaseFiles, localFiles }) {
   const isInfraCandidate = (p) => changed.has(p) && INFRA_DIRS.includes(topSegment(p)) && !unitOf.has(p);
   const reachedBy = new Map(); // candidate relPath -> Set(unit key)
   const reachedPerUnit = new Map();
+  const dependencyPerUnit = new Map();
+  const relHas = (p) => rel.has(p);
+  // Resolved import target -> the names imported from it (see importedNames).
+  const resolvedImports = (content, relPath, exists) => {
+    const out = new Map();
+    if (content === undefined || !CODE_FILE.test(relPath)) return out;
+    for (const spec of extractImports(content)) {
+      const resolved = resolveRelativeImport(relPath, spec, exists);
+      if (!resolved) continue;
+      if (!out.has(resolved)) out.set(resolved, new Set());
+      for (const n of importedNames(content, spec)) out.get(resolved).add(n);
+    }
+    return out;
+  };
+  // Import targets the unit's own change introduced: a target the release
+  // version didn't import, or one it now imports a name from that it didn't
+  // before (a new export used through an import line that already existed).
+  // An added file counts all its imports; a deleted file contributes none.
+  const newImportTargets = (relPath) => {
+    const before = resolvedImports(rel.get(relPath), relPath, relHas);
+    const after = resolvedImports(loc.get(relPath), relPath, localHas);
+    return [...after]
+      .filter(([t, names]) => !before.has(t) || [...names].some((n) => !before.get(t).has(n)))
+      .map(([t]) => t);
+  };
   for (const [key, unit] of units) {
     const seen = new Set(unit.paths);
     const stack = [...unit.paths];
@@ -286,6 +343,22 @@ export function analyzeExport({ releaseFiles, localFiles }) {
       }
     }
     reachedPerUnit.set(key, reached);
+    // Dependency, as opposed to reachability: only what the unit's own change newly imports.
+    const dependencySeen = new Set(unit.paths);
+    const dependencyStack = [];
+    for (const f of unit.paths) dependencyStack.push(...newImportTargets(f));
+    const dependsOnFiles = new Set();
+    while (dependencyStack.length) {
+      const d = dependencyStack.pop();
+      if (dependencySeen.has(d)) continue;
+      dependencySeen.add(d);
+      if (SHARED_FILES.includes(d)) continue;
+      const owner = unitOf.get(d);
+      if (owner !== undefined && owner !== key) continue; // another unit's own files
+      if (isInfraCandidate(d)) dependsOnFiles.add(d);
+      for (const n of deps(d)) dependencyStack.push(n);
+    }
+    dependencyPerUnit.set(key, dependsOnFiles);
     unit.missingDependencies = [...missing].sort();
     for (const d of reached) {
       if (!reachedBy.has(d)) reachedBy.set(d, new Set());
@@ -335,7 +408,7 @@ export function analyzeExport({ releaseFiles, localFiles }) {
   infra.sort((a, b) => a.name.localeCompare(b.name));
   for (const [key, unit] of units) {
     const names = new Set();
-    for (const d of reachedPerUnit.get(key)) {
+    for (const d of dependencyPerUnit.get(key)) {
       if (infraOfFile.has(d)) names.add(infraOfFile.get(d).name);
     }
     unit.dependsOn = [...names].sort();

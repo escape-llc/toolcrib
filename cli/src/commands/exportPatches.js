@@ -80,6 +80,23 @@ async function postExport(options) {
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
+  // The README was written at export time; the user may have deleted folders since.
+  const readmePath = path.join(outDir, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    const listed = new Set();
+    for (const line of fs.readFileSync(readmePath, 'utf8').split(/\r?\n/)) {
+      const m = /^\|\s*(\d+-[^\s|]+)\s*\|/.exec(line);
+      if (m) listed.add(m[1]);
+    }
+    const missing = [...listed].filter((f) => !folders.includes(f)).sort();
+    const unlisted = folders.filter((f) => !listed.has(f));
+    if (missing.length) {
+      p.log.warn(`README.md lists contribution(s) whose folder is missing (not posted): ${missing.join(', ')}`);
+    }
+    if (unlisted.length) {
+      p.log.warn(`Folder(s) present but not listed in README.md: ${unlisted.join(', ')}`);
+    }
+  }
   const plans = [];
   for (const folder of folders) {
     const dir = path.join(outDir, folder);

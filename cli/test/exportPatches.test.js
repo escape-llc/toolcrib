@@ -159,7 +159,7 @@ describe('analyzeExport — import following', () => {
     expect(filePaths(byName(r, 'A'))).toEqual(['components/A/A.tsx', 'theme/leaf.ts']);
   });
 
-  it('makes a changed file reached by two units its own contribution and records dependsOn', () => {
+  it('makes a changed file reached by two units its own contribution', () => {
     const local = base();
     local['components/A/A.tsx'] += '// edit\n';
     local['components/B/B.tsx'] += '// edit\n';
@@ -170,9 +170,68 @@ describe('analyzeExport — import following', () => {
       ['B', 'change'],
       ['leaf', 'change'],
     ]);
-    expect(byName(r, 'A').dependsOn).toEqual(['leaf']);
-    expect(byName(r, 'B').dependsOn).toEqual(['leaf']);
     expect(filePaths(byName(r, 'leaf'))).toEqual(['theme/leaf.ts']);
+  });
+
+  it('does not report dependsOn for infrastructure a unit merely reaches through an unchanged import', () => {
+    const local = base();
+    local['components/A/A.tsx'] += '// edit, adds no import\n';
+    local['components/B/B.tsx'] += '// edit\n';
+    local['theme/leaf.ts'] = 'export const leaf = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'A').dependsOn).toEqual([]);
+    expect(byName(r, 'B').dependsOn).toEqual([]);
+  });
+
+  it('records dependsOn when the unit\'s own change adds an import that reaches changed infrastructure', () => {
+    const release = base();
+    release['components/A/A.tsx'] = `export const A = 1;\n`;
+    const local = base();
+    local['components/B/B.tsx'] += '// edit\n';
+    local['theme/leaf.ts'] = 'export const leaf = 2;\n';
+    const r = run(release, local);
+    expect(byName(r, 'A').dependsOn).toEqual(['leaf']);
+    expect(byName(r, 'B').dependsOn).toEqual([]);
+  });
+
+  it('records dependsOn when the unit\'s change imports a new name through an import line it already had', () => {
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `import { leaf, leaf2 } from '../../theme/leaf';\nexport const B = leaf2;\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 1;\nexport const leaf2 = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'B').dependsOn).toEqual(['leaf']);
+    expect(byName(r, 'A').dependsOn).toEqual([]);
+  });
+
+  it('does not count a reformatted import of the same names as a new dependency', () => {
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `import {\n  leaf,\n} from "../../theme/leaf";\nexport const B = 1;\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'B').dependsOn).toEqual([]);
+  });
+
+  it('treats `export *` as a namespace re-export, not a default import', () => {
+    const release = base();
+    release['components/B/B.tsx'] = `export * from '../../theme/leaf';\n`;
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `export * from '../../theme/leaf';\nimport leafDefault from '../../theme/leaf';\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 2;\nexport default leaf;\n';
+    const r = run(release, local);
+    expect(byName(r, 'B').dependsOn).toEqual(['leaf']);
+  });
+
+  it('records dependsOn for a newly added component file that imports changed infrastructure', () => {
+    const local = base();
+    local['components/C/C.tsx'] = `import { leaf } from '../../theme/leaf';\nexport const C = leaf;\n`;
+    local['components/B/B.tsx'] += '// edit\n';
+    local['theme/leaf.ts'] = 'export const leaf = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'C').type).toBe('new-component');
+    expect(byName(r, 'C').dependsOn).toEqual(['leaf']);
   });
 
   it('groups unreached infrastructure files by import connectivity', () => {
