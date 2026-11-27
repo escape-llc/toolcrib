@@ -60,6 +60,9 @@ export const FORM_CONTRACT_CHECKS = [
   'is disabled inside a disabled Fieldset',
   'is aria-invalid and points at its error once it fails',
   'is seen by a submit in the same tick it mounts',
+  'keeps a consumer aria-describedby while valid',
+  'lists a consumer aria-describedby before its error once it fails',
+  'points aria-describedby at the FormField helper text',
 ];
 
 /**

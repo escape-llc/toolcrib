@@ -12,6 +12,7 @@ import { FieldContext } from '../Form/FieldContext';
 import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { RatingThemeSlice, type RatingSliceState } from './RatingSlice';
 
 /** Props for the `<Rating>` star control. */
@@ -29,6 +30,8 @@ export interface RatingProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Controlled value. */
   value?: number;
   /** Initial value (uncontrolled). @default 0 */
@@ -67,6 +70,7 @@ export const Rating: React.FC<RatingProps> = ({
   name: propName,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   value: externalValue,
   defaultValue = 0,
   onChange,
@@ -82,6 +86,7 @@ export const Rating: React.FC<RatingProps> = ({
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || undefined;
   const isError = useFieldInvalid(name, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
   const [internalValue, setInternalValue] = React.useState(defaultValue);
   // Bound to its Form field like every other Form control (a read-only
   // display isn't an input, so it stays out of the Form).
@@ -170,7 +175,7 @@ export const Rating: React.FC<RatingProps> = ({
       aria-label={ariaLabel ?? (fieldCtx.labelId ? undefined : strings.label)}
       aria-labelledby={ariaLabel ? undefined : fieldCtx.labelId}
       aria-invalid={isError || undefined}
-      aria-describedby={isError && name ? `${name}-error` : undefined}
+      aria-describedby={describedBy}
       style={{ display: 'inline-flex', gap: 'var(--ai-rating-gap, 0.125rem)', outline: 'none', ...ratingVars }}
     >
       {Array.from({ length: max }, (_, i) => {

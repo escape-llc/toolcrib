@@ -10,6 +10,7 @@ import { useInjectInteractionStyles } from '../../theme/interactionStyles';
 import { FieldContext } from './FieldContext';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { SliderThemeSlice, type SliderSliceState } from './SliderSlice';
 import { sliderRootStyle, sliderControlStyle, sliderTrackStyle, sliderRangeStyle, sliderThumbStyle, type SliderOrientation } from './sliderStyles';
 
@@ -71,6 +72,8 @@ export interface SliderProps extends DataAttributes {
   'aria-invalid'?: boolean;
   /** Id of the element that names this control. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /**
    * Direction of travel. A vertical slider fills the height of its container
    * (give the parent a height) and is 1.25rem wide; arrow keys follow the
@@ -107,6 +110,7 @@ export const Slider: React.FC<SliderProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   orientation = 'horizontal',
   getAriaValueText,
   overrides,
@@ -116,6 +120,7 @@ export const Slider: React.FC<SliderProps> = ({
   const fieldCtx = useContext(FieldContext);
   const name = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(name, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, name ? `${name}-error` : undefined);
   // Inside a Form the field's value is the controlled value, like every
   // other Form control: registered on mount, written on change (#880's
   // contract, src/__tests__/formControlContract.test.tsx).
@@ -214,7 +219,7 @@ export const Slider: React.FC<SliderProps> = ({
             // Points at the FormField error it's invalid for, like every other
             // control; spread in only when set (an explicit undefined would
             // override anything Base UI sets itself).
-            {...(isError && name ? { 'aria-describedby': `${name}-error` } : {})}
+            {...(describedBy ? { 'aria-describedby': describedBy } : {})}
             // Base UI's thumb prop is (formattedValue, value, index); only
             // the numeric value is exposed. Spread only when set.
             {...(getAriaValueText ? { getAriaValueText: (_formatted: string, v: number) => getAriaValueText(v) } : {})}

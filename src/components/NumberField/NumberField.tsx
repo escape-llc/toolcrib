@@ -13,6 +13,7 @@ import { I18nProvider } from 'react-aria-components/I18nProvider';
 import { Minus, Plus } from 'lucide-react';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
@@ -67,6 +68,8 @@ export interface NumberFieldProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Same as `aria-label`, referencing an existing visible label's id. Ignored if `label` is set. */
   'aria-labelledby'?: string;
   /** Explicit corner-squaring override, e.g. for a `<UIGroup>` member. See `<Button>`'s identical prop. */
@@ -113,6 +116,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   size = 'md',
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   'aria-labelledby': ariaLabelledBy,
   squareCorners,
   ...rest
@@ -142,6 +146,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   const formValue = isFormBound ? (formContext!.values[fieldName] as number | null | undefined) : undefined;
   const controlledValue = externalValue !== undefined ? externalValue : formValue;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
 
   const handleChange = (raw: number) => {
     // React Aria reports an emptied field as NaN; toolcrib's value is null.
@@ -205,7 +210,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
           <AriaInput
             {...pickDataAttributes(rest)}
             placeholder={placeholder}
-            aria-describedby={isError ? `${fieldName}-error` : undefined}
+            aria-describedby={describedBy}
             style={{
               flex: '1 1 auto',
               minWidth: 0,

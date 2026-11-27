@@ -5,6 +5,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { useOptionalFormContext } from './FormContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { FieldContext } from './FieldContext';
 import { getSparseVariables } from '../../theme/slice';
 import { useInjectInteractionStyles } from '../../theme/interactionStyles';
@@ -48,6 +49,8 @@ export interface CheckboxGroupProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Layout direction. @default 'vertical' */
   direction?: 'horizontal' | 'vertical';
   /** If true, every option is disabled. */
@@ -76,6 +79,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   label,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   direction = 'vertical',
   disabled: disabledProp = false,
   size = 'md',
@@ -127,6 +131,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
   // Group name: own visible label, else the enclosing FormField's label, else aria-label.
   const labelledBy = label ? ownLabelId : !ariaLabel ? fieldCtx.labelId : undefined;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
 
   return (
     <div
@@ -135,7 +140,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
       aria-labelledby={labelledBy}
       aria-label={!label ? ariaLabel : undefined}
       aria-invalid={isError || undefined}
-      aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+      aria-describedby={describedBy}
       style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', ...toggleVars }}
     >
       {label && (

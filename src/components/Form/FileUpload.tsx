@@ -15,6 +15,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { Button } from './FormComponents';
 import { Progress } from '../Progress/Progress';
 import { AspectRatio } from '../Layout/AspectRatio';
@@ -79,6 +80,8 @@ export interface FileUploadProps extends DataAttributes {
   'aria-invalid'?: boolean;
   /** Id of the element that names the dropzone. Used instead of the inherited `<FormField>` label when set. */
   'aria-labelledby'?: string;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
 }
 
 function formatBytes(bytes: number): string {
@@ -108,12 +111,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   ...rest
 }) => {
   const disabled = useFieldsetDisabled(disabledProp);
   const fieldCtx = useContext(FieldContext);
   const fieldName = propName || fieldCtx.name || '';
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const fileUploadVars = getSparseVariables(FileUploadThemeSlice, { density: SIZE_TO_DENSITY[size], ...overrides });
@@ -292,7 +297,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
         aria-invalid={isError || undefined}
-        aria-describedby={isError && fieldName ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': ariaLabelledBy ?? fieldCtx.labelId })}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={e => {

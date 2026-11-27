@@ -9,6 +9,7 @@ import { useFieldsetDisabled } from '../Fieldset/FieldsetContext';
 import { OTPField as BaseOTPField } from '@base-ui/react/otp-field';
 import { useOptionalFormContext } from '../Form/FormContext';
 import { useFieldInvalid, INVALID_COLOR } from '../Form/useFieldInvalid';
+import { useFieldDescribedBy } from '../Form/useFieldDescribedBy';
 import { FieldContext } from '../Form/FieldContext';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
@@ -40,6 +41,8 @@ export interface OTPFieldProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** If true, the field is non-interactive. */
   disabled?: boolean;
   /** Control size, standardized with `<Input>` and every other sized control. @default 'md' */
@@ -68,6 +71,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   label,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   disabled: disabledProp = false,
   size = 'md',
   ...rest
@@ -93,6 +97,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
   const formValue = isFormBound ? formContext!.values[fieldName] : undefined;
   const code = externalValue !== undefined ? externalValue : isFormBound ? (typeof formValue === 'string' ? formValue : '') : localValue;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
 
   // Cleared from outside (resetForm, a controlled reset): Base UI keeps its
   // active cell, so Tab would land mid-code. Remount the cells then; the
@@ -145,7 +150,7 @@ export const OTPField: React.FC<OTPFieldProps> = ({
         name={fieldName || undefined}
         aria-labelledby={labelledBy}
         aria-label={!label ? ariaLabel : undefined}
-        aria-describedby={isError ? `${fieldName}-error` : undefined}
+        aria-describedby={describedBy}
         style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
       >
         {Array.from({ length }, (_, i) => (

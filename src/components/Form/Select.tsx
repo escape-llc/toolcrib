@@ -13,6 +13,7 @@ import { Listbox, type ListboxOptionData } from '../Listbox/Listbox';
 import { useOptionalFormContext } from './FormContext';
 import { FieldContext } from './FieldContext';
 import { useFieldInvalid, INVALID_COLOR } from './useFieldInvalid';
+import { useFieldDescribedBy } from './useFieldDescribedBy';
 import { aiBus } from '../../eventBus/eventBus';
 import { type DataAttributes, pickDataAttributes } from '../../theme/safeProps';
 import { useSliceOverrides } from '../../theme/useSliceOverrides';
@@ -64,6 +65,8 @@ export interface SelectProps extends DataAttributes {
   'aria-label'?: string;
   /** Marks the control invalid, overriding the Form-derived state (touched + schema error). Also usable outside a `<Form>`. */
   'aria-invalid'?: boolean;
+  /** Ids of elements that describe the control; merged with the field's helper text and error message. */
+  'aria-describedby'?: string;
   /** Array of selectable options. */
   options: SelectOptionData[];
   /** Controlled selected value. */
@@ -94,6 +97,7 @@ export const Select: React.FC<SelectProps> = ({
   placeholder = 'Select option...',
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   options,
   value: externalValue,
   defaultValue,
@@ -111,6 +115,7 @@ export const Select: React.FC<SelectProps> = ({
   const formContext = useOptionalFormContext();
   const registerField = formContext?.registerField;
   const isError = useFieldInvalid(fieldName, ariaInvalid);
+  const describedBy = useFieldDescribedBy(ariaDescribedBy, isError, fieldName ? `${fieldName}-error` : undefined);
   const { vars: selectVars } = useSliceOverrides(SelectThemeSlice, overrides);
   const targetDocument = useTargetDocument();
   const { container, zIndex } = useOverlayLayer('DROPDOWN');
@@ -294,7 +299,7 @@ export const Select: React.FC<SelectProps> = ({
           aria-controls={isOpen ? listboxId : undefined}
           aria-activedescendant={activeOptionId}
           aria-invalid={isError || undefined}
-          aria-describedby={isError ? `${fieldName}-error` : undefined}
+          aria-describedby={describedBy}
           disabled={disabled}
           className="ai-btn ai-focus-ring"
           onClick={() => (isOpen ? setOpen(false) : openAt(selectedIndex >= 0 ? selectedIndex : first()))}
