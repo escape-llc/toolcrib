@@ -30,6 +30,38 @@ export const VALID_CATEGORIES = ['Layout Primitives', 'Containers', 'Overlays', 
 
 const INFRA_DIRS = ['theme', 'eventBus', 'observer'];
 const CODE_FILE = /\.[cm]?[jt]sx?$/;
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * The binding names imported from `specifier` across every import/export
+ * statement naming it: default, named (by their exported name), `*`, and
+ * `side-effect` for a bare `import 'x'` or a dynamic import. Whitespace and
+ * order don't matter, so reformatting an import line changes nothing.
+ */
+function importedNames(source, specifier) {
+  const code = stripComments(source);
+  const q = `['"]${escapeRegExp(specifier)}['"]`;
+  const names = new Set();
+  const re = new RegExp(`\\b(?:import|export)\\s+(?:type\\s+)?([^'";]*?)\\s*from\\s*${q}`, 'g');
+  let m;
+  while ((m = re.exec(code))) {
+    const clause = m[1];
+    const braces = /\{([^}]*)\}/.exec(clause);
+    if (braces) {
+      for (const part of braces[1].split(',')) {
+        const name = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim();
+        if (name) names.add(name);
+      }
+    }
+    const outside = clause.replace(/\{[^}]*\}/, '');
+    if (/\*/.test(outside)) names.add('*');
+    const def = outside.replace(/\*\s*as\s+\w+/, '').replace(/,/g, ' ').trim();
+    if (def) names.add('default');
+  }
+  if (new RegExp(`\\bimport\\s*(?:\\(\\s*)?${q}`).test(code)) names.add('side-effect');
+  return names;
+}
 const MANIFEST_BLOCK_RE = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export\s+(?:const|function)\s+(\w+)/g;
 const EXPORT_DECL_RE = /\bexport\s+(?:declare\s+)?(?:abstract\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
 /** Raw React prop types that carry style/className, as an extends, intersection or alias. */
@@ -267,20 +299,28 @@ export function analyzeExport({ releaseFiles, localFiles }) {
   const reachedPerUnit = new Map();
   const dependencyPerUnit = new Map();
   const relHas = (p) => rel.has(p);
+  // Resolved import target -> the names imported from it (see importedNames).
   const resolvedImports = (content, relPath, exists) => {
-    const out = new Set();
+    const out = new Map();
     if (content === undefined || !CODE_FILE.test(relPath)) return out;
     for (const spec of extractImports(content)) {
       const resolved = resolveRelativeImport(relPath, spec, exists);
-      if (resolved) out.add(resolved);
+      if (!resolved) continue;
+      if (!out.has(resolved)) out.set(resolved, new Set());
+      for (const n of importedNames(content, spec)) out.get(resolved).add(n);
     }
     return out;
   };
-  // Resolved import targets the local version has that the release version lacks.
+  // Import targets the unit's own change introduced: a target the release
+  // version didn't import, or one it now imports a name from that it didn't
+  // before (a new export used through an import line that already existed).
   // An added file counts all its imports; a deleted file contributes none.
   const newImportTargets = (relPath) => {
     const before = resolvedImports(rel.get(relPath), relPath, relHas);
-    return [...resolvedImports(loc.get(relPath), relPath, localHas)].filter((t) => !before.has(t));
+    const after = resolvedImports(loc.get(relPath), relPath, localHas);
+    return [...after]
+      .filter(([t, names]) => !before.has(t) || [...names].some((n) => !before.get(t).has(n)))
+      .map(([t]) => t);
   };
   for (const [key, unit] of units) {
     const seen = new Set(unit.paths);

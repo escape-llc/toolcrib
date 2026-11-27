@@ -194,6 +194,25 @@ describe('analyzeExport — import following', () => {
     expect(byName(r, 'B').dependsOn).toEqual([]);
   });
 
+  it('records dependsOn when the unit\'s change imports a new name through an import line it already had', () => {
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `import { leaf, leaf2 } from '../../theme/leaf';\nexport const B = leaf2;\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 1;\nexport const leaf2 = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'B').dependsOn).toEqual(['leaf']);
+    expect(byName(r, 'A').dependsOn).toEqual([]);
+  });
+
+  it('does not count a reformatted import of the same names as a new dependency', () => {
+    const local = base();
+    local['components/A/A.tsx'] += '// edit\n';
+    local['components/B/B.tsx'] = `import {\n  leaf,\n} from "../../theme/leaf";\nexport const B = 1;\n`;
+    local['theme/leaf.ts'] = 'export const leaf = 2;\n';
+    const r = run(base(), local);
+    expect(byName(r, 'B').dependsOn).toEqual([]);
+  });
+
   it('records dependsOn for a newly added component file that imports changed infrastructure', () => {
     const local = base();
     local['components/C/C.tsx'] = `import { leaf } from '../../theme/leaf';\nexport const C = leaf;\n`;
