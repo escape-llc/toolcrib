@@ -304,13 +304,13 @@ describe('downloadReleaseZip provenance', () => {
   const bundle = { mediaType: 'fake-bundle' };
 
   /** Serves a zip, any asset's .sha256, and (unless `bundleStatus` is 404) the bundle. */
-  function serve({ bundleStatus = 200 } = {}) {
+  function serve({ bundleStatus = 200, bundleText = JSON.stringify(bundle) } = {}) {
     fetchMock.mockImplementation(async (url) => {
       const u = String(url);
       if (u.endsWith('.sha256')) return { ok: true, text: async () => `${hash}  x\n` };
       if (u.endsWith('.sigstore.json')) {
         return bundleStatus === 200
-          ? { ok: true, text: async () => JSON.stringify(bundle) }
+          ? { ok: true, text: async () => bundleText }
           : { ok: false, status: bundleStatus, statusText: 'Not Found' };
       }
       return { ok: true, arrayBuffer: async () => content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) };
@@ -356,6 +356,16 @@ describe('downloadReleaseZip provenance', () => {
   it('does not cache a failed bundle fetch', async () => {
     serve({ bundleStatus: 404 });
     await expect(downloadReleaseZip('0.17.0')).rejects.toThrow();
+    serve();
+    await expect(downloadReleaseZip('0.17.0')).resolves.toMatchObject({ provenance: 'sigstore' });
+  });
+
+  // A JSON.parse throw used to skip the rejection handler: the raw
+  // SyntaxError surfaced and the failed promise stayed cached (PR #1011 review).
+  it('treats a malformed bundle like a missing one, and does not cache it', async () => {
+    serve({ bundleText: '<html>not json' });
+    await expect(downloadReleaseZip('0.17.0')).rejects.toThrow(/provenance bundle.*Refusing to install/s);
+    expect(verifyProvenance).not.toHaveBeenCalled();
     serve();
     await expect(downloadReleaseZip('0.17.0')).resolves.toMatchObject({ provenance: 'sigstore' });
   });

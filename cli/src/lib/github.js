@@ -177,18 +177,22 @@ function getBundle(version) {
     const url = assetUrl(version, PROVENANCE_ASSET_NAME);
     bundleByVersion.set(
       version,
-      fetchText(url).then(
-        (text) => JSON.parse(text),
-        (err) => {
+      // One try/catch around both the fetch and the parse, so a malformed
+      // bundle gets the same message and isn't cached either (.then(ok, fail)
+      // would let a JSON.parse throw from `ok` skip `fail`).
+      (async () => {
+        try {
+          return JSON.parse(await fetchText(url));
+        } catch (err) {
           // Don't cache a failure: a later call in the same process may succeed.
           bundleByVersion.delete(version);
           throw new Error(
             `Failed to fetch the Sigstore provenance bundle for v${version} (${err.message}). ` +
-              `Releases since v${SIGNED_SINCE} are signed, so a missing bundle is treated as a ` +
-              `failed verification. Refusing to install an unverified download.`
+              `Releases since v${SIGNED_SINCE} are signed, so a missing or unreadable bundle is ` +
+              `treated as a failed verification. Refusing to install an unverified download.`
           );
         }
-      )
+      })()
     );
   }
   return bundleByVersion.get(version);
