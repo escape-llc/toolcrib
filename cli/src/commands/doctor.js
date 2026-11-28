@@ -8,6 +8,7 @@ import { fetchLatestVersion, fetchSecurityAdvisories } from '../lib/github.js';
 import { MANAGED_DOCS, KNOWN_TARGET_FILES, listManagedBlocks } from '../lib/managedDocs.js';
 import { detectBundler } from '../lib/bundler.js';
 import { checkRootProviderWired } from '../lib/rootProvider.js';
+import { SIGNED_SINCE } from '../lib/provenance.js';
 
 const TOOLKIT_DIR = './toolcrib';
 
@@ -52,6 +53,33 @@ export function checkImportsCompatibility(projectRoot) {
  */
 export function checkTypeScriptAdopted(projectRoot) {
   return fileExists(path.join(projectRoot, 'tsconfig.json'));
+}
+
+/**
+ * How the installed version's download was verified, per what `init`/`merge`
+ * recorded in the lock (`provenance`). Pure, returns log messages like
+ * checkManagedBlocks does. A lock with no `provenance` was written by an
+ * older CLI: that's not a failure, just unknown until the next merge to a newer version records it (a merge to the same version exits early without rewriting the lock).
+ */
+export function describeProvenance(lock) {
+  switch (lock.provenance) {
+    case 'sigstore':
+      return [{ level: 'success', text: `v${lock.version} was installed with Sigstore provenance verified.` }];
+    case 'sha256':
+      return [
+        {
+          level: 'info',
+          text: `v${lock.version} was installed verified by SHA-256 only (this release predates signing, v${SIGNED_SINCE}).`,
+        },
+      ];
+    default:
+      return [
+        {
+          level: 'info',
+          text: `How v${lock.version} was verified isn't recorded (installed by an older toolcrib CLI). The next 'toolcrib merge' to a newer version records it.`,
+        },
+      ];
+  }
 }
 
 /**
@@ -233,6 +261,12 @@ export async function doctorCommand(options = {}) {
   }
 
   if (release) {
+    // Informational only, never a failure: a successful fetchRelease above
+    // already means the installed version's download verified just now.
+    // What's reported is what the lock recorded when it was installed.
+    for (const message of describeProvenance(lock)) {
+      p.log[message.level](message.text);
+    }
     const drifted = computeDrift(projectRoot, release);
     const managedBlockMessages = await checkManagedBlocks(projectRoot, release);
     await release.cleanup();

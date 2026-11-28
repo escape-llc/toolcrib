@@ -39,11 +39,16 @@ const env = {
 
 function run(args, cwd) {
   console.log(`\n$ node cli/src/index.js ${args.join(' ')}  (cwd: ${cwd})`);
-  const result = crossSpawn.sync('node', [CLI_ENTRY, ...args], { cwd, env, stdio: 'inherit' });
+  // Output is captured so callers can assert on it, and echoed so a CI log
+  // still shows everything the CLI printed.
+  const result = crossSpawn.sync('node', [CLI_ENTRY, ...args], { cwd, env, encoding: 'utf-8' });
   if (result.error) throw result.error;
+  process.stdout.write(result.stdout ?? '');
+  process.stderr.write(result.stderr ?? '');
   if (result.status !== 0) {
     throw new Error(`toolcrib ${args.join(' ')} exited with code ${result.status}`);
   }
+  return `${result.stdout ?? ''}${result.stderr ?? ''}`;
 }
 
 // A UTF-8 BOM prefix on the target project's own package.json --
@@ -76,7 +81,12 @@ try {
     BOM + JSON.stringify({ name: 'toolcrib-windows-integration-test', version: '1.0.0' }, null, 2) + '\n'
   );
 
-  run(['init'], tmpDir);
+  // The mock serves a locally built, unsigned zip under a pre-0.17.0 version
+  // (see mock-github-server.js), so the CLI must take the SHA-256-only path
+  // and say so. Releases from 0.17.0 on hard-fail without a valid Sigstore
+  // bundle, and there is no switch to skip that.
+  const initOutput = run(['init'], tmpDir);
+  assert.match(initOutput, /predates release signing/, 'init should note that this release predates signing.');
   run(['apply'], tmpDir);
 
   // 1. package.json survived a real git apply (which rewrites it to add
@@ -93,6 +103,11 @@ try {
   const lockPath = path.join(tmpDir, 'toolcrib', '.toolcrib-lock.json');
   assertNoBOM(lockPath);
   assertValidJSON(lockPath);
+  assert.equal(
+    JSON.parse(fs.readFileSync(lockPath, 'utf-8')).provenance,
+    'sha256',
+    'The lock file should record that the install was verified by SHA-256 only.'
+  );
 
   // 3. The managed AGENTS.md fence block survived a real Windows git
   // apply and is still correctly parseable -- whatever line ending the
@@ -113,7 +128,8 @@ try {
   // the strongest single end-to-end signal that nothing above is merely
   // "looks right to this script's own checks" but actually self-consistent
   // from the CLI's own perspective too.
-  run(['doctor'], tmpDir);
+  const doctorOutput = run(['doctor'], tmpDir);
+  assert.match(doctorOutput, /SHA-256 only/, 'doctor should report how the installed version was verified.');
 
   console.log('\nWindows integration checks passed: real init/apply/doctor succeeded, no BOM corruption, fence blocks intact.');
 } finally {

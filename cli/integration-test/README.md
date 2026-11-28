@@ -101,15 +101,19 @@ cp /path/to/new/toolcrib.zip integration-test/releases/latest/
 cp /path/to/new/toolcrib.zip.sha256 integration-test/releases/latest/
 cp /path/to/old/toolcrib.zip integration-test/releases/v0.12.0/
 cp /path/to/old/toolcrib.zip.sha256 integration-test/releases/v0.12.0/
-MOCK_LATEST_VERSION=0.14.0 node integration-test/mock-github-server.js
+MOCK_LATEST_VERSION=0.16.0 node integration-test/mock-github-server.js
 ```
 
 A real historical version's real assets are still published on GitHub —
 `https://github.com/escape-llc/toolcrib/releases/download/v0.12.0/toolcrib.zip`
 — so the "old" side doesn't need building locally, just downloading.
 `MOCK_LATEST_VERSION` controls what the `/releases/latest` JSON endpoint
-reports (defaults to `1.0.0`, matching this server's original hardcoded
-value, so nothing above needs it set). The asset route falls back to the
+reports (defaults to `0.16.0`, so nothing above needs it set). Keep every
+version you serve below `0.17.0`: this server serves unsigned local builds,
+and the CLI refuses any release from `0.17.0` on that has no valid Sigstore
+bundle (#961). The CLI has no switch to skip that check, so the mock's
+versions are the only way to stay on the unsigned path; its "predates
+release signing" note is the one to expect in the output. The asset route falls back to the
 flat `releases/{asset}` layout when no matching versioned subfolder
 exists, so the simpler init/apply walkthrough above keeps working
 unchanged either way.

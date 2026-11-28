@@ -93,6 +93,18 @@ describe('mergeCommand — lock file update (regression)', () => {
     expect(patchContent).toContain('+  "version": "2.0.0"');
   });
 
+  it("records the target release's provenance in the lock file", async () => {
+    const oldRelease = fakeRelease('1.0.0', { 'index.ts': 'export {};\n' });
+    const newRelease = { ...fakeRelease('2.0.0', { 'index.ts': 'export {};\nexport const x = 1;\n' }), provenance: 'sigstore' };
+    fetchRelease.mockImplementation((v) => Promise.resolve(v === '1.0.0' ? oldRelease : newRelease));
+
+    await mergeCommand({ version: '2.0.0' });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const patchContent = fs.readFileSync(path.join(patchDir, findPatchFor(patchDir, 'toolcrib/.toolcrib-lock.json')), 'utf-8');
+    expect(patchContent).toContain('+  "provenance": "sigstore"');
+  });
+
   it('does not stage a lock update when already on the target version', async () => {
     const sameRelease = fakeRelease('1.0.0', { 'index.ts': 'export {};\n' });
     fetchRelease.mockImplementation(() => Promise.resolve(sameRelease));

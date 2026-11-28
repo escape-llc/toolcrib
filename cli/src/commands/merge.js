@@ -528,7 +528,7 @@ export async function mergeCommand(options) {
   const lockChange = proposeLockUpdate(
     projectRoot,
     newRelease.version,
-    lock.testsVersion ? { testsVersion: newRelease.version } : {}
+    { provenance: newRelease.provenance, ...(lock.testsVersion ? { testsVersion: newRelease.version } : {}) }
   );
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
 

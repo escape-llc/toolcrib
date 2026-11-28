@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import * as p from '@clack/prompts';
 import { assertValidVersion } from './version.js';
+import { PROVENANCE_ASSET_NAME, SIGNED_SINCE, isSignedRelease, loadTrustMaterial, verifyProvenance } from './provenance.js';
 
 const REPO = 'escape-llc/toolcrib';
 const ASSET_NAME = 'toolcrib.zip';
@@ -158,24 +160,80 @@ function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
+// One Sigstore bundle per version per process: a version's core and tests
+// zips are both attested by the same bundle, and `merge` fetches two
+// versions in parallel, so the bundle is fetched and parsed once and every
+// asset of that version shares the promise. The "predates signing" note is
+// likewise printed once per version, by whichever call created the entry.
+const bundleByVersion = new Map();
+
+/** Test seam: forget every cached bundle. */
+export function resetBundleCache() {
+  bundleByVersion.clear();
+}
+
+function getBundle(version) {
+  if (!bundleByVersion.has(version)) {
+    const url = assetUrl(version, PROVENANCE_ASSET_NAME);
+    bundleByVersion.set(
+      version,
+      // One try/catch around both the fetch and the parse, so a malformed
+      // bundle gets the same message and isn't cached either (.then(ok, fail)
+      // would let a JSON.parse throw from `ok` skip `fail`).
+      (async () => {
+        try {
+          return JSON.parse(await fetchText(url));
+        } catch (err) {
+          // Don't cache a failure: a later call in the same process may succeed.
+          bundleByVersion.delete(version);
+          throw new Error(
+            `Failed to fetch the Sigstore provenance bundle for v${version} (${err.message}). ` +
+              `Releases since v${SIGNED_SINCE} are signed, so a missing or unreadable bundle is ` +
+              `treated as a failed verification. Refusing to install an unverified download.`
+          );
+        }
+      })()
+    );
+  }
+  return bundleByVersion.get(version);
+}
+
 /**
- * Download a release zip + its checksum sibling, verify integrity,
- * and return the raw buffer. Throws on mismatch (corrupted/truncated
- * download, or a tampered file at rest — see design notes on what a
- * checksum does and doesn't guarantee against a compromised source).
+ * Download a release zip, verify it, and return `{ zipBuffer, provenance }`.
+ * Throws on any verification failure.
  *
- * Every published release has shipped a .sha256 sibling since this
- * mechanism was introduced — a failed fetch of it (missing, network
- * error, or an on-path actor blocking just that request) is treated
- * as an integrity failure, not tolerated as an older-release gap.
+ * Two layers, both mandatory where they apply:
+ *
+ * 1. SHA-256 against the `.sha256` sibling. Catches a corrupted or
+ *    truncated download. It does NOT stop a tampered release: the sibling
+ *    lives in the same GitHub release as the zip, so whoever can replace the
+ *    zip can replace the checksum. Every published release has shipped one,
+ *    so a failed fetch of it (missing, network error, or an on-path actor
+ *    blocking just that request) is an integrity failure, not an
+ *    older-release gap.
+ * 2. For versions >= SIGNED_SINCE, the Sigstore bundle
+ *    (`toolcrib-release.sigstore.json`) from the same release: proves the
+ *    zip was built by this repo's release.yml for this version's own tag
+ *    (see lib/provenance.js). A missing or invalid bundle is a hard error.
+ *    Older releases predate signing; they're verified by SHA-256 only and
+ *    a note says so.
+ *
+ * `provenance` is 'sigstore' or 'sha256' according to which of those
+ * actually verified the download, for callers to record and report.
+ *
+ * `version` may be 'latest' (resolved here, so the version checked against
+ * the signing identity is the concrete one), though every in-repo caller
+ * already passes a resolved version.
  *
  * `assetName` defaults to the core toolkit zip; release.js's
  * fetchTestsRelease passes TESTS_ASSET_NAME to fetch the optional
  * test-suite artifact via this exact same verified-download path instead
  * of a parallel one — the checksum sibling is always `${assetName}.sha256`,
- * the one naming convention both assets already share.
+ * the one naming convention both assets already share, and both assets are
+ * subjects of the same Sigstore bundle.
  */
-export async function downloadReleaseZip(version, assetName = ASSET_NAME) {
+export async function downloadReleaseZip(requestedVersion, assetName = ASSET_NAME) {
+  const version = await resolveVersion(requestedVersion);
   const checksumAssetName = `${assetName}.sha256`;
   const zipUrl = assetUrl(version, assetName);
   const checksumUrl = assetUrl(version, checksumAssetName);
@@ -199,5 +257,17 @@ export async function downloadReleaseZip(version, assetName = ASSET_NAME) {
     );
   }
 
-  return zipBuffer;
+  if (!isSignedRelease(version)) {
+    if (!bundleByVersion.has(version)) {
+      bundleByVersion.set(version, Promise.resolve(null));
+      p.log.info(`v${version} predates release signing (v${SIGNED_SINCE}); verified by SHA-256 only.`);
+    }
+    return { zipBuffer, provenance: 'sha256' };
+  }
+
+  const bundleJson = await getBundle(version);
+  const { trustMaterial, source } = await loadTrustMaterial();
+  verifyProvenance({ bundleJson, assetName, digestHex: actual, version, trustMaterial, trustSource: source });
+
+  return { zipBuffer, provenance: 'sigstore' };
 }

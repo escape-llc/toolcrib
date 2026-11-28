@@ -20,6 +20,7 @@ import { fetchRelease, fetchTestsRelease } from '../src/lib/release.js';
 import { fetchLatestVersion, fetchSecurityAdvisories } from '../src/lib/github.js';
 import {
   checkManagedBlocks,
+  describeProvenance,
   checkImportsCompatibility,
   checkTypeScriptAdopted,
   listReprintableBlocks,
@@ -172,6 +173,26 @@ describe('listReprintableBlocks', () => {
     expect(blocks).toHaveLength(2);
     expect(blocks.find((b) => b.docId === 'core')).toMatchObject({ targetFile: 'AGENTS.md' });
     expect(blocks.find((b) => b.docId === 'refactor-app')).toMatchObject({ targetFile: 'CLAUDE.md' });
+  });
+});
+
+describe('describeProvenance', () => {
+  it('reports Sigstore verification as a success', () => {
+    expect(describeProvenance({ version: '0.17.0', provenance: 'sigstore' })).toEqual([
+      { level: 'success', text: expect.stringContaining('Sigstore provenance verified') },
+    ]);
+  });
+
+  it('reports SHA-256 only as informational, naming why', () => {
+    const [message] = describeProvenance({ version: '0.16.0', provenance: 'sha256' });
+    expect(message.level).toBe('info');
+    expect(message.text).toMatch(/SHA-256 only.*predates signing/);
+  });
+
+  it('reports an unrecorded method as informational and suggests merge, never an error', () => {
+    const [message] = describeProvenance({ version: '0.16.0' });
+    expect(message.level).toBe('info');
+    expect(message.text).toMatch(/isn't recorded.*toolcrib merge/);
   });
 });
 

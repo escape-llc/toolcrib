@@ -175,6 +175,10 @@ anything. It reports:
   installed version actually shipped (usually from hand-editing a vendored
   file directly, which is supported — that's the whole point of vendoring
   — but worth knowing about).
+- **How your installed version was verified** — Sigstore provenance,
+  SHA-256 only (the release predates signing), or "not recorded" if an older
+  CLI installed it (your next `toolcrib merge` to a newer version records it). Informational, never a
+  failure. See [Download verification](#download-verification).
 - **Stale instruction-file blocks** — if the `<!-- toolcrib:managed:... -->`
   block in your `AGENTS.md`/`CLAUDE.md` was hand-edited instead of
   regenerated, or is out of date with your installed version.
@@ -319,6 +323,23 @@ toolcrib merge --version 1.4.0    # stage the upgrade
 # review ./toolcrib-patches/
 toolcrib apply                    # actually upgrade
 toolcrib doctor                   # confirm nothing's left drifted
+```
+
+## Download verification
+
+Every release zip the CLI downloads (`init`, `merge`, `doctor`, `export-patches`) is checked before anything is extracted:
+
+- **SHA-256**, against the `.sha256` file published next to the zip. This catches a corrupted or truncated download. It can't catch a tampered release, because that file lives in the same GitHub release as the zip.
+- **Sigstore provenance**, for releases from **v0.17.0** on. Each release publishes `toolcrib-release.sigstore.json`, a signed SLSA provenance statement made by the project's release workflow. The CLI verifies the signature and transparency-log entry, that the signer is `release.yml` running for **that version's own tag**, and that the statement names the exact SHA-256 of the zip you downloaded. Replacing a release's assets now takes forging a signature, and swapping in an older, validly signed release fails the tag check.
+
+A release from v0.17.0 on with a missing or invalid bundle is a hard error: nothing is installed. Older releases predate signing, so they're verified by SHA-256 only and the CLI says so. `init` and `merge` record which check applied as `provenance` in `toolcrib/.toolcrib-lock.json`, and `doctor` reports it.
+
+Verification uses Sigstore's public trusted root, fetched over TUF from `tuf-repo-cdn.sigstore.dev` (cached in your user app-data directory). If that host can't be reached, the CLI prints a note and uses the trusted root bundled with it instead. If verification then fails, update the toolcrib CLI: the bundled root may be out of date.
+
+To check a release by hand with the GitHub CLI:
+
+```bash
+gh attestation verify toolcrib.zip --repo escape-llc/toolcrib
 ```
 
 ## Troubleshooting
