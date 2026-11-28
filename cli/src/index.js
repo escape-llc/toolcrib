@@ -8,10 +8,10 @@ import { doctorCommand } from './commands/doctor.js';
 import { versionsCommand } from './commands/versions.js';
 import { exportPatchesCommand } from './commands/exportPatches.js';
 
-// Read at runtime instead of a JSON import assertion: `assert { type: 'json' }`
-// vs `with { type: 'json' }` differs across the Node 18-22 range this CLI's
-// `engines.node >= 18` promises to support, so plain fs avoids picking a
-// syntax that breaks on some of those versions.
+// Read at runtime instead of a JSON import attribute. This dates from when
+// the CLI supported Node 18-22, where `assert { type: 'json' }` and
+// `with { type: 'json' }` each broke on some versions. Every Node in
+// `engines.node` now supports `with`, so plain fs is just the simpler option.
 const packageJson = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8')
 );

@@ -89,7 +89,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install toolkit dependencies
         run: npm ci
@@ -201,7 +201,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install CLI dependencies
         run: npm ci
@@ -241,7 +241,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install toolcrib-mcp dependencies
         run: npm ci
@@ -280,7 +280,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install toolkit dependencies
         run: npm ci
@@ -350,7 +350,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install toolkit dependencies
         run: npm ci
@@ -416,7 +416,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Lint GitHub Actions workflow files
         run: npx --yes github-actionlint@1.7.12
