@@ -23,7 +23,7 @@ function stripBOM(text) {
  */
 export async function fetchRelease(version) {
   const resolvedVersion = await resolveVersion(version);
-  const zipBuffer = await downloadReleaseZip(resolvedVersion);
+  const { zipBuffer, provenance } = await downloadReleaseZip(resolvedVersion);
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-release-'));
 
@@ -43,6 +43,8 @@ export async function fetchRelease(version) {
 
   return {
     version: resolvedVersion,
+    // 'sigstore' or 'sha256': how downloadReleaseZip verified this download.
+    provenance,
     config,
     tempDir,
     readFile: (relPath) => stripBOM(fs.readFileSync(path.join(tempDir, relPath), 'utf-8')),
@@ -75,7 +77,7 @@ export async function fetchRelease(version) {
  * tests zip from another.
  */
 export async function fetchTestsRelease(version) {
-  const zipBuffer = await downloadReleaseZip(version, TESTS_ASSET_NAME);
+  const { zipBuffer, provenance } = await downloadReleaseZip(version, TESTS_ASSET_NAME);
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'toolcrib-tests-release-'));
 
@@ -98,6 +100,7 @@ export async function fetchTestsRelease(version) {
 
   return {
     version,
+    provenance,
     config,
     tempDir,
     readFile: (relPath) => stripBOM(fs.readFileSync(path.join(tempDir, relPath), 'utf-8')),

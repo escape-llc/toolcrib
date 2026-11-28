@@ -8,12 +8,19 @@ const PORT = 9999;
 
 // The reported "latest" version, and (see the asset route below) which
 // releases/ subfolder a bare, unversioned toolcrib.zip/.sha256 pair is
-// treated as belonging to. Defaults to '1.0.0' to keep every existing use
+// treated as belonging to. Defaults to '0.16.0' to keep every existing use
 // of this server (the documented init/apply flow in this directory's own
-// README.md) working unchanged with the original flat
-// releases/toolcrib.zip layout. Override to exercise `merge`'s real
-// cross-version diff logic -- see "Multi-version fixtures" below.
-const LATEST_VERSION = process.env.MOCK_LATEST_VERSION || '1.0.0';
+// README.md) working with the original flat releases/toolcrib.zip layout.
+// Override to exercise `merge`'s real cross-version diff logic -- see
+// "Multi-version fixtures" below.
+//
+// Deliberately a version BEFORE 0.17.0, the first release with a Sigstore
+// bundle (lib/provenance.js's SIGNED_SINCE): this server only serves locally
+// built, unsigned zips, and the CLI hard-fails any release from 0.17.0 on that
+// lacks a valid bundle (#961). Don't raise it, and don't override it with a
+// version >= 0.17.0, without also serving a real signed bundle for it. The
+// CLI has no switch to skip that check, on purpose.
+const LATEST_VERSION = process.env.MOCK_LATEST_VERSION || '0.16.0';
 
 const server = http.createServer((req, res) => {
   // Mimics: GET /api/repos/{repo}/releases/latest -> GitHub's single-release

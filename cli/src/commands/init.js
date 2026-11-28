@@ -161,7 +161,7 @@ export async function initCommand(options) {
   const lockChange = proposeLockUpdate(
     projectRoot,
     release.version,
-    testsRelease ? { testsVersion: testsRelease.version } : {}
+    { provenance: release.provenance, ...(testsRelease ? { testsVersion: testsRelease.version } : {}) }
   );
   changes.propose(lockChange.relPath, lockChange.current, lockChange.proposed, '.toolcrib-lock.json');
 

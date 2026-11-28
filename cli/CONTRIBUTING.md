@@ -73,6 +73,9 @@ Covers the pure-logic modules without any network access:
 - `test/github.test.js` — checksum verification (match / mismatch /
   missing-checksum-asset), version resolution, release listing — all with
   `fetch` mocked, no real network calls
+- `test/provenance.test.js` / `provenance.checks.test.js` — Sigstore bundle
+  verification against the real v0.17.0 bundle in `test/fixtures/` and the
+  trusted-root snapshot in `src/lib/sigstore-trusted-root.json`, offline
 
 A `vitest.config.js` is present in this folder specifically so vitest
 doesn't walk up to the repo root's `vite.config.ts` (the toolkit's own dev
@@ -205,6 +208,16 @@ unit tests, by construction, couldn't have caught:
    `peerDependencies` — so a future missing entry fails `npm test` in this
    repo directly, rather than waiting for the next person to actually run
    the vendored output.
+
+## Refreshing the bundled Sigstore trust root
+
+`src/lib/sigstore-trusted-root.json` is the fallback the CLI verifies release provenance against when it can't reach Sigstore's TUF repository (see README's "Download verification"). It only matters offline or behind a firewall, but it goes stale when Sigstore rotates its Fulcio or Rekor keys, and then those users can't install a signed release. Refresh it before each CLI release, from `cli/`:
+
+```bash
+node -e "import('@sigstore/tuf').then(async ({getTrustedRoot}) => { const {TrustedRoot} = await import('@sigstore/protobuf-specs'); require('fs').writeFileSync('src/lib/sigstore-trusted-root.json', JSON.stringify(TrustedRoot.toJSON(await getTrustedRoot()), null, 2)); })"
+```
+
+`getTrustedRoot()` checks the TUF metadata's signatures, so the file it writes is as trustworthy as an online fetch. Review the diff (new keys appear as added `tlogs`/`certificateAuthorities` entries; old ones stay with an end date) and run `npm test`: `test/provenance.test.js` verifies the real v0.17.0 bundle against this file.
 
 ## Publishing
 

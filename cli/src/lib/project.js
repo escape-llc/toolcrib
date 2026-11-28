@@ -75,10 +75,11 @@ export function readLock(projectRoot) {
 
 /**
  * `extra` is merged into the written lock JSON alongside `version` —
- * today, used only for `testsVersion` (recorded when `toolcrib init
- * --with-tests` vendors the optional test-suite artifact, see
- * lib/release.js's fetchTestsRelease). Omitted (the default), the output
- * is exactly `{ version }`, unchanged from before this existed.
+ * used for `testsVersion` (recorded when `toolcrib init --with-tests`
+ * vendors the optional test-suite artifact, see lib/release.js's
+ * fetchTestsRelease) and `provenance` ('sigstore' | 'sha256', how the core
+ * zip was verified, see lib/github.js's downloadReleaseZip). Omitted (the
+ * default), the output is exactly `{ version }`.
  *
  * Deliberately no implicit "preserve testsVersion unless told otherwise"
  * behavior in here — a caller that wants to carry an existing testsVersion

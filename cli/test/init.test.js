@@ -345,6 +345,17 @@ describe('initCommand — --with-tests', () => {
     expect(patchContent).toContain('"testsVersion": "1.0.0"');
   });
 
+  it("records the core zip's provenance in the lock file, keeping testsVersion", async () => {
+    fetchRelease.mockImplementation((v) => Promise.resolve({ ...fakeRelease(v, baseFiles()), provenance: 'sigstore' }));
+
+    await initCommand({ version: 'latest', situation: 'new', withTests: true });
+
+    const patchDir = path.join(tmpDir, 'toolcrib-patches');
+    const patchContent = fs.readFileSync(path.join(patchDir, findPatchFor(patchDir, 'toolcrib/.toolcrib-lock.json')), 'utf-8');
+    expect(patchContent).toContain('"provenance": "sigstore"');
+    expect(patchContent).toContain('"testsVersion": "1.0.0"');
+  });
+
   it('resolves "latest" exactly once and reuses the concrete version for both the core and tests fetch — no independent second resolution', async () => {
     await initCommand({ version: 'latest', situation: 'new', withTests: true });
 

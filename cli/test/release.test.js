@@ -31,7 +31,7 @@ describe('fetchRelease', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     resolveVersion.mockResolvedValue('1.0.0');
-    downloadReleaseZip.mockResolvedValue(Buffer.from('fake zip bytes'));
+    downloadReleaseZip.mockResolvedValue({ zipBuffer: Buffer.from('fake zip bytes'), provenance: 'sigstore' });
     // Simulates what a real extraction would produce: a config file plus
     // a couple of vendored files, written for real into targetDir.
     extractZip.mockImplementation(async (zipBuffer, targetDir) => {
@@ -47,6 +47,12 @@ describe('fetchRelease', () => {
     const release = await fetchRelease('latest');
     expect(resolveVersion).toHaveBeenCalledWith('latest');
     expect(release.version).toBe('1.0.0');
+    await release.cleanup();
+  });
+
+  it('exposes how the download was verified as `provenance`', async () => {
+    const release = await fetchRelease('1.0.0');
+    expect(release.provenance).toBe('sigstore');
     await release.cleanup();
   });
 
@@ -152,7 +158,7 @@ describe('fetchRelease', () => {
 describe('fetchTestsRelease', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    downloadReleaseZip.mockResolvedValue(Buffer.from('fake tests zip bytes'));
+    downloadReleaseZip.mockResolvedValue({ zipBuffer: Buffer.from('fake tests zip bytes'), provenance: 'sha256' });
     // Same shape as build-tests-release.js's real output layout: a config
     // file plus __tests__/-prefixed test files, written for real into
     // targetDir the same way fetchRelease's own mock above does.
@@ -171,6 +177,12 @@ describe('fetchTestsRelease', () => {
     const release = await fetchTestsRelease('1.0.0');
     expect(resolveVersion).not.toHaveBeenCalled();
     expect(release.version).toBe('1.0.0');
+    await release.cleanup();
+  });
+
+  it('exposes how the download was verified as `provenance`', async () => {
+    const release = await fetchTestsRelease('1.0.0');
+    expect(release.provenance).toBe('sha256');
     await release.cleanup();
   });
 
