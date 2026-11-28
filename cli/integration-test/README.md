@@ -61,7 +61,7 @@ npm init -y
 
 TOOLCRIB_API_BASE=http://localhost:9999/api \
 TOOLCRIB_RELEASES_BASE=http://localhost:9999/releases \
-node /path/to/toolcrib-cli/src/index.js init
+node /path/to/toolcrib-cli/src/index.js init --version 0.16.0
 
 TOOLCRIB_API_BASE=http://localhost:9999/api \
 TOOLCRIB_RELEASES_BASE=http://localhost:9999/releases \
@@ -72,6 +72,10 @@ Then inspect `/tmp/dummy-project` — `toolcrib/` should contain every
 vendored file, `package.json` should have the real peer dependencies
 added, `.gitignore` should have `/toolcrib-patches/`, and
 `toolcrib/.toolcrib-lock.json` should record the installed version.
+
+`--version 0.16.0` is required. The mock reports v0.16.0 as the latest
+release, and the CLI refuses a "latest" older than v0.17.0, the first
+signed release (#1016), so a bare `init` fails here by design.
 
 `TOOLCRIB_API_BASE`/`TOOLCRIB_RELEASES_BASE` are the only two overrides
 the CLI recognizes — unset, everything targets real GitHub. They exist
@@ -95,10 +99,10 @@ Serve distinct fixtures per version instead, in a subfolder keyed by
 exactly what the requested URL names:
 
 ```
-mkdir -p integration-test/releases/latest
+mkdir -p integration-test/releases/v0.16.0
 mkdir -p integration-test/releases/v0.12.0
-cp /path/to/new/toolcrib.zip integration-test/releases/latest/
-cp /path/to/new/toolcrib.zip.sha256 integration-test/releases/latest/
+cp /path/to/new/toolcrib.zip integration-test/releases/v0.16.0/
+cp /path/to/new/toolcrib.zip.sha256 integration-test/releases/v0.16.0/
 cp /path/to/old/toolcrib.zip integration-test/releases/v0.12.0/
 cp /path/to/old/toolcrib.zip.sha256 integration-test/releases/v0.12.0/
 MOCK_LATEST_VERSION=0.16.0 node integration-test/mock-github-server.js
@@ -119,7 +123,9 @@ exists, so the simpler init/apply walkthrough above keeps working
 unchanged either way.
 
 Then point a real install already on the "old" version at this server and
-run `merge`/`apply` as normal — `toolcrib/.toolcrib-lock.json` in that
+run `merge --version 0.16.0`, then `apply`. The explicit target is needed
+for the same reason as `init` above: a bare `merge` resolves "latest",
+which is refused below v0.17.0. `toolcrib/.toolcrib-lock.json` in that
 project records which version it's currently on, which is what `merge`
 requests as the "old" side.
 

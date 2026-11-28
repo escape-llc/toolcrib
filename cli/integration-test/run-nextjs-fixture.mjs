@@ -172,7 +172,9 @@ try {
 
   assertRelativeImportsResolve(appDir, copiedFiles);
 
-  run('node', [CLI_ENTRY, 'init'], tmpDir);
+  // Explicit version: the mock reports an unsigned v0.16.0 as latest, and the
+  // CLI refuses a latest older than the first signed release (#1016).
+  run('node', [CLI_ENTRY, 'init', '--version', '0.16.0'], tmpDir);
   run('node', [CLI_ENTRY, 'apply'], tmpDir);
   run('npm', ['install'], tmpDir);
   run('npx', ['next', 'build'], tmpDir);
