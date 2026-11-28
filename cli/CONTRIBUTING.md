@@ -124,12 +124,16 @@ npm init -y
 
 TOOLCRIB_API_BASE=http://localhost:9999/api \
 TOOLCRIB_RELEASES_BASE=http://localhost:9999/releases \
-toolcrib init
+toolcrib init --version 0.16.0
 
 TOOLCRIB_API_BASE=http://localhost:9999/api \
 TOOLCRIB_RELEASES_BASE=http://localhost:9999/releases \
 toolcrib apply
 ```
+
+`--version 0.16.0` is required: the mock reports that unsigned version as
+latest, and the CLI refuses a "latest" older than v0.17.0, the first signed
+release (#1016).
 
 Then inspect `/tmp/dummy-project` — `toolcrib/` should contain every
 vendored file, `package.json` should have the real peer dependencies

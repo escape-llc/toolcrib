@@ -51,6 +51,19 @@ function run(args, cwd) {
   return `${result.stdout ?? ''}${result.stderr ?? ''}`;
 }
 
+// Like run(), but the command must fail; returns its combined output.
+function runExpectingFailure(args, cwd) {
+  console.log(`\n$ node cli/src/index.js ${args.join(' ')}  (cwd: ${cwd}, expected to fail)`);
+  const result = crossSpawn.sync('node', [CLI_ENTRY, ...args], { cwd, env, encoding: 'utf-8' });
+  if (result.error) throw result.error;
+  process.stdout.write(result.stdout ?? '');
+  process.stderr.write(result.stderr ?? '');
+  if (result.status === 0) {
+    throw new Error(`toolcrib ${args.join(' ')} was expected to fail but exited with code 0`);
+  }
+  return `${result.stdout ?? ''}${result.stderr ?? ''}`;
+}
+
 // A UTF-8 BOM prefix on the target project's own package.json --
 // PowerShell's `Out-File`/`>` redirection adds this by default (unless
 // `-Encoding utf8NoBOM` is given), so a Windows user hand-editing
@@ -85,7 +98,13 @@ try {
   // (see mock-github-server.js), so the CLI must take the SHA-256-only path
   // and say so. Releases from 0.17.0 on hard-fail without a valid Sigstore
   // bundle, and there is no switch to skip that.
-  const initOutput = run(['init'], tmpDir);
+  //
+  // A bare `init` resolves "latest", which the mock reports as v0.16.0. The
+  // CLI refuses a latest older than the first signed release (#1016), so the
+  // version is passed explicitly, and the refusal itself is checked first.
+  const refusedOutput = runExpectingFailure(['init'], tmpDir);
+  assert.match(refusedOutput, /first signed release/, 'init should refuse a "latest" older than the first signed release.');
+  const initOutput = run(['init', '--version', '0.16.0'], tmpDir);
   assert.match(initOutput, /predates release signing/, 'init should note that this release predates signing.');
   run(['apply'], tmpDir);
 

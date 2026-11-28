@@ -84,6 +84,13 @@ export async function listVersions() {
  * much smaller response and the semantically-correct endpoint for this
  * exact question. 404 means no qualifying release exists yet, per GitHub's
  * own documented behavior for this endpoint.
+ *
+ * Refuses a "latest" older than SIGNED_SINCE (#1016). That release is
+ * published, so the newest release can never legitimately be older than it.
+ * Accepting one would let anyone able to create a release (a leaked
+ * contents:write token) mark a fake, unsigned old tag as latest and get it
+ * installed with SHA-256 checking only. An explicit --version still installs
+ * an older release, because then the user chose it.
  */
 export async function fetchLatestVersion() {
   const res = await fetch(`${API_BASE}/repos/${REPO}/releases/latest`, {
@@ -94,7 +101,15 @@ export async function fetchLatestVersion() {
   if (!res.ok) throwGitHubApiError(res, 'the latest release');
 
   const release = await res.json();
-  return assertValidVersion(String(release.tag_name).replace(/^v/, ''), 'GitHub API latest release tag');
+  const version = assertValidVersion(String(release.tag_name).replace(/^v/, ''), 'GitHub API latest release tag');
+  if (!isSignedRelease(version)) {
+    throw new Error(
+      `GitHub reports v${version} as the latest release, which is older than v${SIGNED_SINCE}, the first signed release. ` +
+        `The latest release can't be older than that, so this one is refused. ` +
+        `To install an older release on purpose, pass --version <x.y.z>.`
+    );
+  }
+  return version;
 }
 
 /**

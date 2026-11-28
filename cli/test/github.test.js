@@ -122,6 +122,25 @@ describe('fetchLatestVersion', () => {
     await expect(fetchLatestVersion()).rejects.toThrow(/rate limit/i);
     await expect(fetchLatestVersion()).rejects.toThrow(/--version/);
   });
+
+  // #1016: a "latest" below the first signed release would be installed with
+  // SHA-256 checking only, so it's refused rather than trusted.
+  it('refuses a latest release older than the first signed release', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v0.16.9', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false }),
+    });
+    await expect(fetchLatestVersion()).rejects.toThrow(/v0\.16\.9.*older than v0\.17\.0/);
+    await expect(fetchLatestVersion()).rejects.toThrow(/--version/);
+  });
+
+  it('accepts the first signed release itself as latest', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v0.17.0', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false }),
+    });
+    await expect(fetchLatestVersion()).resolves.toBe('0.17.0');
+  });
 });
 
 describe('fetchSecurityAdvisories', () => {
@@ -174,6 +193,19 @@ describe('resolveVersion', () => {
     const result = await resolveVersion('1.2.0');
     expect(result).toBe('1.2.0');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('still allows an explicit pre-signing version, since the user chose it', async () => {
+    await expect(resolveVersion('0.16.0')).resolves.toBe('0.16.0');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses "latest" when it resolves below the first signed release', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v0.16.0', published_at: '2026-07-01T00:00:00Z', prerelease: false, draft: false }),
+    });
+    await expect(resolveVersion('latest')).rejects.toThrow(/first signed release/);
   });
 
   it('resolves "latest" via fetchLatestVersion (the dedicated /releases/latest endpoint)', async () => {
@@ -405,12 +437,25 @@ describe('downloadReleaseZip provenance', () => {
   it('resolves "latest" to a concrete version before choosing how to verify', async () => {
     fetchMock.mockImplementation(async (url) => {
       const u = String(url);
-      if (u.includes('/api/repos/')) return { ok: true, json: async () => ({ tag_name: 'v0.16.0' }) };
+      if (u.includes('/api/repos/')) return { ok: true, json: async () => ({ tag_name: 'v0.18.0' }) };
       if (u.endsWith('.sha256')) return { ok: true, text: async () => `${hash}  x\n` };
+      if (u.endsWith('.sigstore.json')) return { ok: true, text: async () => JSON.stringify(bundle) };
       return { ok: true, arrayBuffer: async () => content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) };
     });
     const result = await downloadReleaseZip('latest');
-    expect(result.provenance).toBe('sha256');
-    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/download/v0.16.0/toolcrib.zip'))).toBe(true);
+    expect(result.provenance).toBe('sigstore');
+    expect(verifyProvenance).toHaveBeenCalledWith(expect.objectContaining({ version: '0.18.0' }));
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/download/v0.18.0/toolcrib.zip'))).toBe(true);
+  });
+
+  // #1016: a fake pre-signing "latest" must not reach the SHA-256-only path.
+  it('refuses a "latest" below the first signed release before downloading anything', async () => {
+    fetchMock.mockImplementation(async (url) => {
+      if (String(url).includes('/api/repos/')) return { ok: true, json: async () => ({ tag_name: 'v0.16.0' }) };
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    await expect(downloadReleaseZip('latest')).rejects.toThrow(/first signed release/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 });

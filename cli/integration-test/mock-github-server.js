@@ -20,6 +20,10 @@ const PORT = 9999;
 // lacks a valid bundle (#961). Don't raise it, and don't override it with a
 // version >= 0.17.0, without also serving a real signed bundle for it. The
 // CLI has no switch to skip that check, on purpose.
+//
+// The CLI also refuses a "latest" older than 0.17.0 (#1016), so a bare
+// `init`/`merge` against this server fails by design. Pass `--version 0.16.0`
+// (served from the flat releases/ layout, or releases/v0.16.0/ if present).
 const LATEST_VERSION = process.env.MOCK_LATEST_VERSION || '0.16.0';
 
 const server = http.createServer((req, res) => {
